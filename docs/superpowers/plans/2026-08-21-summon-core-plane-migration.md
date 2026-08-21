@@ -56,6 +56,9 @@
 - Modify: `apps/web/public/manifest.json`
 - Modify: `apps/web/public/site.webmanifest.json`
 - Modify: `packages/constants/src/metadata.ts`
+- Modify: `apps/web/app/root.tsx`
+- Modify: `apps/web/core/components/auth-screens/header.tsx`
+- Modify: `apps/web/core/components/auth-screens/footer.tsx`
 - Test: `scripts/check-summon-boundaries.sh`
 
 **Interfaces:**
@@ -105,7 +108,7 @@ Expected: all commands exit 0.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -- docs/plans/plane-fork-migration/plan.html docs/superpowers/plans/2026-08-21-summon-core-plane-migration.md docs/architecture/summon-domain-ownership.md scripts/check-summon-boundaries.sh apps/web/public/manifest.json apps/web/public/site.webmanifest.json packages/constants/src/metadata.ts
+git add -- docs/plans/plane-fork-migration/plan.html docs/superpowers/plans/2026-08-21-summon-core-plane-migration.md docs/architecture/summon-domain-ownership.md scripts/check-summon-boundaries.sh apps/web/public/manifest.json apps/web/public/site.webmanifest.json packages/constants/src/metadata.ts apps/web/app/root.tsx apps/web/core/components/auth-screens/header.tsx apps/web/core/components/auth-screens/footer.tsx
 git commit -m "chore(summon): establish Plane extension boundary"
 ```
 
