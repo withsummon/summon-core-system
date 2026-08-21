@@ -1,6 +1,6 @@
 {
-  "name": "Plane",
-  "short_name": "Plane",
+  "name": "Summon Core",
+  "short_name": "Summon Core",
   "description": "Plane helps you plan your issues, cycles, and product modules.",
   "start_url": ".",
   "display": "standalone",

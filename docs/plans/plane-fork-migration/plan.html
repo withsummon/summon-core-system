@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Summon Core - Plane Fork Migration Plan</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #17213a;
+        background: #f4f7ff;
+      }
+      * { box-sizing: border-box; }
+      body { max-width: 1180px; margin: 0 auto; padding: 44px 22px 80px; line-height: 1.6; }
+      header, section {
+        background: #fff;
+        border: 1px solid #e3e9f5;
+        border-radius: 18px;
+        padding: 26px;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 32px rgba(31, 67, 145, .05);
+      }
+      h1, h2, h3 { line-height: 1.25; margin-top: 0; }
+      h1 { font-size: clamp(28px, 4vw, 38px); margin-bottom: 10px; }
+      h2 { font-size: 21px; color: #245eea; }
+      h3 { font-size: 16px; margin-top: 24px; }
+      p, li, td, th { font-size: 14px; }
+      code { background: #edf3ff; border-radius: 6px; padding: 2px 6px; overflow-wrap: anywhere; }
+      ul, ol { padding-left: 22px; }
+      li { margin: 7px 0; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { border: 1px solid #dfe6f2; padding: 11px; text-align: left; vertical-align: top; }
+      th { background: #f3f6fc; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+      .tag { display: inline-block; padding: 5px 10px; border-radius: 999px; background: #fff3cd; color: #7a5600; font-size: 12px; font-weight: 700; }
+      .good { color: #126b42; font-weight: 700; }
+      .warn { color: #9a4d00; font-weight: 700; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 12px; }
+      .card { border: 1px solid #e3e9f5; border-radius: 13px; padding: 15px; }
+      .small { color: #59657b; font-size: 12px; }
+      .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+      .flow span { border: 1px solid #d7e1f5; border-radius: 10px; background: #f8faff; padding: 8px 11px; font-size: 13px; }
+      .flow b { color: #245eea; }
+      @media (max-width: 760px) {
+        body { padding: 20px 12px 50px; }
+        header, section { padding: 19px; border-radius: 14px; }
+        table { display: block; overflow-x: auto; white-space: normal; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="tag">Kickoff - disetujui 21 Agustus 2026</span>
+      <h1>Summon Core dari Fork Plane</h1>
+      <p><strong>Goal:</strong> menjadikan fork asli <code>makeplane/plane</code> sebagai satu-satunya codebase Summon Core, lalu memindahkan perilaku yang sudah ada di frontend Next.js dan backend NestJS ke arsitektur bawaan Plane tanpa membuat domain, database, autentikasi, navigasi, atau UI shell yang redundan.</p>
+      <p><strong>Referensi fitur dan visual:</strong> <code>/Users/muhammadrayaarrizki/Downloads/Core System Summon.pdf</code>, 9 halaman, SHA-256 <code>8263d991ff496cf06ae7bb60d22fa643ee50c0e84d2cd85406db601df40cd673</code>.</p>
+      <p><strong>Sumber perilaku saat ini:</strong> frontend <code>withsummon/summon-core-system@d91edad598d39b928ab0b2e654ad551717f6c95e</code> dan backend <code>withsummon/summon-core-api@5e3fe4728a03efdd3d454d446a82b901a6377260</code>.</p>
+      <p><strong>Baseline fork:</strong> Plane stable <code>v1.4.1</code> / <code>master@5662b761062b0b2f9d42a6578b55481b5b069792</code>. Branch default upstream <code>preview</code> sedang berada pada release candidate <code>v1.4.2-rc1</code>, sehingga tidak dipakai sebagai baseline produksi pertama.</p>
+    </header>
+
+    <section>
+      <h2>Problem</h2>
+      <p>Summon Core saat ini dibuat sebagai frontend Next.js dan API NestJS terpisah. Plane sudah menyediakan fondasi project management yang lebih lengkap: workspace, project, work item, member, state, cycle, module, view, page, asset, notification, activity, analytics, authentication, permission, dan settings. Menyalin seluruh model dan layar lama ke fork akan menghasilkan dua sumber data untuk konsep yang sama.</p>
+      <p>Selain itu, nama target <code>withsummon/summon-core-system</code> sudah dipakai repository Next.js. GitHub tidak dapat membuat fork Plane dengan nama dan owner yang sama sebelum repository lama dipindahkan namanya.</p>
+      <p class="warn">Keputusan kickoff: pekerjaan ini bukan menempelkan dua aplikasi. Plane menjadi platform utama; kode lama hanya menjadi referensi perilaku dan acceptance.</p>
+    </section>
+
+    <section>
+      <h2>Outcome</h2>
+      <div class="flow">
+        <span>Plane stable fork</span><b>+</b><span>Plane native project management</span><b>+</b><span>Summon business extensions</span><b>=</b><span>Summon Core</span>
+      </div>
+      <ul>
+        <li><code>withsummon/summon-core-system</code> tercatat di GitHub sebagai fork dari <code>makeplane/plane</code>.</li>
+        <li>Frontend aktif adalah <code>apps/web</code> React Router/Vite milik Plane. Tidak ada Next.js kedua.</li>
+        <li>Backend aktif adalah <code>apps/api</code> Django/DRF milik Plane. Tidak ada NestJS kedua.</li>
+        <li>Semua data berada pada PostgreSQL dan permission model Plane.</li>
+        <li>Fitur dalam PDF tersedia melalui UI Plane yang sudah disepakati sebagai shell utama.</li>
+        <li>Setiap konsep mempunyai satu pemilik data dan satu jalur mutasi.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Repository Transition</h2>
+      <ol>
+        <li>Verifikasi GitHub identity dan hak admin pada organisasi <code>withsummon</code> sebelum rename atau fork.</li>
+        <li>Rename repository Next.js saat ini menjadi <code>withsummon/summon-core-system-legacy</code>. Riwayat dan SHA tetap dipertahankan sebagai sumber migrasi.</li>
+        <li>Buat actual GitHub fork <code>withsummon/summon-core-system</code> dari <code>makeplane/plane</code>.</li>
+        <li>Set <code>origin</code> ke fork Summon dan <code>upstream</code> ke <code>makeplane/plane</code>.</li>
+        <li>Buat branch default <code>main</code> dari stable <code>upstream/master@5662b761...</code>. Integrasi fitur dikerjakan di feature branches, bukan langsung di default branch.</li>
+        <li>Rename folder lokal Next.js menjadi <code>summon-core-system-legacy</code>, lalu clone fork ke path proyek yang sekarang: <code>/Users/muhammadrayaarrizki/projects/summon-core-system</code>.</li>
+        <li>Salin plan yang sudah disetujui ini ke <code>docs/plans/plane-fork-migration/plan.html</code> pada fork sebagai commit dokumentasi Summon pertama.</li>
+        <li>Pertahankan <code>summon-core-api</code> read-only selama migrasi sebagai referensi endpoint, schema, crypto, dan tests. Backend tersebut tidak menjadi dependency runtime dan diarsipkan setelah parity diterima.</li>
+      </ol>
+      <p class="small">Tidak ada repository atau history yang dihapus pada fase transisi. Penghapusan remote permanen membutuhkan instruksi terpisah setelah hasil fork terverifikasi.</p>
+    </section>
+
+    <section>
+      <h2>Non-Redundant Ownership Map</h2>
+      <table>
+        <thead>
+          <tr><th>Capability PDF / kode lama</th><th>Pemilik canonical di fork</th><th>Keputusan migrasi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Login, session, password reset, OAuth, request access</td><td>Plane authentication dan User</td><td>Gunakan UI/API Plane; brand menjadi Summon. Jangan port auth/session NestJS.</td></tr>
+          <tr><td>Workspace, members, roles, preferences, settings</td><td>Plane Workspace, WorkspaceMember, project member, settings</td><td>Gunakan role Admin/Member/Guest dan permission Plane. Tambahkan hanya menu setting khusus Summon.</td></tr>
+          <tr><td>Projects dan project members</td><td>Plane Project dan ProjectMember</td><td>Jangan membuat model project kedua. Tambahkan <code>SummonProjectProfile</code> one-to-one hanya untuk client, opportunity asal, delivery status, phase, health, dates, dan budget yang tidak dimiliki Plane.</td></tr>
+          <tr><td>Tasks, assignee, state, priority, due date, board, list, calendar</td><td>Plane Issue/work item, State, IssueAssignee, views</td><td>Semua task lama dipetakan ke work item Plane. Tidak ada tabel <code>summon_tasks</code>.</td></tr>
+          <tr><td>Milestone, timeline, progress</td><td>Plane Module/Cycle dan analytics work item</td><td>Gunakan Module/Cycle sesuai kebutuhan. Progress dihitung dari work item, tidak disimpan ulang.</td></tr>
+          <tr><td>Knowledge, notes, guides, FAQ, lessons learned, templates</td><td>Plane Page dan label</td><td>Isi knowledge menjadi Page. <code>SummonPageContext</code> hanya menyimpan relasi page ke client/opportunity bila konteks itu tidak bisa direpresentasikan oleh project.</td></tr>
+          <tr><td>Documents dan uploaded files</td><td>Plane FileAsset, page assets, issue attachments</td><td>Gunakan storage/upload/download Plane. Tidak ada tabel binary document kedua.</td></tr>
+          <tr><td>Notifications dan notification preferences</td><td>Plane Notification dan UserNotificationPreference</td><td>Event custom Summon membuat notification Plane. Tidak ada notification model baru.</td></tr>
+          <tr><td>Project/work item activity</td><td>Plane activity/version models</td><td>Gunakan activity bawaan. Feed gabungan membaca activity Plane dan timestamp/audit model custom; tidak membuat event copy untuk setiap perubahan.</td></tr>
+          <tr><td>Clients dan contacts</td><td>Summon extension</td><td>Buat model workspace-scoped <code>Client</code> dan <code>ClientContact</code> karena Plane tidak memiliki CRM client.</td></tr>
+          <tr><td>Opportunities dan pipeline</td><td>Summon extension</td><td>Buat <code>Opportunity</code>, relasikan ke Client, Plane User, dan project hasil konversi melalui SummonProjectProfile.</td></tr>
+          <tr><td>Meetings, participants, transcript, AI summary</td><td>Summon Meeting + model Plane terkait</td><td>Meeting dan participant custom. Transcript/recording memakai FileAsset/Page. Action item wajib menunjuk Plane Issue; status/title/due date tidak disalin ke model meeting.</td></tr>
+          <tr><td>Resources: repositories, Figma, deployments, Drive, recordings, accounts</td><td>Plane assets/pages + Summon ResourceLink</td><td>File tetap FileAsset; URL eksternal disimpan sekali di <code>ResourceLink</code>. Credential hanya direferensikan, tidak disalin ke resource.</td></tr>
+          <tr><td>Automation Studio dan generated documents</td><td>Summon extension + Plane FileAsset/Page</td><td>Template/job custom; output final disimpan sebagai asset atau page Plane. Jangan membuat document storage kedua.</td></tr>
+          <tr><td>Credential Vault</td><td>Summon extension</td><td>Credential, grant, dan immutable access log custom; selalu workspace/project-scoped dan memakai User Plane.</td></tr>
+          <tr><td>Reports</td><td>Query Plane analytics + Summon domain</td><td>Report dihitung dari data canonical. Tidak ada tabel ringkasan yang dapat menjadi stale; export file boleh menjadi FileAsset.</td></tr>
+          <tr><td>Summon Assistant</td><td>Summon service di Django + data canonical</td><td>Pindahkan perilaku deterministic berbasis project/work item/page/report. Integrasi LLM eksternal tidak diasumsikan.</td></tr>
+          <tr><td>Command palette</td><td>Plane Power-K store dan command UI</td><td>Tambahkan command Summon ke palette Plane. Jangan port modal command palette Next.js.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Approach</h2>
+
+      <h3>1. Extension boundary</h3>
+      <p>Tambahkan satu Django app <code>plane.summon</code> di <code>apps/api</code> untuk model, migrations, serializers, services, permissions, dan API domain Summon. Semua foreign key langsung menunjuk model Plane <code>Workspace</code>, <code>User</code>, <code>Project</code>, <code>Issue</code>, <code>Page</code>, atau <code>FileAsset</code>. Setiap query dan mutasi wajib memvalidasi workspace dan project membership, bukan hanya keberadaan UUID.</p>
+      <p>Frontend ditempatkan sebagai feature folders di <code>apps/web</code>, memakai service/store/component bawaan Plane. Route Summon masuk melalui <code>apps/web/app/routes/extended.ts</code> dan pola extension yang sudah ada. Shared contracts masuk ke package Plane yang relevan hanya bila dipakai lintas feature.</p>
+
+      <h3>2. Minimal persisted schema</h3>
+      <div class="grid">
+        <div class="card"><strong>Commercial</strong><br /><code>Client</code>, <code>ClientContact</code>, <code>Opportunity</code>, <code>SummonProjectProfile</code>.</div>
+        <div class="card"><strong>Collaboration</strong><br /><code>Meeting</code>, <code>MeetingParticipant</code>, <code>MeetingWorkItem</code>, <code>SummonPageContext</code>, <code>ResourceLink</code>.</div>
+        <div class="card"><strong>Automation</strong><br /><code>AutomationTemplate</code>, <code>AutomationJob</code>, <code>GeneratedArtifact</code> yang menunjuk Page/FileAsset.</div>
+        <div class="card"><strong>Security</strong><br /><code>Credential</code>, <code>CredentialGrant</code>, <code>CredentialAccessLog</code>.</div>
+      </div>
+      <ul>
+        <li><code>SummonProjectProfile</code> tidak menyimpan nama project, member, progress, atau task count.</li>
+        <li><code>MeetingWorkItem</code> tidak menyimpan title, status, assignee, atau due date; semua dibaca dari Issue.</li>
+        <li><code>GeneratedArtifact</code> tidak menyimpan file content; hanya relasi hasil ke Page/FileAsset dan metadata job.</li>
+        <li><code>ResourceLink</code> hanya untuk URL eksternal dan metadata display; file upload tidak masuk ke tabel ini.</li>
+        <li><code>CredentialAccessLog</code> tetap dipersist karena reveal, rotate, grant, revoke, dan delete tidak dapat direkonstruksi aman dari state akhir credential.</li>
+      </ul>
+
+      <h3>3. Feature delivery slices</h3>
+      <ol>
+        <li><strong>Fork baseline and branding:</strong> repo transition, clean Plane boot, Summon name/logo/copy, preserved AGPL notices, and upstream remote.</li>
+        <li><strong>Canonical work management:</strong> configure Plane project/work item/page/notification/settings paths and add SummonProjectProfile plus Summon home summary.</li>
+        <li><strong>Commercial:</strong> Clients, contacts, Opportunities, pipeline transitions, client detail, and links to Plane projects.</li>
+        <li><strong>Knowledge and resources:</strong> workspace knowledge index over Pages, document index over FileAssets, and persisted external ResourceLink entries.</li>
+        <li><strong>Meetings:</strong> meeting schedule, participants, notes, recording/transcript assets, summary, and action items backed by Plane Issues.</li>
+        <li><strong>Automation and assistant:</strong> deterministic templates/jobs, generated Page/FileAsset outputs, assistant queries over authorized canonical data, and command palette extensions.</li>
+        <li><strong>Credential Vault:</strong> encryption, masking, re-authenticated reveal, grants, rotation, revocation/deletion, and audit history.</li>
+        <li><strong>Reports and operational finish:</strong> portfolio/commercial/project/task/automation aggregates, exports, custom settings, notifications, responsive parity, and legacy runtime retirement.</li>
+      </ol>
+      <p>Setiap slice harus selesai dengan migration, backend test, frontend check, dan browser read-back sebelum slice berikutnya dianggap complete.</p>
+    </section>
+
+    <section>
+      <h2>User Flows</h2>
+      <table>
+        <thead><tr><th>Flow</th><th>Expected behavior</th><th>Read-back</th></tr></thead>
+        <tbody>
+          <tr><td>Sign in</td><td>User masuk melalui auth Plane dan memilih workspace.</td><td>Refresh mempertahankan session; sidebar dan routes mengikuti role.</td></tr>
+          <tr><td>Project and task</td><td>Buat Plane Project, isi Summon profile, buat work item, assign member, ubah state.</td><td>Project, work item, dashboard, report, dan notification menampilkan state yang sama setelah reload.</td></tr>
+          <tr><td>Client and opportunity</td><td>Buat client/contact, buat opportunity, pindahkan stage, lalu link atau convert ke Plane Project.</td><td>Client detail, pipeline, project profile, dan report membaca relasi yang sama setelah reload.</td></tr>
+          <tr><td>Knowledge and resources</td><td>Buat Page, upload FileAsset, dan tambah ResourceLink eksternal.</td><td>Knowledge/Resources search mengembalikan ketiganya tanpa menyalin file atau page content.</td></tr>
+          <tr><td>Meeting action</td><td>Buat meeting dan action item yang menghasilkan atau menautkan Plane Issue.</td><td>Complete issue dari Plane langsung membuat action item meeting terlihat selesai.</td></tr>
+          <tr><td>Automation</td><td>Pilih template dan context, generate output deterministic.</td><td>Job history tersimpan dan output dapat dibuka sebagai Page atau diunduh sebagai FileAsset setelah reload.</td></tr>
+          <tr><td>Credential</td><td>Buat credential, grant access, re-authenticate, reveal, rotate, revoke/delete.</td><td>List tetap masked; secret hanya tampil transient; setiap operasi muncul di audit history.</td></tr>
+          <tr><td>Assistant</td><td>Tanyakan project, overdue work item, knowledge, atau report dengan optional project context.</td><td>Jawaban hanya memakai record yang dapat diakses user dan konsisten dengan layar canonical.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Acceptance Criteria</h2>
+      <h3>Repository and architecture</h3>
+      <ul>
+        <li>GitHub menunjukkan <code>withsummon/summon-core-system</code> sebagai fork dari <code>makeplane/plane</code>.</li>
+        <li><code>origin</code> dan <code>upstream</code> mengarah ke repository yang benar; SHA baseline stable tercatat.</li>
+        <li>Build, Compose, runtime, dan deployment tidak mengacu ke repository Next.js atau NestJS lama.</li>
+        <li>Tidak ada Next.js app, NestJS app, Drizzle schema, atau OpenAPI contract lama di fork Plane.</li>
+        <li>Copyright dan AGPL-3.0 Plane tetap utuh; source availability untuk deployment jaringan ditangani sebelum produksi.</li>
+      </ul>
+
+      <h3>No redundancy gate</h3>
+      <ul>
+        <li>Tidak ada custom model bernama atau berfungsi sebagai Project, Task/Issue, User, Session, Workspace, Page/Knowledge content, FileAsset/Document binary, Notification, atau Settings preference umum.</li>
+        <li>Setiap custom row memiliki workspace scope; project/user/issue/page/asset reference memakai primary key Plane.</li>
+        <li>Progress, task counts, report totals, and recent activity dihitung dari source canonical, bukan disimpan sebagai copy.</li>
+        <li>Meeting action item completion hanya dimiliki oleh Plane Issue.</li>
+        <li>Generated document content hanya dimiliki Page/FileAsset Plane.</li>
+        <li>Custom domain events memakai notification Plane dan permission Plane.</li>
+      </ul>
+
+      <h3>Feature parity</h3>
+      <ul>
+        <li>Sembilan halaman PDF terwakili: login/home, project workspace, knowledge, reports, client detail, credential vault, command palette, settings, opportunities, resources, automation, assistant, task center, meeting, dan notifications.</li>
+        <li>UI memakai visual language Plane; PDF menjadi referensi informasi, hierarchy, dan feature presence, bukan permintaan membuat shell kedua atau pixel-copy.</li>
+        <li>Semua kontrol yang terlihat actionable melakukan navigation, persisted mutation, download, atau membuka form/modal yang benar. Placeholder toast tidak diterima.</li>
+        <li>Loading, empty, validation, forbidden, not-found, conflict, and recoverable server-error states tersedia pada custom flows.</li>
+        <li>Desktop dan mobile tidak overflow dan seluruh custom route dapat dicapai melalui navigasi Plane serta command palette.</li>
+      </ul>
+
+      <h3>Security and data integrity</h3>
+      <ul>
+        <li>Workspace/project access diverifikasi server-side untuk list, detail, mutation, asset download, reports, assistant, automation, dan credential operations.</li>
+        <li>Credential secret dienkripsi memakai dependency <code>cryptography</code> yang sudah ada dengan dedicated runtime key dan key version. Secret tidak muncul di list/detail response, logs, migrations, seed, screenshots, atau Git history.</li>
+        <li>Reveal membutuhkan session aktif, password re-verification, dan grant yang sesuai; response tidak di-cache dan UI menghapus secret saat drawer ditutup, selection berubah, tab hidden, atau timeout.</li>
+        <li>Cross-workspace foreign keys ditolak walaupun UUID valid.</li>
+        <li>Database constraints melindungi uniqueness, probability range, stage/status vocabulary, dan exactly-one/allowed relationship invariants.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Verification</h2>
+      <ol>
+        <li><strong>Baseline:</strong> jalankan setup self-host Plane dan buktikan frontend, API, PostgreSQL, Redis/Celery dependencies bawaan, dan health endpoints berjalan sebelum custom code.</li>
+        <li><strong>Static checks:</strong> <code>pnpm check</code> dan <code>pnpm build</code> untuk monorepo Plane.</li>
+        <li><strong>Backend:</strong> migration dari database kosong dan focused Django/pytest tests untuk setiap custom service, permission, constraint, and transition.</li>
+        <li><strong>Plane regression:</strong> <code>docker compose -f docker-compose-test.yml up --build --abort-on-container-exit --exit-code-from api-tests</code> untuk shared model/permission changes; subset test boleh dipakai selama slice, full gate wajib sebelum release.</li>
+        <li><strong>Duplicate audit:</strong> periksa Django app registry dan PostgreSQL tables untuk memastikan custom table hanya sesuai allowlist schema pada plan ini.</li>
+        <li><strong>Browser acceptance:</strong> Playwright menjalankan flow Sign in, Project/work item, Client/opportunity, Page/FileAsset/ResourceLink, Meeting/Issue action, Automation output, Credential reveal/audit, Notification, Report, dan Assistant.</li>
+        <li><strong>Visual:</strong> screenshot desktop dan mobile untuk setiap kelompok route PDF, cek hierarchy, accessibility basics, responsive layout, dan console errors.</li>
+        <li><strong>Repository:</strong> <code>git diff --check</code>, review diff terhadap upstream stable, pastikan generated/temp files dan secrets tidak ter-commit.</li>
+        <li><strong>Deployment proof:</strong> verifikasi commit SHA yang live, login nyata, satu persisted write/read-back, asset download, dan credential masking pada deployment target sebelum legacy runtime dinonaktifkan.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Impact</h2>
+      <ul>
+        <li><strong>User:</strong> mendapat fitur PDF di dalam UI Plane yang konsisten, ditambah capability project management native Plane.</li>
+        <li><strong>Engineering:</strong> stack berubah menjadi React Router/Vite + Django/DRF; maintenance Next.js/NestJS dihentikan.</li>
+        <li><strong>Operations:</strong> deployment mengikuti Compose/services Plane; tidak ada API Summon kedua.</li>
+        <li><strong>Security:</strong> auth, membership, dan resource scoping mengikuti Plane; Credential Vault tetap memiliki kontrol khusus dan audit trail.</li>
+        <li><strong>License:</strong> fork dan modifikasi tunduk pada AGPL-3.0 Plane. Review compliance wajib sebelum penggunaan jaringan eksternal atau distribusi.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Commitments</h2>
+      <ul>
+        <li>Target final: <code>https://github.com/withsummon/summon-core-system</code>, actual fork dari Plane.</li>
+        <li>Plane UI tetap menjadi shell utama.</li>
+        <li>Plane Django API dan PostgreSQL menjadi backend tunggal.</li>
+        <li>Repository Next.js dan NestJS lama tidak menjadi runtime dependency.</li>
+        <li>Implementation memprioritaskan extension files dan feature folders agar upstream sync tetap reviewable.</li>
+        <li>Tidak menambah dependency bila standard library atau dependency Plane yang sudah terpasang cukup.</li>
+        <li>Tidak ada migrasi data runtime lama pada scope ini. Implementasi membuat schema baru dan seed aman; keputusan ini harus diubah sebelum coding bila data lama wajib dipertahankan.</li>
+        <li>Tidak ada external LLM/provider integration pada scope awal. Assistant dan automation mempertahankan perilaku deterministic yang saat ini benar-benar tersedia.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Notes and Known Traps</h2>
+      <ul>
+        <li>PDF image-only; text extraction kosong. Seluruh 9 halaman telah direview melalui hasil render visual.</li>
+        <li>Current frontend tests 14/14 dan typecheck lulus; current backend unit tests 3/3 dan typecheck lulus saat kickoff. E2E PostgreSQL belum dijalankan pada kickoff.</li>
+        <li>Current Resources screen hanya mengagregasi Documents dan Knowledge. Repository/Figma/Deployment/Drive/Recording/Account pada PDF memerlukan <code>ResourceLink</code> persisted di fork.</li>
+        <li>Current login menampilkan account selector, bukan Google/Microsoft OAuth sesuai gambar PDF. Fork memakai provider auth bawaan Plane yang benar-benar dikonfigurasi; tombol provider yang tidak aktif tidak boleh ditampilkan sebagai aksi palsu.</li>
+        <li>Current Assistant bukan external AI: jawaban dihitung dari project/task/knowledge. Jangan mengklaim AI provider sebelum provider, consent, logging, dan runtime secret ditentukan.</li>
+        <li>Current Automation menghasilkan Markdown secara synchronous dan deterministic. Pertahankan flow ini; Celery hanya dipakai jika job benar-benar asynchronous atau panjang.</li>
+        <li>Jangan edit core model Plane untuk menambah field Summon bila one-to-one extension cukup. Ini mengurangi konflik saat mengambil update upstream.</li>
+        <li>Folder render PDF di <code>tmp/</code> adalah artifact audit dan tidak boleh masuk commit.</li>
+      </ul>
+    </section>
+  </body>
+</html>
