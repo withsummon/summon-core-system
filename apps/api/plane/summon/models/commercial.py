@@ -101,14 +101,14 @@ class SummonProjectProfile(BaseModel):
         OFF_TRACK = "off_track", "Off track"
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_project_profiles")
-    project = models.OneToOneField("db.Project", on_delete=models.CASCADE, related_name="summon_profile")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="summon_profiles")
     client = models.ForeignKey(Client, null=True, blank=True, on_delete=models.SET_NULL, related_name="projects")
-    source_opportunity = models.OneToOneField(
+    source_opportunity = models.ForeignKey(
         Opportunity,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="converted_project_profile",
+        related_name="converted_project_profiles",
     )
     delivery_status = models.CharField(
         max_length=24,
@@ -120,3 +120,17 @@ class SummonProjectProfile(BaseModel):
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
     budget = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("project",),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_project_profile",
+            ),
+            models.UniqueConstraint(
+                fields=("source_opportunity",),
+                condition=models.Q(deleted_at__isnull=True, source_opportunity__isnull=False),
+                name="summon_unique_converted_opportunity",
+            ),
+        ]

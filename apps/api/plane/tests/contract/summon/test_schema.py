@@ -45,7 +45,7 @@ def test_schema_has_canonical_link_constraints():
 
     assert "summon_unique_meeting_issue" in meeting_constraints
     assert "summon_artifact_exactly_one_target" in artifact_constraints
-    assert GeneratedArtifact._meta.get_field("job").unique
+    assert "summon_unique_artifact_job" in artifact_constraints
 
 
 def test_canonical_delete_policies_preserve_audit_without_blocking_plane_records():
@@ -63,10 +63,14 @@ def test_recreatable_unique_constraints_ignore_soft_deleted_rows():
     constraint_names = {
         "summon_unique_client_contact_email",
         "summon_unique_client_name",
+        "summon_unique_converted_opportunity",
         "summon_unique_credential_grant",
+        "summon_unique_artifact_job",
         "summon_unique_meeting_issue",
         "summon_unique_meeting_participant",
         "summon_unique_opportunity_identity",
+        "summon_unique_page_context",
+        "summon_unique_project_profile",
         "summon_unique_template_name",
     }
     constraints = {
@@ -130,3 +134,38 @@ def test_credential_access_log_protects_credential_audit_chain(workspace):
 
     with pytest.raises(ProtectedError):
         credential.delete(soft=False)
+
+
+@pytest.mark.django_db
+def test_soft_deleted_extension_records_can_be_recreated(workspace):
+    AutomationJob = apps.get_model("summon", "AutomationJob")
+    GeneratedArtifact = apps.get_model("summon", "GeneratedArtifact")
+    Opportunity = apps.get_model("summon", "Opportunity")
+    Page = apps.get_model("db", "Page")
+    Project = apps.get_model("db", "Project")
+    SummonPageContext = apps.get_model("summon", "SummonPageContext")
+    SummonProjectProfile = apps.get_model("summon", "SummonProjectProfile")
+    page = Page.objects.create(workspace=workspace, owned_by=workspace.owner, name="Output")
+    project = Project.objects.create(workspace=workspace, name="Delivery", identifier="DEL")
+    opportunity = Opportunity.objects.create(workspace=workspace, title="Delivery")
+    job = AutomationJob.objects.create(workspace=workspace, type="mom")
+    records = [
+        GeneratedArtifact.objects.create(workspace=workspace, job=job, page=page, title="MoM", kind="page"),
+        SummonPageContext.objects.create(workspace=workspace, page=page, project=project),
+        SummonProjectProfile.objects.create(
+            workspace=workspace,
+            project=project,
+            source_opportunity=opportunity,
+        ),
+    ]
+
+    for record in records:
+        type(record).objects.filter(pk=record.pk).update(deleted_at=timezone.now())
+
+    assert GeneratedArtifact.objects.create(workspace=workspace, job=job, page=page, title="MoM v2", kind="page")
+    assert SummonPageContext.objects.create(workspace=workspace, page=page, project=project)
+    assert SummonProjectProfile.objects.create(
+        workspace=workspace,
+        project=project,
+        source_opportunity=opportunity,
+    )

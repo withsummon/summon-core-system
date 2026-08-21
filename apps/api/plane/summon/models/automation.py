@@ -53,7 +53,7 @@ class AutomationJob(BaseModel):
 
 class GeneratedArtifact(BaseModel):
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_generated_artifacts")
-    job = models.OneToOneField(AutomationJob, on_delete=models.CASCADE, related_name="artifact")
+    job = models.ForeignKey(AutomationJob, on_delete=models.CASCADE, related_name="artifacts")
     project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.SET_NULL)
     page = models.ForeignKey("db.Page", null=True, blank=True, on_delete=models.CASCADE)
     file_asset = models.ForeignKey("db.FileAsset", null=True, blank=True, on_delete=models.CASCADE)
@@ -62,6 +62,11 @@ class GeneratedArtifact(BaseModel):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(
+                fields=("job",),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_artifact_job",
+            ),
             models.CheckConstraint(
                 condition=(
                     models.Q(page__isnull=False, file_asset__isnull=True)

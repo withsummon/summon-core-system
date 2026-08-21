@@ -90,12 +90,21 @@ class MeetingWorkItem(BaseModel):
 
 class SummonPageContext(BaseModel):
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_page_contexts")
-    page = models.OneToOneField("db.Page", on_delete=models.CASCADE, related_name="summon_context")
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="summon_contexts")
     project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.SET_NULL)
     client = models.ForeignKey("summon.Client", null=True, blank=True, on_delete=models.SET_NULL)
     opportunity = models.ForeignKey("summon.Opportunity", null=True, blank=True, on_delete=models.SET_NULL)
     category = models.CharField(max_length=80, blank=True)
     tags = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("page",),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_page_context",
+            )
+        ]
 
 
 class ResourceLink(BaseModel):
