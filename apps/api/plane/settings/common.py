@@ -105,6 +105,7 @@ INSTALLED_APPS = [
     "plane.space",
     "plane.bgtasks",
     "plane.db",
+    "plane.summon",
     "plane.utils",
     "plane.web",
     "plane.middleware",
