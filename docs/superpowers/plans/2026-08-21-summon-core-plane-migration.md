@@ -156,7 +156,7 @@ Expected: fail because Django cannot find app `summon`.
 
 - [ ] **Step 3: Define workspace-scoped models with database constraints**
 
-Use UUID primary keys and Plane audit fields. Add unique constraints for client name per workspace, opportunity identity per workspace, one Summon profile per Plane project, one meeting-to-Issue link per meeting, one grant per credential/member, and one generated artifact target per job. Enforce opportunity probability from 0 through 100 and an exactly-one target invariant for Page/FileAsset artifact links.
+Use UUID primary keys and Plane audit fields. Add unique constraints for client name per workspace, opportunity identity per workspace, one Summon profile per Plane project, each `(meeting, issue)` pair, one grant per credential/member, and one generated artifact target per job. Enforce opportunity probability from 0 through 100 and an exactly-one target invariant for Page/FileAsset artifact links.
 
 ```python
 class SummonProjectProfile(BaseModel):
@@ -184,7 +184,7 @@ Expected: only the 15 allowlisted models are created.
 
 Run: `pytest plane/tests/contract/summon/test_schema.py -q`
 
-Expected: allowlist, uniqueness, check constraints, and cross-workspace relation fixtures pass.
+Expected: allowlist, workspace ownership fields, uniqueness, and check constraints pass. Cross-workspace reference rejection is exercised at the serializer/API boundary in Tasks 3 through 6.
 
 - [ ] **Step 6: Commit**
 
