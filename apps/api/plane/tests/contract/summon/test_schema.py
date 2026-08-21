@@ -4,7 +4,9 @@
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
+from django.db.models.deletion import ProtectedError
+from django.utils import timezone
 
 
 EXPECTED_MODELS = {
@@ -46,6 +48,38 @@ def test_schema_has_canonical_link_constraints():
     assert GeneratedArtifact._meta.get_field("job").unique
 
 
+def test_canonical_delete_policies_preserve_audit_without_blocking_plane_records():
+    GeneratedArtifact = apps.get_model("summon", "GeneratedArtifact")
+    Credential = apps.get_model("summon", "Credential")
+    CredentialAccessLog = apps.get_model("summon", "CredentialAccessLog")
+
+    assert GeneratedArtifact._meta.get_field("page").remote_field.on_delete is models.CASCADE
+    assert GeneratedArtifact._meta.get_field("file_asset").remote_field.on_delete is models.CASCADE
+    assert Credential._meta.get_field("project").remote_field.on_delete is models.SET_NULL
+    assert CredentialAccessLog._meta.get_field("credential").remote_field.on_delete is models.PROTECT
+
+
+def test_recreatable_unique_constraints_ignore_soft_deleted_rows():
+    constraint_names = {
+        "summon_unique_client_contact_email",
+        "summon_unique_client_name",
+        "summon_unique_credential_grant",
+        "summon_unique_meeting_issue",
+        "summon_unique_meeting_participant",
+        "summon_unique_opportunity_identity",
+        "summon_unique_template_name",
+    }
+    constraints = {
+        constraint.name: constraint
+        for model in apps.get_app_config("summon").get_models()
+        for constraint in model._meta.constraints
+        if constraint.name in constraint_names
+    }
+
+    assert constraints.keys() == constraint_names
+    assert all("deleted_at" in str(constraint.condition) for constraint in constraints.values())
+
+
 @pytest.mark.django_db
 def test_opportunity_probability_database_constraint(workspace):
     Opportunity = apps.get_model("summon", "Opportunity")
@@ -56,3 +90,43 @@ def test_opportunity_probability_database_constraint(workspace):
             title="Impossible probability",
             probability=101,
         )
+
+
+@pytest.mark.django_db
+def test_soft_deleted_scoped_identity_can_be_recreated(workspace):
+    Client = apps.get_model("summon", "Client")
+    client = Client.objects.create(workspace=workspace, name="Acme")
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Client.objects.create(workspace=workspace, name="Acme")
+
+    Client.objects.filter(pk=client.pk).update(deleted_at=timezone.now())
+
+    replacement = Client.objects.create(workspace=workspace, name="Acme")
+    assert replacement.pk != client.pk
+
+
+@pytest.mark.django_db
+def test_generated_artifact_requires_exactly_one_canonical_target(workspace):
+    AutomationJob = apps.get_model("summon", "AutomationJob")
+    GeneratedArtifact = apps.get_model("summon", "GeneratedArtifact")
+    job = AutomationJob.objects.create(workspace=workspace, type="mom")
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        GeneratedArtifact.objects.create(workspace=workspace, job=job, title="MoM", kind="page")
+
+
+@pytest.mark.django_db
+def test_credential_access_log_protects_credential_audit_chain(workspace):
+    Credential = apps.get_model("summon", "Credential")
+    CredentialAccessLog = apps.get_model("summon", "CredentialAccessLog")
+    credential = Credential.objects.create(
+        workspace=workspace,
+        name="GitHub",
+        provider="github",
+        secret_ciphertext="ciphertext",
+    )
+    CredentialAccessLog.objects.create(workspace=workspace, credential=credential, action="view")
+
+    with pytest.raises(ProtectedError):
+        credential.delete(soft=False)

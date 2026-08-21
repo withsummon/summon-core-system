@@ -64,7 +64,13 @@ class MeetingParticipant(BaseModel):
     response = models.CharField(max_length=16, choices=Response.choices, default=Response.PENDING)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=("meeting", "member"), name="summon_unique_meeting_participant")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("meeting", "member"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_meeting_participant",
+            )
+        ]
 
 
 class MeetingWorkItem(BaseModel):
@@ -73,7 +79,13 @@ class MeetingWorkItem(BaseModel):
     issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="summon_meetings")
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=("meeting", "issue"), name="summon_unique_meeting_issue")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("meeting", "issue"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_meeting_issue",
+            )
+        ]
 
 
 class SummonPageContext(BaseModel):

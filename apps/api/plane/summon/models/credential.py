@@ -13,7 +13,7 @@ class Credential(BaseModel):
         REVOKED = "revoked", "Revoked"
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_credentials")
-    project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.CASCADE)
+    project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.SET_NULL)
     owner = models.ForeignKey("db.User", null=True, blank=True, on_delete=models.SET_NULL)
     name = models.CharField(max_length=255)
     provider = models.CharField(max_length=120)
@@ -44,7 +44,13 @@ class CredentialGrant(BaseModel):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=("credential", "member"), name="summon_unique_credential_grant")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("credential", "member"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_credential_grant",
+            )
+        ]
 
 
 class CredentialAccessLog(BaseModel):

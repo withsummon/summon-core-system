@@ -25,7 +25,13 @@ class Client(BaseModel):
 
     class Meta:
         ordering = ("name",)
-        constraints = [models.UniqueConstraint(fields=("workspace", "name"), name="summon_unique_client_name")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("workspace", "name"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="summon_unique_client_name",
+            )
+        ]
 
 
 class ClientContact(BaseModel):
@@ -42,7 +48,7 @@ class ClientContact(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=("workspace", "client", "email"),
-                condition=~models.Q(email=""),
+                condition=models.Q(deleted_at__isnull=True) & ~models.Q(email=""),
                 name="summon_unique_client_contact_email",
             )
         ]
@@ -71,9 +77,9 @@ class Opportunity(BaseModel):
         ordering = ("-created_at",)
         constraints = [
             models.UniqueConstraint(
-                fields=("workspace", "client", "title"),
+                fields=("workspace", "title"),
+                condition=models.Q(deleted_at__isnull=True),
                 name="summon_unique_opportunity_identity",
-                nulls_distinct=False,
             ),
             models.CheckConstraint(
                 condition=models.Q(probability__gte=0, probability__lte=100),
