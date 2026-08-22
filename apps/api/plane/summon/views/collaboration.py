@@ -191,8 +191,20 @@ class ResourceLinkViewSet(WorkspaceContextMixin, BaseViewSet):
             )
             .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
             .filter(Q(page__isnull=True) | Q(page_id__in=page_ids))
-            .select_related("project", "page", "client", "credential")
+            .select_related("project", "page", "client", "credential", "created_by", "updated_by")
+            .order_by("-updated_at")
         )
 
     def perform_create(self, serializer):
-        serializer.save(workspace=self.get_workspace())
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(
+            workspace=self.get_workspace(),
+            created_by=user,
+            updated_by=user,
+        )
+
+    def perform_update(self, serializer):
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(
+            updated_by=user,
+        )

@@ -171,6 +171,7 @@ export interface ISummonMeetingSummaryRequest {
 export interface ISummonResourceLink {
   id: string;
   project: string | null;
+  project_detail?: { id: string; name: string; identifier: string } | null;
   page: string | null;
   client: string | null;
   credential: string | null;
@@ -178,6 +179,10 @@ export interface ISummonResourceLink {
   url: string;
   description: string;
   category: TSummonResourceType;
+  created_by?: string | null;
+  created_by_detail?: { id: string; display_name: string; avatar_url?: string } | null;
+  updated_by?: string | null;
+  updated_by_detail?: { id: string; display_name: string; avatar_url?: string } | null;
   created_at: string;
   updated_at: string;
 }

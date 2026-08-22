@@ -404,11 +404,16 @@ class SummonPageContextSerializer(CollaborationSerializer):
 
 
 class ResourceLinkSerializer(CollaborationSerializer):
+    project_detail = serializers.SerializerMethodField()
+    created_by_detail = serializers.SerializerMethodField()
+    updated_by_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = ResourceLink
         fields = [
             "id",
             "project",
+            "project_detail",
             "page",
             "client",
             "credential",
@@ -416,10 +421,43 @@ class ResourceLinkSerializer(CollaborationSerializer):
             "url",
             "description",
             "category",
+            "created_by",
+            "created_by_detail",
+            "updated_by",
+            "updated_by_detail",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at", "created_by", "updated_by"]
+
+    def get_project_detail(self, instance):
+        if not instance.project:
+            return None
+        return {
+            "id": str(instance.project_id),
+            "identifier": instance.project.identifier,
+            "name": instance.project.name,
+        }
+
+    def get_created_by_detail(self, instance):
+        user = instance.created_by
+        if not user:
+            return None
+        return {
+            "id": str(user.id),
+            "display_name": user.display_name or user.email,
+            "avatar_url": getattr(user, "avatar_url", None),
+        }
+
+    def get_updated_by_detail(self, instance):
+        user = instance.updated_by or instance.created_by
+        if not user:
+            return None
+        return {
+            "id": str(user.id),
+            "display_name": user.display_name or user.email,
+            "avatar_url": getattr(user, "avatar_url", None),
+        }
 
     def validate_url(self, value):
         if urlparse(value).scheme not in {"http", "https"}:
