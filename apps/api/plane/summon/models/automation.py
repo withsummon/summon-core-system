@@ -58,6 +58,13 @@ class AutomationJob(BaseModel):
 
 
 class GeneratedArtifact(BaseModel):
+    class Format(models.TextChoices):
+        PAGE = "page", "Page"
+        PDF = "pdf", "PDF"
+        DOCX = "docx", "DOCX"
+        XLSX = "xlsx", "XLSX"
+        PPTX = "pptx", "PPTX"
+
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="summon_generated_artifacts")
     job = models.ForeignKey(AutomationJob, on_delete=models.CASCADE, related_name="artifacts")
     project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.SET_NULL)
@@ -65,18 +72,23 @@ class GeneratedArtifact(BaseModel):
     file_asset = models.ForeignKey("db.FileAsset", null=True, blank=True, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     kind = models.CharField(max_length=80)
+    format = models.CharField(max_length=8, choices=Format.choices, default=Format.PAGE)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=("job",),
+                fields=("job", "format"),
                 condition=models.Q(deleted_at__isnull=True),
-                name="summon_unique_artifact_job",
+                name="summon_unique_artifact_job_format",
             ),
             models.CheckConstraint(
                 condition=(
-                    models.Q(page__isnull=False, file_asset__isnull=True)
-                    | models.Q(page__isnull=True, file_asset__isnull=False)
+                    models.Q(format="page", page__isnull=False, file_asset__isnull=True)
+                    | models.Q(
+                        format__in=("pdf", "docx", "xlsx", "pptx"),
+                        page__isnull=True,
+                        file_asset__isnull=False,
+                    )
                 ),
                 name="summon_artifact_exactly_one_target",
             ),

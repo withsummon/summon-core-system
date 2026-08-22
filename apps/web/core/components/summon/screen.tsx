@@ -151,6 +151,8 @@ export function summonLLMErrorMessage(error: unknown) {
       return "Select an authorized Plane Project before generating or publishing a Page.";
     case "project_access_revoked":
       return "Project access changed. Reopen the record and select an authorized Plane Project.";
+    case "unsupported_document_type":
+      return "This legacy preview cannot create files. Generate a new preview with one of the current document templates.";
     default:
       return summonErrorMessage(error);
   }

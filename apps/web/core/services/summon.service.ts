@@ -308,6 +308,12 @@ export class SummonService extends APIService {
     );
   }
 
+  renderAutomationJob(workspaceSlug: string, jobId: string) {
+    return this.data<ISummonAutomationJob>(
+      this.post(`/api/workspaces/${workspaceSlug}/summon/automation-jobs/${jobId}/render/`, {})
+    );
+  }
+
   listAssistantConversations(workspaceSlug: string) {
     return this.data<ISummonAssistantConversation[]>(this.get(`${this.root(workspaceSlug)}/assistant/conversations/`));
   }

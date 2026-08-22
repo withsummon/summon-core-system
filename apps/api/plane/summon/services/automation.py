@@ -4,50 +4,36 @@
 
 import json
 
+from django.core.files.base import ContentFile
 from django.db import transaction
+from django.http import Http404
 from django.utils import timezone
 from django.utils.html import escape
 from rest_framework import serializers
 
 from plane.app.services.llm import LLMError, LLMRequest, generate
-from plane.db.models import Page, ProjectMember, ProjectPage
+from plane.db.models import FileAsset, Page, ProjectMember, ProjectPage
 from plane.summon.models import AutomationJob, AutomationTemplate, GeneratedArtifact
 from plane.summon.services.context import build_context
+from plane.summon.services.document_renderer import render_document_files
 from plane.summon.services.page_document import write_page_document
-
-
-DEFAULT_TEMPLATES = (
-    ("Proposal", "proposal", "Create a clear proposal in Markdown from the supplied input and context."),
-    ("Quotation", "quotation", "Create a clear quotation in Markdown from the supplied input and context."),
-    ("Minutes of Meeting", "mom", "Create minutes of meeting in Markdown from the supplied input and context."),
-    (
-        "Presentation Outline",
-        "presentation_outline",
-        "Create a presentation outline in Markdown from the supplied input and context.",
-    ),
-    ("Cost Projection", "cost_projection", "Create a cost projection in Markdown from the supplied input and context."),
-    ("POC Brief", "poc_brief", "Create a POC brief in Markdown from the supplied input and context."),
-)
-TEMPLATE_VARIABLES = {
-    "proposal": ["title", "client", "scope"],
-    "quotation": ["title", "client", "amount"],
-    "mom": ["title", "attendees", "decisions"],
-    "presentation_outline": ["title", "objective", "key_points"],
-    "cost_projection": ["title", "period", "estimate"],
-    "poc_brief": ["title", "problem", "success_criteria"],
-}
+from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
 
 
 def ensure_default_templates(workspace):
-    for name, template_type, content in DEFAULT_TEMPLATES:
-        AutomationTemplate.objects.get_or_create(
+    legacy = (("Proposal", "proposal"), ("Quotation", "quotation"), ("Minutes of Meeting", "mom"), ("Presentation Outline", "presentation_outline"), ("Cost Projection", "cost_projection"), ("POC Brief", "poc_brief"))  # fmt: skip  # noqa: E501
+    for name, template_type in legacy:
+        AutomationTemplate.objects.filter(workspace=workspace, name=name, type=template_type).update(is_active=False)
+    for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
+        AutomationTemplate.objects.update_or_create(
             workspace=workspace,
             name=name,
             defaults={
                 "type": template_type,
                 "description": f"LLM-assisted {name}",
                 "content_template": content,
-                "variables": TEMPLATE_VARIABLES[template_type],
+                "variables": variables,
+                "is_active": True,
             },
         )
 
@@ -122,47 +108,130 @@ def generate_preview(template, project, requested_by, input_data, context_select
     return job
 
 
+def _lock_authorized_job(job, actor, action):
+    job = (
+        AutomationJob.objects.select_for_update().filter(id=job.id, workspace=job.workspace, requested_by=actor).first()
+    )
+    if not job:
+        raise Http404
+    if not job.project_id:
+        raise serializers.ValidationError(
+            {"error_code": "project_required", "project": f"Select an authorized Plane Project before {action}."}
+        )
+    membership = (
+        ProjectMember.objects.select_for_update()
+        .filter(
+            workspace=job.workspace,
+            project_id=job.project_id,
+            project__deleted_at__isnull=True,
+            member=actor,
+            role__in=[20, 15],
+            is_active=True,
+        )
+        .first()
+    )
+    if not membership:
+        raise serializers.ValidationError(
+            {
+                "error_code": "project_access_revoked",
+                "project": f"Active Plane Project membership is required to {action} this preview.",
+            }
+        )
+    return job
+
+
+def _job_title(job):
+    fallback = job.template.name if job.template else job.type
+    return str(job.input.get("values", {}).get("title") or fallback).strip()[:255]
+
+
+def _require_completed_preview(job, action):
+    if job.status != AutomationJob.Status.COMPLETED or not job.preview_markdown:
+        raise serializers.ValidationError({"job": f"Only a completed preview can be {action}."})
+
+
+def render_job_files(job, actor):
+    with transaction.atomic():
+        job = _lock_authorized_job(job, actor, "render")
+        _require_completed_preview(job, "rendered")
+        existing_formats = set(job.artifacts.filter(deleted_at__isnull=True).values_list("format", flat=True))
+        title, document_type, markdown = _job_title(job), job.type, job.preview_markdown
+    try:
+        rendered_files = render_document_files(document_type, title, markdown)
+    except ValueError as error:
+        raise serializers.ValidationError(
+            {"error_code": "unsupported_document_type", "type": "This automation type cannot be rendered."}
+        ) from error
+
+    staged, kept = [], set()
+    try:
+        for rendered in rendered_files:
+            if rendered.format in existing_formats:
+                continue
+            attributes = {"name": rendered.filename, "type": rendered.content_type, "size": len(rendered.data)}
+            asset = FileAsset(
+                workspace=job.workspace,
+                project=job.project,
+                user=actor,
+                entity_type="SUMMON_GENERATED",
+                entity_identifier=str(job.id),
+                attributes=attributes,
+                size=len(rendered.data),
+                is_uploaded=True,
+            )
+            asset.asset.name = asset.asset.field.generate_filename(asset, rendered.filename)
+            staged.append((rendered, asset))
+            asset.asset.name = asset.asset.storage.save(asset.asset.name, ContentFile(rendered.data))
+
+        reserved = []
+        with transaction.atomic():
+            job = _lock_authorized_job(job, actor, "render")
+            _require_completed_preview(job, "rendered")
+            for rendered, asset in staged:
+                if job.artifacts.filter(format=rendered.format, deleted_at__isnull=True).exists():
+                    continue
+                asset.save()
+                GeneratedArtifact.objects.create(
+                    workspace=job.workspace,
+                    job=job,
+                    project=job.project,
+                    file_asset=asset,
+                    title=title,
+                    kind=job.type,
+                    format=rendered.format,
+                )
+                reserved.append(asset.asset.name)
+        kept = set(reserved)
+        return job
+    finally:
+        for _, asset in staged:
+            if asset.asset.name and asset.asset.name not in kept:
+                asset.asset.storage.delete(asset.asset.name)
+
+
+def authorize_artifact_download(artifact, actor):
+    with transaction.atomic():
+        artifact = (
+            GeneratedArtifact.objects.select_for_update()
+            .select_related("job", "file_asset")
+            .filter(id=artifact.id, workspace=artifact.workspace, job__requested_by=actor, file_asset__isnull=False)
+            .first()
+        )
+        if not artifact:
+            raise Http404
+        _lock_authorized_job(artifact.job, actor, "download")
+        return artifact
+
+
 def publish_job(job, actor):
     with transaction.atomic():
-        job = (
-            AutomationJob.objects.select_for_update()
-            .filter(id=job.id, workspace=job.workspace, requested_by=actor)
-            .first()
-        )
-        if not job:
-            raise serializers.ValidationError({"job": "Automation job not found."})
-        if not job.project_id:
-            raise serializers.ValidationError(
-                {"error_code": "project_required", "project": "Select an authorized Plane Project before publishing."}
-            )
-        membership = (
-            ProjectMember.objects.select_for_update()
-            .filter(
-                workspace=job.workspace,
-                project_id=job.project_id,
-                project__deleted_at__isnull=True,
-                member=actor,
-                role__in=[20, 15],
-                is_active=True,
-            )
-            .first()
-        )
-        if not membership:
-            raise serializers.ValidationError(
-                {
-                    "error_code": "project_access_revoked",
-                    "project": "Active Plane Project membership is required to publish this preview.",
-                }
-            )
-        artifact = job.artifacts.select_related("page", "file_asset").first()
+        job = _lock_authorized_job(job, actor, "publish")
+        artifact = job.artifacts.select_related("page").filter(format=GeneratedArtifact.Format.PAGE).first()
         if artifact:
             return artifact
-        if job.status != AutomationJob.Status.COMPLETED or not job.preview_markdown:
-            raise serializers.ValidationError({"job": "Only a completed preview can be published."})
+        _require_completed_preview(job, "published")
 
-        values = job.input.get("values", {})
-        fallback_title = job.template.name if job.template else job.type
-        title = str(values.get("title") or fallback_title).strip()[:255]
+        title = _job_title(job)
         page = Page(
             workspace=job.workspace,
             owned_by=actor,
@@ -183,6 +252,7 @@ def publish_job(job, actor):
             page=page,
             title=title,
             kind=job.type,
+            format=GeneratedArtifact.Format.PAGE,
         )
         job.published_at = timezone.now()
         job.save(update_fields=["published_at", "updated_at"])

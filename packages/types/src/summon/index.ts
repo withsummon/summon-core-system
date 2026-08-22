@@ -209,9 +209,11 @@ export interface ISummonGeneratedArtifact {
   id: string;
   title: string;
   kind: string;
+  format: "page" | "pdf" | "docx" | "xlsx" | "pptx";
   page: string | null;
   file_asset: string | null;
   page_detail: { id: string; name: string; markdown: string; href: string } | null;
+  file_detail: { name: string; content_type: string; size: number; href: string } | null;
 }
 
 export interface ISummonAutomationJob {

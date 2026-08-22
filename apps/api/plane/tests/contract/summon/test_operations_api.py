@@ -94,13 +94,28 @@ def test_default_automation_templates_are_available(session_client, workspace):
 
     assert response.status_code == status.HTTP_200_OK
     assert {item["type"] for item in response.data} == {
-        "proposal",
+        "usage_cost",
+        "mom_iglo",
+        "mom_summon",
+        "proposal_vendor",
+        "proposal_client",
+        "invoice",
         "quotation",
-        "mom",
-        "presentation_outline",
         "cost_projection",
-        "poc_brief",
+        "presentation",
+        "uat",
+        "bast",
+        "timeline",
+        "bug_report",
     }
+    templates = {item["type"]: item for item in response.data}
+    assert "Pricing Scheme" not in templates["proposal_vendor"]["content_template"]
+    assert "Pricing Scheme" in templates["proposal_client"]["content_template"]
+    assert "To Do" in templates["mom_iglo"]["content_template"]
+    assert "marun" in templates["mom_iglo"]["content_template"]
+    assert "Changes Being Tested" in templates["uat"]["content_template"]
+    assert "What's Happening?" in templates["bug_report"]["content_template"]
+    assert all(item["variables"] for item in response.data)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -175,6 +190,7 @@ def test_automation_preview_creates_no_page_and_publish_is_idempotent(
 
     assert first.status_code == second.status_code == status.HTTP_200_OK
     assert first.data["artifacts"][0]["id"] == second.data["artifacts"][0]["id"]
+    assert first.data["artifacts"][0]["format"] == "page"
     assert first.data["artifacts"][0]["page_detail"]["href"] == (
         f"/{workspace.slug}/projects/{project.id}/pages/{first.data['artifacts'][0]['page']}/"
     )

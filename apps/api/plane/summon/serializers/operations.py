@@ -90,10 +90,11 @@ class MeetingSummaryRequestSerializer(serializers.Serializer):
 
 class GeneratedArtifactSerializer(BaseSerializer):
     page_detail = serializers.SerializerMethodField()
+    file_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = GeneratedArtifact
-        fields = ["id", "title", "kind", "page", "file_asset", "page_detail"]
+        fields = ["id", "title", "kind", "format", "page", "file_asset", "page_detail", "file_detail"]
         read_only_fields = fields
 
     def get_page_detail(self, instance):
@@ -109,6 +110,17 @@ class GeneratedArtifactSerializer(BaseSerializer):
                 if instance.project_id
                 else f"/{instance.workspace.slug}/summon/knowledge/"
             ),
+        }
+
+    def get_file_detail(self, instance):
+        if not instance.file_asset_id:
+            return None
+        attributes = instance.file_asset.attributes
+        return {
+            "name": attributes.get("name", "document"),
+            "content_type": attributes.get("type", "application/octet-stream"),
+            "size": int(attributes.get("size", instance.file_asset.size)),
+            "href": (f"/api/workspaces/{instance.workspace.slug}/summon/generated-artifacts/{instance.id}/download/"),
         }
 
 

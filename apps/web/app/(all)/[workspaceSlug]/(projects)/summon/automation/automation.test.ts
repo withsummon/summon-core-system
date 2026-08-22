@@ -4,6 +4,8 @@ import test from "node:test";
 
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const service = readFileSync(new URL("../../../../../../core/services/summon.service.ts", import.meta.url), "utf8");
+const { automationInputValue, buildAutomationInput, isMultilineTemplateVariable, syncTemplateVariableValues } =
+  await import(new URL("./automation-form.ts", import.meta.url).href);
 
 test("Automation previews before an explicit idempotent publish", () => {
   assert.match(service, /generateAutomationPreview/);
@@ -13,7 +15,7 @@ test("Automation previews before an explicit idempotent publish", () => {
   assert.match(source, /window\.confirm/);
   assert.match(source, /page_detail/);
   assert.match(source, /Select Plane Project/);
-  assert.match(source, /disabled=\{!template \|\| !outputProject/);
+  assert.match(source, /canGeneratePreview/);
   assert.doesNotMatch(source, /Workspace Page/);
 });
 
@@ -26,4 +28,83 @@ test("Automation exposes explicit context, citations, metadata, and retry state"
   assert.match(source, /model/);
   assert.match(source, /Retry preview/);
   assert.doesNotMatch(source, /apiKey|LLM_API_KEY|credential.*secret/i);
+});
+
+test("Automation renders editable files without coupling them to Plane Page publishing", () => {
+  assert.match(service, /renderAutomationJob/);
+  assert.match(service, /\/api\/workspaces\/\$\{workspaceSlug\}\/summon\/automation-jobs\/\$\{jobId\}\/render\//);
+  assert.match(source, /AI Document Generator/);
+  assert.match(source, /Generate files/);
+  assert.match(source, /editable office files and PDF/);
+  assert.match(source, /file_detail/);
+  assert.match(source, /download/);
+  assert.match(source, /docx: "DOCX"/);
+  assert.match(source, /xlsx: "XLSX"/);
+  assert.match(source, /pptx: "PPTX"/);
+  assert.match(source, /data\?\.templates\.map/);
+  assert.match(source, /pageArtifact/);
+  assert.match(source, /fileArtifacts/);
+  assert.doesNotMatch(source, /disabled=\{[^}]*artifacts\.length/);
+});
+
+test("Automation invalidates stale previews and publishes the selected job snapshot", () => {
+  assert.match(source, /previewDirty/);
+  assert.match(source, /setPreviewDirty\(true\)/);
+  assert.match(source, /setPreviewDirty\(false\)/);
+  assert.match(source, /submittedVersion === draftVersion\.current/);
+  assert.match(source, /hasValidPreview/);
+  assert.match(source, /selectedJob\.input/);
+  assert.match(source, /aria-pressed=\{selectedJob\?\.id === job\.id\}/);
+  assert.doesNotMatch(source, /setActiveJob\(job\);\s+setPreviewDirty\(false\)/);
+});
+
+test("Automation consumes template variables through one reusable input mapping", () => {
+  assert.match(source, /templateVariables/);
+  assert.match(source, /variableValues/);
+  assert.match(source, /buildAutomationInput/);
+  assert.match(source, /selectedTemplate\?\.variables/);
+});
+
+test("Template examples preserve shared values and send every required variable", () => {
+  const proposalVariables = ["title", "client", "request", "scope", "timeline", "resources", "pricing"];
+  const uatVariables = ["title", "project", "client", "document_number", "version", "test_period", "test_cases"];
+  const proposalValues = syncTemplateVariableValues(proposalVariables, {
+    client: "Summon",
+    request: "Document generator",
+    scope: "Reporting",
+    timeline: "Q3",
+    resources: "Product team",
+    pricing: "IDR 10,000,000",
+    stale: "remove me",
+  });
+
+  assert.deepEqual(buildAutomationInput(proposalVariables, "Vendor proposal", "Use cited context", proposalValues), {
+    title: "Vendor proposal",
+    brief: "Use cited context",
+    client: "Summon",
+    request: "Document generator",
+    scope: "Reporting",
+    timeline: "Q3",
+    resources: "Product team",
+    pricing: "IDR 10,000,000",
+  });
+
+  assert.deepEqual(syncTemplateVariableValues(uatVariables, proposalValues), {
+    project: "",
+    client: "Summon",
+    document_number: "",
+    version: "",
+    test_period: "",
+    test_cases: "",
+  });
+  assert.equal(automationInputValue({ values: { title: "Persisted snapshot" } }, "title"), "Persisted snapshot");
+});
+
+test("Structured template variables use multiline fields without per-template branching", () => {
+  assert.equal(isMultilineTemplateVariable("items"), true);
+  assert.equal(isMultilineTemplateVariable("bugs"), true);
+  assert.equal(isMultilineTemplateVariable("key_points"), true);
+  assert.equal(isMultilineTemplateVariable("due_date"), false);
+  assert.match(source, /isMultilineTemplateVariable\(variable\)/);
+  assert.match(source, /Enter one item per line or structured details/);
 });

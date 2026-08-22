@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 from django.db.models import Prefetch, Q
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -11,7 +11,13 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.license.utils.instance_value import get_llm_configuration_status
-from plane.summon.models import AssistantConversation, AssistantMessage, AutomationJob, AutomationTemplate
+from plane.summon.models import (
+    AssistantConversation,
+    AssistantMessage,
+    AutomationJob,
+    AutomationTemplate,
+    GeneratedArtifact,
+)
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.operations import (
     AssistantConversationSerializer,
@@ -24,7 +30,13 @@ from plane.summon.serializers.operations import (
     ReportFilterSerializer,
 )
 from plane.summon.services.assistant import answer_query, send_message
-from plane.summon.services.automation import ensure_default_templates, generate_preview, publish_job
+from plane.summon.services.automation import (
+    authorize_artifact_download,
+    ensure_default_templates,
+    generate_preview,
+    publish_job,
+    render_job_files,
+)
 from plane.summon.services.reports import report_csv, report_summary, visible_project_ids
 from plane.summon.views.commercial import WorkspaceContextMixin
 
@@ -36,7 +48,7 @@ class AutomationTemplateViewSet(WorkspaceContextMixin, BaseViewSet):
 
     def get_queryset(self):
         ensure_default_templates(self.get_workspace())
-        return AutomationTemplate.objects.filter(workspace=self.get_workspace())
+        return AutomationTemplate.objects.filter(workspace=self.get_workspace(), is_active=True)
 
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
@@ -94,6 +106,40 @@ class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):
         publish_job(job, request.user)
         job = AutomationJob.objects.prefetch_related("artifacts__page", "artifacts__file_asset").get(pk=job.pk)
         return Response(AutomationJobSerializer(job).data)
+
+
+class AutomationRenderView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def post(self, request, slug, job_id):
+        job = get_object_or_404(
+            AutomationJob,
+            id=job_id,
+            workspace=self.get_workspace(),
+            requested_by=request.user,
+        )
+        render_job_files(job, request.user)
+        job = AutomationJob.objects.prefetch_related("artifacts__page", "artifacts__file_asset").get(pk=job.pk)
+        return Response(AutomationJobSerializer(job).data)
+
+
+class GeneratedArtifactDownloadView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def get(self, request, slug, artifact_id):
+        artifact = get_object_or_404(
+            GeneratedArtifact,
+            id=artifact_id,
+            workspace=self.get_workspace(),
+        )
+        artifact = authorize_artifact_download(artifact, request.user)
+        attributes = artifact.file_asset.attributes
+        return FileResponse(
+            artifact.file_asset.asset.open("rb"),
+            as_attachment=True,
+            filename=attributes.get("name", "document"),
+            content_type=attributes.get("type", "application/octet-stream"),
+        )
 
 
 class ReportSummaryView(WorkspaceContextMixin, BaseAPIView):

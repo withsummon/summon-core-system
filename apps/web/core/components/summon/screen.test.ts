@@ -21,4 +21,5 @@ test("Summon keeps the canonical sidebar recovery control in its collapsed heade
 test("Summon renders typed project requirements and revoked-access errors", () => {
   assert.match(screenSource, /case "project_required"/);
   assert.match(screenSource, /case "project_access_revoked"/);
+  assert.match(screenSource, /case "unsupported_document_type"/);
 });

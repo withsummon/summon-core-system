@@ -7,7 +7,7 @@ import uuid
 
 # Django imports
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.utils import timezone
 from django.db import IntegrityError
 from django.db.models import Q
@@ -26,6 +26,21 @@ from plane.utils.cache import invalidate_cache_directly
 from plane.utils.path_validator import sanitize_filename
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.throttles.asset import AssetRateThrottle
+from plane.summon.models import GeneratedArtifact
+from plane.summon.services.automation import authorize_artifact_download
+
+
+def authorize_summon_generated_asset(asset, actor):
+    if asset.entity_type != "SUMMON_GENERATED":
+        return
+    artifact = GeneratedArtifact.objects.filter(
+        file_asset=asset,
+        workspace_id=asset.workspace_id,
+        deleted_at__isnull=True,
+    ).first()
+    if not artifact:
+        raise Http404
+    authorize_artifact_download(artifact, actor)
 
 
 class UserAssetsV2Endpoint(BaseAPIView):
@@ -462,6 +477,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
     def get(self, request, slug, asset_id):
         # get the asset id
         asset = FileAsset.objects.get(id=asset_id, workspace__slug=slug)
+        authorize_summon_generated_asset(asset, request.user)
         # enforce project-level access for project-bound assets
         if not self.has_project_asset_access(request, asset):
             return Response(
@@ -521,9 +537,7 @@ class StaticFileAssetEndpoint(BaseAPIView):
         # same-origin XSS when assets are served on the application's origin.
         storage = S3Storage(request=request)
         asset_mime_type = (asset.attributes.get("type") or "").split(";")[0].strip().lower()
-        disposition = (
-            "attachment" if asset_mime_type in settings.SCRIPT_CAPABLE_MIME_TYPES else "inline"
-        )
+        disposition = "attachment" if asset_mime_type in settings.SCRIPT_CAPABLE_MIME_TYPES else "inline"
         # Generate a presigned URL to share an S3 object
         signed_url = storage.generate_presigned_url(
             object_name=asset.asset.name,
@@ -881,6 +895,7 @@ class WorkspaceAssetDownloadEndpoint(BaseAPIView):
                 {"error": "The requested asset could not be found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        authorize_summon_generated_asset(asset, request.user)
 
         storage = S3Storage(request=request)
         signed_url = storage.generate_presigned_url(
@@ -909,6 +924,7 @@ class ProjectAssetDownloadEndpoint(BaseAPIView):
                 {"error": "The requested asset could not be found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        authorize_summon_generated_asset(asset, request.user)
 
         storage = S3Storage(request=request)
         signed_url = storage.generate_presigned_url(

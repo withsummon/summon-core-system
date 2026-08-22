@@ -12,10 +12,21 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from plane.summon.views.operations import AutomationRenderView, GeneratedArtifactDownloadView
 
 handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
+    path(
+        "api/workspaces/<str:slug>/summon/automation-jobs/<uuid:job_id>/render/",
+        AutomationRenderView.as_view(),
+        name="summon-automation-job-render",
+    ),
+    path(
+        "api/workspaces/<str:slug>/summon/generated-artifacts/<uuid:artifact_id>/download/",
+        GeneratedArtifactDownloadView.as_view(),
+        name="summon-generated-artifact-download",
+    ),
     path("api/summon/", include("plane.summon.urls")),
     path("api/", include("plane.app.urls")),
     path("api/public/", include("plane.space.urls")),
