@@ -62,10 +62,7 @@ services:
         aliases: [summon-core-web]
 
   admin:
-    image: withsummon-summon-core-system-admin:${SUMMON_IMAGE_TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: apps/admin/Dockerfile.admin
+    image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
     restart: unless-stopped
     depends_on:
       api:
@@ -75,10 +72,7 @@ services:
         aliases: [summon-core-admin]
 
   space:
-    image: withsummon-summon-core-system-space:${SUMMON_IMAGE_TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: apps/space/Dockerfile.space
+    image: makeplane/plane-space:${PLANE_RELEASE:-stable}
     restart: unless-stopped
     depends_on:
       api:
