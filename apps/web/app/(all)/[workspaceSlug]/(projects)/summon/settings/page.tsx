@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Link } from "react-router";
+import Link from "next/link";
 import { Bell, Database, PlugZap, ShieldCheck, Users } from "lucide-react";
 import { SummonCard, SummonScreen } from "@/components/summon/screen";
 import type { Route } from "./+types/page";
@@ -39,7 +39,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                 href: `/${params.workspaceSlug}/settings/integrations`,
               },
             ].map(({ Icon, title, description, href }) => (
-              <Link key={title} to={href} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
+              <Link key={title} href={href} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
                 <span className="grid size-9 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                   <Icon className="size-4" />
                 </span>

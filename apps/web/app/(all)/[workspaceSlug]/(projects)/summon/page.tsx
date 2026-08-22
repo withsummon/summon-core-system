@@ -6,7 +6,7 @@
 
 import { ArrowUpRight, CheckCircle2, Circle, FileText, FolderGit2, Globe2, Sparkles } from "lucide-react";
 import { observer } from "mobx-react";
-import { Link } from "react-router";
+import Link from "next/link";
 import useSWR from "swr";
 import { SummonCard, SummonScreen } from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -19,7 +19,7 @@ const SectionTitle = ({ children, href }: { children: React.ReactNode; href?: st
   <div className="mb-2.5 flex items-center justify-between gap-3">
     <h2 className="text-xs font-semibold text-primary">{children}</h2>
     {href && (
-      <Link to={href} className="text-[10px] font-medium text-accent-primary">
+      <Link href={href} className="text-[10px] font-medium text-accent-primary">
         See all →
       </Link>
     )}
@@ -79,7 +79,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
                   project && (
                     <Link
                       key={project.id}
-                      to={`/${workspaceSlug}/projects/${project.id}/issues/`}
+                      href={`/${workspaceSlug}/projects/${project.id}/issues/`}
                       className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
                     >
                       <span className="grid size-7 place-items-center rounded-lg bg-accent-subtle text-[10px] font-semibold text-accent-primary">
@@ -104,7 +104,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
               {opportunities.slice(0, 4).map((item) => (
                 <Link
                   key={item.id}
-                  to={`/${workspaceSlug}/summon/opportunities`}
+                  href={`/${workspaceSlug}/summon/opportunities`}
                   className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
                 >
                   <span className="text-xs grid size-7 place-items-center rounded-lg bg-success-subtle text-success-primary">
@@ -139,7 +139,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
               </div>
               {featuredProject && (
                 <Link
-                  to={`/${workspaceSlug}/projects/${featuredProject.id}/issues/`}
+                  href={`/${workspaceSlug}/projects/${featuredProject.id}/issues/`}
                   className="flex h-9 items-center gap-2 rounded-xl bg-accent-primary px-3 text-[10px] font-semibold text-on-color"
                 >
                   Open Workspace <ArrowUpRight className="size-3.5" />
@@ -213,7 +213,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
                 ))}
                 {!resources.length && (
                   <Link
-                    to={`/${workspaceSlug}/summon/resources`}
+                    href={`/${workspaceSlug}/summon/resources`}
                     className="col-span-full rounded-xl border border-dashed border-subtle p-3 text-center text-[10px] text-tertiary"
                   >
                     Add your first resource
@@ -227,11 +227,13 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
             <SummonCard>
               <SectionTitle href={`/${workspaceSlug}/workspace-views/all-issues/`}>Open Tasks</SectionTitle>
               <div className="space-y-2.5">
-                {[
-                  ["Completed", report.issues.completed, CheckCircle2],
-                  ["Open", Math.max(report.issues.total - report.issues.completed, 0), Circle],
-                  ["Overdue", report.issues.overdue, Circle],
-                ].map(([label, value, Icon]) => (
+                {(
+                  [
+                    ["Completed", report.issues.completed, CheckCircle2],
+                    ["Open", Math.max(report.issues.total - report.issues.completed, 0), Circle],
+                    ["Overdue", report.issues.overdue, Circle],
+                  ] as const
+                ).map(([label, value, Icon]) => (
                   <div key={label} className="flex items-center gap-2 text-[11px]">
                     <Icon className="size-4 text-accent-primary" />
                     <span className="flex-1 text-secondary">{label}</span>
@@ -260,7 +262,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
             {["Proposal", "Quotation", "MoM", "PPT", "Cost Projection"].map((label) => (
               <Link
                 key={label}
-                to={`/${workspaceSlug}/summon/automation`}
+                href={`/${workspaceSlug}/summon/automation`}
                 className="flex items-center gap-2 rounded-xl border border-subtle bg-surface-1 p-3 text-[10px] font-medium text-primary"
               >
                 <Sparkles className="size-4 text-accent-primary" />
