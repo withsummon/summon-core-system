@@ -114,6 +114,9 @@ export const coreRoutes: RouteConfigEntry[] = [
           ),
         ]),
 
+        // Knowledge
+        route(":workspaceSlug/knowledge", "./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx"),
+
         // Archived Projects
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
           route(
