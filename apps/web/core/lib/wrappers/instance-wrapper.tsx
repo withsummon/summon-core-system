@@ -9,7 +9,6 @@ import { observer } from "mobx-react";
 import useSWR from "swr";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { InstanceNotReady, MaintenanceView } from "@/components/instance";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 
@@ -29,21 +28,14 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
   );
 
   // loading state
-  if ((isLoading || isInstanceSWRLoading) && !instance)
+  if ((isLoading || isInstanceSWRLoading) && !instance && !instanceSWRError && !error)
     return (
       <div className="relative flex h-screen w-full items-center justify-center">
         <LogoSpinner />
       </div>
     );
 
-  if (instanceSWRError) return <MaintenanceView />;
-
-  // something went wrong while in the request
-  if (error && error?.status === "error") return <>{children}</>;
-
-  // instance is not ready and setup is not done
-  if (instance?.is_setup_done === false) return <InstanceNotReady />;
-
+  // If there's an error (e.g. 502 Bad Gateway) or instance is unavailable, render children directly
   return <>{children}</>;
 });
 

@@ -7,7 +7,6 @@
 import { observer } from "mobx-react";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { InstanceFailureView } from "@/components/instance/failure";
 import { InstanceSetupForm } from "@/components/instance/setup-form";
 // hooks
 import { useInstance } from "@/hooks/store";
@@ -28,9 +27,9 @@ function HomePage() {
     );
   }
 
-  // if instance fetch fails, show failure view
+  // if instance fetch fails, show sign in form instead of failure view
   if (error) {
-    return <InstanceFailureView />;
+    return <InstanceSignInForm />;
   }
 
   // if instance is fetched and setup is not done, show setup form
