@@ -82,8 +82,8 @@ export const QuickActionsCard: React.FC<IQuickActionsCardProps> = ({
   ];
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
-      <h2 className="text-xs font-semibold text-primary mb-3">Quick Actions</h2>
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-4">
+      <h2 className="text-xs mb-3 font-semibold text-primary">Quick Actions</h2>
       <div className="space-y-1">
         {actions.map((action) => {
           const IconComp = action.icon;
@@ -92,13 +92,13 @@ export const QuickActionsCard: React.FC<IQuickActionsCardProps> = ({
               key={action.id}
               type="button"
               onClick={action.onClick}
-              className="group flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-primary hover:bg-surface-2 transition-colors text-left"
+              className="group text-xs flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left font-medium text-primary transition-colors hover:bg-surface-2"
             >
               <div className="flex items-center gap-2.5">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-md text-blue-600 dark:text-blue-400">
+                <div className="text-blue-600 dark:text-blue-400 flex size-6 shrink-0 items-center justify-center rounded-md">
                   <IconComp size={15} />
                 </div>
-                <span className="text-xs font-medium text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <span className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 font-medium text-primary transition-colors">
                   {action.label}
                 </span>
               </div>

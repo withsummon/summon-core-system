@@ -13,12 +13,7 @@ function SummonOpportunitiesPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { currentWorkspace } = useWorkspace();
 
-  return (
-    <SummonOpportunitiesRootView
-      workspaceSlug={workspaceSlug}
-      workspaceName={currentWorkspace?.name}
-    />
-  );
+  return <SummonOpportunitiesRootView workspaceSlug={workspaceSlug} workspaceName={currentWorkspace?.name} />;
 }
 
 export default observer(SummonOpportunitiesPage);

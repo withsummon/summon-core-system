@@ -15,11 +15,7 @@ interface INewOpportunityModalProps {
   onCreateOpportunity: (opp: IOpportunityItem) => void;
 }
 
-export const NewOpportunityModal: React.FC<INewOpportunityModalProps> = ({
-  isOpen,
-  onClose,
-  onCreateOpportunity,
-}) => {
+export const NewOpportunityModal: React.FC<INewOpportunityModalProps> = ({ isOpen, onClose, onCreateOpportunity }) => {
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
   const [value, setValue] = useState("");
@@ -90,76 +86,68 @@ export const NewOpportunityModal: React.FC<INewOpportunityModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-subtle bg-surface-1 shadow-2xl overflow-hidden"
+        className="shadow-2xl relative w-full max-w-lg overflow-hidden rounded-2xl border border-subtle bg-surface-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-subtle px-6 py-4 bg-surface-2/40">
+        <div className="flex items-center justify-between border-b border-subtle bg-surface-2/40 px-6 py-4">
           <h2 className="text-sm font-semibold text-primary">Create New Opportunity</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+            className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Opportunity Title *
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Opportunity Title *</label>
             <input
               type="text"
               required
               placeholder="e.g. AI Interviewer Expansion"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Client Name
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Client Name</label>
               <input
                 type="text"
                 placeholder="e.g. PT Pegadaian"
                 value={client}
                 onChange={(e) => setClient(e.target.value)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Value (IDR)
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Value (IDR)</label>
               <input
                 type="number"
                 placeholder="450000000"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Pipeline Stage
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Pipeline Stage</label>
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as TPipelineStage)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               >
                 <option value="Lead">Lead</option>
                 <option value="Qualified">Qualified</option>
@@ -170,45 +158,41 @@ export const NewOpportunityModal: React.FC<INewOpportunityModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Win Probability (%)
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Win Probability (%)</label>
               <input
                 type="number"
                 min="0"
                 max="100"
                 value={probability}
                 onChange={(e) => setProbability(e.target.value)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Description / Notes
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Description / Notes</label>
             <textarea
               rows={3}
               placeholder="Brief context and objectives..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-primary focus:outline-none"
             />
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-subtle">
+          <div className="flex items-center justify-end gap-2 border-t border-subtle pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-subtle px-4 py-2 text-xs font-medium text-secondary hover:bg-surface-2 transition-colors"
+              className="text-xs rounded-lg border border-subtle px-4 py-2 font-medium text-secondary transition-colors hover:bg-surface-2"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-xs"
+              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs rounded-lg px-4 py-2 font-semibold text-white transition-colors"
             >
               Create Opportunity
             </button>

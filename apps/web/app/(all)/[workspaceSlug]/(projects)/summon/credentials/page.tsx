@@ -13,12 +13,7 @@ function SummonCredentialsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { currentWorkspace } = useWorkspace();
 
-  return (
-    <SummonCredentialsRootView
-      workspaceSlug={workspaceSlug}
-      workspaceName={currentWorkspace?.name}
-    />
-  );
+  return <SummonCredentialsRootView workspaceSlug={workspaceSlug} workspaceName={currentWorkspace?.name} />;
 }
 
 export default observer(SummonCredentialsPage);

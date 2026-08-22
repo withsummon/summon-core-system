@@ -15,11 +15,7 @@ interface IAddCredentialModalProps {
   onAddCredential: (cred: ICredentialItem) => void;
 }
 
-export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({
-  isOpen,
-  onClose,
-  onAddCredential,
-}) => {
+export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({ isOpen, onClose, onAddCredential }) => {
   const [name, setName] = useState("");
   const [type, setType] = useState<TCredentialType>("Server");
   const [project, setProject] = useState("BSB Logistic Management System");
@@ -79,15 +75,15 @@ export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-subtle bg-surface-1 shadow-2xl overflow-hidden"
+        className="shadow-2xl relative w-full max-w-lg overflow-hidden rounded-2xl border border-subtle bg-surface-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-subtle px-6 py-4 bg-surface-2/40">
+        <div className="flex items-center justify-between border-b border-subtle bg-surface-2/40 px-6 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex size-6 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+            <div className="bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex size-6 items-center justify-center rounded-full">
               <Shield size={14} />
             </div>
             <h2 className="text-sm font-semibold text-primary">Store New Encrypted Credential</h2>
@@ -95,35 +91,33 @@ export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+            className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Credential Name *
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Credential Name *</label>
             <input
               type="text"
               required
               placeholder="e.g. Production Redis Cluster"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">Type</label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Type</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as TCredentialType)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               >
                 <option value="Server">Server</option>
                 <option value="Cloud">Cloud</option>
@@ -135,13 +129,11 @@ export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Environment
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Environment</label>
               <select
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value as TCredentialEnvironment)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               >
                 <option value="Production">Production</option>
                 <option value="Staging">Staging</option>
@@ -153,83 +145,73 @@ export const AddCredentialModal: React.FC<IAddCredentialModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Username / Identifier
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Username / Identifier</label>
               <input
                 type="text"
                 placeholder="e.g. admin@withsummon.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Host / Endpoint / IP
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Host / Endpoint / IP</label>
               <input
                 type="text"
                 placeholder="e.g. 10.20.30.15"
                 value={hostIp}
                 onChange={(e) => setHostIp(e.target.value)}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Secret / Password *
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Secret / Password *</label>
             <input
               type="password"
               required
               placeholder="••••••••••••••••"
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Project Context
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Project Context</label>
             <input
               type="text"
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-primary focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Description
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Description</label>
             <textarea
               rows={2}
               placeholder="Context and access guidelines..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-primary focus:outline-none"
             />
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-subtle">
+          <div className="flex items-center justify-end gap-2 border-t border-subtle pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-subtle px-4 py-2 text-xs font-medium text-secondary hover:bg-surface-2 transition-colors"
+              className="text-xs rounded-lg border border-subtle px-4 py-2 font-medium text-secondary transition-colors hover:bg-surface-2"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-xs"
+              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs rounded-lg px-4 py-2 font-semibold text-white transition-colors"
             >
               Store Credential
             </button>

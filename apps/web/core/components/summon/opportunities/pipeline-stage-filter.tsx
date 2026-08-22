@@ -42,13 +42,13 @@ export const PipelineStageFilter: React.FC<IPipelineStageFilterProps> = ({
   stageCounts,
 }) => {
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-xs">
-      <h2 className="text-xs font-semibold text-primary mb-2.5 px-2">Pipeline</h2>
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-3.5">
+      <h2 className="text-xs mb-2.5 px-2 font-semibold text-primary">Pipeline</h2>
 
       <div className="space-y-0.5">
         {PIPELINE_STAGES.map((item) => {
           const isSelected = selectedStage === item.stage;
-          const count = stageCounts ? stageCounts[item.stage] ?? item.count : item.count;
+          const count = stageCounts ? (stageCounts[item.stage] ?? item.count) : item.count;
 
           return (
             <button
@@ -56,7 +56,7 @@ export const PipelineStageFilter: React.FC<IPipelineStageFilterProps> = ({
               type="button"
               onClick={() => onSelectStage(item.stage)}
               className={cn(
-                "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors text-left",
+                "text-xs flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left font-medium transition-colors",
                 isSelected
                   ? "bg-blue-50/80 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
                   : "text-secondary hover:bg-surface-2 hover:text-primary"
@@ -64,19 +64,15 @@ export const PipelineStageFilter: React.FC<IPipelineStageFilterProps> = ({
             >
               <div className="flex items-center gap-2 truncate">
                 {item.stage !== "All" && (
-                  <span className={cn("size-2 rounded-full shrink-0", getDotClass(item.color))} />
+                  <span className={cn("size-2 shrink-0 rounded-full", getDotClass(item.color))} />
                 )}
-                <span className="truncate">
-                  {item.stage === "All" ? "All Opportunities" : item.stage}
-                </span>
+                <span className="truncate">{item.stage === "All" ? "All Opportunities" : item.stage}</span>
               </div>
 
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  isSelected
-                    ? "bg-blue-600 text-white dark:bg-blue-500"
-                    : "bg-layer-2 text-secondary"
+                  isSelected ? "bg-blue-600 dark:bg-blue-500 text-white" : "bg-layer-2 text-secondary"
                 )}
               >
                 {count}

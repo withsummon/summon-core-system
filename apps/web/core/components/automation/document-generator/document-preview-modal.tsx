@@ -16,11 +16,7 @@ interface IDocumentPreviewModalProps {
   onClose: () => void;
 }
 
-export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
-  document,
-  isOpen,
-  onClose,
-}) => {
+export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ document, isOpen, onClose }) => {
   const [isCopied, setIsCopied] = React.useState(false);
 
   if (!isOpen || !document) return null;
@@ -47,18 +43,20 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
       <div
-        className="relative flex h-[85vh] w-full max-w-4xl flex-col rounded-2xl border border-subtle bg-surface-1 shadow-2xl overflow-hidden"
+        className="shadow-2xl relative flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-subtle px-6 py-4 bg-surface-2/60">
+        <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-6 py-4">
           <div className="flex items-center gap-3">
             <TypeIcon type={document.type} boxed size={20} />
             <div>
               <h3 className="text-sm font-semibold text-primary">{document.title}</h3>
-              <p className="text-xs text-secondary">{document.context} • {document.createdAt}</p>
+              <p className="text-xs text-secondary">
+                {document.context} • {document.createdAt}
+              </p>
             </div>
           </div>
 
@@ -66,7 +64,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-2 hover:text-primary transition-colors"
+              className="text-xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
             >
               {isCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               <span>{isCopied ? "Copied" : "Copy"}</span>
@@ -74,7 +72,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors shadow-xs"
+              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-white transition-colors"
             >
               <Download size={14} />
               <span>Download {document.format || "DOCX"}</span>
@@ -82,7 +80,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+              className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
             >
               <X size={18} />
             </button>
@@ -90,28 +88,28 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
         </div>
 
         {/* Modal Body / Markdown Document Content */}
-        <div className="flex-1 overflow-y-auto p-8 bg-surface-1">
-          <div className="mx-auto max-w-3xl space-y-6 text-sm text-primary">
+        <div className="flex-1 overflow-y-auto bg-surface-1 p-8">
+          <div className="text-sm mx-auto max-w-3xl space-y-6 text-primary">
             {document.content ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none space-y-4">
+              <div className="prose-sm dark:prose-invert max-w-none space-y-4 prose">
                 {document.content.split("\n\n").map((paragraph, idx) => {
                   if (paragraph.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="text-2xl font-bold text-primary border-b border-subtle pb-2">
+                      <h1 key={idx} className="text-2xl border-b border-subtle pb-2 font-bold text-primary">
                         {paragraph.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (paragraph.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="text-lg font-semibold text-primary mt-4">
+                      <h2 key={idx} className="text-lg mt-4 font-semibold text-primary">
                         {paragraph.replace("## ", "")}
                       </h2>
                     );
                   }
                   if (paragraph.startsWith("### ")) {
                     return (
-                      <h3 key={idx} className="text-sm font-semibold text-primary mt-3">
+                      <h3 key={idx} className="text-sm mt-3 font-semibold text-primary">
                         {paragraph.replace("### ", "")}
                       </h3>
                     );
@@ -119,7 +117,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
                   if (paragraph.startsWith("- ")) {
                     const items = paragraph.split("\n");
                     return (
-                      <ul key={idx} className="list-disc pl-5 space-y-1 text-secondary">
+                      <ul key={idx} className="list-disc space-y-1 pl-5 text-secondary">
                         {items.map((item, i) => (
                           <li key={i}>{item.replace(/^-\s*/, "")}</li>
                         ))}
@@ -129,7 +127,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
                   if (paragraph.startsWith("1. ")) {
                     const items = paragraph.split("\n");
                     return (
-                      <ol key={idx} className="list-decimal pl-5 space-y-1 text-secondary">
+                      <ol key={idx} className="list-decimal space-y-1 pl-5 text-secondary">
                         {items.map((item, i) => (
                           <li key={i}>{item.replace(/^\d+\.\s*/, "")}</li>
                         ))}
@@ -145,20 +143,24 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <FileText size={48} className="text-placeholder mb-3" />
+                <FileText size={48} className="mb-3 text-placeholder" />
                 <p className="text-sm font-medium text-primary">{document.title}</p>
-                <p className="text-xs text-secondary mt-1">{document.description}</p>
+                <p className="text-xs mt-1 text-secondary">{document.description}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-subtle px-6 py-3 bg-surface-2/40 text-xs text-secondary">
+        <div className="text-xs flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-secondary">
           <div className="flex items-center gap-2">
-            <span>Author: <strong className="text-primary">{document.createdBy.name}</strong></span>
+            <span>
+              Author: <strong className="text-primary">{document.createdBy.name}</strong>
+            </span>
             <span>•</span>
-            <span>Status: <strong className="text-emerald-600">{document.status}</strong></span>
+            <span>
+              Status: <strong className="text-emerald-600">{document.status}</strong>
+            </span>
           </div>
           <div>
             <span>Summon AI Document System</span>

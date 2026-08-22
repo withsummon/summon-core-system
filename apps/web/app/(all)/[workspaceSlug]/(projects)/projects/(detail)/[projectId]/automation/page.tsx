@@ -15,13 +15,7 @@ function ProjectAutomationPage({ params }: Route.ComponentProps) {
 
   const project = getProjectById(projectId);
 
-  return (
-    <AutomationRootView
-      workspaceSlug={workspaceSlug}
-      projectId={projectId}
-      projectName={project?.name}
-    />
-  );
+  return <AutomationRootView workspaceSlug={workspaceSlug} projectId={projectId} projectName={project?.name} />;
 }
 
 export default observer(ProjectAutomationPage);

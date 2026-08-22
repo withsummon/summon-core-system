@@ -57,18 +57,14 @@ const getTypeIcon = (type: TCredentialType) => {
   }
 };
 
-export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
-  credential,
-  onClose,
-  onDelete,
-}) => {
+export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({ credential, onClose, onDelete }) => {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isPasswordRevealed, setIsPasswordRevealed] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!credential) {
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-subtle bg-surface-1 p-8 text-secondary text-xs">
+      <div className="text-xs flex h-full items-center justify-center rounded-xl border border-subtle bg-surface-1 p-8 text-secondary">
         Select a credential from the list to view details.
       </div>
     );
@@ -96,37 +92,37 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
   const IconComponent = getTypeIcon(credential.type);
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 shadow-xs overflow-hidden h-full">
+    <div className="shadow-xs flex h-full flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1">
       {/* Panel Top Header */}
-      <div className="flex items-center justify-between border-b border-subtle px-5 py-3.5 bg-surface-2/40">
+      <div className="flex items-center justify-between border-b border-subtle bg-surface-2/40 px-5 py-3.5">
         <h2 className="text-xs font-semibold text-primary">Credential Details</h2>
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-1 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+          className="rounded p-1 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
         >
           <X size={14} />
         </button>
       </div>
 
       {/* Identity Banner */}
-      <div className="p-5 border-b border-subtle bg-surface-1">
+      <div className="border-b border-subtle bg-surface-1 p-5">
         <div className="flex items-start gap-3.5">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:border-blue-800 shadow-2xs">
+          <div className="border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:border-blue-800 shadow-2xs flex size-10 shrink-0 items-center justify-center rounded-xl border">
             <IconComponent size={20} />
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-primary truncate">{credential.name}</h3>
-              <span className="rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 px-2 py-0.5 text-[10px] font-semibold">
+              <h3 className="text-sm truncate font-bold text-primary">{credential.name}</h3>
+              <span className="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 rounded-full border px-2 py-0.5 text-[10px] font-semibold">
                 Active
               </span>
             </div>
-            <p className="text-xs text-secondary mt-0.5">
+            <p className="text-xs mt-0.5 text-secondary">
               {credential.type} Access • {credential.environment} Environment
             </p>
-            <p className="text-[10px] text-placeholder mt-1">
+            <p className="mt-1 text-[10px] text-placeholder">
               Last used {credential.lastUsed} • Created {credential.createdBy.date}
             </p>
           </div>
@@ -134,7 +130,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-subtle px-5 bg-surface-1 overflow-x-auto hide-horizontal-scrollbar">
+      <div className="hide-horizontal-scrollbar flex overflow-x-auto border-b border-subtle bg-surface-1 px-5">
         <div className="flex gap-4">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
@@ -144,15 +140,13 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                 type="button"
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "relative py-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-secondary hover:text-primary"
+                  "text-xs relative py-2.5 font-medium whitespace-nowrap transition-colors",
+                  isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
                 {tab}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="bg-blue-600 dark:bg-blue-400 absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
                 )}
               </button>
             );
@@ -162,30 +156,26 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
 
       {/* Detail Content (2 Sub-columns: Fields & Sidebar Actions) */}
       <div className="flex-1 overflow-y-auto p-5">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
           {/* Left Sub-column: Fields (7 cols) */}
-          <div className="lg:col-span-7 space-y-4 text-xs">
+          <div className="text-xs space-y-4 lg:col-span-7">
             {/* Username */}
-            <div className="flex items-center justify-between py-1 border-b border-subtle">
+            <div className="flex items-center justify-between border-b border-subtle py-1">
               <span className="text-[11px] text-secondary">Username</span>
               <div className="flex items-center gap-1.5 font-medium text-primary">
                 <span className="font-mono">{credential.username}</span>
                 <button
                   type="button"
                   onClick={() => handleCopy(credential.username, "Username")}
-                  className="text-placeholder hover:text-primary transition-colors"
+                  className="text-placeholder transition-colors hover:text-primary"
                 >
-                  {copiedField === "Username" ? (
-                    <Check size={12} className="text-emerald-600" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
+                  {copiedField === "Username" ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
                 </button>
               </div>
             </div>
 
             {/* Password */}
-            <div className="flex items-center justify-between py-1 border-b border-subtle">
+            <div className="flex items-center justify-between border-b border-subtle py-1">
               <span className="text-[11px] text-secondary">Password</span>
               <div className="flex items-center gap-2 font-medium text-primary">
                 <span className="font-mono text-sm tracking-wider">
@@ -196,39 +186,30 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPasswordRevealed(!isPasswordRevealed)}
-                  className="text-placeholder hover:text-primary transition-colors"
+                  className="text-placeholder transition-colors hover:text-primary"
                 >
                   {isPasswordRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleCopy(
-                      credential.passwordRaw || "BSB_Prod_Secure#2024!xK",
-                      "Password"
-                    )
-                  }
-                  className="text-placeholder hover:text-primary transition-colors"
+                  onClick={() => handleCopy(credential.passwordRaw || "BSB_Prod_Secure#2024!xK", "Password")}
+                  className="text-placeholder transition-colors hover:text-primary"
                 >
-                  {copiedField === "Password" ? (
-                    <Check size={12} className="text-emerald-600" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
+                  {copiedField === "Password" ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
                 </button>
               </div>
             </div>
 
             {/* Host / IP */}
             {credential.hostIp && (
-              <div className="flex items-center justify-between py-1 border-b border-subtle">
+              <div className="flex items-center justify-between border-b border-subtle py-1">
                 <span className="text-[11px] text-secondary">Host / IP</span>
                 <div className="flex items-center gap-1.5 font-medium text-primary">
                   <span className="font-mono">{credential.hostIp}</span>
                   <button
                     type="button"
                     onClick={() => handleCopy(credential.hostIp!, "Host / IP")}
-                    className="text-placeholder hover:text-primary transition-colors"
+                    className="text-placeholder transition-colors hover:text-primary"
                   >
                     {copiedField === "Host / IP" ? (
                       <Check size={12} className="text-emerald-600" />
@@ -241,10 +222,10 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
             )}
 
             {/* Port & Protocol */}
-            <div className="grid grid-cols-2 gap-4 py-1 border-b border-subtle">
+            <div className="grid grid-cols-2 gap-4 border-b border-subtle py-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-secondary">Port</span>
-                <span className="font-medium text-primary font-mono">{credential.port || "22"}</span>
+                <span className="font-mono font-medium text-primary">{credential.port || "22"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-secondary">Protocol</span>
@@ -253,21 +234,21 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
             </div>
 
             {/* Description */}
-            <div className="py-1 border-b border-subtle">
-              <span className="text-[11px] text-secondary block mb-1">Description</span>
-              <p className="text-xs text-primary leading-relaxed">
+            <div className="border-b border-subtle py-1">
+              <span className="mb-1 block text-[11px] text-secondary">Description</span>
+              <p className="text-xs leading-relaxed text-primary">
                 {credential.description || "No description provided."}
               </p>
             </div>
 
             {/* Tags */}
-            <div className="py-1 border-b border-subtle">
-              <span className="text-[11px] text-secondary block mb-1.5">Tags</span>
+            <div className="border-b border-subtle py-1">
+              <span className="mb-1.5 block text-[11px] text-secondary">Tags</span>
               <div className="flex flex-wrap items-center gap-1.5">
                 {credential.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-[10px] font-medium"
+                    className="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800 rounded-md border px-2 py-0.5 text-[10px] font-medium"
                   >
                     {tag}
                   </span>
@@ -289,24 +270,24 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
             </div>
 
             {/* Project */}
-            <div className="flex items-center justify-between py-1 border-b border-subtle">
+            <div className="flex items-center justify-between border-b border-subtle py-1">
               <span className="text-[11px] text-secondary">Project</span>
-              <div className="flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400">
-                <span className="truncate max-w-[180px]">{credential.project}</span>
+              <div className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-medium">
+                <span className="max-w-[180px] truncate">{credential.project}</span>
                 <ExternalLink size={12} />
               </div>
             </div>
 
             {/* Environment */}
-            <div className="flex items-center justify-between py-1 border-b border-subtle">
+            <div className="flex items-center justify-between border-b border-subtle py-1">
               <span className="text-[11px] text-secondary">Environment</span>
-              <span className="rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 px-2 py-0.5 text-[10px] font-medium">
+              <span className="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 rounded-full border px-2 py-0.5 text-[10px] font-medium">
                 {credential.environment}
               </span>
             </div>
 
             {/* Created By */}
-            <div className="flex items-center justify-between py-1 border-b border-subtle">
+            <div className="flex items-center justify-between border-b border-subtle py-1">
               <span className="text-[11px] text-secondary">Created By</span>
               <div className="flex items-center gap-2">
                 {credential.createdBy.avatar ? (
@@ -325,9 +306,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
             <div className="flex items-center justify-between py-1">
               <span className="text-[11px] text-secondary">Password Rotation</span>
               <div className="flex items-center gap-2">
-                <span className="font-medium text-primary">
-                  {credential.passwordRotationPolicy || "Every 90 days"}
-                </span>
+                <span className="font-medium text-primary">{credential.passwordRotationPolicy || "Every 90 days"}</span>
                 <button
                   type="button"
                   onClick={() =>
@@ -337,7 +316,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                       message: "Configuring automatic secret rotation.",
                     })
                   }
-                  className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[11px] font-medium"
                 >
                   Edit
                 </button>
@@ -346,15 +325,15 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
           </div>
 
           {/* Right Sub-column: Quick Actions & Access Summary (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className="space-y-4 lg:col-span-5">
             {/* Quick Actions Card */}
-            <div className="rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-2xs">
-              <h4 className="text-xs font-semibold text-primary mb-2.5">Quick Actions</h4>
+            <div className="shadow-2xs rounded-xl border border-subtle bg-surface-1 p-3.5">
+              <h4 className="text-xs mb-2.5 font-semibold text-primary">Quick Actions</h4>
               <div className="space-y-1">
                 <button
                   type="button"
                   onClick={() => setIsPasswordRevealed(!isPasswordRevealed)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors text-left"
+                  className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-primary transition-colors hover:bg-surface-2"
                 >
                   <Eye size={13} className="text-blue-600" />
                   <span>Reveal Password</span>
@@ -369,7 +348,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                       message: "Opening update dialog.",
                     })
                   }
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors text-left"
+                  className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-primary transition-colors hover:bg-surface-2"
                 >
                   <Pencil size={13} className="text-blue-600" />
                   <span>Update Credential</span>
@@ -378,7 +357,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleRotatePassword}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors text-left"
+                  className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-primary transition-colors hover:bg-surface-2"
                 >
                   <RotateCw size={13} className="text-blue-600" />
                   <span>Rotate Password</span>
@@ -393,7 +372,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                       message: "Manage team and member access permissions.",
                     })
                   }
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors text-left"
+                  className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-primary transition-colors hover:bg-surface-2"
                 >
                   <Share2 size={13} className="text-blue-600" />
                   <span>Share Access</span>
@@ -408,7 +387,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                       message: `Duplicated ${credential.name} as draft.`,
                     })
                   }
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors text-left"
+                  className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-primary transition-colors hover:bg-surface-2"
                 >
                   <Copy size={13} className="text-secondary" />
                   <span>Duplicate</span>
@@ -424,7 +403,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
                       message: `${credential.name} removed from vault.`,
                     });
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors text-left"
+                  className="text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors"
                 >
                   <Trash2 size={13} className="text-red-600" />
                   <span>Delete</span>
@@ -433,18 +412,18 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
             </div>
 
             {/* Access Summary Card */}
-            <div className="rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-2xs">
-              <div className="flex items-center justify-between mb-2.5">
+            <div className="shadow-2xs rounded-xl border border-subtle bg-surface-1 p-3.5">
+              <div className="mb-2.5 flex items-center justify-between">
                 <h4 className="text-xs font-semibold text-primary">Access Summary</h4>
                 <button
                   type="button"
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[10px] font-medium"
                 >
                   View all
                 </button>
               </div>
 
-              <div className="space-y-2 text-xs">
+              <div className="text-xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-secondary">Owner</span>
                   <span className="font-medium text-primary">{credential.accessSummary.owner}</span>
@@ -452,22 +431,18 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
 
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-secondary">Users with access</span>
-                  <span className="font-medium text-primary font-mono">
-                    {credential.accessSummary.usersWithAccess}
-                  </span>
+                  <span className="font-mono font-medium text-primary">{credential.accessSummary.usersWithAccess}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-secondary">User groups</span>
-                  <span className="font-medium text-primary font-mono">
-                    {credential.accessSummary.userGroups}
-                  </span>
+                  <span className="font-mono font-medium text-primary">{credential.accessSummary.userGroups}</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-subtle">
+                <div className="flex items-center justify-between border-t border-subtle pt-1">
                   <span className="text-[11px] text-secondary">Last accessed by</span>
                   <div className="text-right">
-                    <span className="font-medium text-primary block">
+                    <span className="block font-medium text-primary">
                       {credential.accessSummary.lastAccessedBy.name}
                     </span>
                     <span className="text-[10px] text-placeholder">
@@ -482,12 +457,12 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
       </div>
 
       {/* Bottom Security Banner Callout */}
-      <div className="border-t border-subtle p-3.5 bg-blue-50/50 dark:bg-blue-950/20 flex items-center justify-between gap-3 text-xs">
+      <div className="bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between gap-3 border-t border-subtle p-3.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400 shrink-0">
+          <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400 flex size-6 shrink-0 items-center justify-center rounded-full">
             <Shield size={13} />
           </div>
-          <p className="text-secondary text-[11px] leading-relaxed">
+          <p className="text-[11px] leading-relaxed text-secondary">
             This credential is encrypted and stored securely. Only authorized users and groups can access it.
           </p>
         </div>
@@ -501,7 +476,7 @@ export const CredentialDetailPanel: React.FC<ICredentialDetailPanelProps> = ({
               message: "Opening Summon KMS zero-knowledge encryption guide.",
             })
           }
-          className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 whitespace-nowrap"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[11px] font-medium whitespace-nowrap"
         >
           Learn more
         </button>

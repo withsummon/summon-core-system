@@ -5,25 +5,11 @@
  */
 
 import React, { useState } from "react";
-import {
-  Sparkles,
-  ChevronDown,
-  FileText,
-  FileSpreadsheet,
-  Presentation,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, ChevronDown, FileText, FileSpreadsheet, Presentation, Check, Loader2 } from "lucide-react";
 import { cn } from "@plane/utils";
 import { AVAILABLE_CONTEXTS, TOP_TEMPLATES } from "./mock-data";
 import { TypeIcon } from "./type-icon";
-import type {
-  TDetailLevel,
-  TDocumentFormat,
-  TDocumentTone,
-  TDocumentType,
-  IGeneratedDocument,
-} from "./types";
+import type { TDetailLevel, TDocumentFormat, TDocumentTone, TDocumentType, IGeneratedDocument } from "./types";
 
 interface IAIGeneratorFormProps {
   selectedTemplate: TDocumentType;
@@ -81,18 +67,18 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-5">
       {/* Title */}
       <div className="mb-5">
         <h2 className="text-base font-semibold text-primary">AI Document Generator</h2>
-        <p className="text-xs text-secondary mt-0.5">Generate documents with AI in minutes</p>
+        <p className="text-xs mt-0.5 text-secondary">Generate documents with AI in minutes</p>
       </div>
 
       <div className="space-y-4">
         {/* STEP 1: Select Template */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
               1
             </span>
             <label className="text-xs font-semibold text-primary">Select Template</label>
@@ -106,7 +92,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                 setIsToneMenuOpen(false);
                 setIsDetailMenuOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs font-medium text-primary hover:border-strong transition-colors"
+              className="text-xs flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 font-medium text-primary transition-colors hover:border-strong"
             >
               <div className="flex items-center gap-2">
                 <TypeIcon type={selectedTemplate} size={15} />
@@ -116,7 +102,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
             </button>
 
             {isTemplateMenuOpen && (
-              <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+              <div className="shadow-lg absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1">
                 {TOP_TEMPLATES.map((tpl) => (
                   <button
                     key={tpl.id}
@@ -127,8 +113,9 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                       setIsTemplateMenuOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between px-3 py-2 text-xs text-left hover:bg-surface-2 transition-colors",
-                      selectedTemplate === tpl.name && "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                      "text-xs flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-surface-2",
+                      selectedTemplate === tpl.name &&
+                        "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -146,7 +133,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 2: Select Context */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
               2
             </span>
             <label className="text-xs font-semibold text-primary">Select Context</label>
@@ -160,19 +147,17 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                 setIsToneMenuOpen(false);
                 setIsDetailMenuOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs font-medium text-primary hover:border-strong transition-colors"
+              className="text-xs flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 font-medium text-primary transition-colors hover:border-strong"
             >
               <div className="flex items-center gap-2 truncate">
                 <span className="truncate">{context}</span>
-                <span className="rounded bg-layer-2 px-1.5 py-0.5 text-[10px] font-normal text-secondary">
-                  Project
-                </span>
+                <span className="font-normal rounded bg-layer-2 px-1.5 py-0.5 text-[10px] text-secondary">Project</span>
               </div>
-              <ChevronDown size={14} className="shrink-0 text-placeholder ml-2" />
+              <ChevronDown size={14} className="ml-2 shrink-0 text-placeholder" />
             </button>
 
             {isContextMenuOpen && (
-              <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg max-h-48 overflow-y-auto">
+              <div className="shadow-lg absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-subtle bg-surface-1 py-1">
                 {AVAILABLE_CONTEXTS.map((item) => (
                   <button
                     key={item}
@@ -182,12 +167,13 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                       setIsContextMenuOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between px-3 py-2 text-xs text-left hover:bg-surface-2 transition-colors",
-                      context === item && "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                      "text-xs flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-surface-2",
+                      context === item &&
+                        "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
                     )}
                   >
                     <span className="truncate">{item}</span>
-                    {context === item && <Check size={13} className="shrink-0 text-blue-600 dark:text-blue-400 ml-2" />}
+                    {context === item && <Check size={13} className="text-blue-600 dark:text-blue-400 ml-2 shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -198,7 +184,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 3: Additional Context (Optional) */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
               3
             </span>
             <label className="text-xs font-semibold text-primary">Additional Context (Optional)</label>
@@ -210,9 +196,9 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
               value={additionalContext}
               onChange={(e) => setAdditionalContext(e.target.value)}
               placeholder="Add more details about the project, scope, or enter specific requirements..."
-              className="w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary placeholder:text-placeholder focus:border-blue-500 focus:outline-none transition-colors"
+              className="text-xs focus:border-blue-500 w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-primary transition-colors placeholder:text-placeholder focus:outline-none"
             />
-            <div className="absolute bottom-2 right-2 text-[10px] text-placeholder">
+            <div className="absolute right-2 bottom-2 text-[10px] text-placeholder">
               {additionalContext.length}/1000
             </div>
           </div>
@@ -221,7 +207,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 4: Output Preferences */}
         <div>
           <div className="mb-2 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
               4
             </span>
             <label className="text-xs font-semibold text-primary">Output Preferences</label>
@@ -230,20 +216,23 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
           <div className="space-y-3 pl-6">
             {/* Format buttons */}
             <div>
-              <span className="text-[11px] font-medium text-secondary block mb-1.5">Document Format</span>
+              <span className="mb-1.5 block text-[11px] font-medium text-secondary">Document Format</span>
               <div className="grid grid-cols-3 gap-2">
                 {/* DOCX */}
                 <button
                   type="button"
                   onClick={() => setFormat("DOCX")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "text-xs flex items-center justify-center gap-1.5 rounded-lg border py-2 font-medium transition-all",
                     format === "DOCX"
                       ? "border-blue-500 bg-blue-50/70 text-blue-600 shadow-xs dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
-                  <FileText size={14} className={format === "DOCX" ? "text-blue-600 dark:text-blue-400" : "text-blue-500"} />
+                  <FileText
+                    size={14}
+                    className={format === "DOCX" ? "text-blue-600 dark:text-blue-400" : "text-blue-500"}
+                  />
                   <span>DOCX</span>
                 </button>
 
@@ -252,13 +241,16 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                   type="button"
                   onClick={() => setFormat("PDF")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "text-xs flex items-center justify-center gap-1.5 rounded-lg border py-2 font-medium transition-all",
                     format === "PDF"
                       ? "border-blue-500 bg-blue-50/70 text-blue-600 shadow-xs dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
-                  <FileSpreadsheet size={14} className={format === "PDF" ? "text-red-600 dark:text-red-400" : "text-red-500"} />
+                  <FileSpreadsheet
+                    size={14}
+                    className={format === "PDF" ? "text-red-600 dark:text-red-400" : "text-red-500"}
+                  />
                   <span>PDF</span>
                 </button>
 
@@ -267,13 +259,16 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                   type="button"
                   onClick={() => setFormat("PPTX")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "text-xs flex items-center justify-center gap-1.5 rounded-lg border py-2 font-medium transition-all",
                     format === "PPTX"
                       ? "border-blue-500 bg-blue-50/70 text-blue-600 shadow-xs dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
-                  <Presentation size={14} className={format === "PPTX" ? "text-orange-600 dark:text-orange-400" : "text-orange-500"} />
+                  <Presentation
+                    size={14}
+                    className={format === "PPTX" ? "text-orange-600 dark:text-orange-400" : "text-orange-500"}
+                  />
                   <span>PPTX</span>
                 </button>
               </div>
@@ -281,7 +276,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
 
             {/* Tone Selector */}
             <div>
-              <span className="text-[11px] font-medium text-secondary block mb-1">Tone</span>
+              <span className="mb-1 block text-[11px] font-medium text-secondary">Tone</span>
               <div className="relative">
                 <button
                   type="button"
@@ -291,13 +286,13 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                     setIsTemplateMenuOpen(false);
                     setIsContextMenuOpen(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary hover:border-strong transition-colors"
+                  className="text-xs flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary transition-colors hover:border-strong"
                 >
                   <span>{tone}</span>
                   <ChevronDown size={13} className="text-placeholder" />
                 </button>
                 {isToneMenuOpen && (
-                  <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+                  <div className="shadow-lg absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1">
                     {tones.map((t) => (
                       <button
                         key={t}
@@ -307,7 +302,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                           setIsToneMenuOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-surface-2 transition-colors",
+                          "text-xs flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-surface-2",
                           tone === t && "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
                         )}
                       >
@@ -322,7 +317,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
 
             {/* Detail Level */}
             <div>
-              <span className="text-[11px] font-medium text-secondary block mb-1">Detail Level</span>
+              <span className="mb-1 block text-[11px] font-medium text-secondary">Detail Level</span>
               <div className="relative">
                 <button
                   type="button"
@@ -332,13 +327,13 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                     setIsTemplateMenuOpen(false);
                     setIsContextMenuOpen(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary hover:border-strong transition-colors"
+                  className="text-xs flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary transition-colors hover:border-strong"
                 >
                   <span>{detailLevel}</span>
                   <ChevronDown size={13} className="text-placeholder" />
                 </button>
                 {isDetailMenuOpen && (
-                  <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+                  <div className="shadow-lg absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1">
                     {detailLevels.map((lvl) => (
                       <button
                         key={lvl}
@@ -348,8 +343,9 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                           setIsDetailMenuOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-surface-2 transition-colors",
-                          detailLevel === lvl && "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                          "text-xs flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-surface-2",
+                          detailLevel === lvl &&
+                            "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
                         )}
                       >
                         <span>{lvl}</span>
@@ -369,7 +365,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
             type="button"
             disabled={isGenerating}
             onClick={handleGenerate}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] disabled:opacity-75 transition-all"
+            className="bg-blue-600 text-xs shadow-sm hover:bg-blue-700 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-75"
           >
             {isGenerating ? (
               <>

@@ -91,14 +91,11 @@ export const AutomationRootView: React.FC<IAutomationRootProps> = observer(funct
       <div className="mx-auto w-full max-w-[1600px] space-y-5 p-5 md:p-6 lg:p-7">
         {/* 1. TOP SECTION: Create New Templates Carousel */}
         <section>
-          <TopTemplatesRow
-            onSelectTemplate={handleSelectTemplate}
-            onViewAllTemplates={handleViewAllTemplates}
-          />
+          <TopTemplatesRow onSelectTemplate={handleSelectTemplate} onViewAllTemplates={handleViewAllTemplates} />
         </section>
 
         {/* 2. MIDDLE SECTION: 2-Column AI Generator + Generated Documents Table */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <section className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
           {/* Left Column: AI Document Generator Form */}
           <div className="lg:col-span-4 xl:col-span-4">
             <AIGeneratorForm
@@ -119,31 +116,21 @@ export const AutomationRootView: React.FC<IAutomationRootProps> = observer(funct
         </section>
 
         {/* 3. BOTTOM SECTION: Template Library + Recent Activity */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
           {/* Left Column: Template Library */}
           <div className="lg:col-span-7 xl:col-span-8">
-            <TemplateLibraryCard
-              onSelectTemplate={handleSelectTemplate}
-              onViewAllTemplates={handleViewAllTemplates}
-            />
+            <TemplateLibraryCard onSelectTemplate={handleSelectTemplate} onViewAllTemplates={handleViewAllTemplates} />
           </div>
 
           {/* Right Column: Recent Activity */}
           <div className="lg:col-span-5 xl:col-span-4">
-            <RecentActivityCard
-              activities={activities}
-              onViewAllActivity={handleViewAllActivity}
-            />
+            <RecentActivityCard activities={activities} onViewAllActivity={handleViewAllActivity} />
           </div>
         </section>
       </div>
 
       {/* Document Preview Modal */}
-      <DocumentPreviewModal
-        document={previewDoc}
-        isOpen={Boolean(previewDoc)}
-        onClose={() => setPreviewDoc(null)}
-      />
+      <DocumentPreviewModal document={previewDoc} isOpen={Boolean(previewDoc)} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 });

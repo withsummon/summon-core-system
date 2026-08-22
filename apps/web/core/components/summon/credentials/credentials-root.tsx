@@ -24,9 +24,7 @@ interface ISummonCredentialsRootViewProps {
 export const SummonCredentialsRootView: React.FC<ISummonCredentialsRootViewProps> = observer(
   function SummonCredentialsRootView({ workspaceSlug, workspaceName }) {
     const [credentials, setCredentials] = useState<ICredentialItem[]>(INITIAL_CREDENTIALS);
-    const [selectedCredentialId, setSelectedCredentialId] = useState<string>(
-      INITIAL_CREDENTIALS[0]?.id || ""
-    );
+    const [selectedCredentialId, setSelectedCredentialId] = useState<string>(INITIAL_CREDENTIALS[0]?.id || "");
     const [searchQuery, setSearchQuery] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -43,11 +41,7 @@ export const SummonCredentialsRootView: React.FC<ISummonCredentialsRootViewProps
     }, [credentials, searchQuery]);
 
     const selectedCredential = useMemo(() => {
-      return (
-        credentials.find((c) => c.id === selectedCredentialId) ||
-        filteredCredentials[0] ||
-        null
-      );
+      return credentials.find((c) => c.id === selectedCredentialId) || filteredCredentials[0] || null;
     }, [credentials, selectedCredentialId, filteredCredentials]);
 
     const handleAddCredential = (newCred: ICredentialItem) => {
@@ -86,7 +80,7 @@ export const SummonCredentialsRootView: React.FC<ISummonCredentialsRootViewProps
           <CredentialsKpiRow kpis={CREDENTIAL_KPIS} />
 
           {/* 2-Column Split Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
             {/* Left Credentials Table (approx 60% / 7 cols) */}
             <div className="lg:col-span-7">
               <CredentialsTable

@@ -13,9 +13,7 @@ interface ICredentialsKpiRowProps {
   kpis?: ICredentialKpi;
 }
 
-export const CredentialsKpiRow: React.FC<ICredentialsKpiRowProps> = ({
-  kpis = CREDENTIAL_KPIS,
-}) => {
+export const CredentialsKpiRow: React.FC<ICredentialsKpiRowProps> = ({ kpis = CREDENTIAL_KPIS }) => {
   const cards = [
     {
       id: "total",
@@ -65,13 +63,13 @@ export const CredentialsKpiRow: React.FC<ICredentialsKpiRowProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 w-full">
+    <div className="grid w-full grid-cols-1 gap-3.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {cards.map((card) => {
         const IconComp = card.icon;
         return (
           <div
             key={card.id}
-            className="flex items-center gap-3.5 rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-2xs hover:border-strong transition-all"
+            className="shadow-2xs flex items-center gap-3.5 rounded-xl border border-subtle bg-surface-1 p-3.5 transition-all hover:border-strong"
           >
             <div
               className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg} ${card.iconColor}`}
@@ -79,13 +77,9 @@ export const CredentialsKpiRow: React.FC<ICredentialsKpiRowProps> = ({
               <IconComp size={18} />
             </div>
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-secondary truncate block">
-                {card.label}
-              </span>
-              <p className="text-lg font-bold text-primary tracking-tight">{card.value}</p>
-              <span className="text-[10px] text-placeholder truncate block mt-0.5">
-                {card.subtitle}
-              </span>
+              <span className="block truncate text-[11px] font-medium text-secondary">{card.label}</span>
+              <p className="text-lg font-bold tracking-tight text-primary">{card.value}</p>
+              <span className="mt-0.5 block truncate text-[10px] text-placeholder">{card.subtitle}</span>
             </div>
           </div>
         );

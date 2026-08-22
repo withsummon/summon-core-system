@@ -10,7 +10,12 @@ export type TCredentialEnvironment = "Production" | "Staging" | "Development" | 
 
 export type TCredentialStatus = "active" | "expiring_soon" | "revoked" | "risky";
 
-export type TCredentialFilterTab = "All Credentials" | "By Project" | "By Type" | "Shared With Me" | "Recently Accessed";
+export type TCredentialFilterTab =
+  | "All Credentials"
+  | "By Project"
+  | "By Type"
+  | "Shared With Me"
+  | "Recently Accessed";
 
 export interface ICredentialItem {
   id: string;

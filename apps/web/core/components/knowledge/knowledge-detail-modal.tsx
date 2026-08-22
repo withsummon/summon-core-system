@@ -15,11 +15,7 @@ interface IKnowledgeDetailModalProps {
   onClose: () => void;
 }
 
-export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
-  item,
-  isOpen,
-  onClose,
-}) => {
+export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ item, isOpen, onClose }) => {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen || !item) return null;
@@ -46,20 +42,22 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
       <div
-        className="relative flex h-[85vh] w-full max-w-4xl flex-col rounded-2xl border border-subtle bg-surface-1 shadow-2xl overflow-hidden"
+        className="shadow-2xl relative flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-subtle px-6 py-4 bg-surface-2/60">
+        <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:border-blue-800">
+            <div className="border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:border-blue-800 flex size-9 shrink-0 items-center justify-center rounded-lg border">
               <FileText size={18} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-primary">{item.title}</h3>
-              <p className="text-xs text-secondary">{item.context} • Updated {item.updatedAt}</p>
+              <p className="text-xs text-secondary">
+                {item.context} • Updated {item.updatedAt}
+              </p>
             </div>
           </div>
 
@@ -67,7 +65,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-2 hover:text-primary transition-colors"
+              className="text-xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
             >
               {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               <span>{copied ? "Copied" : "Copy"}</span>
@@ -75,7 +73,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors shadow-xs"
+              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-white transition-colors"
             >
               <Download size={14} />
               <span>Export</span>
@@ -83,7 +81,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+              className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
             >
               <X size={18} />
             </button>
@@ -91,8 +89,8 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-8 bg-surface-1">
-          <div className="mx-auto max-w-3xl space-y-6 text-sm text-primary">
+        <div className="flex-1 overflow-y-auto bg-surface-1 p-8">
+          <div className="text-sm mx-auto max-w-3xl space-y-6 text-primary">
             {item.tags && item.tags.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Tag size={13} className="text-placeholder" />
@@ -112,21 +110,21 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
                 {item.content.split("\n\n").map((paragraph, idx) => {
                   if (paragraph.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="text-2xl font-bold text-primary border-b border-subtle pb-2">
+                      <h1 key={idx} className="text-2xl border-b border-subtle pb-2 font-bold text-primary">
                         {paragraph.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (paragraph.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="text-lg font-semibold text-primary mt-4">
+                      <h2 key={idx} className="text-lg mt-4 font-semibold text-primary">
                         {paragraph.replace("## ", "")}
                       </h2>
                     );
                   }
                   if (paragraph.startsWith("### ")) {
                     return (
-                      <h3 key={idx} className="text-sm font-semibold text-primary mt-3">
+                      <h3 key={idx} className="text-sm mt-3 font-semibold text-primary">
                         {paragraph.replace("### ", "")}
                       </h3>
                     );
@@ -134,7 +132,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
                   if (paragraph.startsWith("- ")) {
                     const lines = paragraph.split("\n");
                     return (
-                      <ul key={idx} className="list-disc pl-5 space-y-1 text-secondary">
+                      <ul key={idx} className="list-disc space-y-1 pl-5 text-secondary">
                         {lines.map((l, i) => (
                           <li key={i}>{l.replace(/^-\s*/, "")}</li>
                         ))}
@@ -144,7 +142,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
                   if (paragraph.startsWith("1. ")) {
                     const lines = paragraph.split("\n");
                     return (
-                      <ol key={idx} className="list-decimal pl-5 space-y-1 text-secondary">
+                      <ol key={idx} className="list-decimal space-y-1 pl-5 text-secondary">
                         {lines.map((l, i) => (
                           <li key={i}>{l.replace(/^\d+\.\s*/, "")}</li>
                         ))}
@@ -165,11 +163,15 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-subtle px-6 py-3 bg-surface-2/40 text-xs text-secondary">
+        <div className="text-xs flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-secondary">
           <div className="flex items-center gap-2">
-            <span>Author: <strong className="text-primary">{item.updatedBy.name}</strong></span>
+            <span>
+              Author: <strong className="text-primary">{item.updatedBy.name}</strong>
+            </span>
             <span>•</span>
-            <span>Type: <strong className="text-primary">{item.type}</strong></span>
+            <span>
+              Type: <strong className="text-primary">{item.type}</strong>
+            </span>
           </div>
           <div>
             <span>Summon Knowledge Engine</span>

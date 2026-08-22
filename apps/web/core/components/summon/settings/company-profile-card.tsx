@@ -23,9 +23,7 @@ export const CompanyProfileCard: React.FC = () => {
       const exists = prev.workingDays.includes(day);
       return {
         ...prev,
-        workingDays: exists
-          ? prev.workingDays.filter((d) => d !== day)
-          : [...prev.workingDays, day],
+        workingDays: exists ? prev.workingDays.filter((d) => d !== day) : [...prev.workingDays, day],
       };
     });
   };
@@ -54,21 +52,19 @@ export const CompanyProfileCard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-5">
       {/* Header */}
       <div>
         <h2 className="text-sm font-semibold text-primary">Company Profile</h2>
-        <p className="text-xs text-secondary mt-0.5">
-          Update your company information and workspace settings.
-        </p>
+        <p className="text-xs mt-0.5 text-secondary">Update your company information and workspace settings.</p>
       </div>
 
       <div className="mt-5 space-y-4">
         {/* Logo and Name/URL row */}
-        <div className="flex flex-col sm:flex-row items-start gap-4">
+        <div className="flex flex-col items-start gap-4 sm:flex-row">
           {/* Logo with edit button overlay */}
-          <div className="relative group shrink-0">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm">
+          <div className="group relative shrink-0">
+            <div className="from-blue-600 to-indigo-600 shadow-sm flex size-16 items-center justify-center rounded-2xl bg-gradient-to-tr text-white">
               <Sparkles size={28} className="text-white" />
             </div>
             <button
@@ -80,41 +76,37 @@ export const CompanyProfileCard: React.FC = () => {
                   message: "Select an image file to update workspace logo.",
                 })
               }
-              className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-surface-1 border border-subtle text-secondary shadow-xs hover:text-primary hover:border-strong transition-colors"
+              className="shadow-xs absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:border-strong hover:text-primary"
             >
               <Pencil size={11} />
             </button>
           </div>
 
           {/* Company Name & Workspace URL */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+          <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Company / Workspace Name
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Company / Workspace Name</label>
               <input
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-secondary block mb-1">
-                Workspace URL
-              </label>
+              <label className="mb-1 block text-[11px] font-medium text-secondary">Workspace URL</label>
               <div className="relative flex items-center">
                 <input
                   type="text"
                   value={formData.workspaceUrl}
                   onChange={(e) => setFormData({ ...formData, workspaceUrl: e.target.value })}
-                  className="w-full rounded-lg border border-subtle bg-surface-2 py-1.5 pl-3 pr-8 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                  className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 py-1.5 pr-8 pl-3 text-primary focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleCopyUrl}
-                  className="absolute right-2 text-placeholder hover:text-primary transition-colors"
+                  className="absolute right-2 text-placeholder transition-colors hover:text-primary"
                 >
                   {isCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                 </button>
@@ -124,15 +116,13 @@ export const CompanyProfileCard: React.FC = () => {
         </div>
 
         {/* Industry & Company Size */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Industry
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Industry</label>
             <select
               value={formData.industry}
               onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
             >
               <option value="Technology, Information & Internet">Technology, Information & Internet</option>
               <option value="Financial Services">Financial Services</option>
@@ -143,13 +133,11 @@ export const CompanyProfileCard: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Company Size
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Company Size</label>
             <select
               value={formData.companySize}
               onChange={(e) => setFormData({ ...formData, companySize: e.target.value })}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
             >
               <option value="1 - 10 employees">1 - 10 employees</option>
               <option value="11 - 50 employees">11 - 50 employees</option>
@@ -162,76 +150,66 @@ export const CompanyProfileCard: React.FC = () => {
 
         {/* Description */}
         <div>
-          <label className="text-[11px] font-medium text-secondary block mb-1">
-            Description
-          </label>
+          <label className="mb-1 block text-[11px] font-medium text-secondary">Description</label>
           <div className="relative">
             <textarea
               rows={2}
               maxLength={500}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-primary focus:outline-none"
             />
-            <span className="absolute bottom-2 right-2 text-[10px] text-placeholder">
+            <span className="absolute right-2 bottom-2 text-[10px] text-placeholder">
               {formData.description.length}/500
             </span>
           </div>
         </div>
 
         {/* Time Zone & Currency */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Time Zone
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Time Zone</label>
             <select
               value={formData.timeZone}
               onChange={(e) => setFormData({ ...formData, timeZone: e.target.value })}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
             >
               <option value="(GMT+7) Jakarta, Indonesia">(GMT+7) Jakarta, Indonesia</option>
               <option value="(GMT+8) Singapore">(GMT+8) Singapore</option>
               <option value="(GMT+0) London, UTC">(GMT+0) London, UTC</option>
               <option value="(GMT-5) New York, EST">(GMT-5) New York, EST</option>
             </select>
-            <p className="text-[10px] text-placeholder mt-1">
+            <p className="mt-1 text-[10px] text-placeholder">
               This will be used for all date and time in your workspace.
             </p>
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-secondary block mb-1">
-              Currency
-            </label>
+            <label className="mb-1 block text-[11px] font-medium text-secondary">Currency</label>
             <select
               value={formData.currency}
               onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-              className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
             >
               <option value="IDR - Indonesian Rupiah">IDR - Indonesian Rupiah</option>
               <option value="USD - US Dollar">USD - US Dollar</option>
               <option value="SGD - Singapore Dollar">SGD - Singapore Dollar</option>
               <option value="EUR - Euro">EUR - Euro</option>
             </select>
-            <p className="text-[10px] text-placeholder mt-1">
-              This will be used for all financial values.
-            </p>
+            <p className="mt-1 text-[10px] text-placeholder">This will be used for all financial values.</p>
           </div>
         </div>
 
         {/* Workweek */}
         <div>
-          <label className="text-[11px] font-medium text-secondary block mb-1.5">
-            Workweek
-          </label>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <label className="mb-1.5 block text-[11px] font-medium text-secondary">Workweek</label>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="w-full sm:w-48">
-              <span className="text-[10px] text-placeholder block mb-1">Start of week</span>
+              <span className="mb-1 block text-[10px] text-placeholder">Start of week</span>
               <select
                 value={formData.startOfWeek}
                 onChange={(e) => setFormData({ ...formData, startOfWeek: e.target.value })}
-                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary focus:border-blue-500 focus:outline-none"
+                className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-primary focus:outline-none"
               >
                 <option value="Monday">Monday</option>
                 <option value="Sunday">Sunday</option>
@@ -239,7 +217,7 @@ export const CompanyProfileCard: React.FC = () => {
             </div>
 
             <div className="flex-1">
-              <span className="text-[10px] text-placeholder block mb-1">Working days</span>
+              <span className="mb-1 block text-[10px] text-placeholder">Working days</span>
               <div className="flex flex-wrap gap-1.5">
                 {DAYS.map((day) => {
                   const isSelected = formData.workingDays.includes(day);
@@ -249,9 +227,9 @@ export const CompanyProfileCard: React.FC = () => {
                       type="button"
                       onClick={() => toggleDay(day)}
                       className={cn(
-                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        "text-xs rounded-md px-2.5 py-1 font-medium transition-colors",
                         isSelected
-                          ? "bg-blue-600 text-white shadow-2xs"
+                          ? "bg-blue-600 shadow-2xs text-white"
                           : "border border-subtle bg-surface-2 text-secondary hover:border-strong"
                       )}
                     >
@@ -265,19 +243,19 @@ export const CompanyProfileCard: React.FC = () => {
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center gap-2 pt-2 border-t border-subtle">
+        <div className="flex items-center gap-2 border-t border-subtle pt-2">
           <button
             type="button"
             disabled={isSaving}
             onClick={handleSave}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-xs"
+            className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs rounded-lg px-4 py-2 font-semibold text-white transition-colors disabled:opacity-70"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={() => setFormData(INITIAL_COMPANY_PROFILE)}
-            className="rounded-lg border border-subtle bg-surface-1 px-4 py-2 text-xs font-medium text-secondary hover:bg-surface-2 hover:text-primary transition-colors"
+            className="text-xs rounded-lg border border-subtle bg-surface-1 px-4 py-2 font-medium text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
           >
             Cancel
           </button>

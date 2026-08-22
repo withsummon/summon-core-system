@@ -28,18 +28,16 @@ const getIntegrationIcon = (name: string) => {
   }
 };
 
-export const IntegrationsCard: React.FC<IIntegrationsCardProps> = ({
-  onManageIntegrations,
-}) => {
+export const IntegrationsCard: React.FC<IIntegrationsCardProps> = ({ onManageIntegrations }) => {
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-primary">Integrations</h2>
         <button
           type="button"
           onClick={onManageIntegrations}
-          className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-[11px] font-medium transition-colors"
         >
           Manage
         </button>
@@ -59,8 +57,8 @@ export const IntegrationsCard: React.FC<IIntegrationsCardProps> = ({
                 <span className="text-xs font-medium text-primary">{item.name}</span>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
+              <div className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 text-[11px] font-medium">
+                <span className="bg-emerald-500 size-1.5 rounded-full" />
                 <span>Connected</span>
               </div>
             </div>
@@ -72,7 +70,7 @@ export const IntegrationsCard: React.FC<IIntegrationsCardProps> = ({
       <button
         type="button"
         onClick={onManageIntegrations}
-        className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-subtle text-[11px] font-medium text-secondary hover:text-blue-600 transition-colors"
+        className="hover:text-blue-600 mt-3.5 flex items-center justify-between border-t border-subtle pt-2.5 text-[11px] font-medium text-secondary transition-colors"
       >
         <span>View all integrations</span>
         <ArrowRight size={12} />

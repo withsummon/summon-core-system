@@ -12,12 +12,7 @@ function SummonKnowledgePage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { currentWorkspace } = useWorkspace();
 
-  return (
-    <KnowledgeRootView
-      workspaceSlug={workspaceSlug}
-      workspaceName={currentWorkspace?.name}
-    />
-  );
+  return <KnowledgeRootView workspaceSlug={workspaceSlug} workspaceName={currentWorkspace?.name} />;
 }
 
 export default observer(SummonKnowledgePage);

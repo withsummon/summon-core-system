@@ -13,12 +13,7 @@ function SummonSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { currentWorkspace } = useWorkspace();
 
-  return (
-    <SummonSettingsRootView
-      workspaceSlug={workspaceSlug}
-      workspaceName={currentWorkspace?.name}
-    />
-  );
+  return <SummonSettingsRootView workspaceSlug={workspaceSlug} workspaceName={currentWorkspace?.name} />;
 }
 
 export default observer(SummonSettingsPage);

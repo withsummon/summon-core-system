@@ -31,10 +31,7 @@ interface ISettingsSidebarNavProps {
   onSelectSection: (section: TSettingsSection) => void;
 }
 
-export const SettingsSidebarNav: React.FC<ISettingsSidebarNavProps> = ({
-  activeSection,
-  onSelectSection,
-}) => {
+export const SettingsSidebarNav: React.FC<ISettingsSidebarNavProps> = ({ activeSection, onSelectSection }) => {
   const sections = [
     {
       category: "SETTINGS",
@@ -70,12 +67,10 @@ export const SettingsSidebarNav: React.FC<ISettingsSidebarNavProps> = ({
   ];
 
   return (
-    <div className="w-full space-y-5 rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+    <div className="shadow-xs w-full space-y-5 rounded-xl border border-subtle bg-surface-1 p-4">
       {sections.map((group) => (
         <div key={group.category} className="space-y-1">
-          <p className="px-2 text-[10px] font-bold tracking-wider text-secondary">
-            {group.category}
-          </p>
+          <p className="tracking-wider px-2 text-[10px] font-bold text-secondary">{group.category}</p>
           <div className="mt-1.5 space-y-0.5">
             {group.items.map((item) => {
               const IconComp = item.icon;
@@ -87,13 +82,16 @@ export const SettingsSidebarNav: React.FC<ISettingsSidebarNavProps> = ({
                   type="button"
                   onClick={() => onSelectSection(item.id)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors text-left",
+                    "text-xs flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left font-medium transition-colors",
                     isActive
                       ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
                       : "text-secondary hover:bg-surface-2 hover:text-primary"
                   )}
                 >
-                  <IconComp size={15} className={cn("shrink-0", isActive ? "text-blue-600 dark:text-blue-400" : "text-placeholder")} />
+                  <IconComp
+                    size={15}
+                    className={cn("shrink-0", isActive ? "text-blue-600 dark:text-blue-400" : "text-placeholder")}
+                  />
                   <span className="truncate">{item.label}</span>
                 </button>
               );

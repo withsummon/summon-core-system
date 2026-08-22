@@ -25,9 +25,7 @@ export const SummonOpportunitiesRootView: React.FC<ISummonOpportunitiesRootViewP
   function SummonOpportunitiesRootView({ workspaceSlug, workspaceName }) {
     const [opportunities, setOpportunities] = useState<IOpportunityItem[]>(INITIAL_OPPORTUNITIES);
     const [selectedStage, setSelectedStage] = useState<TPipelineStage>("All");
-    const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(
-      INITIAL_OPPORTUNITIES[0]?.id || ""
-    );
+    const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(INITIAL_OPPORTUNITIES[0]?.id || "");
     const [searchQuery, setSearchQuery] = useState("");
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
@@ -76,11 +74,7 @@ export const SummonOpportunitiesRootView: React.FC<ISummonOpportunitiesRootViewP
 
     // Current selected opportunity object
     const selectedOpportunity = useMemo(() => {
-      return (
-        opportunities.find((opp) => opp.id === selectedOpportunityId) ||
-        filteredOpportunities[0] ||
-        null
-      );
+      return opportunities.find((opp) => opp.id === selectedOpportunityId) || filteredOpportunities[0] || null;
     }, [opportunities, selectedOpportunityId, filteredOpportunities]);
 
     const handleCreateOpportunity = (newOpp: IOpportunityItem) => {
@@ -103,11 +97,7 @@ export const SummonOpportunitiesRootView: React.FC<ISummonOpportunitiesRootViewP
     };
 
     const handleToggleFavorite = (id: string) => {
-      setOpportunities((prev) =>
-        prev.map((opp) =>
-          opp.id === id ? { ...opp, isFavorite: !opp.isFavorite } : opp
-        )
-      );
+      setOpportunities((prev) => prev.map((opp) => (opp.id === id ? { ...opp, isFavorite: !opp.isFavorite } : opp)));
       setToast({
         type: TOAST_TYPE.INFO,
         title: "Favorites",
@@ -135,7 +125,7 @@ export const SummonOpportunitiesRootView: React.FC<ISummonOpportunitiesRootViewP
           />
 
           {/* 3-Column Split View */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
             {/* Left Stage Filter List (approx 15% / 2 cols) */}
             <div className="lg:col-span-2">
               <PipelineStageFilter
@@ -160,9 +150,7 @@ export const SummonOpportunitiesRootView: React.FC<ISummonOpportunitiesRootViewP
               <OpportunityDetailPanel
                 opportunity={selectedOpportunity}
                 onUpdateStage={handleUpdateStage}
-                onToggleFavorite={() =>
-                  selectedOpportunity && handleToggleFavorite(selectedOpportunity.id)
-                }
+                onToggleFavorite={() => selectedOpportunity && handleToggleFavorite(selectedOpportunity.id)}
               />
             </div>
           </div>

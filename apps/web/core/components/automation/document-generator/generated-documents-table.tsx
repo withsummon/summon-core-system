@@ -5,17 +5,7 @@
  */
 
 import React, { useState, useMemo } from "react";
-import {
-  Filter,
-  Eye,
-  MoreHorizontal,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  Download,
-  Trash2,
-} from "lucide-react";
+import { Filter, Eye, MoreHorizontal, Check, ChevronLeft, ChevronRight, Search, Download, Trash2 } from "lucide-react";
 import { cn } from "@plane/utils";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { TypeIcon, getDocumentTypeTheme } from "./type-icon";
@@ -78,10 +68,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
   }, [documents, activeTab, selectedStatus, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / pageSize));
-  const paginatedDocs = filteredDocuments.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const paginatedDocs = filteredDocuments.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleDownload = (doc: IGeneratedDocument) => {
     setActionMenuDocId(null);
@@ -103,7 +90,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
   };
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
+    <div className="shadow-xs flex h-full flex-col rounded-xl border border-subtle bg-surface-1 p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-primary">Generated Documents</h2>
@@ -112,8 +99,8 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-xs font-medium text-secondary hover:border-strong hover:text-primary transition-colors",
-              isFilterOpen && "bg-surface-2 border-strong text-primary"
+              "text-xs flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 font-medium text-secondary transition-colors hover:border-strong hover:text-primary",
+              isFilterOpen && "border-strong bg-surface-2 text-primary"
             )}
           >
             <Filter size={13} />
@@ -124,15 +111,15 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
 
       {/* Filter Bar (Collapsible) */}
       {isFilterOpen && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-subtle bg-surface-2/60 p-2.5 animate-in fade-in duration-150">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-placeholder" />
+        <div className="animate-in fade-in mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-subtle bg-surface-2/60 p-2.5 duration-150">
+          <div className="relative min-w-[200px] flex-1">
+            <Search size={13} className="absolute top-1/2 left-2.5 -translate-y-1/2 text-placeholder" />
             <input
               type="text"
               placeholder="Search by title, context, or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-md border border-subtle bg-surface-1 py-1.5 pl-8 pr-3 text-xs text-primary placeholder:text-placeholder focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 w-full rounded-md border border-subtle bg-surface-1 py-1.5 pr-3 pl-8 text-primary placeholder:text-placeholder focus:outline-none"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -140,7 +127,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="rounded-md border border-subtle bg-surface-1 py-1.5 px-2 text-xs text-primary focus:border-blue-500 focus:outline-none"
+              className="text-xs focus:border-blue-500 rounded-md border border-subtle bg-surface-1 px-2 py-1.5 text-primary focus:outline-none"
             >
               <option value="All">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -151,7 +138,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
       )}
 
       {/* Tabs */}
-      <div className="mt-3 flex border-b border-subtle overflow-x-auto hide-horizontal-scrollbar">
+      <div className="hide-horizontal-scrollbar mt-3 flex overflow-x-auto border-b border-subtle">
         <div className="flex gap-4">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.value;
@@ -164,15 +151,13 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                   setCurrentPage(1);
                 }}
                 className={cn(
-                  "relative pb-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-secondary hover:text-primary"
+                  "text-xs relative pb-2.5 font-medium whitespace-nowrap transition-colors",
+                  isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
                 {tab.label}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="bg-blue-600 dark:bg-blue-400 absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
                 )}
               </button>
             );
@@ -182,43 +167,38 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
 
       {/* Table Container */}
       <div className="mt-3 flex-1 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[700px]">
+        <table className="w-full min-w-[700px] border-collapse text-left">
           <thead>
             <tr className="border-b border-subtle text-[11px] font-semibold text-secondary">
-              <th className="pb-2.5 font-medium pl-1">Document</th>
+              <th className="pb-2.5 pl-1 font-medium">Document</th>
               <th className="pb-2.5 font-medium">Type</th>
               <th className="pb-2.5 font-medium">Context</th>
               <th className="pb-2.5 font-medium">Created By</th>
               <th className="pb-2.5 font-medium">Created At</th>
               <th className="pb-2.5 font-medium">Status</th>
-              <th className="pb-2.5 font-medium text-right pr-2">Actions</th>
+              <th className="pr-2 pb-2.5 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-subtle text-xs">
+          <tbody className="text-xs divide-y divide-subtle">
             {paginatedDocs.length > 0 ? (
               paginatedDocs.map((doc) => {
                 const theme = getDocumentTypeTheme(doc.type);
                 const isMenuOpen = actionMenuDocId === doc.id;
 
                 return (
-                  <tr
-                    key={doc.id}
-                    className="group hover:bg-surface-2/60 transition-colors"
-                  >
+                  <tr key={doc.id} className="group transition-colors hover:bg-surface-2/60">
                     {/* Document Info */}
-                    <td className="py-3 pl-1 pr-3">
+                    <td className="py-3 pr-3 pl-1">
                       <div className="flex items-start gap-2.5">
                         <TypeIcon type={doc.type} size={16} className="mt-0.5 shrink-0" />
                         <div className="max-w-[200px] xl:max-w-[240px]">
                           <p
                             onClick={() => onPreviewDocument(doc)}
-                            className="font-semibold text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400 cursor-pointer transition-colors truncate"
+                            className="group-hover:text-blue-600 dark:group-hover:text-blue-400 cursor-pointer truncate font-semibold text-primary transition-colors"
                           >
                             {doc.title}
                           </p>
-                          <p className="text-[11px] text-secondary truncate mt-0.5">
-                            {doc.description}
-                          </p>
+                          <p className="mt-0.5 truncate text-[11px] text-secondary">{doc.description}</p>
                         </div>
                       </div>
                     </td>
@@ -226,19 +206,14 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                     {/* Type Badge */}
                     <td className="py-3 pr-3 whitespace-nowrap">
                       <span
-                        className={cn(
-                          "inline-block rounded-full px-2.5 py-0.5 text-[10px] font-medium",
-                          theme.badgeBg
-                        )}
+                        className={cn("inline-block rounded-full px-2.5 py-0.5 text-[10px] font-medium", theme.badgeBg)}
                       >
                         {doc.type}
                       </span>
                     </td>
 
                     {/* Context */}
-                    <td className="py-3 pr-3 text-secondary whitespace-nowrap text-[11px]">
-                      {doc.context}
-                    </td>
+                    <td className="py-3 pr-3 text-[11px] whitespace-nowrap text-secondary">{doc.context}</td>
 
                     {/* Created By */}
                     <td className="py-3 pr-3 whitespace-nowrap">
@@ -250,30 +225,26 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                             className="size-5.5 rounded-full object-cover ring-1 ring-subtle"
                           />
                         ) : (
-                          <div className="flex size-5.5 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white">
+                          <div className="bg-blue-600 flex size-5.5 items-center justify-center rounded-full text-[9px] font-bold text-white">
                             {doc.createdBy.initials}
                           </div>
                         )}
-                        <span className="text-[11px] font-medium text-primary">
-                          {doc.createdBy.name}
-                        </span>
+                        <span className="text-[11px] font-medium text-primary">{doc.createdBy.name}</span>
                       </div>
                     </td>
 
                     {/* Created At */}
-                    <td className="py-3 pr-3 text-[11px] text-secondary whitespace-nowrap">
-                      {doc.createdAt}
-                    </td>
+                    <td className="py-3 pr-3 text-[11px] whitespace-nowrap text-secondary">{doc.createdAt}</td>
 
                     {/* Status */}
                     <td className="py-3 pr-3 whitespace-nowrap">
                       {doc.status === "Completed" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+                        <span className="border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium">
                           <Check size={11} strokeWidth={2.5} />
                           <span>Completed</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50/50 px-2.5 py-0.5 text-[10px] font-medium text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-400">
+                        <span className="border-blue-200 bg-blue-50/50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-400 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium">
                           Draft
                         </span>
                       )}
@@ -286,7 +257,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                           type="button"
                           onClick={() => onPreviewDocument(doc)}
                           title="Preview document"
-                          className="rounded-md p-1.5 text-placeholder hover:bg-surface-3 hover:text-primary transition-colors"
+                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
                         >
                           <Eye size={14} />
                         </button>
@@ -295,7 +266,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                           type="button"
                           onClick={() => setActionMenuDocId(isMenuOpen ? null : doc.id)}
                           title="More options"
-                          className="rounded-md p-1.5 text-placeholder hover:bg-surface-3 hover:text-primary transition-colors"
+                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
                         >
                           <MoreHorizontal size={14} />
                         </button>
@@ -303,7 +274,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                         {/* Action Dropdown Menu */}
                         {isMenuOpen && (
                           <div
-                            className="absolute right-0 top-full z-40 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg text-left"
+                            className="shadow-lg absolute top-full right-0 z-40 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1 text-left"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -312,7 +283,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                                 setActionMenuDocId(null);
                                 onPreviewDocument(doc);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-primary hover:bg-surface-2 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-primary transition-colors hover:bg-surface-2"
                             >
                               <Eye size={12} />
                               <span>View Preview</span>
@@ -320,7 +291,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                             <button
                               type="button"
                               onClick={() => handleDownload(doc)}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-primary hover:bg-surface-2 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-primary transition-colors hover:bg-surface-2"
                             >
                               <Download size={12} />
                               <span>Download</span>
@@ -329,7 +300,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                             <button
                               type="button"
                               onClick={() => handleDelete(doc)}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors"
                             >
                               <Trash2 size={12} />
                               <span>Delete</span>
@@ -343,7 +314,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               })
             ) : (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-secondary text-xs">
+                <td colSpan={7} className="text-xs py-8 text-center text-secondary">
                   No documents found for this filter.
                 </td>
               </tr>
@@ -353,10 +324,10 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
       </div>
 
       {/* Pagination Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3 text-xs text-secondary">
+      <div className="text-xs mt-4 flex items-center justify-between border-t border-subtle pt-3 text-secondary">
         <div>
-          Showing {Math.min(1, filteredDocuments.length)} to{" "}
-          {Math.min(pageSize, filteredDocuments.length)} of {filteredDocuments.length} documents
+          Showing {Math.min(1, filteredDocuments.length)} to {Math.min(pageSize, filteredDocuments.length)} of{" "}
+          {filteredDocuments.length} documents
         </div>
 
         <div className="flex items-center gap-1">
@@ -364,7 +335,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder hover:border-strong hover:text-primary disabled:opacity-40 transition-colors"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary disabled:opacity-40"
           >
             <ChevronLeft size={13} />
           </button>
@@ -373,9 +344,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             onClick={() => setCurrentPage(1)}
             className={cn(
-              "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
+              "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
               currentPage === 1
-                ? "bg-blue-600 text-white shadow-xs"
+                ? "bg-blue-600 shadow-xs text-white"
                 : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
             )}
           >
@@ -387,9 +358,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(2)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
+                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
                 currentPage === 2
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-blue-600 shadow-xs text-white"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -402,9 +373,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(3)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
+                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
                 currentPage === 3
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-blue-600 shadow-xs text-white"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -419,9 +390,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(totalPages)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
+                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
                 currentPage === totalPages
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-blue-600 shadow-xs text-white"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -433,7 +404,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder hover:border-strong hover:text-primary disabled:opacity-40 transition-colors"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary disabled:opacity-40"
           >
             <ChevronRight size={13} />
           </button>

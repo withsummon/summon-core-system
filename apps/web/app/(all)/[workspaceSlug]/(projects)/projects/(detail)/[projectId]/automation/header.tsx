@@ -26,15 +26,15 @@ export const ProjectAutomationHeader = observer(function ProjectAutomationHeader
       <Header.LeftItem>
         <Breadcrumbs isLoading={loader === "init-loader"}>
           <CommonProjectBreadcrumbs
-            workspaceSlug={workspaceSlug?.toString()}
-            projectId={projectId?.toString()}
+            workspaceSlug={workspaceSlug?.toString() ?? ""}
+            projectId={projectId?.toString() ?? ""}
           />
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
                 label="Automation"
                 href={`/${workspaceSlug}/projects/${currentProjectDetails?.id || projectId}/automation`}
-                icon={<Sparkles className="h-4 w-4 text-blue-500" />}
+                icon={<Sparkles className="text-blue-500 h-4 w-4" />}
                 isLast
               />
             }

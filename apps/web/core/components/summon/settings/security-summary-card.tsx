@@ -12,58 +12,50 @@ interface ISecuritySummaryCardProps {
   onManageSecurity?: () => void;
 }
 
-export const SecuritySummaryCard: React.FC<ISecuritySummaryCardProps> = ({
-  onManageSecurity,
-}) => {
+export const SecuritySummaryCard: React.FC<ISecuritySummaryCardProps> = ({ onManageSecurity }) => {
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-primary">Security</h2>
         <button
           type="button"
           onClick={onManageSecurity}
-          className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-[11px] font-medium transition-colors"
         >
           Manage
         </button>
       </div>
 
       {/* Security Rows */}
-      <div className="space-y-2 text-xs">
+      <div className="text-xs space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[11px]">SSO Login</span>
-          <span className="font-medium text-emerald-600 dark:text-emerald-400 text-[11px]">
+          <span className="text-[11px] text-secondary">SSO Login</span>
+          <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
             {SECURITY_SUMMARY.ssoLogin ? "Enabled" : "Disabled"}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[11px]">MFA</span>
-          <span className="font-medium text-emerald-600 dark:text-emerald-400 text-[11px]">
+          <span className="text-[11px] text-secondary">MFA</span>
+          <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
             {SECURITY_SUMMARY.mfa ? "Enabled" : "Disabled"}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[11px]">Session Timeout</span>
-          <span className="font-medium text-primary text-[11px]">
-            {SECURITY_SUMMARY.sessionTimeoutMinutes} minutes
-          </span>
+          <span className="text-[11px] text-secondary">Session Timeout</span>
+          <span className="text-[11px] font-medium text-primary">{SECURITY_SUMMARY.sessionTimeoutMinutes} minutes</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[11px]">Password Policy</span>
-          <span className="font-medium text-primary text-[11px]">
-            {SECURITY_SUMMARY.passwordPolicy}
-          </span>
+          <span className="text-[11px] text-secondary">Password Policy</span>
+          <span className="text-[11px] font-medium text-primary">{SECURITY_SUMMARY.passwordPolicy}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[11px]">Last Security Check</span>
-          <span className="font-medium text-secondary text-[11px]">
-            {SECURITY_SUMMARY.lastSecurityCheck}
-          </span>
+          <span className="text-[11px] text-secondary">Last Security Check</span>
+          <span className="text-[11px] font-medium text-secondary">{SECURITY_SUMMARY.lastSecurityCheck}</span>
         </div>
       </div>
 
@@ -71,7 +63,7 @@ export const SecuritySummaryCard: React.FC<ISecuritySummaryCardProps> = ({
       <button
         type="button"
         onClick={onManageSecurity}
-        className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-subtle text-[11px] font-medium text-secondary hover:text-blue-600 transition-colors"
+        className="hover:text-blue-600 mt-3.5 flex items-center justify-between border-t border-subtle pt-2.5 text-[11px] font-medium text-secondary transition-colors"
       >
         <span>View security settings</span>
         <ArrowRight size={12} />

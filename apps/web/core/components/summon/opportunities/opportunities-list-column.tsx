@@ -45,9 +45,9 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 shadow-xs overflow-hidden h-full">
+    <div className="shadow-xs flex h-full flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1">
       {/* Column Header */}
-      <div className="flex items-center justify-between border-b border-subtle px-4 py-3 bg-surface-2/40">
+      <div className="flex items-center justify-between border-b border-subtle bg-surface-2/40 px-4 py-3">
         <div>
           <h2 className="text-xs font-semibold text-primary">All Opportunities</h2>
           <p className="text-[10px] text-secondary">{opportunities.length} opportunities</p>
@@ -58,14 +58,14 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
           <button
             type="button"
             onClick={() => setIsSortOpen(!isSortOpen)}
-            className="flex items-center gap-1 text-[11px] font-medium text-secondary hover:text-primary transition-colors"
+            className="flex items-center gap-1 text-[11px] font-medium text-secondary transition-colors hover:text-primary"
           >
             <span>Sort: {sortOption}</span>
             <ChevronDown size={12} />
           </button>
 
           {isSortOpen && (
-            <div className="absolute right-0 z-30 mt-1 w-40 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg text-left">
+            <div className="shadow-lg absolute right-0 z-30 mt-1 w-40 rounded-lg border border-subtle bg-surface-1 py-1 text-left">
               {["Recently Updated", "Highest Value", "Alphabetical", "Close Date"].map((opt) => (
                 <button
                   key={opt}
@@ -75,8 +75,8 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
                     setIsSortOpen(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between px-3 py-1.5 text-[11px] hover:bg-surface-2 transition-colors",
-                    sortOption === opt && "font-semibold text-blue-600 dark:text-blue-400"
+                    "flex w-full items-center justify-between px-3 py-1.5 text-[11px] transition-colors hover:bg-surface-2",
+                    sortOption === opt && "text-blue-600 dark:text-blue-400 font-semibold"
                   )}
                 >
                   <span>{opt}</span>
@@ -89,7 +89,7 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
       </div>
 
       {/* Opportunity Items List */}
-      <div className="divide-y divide-subtle overflow-y-auto max-h-[720px]">
+      <div className="max-h-[720px] divide-y divide-subtle overflow-y-auto">
         {opportunities.map((item) => {
           const isSelected = selectedOpportunityId === item.id;
 
@@ -98,16 +98,14 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
               key={item.id}
               onClick={() => onSelectOpportunity(item.id)}
               className={cn(
-                "group relative flex items-start gap-3 p-3.5 transition-all cursor-pointer",
-                isSelected
-                  ? "bg-blue-50/50 dark:bg-blue-950/30 border-l-3 border-blue-600"
-                  : "hover:bg-surface-2/60"
+                "group relative flex cursor-pointer items-start gap-3 p-3.5 transition-all",
+                isSelected ? "bg-blue-50/50 dark:bg-blue-950/30 border-blue-600 border-l-3" : "hover:bg-surface-2/60"
               )}
             >
               {/* Avatar Initials Box */}
               <div
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-2xs",
+                  "text-xs shadow-2xs flex size-8 shrink-0 items-center justify-center rounded-lg font-bold",
                   getAvatarBgClass(item.avatarColor)
                 )}
               >
@@ -119,7 +117,7 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
                 <div className="flex items-center justify-between gap-1">
                   <h3
                     className={cn(
-                      "text-xs font-semibold truncate",
+                      "text-xs truncate font-semibold",
                       isSelected ? "text-blue-600 dark:text-blue-400" : "text-primary"
                     )}
                   >
@@ -133,7 +131,7 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
                         onToggleFavorite?.(item.id);
                       }}
                       className={cn(
-                        "rounded p-0.5 text-placeholder hover:text-amber-500 transition-colors",
+                        "hover:text-amber-500 rounded p-0.5 text-placeholder transition-colors",
                         item.isFavorite && "text-amber-500 fill-amber-500"
                       )}
                     >
@@ -142,17 +140,17 @@ export const OpportunitiesListColumn: React.FC<IOpportunitiesListColumnProps> = 
                     <button
                       type="button"
                       onClick={(e) => e.stopPropagation()}
-                      className="rounded p-0.5 text-placeholder hover:text-primary transition-colors"
+                      className="rounded p-0.5 text-placeholder transition-colors hover:text-primary"
                     >
                       <MoreHorizontal size={12} />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-secondary truncate mt-0.5">{item.client}</p>
+                <p className="mt-0.5 truncate text-[11px] text-secondary">{item.client}</p>
 
                 <div className="mt-2 flex items-center justify-between text-[10px]">
-                  <span className="rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 px-2 py-0.5 font-medium">
+                  <span className="bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-full border px-2 py-0.5 font-medium">
                     {item.stageBadgeText}
                   </span>
                   <span className="text-placeholder">{item.updatedAt}</span>

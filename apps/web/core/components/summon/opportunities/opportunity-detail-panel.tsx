@@ -37,14 +37,30 @@ const TABS = ["Overview", "Activities", "Documents", "Tasks", "Meetings", "Notes
 const getAssetIcon = (iconType: string) => {
   switch (iconType) {
     case "video":
-      return { icon: Video, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800" };
+      return {
+        icon: Video,
+        color: "text-purple-600 dark:text-purple-400",
+        bg: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800",
+      };
     case "checklist":
-      return { icon: CheckSquare, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800" };
+      return {
+        icon: CheckSquare,
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800",
+      };
     case "proposal":
-      return { icon: FileCode, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800" };
+      return {
+        icon: FileCode,
+        color: "text-orange-600 dark:text-orange-400",
+        bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
+      };
     case "doc":
     default:
-      return { icon: FileText, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800" };
+      return {
+        icon: FileText,
+        color: "text-blue-600 dark:text-blue-400",
+        bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
+      };
   }
 };
 
@@ -60,16 +76,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
 
   if (!opportunity) {
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-subtle bg-surface-1 p-8 text-secondary text-xs">
+      <div className="text-xs flex h-full items-center justify-center rounded-xl border border-subtle bg-surface-1 p-8 text-secondary">
         Select an opportunity from the list to view full details.
       </div>
     );
   }
 
   const toggleTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
-    );
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t)));
   };
 
   const handleGenerate = (type: string) => {
@@ -92,23 +106,23 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 shadow-xs overflow-hidden h-full">
+    <div className="shadow-xs flex h-full flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1">
       {/* Top Banner Header */}
-      <div className="border-b border-subtle p-5 bg-surface-2/30">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-subtle bg-surface-2/30 p-5">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           {/* Avatar & Title */}
           <div className="flex items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white shadow-xs">
+            <div className="bg-blue-600 text-sm shadow-xs flex size-11 shrink-0 items-center justify-center rounded-xl font-bold text-white">
               {opportunity.initials}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-primary">{opportunity.title}</h1>
-                <span className="rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                <span className="bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold">
                   {opportunity.stageBadgeText}
                 </span>
               </div>
-              <p className="text-xs text-secondary mt-0.5">{opportunity.client}</p>
+              <p className="text-xs mt-0.5 text-secondary">{opportunity.client}</p>
             </div>
           </div>
 
@@ -118,7 +132,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
               type="button"
               onClick={onToggleFavorite}
               className={cn(
-                "flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary hover:text-amber-500 transition-colors shadow-2xs",
+                "hover:text-amber-500 shadow-2xs flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors",
                 opportunity.isFavorite && "text-amber-500"
               )}
             >
@@ -134,14 +148,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                   message: "Opening edit modal.",
                 })
               }
-              className="flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary hover:text-primary transition-colors shadow-2xs"
+              className="shadow-2xs flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors hover:text-primary"
             >
               <Pencil size={14} />
             </button>
 
             <button
               type="button"
-              className="flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary hover:text-primary transition-colors shadow-2xs"
+              className="shadow-2xs flex size-8 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors hover:text-primary"
             >
               <MoreHorizontal size={14} />
             </button>
@@ -151,14 +165,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setIsStageMenuOpen(!isStageMenuOpen)}
-                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-xs"
+                className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold text-white transition-colors"
               >
                 <span>Update Stage</span>
                 <ChevronDown size={13} />
               </button>
 
               {isStageMenuOpen && (
-                <div className="absolute right-0 z-40 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg text-left">
+                <div className="shadow-lg absolute right-0 z-40 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 py-1 text-left">
                   {["Lead", "Qualified", "POC / Discovery", "Proposal", "Negotiation", "Closed Won", "Closed Lost"].map(
                     (stg) => (
                       <button
@@ -173,7 +187,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                             message: `Moved to ${stg}.`,
                           });
                         }}
-                        className="flex w-full items-center px-3 py-1.5 text-xs text-primary hover:bg-surface-2 transition-colors"
+                        className="text-xs flex w-full items-center px-3 py-1.5 text-primary transition-colors hover:bg-surface-2"
                       >
                         <span>{stg}</span>
                       </button>
@@ -186,11 +200,11 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
         </div>
 
         {/* 4 Key Metrics Row */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3 border-t border-subtle pt-3 text-xs">
+        <div className="text-xs mt-4 grid grid-cols-2 gap-3 border-t border-subtle pt-3 sm:grid-cols-5">
           <div>
             <span className="text-[10px] text-secondary">Stage</span>
             <div className="mt-0.5 flex items-center gap-1.5 font-medium text-primary">
-              <span className="size-2 rounded-full bg-purple-500" />
+              <span className="bg-purple-500 size-2 rounded-full" />
               <span>{opportunity.stage}</span>
             </div>
           </div>
@@ -202,9 +216,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
 
           <div>
             <span className="text-[10px] text-secondary">Probability</span>
-            <p className="mt-0.5 font-semibold text-blue-600 dark:text-blue-400">
-              {opportunity.probability}%
-            </p>
+            <p className="text-blue-600 dark:text-blue-400 mt-0.5 font-semibold">{opportunity.probability}%</p>
           </div>
 
           <div>
@@ -222,14 +234,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                   className="size-4.5 rounded-full object-cover"
                 />
               ) : null}
-              <span className="font-medium text-primary truncate">{opportunity.owner.name}</span>
+              <span className="truncate font-medium text-primary">{opportunity.owner.name}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-subtle px-5 bg-surface-1 overflow-x-auto hide-horizontal-scrollbar">
+      <div className="hide-horizontal-scrollbar flex overflow-x-auto border-b border-subtle bg-surface-1 px-5">
         <div className="flex gap-4">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
@@ -239,15 +251,13 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                 type="button"
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "relative py-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-secondary hover:text-primary"
+                  "text-xs relative py-2.5 font-medium whitespace-nowrap transition-colors",
+                  isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
                 {tab}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="bg-blue-600 dark:bg-blue-400 absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
                 )}
               </button>
             );
@@ -257,39 +267,39 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
 
       {/* Main Content Subgrid */}
       <div className="flex-1 overflow-y-auto p-5">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
           {/* Left Sub-column (7 cols) */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="space-y-5 lg:col-span-7">
             {/* About Opportunity */}
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-primary">About Opportunity</h3>
               <p className="text-xs leading-relaxed text-secondary">{opportunity.about.description}</p>
 
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 rounded-xl border border-subtle bg-surface-2/40 p-3 text-xs">
+              <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-subtle bg-surface-2/40 p-3">
                 <div>
                   <span className="text-[10px] text-secondary">Solution</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.solution}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.solution}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-secondary">Product</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.product}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.product}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-secondary">PIC Client</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.picClient}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.picClient}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-secondary">Department</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.department}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.department}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-secondary">Created</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.createdDate}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.createdDate}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-secondary">Source</span>
-                  <p className="font-medium text-primary mt-0.5">{opportunity.about.source}</p>
+                  <p className="mt-0.5 font-medium text-primary">{opportunity.about.source}</p>
                 </div>
               </div>
             </div>
@@ -297,13 +307,13 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
             {/* Stage Progress Horizontal Stepper */}
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-primary">Stage Progress</h3>
-              <div className="relative flex items-center justify-between rounded-xl border border-subtle bg-surface-2/30 p-3 overflow-x-auto hide-horizontal-scrollbar">
+              <div className="hide-horizontal-scrollbar relative flex items-center justify-between overflow-x-auto rounded-xl border border-subtle bg-surface-2/30 p-3">
                 {opportunity.stageProgress.map((step, idx) => {
                   const isCompleted = step.status === "completed";
                   const isCurrent = step.status === "current";
 
                   return (
-                    <div key={step.stage} className="flex flex-col items-center text-center min-w-[70px] relative z-10">
+                    <div key={step.stage} className="relative z-10 flex min-w-[70px] flex-col items-center text-center">
                       {/* Circle Indicator */}
                       <div
                         className={cn(
@@ -311,8 +321,8 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                           isCompleted
                             ? "bg-blue-600 text-white"
                             : isCurrent
-                            ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-950"
-                            : "bg-layer-2 text-secondary border border-subtle"
+                              ? "bg-blue-600 ring-blue-100 dark:ring-blue-950 text-white ring-4"
+                              : "border border-subtle bg-layer-2 text-secondary"
                         )}
                       >
                         {isCompleted ? "✓" : idx + 1}
@@ -322,16 +332,12 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                       <span
                         className={cn(
                           "mt-1.5 text-[10px] whitespace-nowrap",
-                          isCurrent
-                            ? "font-bold text-blue-600 dark:text-blue-400"
-                            : "font-medium text-secondary"
+                          isCurrent ? "text-blue-600 dark:text-blue-400 font-bold" : "font-medium text-secondary"
                         )}
                       >
                         {step.stage}
                       </span>
-                      {step.date && (
-                        <span className="text-[9px] text-placeholder">{step.date}</span>
-                      )}
+                      {step.date && <span className="text-[9px] text-placeholder">{step.date}</span>}
                     </div>
                   );
                 })}
@@ -344,14 +350,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                 <h3 className="text-xs font-semibold text-primary">Related Assets</h3>
                 <button
                   type="button"
-                  className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 text-[11px] font-medium transition-colors"
                 >
                   <span>View all assets</span>
                   <ArrowRight size={11} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {opportunity.relatedAssets.map((asset) => {
                   const { icon: IconComp, color, bg } = getAssetIcon(asset.iconType);
 
@@ -365,16 +371,16 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                           message: `Opening ${asset.title}.`,
                         })
                       }
-                      className="group flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-3 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
+                      className="group hover:border-blue-400 hover:shadow-md flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-3 transition-all"
                     >
-                      <div className={cn("flex size-7 items-center justify-center rounded-lg border mb-2", bg, color)}>
+                      <div className={cn("mb-2 flex size-7 items-center justify-center rounded-lg border", bg, color)}>
                         <IconComp size={15} />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
+                        <p className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate font-medium text-primary">
                           {asset.title}
                         </p>
-                        <p className="text-[10px] text-secondary mt-0.5">{asset.type}</p>
+                        <p className="mt-0.5 text-[10px] text-secondary">{asset.type}</p>
                       </div>
                     </div>
                   );
@@ -384,14 +390,14 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
           </div>
 
           {/* Right Sub-column (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className="space-y-4 lg:col-span-5">
             {/* Next Steps (Tasks) */}
-            <div className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+            <div className="shadow-xs rounded-xl border border-subtle bg-surface-1 p-4">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-primary">Next Steps</h3>
                 <button
                   type="button"
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[10px] font-medium transition-colors"
                 >
                   See all tasks →
                 </button>
@@ -402,31 +408,31 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                   <div
                     key={task.id}
                     onClick={() => toggleTask(task.id)}
-                    className="flex items-center justify-between gap-2 rounded-lg p-1.5 hover:bg-surface-2 transition-colors cursor-pointer"
+                    className="flex cursor-pointer items-center justify-between gap-2 rounded-lg p-1.5 transition-colors hover:bg-surface-2"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
                       {task.completed ? (
                         <CheckCircle2 size={14} className="text-blue-600 shrink-0" />
                       ) : (
-                        <Circle size={14} className="text-placeholder shrink-0" />
+                        <Circle size={14} className="shrink-0 text-placeholder" />
                       )}
                       <span
                         className={cn(
-                          "text-xs font-medium truncate",
-                          task.completed ? "line-through text-placeholder" : "text-primary"
+                          "text-xs truncate font-medium",
+                          task.completed ? "text-placeholder line-through" : "text-primary"
                         )}
                       >
                         {task.title}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 items-center gap-2">
                       <span
                         className={cn(
                           "rounded px-1.5 py-0.5 text-[9px] font-medium",
                           task.dueBadgeType === "today"
-                            ? "bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/40 dark:border-red-800"
-                            : "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950/40 dark:border-amber-800"
+                            ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:border-red-800 border"
+                            : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800 border"
                         )}
                       >
                         {task.dueDate}
@@ -450,7 +456,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                     message: "Create next step task for this deal.",
                   })
                 }
-                className="mt-3 flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-3 flex items-center gap-1 font-medium transition-colors"
               >
                 <Plus size={13} />
                 <span>Add new task</span>
@@ -458,12 +464,12 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
             </div>
 
             {/* Key Contacts */}
-            <div className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+            <div className="shadow-xs rounded-xl border border-subtle bg-surface-1 p-4">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-primary">Key Contacts</h3>
                 <button
                   type="button"
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[10px] font-medium transition-colors"
                 >
                   See all →
                 </button>
@@ -472,19 +478,19 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
               <div className="space-y-2.5">
                 {opportunity.keyContacts.map((contact) => (
                   <div key={contact.id} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex min-w-0 items-center gap-2.5">
                       <img
                         src={contact.avatar}
                         alt={contact.name}
-                        className="size-7 rounded-full object-cover ring-1 ring-subtle shrink-0"
+                        className="size-7 shrink-0 rounded-full object-cover ring-1 ring-subtle"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-primary truncate">{contact.name}</p>
-                        <p className="text-[10px] text-secondary truncate">{contact.role}</p>
+                        <p className="text-xs truncate font-medium text-primary">{contact.name}</p>
+                        <p className="truncate text-[10px] text-secondary">{contact.role}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() =>
@@ -494,7 +500,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                             message: `Opening email to ${contact.email}`,
                           })
                         }
-                        className="rounded p-1 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+                        className="rounded p-1 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
                       >
                         <Mail size={13} />
                       </button>
@@ -507,7 +513,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                             message: `Opening chat with ${contact.name}`,
                           })
                         }
-                        className="rounded p-1 text-placeholder hover:bg-surface-2 hover:text-primary transition-colors"
+                        className="rounded p-1 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
                       >
                         <MessageSquare size={13} />
                       </button>
@@ -518,12 +524,12 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
             </div>
 
             {/* Recent Activity */}
-            <div className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+            <div className="shadow-xs rounded-xl border border-subtle bg-surface-1 p-4">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-primary">Recent Activity</h3>
                 <button
                   type="button"
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-[10px] font-medium transition-colors"
                 >
                   See all →
                 </button>
@@ -534,17 +540,17 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
                   <div key={act.id} className="flex items-start gap-2.5 pl-0.5">
                     <span
                       className={cn(
-                        "mt-1 size-2 rounded-full shrink-0",
+                        "mt-1 size-2 shrink-0 rounded-full",
                         act.color === "blue"
                           ? "bg-blue-500"
                           : act.color === "purple"
-                          ? "bg-purple-500"
-                          : "bg-emerald-500"
+                            ? "bg-purple-500"
+                            : "bg-emerald-500"
                       )}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-primary truncate">{act.title}</p>
-                      <p className="text-[10px] text-secondary mt-0.5">
+                      <p className="text-xs truncate font-medium text-primary">{act.title}</p>
+                      <p className="mt-0.5 text-[10px] text-secondary">
                         {act.author} • {act.timeAgo}
                       </p>
                     </div>
@@ -557,25 +563,25 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
       </div>
 
       {/* Bottom Floating AI Action Bar */}
-      <div className="border-t border-subtle p-3.5 bg-surface-2/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col items-center justify-between gap-3 border-t border-subtle bg-surface-2/60 p-3.5 sm:flex-row">
         {/* Left AI Question Input */}
-        <form onSubmit={handleAssistantSubmit} className="relative flex-1 w-full flex items-center">
-          <Sparkles size={14} className="absolute left-3 text-blue-600 dark:text-blue-400" />
+        <form onSubmit={handleAssistantSubmit} className="relative flex w-full flex-1 items-center">
+          <Sparkles size={14} className="text-blue-600 dark:text-blue-400 absolute left-3" />
           <input
             type="text"
             placeholder="Ask Summon Assistant about this opportunity..."
             value={assistantPrompt}
             onChange={(e) => setAssistantPrompt(e.target.value)}
-            className="w-full rounded-lg border border-subtle bg-surface-1 py-1.5 pl-8 pr-3 text-xs text-primary placeholder:text-placeholder focus:border-blue-500 focus:outline-none"
+            className="text-xs focus:border-blue-500 w-full rounded-lg border border-subtle bg-surface-1 py-1.5 pr-3 pl-8 text-primary placeholder:text-placeholder focus:outline-none"
           />
         </form>
 
         {/* Right AI Quick Actions Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => handleGenerate("Proposal")}
-            className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-3 transition-colors shadow-2xs"
+            className="text-xs hover:bg-surface-3 shadow-2xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary transition-colors"
           >
             <Sparkles size={12} className="text-blue-600" />
             <span>Generate Proposal</span>
@@ -584,7 +590,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
           <button
             type="button"
             onClick={() => handleGenerate("MoM")}
-            className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-3 transition-colors shadow-2xs"
+            className="text-xs hover:bg-surface-3 shadow-2xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary transition-colors"
           >
             <Sparkles size={12} className="text-purple-600" />
             <span>Generate MoM</span>
@@ -593,7 +599,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
           <button
             type="button"
             onClick={() => handleGenerate("PPT Presentation")}
-            className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-3 transition-colors shadow-2xs"
+            className="text-xs hover:bg-surface-3 shadow-2xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary transition-colors"
           >
             <Sparkles size={12} className="text-orange-600" />
             <span>Generate PPT</span>
@@ -601,7 +607,7 @@ export const OpportunityDetailPanel: React.FC<IOpportunityDetailPanelProps> = ({
 
           <button
             type="button"
-            className="flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-placeholder hover:text-primary transition-colors"
+            className="flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-placeholder transition-colors hover:text-primary"
           >
             <MoreHorizontal size={13} />
           </button>

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export type TDocumentFormat = "DOCX" | "PDF" | "PPTX";
+export type TDocumentFormat = "DOCX" | "PDF" | "PPTX" | "XLSX";
 
 export type TDocumentTone = "Professional" | "Casual" | "Formal" | "Technical" | "Executive";
 
@@ -12,10 +12,18 @@ export type TDetailLevel = "Concise" | "Standard" | "Comprehensive" | "In-depth"
 
 export type TDocumentType =
   | "Technical Proposal"
+  | "Proposal Teknis Klien"
   | "Quotation"
   | "MoM"
+  | "MoM Format IGLO"
+  | "MoM Format Summon"
   | "Presentation"
+  | "PPT Proposal Teknis Vendor"
   | "Cost Projection"
+  | "Timeline Project"
+  | "BAST"
+  | "UAT"
+  | "Bug Report"
   | "POC Brief";
 
 export type TDocumentStatus = "Completed" | "Draft" | "Generating";

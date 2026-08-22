@@ -38,7 +38,12 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
   const filteredKnowledgeItems = useMemo(() => {
     return knowledgeItems.filter((item) => {
       if (selectedContext) {
-        if (selectedContext === "Projects" && !item.context.toLowerCase().includes("system") && !item.context.toLowerCase().includes("enhancement") && item.context !== "AURA") {
+        if (
+          selectedContext === "Projects" &&
+          !item.context.toLowerCase().includes("system") &&
+          !item.context.toLowerCase().includes("enhancement") &&
+          item.context !== "AURA"
+        ) {
           return false;
         }
         if (selectedContext === "Company" && item.context !== "Company") {
@@ -80,7 +85,9 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
   };
 
   const handleSelectNote = (note: IRecentNote) => {
-    const matchingItem = knowledgeItems.find((k) => k.title.toLowerCase().includes(note.title.toLowerCase().slice(0, 10)));
+    const matchingItem = knowledgeItems.find((k) =>
+      k.title.toLowerCase().includes(note.title.toLowerCase().slice(0, 10))
+    );
     if (matchingItem) {
       setSelectedItem(matchingItem);
     } else {
@@ -101,7 +108,9 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
   };
 
   const handleSelectPopular = (popular: IPopularKnowledgeItem) => {
-    const matchingItem = knowledgeItems.find((k) => k.title.toLowerCase().includes(popular.title.toLowerCase().slice(0, 10)));
+    const matchingItem = knowledgeItems.find((k) =>
+      k.title.toLowerCase().includes(popular.title.toLowerCase().slice(0, 10))
+    );
     if (matchingItem) {
       setSelectedItem(matchingItem);
     } else {
@@ -165,9 +174,9 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
         />
 
         {/* 2-Column Main Dashboard */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
           {/* Left Main Column (approx 70% / 8 cols) */}
-          <div className="lg:col-span-8 space-y-5">
+          <div className="space-y-5 lg:col-span-8">
             {/* 1. Ask Summon Assistant Banner */}
             <AskAssistantCard
               onAskQuestion={(q) => {
@@ -206,7 +215,7 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
           </div>
 
           {/* Right Sidebar Column (approx 30% / 4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="space-y-4 lg:col-span-4">
             {/* 1. Quick Actions */}
             <QuickActionsCard
               onCreateNote={handleCreateNote}
@@ -264,11 +273,7 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
       </div>
 
       {/* Item Detail Modal */}
-      <KnowledgeDetailModal
-        item={selectedItem}
-        isOpen={Boolean(selectedItem)}
-        onClose={() => setSelectedItem(null)}
-      />
+      <KnowledgeDetailModal item={selectedItem} isOpen={Boolean(selectedItem)} onClose={() => setSelectedItem(null)} />
     </div>
   );
 });

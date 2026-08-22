@@ -49,9 +49,17 @@ const getTypeIcon = (type: TCredentialType) => {
     case "API Key":
       return { icon: Key, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/40" };
     case "SaaS":
-      return { icon: Globe, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" };
+      return {
+        icon: Globe,
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-50 dark:bg-emerald-950/40",
+      };
     case "Storage":
-      return { icon: HardDrive, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40" };
+      return {
+        icon: HardDrive,
+        color: "text-indigo-600 dark:text-indigo-400",
+        bg: "bg-indigo-50 dark:bg-indigo-950/40",
+      };
     default:
       return { icon: Server, color: "text-blue-600", bg: "bg-blue-50" };
   }
@@ -90,9 +98,9 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
   }, [credentials, projectFilter, activeTab]);
 
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 shadow-xs overflow-hidden h-full">
+    <div className="shadow-xs flex h-full flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1">
       {/* Tab Navigation */}
-      <div className="flex border-b border-subtle px-4 bg-surface-1 overflow-x-auto hide-horizontal-scrollbar">
+      <div className="hide-horizontal-scrollbar flex overflow-x-auto border-b border-subtle bg-surface-1 px-4">
         <div className="flex gap-4">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
@@ -105,15 +113,13 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                   setCurrentPage(1);
                 }}
                 className={cn(
-                  "relative py-3 text-xs font-medium whitespace-nowrap transition-colors",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-secondary hover:text-primary"
+                  "text-xs relative py-3 font-medium whitespace-nowrap transition-colors",
+                  isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
                 {tab}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="bg-blue-600 dark:bg-blue-400 absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
                 )}
               </button>
             );
@@ -122,13 +128,13 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
       </div>
 
       {/* Filter Row & View Toggle */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-2.5 bg-surface-2/30 border-b border-subtle">
+      <div className="flex flex-col items-start justify-between gap-3 border-b border-subtle bg-surface-2/30 px-4 py-2.5 sm:flex-row sm:items-center">
         {/* Project Selector */}
         <div className="relative">
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 text-xs font-medium text-primary shadow-2xs focus:border-blue-500 focus:outline-none"
+            className="text-xs shadow-2xs focus:border-blue-500 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary focus:outline-none"
           >
             {projectsList.map((p) => (
               <option key={p} value={p}>
@@ -140,11 +146,9 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
 
         {/* Count & View Toggle Buttons */}
         <div className="flex items-center gap-3">
-          <span className="text-xs text-secondary">
-            {filteredCredentials.length} credentials
-          </span>
+          <span className="text-xs text-secondary">{filteredCredentials.length} credentials</span>
 
-          <div className="flex items-center rounded-lg border border-subtle bg-surface-1 p-0.5 shadow-2xs">
+          <div className="shadow-2xs flex items-center rounded-lg border border-subtle bg-surface-1 p-0.5">
             <button
               type="button"
               onClick={() => setViewMode("list")}
@@ -171,19 +175,19 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
 
       {/* Table Content */}
       <div className="flex-1 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[700px]">
+        <table className="w-full min-w-[700px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-subtle text-[11px] font-semibold text-secondary bg-surface-2/20">
+            <tr className="border-b border-subtle bg-surface-2/20 text-[11px] font-semibold text-secondary">
               <th className="py-2.5 pl-4 font-medium">Credential Name</th>
               <th className="py-2.5 font-medium">Type</th>
               <th className="py-2.5 font-medium">Project</th>
               <th className="py-2.5 font-medium">Environment</th>
               <th className="py-2.5 font-medium">Last Used</th>
               <th className="py-2.5 font-medium">Status</th>
-              <th className="py-2.5 font-medium text-right pr-4">Actions</th>
+              <th className="py-2.5 pr-4 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-subtle text-xs">
+          <tbody className="text-xs divide-y divide-subtle">
             {filteredCredentials.map((cred) => {
               const isSelected = selectedCredentialId === cred.id;
               const { icon: IconComp, color, bg } = getTypeIcon(cred.type);
@@ -194,36 +198,43 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                   key={cred.id}
                   onClick={() => onSelectCredential(cred.id)}
                   className={cn(
-                    "group transition-colors cursor-pointer",
+                    "group cursor-pointer transition-colors",
                     isSelected
-                      ? "bg-blue-50/50 dark:bg-blue-950/30 border-l-3 border-blue-600"
+                      ? "bg-blue-50/50 dark:bg-blue-950/30 border-blue-600 border-l-3"
                       : "hover:bg-surface-2/60"
                   )}
                 >
                   {/* Credential Name */}
-                  <td className="py-3 pl-4 pr-3">
+                  <td className="py-3 pr-3 pl-4">
                     <div className="flex items-center gap-2.5">
-                      <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border border-subtle", bg, color)}>
+                      <div
+                        className={cn(
+                          "flex size-8 shrink-0 items-center justify-center rounded-lg border border-subtle",
+                          bg,
+                          color
+                        )}
+                      >
                         <IconComp size={15} />
                       </div>
-                      <div className="min-w-0 max-w-[200px] xl:max-w-[240px]">
-                        <p className={cn("font-semibold truncate", isSelected ? "text-blue-600 dark:text-blue-400" : "text-primary")}>
+                      <div className="max-w-[200px] min-w-0 xl:max-w-[240px]">
+                        <p
+                          className={cn(
+                            "truncate font-semibold",
+                            isSelected ? "text-blue-600 dark:text-blue-400" : "text-primary"
+                          )}
+                        >
                           {cred.name}
                         </p>
-                        <p className="text-[11px] text-secondary truncate font-mono mt-0.5">
-                          {cred.identifier}
-                        </p>
+                        <p className="font-mono mt-0.5 truncate text-[11px] text-secondary">{cred.identifier}</p>
                       </div>
                     </div>
                   </td>
 
                   {/* Type */}
-                  <td className="py-3 pr-3 text-[11px] text-secondary whitespace-nowrap">
-                    {cred.type}
-                  </td>
+                  <td className="py-3 pr-3 text-[11px] whitespace-nowrap text-secondary">{cred.type}</td>
 
                   {/* Project */}
-                  <td className="py-3 pr-3 text-[11px] text-secondary whitespace-nowrap max-w-[160px] truncate">
+                  <td className="max-w-[160px] truncate py-3 pr-3 text-[11px] whitespace-nowrap text-secondary">
                     {cred.project}
                   </td>
 
@@ -233,8 +244,8 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                       className={cn(
                         "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
                         cred.environment === "Production"
-                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800"
-                          : "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800"
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 border"
+                          : "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800 border"
                       )}
                     >
                       {cred.environment}
@@ -242,9 +253,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                   </td>
 
                   {/* Last Used */}
-                  <td className="py-3 pr-3 text-[11px] text-secondary whitespace-nowrap">
-                    {cred.lastUsed}
-                  </td>
+                  <td className="py-3 pr-3 text-[11px] whitespace-nowrap text-secondary">{cred.lastUsed}</td>
 
                   {/* Status */}
                   <td className="py-3 pr-3 whitespace-nowrap">
@@ -276,14 +285,14 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                           e.stopPropagation();
                           setActiveMenuId(isMenuOpen ? null : cred.id);
                         }}
-                        className="rounded p-1 text-placeholder hover:bg-surface-3 hover:text-primary transition-colors"
+                        className="hover:bg-surface-3 rounded p-1 text-placeholder transition-colors hover:text-primary"
                       >
                         <MoreHorizontal size={14} />
                       </button>
 
                       {isMenuOpen && (
                         <div
-                          className="absolute right-0 top-full z-40 mt-1 w-32 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg text-left"
+                          className="shadow-lg absolute top-full right-0 z-40 mt-1 w-32 rounded-lg border border-subtle bg-surface-1 py-1 text-left"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -292,7 +301,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                               setActiveMenuId(null);
                               onSelectCredential(cred.id);
                             }}
-                            className="flex w-full items-center px-3 py-1.5 text-[11px] text-primary hover:bg-surface-2 transition-colors"
+                            className="flex w-full items-center px-3 py-1.5 text-[11px] text-primary transition-colors hover:bg-surface-2"
                           >
                             <span>View Details</span>
                           </button>
@@ -306,7 +315,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                                 message: `Password for ${cred.name} copied.`,
                               });
                             }}
-                            className="flex w-full items-center px-3 py-1.5 text-[11px] text-primary hover:bg-surface-2 transition-colors"
+                            className="flex w-full items-center px-3 py-1.5 text-[11px] text-primary transition-colors hover:bg-surface-2"
                           >
                             <span>Copy Password</span>
                           </button>
@@ -322,7 +331,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
                                 message: `${cred.name} was removed from vault.`,
                               });
                             }}
-                            className="flex w-full items-center px-3 py-1.5 text-[11px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex w-full items-center px-3 py-1.5 text-[11px] transition-colors"
                           >
                             <span>Delete</span>
                           </button>
@@ -338,7 +347,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-subtle px-4 py-3 bg-surface-1 text-xs text-secondary">
+      <div className="text-xs flex flex-col items-center justify-between gap-3 border-t border-subtle bg-surface-1 px-4 py-3 text-secondary sm:flex-row">
         <div>
           Showing 1 to {Math.min(8, filteredCredentials.length)} of {filteredCredentials.length} credentials
         </div>
@@ -348,7 +357,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
             type="button"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder hover:border-strong hover:text-primary disabled:opacity-40 transition-colors"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary disabled:opacity-40"
           >
             <ChevronLeft size={13} />
           </button>
@@ -358,9 +367,9 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
               type="button"
               onClick={() => setCurrentPage(page)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
+                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
                 currentPage === page
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-blue-600 shadow-xs text-white"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -370,7 +379,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.min(4, p + 1))}
-            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder hover:border-strong hover:text-primary transition-colors"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-placeholder transition-colors hover:border-strong hover:text-primary"
           >
             <ChevronRight size={13} />
           </button>
@@ -378,7 +387,7 @@ export const CredentialsTable: React.FC<ICredentialsTableProps> = ({
 
         <div className="flex items-center gap-1 text-secondary">
           <span>Rows per page:</span>
-          <select className="rounded border border-subtle bg-surface-1 py-0.5 px-1.5 text-xs text-primary focus:outline-none">
+          <select className="text-xs rounded border border-subtle bg-surface-1 px-1.5 py-0.5 text-primary focus:outline-none">
             <option value="10">10</option>
             <option value="20">20</option>
             <option value="50">50</option>

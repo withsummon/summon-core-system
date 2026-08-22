@@ -14,11 +14,7 @@ interface IKnowledgeHeaderProps {
   onOpenQuickFind?: () => void;
 }
 
-export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({
-  searchQuery,
-  onSearchChange,
-  onOpenQuickFind,
-}) => {
+export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({ searchQuery, onSearchChange, onOpenQuickFind }) => {
   const handleBellClick = () => {
     setToast({
       type: TOAST_TYPE.INFO,
@@ -41,9 +37,7 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">Knowledge</h1>
-          <p className="text-xs text-secondary mt-0.5">
-            Your company knowledge, notes and insights in one place
-          </p>
+          <p className="text-xs mt-0.5 text-secondary">Your company knowledge, notes and insights in one place</p>
         </div>
 
         {/* Right header icons */}
@@ -52,10 +46,10 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({
           <button
             type="button"
             onClick={handleBellClick}
-            className="relative flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary hover:border-strong hover:text-primary transition-colors shadow-xs"
+            className="shadow-xs relative flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:border-strong hover:text-primary"
           >
             <Bell size={16} />
-            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-surface-1">
+            <span className="bg-red-500 ring-surface-1 absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white ring-2">
               1
             </span>
           </button>
@@ -64,13 +58,13 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({
           <button
             type="button"
             onClick={handleNotesClick}
-            className="flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary hover:border-strong hover:text-primary transition-colors shadow-xs"
+            className="shadow-xs flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:border-strong hover:text-primary"
           >
             <FileText size={16} />
           </button>
 
           {/* Avatar Profile */}
-          <div className="flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-2 text-xs font-semibold text-primary overflow-hidden ring-1 ring-subtle shadow-xs cursor-pointer">
+          <div className="text-xs shadow-xs flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-subtle bg-surface-2 font-semibold text-primary ring-1 ring-subtle">
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
               alt="Profile"
@@ -82,19 +76,19 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({
 
       {/* Global Search Bar */}
       <div className="relative w-full">
-        <div className="flex items-center rounded-xl border border-subtle bg-surface-1 px-4 py-2.5 shadow-xs focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
-          <Search size={17} className="text-placeholder mr-3 shrink-0" />
+        <div className="shadow-xs focus-within:border-blue-500 focus-within:ring-blue-500/20 flex items-center rounded-xl border border-subtle bg-surface-1 px-4 py-2.5 transition-all focus-within:ring-2">
+          <Search size={17} className="mr-3 shrink-0 text-placeholder" />
           <input
             type="text"
             placeholder="Search knowledge, notes, topics, or ask anything..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-transparent text-xs text-primary placeholder:text-placeholder focus:outline-none"
+            className="text-xs w-full bg-transparent text-primary placeholder:text-placeholder focus:outline-none"
           />
           <button
             type="button"
             onClick={onOpenQuickFind}
-            className="ml-2 hidden sm:flex items-center gap-1 rounded-md border border-subtle bg-surface-2/80 px-2 py-0.5 text-[10px] font-medium text-secondary hover:bg-surface-3 transition-colors"
+            className="hover:bg-surface-3 ml-2 hidden items-center gap-1 rounded-md border border-subtle bg-surface-2/80 px-2 py-0.5 text-[10px] font-medium text-secondary transition-colors sm:flex"
           >
             <span>⌘</span>
             <span>K</span>

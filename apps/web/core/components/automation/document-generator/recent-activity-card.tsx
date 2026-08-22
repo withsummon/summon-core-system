@@ -36,14 +36,14 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
   onViewAllActivity,
 }) => {
   return (
-    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
+    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-primary">Recent Activity</h2>
         <button
           type="button"
           onClick={onViewAllActivity}
-          className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
         >
           <span>View all activity</span>
           <ArrowRight size={13} />
@@ -58,9 +58,7 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
           return (
             <div key={act.id} className="relative flex items-start gap-3 pl-1">
               {/* Connecting Line */}
-              {!isLast && (
-                <div className="absolute left-[7px] top-[14px] h-[calc(100%+8px)] w-[1.5px] bg-subtle" />
-              )}
+              {!isLast && <div className="bg-subtle absolute top-[14px] left-[7px] h-[calc(100%+8px)] w-[1.5px]" />}
 
               {/* Dot */}
               <div
@@ -72,10 +70,10 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-primary leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer truncate">
+                <p className="text-xs hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer truncate leading-tight font-medium text-primary transition-colors">
                   {act.title}
                 </p>
-                <p className="text-[11px] text-secondary mt-0.5">{act.author}</p>
+                <p className="mt-0.5 text-[11px] text-secondary">{act.author}</p>
               </div>
             </div>
           );
