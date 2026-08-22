@@ -12,6 +12,13 @@ import polyfills from "@/lib/polyfills";
 
 void polyfills;
 
+document.querySelectorAll("body > script").forEach((script) => {
+  if (script.textContent?.includes("/cdn-cgi/challenge-platform/")) script.remove();
+});
+document
+  .querySelectorAll('body > iframe[height="1"][width="1"][style*="visibility: hidden"]')
+  .forEach((iframe) => iframe.remove());
+
 startTransition(() => {
   hydrateRoot(
     document,
