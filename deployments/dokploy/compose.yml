@@ -20,7 +20,7 @@ x-app-environment: &app-environment
   AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
   MINIO_ENDPOINT_SSL: "0"
   API_KEY_RATE_LIMIT: ${API_KEY_RATE_LIMIT:-60/minute}
-  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+  LIVE_SERVER_SECRET_KEY_FILE: /run/secrets/live_server_secret_key
   WEBHOOK_ALLOWED_IPS: ${WEBHOOK_ALLOWED_IPS:-}
   WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
 
@@ -38,6 +38,7 @@ x-api-service: &api-service
     - postgres_password
     - rabbitmq_password
     - minio_password
+    - live_server_secret_key
   depends_on:
     plane-db:
       condition: service_healthy
@@ -74,10 +75,17 @@ services:
   live:
     image: makeplane/plane-live:${PLANE_RELEASE:-stable}
     restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export LIVE_SERVER_SECRET_KEY="$$(cat /run/secrets/live_server_secret_key)"
+        exec docker-entrypoint.sh node apps/live
     environment:
       API_BASE_URL: http://api:8000
       REDIS_URL: redis://plane-redis:6379/
-      LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+    secrets:
+      - live_server_secret_key
     depends_on:
       api:
         condition: service_started
@@ -221,3 +229,5 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/rabbitmq_password
   minio_password:
     file: /etc/dokploy-secrets/summon-core-plane/minio_password
+  live_server_secret_key:
+    file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
