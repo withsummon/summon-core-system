@@ -4,23 +4,88 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
-import { X, Download, FileText, CheckCircle2, Sparkles, Sliders } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import useSWR from "swr";
+import { X, Download, FileText, CheckCircle2, Sparkles, Sliders, FolderGit2, Users, Building } from "lucide-react";
 import { DOCUMENT_TEMPLATES } from "./mock-data";
+import { useProject } from "@/hooks/store/use-project";
+import { summonService } from "@/services/summon.service";
 import type { TDocumentTemplateType } from "./types";
 
 interface IReportExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   workspaceSlug?: string;
+  defaultScope?: "workspace" | "project" | "client";
+  defaultProjectId?: string;
+  defaultClientId?: string;
 }
 
-export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) {
+export function ReportExportModal({
+  isOpen,
+  onClose,
+  workspaceSlug = "default",
+  defaultScope = "workspace",
+  defaultProjectId,
+  defaultClientId,
+}: IReportExportModalProps) {
+  const { joinedProjectIds, getProjectById } = useProject();
+
+  const { data: clients = [] } = useSWR(isOpen && workspaceSlug ? ["summon-clients-modal", workspaceSlug] : null, () =>
+    summonService.listClients(workspaceSlug)
+  );
+
+  const projectsList = useMemo(
+    () =>
+      joinedProjectIds.map((id) => ({
+        id,
+        name: getProjectById(id)?.name || id,
+        identifier: getProjectById(id)?.identifier || id,
+      })),
+    [joinedProjectIds, getProjectById]
+  );
+
+  // Scope state
+  const [scopeType, setScopeType] = useState<"workspace" | "project" | "client">(defaultScope);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
+  const [selectedClientId, setSelectedClientId] = useState<string>(defaultClientId || "");
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<TDocumentTemplateType>("mom_iglo");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [format, setFormat] = useState<string>("DOCX");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSuccess, setGeneratedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (defaultScope) setScopeType(defaultScope);
+    if (defaultProjectId) setSelectedProjectId(defaultProjectId);
+    if (defaultClientId) setSelectedClientId(defaultClientId);
+  }, [defaultScope, defaultProjectId, defaultClientId, isOpen]);
+
+  // Update form fields when project or client changes
+  useEffect(() => {
+    if (scopeType === "project" && selectedProjectId) {
+      const proj = projectsList.find((p) => p.id === selectedProjectId);
+      if (proj) {
+        setFormData((prev) => ({
+          ...prev,
+          projectName: proj.name,
+          project: proj.name,
+          title: `Report - ${proj.name}`,
+        }));
+      }
+    } else if (scopeType === "client" && selectedClientId) {
+      const cli = clients.find((c) => c.id === selectedClientId);
+      if (cli) {
+        setFormData((prev) => ({
+          ...prev,
+          clientName: cli.name,
+          client: cli.name,
+          title: `Report - ${cli.name}`,
+        }));
+      }
+    }
+  }, [scopeType, selectedProjectId, selectedClientId, projectsList, clients]);
 
   if (!isOpen) return null;
 
@@ -35,28 +100,41 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
     setGeneratedSuccess(false);
 
     setTimeout(() => {
-      // Create comprehensive downloadable file based on selected template
+      // Determine scoped title
+      let targetScopeLabel = "Workspace Wide";
+      if (scopeType === "project") {
+        const proj = projectsList.find((p) => p.id === selectedProjectId);
+        targetScopeLabel = `Project: ${proj?.name || "Selected Project"}`;
+      } else if (scopeType === "client") {
+        const cli = clients.find((c) => c.id === selectedClientId);
+        targetScopeLabel = `Client: ${cli?.name || "Selected Client"}`;
+      }
+
+      // Create comprehensive downloadable file based on selected template and scope
       let docBody = `# ${currentTemplate.sampleTitle}\n`;
       docBody += `Template: ${currentTemplate.name}\n`;
+      docBody += `Generation Scope: ${targetScopeLabel}\n`;
       docBody += `Generated on: ${new Date().toISOString()}\n\n`;
 
       docBody += `## Document Metadata & Parameters\n`;
+      docBody += `- **Target Scope**: ${targetScopeLabel}\n`;
       currentTemplate.fields.forEach((field) => {
-        const val = formData[field.key] || field.placeholder || "Default Sample Value";
+        const val = formData[field.key] || field.placeholder || "Standard Specification";
         docBody += `- **${field.label}**: ${val}\n`;
       });
 
       docBody += `\n## Structured Content & Sections\n`;
       currentTemplate.sections.forEach((sec, idx) => {
         docBody += `### ${idx + 1}. ${sec}\n`;
-        docBody += `Content generated according to ${currentTemplate.name} guidelines and enterprise governance.\n\n`;
+        docBody += `Deliverable details generated specifically for ${targetScopeLabel} in accordance with ${currentTemplate.name} standards.\n\n`;
       });
 
       const blob = new Blob([docBody], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${currentTemplate.id}_export_${Date.now()}.${format.toLowerCase() === "xlsx" ? "csv" : format.toLowerCase() === "docx" ? "docx" : "pdf"}`;
+      const fileExt = format.toLowerCase() === "xlsx" ? "csv" : format.toLowerCase() === "docx" ? "docx" : "pdf";
+      a.download = `${currentTemplate.id}_${scopeType}_${Date.now()}.${fileExt}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -69,7 +147,7 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="shadow-2xl flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+      <div className="shadow-2xl flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-subtle px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -79,8 +157,8 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
             <div>
               <h2 className="text-base font-bold text-primary">Generate Executive & Technical Documents</h2>
               <p className="text-xs text-secondary">
-                Select from 10 enterprise document standards: MoMs, Proposals, Quotations, Timeline, BAST, UAT, and
-                Defects.
+                Generate reports and documents scoped <strong>Per Project</strong>, <strong>Per Client</strong>, or{" "}
+                <strong>Workspace Wide</strong>.
               </p>
             </div>
           </div>
@@ -91,6 +169,88 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
           >
             <X className="size-5" />
           </button>
+        </div>
+
+        {/* Scope Selector Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle bg-layer-1 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-secondary">Generation Scope:</span>
+            <div className="flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5">
+              <button
+                type="button"
+                onClick={() => setScopeType("workspace")}
+                className={`text-xs flex items-center gap-1 rounded-lg px-2.5 py-1 font-bold transition-all ${
+                  scopeType === "workspace"
+                    ? "shadow-xs bg-accent-primary text-white"
+                    : "text-secondary hover:text-primary"
+                }`}
+              >
+                <Building className="size-3" />
+                Workspace Wide
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeType("project")}
+                className={`text-xs flex items-center gap-1 rounded-lg px-2.5 py-1 font-bold transition-all ${
+                  scopeType === "project"
+                    ? "shadow-xs bg-accent-primary text-white"
+                    : "text-secondary hover:text-primary"
+                }`}
+              >
+                <FolderGit2 className="size-3" />
+                Per Project
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeType("client")}
+                className={`text-xs flex items-center gap-1 rounded-lg px-2.5 py-1 font-bold transition-all ${
+                  scopeType === "client"
+                    ? "shadow-xs bg-accent-primary text-white"
+                    : "text-secondary hover:text-primary"
+                }`}
+              >
+                <Users className="size-3" />
+                Per Client
+              </button>
+            </div>
+          </div>
+
+          {/* Project / Client Dropdown based on active scope */}
+          {scopeType === "project" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-secondary">Target Project:</span>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="text-xs focus:border-accent-primary h-8 rounded-lg border border-subtle bg-surface-1 px-2.5 font-medium text-primary focus:outline-none"
+              >
+                <option value="">Select a Project...</option>
+                {projectsList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.identifier})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {scopeType === "client" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-secondary">Target Client:</span>
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="text-xs focus:border-accent-primary h-8 rounded-lg border border-subtle bg-surface-1 px-2.5 font-medium text-primary focus:outline-none"
+              >
+                <option value="">Select a Client...</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Modal Body */}
@@ -230,7 +390,13 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
             {generatedSuccess && (
               <div className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400 mt-4 flex items-center gap-2 rounded-xl p-3 font-semibold">
                 <CheckCircle2 className="size-4 shrink-0" />
-                Document generated and downloaded successfully as {format}!
+                Document generated and downloaded successfully as {format} for{" "}
+                {scopeType === "project"
+                  ? "Selected Project"
+                  : scopeType === "client"
+                    ? "Selected Client"
+                    : "Workspace"}
+                !
               </div>
             )}
           </div>
@@ -239,7 +405,8 @@ export function ReportExportModal({ isOpen, onClose }: IReportExportModalProps) 
         {/* Modal Footer */}
         <div className="flex items-center justify-between border-t border-subtle bg-layer-1 px-6 py-3.5">
           <span className="text-xs text-secondary">
-            Format selected: <strong className="text-primary">{format}</strong>
+            Format: <strong className="text-primary">{format}</strong> · Scope:{" "}
+            <strong className="text-primary capitalize">{scopeType}</strong>
           </span>
           <div className="flex items-center gap-2">
             <button

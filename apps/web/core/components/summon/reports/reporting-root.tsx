@@ -4,8 +4,22 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
-import { Calendar, Filter, Download, Bell, Maximize2, Settings as SettingsIcon, ChevronDown } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import useSWR from "swr";
+import {
+  Calendar,
+  Filter,
+  Download,
+  Bell,
+  Maximize2,
+  Settings as SettingsIcon,
+  ChevronDown,
+  FolderGit2,
+  Users,
+  Building,
+} from "lucide-react";
+import { useProject } from "@/hooks/store/use-project";
+import { summonService } from "@/services/summon.service";
 import { ReportingKpiRow } from "./reporting-kpi-row";
 import { CompanyProgressCard } from "./company-progress-card";
 import { ProjectHealthCard } from "./project-health-card";
@@ -29,11 +43,32 @@ const TABS: TReportingTab[] = [
   "Portfolio / Client Database",
 ];
 
-export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
+export function ReportingRoot({ workspaceSlug = "default" }: IReportingRootProps) {
+  const { joinedProjectIds, getProjectById } = useProject();
+
+  const { data: clients = [] } = useSWR(workspaceSlug ? ["summon-clients-reporting", workspaceSlug] : null, () =>
+    summonService.listClients(workspaceSlug)
+  );
+
+  const projectsList = useMemo(
+    () =>
+      joinedProjectIds.map((id) => ({
+        id,
+        name: getProjectById(id)?.name || id,
+        identifier: getProjectById(id)?.identifier || id,
+      })),
+    [joinedProjectIds, getProjectById]
+  );
+
   const [activeTab, setActiveTab] = useState<TReportingTab>("Overview");
   const [dateRange, setDateRange] = useState("1 May 2025 - 31 May 2025");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  // Scope filter state: workspace | project | client
+  const [scopeFilter, setScopeFilter] = useState<"workspace" | "project" | "client">("workspace");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
@@ -41,13 +76,15 @@ export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">Management & Reporting</h1>
-          <p className="text-xs font-medium text-secondary">Real-time insights and performance overview</p>
+          <p className="text-xs font-medium text-secondary">
+            Multi-project analytics, client portfolio metrics, and document generation
+          </p>
         </div>
 
         {/* Top Right Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Date Picker Button */}
-          <div className="text-xs shadow-sm hover:border-accent-primary/40 flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary">
+          <div className="text-xs shadow-sm flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-primary">
             <Calendar className="size-3.5 text-tertiary" />
             <span>{dateRange}</span>
             <ChevronDown className="size-3 text-tertiary" />
@@ -58,7 +95,7 @@ export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
             <button
               type="button"
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="text-xs shadow-sm hover:border-accent-primary/40 flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary hover:text-primary"
+              className="text-xs shadow-sm flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary hover:text-primary"
             >
               <Filter className="size-3.5" />
               <span>Filters</span>
@@ -94,7 +131,7 @@ export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
             className="text-xs shadow-sm flex items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 py-1.5 font-semibold text-white transition-all hover:bg-accent-primary/90"
           >
             <Download className="size-3.5" />
-            <span>Export Report</span>
+            <span>Export / Generate Document</span>
           </button>
 
           {/* Utility Quick Icons */}
@@ -122,6 +159,89 @@ export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Scope Toolbar: Workspace-Wide vs Per-Project vs Per-Client */}
+      <div className="shadow-xs flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-subtle bg-surface-1 p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-secondary">Reporting Scope:</span>
+          <div className="flex items-center rounded-xl border border-subtle bg-layer-1 p-0.5">
+            <button
+              type="button"
+              onClick={() => setScopeFilter("workspace")}
+              className={`text-xs flex items-center gap-1.5 rounded-lg px-3 py-1 font-bold transition-all ${
+                scopeFilter === "workspace"
+                  ? "shadow-xs bg-surface-1 font-bold text-accent-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              <Building className="size-3.5" />
+              Workspace Pulse
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter("project")}
+              className={`text-xs flex items-center gap-1.5 rounded-lg px-3 py-1 font-bold transition-all ${
+                scopeFilter === "project"
+                  ? "shadow-xs bg-surface-1 font-bold text-accent-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              <FolderGit2 className="size-3.5" />
+              Per Project
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter("client")}
+              className={`text-xs flex items-center gap-1.5 rounded-lg px-3 py-1 font-bold transition-all ${
+                scopeFilter === "client"
+                  ? "shadow-xs bg-surface-1 font-bold text-accent-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              <Users className="size-3.5" />
+              Per Client
+            </button>
+          </div>
+        </div>
+
+        {/* Project Selector when Scope is Project */}
+        {scopeFilter === "project" && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-secondary">Target Project:</span>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="text-xs focus:border-accent-primary h-8 rounded-lg border border-subtle bg-layer-1 px-3 font-semibold text-primary focus:outline-none"
+            >
+              <option value="">All Projects</option>
+              {projectsList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.identifier})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Client Selector when Scope is Client */}
+        {scopeFilter === "client" && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-secondary">Target Client:</span>
+            <select
+              value={selectedClientId}
+              onChange={(e) => setSelectedClientId(e.target.value)}
+              className="text-xs focus:border-accent-primary h-8 rounded-lg border border-subtle bg-layer-1 px-3 font-semibold text-primary focus:outline-none"
+            >
+              <option value="">All Clients</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Sub-tab Navigation */}
@@ -181,6 +301,9 @@ export function ReportingRoot({ workspaceSlug }: IReportingRootProps) {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         workspaceSlug={workspaceSlug}
+        defaultScope={scopeFilter}
+        defaultProjectId={selectedProjectId}
+        defaultClientId={selectedClientId}
       />
     </div>
   );
