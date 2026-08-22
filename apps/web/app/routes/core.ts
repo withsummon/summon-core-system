@@ -114,15 +114,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           ),
         ]),
 
-        // Knowledge
-        route(":workspaceSlug/knowledge", "./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx"),
-
-        // Opportunities
-        route(":workspaceSlug/opportunities", "./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx"),
-
-        // Credentials
-        route(":workspaceSlug/credentials", "./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx"),
-
         // Archived Projects
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
           route(
@@ -229,18 +220,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/layout.tsx", [
             route(
               ":workspaceSlug/projects/:projectId/automation",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/projects/:projectId/automations",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/:projectId/automation",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/:projectId/automations",
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx"
             ),
           ]),
