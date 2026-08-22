@@ -12,15 +12,16 @@ export function SummonScreen(props: { title: string; description: string; action
   return (
     <>
       <PageHead title={`${props.title} · Summon Core`} />
-      <section className="mx-auto flex min-h-full w-full max-w-[1480px] flex-col gap-5 p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <section className="relative mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 overflow-hidden p-4 lg:p-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_30%_0%,rgba(54,107,255,0.08),transparent_64%)]" />
+        <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs mb-1 flex items-center gap-1.5 font-semibold tracking-[0.12em] text-accent-primary uppercase">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-accent-primary uppercase">
               <Sparkles className="size-3.5" />
               Summon Core
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">{props.title}</h1>
-            <p className="text-sm mt-1 max-w-3xl text-secondary">{props.description}</p>
+            <h1 className="text-xl font-semibold tracking-tight text-primary">{props.title}</h1>
+            <p className="text-xs mt-1 max-w-3xl text-secondary">{props.description}</p>
           </div>
           {props.actions}
         </div>
@@ -32,7 +33,9 @@ export function SummonScreen(props: { title: string; description: string; action
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
   return (
-    <div className={`shadow-sm rounded-xl border border-subtle bg-surface-1 p-4 ${props.className ?? ""}`}>
+    <div
+      className={`rounded-2xl border border-subtle bg-surface-1 p-3.5 shadow-[0_8px_30px_rgba(36,55,99,0.035)] ${props.className ?? ""}`}
+    >
       {props.children}
     </div>
   );
@@ -43,11 +46,11 @@ export function SummonMetric(props: { label: string; value: ReactNode; detail?: 
     <SummonCard className="min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-secondary">{props.label}</p>
-          <p className="text-2xl mt-2 font-semibold tracking-tight text-primary">{props.value}</p>
+          <p className="text-[11px] font-medium text-secondary">{props.label}</p>
+          <p className="text-xl mt-1.5 font-semibold tracking-tight text-primary">{props.value}</p>
           {props.detail ? <p className="text-xs mt-1 truncate text-tertiary">{props.detail}</p> : null}
         </div>
-        <span className="grid size-8 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+        <span className="grid size-7 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
           <ArrowUpRight className="size-4" />
         </span>
       </div>
@@ -59,9 +62,9 @@ export function SummonRecordList(props: {
   records: Array<{ id: string; title: string; detail?: string; badge?: string }>;
 }) {
   return (
-    <div className="shadow-sm divide-y divide-subtle overflow-hidden rounded-xl border border-subtle bg-surface-1">
+    <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
       {props.records.map((record) => (
-        <div key={record.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-layer-1">
+        <div key={record.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-layer-1">
           <div className="min-w-0">
             <p className="text-sm truncate font-medium text-primary">{record.title}</p>
             {record.detail ? <p className="text-xs mt-1 break-words text-secondary">{record.detail}</p> : null}
