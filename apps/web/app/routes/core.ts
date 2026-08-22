@@ -120,6 +120,9 @@ export const coreRoutes: RouteConfigEntry[] = [
         // Opportunities
         route(":workspaceSlug/opportunities", "./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx"),
 
+        // Credentials
+        route(":workspaceSlug/credentials", "./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx"),
+
         // Archived Projects
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
           route(
