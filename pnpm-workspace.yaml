@@ -33,7 +33,7 @@ catalog:
   "@radix-ui/react-scroll-area": "^1.2.3"
   "@react-pdf/renderer": "^4.3.0"
   "@react-pdf/types": "^2.9.2"
-  "@react-router/dev": "7.17.0"
+  "@react-router/dev": "7.18.1"
   "@react-router/node": "7.18.1"
   "@react-router/serve": "7.18.1"
   "@storybook/addon-designs": "11.1.3"
