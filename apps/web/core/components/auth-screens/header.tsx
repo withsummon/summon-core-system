@@ -15,13 +15,13 @@ import { useInstance } from "@/hooks/store/use-instance";
 
 const authContentMap = {
   [EAuthModes.SIGN_IN]: {
-    pageTitle: "Sign up",
+    pageTitle: "Sign in",
     text: "auth.common.new_to_plane",
     linkText: "Sign up",
     linkHref: "/sign-up",
   },
   [EAuthModes.SIGN_UP]: {
-    pageTitle: "Sign in",
+    pageTitle: "Sign up",
     text: "auth.common.already_have_an_account",
     linkText: "Sign in",
     linkHref: "/sign-in",
@@ -70,8 +70,8 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
   return (
     <>
       <PageHead title={`${pageTitle} - ${SITE_TITLE}`} />
-      <div className="sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6">
-        <Link href="/">
+      <div className="flex w-full flex-shrink-0 items-center justify-between gap-6">
+        <Link href="/" className="font-semibold text-primary lg:invisible">
           <span className="text-16 font-semibold text-primary">{SITE_TITLE}</span>
         </Link>
         {additionalAction}

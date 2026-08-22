@@ -69,7 +69,8 @@
     "meetings": "Summon Meetings",
     "automation": "Summon Automation",
     "assistant": "Summon Assistant",
-    "credentials": "Summon Credentials"
+    "credentials": "Summon Credentials",
+    "settings": "Summon Settings"
   },
   "workspaces": "Workspaces",
   "create_workspace": "Create workspace",

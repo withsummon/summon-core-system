@@ -105,11 +105,9 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
-        ? false
-        : true,
+      isSubmitting ||
+      !passwordFormData.password ||
+      (mode === EAuthModes.SIGN_UP && passwordFormData.password !== passwordFormData.confirm_password),
     [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
   );
 
@@ -214,7 +212,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="off"
-              autoFocus
             />
             <button
               type="button"
@@ -281,13 +278,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           {mode === EAuthModes.SIGN_IN ? (
             <>
               <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-                {isSubmitting ? (
-                  <Spinner height="20px" width="20px" />
-                ) : isSMTPConfigured ? (
-                  t("common.continue")
-                ) : (
-                  t("common.go_to_workspace")
-                )}
+                {isSubmitting ? <Spinner height="20px" width="20px" /> : "Continue to Summon Core"}
               </Button>
               {isSMTPConfigured && (
                 <Button

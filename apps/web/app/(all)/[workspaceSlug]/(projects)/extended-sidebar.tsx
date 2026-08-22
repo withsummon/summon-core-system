@@ -8,11 +8,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import {
-  SUMMON_WORKSPACE_NAVIGATION_ITEMS,
-  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
-  EUserPermissionsLevel,
-} from "@plane/constants";
+import { WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS, EUserPermissionsLevel } from "@plane/constants";
 import type { EUserWorkspaceRoles } from "@plane/types";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -39,13 +35,12 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
     const slug = workspaceSlug.toString();
 
     return (
-      [...WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS, ...SUMMON_WORKSPACE_NAVIGATION_ITEMS]
-        .filter((item) => {
-          // Permission check
-          const hasPermission = allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug);
+      WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.filter((item) => {
+        // Permission check
+        const hasPermission = allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug);
 
-          return hasPermission;
-        })
+        return hasPermission;
+      })
         // oxlint-disable-next-line oxc/no-map-spread
         .map((item) => {
           const preference = currentWorkspaceNavigationPreferences?.[item.key];

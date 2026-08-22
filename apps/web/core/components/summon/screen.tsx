@@ -5,16 +5,21 @@
  */
 
 import type { ReactNode } from "react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { PageHead } from "@/components/core/page-title";
 
 export function SummonScreen(props: { title: string; description: string; actions?: ReactNode; children: ReactNode }) {
   return (
     <>
       <PageHead title={`${props.title} · Summon Core`} />
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section className="mx-auto flex min-h-full w-full max-w-[1480px] flex-col gap-5 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-primary">{props.title}</h1>
+            <div className="text-xs mb-1 flex items-center gap-1.5 font-semibold tracking-[0.12em] text-accent-primary uppercase">
+              <Sparkles className="size-3.5" />
+              Summon Core
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">{props.title}</h1>
             <p className="text-sm mt-1 max-w-3xl text-secondary">{props.description}</p>
           </div>
           {props.actions}
@@ -27,7 +32,26 @@ export function SummonScreen(props: { title: string; description: string; action
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg border border-subtle bg-surface-1 p-4 ${props.className ?? ""}`}>{props.children}</div>
+    <div className={`shadow-sm rounded-xl border border-subtle bg-surface-1 p-4 ${props.className ?? ""}`}>
+      {props.children}
+    </div>
+  );
+}
+
+export function SummonMetric(props: { label: string; value: ReactNode; detail?: string }) {
+  return (
+    <SummonCard className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-secondary">{props.label}</p>
+          <p className="text-2xl mt-2 font-semibold tracking-tight text-primary">{props.value}</p>
+          {props.detail ? <p className="text-xs mt-1 truncate text-tertiary">{props.detail}</p> : null}
+        </div>
+        <span className="grid size-8 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+          <ArrowUpRight className="size-4" />
+        </span>
+      </div>
+    </SummonCard>
   );
 }
 
@@ -35,9 +59,9 @@ export function SummonRecordList(props: {
   records: Array<{ id: string; title: string; detail?: string; badge?: string }>;
 }) {
   return (
-    <div className="divide-y divide-subtle rounded-lg border border-subtle bg-surface-1">
+    <div className="shadow-sm divide-y divide-subtle overflow-hidden rounded-xl border border-subtle bg-surface-1">
       {props.records.map((record) => (
-        <div key={record.id} className="flex items-start justify-between gap-3 p-4">
+        <div key={record.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-layer-1">
           <div className="min-w-0">
             <p className="text-sm truncate font-medium text-primary">{record.title}</p>
             {record.detail ? <p className="text-xs mt-1 break-words text-secondary">{record.detail}</p> : null}

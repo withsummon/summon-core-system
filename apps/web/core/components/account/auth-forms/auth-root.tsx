@@ -125,23 +125,23 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
         authMode={authMode}
         currentAuthStep={authStep}
       />
-      {isOAuthEnabled && (
-        <OAuthOptions
-          options={oAuthOptions}
-          compact={authStep === EAuthSteps.PASSWORD}
-          showDivider={isEmailBasedAuthEnabled}
-        />
-      )}
       {isEmailBasedAuthEnabled && (
         <AuthFormRoot
           authStep={authStep}
           authMode={authMode}
           email={email}
-          setEmail={(email) => setEmail(email)}
-          setAuthMode={(authMode) => setAuthMode(authMode)}
-          setAuthStep={(authStep) => setAuthStep(authStep)}
-          setErrorInfo={(errorInfo) => setErrorInfo(errorInfo)}
+          setEmail={(nextEmail) => setEmail(nextEmail)}
+          setAuthMode={(nextAuthMode) => setAuthMode(nextAuthMode)}
+          setAuthStep={(nextAuthStep) => setAuthStep(nextAuthStep)}
+          setErrorInfo={(nextErrorInfo) => setErrorInfo(nextErrorInfo)}
           currentAuthMode={currentAuthMode}
+        />
+      )}
+      {isOAuthEnabled && (
+        <OAuthOptions
+          options={oAuthOptions}
+          compact={authStep === EAuthSteps.PASSWORD}
+          showDivider={isEmailBasedAuthEnabled}
         />
       )}
       <TermsAndConditions authType={authMode} />
@@ -151,8 +151,10 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
 
 function AuthContainer({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-10 flex w-full flex-grow flex-col items-center justify-center py-6">
-      <div className="relative flex w-full max-w-[22.5rem] flex-col gap-6">{children}</div>
+    <div className="flex w-full flex-grow flex-col items-center justify-center py-6">
+      <div className="relative flex w-full max-w-[28rem] flex-col gap-5 rounded-2xl border border-subtle bg-surface-1 p-6 shadow-[0_18px_60px_rgba(26,45,90,0.12)] sm:p-8">
+        {children}
+      </div>
     </div>
   );
 }

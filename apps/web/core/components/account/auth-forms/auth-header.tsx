@@ -27,16 +27,16 @@ type TAuthHeader = {
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "Sign in to your account",
+      subHeader: "Enter your credentials to continue.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "Sign in to your account",
+      subHeader: "Enter your credentials to continue.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "Sign in to your account",
+      subHeader: "Enter the secure code sent to your email.",
     },
   },
   [EAuthModes.SIGN_UP]: {
@@ -74,11 +74,11 @@ export const AuthHeader = observer(function AuthHeader(props: TAuthHeader) {
   const getHeaderSubHeader = (
     step: EAuthSteps,
     mode: EAuthModes,
-    invitation: IWorkspaceMemberInvitation | undefined,
+    workspaceInvitation: IWorkspaceMemberInvitation | undefined,
     email: string | undefined
   ) => {
-    if (invitation && email && invitation.email === email && invitation.workspace) {
-      const workspace = invitation.workspace;
+    if (workspaceInvitation && email && workspaceInvitation.email === email && workspaceInvitation.workspace) {
+      const workspace = workspaceInvitation.workspace;
       return {
         header: (
           <div className="relative inline-flex items-center gap-2">
@@ -116,9 +116,9 @@ type TAuthHeaderBase = {
 
 export function AuthHeaderBase(props: TAuthHeaderBase) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-h4-semibold text-primary">{props.header}</span>
-      <span className="text-h4-semibold text-placeholder">{props.subHeader}</span>
+    <div className="flex flex-col items-center gap-1 text-center">
+      <span className="text-xl font-semibold tracking-tight text-primary">{props.header}</span>
+      <span className="text-sm text-secondary">{props.subHeader}</span>
     </div>
   );
 }

@@ -22,13 +22,18 @@ export const SUMMON_MODULES = [
 
 const allWorkspaceRoles = [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST];
 const memberWorkspaceRoles = [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER];
+const adminWorkspaceRoles = [EUserWorkspaceRoles.ADMIN];
 
-export const SUMMON_WORKSPACE_NAVIGATION_ITEMS: IWorkspaceSidebarNavigationItem[] = SUMMON_MODULES.filter(
-  (module) => module.key !== "summon_settings"
-).map((module) => ({
+export const SUMMON_WORKSPACE_NAVIGATION_ITEMS: IWorkspaceSidebarNavigationItem[] = SUMMON_MODULES.map((module) => ({
   key: module.key,
   labelTranslationKey: `summon.${module.path || "overview"}`,
   href: `/summon${module.path ? `/${module.path}` : ""}`,
-  access: module.key === "summon_credentials" ? memberWorkspaceRoles : allWorkspaceRoles,
-  highlight: (pathname, url) => pathname.includes(url),
+  access:
+    module.key === "summon_settings"
+      ? adminWorkspaceRoles
+      : module.key === "summon_credentials"
+        ? memberWorkspaceRoles
+        : allWorkspaceRoles,
+  highlight: (pathname, url) =>
+    module.path ? pathname === url || pathname.startsWith(`${url}/`) : pathname === url || pathname === `${url}/`,
 }));

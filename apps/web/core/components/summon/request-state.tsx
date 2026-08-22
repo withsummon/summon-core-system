@@ -14,10 +14,15 @@ export function SummonRequestState(props: {
   onRetry?: () => void;
 }) {
   const { loading, error, empty, emptyMessage = "No records yet.", onRetry } = props;
-  if (loading) return <div className="text-sm p-6 text-secondary">Loading Summon data…</div>;
+  if (loading)
+    return (
+      <div className="text-sm shadow-sm rounded-xl border border-subtle bg-surface-1 p-6 text-center text-secondary">
+        Loading Summon data…
+      </div>
+    );
   if (error)
     return (
-      <div className="text-sm m-6 rounded-lg border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary">
+      <div className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary">
         <p>Could not load this module. Check your access or try again.</p>
         {onRetry ? (
           <Button className="mt-3" variant="neutral-primary" size="sm" onClick={onRetry}>
@@ -26,6 +31,11 @@ export function SummonRequestState(props: {
         ) : null}
       </div>
     );
-  if (empty) return <div className="text-sm p-6 text-secondary">{emptyMessage}</div>;
+  if (empty)
+    return (
+      <div className="text-sm rounded-xl border border-dashed border-subtle bg-surface-1 p-8 text-center text-secondary">
+        {emptyMessage}
+      </div>
+    );
   return null;
 }

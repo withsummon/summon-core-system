@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 export function SummonField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="text-xs flex min-w-0 flex-col gap-1 font-medium text-secondary">
+    <label className="text-xs flex min-w-0 flex-col gap-1.5 font-medium text-secondary">
       {label}
       {children}
     </label>
@@ -19,7 +19,7 @@ export function SummonSelect(props: React.SelectHTMLAttributes<HTMLSelectElement
   return (
     <select
       {...props}
-      className={`text-sm rounded-md border border-subtle bg-layer-2 px-3 py-2 text-primary outline-none focus:border-accent-strong ${props.className ?? ""}`}
+      className={`text-sm h-9 rounded-md border border-strong bg-surface-1 px-3 text-primary outline-none focus:border-accent-strong ${props.className ?? ""}`}
     />
   );
 }

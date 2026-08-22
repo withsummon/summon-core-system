@@ -10,6 +10,7 @@ import { Ellipsis } from "lucide-react";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import {
+  SUMMON_WORKSPACE_NAVIGATION_ITEMS,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS,
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS,
@@ -29,10 +30,16 @@ import {
 } from "@/hooks/use-navigation-preferences";
 import { SidebarItemBase } from "./sidebar-item";
 
+const summonNavigationItemKeys = SUMMON_WORKSPACE_NAVIGATION_ITEMS.map(({ key }) => key);
+
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
   // routers
   const { setValue: toggleWorkspaceMenu, storedValue: isWorkspaceMenuOpen } = useLocalStorage<boolean>(
     "is_workspace_menu_open",
+    true
+  );
+  const { setValue: toggleSummonMenu, storedValue: isSummonMenuOpen } = useLocalStorage<boolean>(
+    "is_summon_menu_open",
     true
   );
 
@@ -174,6 +181,47 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
                   </button>
                 </SidebarNavItem>
               </>
+            </Disclosure.Panel>
+          )}
+        </Transition>
+      </Disclosure>
+      <Disclosure as="div" className="flex flex-col" defaultOpen={!!isSummonMenuOpen}>
+        <div className="group flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover">
+          <Disclosure.Button
+            as="button"
+            type="button"
+            className="flex w-full items-center gap-1 text-left text-13 font-semibold whitespace-nowrap text-placeholder"
+            onClick={() => toggleSummonMenu(!isSummonMenuOpen)}
+            aria-label={`${isSummonMenuOpen ? "Close" : "Open"} Summon Core menu`}
+          >
+            <span>Summon Core</span>
+          </Disclosure.Button>
+          <Disclosure.Button
+            as="button"
+            type="button"
+            className="flex-shrink-0 rounded-sm p-0.5 opacity-0 group-hover:opacity-100 hover:bg-layer-1"
+            onClick={() => toggleSummonMenu(!isSummonMenuOpen)}
+            aria-label={`${isSummonMenuOpen ? "Close" : "Open"} Summon Core menu`}
+          >
+            <ChevronRightIcon
+              className={cn("size-3 flex-shrink-0 transition-all", { "rotate-90": isSummonMenuOpen })}
+            />
+          </Disclosure.Button>
+        </div>
+        <Transition
+          show={!!isSummonMenuOpen}
+          enter="transition duration-100 ease-out"
+          enterFrom="transform scale-95 opacity-0"
+          enterTo="transform scale-100 opacity-100"
+          leave="transition duration-75 ease-out"
+          leaveFrom="transform scale-100 opacity-100"
+          leaveTo="transform scale-95 opacity-0"
+        >
+          {isSummonMenuOpen && (
+            <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
+              {SUMMON_WORKSPACE_NAVIGATION_ITEMS.map((item) => (
+                <SidebarItemBase key={item.key} item={item} additionalStaticItems={summonNavigationItemKeys} />
+              ))}
             </Disclosure.Panel>
           )}
         </Transition>
