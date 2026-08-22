@@ -39,3 +39,11 @@ export function ensureTrailingSlash(url: string): string {
     return url;
   }
 }
+
+export type LinkPrefetch = boolean | "intent" | "render" | "none" | "viewport";
+
+export function normalizeLinkPrefetch(prefetch: LinkPrefetch | undefined) {
+  if (prefetch === true) return "intent";
+  if (prefetch === false) return "none";
+  return prefetch;
+}

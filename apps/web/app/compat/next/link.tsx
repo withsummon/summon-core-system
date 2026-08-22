@@ -6,18 +6,20 @@
 
 import React from "react";
 import { Link as RRLink } from "react-router";
-import { ensureTrailingSlash } from "./helper";
+import { ensureTrailingSlash, normalizeLinkPrefetch, type LinkPrefetch } from "./helper";
 
-type NextLinkProps = React.ComponentProps<"a"> & {
+type NextLinkProps = Omit<React.ComponentProps<"a">, "href" | "prefetch"> & {
   href: string;
   replace?: boolean;
-  prefetch?: boolean; // next.js prop, ignored
+  prefetch?: LinkPrefetch;
   scroll?: boolean; // next.js prop, ignored
   shallow?: boolean; // next.js prop, ignored
 };
 
-function Link({ href, replace, prefetch: _prefetch, scroll: _scroll, shallow: _shallow, ...rest }: NextLinkProps) {
-  return <RRLink to={ensureTrailingSlash(href)} replace={replace} {...rest} />;
+function Link({ href, replace, prefetch, scroll: _scroll, shallow: _shallow, ...rest }: NextLinkProps) {
+  return (
+    <RRLink to={ensureTrailingSlash(href)} replace={replace} prefetch={normalizeLinkPrefetch(prefetch)} {...rest} />
+  );
 }
 
 export default Link;

@@ -1,8 +1,8 @@
 declare module "next/link" {
-  type Props = React.ComponentProps<"a"> & {
+  type Props = Omit<React.ComponentProps<"a">, "href" | "prefetch"> & {
     href: string;
     replace?: boolean;
-    prefetch?: boolean;
+    prefetch?: boolean | "intent" | "render" | "none" | "viewport";
     scroll?: boolean;
     shallow?: boolean;
   };
