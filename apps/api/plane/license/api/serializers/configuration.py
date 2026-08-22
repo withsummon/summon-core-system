@@ -14,8 +14,9 @@ class InstanceConfigurationSerializer(BaseSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Decrypt secrets value
-        if instance.is_encrypted and instance.value is not None:
+        if instance.key == "LLM_API_KEY":
+            data["value"] = ""
+        elif instance.is_encrypted and instance.value is not None:
             data["value"] = decrypt_data(instance.value)
 
         return data

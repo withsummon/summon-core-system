@@ -10,6 +10,7 @@ from .commercial import (
     SummonProjectProfileView,
 )
 from .collaboration import (
+    MeetingSummaryView,
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
@@ -17,11 +18,17 @@ from .collaboration import (
     SummonPageContextViewSet,
 )
 from .operations import (
+    AssistantConversationViewSet,
+    AssistantMessageView,
     AssistantQueryView,
     AutomationJobView,
+    AutomationPublishView,
     AutomationTemplateViewSet,
+    LLMStatusView,
+    ReportExportView,
     ReportSummaryView,
 )
+from .overview import HomeSummaryView, ProjectOverviewView
 from .credential import (
     CredentialAuditView,
     CredentialGrantDetailView,
@@ -32,11 +39,14 @@ from .credential import (
 )
 
 __all__ = [
+    "AssistantConversationViewSet",
+    "AssistantMessageView",
     "ClientContactViewSet",
     "ClientViewSet",
     "OpportunityTransitionView",
     "OpportunityViewSet",
     "SummonProjectProfileView",
+    "MeetingSummaryView",
     "MeetingViewSet",
     "MeetingWorkItemDetailView",
     "MeetingWorkItemView",
@@ -44,8 +54,13 @@ __all__ = [
     "SummonPageContextViewSet",
     "AssistantQueryView",
     "AutomationJobView",
+    "AutomationPublishView",
     "AutomationTemplateViewSet",
+    "LLMStatusView",
+    "ReportExportView",
     "ReportSummaryView",
+    "HomeSummaryView",
+    "ProjectOverviewView",
     "CredentialAuditView",
     "CredentialGrantDetailView",
     "CredentialGrantView",

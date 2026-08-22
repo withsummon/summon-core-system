@@ -4,13 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowUpRight, CheckCircle2, Circle, FileText, FolderGit2, Globe2, Sparkles } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckCircle2, Circle, FileText, FolderGit2 } from "lucide-react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { SummonCard, SummonScreen } from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { useProject } from "@/hooks/store/use-project";
+import { SummonCard, SummonMetric, SummonScreen } from "@/components/summon/screen";
 import { useUser } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -18,258 +17,177 @@ import type { Route } from "./+types/page";
 const SectionTitle = ({ children, href }: { children: React.ReactNode; href?: string }) => (
   <div className="mb-2.5 flex items-center justify-between gap-3">
     <h2 className="text-xs font-semibold text-primary">{children}</h2>
-    {href && (
-      <Link href={href} className="text-[10px] font-medium text-accent-primary">
+    {href ? (
+      <Link
+        href={href}
+        className="text-[10px] font-medium text-accent-primary focus-visible:outline focus-visible:outline-2"
+      >
         See all →
       </Link>
-    )}
+    ) : null}
   </div>
 );
 
 function SummonOverviewPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { data: user } = useUser();
-  const { joinedProjectIds, getProjectById } = useProject();
-  const { data, error, isLoading, mutate } = useSWR(["summon-command-center", workspaceSlug], async () => {
-    const [report, opportunities, resources] = await Promise.all([
-      summonService.getReport(workspaceSlug),
-      summonService.listOpportunities(workspaceSlug),
-      summonService.listResources(workspaceSlug),
-    ]);
-    return { report, opportunities, resources };
-  });
+  const { data, error, isLoading, mutate } = useSWR(["summon-home", workspaceSlug], () =>
+    summonService.getHomeSummary(workspaceSlug)
+  );
 
   if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
 
-  const { report, opportunities, resources } = data;
-  const projects = joinedProjectIds.map((projectId) => getProjectById(projectId)).filter(Boolean);
-  const featuredProject = projects[0];
-  const completion = report.issues.total ? Math.round((report.issues.completed / report.issues.total) * 100) : 0;
   const firstName = (user?.display_name || user?.first_name || "there").split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const priorityCount = data.priority.length;
 
   return (
-    <SummonScreen title={`${greeting}, ${firstName}!`} description="Here's what's happening across your workspace.">
-      <div className="relative grid items-start gap-4 xl:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.7fr)]">
+    <SummonScreen title={`Welcome back, ${firstName}!`} description="Your delivery pulse across the workspace.">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <SummonMetric label="Active projects" value={data.counts.projects} detail="Accessible Plane projects" />
+        <SummonMetric label="Work items" value={data.counts.issues} detail={`${data.priority.length} priority`} />
+        <SummonMetric label="Clients" value={data.counts.clients} detail="Commercial accounts" />
+        <SummonMetric label="Opportunities" value={data.counts.opportunities} detail="Current pipeline" />
+      </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
         <div className="space-y-4">
           <SummonCard>
-            <SectionTitle href={`/${workspaceSlug}/workspace-views/all-issues/`}>Priority</SectionTitle>
-            <div className="rounded-xl border border-subtle bg-layer-1 p-3">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-8 place-items-center rounded-lg bg-danger-subtle text-danger-primary">
-                  <Circle className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs truncate font-medium text-primary">Overdue work items</p>
-                  <p className="mt-0.5 text-[10px] text-secondary">Across accessible Plane projects</p>
-                </div>
-                <span className="rounded-full bg-danger-subtle px-2 py-1 text-[10px] font-semibold text-danger-primary">
-                  {report.issues.overdue}
-                </span>
-              </div>
-            </div>
-          </SummonCard>
-
-          <SummonCard>
-            <SectionTitle href={`/${workspaceSlug}/projects/`}>Active Projects</SectionTitle>
+            <SectionTitle href={`/${workspaceSlug}/workspace-views/all-issues/`}>Priority work</SectionTitle>
             <div className="divide-y divide-subtle">
-              {projects.slice(0, 5).map(
-                (project) =>
-                  project && (
-                    <Link
-                      key={project.id}
-                      href={`/${workspaceSlug}/projects/${project.id}/issues/`}
-                      className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
-                    >
-                      <span className="grid size-7 place-items-center rounded-lg bg-accent-subtle text-[10px] font-semibold text-accent-primary">
-                        {project.identifier?.slice(0, 2)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-primary">
-                        {project.name}
-                      </span>
-                      <span className="rounded-full bg-success-subtle px-2 py-0.5 text-[9px] text-success-primary">
-                        On Going
-                      </span>
-                    </Link>
-                  )
-              )}
-              {!projects.length && <p className="py-3 text-center text-[11px] text-tertiary">No projects yet</p>}
-            </div>
-          </SummonCard>
-
-          <SummonCard>
-            <SectionTitle href={`/${workspaceSlug}/summon/opportunities`}>Opportunities</SectionTitle>
-            <div className="divide-y divide-subtle">
-              {opportunities.slice(0, 4).map((item) => (
+              {data.priority.map((issue) => (
                 <Link
-                  key={item.id}
-                  href={`/${workspaceSlug}/summon/opportunities`}
-                  className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
+                  key={issue.id}
+                  href={`/${workspaceSlug}/projects/${issue.project.id}/issues/${issue.id}/`}
+                  className="flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0 focus-visible:outline focus-visible:outline-2"
                 >
-                  <span className="text-xs grid size-7 place-items-center rounded-lg bg-success-subtle text-success-primary">
-                    ◇
+                  {issue.completed ? (
+                    <CheckCircle2 className="size-4 shrink-0 text-success-primary" />
+                  ) : (
+                    <Circle className="size-4 shrink-0 text-danger-primary" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="text-xs block truncate font-medium text-primary">{issue.name}</span>
+                    <span className="block truncate text-[10px] text-secondary">
+                      {issue.project.identifier} · {issue.project.name}
+                    </span>
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-primary">{item.title}</span>
-                  <span className="rounded-full bg-accent-subtle px-2 py-0.5 text-[9px] text-accent-primary">
-                    {item.stage}
-                  </span>
+                  <ArrowUpRight className="size-3.5 shrink-0 text-tertiary" />
                 </Link>
               ))}
-              {!opportunities.length && (
-                <p className="py-3 text-center text-[11px] text-tertiary">No opportunities yet</p>
-              )}
+              {!data.priority.length ? (
+                <p className="text-xs py-4 text-center text-tertiary">No priority work right now.</p>
+              ) : null}
+            </div>
+          </SummonCard>
+          <SummonCard>
+            <SectionTitle href={`/${workspaceSlug}/summon/projects/`}>Active project health</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.projects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/${workspaceSlug}/summon/projects/${project.id}/`}
+                  className="rounded-xl border border-subtle bg-layer-1 p-3 focus-visible:outline focus-visible:outline-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs truncate font-semibold text-primary">{project.name}</p>
+                      <p className="mt-1 text-[10px] text-secondary">{project.identifier}</p>
+                    </div>
+                    <span className="rounded-full bg-accent-subtle px-2 py-1 text-[9px] font-medium text-accent-primary">
+                      {project.health.replaceAll("_", " ")}
+                    </span>
+                  </div>
+                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-layer-2">
+                    <div
+                      className="h-full rounded-full bg-accent-primary"
+                      style={{ width: `${project.completion}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[10px] text-secondary">{project.completion}% complete</p>
+                </Link>
+              ))}
+              {!data.projects.length ? <p className="text-xs text-tertiary">No accessible projects yet.</p> : null}
+            </div>
+          </SummonCard>
+          <SummonCard>
+            <SectionTitle>Recent activity</SectionTitle>
+            <div className="divide-y divide-subtle">
+              {data.recent_activity.slice(0, 6).map((activity) => (
+                <Link
+                  key={activity.id}
+                  href={activity.href}
+                  className="block py-2.5 first:pt-0 last:pb-0 focus-visible:outline focus-visible:outline-2"
+                >
+                  <p className="text-xs truncate font-medium text-primary">{activity.label}</p>
+                  <time className="text-[10px] text-secondary" dateTime={activity.created_at}>
+                    {activity.created_at.slice(0, 10)}
+                  </time>
+                </Link>
+              ))}
+              {!data.recent_activity.length ? (
+                <p className="text-xs py-4 text-center text-tertiary">No recent activity.</p>
+              ) : null}
             </div>
           </SummonCard>
         </div>
-
         <div className="space-y-4">
-          <SummonCard className="p-0!">
-            <div className="flex flex-wrap items-center gap-3 border-b border-subtle p-4">
-              <span className="text-xs grid size-10 place-items-center rounded-xl bg-accent-subtle font-semibold text-accent-primary">
-                {featuredProject?.identifier?.slice(0, 2) || "SC"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm truncate font-semibold text-primary">
-                  {featuredProject?.name || "Summon Core Workspace"}
-                </h2>
-                <p className="mt-0.5 text-[10px] text-secondary">
-                  {projects.length} active projects · {report.issues.total} work items
-                </p>
-              </div>
-              {featuredProject && (
-                <Link
-                  href={`/${workspaceSlug}/projects/${featuredProject.id}/issues/`}
-                  className="flex h-9 items-center gap-2 rounded-xl bg-accent-primary px-3 text-[10px] font-semibold text-on-color"
+          <SummonCard>
+            <SectionTitle href={`/${workspaceSlug}/summon/resources/`}>Quick access</SectionTitle>
+            <div className="space-y-2">
+              {data.resources.slice(0, 5).map((resource) => (
+                <a
+                  key={resource.id}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex min-w-0 items-center gap-2 rounded-xl border border-subtle bg-layer-1 p-2.5 focus-visible:outline focus-visible:outline-2"
                 >
-                  Open Workspace <ArrowUpRight className="size-3.5" />
-                </Link>
-              )}
-            </div>
-            <div className="flex gap-5 overflow-x-auto border-b border-subtle px-4 pt-3 text-[10px] font-medium text-secondary">
-              {["Overview", "Tasks", "Documents", "Access", "Activity", "Notes"].map((tab, index) => (
-                <span
-                  key={tab}
-                  className={index === 0 ? "border-accent-primary border-b-2 pb-3 text-accent-primary" : "pb-3"}
-                >
-                  {tab}
-                </span>
+                  <FolderGit2 className="size-4 shrink-0 text-accent-primary" />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-primary">{resource.title}</span>
+                  <ArrowUpRight className="size-3.5 shrink-0 text-tertiary" />
+                </a>
               ))}
+              {!data.resources.length ? (
+                <Link
+                  href={`/${workspaceSlug}/summon/resources/`}
+                  className="text-xs block rounded-xl border border-dashed border-subtle p-3 text-center text-tertiary focus-visible:outline focus-visible:outline-2"
+                >
+                  Add your first resource
+                </Link>
+              ) : null}
             </div>
-            <div className="grid gap-3 p-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-subtle p-3.5">
-                <p className="text-xs font-semibold text-primary">Project Progress</p>
-                <div className="mt-4 flex items-end gap-2">
-                  <strong className="text-3xl text-primary">{completion}%</strong>
-                  <span className="pb-1 text-[10px] text-secondary">Overall Progress</span>
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-layer-2">
-                  <div className="h-full rounded-full bg-accent-primary" style={{ width: `${completion}%` }} />
-                </div>
-                <div className="mt-4 grid grid-cols-2 border-t border-subtle pt-3 text-[10px]">
-                  <div>
-                    <p className="text-tertiary">Completed</p>
-                    <p className="mt-1 font-semibold text-primary">{report.issues.completed} tasks</p>
-                  </div>
-                  <div>
-                    <p className="text-tertiary">Open</p>
-                    <p className="mt-1 font-semibold text-primary">
-                      {Math.max(report.issues.total - report.issues.completed, 0)} tasks
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-subtle p-3.5">
-                <p className="text-xs font-semibold text-primary">Workspace Info</p>
-                <dl className="mt-3 space-y-2.5 text-[10px]">
-                  {[
-                    ["Projects", report.projects],
-                    ["Clients", report.commercial.clients],
-                    ["Meetings", report.meetings],
-                    ["Automation jobs", report.automation.jobs],
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4">
-                      <dt className="text-tertiary">{label}</dt>
-                      <dd className="font-medium text-primary">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+          </SummonCard>
+          <SummonCard>
+            <SectionTitle href={`/${workspaceSlug}/summon/meetings/`}>Upcoming meetings</SectionTitle>
+            <div className="space-y-2.5">
+              {data.upcoming_meetings.slice(0, 5).map((meeting) => (
+                <Link
+                  key={meeting.id}
+                  href={`/${workspaceSlug}/summon/meetings/`}
+                  className="flex gap-2.5 rounded-xl border border-subtle bg-layer-1 p-2.5 focus-visible:outline focus-visible:outline-2"
+                >
+                  <CalendarDays className="size-4 shrink-0 text-accent-primary" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[11px] font-medium text-primary">{meeting.title}</span>
+                    <time className="block text-[10px] text-secondary" dateTime={meeting.starts_at}>
+                      {meeting.starts_at.slice(0, 10)}
+                    </time>
+                  </span>
+                </Link>
+              ))}
+              {!data.upcoming_meetings.length ? (
+                <p className="text-xs py-3 text-center text-tertiary">No upcoming meetings.</p>
+              ) : null}
             </div>
-            <div className="mx-4 mb-4 rounded-2xl border border-subtle p-3.5">
-              <SectionTitle href={`/${workspaceSlug}/summon/resources`}>Quick Access</SectionTitle>
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                {resources.slice(0, 4).map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex min-w-0 items-center gap-2 rounded-xl border border-subtle bg-layer-1 p-2.5"
-                  >
-                    <FolderGit2 className="size-4 shrink-0 text-accent-primary" />
-                    <span className="min-w-0 truncate text-[10px] font-medium text-primary">{item.title}</span>
-                  </a>
-                ))}
-                {!resources.length && (
-                  <Link
-                    href={`/${workspaceSlug}/summon/resources`}
-                    className="col-span-full rounded-xl border border-dashed border-subtle p-3 text-center text-[10px] text-tertiary"
-                  >
-                    Add your first resource
-                  </Link>
-                )}
+          </SummonCard>
+          <SummonCard>
+            <div className="flex items-center gap-2.5">
+              <FileText className="size-4 text-accent-primary" />
+              <div>
+                <p className="text-xs font-semibold text-primary">Workspace focus</p>
+                <p className="mt-0.5 text-[10px] text-secondary">{priorityCount} priority items need attention.</p>
               </div>
             </div>
           </SummonCard>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <SummonCard>
-              <SectionTitle href={`/${workspaceSlug}/workspace-views/all-issues/`}>Open Tasks</SectionTitle>
-              <div className="space-y-2.5">
-                {(
-                  [
-                    ["Completed", report.issues.completed, CheckCircle2],
-                    ["Open", Math.max(report.issues.total - report.issues.completed, 0), Circle],
-                    ["Overdue", report.issues.overdue, Circle],
-                  ] as const
-                ).map(([label, value, Icon]) => (
-                  <div key={label} className="flex items-center gap-2 text-[11px]">
-                    <Icon className="size-4 text-accent-primary" />
-                    <span className="flex-1 text-secondary">{label}</span>
-                    <strong className="text-primary">{value}</strong>
-                  </div>
-                ))}
-              </div>
-            </SummonCard>
-            <SummonCard>
-              <SectionTitle>Knowledge</SectionTitle>
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2 text-[11px]">
-                  <FileText className="size-4 text-accent-primary" />
-                  <span className="flex-1 text-secondary">Knowledge pages</span>
-                  <strong className="text-primary">{report.knowledge.pages}</strong>
-                </div>
-                <div className="flex items-center gap-2 text-[11px]">
-                  <Globe2 className="size-4 text-success-primary" />
-                  <span className="flex-1 text-secondary">External resources</span>
-                  <strong className="text-primary">{resources.length}</strong>
-                </div>
-              </div>
-            </SummonCard>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-            {["Proposal", "Quotation", "MoM", "PPT", "Cost Projection"].map((label) => (
-              <Link
-                key={label}
-                href={`/${workspaceSlug}/summon/automation`}
-                className="flex items-center gap-2 rounded-xl border border-subtle bg-surface-1 p-3 text-[10px] font-medium text-primary"
-              >
-                <Sparkles className="size-4 text-accent-primary" />
-                {label}
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
     </SummonScreen>

@@ -5,118 +5,295 @@
  */
 
 import { useState } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { Button, Input } from "@plane/ui";
-import type { ISummonAssistantResponse } from "@plane/types";
+import useSWR, { useSWRConfig } from "swr";
+import { Plus, Send } from "lucide-react";
+import { Button, TextArea } from "@plane/ui";
+import type { ISummonAssistantMessageRequest } from "@plane/types";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
-
-const intents = [
-  "portfolio_status",
-  "overdue_work_items",
-  "client_opportunity_pipeline",
-  "project_summary",
-  "knowledge_page_lookup",
-  "automation_history",
-];
+import { AssistantMessageList, assistantErrorMessage } from "./message-list";
 
 export default function SummonAssistantPage({ params }: Route.ComponentProps) {
   const { joinedProjectIds, getProjectById } = useProject();
-  const [intent, setIntent] = useState(intents[0]);
-  const [query, setQuery] = useState("");
+  const { mutate: mutateConversationCache } = useSWRConfig();
+  const [selectedConversationId, setSelectedConversationId] = useState("");
+  const [composer, setComposer] = useState("");
+  const [workspaceContext, setWorkspaceContext] = useState(false);
   const [projectId, setProjectId] = useState("");
-  const [answer, setAnswer] = useState<ISummonAssistantResponse>();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
+  const [clientId, setClientId] = useState("");
+  const [meetingId, setMeetingId] = useState("");
+  const [pageIds, setPageIds] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState("");
+  const [sendError, setSendError] = useState("");
+  const [lastRequest, setLastRequest] = useState<ISummonAssistantMessageRequest>();
+  const [contextTruncated, setContextTruncated] = useState(false);
+  const {
+    data: conversations = [],
+    error: conversationsError,
+    isLoading: conversationsLoading,
+    mutate: reloadConversations,
+  } = useSWR(["summon-assistant-conversations", params.workspaceSlug], () =>
+    summonService.listAssistantConversations(params.workspaceSlug)
+  );
+  const activeConversationId = selectedConversationId || conversations[0]?.id || "";
+  const {
+    data: conversation,
+    error: conversationError,
+    isLoading: conversationLoading,
+    mutate: reloadConversation,
+  } = useSWR(
+    activeConversationId ? ["summon-assistant-conversation", params.workspaceSlug, activeConversationId] : null,
+    () => summonService.getAssistantConversation(params.workspaceSlug, activeConversationId)
+  );
+  const { data: contextOptions, error: contextError } = useSWR(
+    ["summon-assistant-context", params.workspaceSlug],
+    async () => {
+      const [clients, meetings, pages] = await Promise.all([
+        summonService.listClients(params.workspaceSlug),
+        summonService.listMeetings(params.workspaceSlug),
+        summonService.listPageContexts(params.workspaceSlug),
+      ]);
+      return { clients, meetings, pages };
+    }
+  );
+  const messages = conversation?.messages ?? [];
+  const lastMessage = messages.at(-1);
+  const providerMessage = lastMessage?.role === "assistant" ? lastMessage : undefined;
+
+  const createConversation = async (title = "New conversation") => {
+    const created = await summonService.createAssistantConversation(params.workspaceSlug, {
+      title,
+      project: projectId || null,
+      client: clientId || null,
+    });
+    setSelectedConversationId(created.id);
+    setContextTruncated(false);
+    await reloadConversations();
+    return created.id;
+  };
+
+  const startConversation = async () => {
+    setCreating(true);
+    setSendError("");
     try {
-      setAnswer(
-        await summonService.queryAssistant(params.workspaceSlug, { intent, query, project_id: projectId || null })
-      );
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
+      await createConversation();
+    } catch (error) {
+      setSendError(summonErrorMessage(error));
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
+
+  const sendMessage = async (payload: ISummonAssistantMessageRequest) => {
+    if (sending) return;
+    setSending(true);
+    setPending(payload.content);
+    setSendError("");
+    setContextTruncated(false);
+    let conversationId = activeConversationId;
+    try {
+      conversationId ||= await createConversation(payload.content.slice(0, 80));
+      const pair = await summonService.sendAssistantMessage(params.workspaceSlug, conversationId, payload);
+      setComposer("");
+      setLastRequest(undefined);
+      setContextTruncated(pair.context_truncated);
+    } catch (error) {
+      setSendError(assistantErrorMessage(error));
+      setLastRequest(payload);
+    } finally {
+      await Promise.allSettled([
+        reloadConversations(),
+        conversationId
+          ? mutateConversationCache(["summon-assistant-conversation", params.workspaceSlug, conversationId])
+          : Promise.resolve(),
+      ]);
+      setPending("");
+      setSending(false);
+    }
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const content = composer.trim();
+    if (!content) return setSendError("Enter a message before sending.");
+    void sendMessage({
+      content,
+      context: {
+        workspace: workspaceContext,
+        project_id: projectId || undefined,
+        client_id: clientId || undefined,
+        meeting_id: meetingId || undefined,
+        page_ids: pageIds,
+      },
+    });
+  };
+
   return (
     <SummonScreen
       title="Summon Assistant"
-      description="Deterministic answers over records you can access. Unsupported prompts never invent data."
-    >
-      <SummonCard className="bg-gradient-to-br from-accent-subtle to-surface-1">
-        <div className="flex items-start gap-3">
-          <span className="bg-accent-strong grid size-10 flex-shrink-0 place-items-center rounded-xl text-on-color">
-            <Sparkles className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold text-primary">How can I help you today?</h2>
-            <p className="text-sm mt-1 text-secondary">
-              Ask for portfolio status, overdue tasks, project summaries, knowledge, or automation history.
-            </p>
+      description="Persistent AI conversations grounded only in context you explicitly select."
+      rail={
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-primary">Recent conversations</h2>
+              <p className="text-xs text-secondary">Private to you in this workspace.</p>
+            </div>
+            <Button size="sm" variant="neutral-primary" loading={creating} onClick={() => void startConversation()}>
+              <Plus className="size-3.5" /> New
+            </Button>
           </div>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {intents.slice(0, 6).map((item) => (
+          <SummonRequestState
+            loading={conversationsLoading}
+            error={conversationsError}
+            empty={!conversationsLoading && conversations.length === 0}
+            emptyMessage="No conversations yet. Send a message to start one."
+            onRetry={() => void reloadConversations()}
+          />
+          {conversations.map((item) => (
             <button
-              key={item}
+              key={item.id}
               type="button"
-              onClick={() => setIntent(item)}
-              className="text-sm flex items-center justify-between gap-3 rounded-lg border border-subtle bg-surface-1 px-3 py-3 text-left font-medium text-primary hover:border-accent-strong"
+              onClick={() => {
+                setSelectedConversationId(item.id);
+                setSendError("");
+                setContextTruncated(false);
+              }}
+              className={`text-sm w-full rounded-lg px-3 py-2 text-left font-medium focus-visible:outline focus-visible:outline-2 ${
+                item.id === activeConversationId
+                  ? "bg-layer-1-selected text-primary"
+                  : "text-secondary hover:bg-layer-1-hover"
+              }`}
             >
-              {item.replaceAll("_", " ")}
-              <ArrowRight className="size-4 flex-shrink-0 text-accent-primary" />
+              <span className="block truncate">{item.title}</span>
             </button>
           ))}
         </div>
-      </SummonCard>
-      <SummonCard>
-        <form onSubmit={submit} className="grid gap-3 md:grid-cols-3 md:items-end">
-          <SummonField label="Intent">
-            <SummonSelect value={intent} onChange={(event) => setIntent(event.target.value)}>
-              {intents.map((item) => (
-                <option key={item} value={item}>
-                  {item.replaceAll("_", " ")}
-                </option>
-              ))}
-            </SummonSelect>
-          </SummonField>
-          <SummonField label="Search">
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Optional page name" />
-          </SummonField>
-          <SummonField label="Project">
-            <SummonSelect value={projectId} onChange={(event) => setProjectId(event.target.value)}>
-              <option value="">All accessible projects</option>
-              {joinedProjectIds.map((id) => (
-                <option key={id} value={id}>
-                  {getProjectById(id)?.name ?? id}
-                </option>
-              ))}
-            </SummonSelect>
-          </SummonField>
-          <Button type="submit" loading={loading}>
-            Query authorized data
-          </Button>
+      }
+    >
+      <SummonCard className="overflow-hidden p-0">
+        <header className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-sm truncate font-semibold text-primary">{conversation?.title ?? "New conversation"}</h2>
+            <p className="text-xs truncate text-secondary">
+              {providerMessage
+                ? `${providerMessage.provider || "Provider unavailable"}${providerMessage.model ? ` · ${providerMessage.model}` : ""}`
+                : "Provider and model appear after the first response."}
+            </p>
+          </div>
+          {providerMessage ? (
+            <span className="rounded-full bg-layer-1 px-2 py-1 text-[11px] font-medium text-secondary">
+              {providerMessage.provider === "deterministic" ? "Degraded mode" : providerMessage.status}
+            </span>
+          ) : null}
+        </header>
+        <div className="min-h-72 space-y-3 overflow-y-auto p-4 lg:max-h-[32rem]">
+          <SummonRequestState
+            loading={Boolean(activeConversationId) && conversationLoading}
+            error={conversationError}
+            onRetry={() => void reloadConversation()}
+          />
+          <AssistantMessageList messages={messages} pending={pending} loading={conversationLoading} />
+        </div>
+        <form onSubmit={submit} className="space-y-3 border-t border-subtle p-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <SummonField label="Project context">
+              <SummonSelect value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+                <option value="">No project</option>
+                {joinedProjectIds.map((id) => (
+                  <option key={id} value={id}>
+                    {getProjectById(id)?.name ?? id}
+                  </option>
+                ))}
+              </SummonSelect>
+            </SummonField>
+            <SummonField label="Client context">
+              <SummonSelect value={clientId} onChange={(event) => setClientId(event.target.value)}>
+                <option value="">No client</option>
+                {contextOptions?.clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </SummonSelect>
+            </SummonField>
+            <SummonField label="Meeting context">
+              <SummonSelect value={meetingId} onChange={(event) => setMeetingId(event.target.value)}>
+                <option value="">No meeting</option>
+                {contextOptions?.meetings.map((meeting) => (
+                  <option key={meeting.id} value={meeting.id}>
+                    {meeting.title}
+                  </option>
+                ))}
+              </SummonSelect>
+            </SummonField>
+            <SummonField label="Plane Pages context">
+              <SummonSelect
+                multiple
+                value={pageIds}
+                onChange={(event) => setPageIds(Array.from(event.target.selectedOptions, ({ value }) => value))}
+                className="h-16 py-1.5"
+                aria-describedby="assistant-page-context-help"
+              >
+                {contextOptions?.pages.map((page) => (
+                  <option key={page.id} value={page.page}>
+                    {page.page_detail.name}
+                  </option>
+                ))}
+              </SummonSelect>
+            </SummonField>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-xs inline-flex items-center gap-2 font-medium text-secondary">
+              <input
+                type="checkbox"
+                checked={workspaceContext}
+                onChange={(event) => setWorkspaceContext(event.target.checked)}
+                className="accent-accent-primary size-4"
+              />
+              Include workspace summary
+            </label>
+            <p id="assistant-page-context-help" className="text-[11px] text-tertiary">
+              Use Ctrl/Command for multiple Pages. Unselected workspace data is never sent.
+            </p>
+          </div>
+          {contextError ? <p className="text-xs text-danger-primary">Could not load every context option.</p> : null}
+          {contextTruncated ? (
+            <p className="text-xs rounded-lg bg-warning-subtle/20 px-3 py-2 text-warning-primary" role="status">
+              Selected source context was truncated to the 30,000-character limit.
+            </p>
+          ) : null}
+          {sendError ? (
+            <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
+              <p className="text-xs text-danger-primary">{sendError}</p>
+              {lastRequest ? (
+                <Button type="button" size="sm" variant="neutral-primary" onClick={() => void sendMessage(lastRequest)}>
+                  Retry message
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex items-end gap-2">
+            <TextArea
+              required
+              aria-label="Message Summon Assistant"
+              value={composer}
+              onChange={(event) => setComposer(event.target.value)}
+              placeholder="Ask about the selected project, client, meeting, or Pages…"
+              className="min-h-20 flex-1"
+            />
+            <Button type="submit" loading={sending}>
+              <Send className="size-4" /> Send
+            </Button>
+          </div>
         </form>
       </SummonCard>
-      {error ? <p className="text-xs text-danger-primary">{error}</p> : null}
-      {answer ? (
-        <SummonCard>
-          <div className="text-sm flex items-center gap-2 font-semibold text-primary">
-            <Sparkles className="size-4 text-accent-primary" />
-            {answer.answer}
-          </div>
-          <pre className="text-xs mt-4 max-h-[28rem] overflow-auto rounded-lg bg-layer-1 p-4 whitespace-pre-wrap text-secondary">
-            {JSON.stringify(answer.data, null, 2)}
-          </pre>
-        </SummonCard>
-      ) : null}
     </SummonScreen>
   );
 }

@@ -6,10 +6,11 @@ from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
+from django.utils.html import escape
 from rest_framework import serializers
 
 from plane.api.serializers.base import BaseSerializer
-from plane.db.models import Page, ProjectMember, WorkspaceMember
+from plane.db.models import Page, ProjectMember, ProjectPage, WorkspaceMember
 from plane.summon.models import (
     Meeting,
     MeetingParticipant,
@@ -17,6 +18,7 @@ from plane.summon.models import (
     ResourceLink,
     SummonPageContext,
 )
+from plane.summon.services.page_document import summon_document_metadata, write_page_document
 
 
 class CollaborationSerializer(BaseSerializer):
@@ -74,6 +76,13 @@ class CollaborationSerializer(BaseSerializer):
             return False
         return not asset.project_id or self.is_project_member(asset.project, write=False)
 
+    def is_text_asset(self, asset):
+        name = asset.attributes.get("name", str(asset.asset)).lower()
+        content_type = asset.attributes.get("content_type", asset.attributes.get("mime_type", "")).lower()
+        return content_type.startswith("text/") or name.endswith(
+            (".txt", ".md", ".text", ".srt", ".vtt", ".csv", ".json", ".xml", ".yaml", ".yml", ".log")
+        )
+
 
 class MeetingWorkItemSerializer(BaseSerializer):
     class Meta:
@@ -103,11 +112,13 @@ class MeetingWorkItemSerializer(BaseSerializer):
 
 class MeetingSerializer(CollaborationSerializer):
     participant_ids = serializers.ListField(child=serializers.UUIDField(), write_only=True, required=False)
+    transcript = serializers.CharField(allow_blank=True, required=False, trim_whitespace=False, write_only=True)
     participants = serializers.SerializerMethodField()
     work_items = serializers.SerializerMethodField()
     project_detail = serializers.SerializerMethodField()
     recording_asset_detail = serializers.SerializerMethodField()
     transcript_asset_detail = serializers.SerializerMethodField()
+    transcript_text = serializers.SerializerMethodField()
     summary_page_detail = serializers.SerializerMethodField()
 
     class Meta:
@@ -130,6 +141,13 @@ class MeetingSerializer(CollaborationSerializer):
             "transcript_asset_detail",
             "summary_page",
             "summary_page_detail",
+            "summary_error",
+            "summary_provider",
+            "summary_model",
+            "summary_input_tokens",
+            "summary_output_tokens",
+            "transcript",
+            "transcript_text",
             "organizer",
             "participant_ids",
             "participants",
@@ -141,11 +159,17 @@ class MeetingSerializer(CollaborationSerializer):
 
     def validate(self, attrs):
         errors = {}
-        if not self.is_project_member(self.value(attrs, "project")):
+        project = self.value(attrs, "project")
+        if not self.is_project_member(project):
             errors["project"] = "Active Project membership is required."
+        if "transcript" in attrs and not project:
+            errors["project"] = "Link an authorized Plane Project before adding a transcript."
         for field in ("recording_asset", "transcript_asset"):
             if not self.is_accessible_asset(self.value(attrs, field)):
                 errors[field] = "Asset must be accessible in this workspace."
+        transcript_asset = self.value(attrs, "transcript_asset")
+        if transcript_asset and self.is_accessible_asset(transcript_asset) and not self.is_text_asset(transcript_asset):
+            errors["transcript_asset"] = "Transcript asset must be a text file."
         if not self.is_accessible_page(self.value(attrs, "summary_page")):
             errors["summary_page"] = "Page must be accessible in this workspace."
 
@@ -171,19 +195,25 @@ class MeetingSerializer(CollaborationSerializer):
 
     def create(self, validated_data):
         participant_ids = validated_data.pop("participant_ids", [])
+        transcript = validated_data.pop("transcript", None)
         meeting = Meeting.objects.create(
             **validated_data,
             workspace=self.workspace,
             organizer=self.user,
         )
         self._replace_participants(meeting, participant_ids)
+        if transcript is not None:
+            self._replace_transcript(meeting, transcript)
         return meeting
 
     def update(self, instance, validated_data):
         participant_ids = validated_data.pop("participant_ids", None)
+        transcript = validated_data.pop("transcript", None)
         instance = super().update(instance, validated_data)
         if participant_ids is not None:
             self._replace_participants(instance, participant_ids)
+        if transcript is not None:
+            self._replace_transcript(instance, transcript)
         return instance
 
     def _replace_participants(self, meeting, participant_ids):
@@ -197,6 +227,57 @@ class MeetingSerializer(CollaborationSerializer):
                     created_by=self.user,
                 )
                 for member_id in participant_ids
+            ]
+        )
+
+    def _replace_transcript(self, meeting, transcript):
+        page = meeting.summary_page
+        marker = str(meeting.id)
+        page_marker = page.view_props if page else {}
+        if (
+            not page
+            or page.owned_by_id != self.user.id
+            or marker
+            not in {
+                page_marker.get("summon_transcript_meeting_id"),
+                page_marker.get("summon_summary_meeting_id"),
+            }
+        ):
+            page = Page(
+                workspace=self.workspace,
+                owned_by=self.user,
+                name=f"{meeting.title} transcript",
+                access=Page.PRIVATE_ACCESS,
+                is_global=False,
+                view_props={"full_width": False, "summon_transcript_meeting_id": marker},
+            )
+        page.name = f"{meeting.title} transcript"
+        page.view_props = {
+            **(page.view_props if isinstance(page.view_props, dict) else {}),
+            "full_width": False,
+            "summon_transcript_meeting_id": marker,
+        }
+        write_page_document(
+            page,
+            escape(transcript).replace("\n", "<br />"),
+            {"kind": "summon_meeting_transcript", "source_transcript": transcript},
+        )
+        ProjectPage.objects.get_or_create(workspace=self.workspace, project=meeting.project, page=page)
+        meeting.summary_page = page
+        meeting.summary_error = ""
+        meeting.summary_provider = ""
+        meeting.summary_model = ""
+        meeting.summary_input_tokens = None
+        meeting.summary_output_tokens = None
+        meeting.save(
+            update_fields=[
+                "summary_page",
+                "summary_error",
+                "summary_provider",
+                "summary_model",
+                "summary_input_tokens",
+                "summary_output_tokens",
+                "updated_at",
             ]
         )
 
@@ -236,7 +317,7 @@ class MeetingSerializer(CollaborationSerializer):
     def _asset_detail(self, asset):
         if not asset:
             return None
-        return {"id": str(asset.id), "name": asset.attributes.get("name", "")}
+        return {"id": str(asset.id), "name": asset.attributes.get("name", ""), "url": asset.asset_url}
 
     def get_recording_asset_detail(self, instance):
         return self._asset_detail(instance.recording_asset)
@@ -244,10 +325,46 @@ class MeetingSerializer(CollaborationSerializer):
     def get_transcript_asset_detail(self, instance):
         return self._asset_detail(instance.transcript_asset)
 
+    def _is_canonical_meeting_page(self, instance):
+        page = instance.summary_page
+        props = page.view_props if page and isinstance(page.view_props, dict) else {}
+        marker = str(instance.id)
+        return marker in {
+            props.get("summon_transcript_meeting_id"),
+            props.get("summon_summary_meeting_id"),
+        }
+
+    def get_transcript_text(self, instance):
+        page = instance.summary_page
+        if not self._is_canonical_meeting_page(instance) or not self.is_accessible_page(page):
+            return ""
+        data = summon_document_metadata(page)
+        source = data.get("source_transcript")
+        if isinstance(source, str):
+            return source
+        if page.view_props.get("summon_transcript_meeting_id") == str(instance.id):
+            return page.description_stripped or ""
+        return ""
+
     def get_summary_page_detail(self, instance):
-        if not instance.summary_page:
+        if not self._is_canonical_meeting_page(instance) or not self.is_accessible_page(instance.summary_page):
             return None
-        return {"id": str(instance.summary_page_id), "name": instance.summary_page.name}
+        data = summon_document_metadata(instance.summary_page)
+        return {
+            "id": str(instance.summary_page_id),
+            "name": instance.summary_page.name,
+            "markdown": data.get("markdown", ""),
+            "summary": data.get("summary", ""),
+            "decisions": data.get("decisions", []),
+            "action_suggestions": data.get("action_suggestions", []),
+            "citations": data.get("citations", []),
+            "context_truncated": bool(data.get("context_truncated", False)),
+            "href": (
+                f"/{self.workspace.slug}/projects/{instance.project_id}/pages/{instance.summary_page_id}/"
+                if instance.project_id
+                else f"/{self.workspace.slug}/summon/knowledge/"
+            ),
+        }
 
 
 class SummonPageContextSerializer(CollaborationSerializer):

@@ -62,6 +62,11 @@
   "notifications": "Notifications",
   "summon": {
     "overview": "Summon Core",
+    "projects": "Summon Projects",
+    "tasks": "Summon Tasks",
+    "documents": "Summon Documents",
+    "knowledge": "Summon Knowledge",
+    "notifications": "Summon Notifications",
     "clients": "Summon Clients",
     "opportunities": "Summon Opportunities",
     "reports": "Summon Reports",

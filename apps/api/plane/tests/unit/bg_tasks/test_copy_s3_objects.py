@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock
 from plane.bgtasks.copy_s3_object import (
     copy_s3_objects_of_description_and_assets,
     copy_assets,
+    sync_with_external_service,
 )
 import base64
 
@@ -173,3 +174,16 @@ class TestCopyS3Objects:
         # Assert
         assert result == []
         mock_storage_instance.copy_object.assert_not_called()
+
+
+@pytest.mark.unit
+def test_page_document_conversion_uses_document_editor_variant(settings, monkeypatch):
+    settings.LIVE_URL = "http://plane-live"
+    response = MagicMock(status_code=200)
+    response.json.return_value = {"description_json": {}, "description_binary": ""}
+    post = MagicMock(return_value=response)
+    monkeypatch.setattr("plane.bgtasks.copy_s3_object.requests.post", post)
+
+    sync_with_external_service("PAGE", "<p>Page content</p>")
+
+    assert post.call_args.kwargs["json"]["variant"] == "document"

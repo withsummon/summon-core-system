@@ -162,6 +162,35 @@ def test_transition_changes_probability_only_when_explicitly_provided(workspace)
 
 
 @pytest.mark.django_db
+def test_client_detail_contains_only_linked_visible_projects(workspace):
+    actor, api = authenticated_user(workspace, 15)
+    client = Client.objects.create(workspace=workspace, name="Acme")
+    visible = Project.objects.create(workspace=workspace, name="Visible", identifier="VIS")
+    hidden = Project.objects.create(workspace=workspace, name="Hidden", identifier="HID")
+    ProjectMember.objects.create(workspace=workspace, project=visible, member=actor, role=15)
+    SummonProjectProfile.objects.create(workspace=workspace, project=visible, client=client)
+    SummonProjectProfile.objects.create(workspace=workspace, project=hidden, client=client)
+
+    response = api.get(f"/api/summon/workspaces/{workspace.slug}/clients/{client.id}/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert [item["id"] for item in response.data["projects"]] == [str(visible.id)]
+
+
+@pytest.mark.django_db
+def test_opportunity_transition_survives_detail_read_back(workspace):
+    _, api = authenticated_user(workspace, 15)
+    opportunity = Opportunity.objects.create(workspace=workspace, title="Renewal")
+    url = f"/api/summon/workspaces/{workspace.slug}/opportunities/{opportunity.id}/transitions/"
+
+    response = api.post(url, {"stage": "proposal", "probability": 60}, format="json")
+    detail = api.get(f"/api/summon/workspaces/{workspace.slug}/opportunities/{opportunity.id}/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert (detail.data["stage"], detail.data["probability"]) == ("proposal", 60)
+
+
+@pytest.mark.django_db
 def test_transition_cannot_target_another_workspace_opportunity(workspace):
     _, client = authenticated_user(workspace, 20)
     other_owner, _ = authenticated_user()

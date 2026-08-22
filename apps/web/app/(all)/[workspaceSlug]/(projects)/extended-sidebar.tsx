@@ -8,7 +8,11 @@ import { useCallback, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS, EUserPermissionsLevel } from "@plane/constants";
+import {
+  EUserPermissionsLevel,
+  SUMMON_WORKSPACE_NAVIGATION_ITEMS,
+  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
+} from "@plane/constants";
 import type { EUserWorkspaceRoles } from "@plane/types";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -36,6 +40,7 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
 
     return (
       WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.filter((item) => {
+        if (SUMMON_WORKSPACE_NAVIGATION_ITEMS.some(({ key }) => key === item.key)) return false;
         // Permission check
         const hasPermission = allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug);
 

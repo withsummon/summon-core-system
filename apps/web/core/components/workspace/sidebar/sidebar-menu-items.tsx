@@ -11,6 +11,7 @@ import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import {
   SUMMON_WORKSPACE_NAVIGATION_ITEMS,
+  SUMMON_ASSISTANT_NAVIGATION_ITEM,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS,
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS,
@@ -222,6 +223,12 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
               {SUMMON_WORKSPACE_NAVIGATION_ITEMS.map((item) => (
                 <SidebarItemBase key={item.key} item={item} additionalStaticItems={summonNavigationItemKeys} />
               ))}
+              <div className="mt-2 border-t border-subtle pt-2">
+                <SidebarItemBase
+                  item={SUMMON_ASSISTANT_NAVIGATION_ITEM}
+                  additionalStaticItems={[...summonNavigationItemKeys, SUMMON_ASSISTANT_NAVIGATION_ITEM.key]}
+                />
+              </div>
             </Disclosure.Panel>
           )}
         </Transition>

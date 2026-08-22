@@ -4,7 +4,9 @@
 
 from .commercial import (
     ClientContactSerializer,
+    ClientDetailSerializer,
     ClientSerializer,
+    OpportunityDetailSerializer,
     OpportunitySerializer,
     OpportunityTransitionSerializer,
     SummonProjectProfileSerializer,
@@ -16,11 +18,15 @@ from .collaboration import (
     SummonPageContextSerializer,
 )
 from .operations import (
+    AssistantConversationSerializer,
+    AssistantMessageRequestSerializer,
+    AssistantMessageSerializer,
     AssistantQuerySerializer,
     AutomationJobSerializer,
     AutomationRunSerializer,
     AutomationTemplateSerializer,
     GeneratedArtifactSerializer,
+    MeetingSummaryRequestSerializer,
 )
 from .credential import (
     CredentialAccessLogSerializer,
@@ -31,8 +37,13 @@ from .credential import (
 )
 
 __all__ = [
+    "AssistantConversationSerializer",
+    "AssistantMessageRequestSerializer",
+    "AssistantMessageSerializer",
     "ClientContactSerializer",
+    "ClientDetailSerializer",
     "ClientSerializer",
+    "OpportunityDetailSerializer",
     "OpportunitySerializer",
     "OpportunityTransitionSerializer",
     "SummonProjectProfileSerializer",
@@ -45,6 +56,7 @@ __all__ = [
     "AutomationRunSerializer",
     "AutomationTemplateSerializer",
     "GeneratedArtifactSerializer",
+    "MeetingSummaryRequestSerializer",
     "CredentialAccessLogSerializer",
     "CredentialGrantSerializer",
     "CredentialRevealSerializer",

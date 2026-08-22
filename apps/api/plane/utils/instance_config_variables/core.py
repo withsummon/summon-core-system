@@ -232,6 +232,18 @@ llm_config_variables = [
         "category": "AI",
         "is_encrypted": False,
     },
+    {
+        "key": "LLM_BASE_URL",
+        "value": os.environ.get("LLM_BASE_URL", ""),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
+        "key": "LLM_REQUEST_TIMEOUT_SECONDS",
+        "value": os.environ.get("LLM_REQUEST_TIMEOUT_SECONDS", "60"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
     # Deprecated, use LLM_MODEL
     {
         "key": "GPT_ENGINE",

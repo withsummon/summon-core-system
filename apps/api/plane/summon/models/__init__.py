@@ -3,11 +3,14 @@
 # See the LICENSE file for details.
 
 from .automation import AutomationJob, AutomationTemplate, GeneratedArtifact
+from .assistant import AssistantConversation, AssistantMessage
 from .collaboration import Meeting, MeetingParticipant, MeetingWorkItem, ResourceLink, SummonPageContext
 from .commercial import Client, ClientContact, Opportunity, SummonProjectProfile
 from .credential import Credential, CredentialAccessLog, CredentialGrant
 
 __all__ = [
+    "AssistantConversation",
+    "AssistantMessage",
     "AutomationJob",
     "AutomationTemplate",
     "Client",

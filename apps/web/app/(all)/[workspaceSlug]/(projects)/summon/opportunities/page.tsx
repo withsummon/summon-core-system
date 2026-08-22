@@ -7,17 +7,14 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
+import Link from "next/link";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import {
-  SummonCard,
-  SummonMetric,
-  SummonRecordList,
-  SummonScreen,
-  summonErrorMessage,
-} from "@/components/summon/screen";
+import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+
+const stages = ["lead", "qualified", "proposal", "negotiation", "won", "lost"] as const;
 
 export default function SummonOpportunitiesPage({ params }: Route.ComponentProps) {
   const [title, setTitle] = useState("");
@@ -25,6 +22,7 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [query, setQuery] = useState("");
   const { data, error, isLoading, mutate } = useSWR(["summon-opportunities", params.workspaceSlug], async () => {
     const [opportunities, clients] = await Promise.all([
       summonService.listOpportunities(params.workspaceSlug),
@@ -54,6 +52,9 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
   };
 
   const opportunities = data?.opportunities ?? [];
+  const visibleOpportunities = opportunities.filter((item) =>
+    `${item.title} ${item.stage}`.toLowerCase().includes(query.trim().toLowerCase())
+  );
   const pipelineValue = opportunities.reduce((total, item) => total + Number(item.value || 0), 0);
   const openOpportunities = opportunities.filter(({ stage }) => !["won", "lost"].includes(stage));
   return (
@@ -79,20 +80,52 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
           <SummonRequestState
             loading={isLoading}
             error={error}
-            empty={!isLoading && opportunities.length === 0}
+            empty={!isLoading && visibleOpportunities.length === 0}
             onRetry={() => void mutate()}
+            emptyMessage={opportunities.length ? "No opportunities match this search." : "No opportunities yet."}
           />
-          {opportunities.length ? (
-            <SummonRecordList
-              records={opportunities.map((item) => ({
-                id: item.id,
-                title: item.title,
-                detail: item.value
-                  ? `Value ${item.value} · ${item.probability}% probability`
-                  : `${item.probability}% probability`,
-                badge: item.stage,
-              }))}
+          <SummonCard>
+            <Input
+              aria-label="Search opportunities"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search opportunities"
             />
+          </SummonCard>
+          {visibleOpportunities.length ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {stages.map((stage) => {
+                const stageOpportunities = visibleOpportunities.filter((item) => item.stage === stage);
+                return (
+                  <SummonCard key={stage}>
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-xs font-semibold text-primary capitalize">{stage}</h2>
+                      <span className="rounded-full bg-layer-2 px-2 py-1 text-[10px] text-secondary">
+                        {stageOpportunities.length}
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {stageOpportunities.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/${params.workspaceSlug}/summon/opportunities/${item.id}/`}
+                          className="block rounded-xl border border-subtle p-2.5 hover:bg-layer-1 focus-visible:outline focus-visible:outline-2"
+                        >
+                          <p className="text-xs truncate font-medium text-primary">{item.title}</p>
+                          <p className="mt-1 text-[10px] text-secondary">
+                            {item.value ? `Value ${item.value} · ` : ""}
+                            {item.probability}% probability
+                          </p>
+                        </Link>
+                      ))}
+                      {!stageOpportunities.length ? (
+                        <p className="text-[11px] text-tertiary">No opportunities</p>
+                      ) : null}
+                    </div>
+                  </SummonCard>
+                );
+              })}
+            </div>
           ) : null}
         </div>
         <SummonCard>

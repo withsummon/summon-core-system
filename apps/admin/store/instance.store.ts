@@ -17,6 +17,7 @@ import type {
   IFormattedInstanceConfiguration,
   IInstanceInfo,
   IInstanceConfig,
+  TLLMConnectionTestResult,
 } from "@plane/types";
 // root store
 import type { RootStore } from "@/store/root.store";
@@ -39,6 +40,7 @@ export interface IInstanceStore {
   fetchInstanceAdmins: () => Promise<IInstanceAdmin[] | undefined>;
   fetchInstanceConfigurations: () => Promise<IInstanceConfiguration[] | undefined>;
   updateInstanceConfigurations: (data: Partial<IFormattedInstanceConfiguration>) => Promise<IInstanceConfiguration[]>;
+  testLLMConnection: () => Promise<TLLMConnectionTestResult>;
   disableEmail: () => Promise<void>;
 }
 
@@ -71,6 +73,7 @@ export class InstanceStore implements IInstanceStore {
       updateInstanceInfo: action,
       fetchInstanceConfigurations: action,
       updateInstanceConfigurations: action,
+      testLLMConnection: action,
     });
 
     this.instanceService = new InstanceService();
@@ -184,7 +187,7 @@ export class InstanceStore implements IInstanceStore {
       const response = await this.instanceService.updateConfigurations(data);
       runInAction(() => {
         this.instanceConfigurations = this.instanceConfigurations?.map((config) => {
-          const item = response.find((item) => item.key === config.key);
+          const item = response.find((responseItem) => responseItem.key === config.key);
           if (item) return item;
           return config;
         });
@@ -195,6 +198,8 @@ export class InstanceStore implements IInstanceStore {
       throw error;
     }
   };
+
+  testLLMConnection = () => this.instanceService.testLLMConnection();
 
   disableEmail = async () => {
     const instanceConfigurations = this.instanceConfigurations;

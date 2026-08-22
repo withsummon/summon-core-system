@@ -5,17 +5,12 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import {
-  SummonCard,
-  SummonMetric,
-  SummonRecordList,
-  SummonScreen,
-  summonErrorMessage,
-} from "@/components/summon/screen";
+import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -97,14 +92,20 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
             onRetry={() => void mutate()}
           />
           {data.length ? (
-            <SummonRecordList
-              records={data.map((item) => ({
-                id: item.id,
-                title: item.title,
-                detail: `${new Date(item.starts_at).toLocaleString()} · ${item.work_items.length} Plane actions`,
-                badge: item.status,
-              }))}
-            />
+            <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+              {data.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
+                  className="block px-3.5 py-2.5 hover:bg-layer-1"
+                >
+                  <p className="text-sm font-medium text-primary">{item.title}</p>
+                  <p className="text-xs mt-1 text-secondary">
+                    {new Date(item.starts_at).toLocaleString()} · {item.work_items.length} Plane actions · {item.status}
+                  </p>
+                </Link>
+              ))}
+            </div>
           ) : null}
         </div>
         <div className="space-y-4">

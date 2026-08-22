@@ -4,13 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { FileText, FolderPlus, Layers, SquarePlus } from "lucide-react";
+import { Briefcase, FileText, FolderPlus, Layers, SquarePlus } from "lucide-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { ContrastIcon, DiceIcon, LayersIcon } from "@plane/propel/icons";
 // components
 import { EUserProjectRoles } from "@plane/types";
 import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";
+import { handlePowerKNavigate } from "@/components/power-k/utils/navigation";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
@@ -24,7 +25,11 @@ export type TPowerKCreationCommandKeys =
   | "create_cycle"
   | "create_module"
   | "create_project"
-  | "create_workspace";
+  | "create_workspace"
+  | "create_summon_client"
+  | "create_summon_opportunity"
+  | "create_summon_meeting"
+  | "open_summon_automation";
 
 /**
  * Creation commands - Create any entity in the app
@@ -57,6 +62,12 @@ export const usePowerKCreationCommandsRecord = (): Record<TPowerKCreationCommand
       EUserPermissionsLevel.PROJECT,
       ctx.params.workspaceSlug?.toString(),
       ctx.params.projectId?.toString()
+    );
+  const hasWorkspaceMemberLevelPermissions = (ctx: TPowerKContext) =>
+    allowPermissions(
+      [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+      EUserPermissionsLevel.WORKSPACE,
+      ctx.params.workspaceSlug?.toString()
     );
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
 
@@ -151,6 +162,50 @@ export const usePowerKCreationCommandsRecord = (): Record<TPowerKCreationCommand
       action: (ctx) => ctx.router.push("/create-workspace"),
       isEnabled: () => Boolean(!isWorkspaceCreationDisabled),
       isVisible: () => Boolean(!isWorkspaceCreationDisabled),
+      closeOnSelect: true,
+    },
+    create_summon_client: {
+      id: "create_summon_client",
+      type: "action",
+      group: "create",
+      i18n_title: "power_k.creation_actions.create_summon_client",
+      icon: Briefcase,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "clients"]),
+      isEnabled: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      closeOnSelect: true,
+    },
+    create_summon_opportunity: {
+      id: "create_summon_opportunity",
+      type: "action",
+      group: "create",
+      i18n_title: "power_k.creation_actions.create_summon_opportunity",
+      icon: Layers,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "opportunities"]),
+      isEnabled: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      closeOnSelect: true,
+    },
+    create_summon_meeting: {
+      id: "create_summon_meeting",
+      type: "action",
+      group: "create",
+      i18n_title: "power_k.creation_actions.create_summon_meeting",
+      icon: Layers,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "meetings"]),
+      isEnabled: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      closeOnSelect: true,
+    },
+    open_summon_automation: {
+      id: "open_summon_automation",
+      type: "action",
+      group: "create",
+      i18n_title: "power_k.creation_actions.open_summon_automation",
+      icon: DiceIcon,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "automation"]),
+      isEnabled: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
       closeOnSelect: true,
     },
   };

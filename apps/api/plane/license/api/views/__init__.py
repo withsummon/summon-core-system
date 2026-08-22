@@ -8,6 +8,7 @@ from .instance import InstanceEndpoint, SignUpScreenVisitedEndpoint
 from .configuration import (
     EmailCredentialCheckEndpoint,
     InstanceConfigurationEndpoint,
+    LLMConnectionTestEndpoint,
     DisableEmailFeatureEndpoint,
 )
 

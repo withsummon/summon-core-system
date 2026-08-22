@@ -15,11 +15,23 @@ export const extendedRoutes: RouteConfigEntry[] = [
       layout("./(all)/[workspaceSlug]/(projects)/layout.tsx", [
         layout(`${summonRoot}/layout.tsx`, [
           route(":workspaceSlug/summon", `${summonRoot}/page.tsx`),
+          route(":workspaceSlug/summon/projects", `${summonRoot}/projects/page.tsx`),
+          route(":workspaceSlug/summon/projects/:projectId", `${summonRoot}/projects/[projectId]/page.tsx`),
+          route(":workspaceSlug/summon/tasks", `${summonRoot}/tasks/page.tsx`),
+          route(":workspaceSlug/summon/documents", `${summonRoot}/documents/page.tsx`),
+          route(":workspaceSlug/summon/knowledge", `${summonRoot}/knowledge/page.tsx`),
           route(":workspaceSlug/summon/clients", `${summonRoot}/clients/page.tsx`),
+          route(":workspaceSlug/summon/clients/:clientId", `${summonRoot}/clients/[clientId]/page.tsx`),
           route(":workspaceSlug/summon/opportunities", `${summonRoot}/opportunities/page.tsx`),
+          route(
+            ":workspaceSlug/summon/opportunities/:opportunityId",
+            `${summonRoot}/opportunities/[opportunityId]/page.tsx`
+          ),
           route(":workspaceSlug/summon/reports", `${summonRoot}/reports/page.tsx`),
           route(":workspaceSlug/summon/resources", `${summonRoot}/resources/page.tsx`),
+          route(":workspaceSlug/summon/notifications", `${summonRoot}/notifications/page.tsx`),
           route(":workspaceSlug/summon/meetings", `${summonRoot}/meetings/page.tsx`),
+          route(":workspaceSlug/summon/meetings/:meetingId", `${summonRoot}/meetings/[meetingId]/page.tsx`),
           route(":workspaceSlug/summon/automation", `${summonRoot}/automation/page.tsx`),
           route(":workspaceSlug/summon/assistant", `${summonRoot}/assistant/page.tsx`),
           route(":workspaceSlug/summon/credentials", `${summonRoot}/credentials/page.tsx`),

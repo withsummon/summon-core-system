@@ -43,9 +43,15 @@ class AutomationJob(BaseModel):
     type = models.CharField(max_length=80)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
     input = models.JSONField(default=dict, blank=True)
+    preview_markdown = models.TextField(blank=True)
+    provider = models.CharField(max_length=40, blank=True)
+    model = models.CharField(max_length=120, blank=True)
+    input_tokens = models.PositiveIntegerField(null=True, blank=True)
+    output_tokens = models.PositiveIntegerField(null=True, blank=True)
     error_summary = models.TextField(blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)

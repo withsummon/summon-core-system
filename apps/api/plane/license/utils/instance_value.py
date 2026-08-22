@@ -57,3 +57,22 @@ def get_email_configuration():
             },
         ]
     )
+
+
+def get_llm_configuration_status():
+    api_key, provider, model, legacy_model = get_configuration_value(
+        [
+            {"key": "LLM_API_KEY", "default": os.environ.get("LLM_API_KEY", "")},
+            {"key": "LLM_PROVIDER", "default": os.environ.get("LLM_PROVIDER", "openai")},
+            {"key": "LLM_MODEL", "default": os.environ.get("LLM_MODEL")},
+            {"key": "GPT_ENGINE", "default": os.environ.get("GPT_ENGINE", "gpt-4o-mini")},
+        ]
+    )
+    return {
+        "configured": bool(api_key),
+        "provider": provider.strip().lower() if isinstance(provider, str) and provider.strip() else None,
+        "model": next(
+            (value.strip() for value in (model, legacy_model) if isinstance(value, str) and value.strip()),
+            None,
+        ),
+    }

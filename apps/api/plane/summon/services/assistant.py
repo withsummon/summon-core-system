@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import json
+
 from django.db.models import Q
 from django.utils import timezone
 
+from plane.app.services.llm import LLMError, LLMRequest, generate
 from plane.db.models import Issue, Page, Project
-from plane.summon.models import AutomationJob, Opportunity
+from plane.summon.models import AssistantMessage, AutomationJob, Opportunity
+from plane.summon.services.context import build_context
 from plane.summon.services.reports import report_summary, visible_project_ids
 
 
@@ -14,6 +18,15 @@ UNSUPPORTED = {
     "intent": "unsupported",
     "answer": "Intent is not supported by Summon Core.",
     "data": [],
+}
+
+SUPPORTED_DETERMINISTIC_INTENTS = {
+    "portfolio_status",
+    "overdue_work_items",
+    "client_opportunity_pipeline",
+    "project_summary",
+    "knowledge_page_lookup",
+    "automation_history",
 }
 
 
@@ -90,3 +103,78 @@ def answer_query(workspace, user, intent, query="", project_id=None):
         ]
         return {"intent": intent, "answer": f"Found {len(data)} automation jobs.", "data": data}
     return UNSUPPORTED
+
+
+def _save_assistant_message(conversation, content, citations, **metadata):
+    message = AssistantMessage.objects.create(
+        conversation=conversation,
+        workspace=conversation.workspace,
+        role=AssistantMessage.Role.ASSISTANT,
+        content=content,
+        citations=citations,
+        **metadata,
+    )
+    conversation.last_activity_at = timezone.now()
+    conversation.save(update_fields=["last_activity_at", "updated_at"])
+    return message
+
+
+def send_message(conversation, user, content, selection, intent=""):
+    context = build_context(conversation.workspace, user, selection)
+    user_message = AssistantMessage.objects.create(
+        conversation=conversation,
+        workspace=conversation.workspace,
+        role=AssistantMessage.Role.USER,
+        content=content,
+    )
+    history = [
+        {"role": message.role, "content": message.content}
+        for message in conversation.messages.filter(status=AssistantMessage.Status.COMPLETED)
+    ]
+    disclosure = " The selected context was truncated to 30,000 characters." if context.truncated else ""
+    request = LLMRequest(
+        system=(
+            "Answer using only the explicitly selected authorized context when context is provided."
+            f"{disclosure}\n<context>\n{context.text}\n</context>"
+        ),
+        messages=history,
+    )
+    try:
+        response = generate(request)
+    except LLMError as error:
+        if intent in SUPPORTED_DETERMINISTIC_INTENTS:
+            fallback = answer_query(
+                conversation.workspace,
+                user,
+                intent,
+                query=content,
+                project_id=selection.get("project_id"),
+            )
+            fallback_content = f"Degraded mode: {fallback['answer']}"
+            if fallback["data"]:
+                fallback_content += f"\n\n{json.dumps(fallback['data'], default=str)}"
+            assistant_message = _save_assistant_message(
+                conversation,
+                fallback_content,
+                context.citations,
+                provider="deterministic",
+            )
+            return user_message, assistant_message, context.truncated, None
+        assistant_message = _save_assistant_message(
+            conversation,
+            f"{error.code}: {error}",
+            context.citations,
+            status=AssistantMessage.Status.FAILED,
+        )
+        return user_message, assistant_message, context.truncated, error.code
+
+    assistant_message = _save_assistant_message(
+        conversation,
+        response.text,
+        context.citations,
+        provider=response.provider,
+        model=response.model,
+        input_tokens=response.input_tokens,
+        output_tokens=response.output_tokens,
+    )
+    return user_message, assistant_message, context.truncated, None

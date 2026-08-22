@@ -11,18 +11,54 @@ export function SummonRequestState(props: {
   error?: unknown;
   empty?: boolean;
   emptyMessage?: string;
+  validationError?: string;
+  permissionError?: boolean;
+  permissionMessage?: string;
   onRetry?: () => void;
 }) {
-  const { loading, error, empty, emptyMessage = "No records yet.", onRetry } = props;
+  const {
+    loading,
+    error,
+    empty,
+    emptyMessage = "No records yet.",
+    validationError,
+    permissionError,
+    permissionMessage = "You do not have permission to view this module.",
+    onRetry,
+  } = props;
   if (loading)
     return (
-      <div className="text-sm shadow-sm rounded-xl border border-subtle bg-surface-1 p-6 text-center text-secondary">
+      <div
+        className="text-sm rounded-xl border border-subtle bg-surface-1 p-6 text-center text-secondary"
+        role="status"
+      >
         Loading Summon data…
+      </div>
+    );
+  if (validationError)
+    return (
+      <div
+        className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary"
+        role="alert"
+      >
+        {validationError}
+      </div>
+    );
+  if (permissionError)
+    return (
+      <div
+        className="text-sm rounded-xl border border-warning-subtle bg-warning-subtle/20 p-4 text-warning-primary"
+        role="alert"
+      >
+        {permissionMessage}
       </div>
     );
   if (error)
     return (
-      <div className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary">
+      <div
+        className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary"
+        role="alert"
+      >
         <p>Could not load this module. Check your access or try again.</p>
         {onRetry ? (
           <Button className="mt-3" variant="neutral-primary" size="sm" onClick={onRetry}>

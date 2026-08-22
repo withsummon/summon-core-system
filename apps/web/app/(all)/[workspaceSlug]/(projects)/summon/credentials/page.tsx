@@ -9,7 +9,7 @@ import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
-import { SummonField } from "@/components/summon/forms";
+import { SummonField, SummonFilterRow, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
@@ -23,12 +23,19 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
   const [selected, setSelected] = useState<ISummonCredential>();
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
   const {
     data = [],
     error,
     isLoading,
     mutate,
   } = useSWR(["summon-credentials", params.workspaceSlug], () => summonService.listCredentials(params.workspaceSlug));
+  const credentials = data.filter(
+    (item) =>
+      (status === "all" || item.status === status) &&
+      `${item.name} ${item.provider} ${item.account_identifier}`.toLowerCase().includes(query.trim().toLowerCase())
+  );
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -60,7 +67,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
         <SummonMetric label="Total credentials" value={data.length} detail="Across accessible projects" />
         <SummonMetric
           label="Active accounts"
-          value={data.filter(({ status }) => status === "active").length}
+          value={data.filter(({ status: credentialStatus }) => credentialStatus === "active").length}
           detail="Available for authorized use"
         />
         <SummonMetric
@@ -71,15 +78,36 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-3">
+          <SummonCard>
+            <SummonFilterRow>
+              <Input
+                aria-label="Search credentials"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search name, provider, or account"
+                className="min-w-56 flex-1"
+              />
+              <SummonSelect
+                aria-label="Filter credentials by status"
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="revoked">Revoked</option>
+              </SummonSelect>
+            </SummonFilterRow>
+          </SummonCard>
           <SummonRequestState
             loading={isLoading}
             error={error}
-            empty={!isLoading && data.length === 0}
+            empty={!isLoading && credentials.length === 0}
+            emptyMessage={data.length ? "No credentials match these filters." : "No credentials yet."}
             onRetry={() => void mutate()}
           />
-          {data.length ? (
+          {credentials.length ? (
             <div className="shadow-sm divide-y divide-subtle overflow-hidden rounded-xl border border-subtle bg-surface-1">
-              {data.map((item) => (
+              {credentials.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -93,7 +121,9 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                     </p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="font-mono text-xs text-secondary">{item.secret}</p>
+                    <p className="font-mono text-xs text-secondary" aria-label="Masked secret">
+                      {item.secret}
+                    </p>
                     <span className="mt-1 inline-block rounded-full bg-layer-2 px-2 py-0.5 text-[11px] text-secondary">
                       {item.status}
                     </span>

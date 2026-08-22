@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import base64
 from uuid import uuid4
 
 import pytest
@@ -10,12 +11,14 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from plane.bgtasks import copy_s3_object
 from plane.db.models import (
     FileAsset,
     Issue,
     Page,
     Project,
     ProjectMember,
+    ProjectPage,
     State,
     User,
     Workspace,
@@ -94,7 +97,11 @@ def test_meeting_crud_uses_plane_assets_and_participants(workspace):
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data["recording_asset_detail"] == {"id": str(asset.id), "name": "recording.mp4"}
+    assert response.data["recording_asset_detail"] == {
+        "id": str(asset.id),
+        "name": "recording.mp4",
+        "url": None,
+    }
     assert response.data["participants"][0]["member"]["id"] == str(participant.id)
     meeting_id = response.data["id"]
     assert api.patch(f"{url}{meeting_id}/", {"notes": "Decisions"}, format="json").status_code == 200
@@ -125,6 +132,98 @@ def test_meeting_rejects_inaccessible_assets(workspace):
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "recording_asset" in response.data
+
+
+@pytest.mark.django_db
+def test_meeting_rejects_foreign_or_nontext_transcript_assets(workspace):
+    actor, api = authenticated_user(workspace)
+    meeting = Meeting.objects.create(
+        workspace=workspace,
+        organizer=actor,
+        title="Transcript sources",
+        starts_at=timezone.now(),
+    )
+    foreign_workspace = Workspace.objects.create(name="Foreign", slug="foreign-transcript", owner=actor)
+    foreign_asset = FileAsset.objects.create(
+        workspace=foreign_workspace,
+        user=actor,
+        asset=f"{foreign_workspace.id}/transcript.txt",
+        attributes={"name": "transcript.txt"},
+        is_uploaded=True,
+    )
+    video_asset = FileAsset.objects.create(
+        workspace=workspace,
+        user=actor,
+        asset=f"{workspace.id}/recording.mp4",
+        attributes={"name": "recording.mp4"},
+        is_uploaded=True,
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/meetings/{meeting.id}/"
+
+    foreign = api.patch(url, {"transcript_asset": str(foreign_asset.id)}, format="json")
+    nontext = api.patch(url, {"transcript_asset": str(video_asset.id)}, format="json")
+
+    assert foreign.status_code == status.HTTP_400_BAD_REQUEST
+    assert nontext.status_code == status.HTTP_400_BAD_REQUEST
+    assert "transcript_asset" in nontext.data
+
+
+@pytest.mark.django_db
+def test_meeting_persists_plain_transcript_in_a_canonical_page(workspace, monkeypatch):
+    actor, api = authenticated_user(workspace)
+    project = project_with_member(workspace, actor, "TRANSCRIPT")
+    monkeypatch.setattr(
+        copy_s3_object,
+        "sync_with_external_service",
+        lambda _entity, _html: {
+            "description_json": {"type": "doc", "content": [{"type": "paragraph"}]},
+            "description_binary": base64.b64encode(b"canonical-transcript-page").decode(),
+        },
+    )
+    meeting = Meeting.objects.create(
+        workspace=workspace,
+        project=project,
+        organizer=actor,
+        title="Transcript review",
+        starts_at=timezone.now(),
+    )
+
+    response = api.patch(
+        f"/api/summon/workspaces/{workspace.slug}/meetings/{meeting.id}/",
+        {"transcript": "Decision: ship the review."},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["transcript_text"] == "Decision: ship the review."
+    meeting.refresh_from_db()
+    assert meeting.summary_page is not None
+    assert meeting.summary_page.description_stripped == "Decision: ship the review."
+    assert meeting.summary_page.description_binary == b"canonical-transcript-page"
+    assert meeting.summary_page.description_json["type"] == "doc"
+    assert meeting.summary_page.view_props["summon_document"]["source_transcript"] == ("Decision: ship the review.")
+    assert ProjectPage.objects.filter(workspace=workspace, project=project, page=meeting.summary_page).exists()
+
+
+@pytest.mark.django_db
+def test_workspace_meeting_rejects_transcript_page_creation(workspace):
+    actor, api = authenticated_user(workspace)
+    meeting = Meeting.objects.create(
+        workspace=workspace,
+        organizer=actor,
+        title="Workspace transcript",
+        starts_at=timezone.now(),
+    )
+
+    response = api.patch(
+        f"/api/summon/workspaces/{workspace.slug}/meetings/{meeting.id}/",
+        {"transcript": "Do not create a workspace Page."},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "project" in response.data
+    assert not Page.objects.filter(workspace=workspace, name="Workspace transcript transcript").exists()
 
 
 @pytest.mark.django_db

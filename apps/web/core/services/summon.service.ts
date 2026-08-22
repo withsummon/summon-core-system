@@ -6,19 +6,29 @@
 
 import { API_BASE_URL } from "@plane/constants";
 import type {
-  ISummonAssistantResponse,
+  ISummonAIStatus,
+  ISummonAssistantConversation,
+  ISummonAssistantMessagePair,
+  ISummonAssistantMessageRequest,
   ISummonAutomationJob,
+  ISummonAutomationPreviewRequest,
   ISummonAutomationTemplate,
   ISummonClient,
   ISummonClientContact,
+  ISummonClientDetail,
   ISummonCredential,
   ISummonCredentialAudit,
   ISummonCredentialGrant,
   ISummonMeeting,
+  ISummonMeetingSummaryRequest,
   ISummonMeetingWorkItem,
+  ISummonHomeSummary,
   ISummonOpportunity,
+  ISummonOpportunityDetail,
   ISummonPageContext,
   ISummonProjectProfile,
+  ISummonProjectOverview,
+  ISummonReportFilters,
   ISummonReportSummary,
   ISummonResourceLink,
   TIssue,
@@ -44,6 +54,18 @@ export class SummonService extends APIService {
       });
   }
 
+  getHomeSummary(workspaceSlug: string) {
+    return this.data<ISummonHomeSummary>(this.get(`${this.root(workspaceSlug)}/home/summary/`));
+  }
+
+  getAIStatus(workspaceSlug: string) {
+    return this.data<ISummonAIStatus>(this.get(`${this.root(workspaceSlug)}/settings/ai-status/`));
+  }
+
+  getProjectOverview(workspaceSlug: string, projectId: string) {
+    return this.data<ISummonProjectOverview>(this.get(`${this.root(workspaceSlug)}/projects/${projectId}/overview/`));
+  }
+
   listClients(workspaceSlug: string) {
     return this.data<ISummonClient[]>(this.get(`${this.root(workspaceSlug)}/clients/`));
   }
@@ -54,6 +76,10 @@ export class SummonService extends APIService {
 
   getClient(workspaceSlug: string, clientId: string) {
     return this.data<ISummonClient>(this.get(`${this.root(workspaceSlug)}/clients/${clientId}/`));
+  }
+
+  getClientDetail(workspaceSlug: string, clientId: string) {
+    return this.data<ISummonClientDetail>(this.get(`${this.root(workspaceSlug)}/clients/${clientId}/`));
   }
 
   updateClient(workspaceSlug: string, clientId: string, payload: TPayload) {
@@ -100,6 +126,10 @@ export class SummonService extends APIService {
 
   getOpportunity(workspaceSlug: string, opportunityId: string) {
     return this.data<ISummonOpportunity>(this.get(`${this.root(workspaceSlug)}/opportunities/${opportunityId}/`));
+  }
+
+  getOpportunityDetail(workspaceSlug: string, opportunityId: string) {
+    return this.data<ISummonOpportunityDetail>(this.get(`${this.root(workspaceSlug)}/opportunities/${opportunityId}/`));
   }
 
   updateOpportunity(workspaceSlug: string, opportunityId: string, payload: TPayload) {
@@ -152,6 +182,10 @@ export class SummonService extends APIService {
 
   deleteMeeting(workspaceSlug: string, meetingId: string) {
     return this.data<void>(this.delete(`${this.root(workspaceSlug)}/meetings/${meetingId}/`));
+  }
+
+  summarizeMeeting(workspaceSlug: string, meetingId: string, payload: ISummonMeetingSummaryRequest) {
+    return this.data<ISummonMeeting>(this.post(`${this.root(workspaceSlug)}/meetings/${meetingId}/summary/`, payload));
   }
 
   listMeetingWorkItems(workspaceSlug: string, meetingId: string) {
@@ -216,8 +250,22 @@ export class SummonService extends APIService {
     return this.data<void>(this.delete(`${this.root(workspaceSlug)}/resources/${resourceId}/`));
   }
 
-  getReport(workspaceSlug: string) {
-    return this.data<ISummonReportSummary>(this.get(`${this.root(workspaceSlug)}/reports/summary/`));
+  private reportUrl(workspaceSlug: string, path: string, filters: ISummonReportFilters = {}) {
+    const params = new URLSearchParams();
+    if (filters.projectId) params.set("project_id", filters.projectId);
+    if (filters.clientId) params.set("client_id", filters.clientId);
+    if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+    if (filters.dateTo) params.set("date_to", filters.dateTo);
+    const query = params.toString();
+    return `${this.root(workspaceSlug)}/reports/${path}${query ? `?${query}` : ""}`;
+  }
+
+  getReport(workspaceSlug: string, filters?: ISummonReportFilters) {
+    return this.data<ISummonReportSummary>(this.get(this.reportUrl(workspaceSlug, "summary/", filters)));
+  }
+
+  getReportExportUrl(workspaceSlug: string, filters?: ISummonReportFilters) {
+    return this.reportUrl(workspaceSlug, "export.csv", filters);
   }
 
   listAutomationTemplates(workspaceSlug: string) {
@@ -250,12 +298,39 @@ export class SummonService extends APIService {
     return this.data<ISummonAutomationJob[]>(this.get(`${this.root(workspaceSlug)}/automation/jobs/`));
   }
 
-  runAutomation(workspaceSlug: string, payload: TPayload) {
+  generateAutomationPreview(workspaceSlug: string, payload: ISummonAutomationPreviewRequest) {
     return this.data<ISummonAutomationJob>(this.post(`${this.root(workspaceSlug)}/automation/jobs/`, payload));
   }
 
-  queryAssistant(workspaceSlug: string, payload: TPayload) {
-    return this.data<ISummonAssistantResponse>(this.post(`${this.root(workspaceSlug)}/assistant/query/`, payload));
+  publishAutomationJob(workspaceSlug: string, jobId: string) {
+    return this.data<ISummonAutomationJob>(
+      this.post(`${this.root(workspaceSlug)}/automation/jobs/${jobId}/publish/`, {})
+    );
+  }
+
+  listAssistantConversations(workspaceSlug: string) {
+    return this.data<ISummonAssistantConversation[]>(this.get(`${this.root(workspaceSlug)}/assistant/conversations/`));
+  }
+
+  createAssistantConversation(
+    workspaceSlug: string,
+    payload: Pick<ISummonAssistantConversation, "title" | "project" | "client">
+  ) {
+    return this.data<ISummonAssistantConversation>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/`, payload)
+    );
+  }
+
+  getAssistantConversation(workspaceSlug: string, conversationId: string) {
+    return this.data<ISummonAssistantConversation>(
+      this.get(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/`)
+    );
+  }
+
+  sendAssistantMessage(workspaceSlug: string, conversationId: string, payload: ISummonAssistantMessageRequest) {
+    return this.data<ISummonAssistantMessagePair>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/messages/`, payload)
+    );
   }
 
   listCredentials(workspaceSlug: string) {

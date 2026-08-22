@@ -8,10 +8,12 @@ from uuid import uuid4
 import pytest
 from cryptography.fernet import Fernet
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from plane.db.models import User, Workspace, WorkspaceMember
+from plane.license.models import Instance
 from plane.summon.models import Credential, CredentialAccessLog
 
 
@@ -30,6 +32,51 @@ def create_credential(api, workspace, secret="summon-secret-value"):
         },
         format="json",
     )
+
+
+@pytest.mark.django_db
+@mock.patch("plane.license.api.views.instance.get_llm_configuration_status")
+@mock.patch("plane.license.api.views.instance.get_configuration_value")
+def test_instance_ai_status_exposes_provider_and_model_without_key(
+    get_configuration_value, get_llm_configuration_status, api_client
+):
+    Instance.objects.create(
+        instance_name="Test Instance",
+        instance_id=uuid4().hex,
+        current_version="1.0.0",
+        domain="http://localhost:8000",
+        last_checked_at=timezone.now(),
+        is_setup_done=True,
+    )
+    get_configuration_value.return_value = (
+        "1",
+        "0",
+        "0",
+        "0",
+        "",
+        "0",
+        "0",
+        "",
+        "1",
+        "1",
+        None,
+        None,
+        None,
+        "",
+    )
+    get_llm_configuration_status.return_value = {
+        "configured": True,
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+    }
+
+    response = api_client.get("/api/instances/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["config"]["has_llm_configured"] is True
+    assert response.data["config"]["llm_provider"] == "openai"
+    assert response.data["config"]["llm_model"] == "gpt-4o-mini"
+    assert "never-return-this-key" not in str(response.data)
 
 
 @pytest.mark.django_db

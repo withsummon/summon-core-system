@@ -17,6 +17,12 @@ export type TSummonCredentialAccessAction =
   | "revoke"
   | "delete";
 
+export interface ISummonAIStatus {
+  configured: boolean;
+  provider: "openai" | "openai_compatible" | "anthropic" | "gemini" | null;
+  model: string | null;
+}
+
 export interface ISummonClient {
   id: string;
   name: string;
@@ -55,6 +61,25 @@ export interface ISummonOpportunity {
   updated_at: string;
 }
 
+export interface ISummonClientDetail extends ISummonClient {
+  contacts: ISummonClientContact[];
+  opportunities: ISummonOpportunity[];
+  projects: Array<{ id: string; identifier: string; name: string }>;
+  meetings: ISummonMeeting[];
+  page_contexts: ISummonPageContext[];
+  recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
+}
+
+export interface ISummonOpportunityDetail extends ISummonOpportunity {
+  client_detail: ISummonClient | null;
+  contacts: ISummonClientContact[];
+  project_profile: ISummonProjectProfile | null;
+  meetings: ISummonMeeting[];
+  page_contexts: ISummonPageContext[];
+  work_items: ISummonMeetingWorkItem[];
+  recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
+}
+
 export interface ISummonProjectProfile {
   id: string;
   project: string;
@@ -71,6 +96,27 @@ export interface ISummonIssueSnapshot {
   project: { id: string; identifier: string; name: string };
   state: { id: string; name: string; group: string } | null;
   completed: boolean;
+}
+
+export interface ISummonHomeSummary {
+  priority: ISummonIssueSnapshot[];
+  projects: Array<{ id: string; identifier: string; name: string; health: string; completion: number }>;
+  counts: { projects: number; issues: number; clients: number; opportunities: number };
+  recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
+  upcoming_meetings: ISummonMeeting[];
+  resources: ISummonResourceLink[];
+}
+
+export interface ISummonProjectOverview {
+  project: { id: string; identifier: string; name: string; description: string };
+  profile: ISummonProjectProfile | null;
+  progress: { total: number; completed: number; overdue: number; percentage: number };
+  milestones: Array<{ id: string; name: string; target_date: string | null; completion: number; href: string }>;
+  issues: ISummonIssueSnapshot[];
+  pages: Array<{ id: string; name: string; href: string }>;
+  meetings: ISummonMeeting[];
+  resources: ISummonResourceLink[];
+  activity: Array<{ id: string; label: string; created_at: string; href: string }>;
 }
 
 export interface ISummonMeetingWorkItem {
@@ -92,13 +138,34 @@ export interface ISummonMeeting {
   project: string | null;
   project_detail: { id: string; identifier: string; name: string } | null;
   recording_asset: string | null;
-  recording_asset_detail: { id: string; name: string } | null;
+  recording_asset_detail: { id: string; name: string; url: string | null } | null;
   transcript_asset: string | null;
-  transcript_asset_detail: { id: string; name: string } | null;
+  transcript_asset_detail: { id: string; name: string; url: string | null } | null;
+  transcript_text: string;
   summary_page: string | null;
-  summary_page_detail: { id: string; name: string } | null;
+  summary_page_detail: {
+    id: string;
+    name: string;
+    markdown: string;
+    summary: string;
+    decisions: string[];
+    action_suggestions: Array<{ title: string; details: string }>;
+    citations: ISummonAssistantCitation[];
+    context_truncated: boolean;
+    href: string;
+  } | null;
+  summary_error: "" | "transcript_required" | "project_required" | "project_access_revoked" | TSummonLLMErrorCode;
+  summary_provider: string;
+  summary_model: string;
+  summary_input_tokens: number | null;
+  summary_output_tokens: number | null;
   participants: Array<{ id: string; member: { id: string; display_name: string }; response: string }>;
   work_items: ISummonMeetingWorkItem[];
+}
+
+export interface ISummonMeetingSummaryRequest {
+  transcript_source?: "text" | "asset";
+  context: ISummonAssistantMessageRequest["context"];
 }
 
 export interface ISummonResourceLink {
@@ -144,7 +211,7 @@ export interface ISummonGeneratedArtifact {
   kind: string;
   page: string | null;
   file_asset: string | null;
-  page_detail: { id: string; name: string; markdown: string } | null;
+  page_detail: { id: string; name: string; markdown: string; href: string } | null;
 }
 
 export interface ISummonAutomationJob {
@@ -154,25 +221,103 @@ export interface ISummonAutomationJob {
   type: string;
   status: TSummonAutomationJobStatus;
   input: Record<string, unknown>;
+  preview_markdown: string;
+  provider: string;
+  model: string;
+  input_tokens: number | null;
+  output_tokens: number | null;
   error_summary: string;
+  published_at: string | null;
+  citations: ISummonAssistantCitation[];
+  context_truncated: boolean;
   artifacts: ISummonGeneratedArtifact[];
   created_at: string;
+}
+
+export interface ISummonAutomationPreviewRequest {
+  template: string;
+  project: string | null;
+  input: Record<string, unknown>;
+  context: ISummonAssistantMessageRequest["context"];
+}
+
+export interface ISummonReportFilters {
+  projectId?: string;
+  clientId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface ISummonReportSummary {
   projects: number;
   issues: { total: number; completed: number; overdue: number };
   commercial: { clients: number; opportunities: number; pipeline_value: string };
+  project_health: Array<{ project_id: string; name: string; health: string; completion: number }>;
+  opportunity_stages: Array<{ stage: TSummonOpportunityStage; count: number; value: string }>;
+  due_date_buckets: Array<{ label: string; count: number }>;
+  completion_trend: Array<{ date: string; completed: number }>;
   knowledge: { pages: number; files: number };
   meetings: number;
-  automation: { jobs: number; completed: number };
+  meeting_statuses: Array<{ status: ISummonMeeting["status"]; count: number }>;
+  meeting_trend: Array<{ date: string; count: number }>;
+  automation: { jobs: number; completed: number; failed: number };
+  automation_statuses: Array<{ status: TSummonAutomationJobStatus; count: number }>;
+  automation_usage: Array<{ date: string; count: number }>;
+  recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
 }
 
-export interface ISummonAssistantResponse {
-  intent: string;
-  answer: string;
-  data: unknown;
+export interface ISummonAssistantCitation {
+  id: string;
+  label: string;
+  href: string;
+  kind: "project" | "issue" | "page" | "client" | "meeting" | "resource";
 }
+
+export interface ISummonAssistantMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: ISummonAssistantCitation[];
+  provider: string;
+  model: string;
+  status: "completed" | "failed";
+  created_at: string;
+}
+
+export interface ISummonAssistantConversation {
+  id: string;
+  title: string;
+  project: string | null;
+  client: string | null;
+  last_activity_at: string;
+  messages?: ISummonAssistantMessage[];
+}
+
+export interface ISummonAssistantMessageRequest {
+  content: string;
+  context: {
+    workspace?: boolean;
+    project_id?: string;
+    client_id?: string;
+    meeting_id?: string;
+    page_ids?: string[];
+  };
+}
+
+export interface ISummonAssistantMessagePair {
+  user_message: ISummonAssistantMessage;
+  assistant_message: ISummonAssistantMessage;
+  context_truncated: boolean;
+}
+
+export type TSummonLLMErrorCode =
+  | "llm_not_configured"
+  | "llm_authentication_failed"
+  | "llm_rate_limited"
+  | "llm_timeout"
+  | "llm_provider_unavailable"
+  | "llm_invalid_response"
+  | "llm_context_too_large";
 
 export interface ISummonCredential {
   id: string;

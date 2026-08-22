@@ -5,41 +5,83 @@
  */
 
 import Link from "next/link";
-import { Bell, Database, PlugZap, ShieldCheck, Users } from "lucide-react";
+import { Bell, Bot, Briefcase, CircleUser, FolderCog, LockKeyhole, ShieldCheck } from "lucide-react";
+import { observer } from "mobx-react";
+import useSWR from "swr";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonScreen } from "@/components/summon/screen";
+import { useUserPermissions } from "@/hooks/store/user";
+import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
-export default function SummonSettingsPage({ params }: Route.ComponentProps) {
+const SummonSettingsPage = observer(function SummonSettingsPage({ params }: Route.ComponentProps) {
+  const { allowPermissions } = useUserPermissions();
+  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, params.workspaceSlug);
+  const {
+    data: aiStatus,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR(isAdmin ? ["summon-ai-status", params.workspaceSlug] : null, () =>
+    summonService.getAIStatus(params.workspaceSlug)
+  );
+
+  if (!isAdmin)
+    return (
+      <SummonScreen title="Settings" description="Summon configuration follows Plane workspace permissions.">
+        <SummonRequestState permissionError permissionMessage="Only workspace admins can view Summon settings." />
+      </SummonScreen>
+    );
+
+  const links = [
+    {
+      Icon: Briefcase,
+      title: "Workspace settings",
+      description: "Workspace details and membership policy.",
+      href: `/${params.workspaceSlug}/settings`,
+    },
+    {
+      Icon: CircleUser,
+      title: "Profile settings",
+      description: "Profile and personal preferences.",
+      href: "/settings/profile/general",
+    },
+    {
+      Icon: FolderCog,
+      title: "Project settings",
+      description: "Canonical Plane project configuration.",
+      href: `/${params.workspaceSlug}/settings/projects`,
+    },
+    {
+      Icon: LockKeyhole,
+      title: "Security",
+      description: "Password and account security controls.",
+      href: "/settings/profile/security",
+    },
+    {
+      Icon: Bell,
+      title: "Notification preferences",
+      description: "Personal notification delivery preferences.",
+      href: "/settings/profile/notifications",
+    },
+  ];
+
   return (
     <SummonScreen
       title="Settings"
-      description="Summon follows Plane workspace membership, project access, notifications, and file policies."
+      description="Summon follows Plane workspace membership, project access, notifications, and security policies."
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <SummonCard>
-          <h2 className="text-sm font-semibold text-primary">Workspace configuration</h2>
+          <h2 className="text-sm font-semibold text-primary">Canonical Plane settings</h2>
           <div className="mt-4 divide-y divide-subtle">
-            {[
-              {
-                Icon: Users,
-                title: "Members & roles",
-                description: "Manage workspace access once through Plane.",
-                href: `/${params.workspaceSlug}/settings/members`,
-              },
-              {
-                Icon: Bell,
-                title: "Notifications",
-                description: "Use Plane's notification preferences and delivery policies.",
-                href: `/${params.workspaceSlug}/notifications`,
-              },
-              {
-                Icon: PlugZap,
-                title: "Integrations",
-                description: "Manage connected services through the workspace integration settings.",
-                href: `/${params.workspaceSlug}/settings/integrations`,
-              },
-            ].map(({ Icon, title, description, href }) => (
-              <Link key={title} href={href} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
+            {links.map(({ Icon, title, description, href }) => (
+              <Link
+                key={title}
+                href={href}
+                className="flex items-center gap-3 py-4 first:pt-0 last:pb-0 focus-visible:outline focus-visible:outline-2"
+              >
                 <span className="grid size-9 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                   <Icon className="size-4" />
                 </span>
@@ -55,26 +97,51 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
         <div className="space-y-4">
           <SummonCard>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-accent-primary" />
-              <h2 className="text-sm font-semibold text-primary">Security</h2>
+              <Bot className="size-5 text-accent-primary" />
+              <h2 className="text-sm font-semibold text-primary">Instance AI</h2>
             </div>
-            <p className="text-sm mt-3 text-secondary">
-              Permissions follow active Plane workspace membership. Credential reveals and rotations require password
-              confirmation and remain audited.
-            </p>
+            {!aiStatus ? (
+              <div className="mt-3">
+                <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
+              </div>
+            ) : (
+              <dl className="text-xs mt-3 grid gap-2">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-secondary">Status</dt>
+                  <dd className="font-medium text-primary">{aiStatus.configured ? "Configured" : "Not configured"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-secondary">Provider</dt>
+                  <dd className="font-medium text-primary">{aiStatus.provider || "Not configured"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-secondary">Model</dt>
+                  <dd className="font-medium text-primary">{aiStatus.model || "Not configured"}</dd>
+                </div>
+              </dl>
+            )}
+            <p className="text-xs mt-3 text-secondary">Only an instance administrator can change this configuration.</p>
           </SummonCard>
           <SummonCard>
             <div className="flex items-center gap-2">
-              <Database className="size-5 text-accent-primary" />
-              <h2 className="text-sm font-semibold text-primary">Canonical ownership</h2>
+              <ShieldCheck className="size-5 text-accent-primary" />
+              <h2 className="text-sm font-semibold text-primary">Credential policy</h2>
             </div>
             <p className="text-sm mt-3 text-secondary">
-              Plane owns users, projects, work items, pages, assets, and notifications. Summon owns CRM, meeting
-              context, external links, automation metadata, and encrypted credentials.
+              Secrets stay encrypted and masked. Reveal, rotation, and revocation require password confirmation and
+              remain audited.
             </p>
+            <Link
+              href={`/${params.workspaceSlug}/summon/credentials`}
+              className="text-xs mt-3 inline-block font-medium text-accent-primary focus-visible:outline focus-visible:outline-2"
+            >
+              Open Credential Vault →
+            </Link>
           </SummonCard>
         </div>
       </div>
     </SummonScreen>
   );
-}
+});
+
+export default SummonSettingsPage;

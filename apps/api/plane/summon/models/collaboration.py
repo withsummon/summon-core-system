@@ -47,6 +47,11 @@ class Meeting(BaseModel):
         on_delete=models.SET_NULL,
         related_name="summon_meeting_summaries",
     )
+    summary_error = models.CharField(max_length=80, blank=True)
+    summary_provider = models.CharField(max_length=40, blank=True)
+    summary_model = models.CharField(max_length=120, blank=True)
+    summary_input_tokens = models.PositiveIntegerField(null=True, blank=True)
+    summary_output_tokens = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ("-starts_at",)

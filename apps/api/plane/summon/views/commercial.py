@@ -13,7 +13,9 @@ from plane.summon.models import Client, ClientContact, Opportunity, SummonProjec
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers import (
     ClientContactSerializer,
+    ClientDetailSerializer,
     ClientSerializer,
+    OpportunityDetailSerializer,
     OpportunitySerializer,
     OpportunityTransitionSerializer,
     SummonProjectProfileSerializer,
@@ -46,6 +48,9 @@ class ClientViewSet(WorkspaceContextMixin, BaseViewSet):
 
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
+
+    def get_serializer_class(self):
+        return ClientDetailSerializer if self.action == "retrieve" else ClientSerializer
 
 
 class ClientContactViewSet(WorkspaceContextMixin, BaseViewSet):
@@ -89,6 +94,9 @@ class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
 
+    def get_serializer_class(self):
+        return OpportunityDetailSerializer if self.action == "retrieve" else OpportunitySerializer
+
 
 class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
     permission_classes = [SummonWorkspacePermission]
@@ -104,7 +112,7 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
         serializer.is_valid(raise_exception=True)
         transition_opportunity(opportunity, actor=request.user, **serializer.validated_data)
         return Response(
-            OpportunitySerializer(opportunity, context={"workspace": opportunity.workspace}).data,
+            OpportunityDetailSerializer(opportunity, context=self.get_serializer_context()).data,
             status=status.HTTP_200_OK,
         )
 

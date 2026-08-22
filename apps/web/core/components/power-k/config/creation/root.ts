@@ -20,5 +20,9 @@ export const usePowerKCreationCommands = (): TPowerKCommandConfig[] => {
     optionsList["create_module"],
     optionsList["create_project"],
     optionsList["create_workspace"],
+    optionsList["create_summon_client"],
+    optionsList["create_summon_opportunity"],
+    optionsList["create_summon_meeting"],
+    optionsList["open_summon_automation"],
   ];
 };

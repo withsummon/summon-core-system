@@ -10,6 +10,7 @@ from plane.license.api.views import (
     InstanceAdminSignInEndpoint,
     InstanceAdminSignUpEndpoint,
     InstanceConfigurationEndpoint,
+    LLMConnectionTestEndpoint,
     DisableEmailFeatureEndpoint,
     InstanceEndpoint,
     SignUpScreenVisitedEndpoint,
@@ -39,6 +40,11 @@ urlpatterns = [
         "configurations/",
         InstanceConfigurationEndpoint.as_view(),
         name="instance-configuration",
+    ),
+    path(
+        "configurations/test-llm/",
+        LLMConnectionTestEndpoint.as_view(),
+        name="test-llm-configuration",
     ),
     path(
         "configurations/disable-email-feature/",

@@ -9,6 +9,7 @@ import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 
@@ -26,7 +27,12 @@ export function CredentialDrawer(props: {
   const [permission, setPermission] = useState("view");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { data, mutate } = useSWR(
+  const {
+    data,
+    error: accessError,
+    isLoading: accessLoading,
+    mutate,
+  } = useSWR(
     credential ? ["summon-credential-access", workspaceSlug, credential.id] : null,
     async () => {
       const [grants, audit] = await Promise.all([
@@ -42,6 +48,7 @@ export function CredentialDrawer(props: {
     setPassword("");
     setRevealedSecret("");
     setNewSecret("");
+    setMember("");
     setError("");
   }, [credential?.id]);
 
@@ -100,10 +107,35 @@ export function CredentialDrawer(props: {
       setLoading(false);
     }
   };
+  const revokeGrant = async (grantId: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      await summonService.revokeCredentialGrant(workspaceSlug, credential.id, grantId);
+      await mutate();
+    } catch (requestError) {
+      setError(summonErrorMessage(requestError));
+    } finally {
+      setLoading(false);
+    }
+  };
   const close = () => {
     setRevealedSecret("");
     setPassword("");
     onClose();
+  };
+  const revokeCredential = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await summonService.deleteCredential(workspaceSlug, credential.id, password);
+      close();
+      onChanged();
+    } catch (requestError) {
+      setError(summonErrorMessage(requestError));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,7 +169,7 @@ export function CredentialDrawer(props: {
               autoComplete="current-password"
             />
           </SummonField>
-          <Button onClick={reveal} loading={loading} disabled={!password}>
+          <Button onClick={reveal} loading={loading} disabled={loading || !password}>
             Reveal once
           </Button>
           <output className="font-mono text-sm min-h-10 rounded bg-layer-2 p-3 break-all text-primary">
@@ -154,7 +186,12 @@ export function CredentialDrawer(props: {
               autoComplete="new-password"
             />
           </SummonField>
-          <Button variant="neutral-primary" onClick={rotate} loading={loading} disabled={!password || !newSecret}>
+          <Button
+            variant="neutral-primary"
+            onClick={rotate}
+            loading={loading}
+            disabled={loading || !password || !newSecret}
+          >
             Rotate
           </Button>
         </div>
@@ -170,27 +207,22 @@ export function CredentialDrawer(props: {
               <option value="manage">Manage</option>
             </SummonSelect>
           </SummonField>
-          <Button variant="neutral-primary" onClick={grant} loading={loading} disabled={!member}>
+          <Button variant="neutral-primary" onClick={grant} loading={loading} disabled={loading || !member}>
             Grant
           </Button>
+          <SummonRequestState loading={accessLoading} error={accessError} onRetry={() => void mutate()} />
           <div className="space-y-2">
             {data?.grants.map((item) => (
               <div key={item.id} className="text-xs flex items-center justify-between gap-2">
                 <span className="truncate text-secondary">
                   {item.member} · {item.permission}
                 </span>
-                <Button
-                  variant="link-neutral"
-                  size="sm"
-                  onClick={async () => {
-                    await summonService.revokeCredentialGrant(workspaceSlug, credential.id, item.id);
-                    await mutate();
-                  }}
-                >
+                <Button variant="link-neutral" size="sm" disabled={loading} onClick={() => void revokeGrant(item.id)}>
                   Revoke
                 </Button>
               </div>
             ))}
+            {!accessLoading && !data?.grants.length ? <p className="text-xs text-tertiary">No active grants.</p> : null}
           </div>
         </div>
         <div className="mt-4 rounded-lg border border-subtle p-4">
@@ -202,7 +234,23 @@ export function CredentialDrawer(props: {
                 {new Date(item.created_at).toLocaleString()}
               </div>
             ))}
+            {!accessLoading && !data?.audit.length ? <p className="text-xs text-tertiary">No audit events.</p> : null}
           </div>
+        </div>
+        <div className="mt-4 rounded-lg border border-danger-subtle bg-danger-subtle/10 p-4">
+          <h3 className="text-sm font-semibold text-danger-primary">Revoke credential</h3>
+          <p className="text-xs mt-1 text-secondary">
+            Current password confirmation is required and the action is audited.
+          </p>
+          <Button
+            className="mt-3"
+            variant="danger"
+            onClick={revokeCredential}
+            loading={loading}
+            disabled={loading || !password}
+          >
+            Revoke credential
+          </Button>
         </div>
       </aside>
     </div>

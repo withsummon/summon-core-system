@@ -5,8 +5,11 @@
 from django.urls import path
 
 from plane.summon.views import (
+    AssistantConversationViewSet,
+    AssistantMessageView,
     AssistantQueryView,
     AutomationJobView,
+    AutomationPublishView,
     AutomationTemplateViewSet,
     ClientContactViewSet,
     ClientViewSet,
@@ -16,11 +19,16 @@ from plane.summon.views import (
     CredentialRevealView,
     CredentialRotateView,
     CredentialViewSet,
+    HomeSummaryView,
+    LLMStatusView,
+    MeetingSummaryView,
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
     OpportunityTransitionView,
     OpportunityViewSet,
+    ProjectOverviewView,
+    ReportExportView,
     ResourceLinkViewSet,
     ReportSummaryView,
     SummonPageContextViewSet,
@@ -48,8 +56,33 @@ automation_template_detail = AutomationTemplateViewSet.as_view(
 )
 credential_list = CredentialViewSet.as_view({"get": "list", "post": "create"})
 credential_detail = CredentialViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+assistant_conversation_list = AssistantConversationViewSet.as_view({"get": "list", "post": "create"})
+assistant_conversation_detail = AssistantConversationViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/assistant/conversations/",
+        assistant_conversation_list,
+        name="summon-assistant-conversation-list",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:pk>/",
+        assistant_conversation_detail,
+        name="summon-assistant-conversation-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/messages/",
+        AssistantMessageView.as_view(),
+        name="summon-assistant-message-list",
+    ),
+    path("workspaces/<str:slug>/home/summary/", HomeSummaryView.as_view(), name="summon-home-summary"),
+    path(
+        "workspaces/<str:slug>/settings/ai-status/",
+        LLMStatusView.as_view(),
+        name="summon-ai-status",
+    ),
     path("workspaces/<str:slug>/clients/", client_list, name="summon-client-list"),
     path("workspaces/<str:slug>/clients/<uuid:pk>/", client_detail, name="summon-client-detail"),
     path(
@@ -78,8 +111,18 @@ urlpatterns = [
         SummonProjectProfileView.as_view(),
         name="summon-project-profile",
     ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/overview/",
+        ProjectOverviewView.as_view(),
+        name="summon-project-overview",
+    ),
     path("workspaces/<str:slug>/meetings/", meeting_list, name="summon-meeting-list"),
     path("workspaces/<str:slug>/meetings/<uuid:pk>/", meeting_detail, name="summon-meeting-detail"),
+    path(
+        "workspaces/<str:slug>/meetings/<uuid:meeting_id>/summary/",
+        MeetingSummaryView.as_view(),
+        name="summon-meeting-summary",
+    ),
     path(
         "workspaces/<str:slug>/meetings/<uuid:meeting_id>/work-items/",
         MeetingWorkItemView.as_view(),
@@ -114,9 +157,19 @@ urlpatterns = [
         name="summon-automation-job-list",
     ),
     path(
+        "workspaces/<str:slug>/automation/jobs/<uuid:job_id>/publish/",
+        AutomationPublishView.as_view(),
+        name="summon-automation-job-publish",
+    ),
+    path(
         "workspaces/<str:slug>/reports/summary/",
         ReportSummaryView.as_view(),
         name="summon-report-summary",
+    ),
+    path(
+        "workspaces/<str:slug>/reports/export.csv",
+        ReportExportView.as_view(),
+        name="summon-report-export",
     ),
     path(
         "workspaces/<str:slug>/assistant/query/",

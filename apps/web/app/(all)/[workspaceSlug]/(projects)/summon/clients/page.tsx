@@ -7,15 +7,10 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { Button, Input, TextArea } from "@plane/ui";
+import Link from "next/link";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import {
-  SummonCard,
-  SummonMetric,
-  SummonRecordList,
-  SummonScreen,
-  summonErrorMessage,
-} from "@/components/summon/screen";
+import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
@@ -24,12 +19,16 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [query, setQuery] = useState("");
   const {
     data = [],
     error,
     isLoading,
     mutate,
   } = useSWR(["summon-clients", params.workspaceSlug], () => summonService.listClients(params.workspaceSlug));
+  const clients = data.filter((item) =>
+    `${item.name} ${item.industry} ${item.description}`.toLowerCase().includes(query.trim().toLowerCase())
+  );
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -70,19 +69,41 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
           <SummonRequestState
             loading={isLoading}
             error={error}
-            empty={!isLoading && data.length === 0}
+            empty={!isLoading && clients.length === 0}
             onRetry={() => void mutate()}
-            emptyMessage="No clients yet. Add the first commercial account."
+            emptyMessage={
+              data.length ? "No clients match this search." : "No clients yet. Add the first commercial account."
+            }
           />
-          {data.length ? (
-            <SummonRecordList
-              records={data.map((item) => ({
-                id: item.id,
-                title: item.name,
-                detail: [item.industry, item.description || item.website].filter(Boolean).join(" · "),
-                badge: item.status,
-              }))}
+          <SummonCard>
+            <Input
+              aria-label="Search clients"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search clients"
             />
+          </SummonCard>
+          {clients.length ? (
+            <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+              {clients.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/${params.workspaceSlug}/summon/clients/${item.id}/`}
+                  className="flex items-center justify-between gap-3 px-3.5 py-3 hover:bg-layer-1 focus-visible:outline focus-visible:outline-2"
+                >
+                  <span className="min-w-0">
+                    <span className="text-sm block truncate font-medium text-primary">{item.name}</span>
+                    <span className="text-xs mt-1 block truncate text-secondary">
+                      {[item.industry, item.description || item.website].filter(Boolean).join(" · ") ||
+                        "Commercial account"}
+                    </span>
+                  </span>
+                  <span className="rounded-full bg-layer-2 px-2 py-1 text-[11px] font-medium text-secondary">
+                    {item.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
           ) : null}
         </div>
         <SummonCard>

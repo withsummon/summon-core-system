@@ -6,6 +6,10 @@
 
 import type { ReactNode } from "react";
 
+export function SummonFilterRow({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-2">{children}</div>;
+}
+
 export function SummonField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="text-xs flex min-w-0 flex-col gap-1.5 font-medium text-secondary">

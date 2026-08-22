@@ -12,6 +12,7 @@ import type {
   IInstanceAdmin,
   IInstanceConfiguration,
   IInstanceInfo,
+  TLLMConnectionTestResult,
   TPage,
 } from "@plane/types";
 // api service
@@ -108,6 +109,14 @@ export class InstanceService extends APIService {
   async updateConfigurations(data: Partial<IFormattedInstanceConfiguration>): Promise<IInstanceConfiguration[]> {
     return this.patch("/api/instances/configurations/", data)
       .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async testLLMConnection(): Promise<TLLMConnectionTestResult> {
+    return this.post("/api/instances/configurations/test-llm/")
+      .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
       });

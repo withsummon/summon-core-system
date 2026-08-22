@@ -10,6 +10,8 @@ from django.utils import timezone
 
 
 EXPECTED_MODELS = {
+    "AssistantConversation",
+    "AssistantMessage",
     "AutomationJob",
     "AutomationTemplate",
     "Client",

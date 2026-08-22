@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
+from plane.app.services.llm import LLMError
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Issue, Page, ProjectMember
 from plane.summon.models import Meeting, MeetingWorkItem, ResourceLink, SummonPageContext
@@ -18,7 +19,9 @@ from plane.summon.serializers.collaboration import (
     ResourceLinkSerializer,
     SummonPageContextSerializer,
 )
+from plane.summon.serializers.operations import MeetingSummaryRequestSerializer
 from plane.summon.services.collaboration import link_work_item
+from plane.summon.services.meeting_summary import summarize_meeting
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
@@ -97,6 +100,48 @@ class MeetingWorkItemView(WorkspaceContextMixin, BaseAPIView):
         )
         item = link_work_item(meeting, issue, request.user)
         return Response(MeetingWorkItemSerializer(item).data, status=status.HTTP_201_CREATED)
+
+
+class MeetingSummaryView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def get_meeting(self):
+        return get_object_or_404(
+            Meeting.objects.filter(
+                workspace__slug=self.kwargs["slug"],
+                workspace__deleted_at__isnull=True,
+            ).filter(
+                Q(project__isnull=True)
+                | Q(project_id__in=accessible_project_ids(self.request, self.kwargs["slug"], write=True))
+            ),
+            id=self.kwargs["meeting_id"],
+        )
+
+    def post(self, request, slug, meeting_id):
+        serializer = MeetingSummaryRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        meeting = self.get_meeting()
+        if not meeting.project_id:
+            return Response(
+                {
+                    "error_code": "project_required",
+                    "project": "Link an authorized Plane Project before generating a summary.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            meeting = summarize_meeting(
+                meeting,
+                request.user,
+                serializer.validated_data["context"],
+                serializer.validated_data.get("transcript_source"),
+            )
+        except LLMError as error:
+            meeting.refresh_from_db()
+            data = dict(MeetingSerializer(meeting, context=self.get_serializer_context()).data)
+            data["error_code"] = error.code
+            return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(MeetingSerializer(meeting, context=self.get_serializer_context()).data)
 
 
 class MeetingWorkItemDetailView(MeetingWorkItemView):
