@@ -22,6 +22,14 @@ from .operations import (
     AutomationTemplateViewSet,
     ReportSummaryView,
 )
+from .credential import (
+    CredentialAuditView,
+    CredentialGrantDetailView,
+    CredentialGrantView,
+    CredentialRevealView,
+    CredentialRotateView,
+    CredentialViewSet,
+)
 
 __all__ = [
     "ClientContactViewSet",
@@ -38,4 +46,10 @@ __all__ = [
     "AutomationJobView",
     "AutomationTemplateViewSet",
     "ReportSummaryView",
+    "CredentialAuditView",
+    "CredentialGrantDetailView",
+    "CredentialGrantView",
+    "CredentialRevealView",
+    "CredentialRotateView",
+    "CredentialViewSet",
 ]

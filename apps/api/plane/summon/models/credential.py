@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from django.db import models
+from django.core.exceptions import ValidationError
 
 from plane.db.models import BaseModel
 
@@ -67,3 +68,11 @@ class CredentialAccessLog(BaseModel):
 
     class Meta:
         ordering = ("-created_at",)
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Credential access logs are immutable.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Credential access logs are immutable.")

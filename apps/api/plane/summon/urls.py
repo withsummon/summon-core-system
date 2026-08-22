@@ -10,6 +10,12 @@ from plane.summon.views import (
     AutomationTemplateViewSet,
     ClientContactViewSet,
     ClientViewSet,
+    CredentialAuditView,
+    CredentialGrantDetailView,
+    CredentialGrantView,
+    CredentialRevealView,
+    CredentialRotateView,
+    CredentialViewSet,
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
@@ -40,6 +46,8 @@ automation_template_list = AutomationTemplateViewSet.as_view({"get": "list", "po
 automation_template_detail = AutomationTemplateViewSet.as_view(
     {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
 )
+credential_list = CredentialViewSet.as_view({"get": "list", "post": "create"})
+credential_detail = CredentialViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
 
 urlpatterns = [
     path("workspaces/<str:slug>/clients/", client_list, name="summon-client-list"),
@@ -114,5 +122,36 @@ urlpatterns = [
         "workspaces/<str:slug>/assistant/query/",
         AssistantQueryView.as_view(),
         name="summon-assistant-query",
+    ),
+    path("workspaces/<str:slug>/credentials/", credential_list, name="summon-credential-list"),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:pk>/",
+        credential_detail,
+        name="summon-credential-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:credential_id>/reveal/",
+        CredentialRevealView.as_view(),
+        name="summon-credential-reveal",
+    ),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:credential_id>/rotate/",
+        CredentialRotateView.as_view(),
+        name="summon-credential-rotate",
+    ),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/",
+        CredentialGrantView.as_view(),
+        name="summon-credential-grant-list",
+    ),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/<uuid:pk>/",
+        CredentialGrantDetailView.as_view(),
+        name="summon-credential-grant-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/credentials/<uuid:credential_id>/audit/",
+        CredentialAuditView.as_view(),
+        name="summon-credential-audit",
     ),
 ]

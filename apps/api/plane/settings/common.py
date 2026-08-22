@@ -30,6 +30,21 @@ _logger = logging.getLogger("plane")
 # Secret Key — use `or` so an explicitly empty env var is treated the same as unset,
 # falling back to a random key rather than passing "" to Django (GHSA-cmwv-pjmw-8483).
 SECRET_KEY = os.environ.get("SECRET_KEY") or get_random_secret_key()
+SUMMON_CREDENTIAL_KEY = os.environ.get("SUMMON_CREDENTIAL_KEY")
+
+
+def validate_summon_credential_key():
+    from cryptography.fernet import Fernet
+    from django.core.exceptions import ImproperlyConfigured
+
+    if not SUMMON_CREDENTIAL_KEY:
+        raise ImproperlyConfigured("SUMMON_CREDENTIAL_KEY is required in production.")
+    try:
+        Fernet(SUMMON_CREDENTIAL_KEY.encode())
+    except (TypeError, ValueError) as exc:
+        raise ImproperlyConfigured("SUMMON_CREDENTIAL_KEY must be a valid Fernet key.") from exc
+
+
 # Refuse to run silently with a publicly-known or placeholder SECRET_KEY
 # (GHSA-cmwv-pjmw-8483). Emit a critical log so operators notice immediately.
 # The `or get_random_secret_key()` above means the only way to reach this branch

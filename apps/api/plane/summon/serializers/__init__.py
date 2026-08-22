@@ -22,6 +22,13 @@ from .operations import (
     AutomationTemplateSerializer,
     GeneratedArtifactSerializer,
 )
+from .credential import (
+    CredentialAccessLogSerializer,
+    CredentialGrantSerializer,
+    CredentialRevealSerializer,
+    CredentialRotateSerializer,
+    CredentialSerializer,
+)
 
 __all__ = [
     "ClientContactSerializer",
@@ -38,4 +45,9 @@ __all__ = [
     "AutomationRunSerializer",
     "AutomationTemplateSerializer",
     "GeneratedArtifactSerializer",
+    "CredentialAccessLogSerializer",
+    "CredentialGrantSerializer",
+    "CredentialRevealSerializer",
+    "CredentialRotateSerializer",
+    "CredentialSerializer",
 ]
