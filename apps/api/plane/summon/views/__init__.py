@@ -9,6 +9,13 @@ from .commercial import (
     OpportunityViewSet,
     SummonProjectProfileView,
 )
+from .collaboration import (
+    MeetingViewSet,
+    MeetingWorkItemDetailView,
+    MeetingWorkItemView,
+    ResourceLinkViewSet,
+    SummonPageContextViewSet,
+)
 
 __all__ = [
     "ClientContactViewSet",
@@ -16,4 +23,9 @@ __all__ = [
     "OpportunityTransitionView",
     "OpportunityViewSet",
     "SummonProjectProfileView",
+    "MeetingViewSet",
+    "MeetingWorkItemDetailView",
+    "MeetingWorkItemView",
+    "ResourceLinkViewSet",
+    "SummonPageContextViewSet",
 ]

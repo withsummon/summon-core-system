@@ -9,6 +9,12 @@ from .commercial import (
     OpportunityTransitionSerializer,
     SummonProjectProfileSerializer,
 )
+from .collaboration import (
+    MeetingSerializer,
+    MeetingWorkItemSerializer,
+    ResourceLinkSerializer,
+    SummonPageContextSerializer,
+)
 
 __all__ = [
     "ClientContactSerializer",
@@ -16,4 +22,8 @@ __all__ = [
     "OpportunitySerializer",
     "OpportunityTransitionSerializer",
     "SummonProjectProfileSerializer",
+    "MeetingSerializer",
+    "MeetingWorkItemSerializer",
+    "ResourceLinkSerializer",
+    "SummonPageContextSerializer",
 ]

@@ -7,8 +7,13 @@ from django.urls import path
 from plane.summon.views import (
     ClientContactViewSet,
     ClientViewSet,
+    MeetingViewSet,
+    MeetingWorkItemDetailView,
+    MeetingWorkItemView,
     OpportunityTransitionView,
     OpportunityViewSet,
+    ResourceLinkViewSet,
+    SummonPageContextViewSet,
     SummonProjectProfileView,
 )
 
@@ -19,6 +24,14 @@ contact_list = ClientContactViewSet.as_view({"get": "list", "post": "create"})
 contact_detail = ClientContactViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
 opportunity_list = OpportunityViewSet.as_view({"get": "list", "post": "create"})
 opportunity_detail = OpportunityViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+meeting_list = MeetingViewSet.as_view({"get": "list", "post": "create"})
+meeting_detail = MeetingViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+page_context_list = SummonPageContextViewSet.as_view({"get": "list", "post": "create"})
+page_context_detail = SummonPageContextViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
+resource_list = ResourceLinkViewSet.as_view({"get": "list", "post": "create"})
+resource_detail = ResourceLinkViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
 
 urlpatterns = [
     path("workspaces/<str:slug>/clients/", client_list, name="summon-client-list"),
@@ -49,4 +62,24 @@ urlpatterns = [
         SummonProjectProfileView.as_view(),
         name="summon-project-profile",
     ),
+    path("workspaces/<str:slug>/meetings/", meeting_list, name="summon-meeting-list"),
+    path("workspaces/<str:slug>/meetings/<uuid:pk>/", meeting_detail, name="summon-meeting-detail"),
+    path(
+        "workspaces/<str:slug>/meetings/<uuid:meeting_id>/work-items/",
+        MeetingWorkItemView.as_view(),
+        name="summon-meeting-work-item-list",
+    ),
+    path(
+        "workspaces/<str:slug>/meetings/<uuid:meeting_id>/work-items/<uuid:pk>/",
+        MeetingWorkItemDetailView.as_view(),
+        name="summon-meeting-work-item-detail",
+    ),
+    path("workspaces/<str:slug>/page-contexts/", page_context_list, name="summon-page-context-list"),
+    path(
+        "workspaces/<str:slug>/page-contexts/<uuid:pk>/",
+        page_context_detail,
+        name="summon-page-context-detail",
+    ),
+    path("workspaces/<str:slug>/resources/", resource_list, name="summon-resource-list"),
+    path("workspaces/<str:slug>/resources/<uuid:pk>/", resource_detail, name="summon-resource-detail"),
 ]
