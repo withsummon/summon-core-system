@@ -6,7 +6,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.api.views.base import BaseAPIView, BaseViewSet
+from plane.app.permissions import ProjectEntityPermission
+from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Project, Workspace
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
 from plane.summon.permissions import SummonWorkspacePermission
@@ -22,12 +23,15 @@ from plane.summon.services.commercial import transition_opportunity
 
 class WorkspaceContextMixin:
     def get_workspace(self):
-        return get_object_or_404(Workspace, slug=self.kwargs["slug"])
+        return get_object_or_404(Workspace, slug=self.kwargs["slug"], deleted_at__isnull=True)
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["workspace"] = self.get_workspace()
-        return context
+        return {
+            "request": self.request,
+            "format": self.format_kwarg,
+            "view": self,
+            "workspace": self.get_workspace(),
+        }
 
 
 class ClientViewSet(WorkspaceContextMixin, BaseViewSet):
@@ -36,7 +40,9 @@ class ClientViewSet(WorkspaceContextMixin, BaseViewSet):
     permission_classes = [SummonWorkspacePermission]
 
     def get_queryset(self):
-        return Client.objects.filter(workspace__slug=self.kwargs["slug"]).order_by("name")
+        return Client.objects.filter(workspace__slug=self.kwargs["slug"], workspace__deleted_at__isnull=True).order_by(
+            "name"
+        )
 
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
@@ -52,11 +58,13 @@ class ClientContactViewSet(WorkspaceContextMixin, BaseViewSet):
             Client,
             id=self.kwargs["client_id"],
             workspace__slug=self.kwargs["slug"],
+            workspace__deleted_at__isnull=True,
         )
 
     def get_queryset(self):
         return ClientContact.objects.filter(
             workspace__slug=self.kwargs["slug"],
+            workspace__deleted_at__isnull=True,
             client=self.get_client(),
         ).order_by("name")
 
@@ -74,7 +82,9 @@ class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
     permission_classes = [SummonWorkspacePermission]
 
     def get_queryset(self):
-        return Opportunity.objects.filter(workspace__slug=self.kwargs["slug"]).order_by("-created_at")
+        return Opportunity.objects.filter(
+            workspace__slug=self.kwargs["slug"], workspace__deleted_at__isnull=True
+        ).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
@@ -84,7 +94,12 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def post(self, request, slug, pk):
-        opportunity = get_object_or_404(Opportunity, id=pk, workspace__slug=slug)
+        opportunity = get_object_or_404(
+            Opportunity,
+            id=pk,
+            workspace__slug=slug,
+            workspace__deleted_at__isnull=True,
+        )
         serializer = OpportunityTransitionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         transition_opportunity(opportunity, actor=request.user, **serializer.validated_data)
@@ -95,13 +110,14 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
 
 
 class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [SummonWorkspacePermission, ProjectEntityPermission]
 
     def get_project(self):
         return get_object_or_404(
             Project,
             id=self.kwargs["project_id"],
             workspace__slug=self.kwargs["slug"],
+            workspace__deleted_at__isnull=True,
         )
 
     def get_profile(self):
@@ -109,6 +125,7 @@ class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
             SummonProjectProfile,
             project=self.get_project(),
             workspace__slug=self.kwargs["slug"],
+            workspace__deleted_at__isnull=True,
         )
 
     def get(self, request, slug, project_id):

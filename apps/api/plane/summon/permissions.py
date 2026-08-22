@@ -15,6 +15,7 @@ class SummonWorkspacePermission(BasePermission):
         roles = [20, 15, 5] if request.method in SAFE_METHODS else [20, 15]
         return WorkspaceMember.objects.filter(
             workspace__slug=view.kwargs.get("slug"),
+            workspace__deleted_at__isnull=True,
             member=request.user,
             role__in=roles,
             is_active=True,

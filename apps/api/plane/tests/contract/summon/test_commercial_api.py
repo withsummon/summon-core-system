@@ -5,10 +5,11 @@
 from uuid import uuid4
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.db.models import APIToken, Project, User, Workspace, WorkspaceMember
+from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
 
 
@@ -20,9 +21,8 @@ def authenticated_user(workspace=None, role=None):
     )
     if workspace is not None:
         WorkspaceMember.objects.create(workspace=workspace, member=user, role=role)
-    token = APIToken.objects.create(user=user)
     client = APIClient()
-    client.credentials(HTTP_X_API_KEY=token.token)
+    client.force_login(user)
     return user, client
 
 
@@ -181,8 +181,9 @@ def test_transition_cannot_target_another_workspace_opportunity(workspace):
 
 @pytest.mark.django_db
 def test_conversion_links_existing_project_without_creating_project(workspace):
-    _, client = authenticated_user(workspace, 20)
+    actor, client = authenticated_user(workspace, 20)
     project = Project.objects.create(workspace=workspace, name="Delivery", identifier="DEL")
+    ProjectMember.objects.create(workspace=workspace, project=project, member=actor, role=20)
     opportunity = Opportunity.objects.create(workspace=workspace, title="Won deal", stage="won")
     project_count = Project.objects.count()
     url = f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/"
@@ -206,8 +207,9 @@ def test_conversion_links_existing_project_without_creating_project(workspace):
 
 @pytest.mark.django_db
 def test_project_profile_rejects_cross_workspace_references(workspace):
-    _, client = authenticated_user(workspace, 20)
+    actor, client = authenticated_user(workspace, 20)
     project = Project.objects.create(workspace=workspace, name="Scoped delivery", identifier="SCP")
+    ProjectMember.objects.create(workspace=workspace, project=project, member=actor, role=20)
     other_owner, _ = authenticated_user()
     other_workspace = create_workspace(other_owner, "other-profile")
     other_project = Project.objects.create(workspace=other_workspace, name="Other delivery", identifier="OTH")
@@ -220,7 +222,7 @@ def test_project_profile_rejects_cross_workspace_references(workspace):
         {},
         format="json",
     )
-    assert wrong_project.status_code == status.HTTP_404_NOT_FOUND
+    assert wrong_project.status_code == status.HTTP_403_FORBIDDEN
 
     response = client.post(
         f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/",
@@ -234,3 +236,64 @@ def test_project_profile_rejects_cross_workspace_references(workspace):
     assert {"client", "source_opportunity"}.issubset(response.data)
     assert Project.objects.count() == project_count
     assert not SummonProjectProfile.objects.exists()
+
+
+@pytest.mark.django_db
+def test_project_profile_requires_active_project_membership(workspace):
+    actor, client = authenticated_user(workspace, 20)
+    project = Project.objects.create(workspace=workspace, name="Private delivery", identifier="PRV")
+    url = f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/"
+
+    assert client.post(url, {}, format="json").status_code == status.HTTP_403_FORBIDDEN
+
+    membership = ProjectMember.objects.create(
+        workspace=workspace,
+        project=project,
+        member=actor,
+        role=20,
+    )
+    assert client.post(url, {}, format="json").status_code == status.HTTP_201_CREATED
+
+    membership.is_active = False
+    membership.save(update_fields=["is_active"])
+    assert client.get(url).status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_deleted_workspace_cannot_use_commercial_api(workspace):
+    _, client = authenticated_user(workspace, 20)
+    opportunity = Opportunity.objects.create(workspace=workspace, title="Closing workspace")
+    Workspace.objects.filter(pk=workspace.pk).update(deleted_at=timezone.now())
+
+    list_url = f"/api/summon/workspaces/{workspace.slug}/clients/"
+    transition_url = f"/api/summon/workspaces/{workspace.slug}/opportunities/{opportunity.id}/transitions/"
+    assert client.get(list_url).status_code == status.HTTP_403_FORBIDDEN
+    assert client.post(transition_url, {"stage": "won"}, format="json").status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_partial_update_revalidates_existing_references(workspace):
+    _, client = authenticated_user(workspace, 15)
+    owner, _ = authenticated_user(workspace, 15)
+    account = Client.objects.create(workspace=workspace, name="Acme", owner=owner)
+    opportunity = Opportunity.objects.create(workspace=workspace, title="Acme deal", client=account)
+
+    owner_membership = WorkspaceMember.objects.get(workspace=workspace, member=owner)
+    owner_membership.is_active = False
+    owner_membership.save(update_fields=["is_active"])
+    client_response = client.patch(
+        f"/api/summon/workspaces/{workspace.slug}/clients/{account.id}/",
+        {"description": "Updated"},
+        format="json",
+    )
+    assert client_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "owner" in client_response.data
+
+    Client.objects.filter(pk=account.pk).update(deleted_at=timezone.now())
+    opportunity_response = client.patch(
+        f"/api/summon/workspaces/{workspace.slug}/opportunities/{opportunity.id}/",
+        {"description": "Updated"},
+        format="json",
+    )
+    assert opportunity_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "client" in opportunity_response.data

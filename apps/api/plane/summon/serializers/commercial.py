@@ -25,7 +25,10 @@ class WorkspaceScopedSerializer(BaseSerializer):
         )
 
     def is_workspace_record(self, record):
-        return not record or record.workspace_id == self.workspace.id
+        return not record or (record.workspace_id == self.workspace.id and record.deleted_at is None)
+
+    def value(self, attrs, field):
+        return attrs[field] if field in attrs else getattr(self.instance, field, None)
 
 
 class ClientSerializer(WorkspaceScopedSerializer):
@@ -35,7 +38,7 @@ class ClientSerializer(WorkspaceScopedSerializer):
         read_only_fields = ["workspace", "created_by", "updated_by", "deleted_at"]
 
     def validate(self, attrs):
-        if not self.is_workspace_member(attrs.get("owner")):
+        if not self.is_workspace_member(self.value(attrs, "owner")):
             raise serializers.ValidationError({"owner": "Member must belong to this workspace."})
         return attrs
 
@@ -55,9 +58,9 @@ class OpportunitySerializer(WorkspaceScopedSerializer):
 
     def validate(self, attrs):
         errors = {}
-        if not self.is_workspace_record(attrs.get("client")):
+        if not self.is_workspace_record(self.value(attrs, "client")):
             errors["client"] = "Record must belong to this workspace."
-        if not self.is_workspace_member(attrs.get("owner")):
+        if not self.is_workspace_member(self.value(attrs, "owner")):
             errors["owner"] = "Member must belong to this workspace."
         if errors:
             raise serializers.ValidationError(errors)
@@ -77,9 +80,9 @@ class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
 
     def validate(self, attrs):
         errors = {}
-        if not self.is_workspace_record(attrs.get("client")):
+        if not self.is_workspace_record(self.value(attrs, "client")):
             errors["client"] = "Record must belong to this workspace."
-        if not self.is_workspace_record(attrs.get("source_opportunity")):
+        if not self.is_workspace_record(self.value(attrs, "source_opportunity")):
             errors["source_opportunity"] = "Record must belong to this workspace."
         if errors:
             raise serializers.ValidationError(errors)
