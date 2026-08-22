@@ -5,6 +5,9 @@
 from django.urls import path
 
 from plane.summon.views import (
+    AssistantQueryView,
+    AutomationJobView,
+    AutomationTemplateViewSet,
     ClientContactViewSet,
     ClientViewSet,
     MeetingViewSet,
@@ -13,6 +16,7 @@ from plane.summon.views import (
     OpportunityTransitionView,
     OpportunityViewSet,
     ResourceLinkViewSet,
+    ReportSummaryView,
     SummonPageContextViewSet,
     SummonProjectProfileView,
 )
@@ -32,6 +36,10 @@ page_context_detail = SummonPageContextViewSet.as_view(
 )
 resource_list = ResourceLinkViewSet.as_view({"get": "list", "post": "create"})
 resource_detail = ResourceLinkViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+automation_template_list = AutomationTemplateViewSet.as_view({"get": "list", "post": "create"})
+automation_template_detail = AutomationTemplateViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
 
 urlpatterns = [
     path("workspaces/<str:slug>/clients/", client_list, name="summon-client-list"),
@@ -82,4 +90,29 @@ urlpatterns = [
     ),
     path("workspaces/<str:slug>/resources/", resource_list, name="summon-resource-list"),
     path("workspaces/<str:slug>/resources/<uuid:pk>/", resource_detail, name="summon-resource-detail"),
+    path(
+        "workspaces/<str:slug>/automation/templates/",
+        automation_template_list,
+        name="summon-automation-template-list",
+    ),
+    path(
+        "workspaces/<str:slug>/automation/templates/<uuid:pk>/",
+        automation_template_detail,
+        name="summon-automation-template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/automation/jobs/",
+        AutomationJobView.as_view(),
+        name="summon-automation-job-list",
+    ),
+    path(
+        "workspaces/<str:slug>/reports/summary/",
+        ReportSummaryView.as_view(),
+        name="summon-report-summary",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/query/",
+        AssistantQueryView.as_view(),
+        name="summon-assistant-query",
+    ),
 ]

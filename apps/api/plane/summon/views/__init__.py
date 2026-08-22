@@ -16,6 +16,12 @@ from .collaboration import (
     ResourceLinkViewSet,
     SummonPageContextViewSet,
 )
+from .operations import (
+    AssistantQueryView,
+    AutomationJobView,
+    AutomationTemplateViewSet,
+    ReportSummaryView,
+)
 
 __all__ = [
     "ClientContactViewSet",
@@ -28,4 +34,8 @@ __all__ = [
     "MeetingWorkItemView",
     "ResourceLinkViewSet",
     "SummonPageContextViewSet",
+    "AssistantQueryView",
+    "AutomationJobView",
+    "AutomationTemplateViewSet",
+    "ReportSummaryView",
 ]

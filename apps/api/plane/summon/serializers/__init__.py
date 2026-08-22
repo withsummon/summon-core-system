@@ -15,6 +15,13 @@ from .collaboration import (
     ResourceLinkSerializer,
     SummonPageContextSerializer,
 )
+from .operations import (
+    AssistantQuerySerializer,
+    AutomationJobSerializer,
+    AutomationRunSerializer,
+    AutomationTemplateSerializer,
+    GeneratedArtifactSerializer,
+)
 
 __all__ = [
     "ClientContactSerializer",
@@ -26,4 +33,9 @@ __all__ = [
     "MeetingWorkItemSerializer",
     "ResourceLinkSerializer",
     "SummonPageContextSerializer",
+    "AssistantQuerySerializer",
+    "AutomationJobSerializer",
+    "AutomationRunSerializer",
+    "AutomationTemplateSerializer",
+    "GeneratedArtifactSerializer",
 ]

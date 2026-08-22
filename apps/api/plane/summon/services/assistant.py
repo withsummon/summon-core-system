@@ -1,0 +1,92 @@
+# Copyright (c) 2023-present Plane Software, Inc. and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+# See the LICENSE file for details.
+
+from django.db.models import Q
+from django.utils import timezone
+
+from plane.db.models import Issue, Page, Project
+from plane.summon.models import AutomationJob, Opportunity
+from plane.summon.services.reports import report_summary, visible_project_ids
+
+
+UNSUPPORTED = {
+    "intent": "unsupported",
+    "answer": "Intent is not supported by Summon Core.",
+    "data": [],
+}
+
+
+def answer_query(workspace, user, intent, query="", project_id=None):
+    project_ids = visible_project_ids(workspace, user)
+    if intent == "portfolio_status":
+        return {"intent": intent, "answer": "Current portfolio summary.", "data": report_summary(workspace, user)}
+    if intent == "overdue_work_items":
+        issues = (
+            Issue.objects.filter(
+                workspace=workspace,
+                project_id__in=project_ids,
+                target_date__lt=timezone.now().date(),
+            )
+            .exclude(state__group__in=["completed", "cancelled"])
+            .select_related("project", "state")
+        )
+        data = [
+            {
+                "id": str(issue.id),
+                "name": issue.name,
+                "project": {"id": str(issue.project_id), "identifier": issue.project.identifier},
+                "state": issue.state.name if issue.state else None,
+                "target_date": issue.target_date,
+            }
+            for issue in issues
+        ]
+        return {"intent": intent, "answer": f"Found {len(data)} overdue work items.", "data": data}
+    if intent == "client_opportunity_pipeline":
+        opportunities = Opportunity.objects.filter(workspace=workspace).select_related("client")
+        data = [
+            {
+                "id": str(item.id),
+                "title": item.title,
+                "client": item.client.name if item.client else None,
+                "stage": item.stage,
+                "value": str(item.value),
+            }
+            for item in opportunities
+        ]
+        return {"intent": intent, "answer": f"Found {len(data)} opportunities.", "data": data}
+    if intent == "project_summary":
+        project = Project.objects.filter(workspace=workspace, id=project_id, id__in=project_ids).first()
+        if not project:
+            return {"intent": intent, "answer": "Accessible project not found.", "data": []}
+        issues = Issue.objects.filter(project=project)
+        data = {
+            "id": str(project.id),
+            "identifier": project.identifier,
+            "name": project.name,
+            "issues": issues.count(),
+            "completed": issues.filter(state__group="completed").count(),
+        }
+        return {"intent": intent, "answer": f"Summary for {project.name}.", "data": data}
+    if intent == "knowledge_page_lookup":
+        pages = (
+            Page.objects.filter(workspace=workspace)
+            .filter(
+                Q(owned_by=user)
+                | Q(access=Page.PUBLIC_ACCESS, is_global=True)
+                | Q(access=Page.PUBLIC_ACCESS, projects__id__in=project_ids)
+            )
+            .filter(name__icontains=query)
+            .distinct()[:20]
+        )
+        data = [{"id": str(page.id), "name": page.name} for page in pages]
+        return {"intent": intent, "answer": f"Found {len(data)} pages.", "data": data}
+    if intent == "automation_history":
+        jobs = AutomationJob.objects.filter(workspace=workspace).filter(
+            Q(project__isnull=True) | Q(project_id__in=project_ids)
+        )[:20]
+        data = [
+            {"id": str(job.id), "type": job.type, "status": job.status, "created_at": job.created_at} for job in jobs
+        ]
+        return {"intent": intent, "answer": f"Found {len(data)} automation jobs.", "data": data}
+    return UNSUPPORTED
