@@ -67,8 +67,8 @@ COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 
-# Install dependencies directly with cache mount
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store CI=true pnpm install --frozen-lockfile --store-dir=/pnpm/store --prod=false
+# Install dependencies directly
+RUN CI=true pnpm install --frozen-lockfile --prod=false
 
 # Build only the space package
 RUN pnpm turbo run build --filter=space

@@ -39,8 +39,8 @@ RUN corepack enable pnpm
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 
-# Install dependencies directly with cache mount
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store CI=true pnpm install --frozen-lockfile --store-dir=/pnpm/store --prod=false
+# Install dependencies directly
+RUN CI=true pnpm install --frozen-lockfile --prod=false
 
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
