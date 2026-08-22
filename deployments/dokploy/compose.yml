@@ -57,6 +57,9 @@ services:
     depends_on:
       api:
         condition: service_started
+    networks:
+      default:
+        aliases: [summon-core-web]
 
   admin:
     image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
@@ -64,6 +67,9 @@ services:
     depends_on:
       api:
         condition: service_started
+    networks:
+      default:
+        aliases: [summon-core-admin]
 
   space:
     image: makeplane/plane-space:${PLANE_RELEASE:-stable}
@@ -71,6 +77,9 @@ services:
     depends_on:
       api:
         condition: service_started
+    networks:
+      default:
+        aliases: [summon-core-space]
 
   live:
     image: makeplane/plane-live:${PLANE_RELEASE:-stable}
@@ -86,6 +95,9 @@ services:
       REDIS_URL: redis://plane-redis:6379/
     secrets:
       - live_server_secret_key
+    networks:
+      default:
+        aliases: [summon-core-live]
     depends_on:
       api:
         condition: service_started
@@ -97,6 +109,9 @@ services:
     command: ./bin/docker-entrypoint-api.sh
     volumes:
       - logs_api:/code/plane/logs
+    networks:
+      default:
+        aliases: [summon-core-api]
 
   worker:
     <<: *api-service
@@ -185,6 +200,9 @@ services:
       - minio_password
     volumes:
       - uploads:/export
+    networks:
+      default:
+        aliases: [summon-core-minio]
 
   proxy:
     image: makeplane/plane-proxy:${PLANE_RELEASE:-stable}
@@ -196,6 +214,14 @@ services:
       FILE_SIZE_LIMIT: ${FILE_SIZE_LIMIT:-5242880}
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
       TRUSTED_PROXIES: 0.0.0.0/0
+      WEB_HOST: summon-core-web
+      API_HOST: summon-core-api
+      ADMIN_HOST: summon-core-admin
+      SPACE_HOST: summon-core-space
+      LIVE_HOST: summon-core-live
+      MINIO_HOST: summon-core-minio
+    volumes:
+      - ../../apps/proxy/Caddyfile.ce:/etc/caddy/Caddyfile:ro
     depends_on:
       web:
         condition: service_started
