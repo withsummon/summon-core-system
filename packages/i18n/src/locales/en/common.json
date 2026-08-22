@@ -60,6 +60,17 @@
   "preferences": "Preferences",
   "language_and_time": "Language & Time",
   "notifications": "Notifications",
+  "summon": {
+    "overview": "Summon Core",
+    "clients": "Summon Clients",
+    "opportunities": "Summon Opportunities",
+    "reports": "Summon Reports",
+    "resources": "Summon Resources",
+    "meetings": "Summon Meetings",
+    "automation": "Summon Automation",
+    "assistant": "Summon Assistant",
+    "credentials": "Summon Credentials"
+  },
   "workspaces": "Workspaces",
   "create_workspace": "Create workspace",
   "invitations": "Invitations",

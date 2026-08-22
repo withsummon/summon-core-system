@@ -20,6 +20,14 @@ import { useUser } from "@/hooks/store/user";
 export type TPowerKNavigationCommandKeys =
   | "open_workspace"
   | "nav_home"
+  | "nav_summon_clients"
+  | "nav_summon_opportunities"
+  | "nav_summon_reports"
+  | "nav_summon_resources"
+  | "nav_summon_meetings"
+  | "nav_summon_automation"
+  | "nav_summon_assistant"
+  | "nav_summon_credentials"
   | "nav_inbox"
   | "nav_your_work"
   | "nav_account_settings"
@@ -47,6 +55,10 @@ export type TPowerKNavigationCommandKeys =
   | "open_project_setting"
   | "nav_project_settings";
 
+const baseWorkspaceConditions = (ctx: TPowerKContext) => Boolean(ctx.params.workspaceSlug?.toString());
+const baseProjectConditions = (ctx: TPowerKContext) =>
+  Boolean(ctx.params.workspaceSlug?.toString() && ctx.params.projectId?.toString());
+
 /**
  * Navigation commands - Navigate to all pages in the app
  */
@@ -71,9 +83,6 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       ctx.params.workspaceSlug?.toString(),
       ctx.params.projectId?.toString()
     );
-  const baseWorkspaceConditions = (ctx: TPowerKContext) => Boolean(ctx.params.workspaceSlug?.toString());
-  const baseProjectConditions = (ctx: TPowerKContext) =>
-    Boolean(ctx.params.workspaceSlug?.toString() && ctx.params.projectId?.toString());
   const getContextProject = (ctx: TPowerKContext) => getPartialProjectById(ctx.params.projectId?.toString());
 
   return {
@@ -101,6 +110,94 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       icon: Home,
       keySequence: "gh",
       action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString()]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_clients: {
+      id: "nav_summon_clients",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_clients",
+      icon: Briefcase,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "clients"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_opportunities: {
+      id: "nav_summon_opportunities",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_opportunities",
+      icon: BarChart2,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "opportunities"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_reports: {
+      id: "nav_summon_reports",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_reports",
+      icon: BarChart2,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "reports"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_resources: {
+      id: "nav_summon_resources",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_resources",
+      icon: FileText,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "resources"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_meetings: {
+      id: "nav_summon_meetings",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_meetings",
+      icon: UserActivityIcon,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "meetings"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_automation: {
+      id: "nav_summon_automation",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_automation",
+      icon: DiceIcon,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "automation"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_assistant: {
+      id: "nav_summon_assistant",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_assistant",
+      icon: PenSquare,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "assistant"]),
+      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
+      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      closeOnSelect: true,
+    },
+    nav_summon_credentials: {
+      id: "nav_summon_credentials",
+      type: "action",
+      group: "navigation",
+      i18n_title: "power_k.navigation_actions.nav_summon_credentials",
+      icon: Settings,
+      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "credentials"]),
       isEnabled: (ctx) => baseWorkspaceConditions(ctx),
       isVisible: (ctx) => baseWorkspaceConditions(ctx),
       closeOnSelect: true,

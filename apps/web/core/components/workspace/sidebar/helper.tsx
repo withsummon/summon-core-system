@@ -40,5 +40,19 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <ArchiveIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "stickies":
       return <MultipleStickyIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon":
+    case "summon_clients":
+    case "summon_credentials":
+      return <ProjectIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_opportunities":
+    case "summon_reports":
+      return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_resources":
+      return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_meetings":
+    case "summon_automation":
+      return <CycleIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_assistant":
+      return <YourWorkIcon className={cn("size-4 flex-shrink-0", className)} />;
   }
 };
