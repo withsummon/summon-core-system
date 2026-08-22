@@ -42,7 +42,7 @@ function SummonOverviewPage({ params }: Route.ComponentProps) {
   if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
 
   const { report, opportunities, resources } = data;
-  const projects = joinedProjectIds.map(getProjectById).filter(Boolean);
+  const projects = joinedProjectIds.map((projectId) => getProjectById(projectId)).filter(Boolean);
   const featuredProject = projects[0];
   const completion = report.issues.total ? Math.round((report.issues.completed / report.issues.total) * 100) : 0;
   const firstName = (user?.display_name || user?.first_name || "there").split(" ")[0];
