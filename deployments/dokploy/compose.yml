@@ -208,23 +208,16 @@ services:
   mcp:
     image: makeplane/plane-mcp-server:v0.3.1
     restart: unless-stopped
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        export PLANE_OAUTH_PROVIDER_CLIENT_SECRET="$$(cat /run/secrets/plane_oauth_client_secret)"
-        exec python -m plane_mcp http
     environment:
       PLANE_INTERNAL_BASE_URL: http://api:8000
       PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-mcp
+      PLANE_OAUTH_PROVIDER_CLIENT_SECRET: ${PLANE_OAUTH_PROVIDER_CLIENT_SECRET:-pat-route-only}
       PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://summon-core.withsummon.com}
       REDIS_HOST: plane-redis
       REDIS_PORT: "6379"
       MCP_PATH_PREFIX: /mcp
       LOG_PAYLOADS: "false"
       LOG_USER_INFO: "false"
-    secrets:
-      - plane_oauth_client_secret
     depends_on:
       api:
         condition: service_started
@@ -287,5 +280,3 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/minio_password
   live_server_secret_key:
     file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
-  plane_oauth_client_secret:
-    file: /etc/dokploy-secrets/summon-core-plane/plane_oauth_client_secret

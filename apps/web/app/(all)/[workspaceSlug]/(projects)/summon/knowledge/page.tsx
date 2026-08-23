@@ -65,10 +65,12 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
       }),
     [contextByPage, normalizedQuery, pages, tab]
   );
-  const recentPages = useMemo(
-    () => [...pages].toSorted((left, right) => Number(right.page.updated_at) - Number(left.page.updated_at)),
-    [pages]
-  );
+  const recentPages = useMemo(() => {
+    // oxlint-disable-next-line unicorn/no-array-sort -- ES2023 toSorted is unavailable in the app's current TypeScript target.
+    return [...pages].sort(
+      (left, right) => (right.page.updated_at?.getTime() ?? 0) - (left.page.updated_at?.getTime() ?? 0)
+    );
+  }, [pages]);
   const uniqueContributors = new Set(pages.flatMap(({ page }) => [page.created_by, page.updated_by]).filter(Boolean));
   const contextCards = [
     {

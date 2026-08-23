@@ -38,6 +38,7 @@ export default function SummonReportsPage({ params }: Route.ComponentProps) {
 
   return (
     <ReportView
+      workspaceSlug={workspaceSlug}
       data={data}
       error={error}
       isLoading={isLoading}
