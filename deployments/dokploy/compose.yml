@@ -23,6 +23,7 @@ x-app-environment: &app-environment
   LIVE_SERVER_SECRET_KEY_FILE: /run/secrets/live_server_secret_key
   WEBHOOK_ALLOWED_IPS: ${WEBHOOK_ALLOWED_IPS:-}
   WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
+  SUMMON_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
 
 x-api-service: &api-service
   image: withsummon-summon-core-system-api:${SUMMON_IMAGE_TAG:-latest}
@@ -204,6 +205,32 @@ services:
       default:
         aliases: [summon-core-minio]
 
+  mcp:
+    image: makeplane/plane-mcp-server:v0.3.1
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PLANE_OAUTH_PROVIDER_CLIENT_SECRET="$$(cat /run/secrets/plane_oauth_client_secret)"
+        exec python -m plane_mcp http
+    environment:
+      PLANE_INTERNAL_BASE_URL: http://api:8000
+      PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-mcp
+      PLANE_OAUTH_PROVIDER_BASE_URL: ${WEB_URL:-https://summon-core.withsummon.com}
+      REDIS_HOST: plane-redis
+      REDIS_PORT: "6379"
+      MCP_PATH_PREFIX: /mcp
+      LOG_PAYLOADS: "false"
+      LOG_USER_INFO: "false"
+    secrets:
+      - plane_oauth_client_secret
+    depends_on:
+      api:
+        condition: service_started
+      plane-redis:
+        condition: service_healthy
+
   proxy:
     image: makeplane/plane-proxy:${PLANE_RELEASE:-stable}
     restart: unless-stopped
@@ -220,6 +247,7 @@ services:
       SPACE_HOST: summon-core-space
       LIVE_HOST: summon-core-live
       MINIO_HOST: summon-core-minio
+      MCP_HOST: mcp
     volumes:
       - ../../apps/proxy/Caddyfile.ce:/etc/caddy/Caddyfile:ro
     depends_on:
@@ -232,6 +260,8 @@ services:
       space:
         condition: service_started
       live:
+        condition: service_started
+      mcp:
         condition: service_started
 
 volumes:
@@ -257,3 +287,5 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/minio_password
   live_server_secret_key:
     file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
+  plane_oauth_client_secret:
+    file: /etc/dokploy-secrets/summon-core-plane/plane_oauth_client_secret

@@ -7,12 +7,14 @@ from rest_framework import serializers
 from plane.api.serializers.base import BaseSerializer
 from plane.db.models import Project, ProjectMember
 from plane.summon.models import (
+    AssistantAction,
     AssistantConversation,
     AssistantMessage,
     AutomationJob,
     AutomationTemplate,
     GeneratedArtifact,
 )
+from plane.summon.services.credential import can_use
 from plane.summon.services.reports import visible_project_ids
 from plane.summon.services.page_document import summon_document_metadata
 
@@ -189,13 +191,31 @@ class AssistantMessageSerializer(BaseSerializer):
         read_only_fields = fields
 
 
+class AssistantActionSerializer(BaseSerializer):
+    class Meta:
+        model = AssistantAction
+        fields = [
+            "id",
+            "tool",
+            "arguments",
+            "preview",
+            "status",
+            "confirmed_at",
+            "result",
+            "error",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class AssistantConversationSerializer(BaseSerializer):
     messages = AssistantMessageSerializer(many=True, read_only=True)
+    actions = AssistantActionSerializer(many=True, read_only=True)
 
     class Meta:
         model = AssistantConversation
-        fields = ["id", "title", "project", "client", "last_activity_at", "messages"]
-        read_only_fields = ["id", "last_activity_at", "messages"]
+        fields = ["id", "title", "project", "client", "mcp_credential", "last_activity_at", "messages", "actions"]
+        read_only_fields = ["id", "last_activity_at", "messages", "actions"]
 
     def validate(self, attrs):
         workspace = self.context["workspace"]
@@ -203,10 +223,18 @@ class AssistantConversationSerializer(BaseSerializer):
         errors = {}
         project = attrs.get("project")
         client = attrs.get("client")
+        credential = attrs.get("mcp_credential", self.instance.mcp_credential if self.instance else None)
         if project and (project.workspace_id != workspace.id or project.id not in visible_project_ids(workspace, user)):
             errors["project"] = "Active Project membership is required."
         if client and client.workspace_id != workspace.id:
             errors["client"] = "Client must belong to this workspace."
+        if credential and (
+            credential.workspace_id != workspace.id
+            or credential.status != credential.Status.ACTIVE
+            or credential.provider not in {"plane", "plane_mcp"}
+            or not can_use(credential, user)
+        ):
+            errors["mcp_credential"] = "Select an active Plane PAT you are allowed to use."
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
@@ -216,3 +244,10 @@ class AssistantMessageRequestSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=20000, trim_whitespace=False)
     context = AssistantContextSerializer(required=False, default=dict)
     intent = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    tool = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    arguments = serializers.JSONField(required=False, default=dict)
+
+    def validate_arguments(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Tool arguments must be an object.")
+        return value

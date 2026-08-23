@@ -24,10 +24,11 @@ type TSidebarWrapperProps = {
   title: string;
   children: React.ReactNode;
   quickActions?: React.ReactNode;
+  showEditionBadge?: boolean;
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions } = props;
+  const { title, children, quickActions, showEditionBadge = true } = props;
   // state
   const [isCustomizeNavDialogOpen, setIsCustomizeNavDialogOpen] = useState(false);
   // store hooks
@@ -82,14 +83,16 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           {children}
         </ScrollArea>
         {/* Help Section */}
-        <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
-          <WorkspaceEditionBadge />
-          {/* TODO: To be checked if we need this */}
-          {/* <div className="flex items-center gap-2">
+        {showEditionBadge && (
+          <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
+            <WorkspaceEditionBadge />
+            {/* TODO: To be checked if we need this */}
+            {/* <div className="flex items-center gap-2">
           {!shouldRenderAppRail && <HelpMenu />}
           {!isAppRailEnabled && <AppSidebarToggleButton />}
         </div> */}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

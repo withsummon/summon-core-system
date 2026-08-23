@@ -70,14 +70,14 @@ export function FavoriteFolder(props: Props) {
   }, [favorite.id, favorite.children, workspaceSlug, fetchGroupedFavorites]);
 
   useEffect(() => {
-    const element = elementRef.current;
+    const folderElement = elementRef.current;
 
-    if (!element) return;
+    if (!folderElement) return;
     const initialData = { id: favorite.id, isGroup: true, isChild: false };
 
     return combine(
       draggable({
-        element,
+        element: folderElement,
         getInitialData: () => initialData,
         onDragStart: () => setIsDragging(true),
         onGenerateDragPreview: ({ nativeSetDragImage }) => {
@@ -103,7 +103,7 @@ export function FavoriteFolder(props: Props) {
         }, // canDrag: () => isDraggable,
       }),
       dropTargetForElements({
-        element,
+        element: folderElement,
         canDrop: ({ source }) => getCanDrop(source, favorite, false),
         getData: ({ input, element }) => {
           const blockedStates: InstructionType[] = [];
@@ -121,8 +121,8 @@ export function FavoriteFolder(props: Props) {
           });
         },
         onDrag: ({ source, self, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -188,8 +188,7 @@ export function FavoriteFolder(props: Props) {
                         position="top-end"
                         disabled={isDragging}
                       >
-                        <button
-                          type="button"
+                        <div
                           className={cn(
                             "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
                             {
@@ -199,7 +198,7 @@ export function FavoriteFolder(props: Props) {
                           )}
                         >
                           <DragHandle className="bg-transparent" />
-                        </button>
+                        </div>
                       </Tooltip>
                       <div className="grid size-5 flex-shrink-0 place-items-center">
                         <FavoriteFolderIcon />

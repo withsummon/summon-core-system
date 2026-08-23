@@ -86,9 +86,8 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const isProjectListOpen = getIsProjectListOpen(projectId);
   const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
   // refs
-  const actionSectionRef = useRef<HTMLButtonElement | null>(null);
   const projectRef = useRef<HTMLDivElement | null>(null);
-  const dragHandleRef = useRef<HTMLButtonElement | null>(null);
+  const dragHandleRef = useRef<HTMLDivElement | null>(null);
   // router
   const { workspaceSlug, projectId: URLProjectId } = useParams();
   const router = useRouter();
@@ -230,7 +229,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     else toggleAnySidebarDropdown(false);
   }, [isMenuActive, toggleAnySidebarDropdown]);
 
-  useOutsideClickDetector(actionSectionRef, () => setIsMenuActive(false));
   useOutsideClickDetector(projectRef, () => projectRef?.current?.classList?.remove(HIGHLIGHT_CLASS));
 
   useEffect(() => {
@@ -309,8 +307,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                 position="top-end"
                 disabled={isDragging}
               >
-                <button
-                  type="button"
+                <div
                   className={cn(
                     "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
                     {
@@ -322,7 +319,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   ref={dragHandleRef}
                 >
                   <DragHandle className="bg-transparent" />
-                </button>
+                </div>
               </Tooltip>
             )}
             <>
@@ -354,16 +351,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </ControlLink>
               <div className="flex items-center gap-1">
                 <CustomMenu
-                  customButton={
-                    <IconButton
-                      ref={actionSectionRef}
-                      variant="ghost"
-                      size="sm"
-                      icon={MoreHorizontal}
-                      onClick={() => setIsMenuActive(!isMenuActive)}
-                      className="text-placeholder"
-                    />
-                  }
+                  customButton={<MoreHorizontal className="size-4 text-placeholder" aria-hidden="true" />}
                   className={cn(
                     "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
                     {
@@ -373,6 +361,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   customButtonClassName="grid place-items-center"
                   placement="bottom-start"
                   ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
+                  menuButtonOnClick={() => setIsMenuActive(!isMenuActive)}
                   useCaptureForOutsideClick
                   closeOnSelect
                   onMenuClose={() => setIsMenuActive(false)}

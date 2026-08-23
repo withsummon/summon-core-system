@@ -18,8 +18,8 @@ export const SUMMON_MODULES = [
   { key: "summon_resources", label: "Resources", path: "resources" },
   { key: "summon_automation", label: "Automation Studio", path: "automation" },
   { key: "summon_credentials", label: "Credentials", path: "credentials" },
-  { key: "summon_reports", label: "Reports", path: "reports" },
   { key: "summon_notifications", label: "Notifications", path: "notifications" },
+  { key: "summon_reports", label: "Reports", path: "reports" },
   { key: "summon_settings", label: "Settings", path: "settings" },
 ] as const;
 

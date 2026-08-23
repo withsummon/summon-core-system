@@ -10,6 +10,7 @@ from django.utils import timezone
 
 
 EXPECTED_MODELS = {
+    "AssistantAction",
     "AssistantConversation",
     "AssistantMessage",
     "AutomationJob",
@@ -27,6 +28,7 @@ EXPECTED_MODELS = {
     "ResourceLink",
     "SummonPageContext",
     "SummonProjectProfile",
+    "SummonWorkspaceSettings",
 }
 
 
@@ -47,7 +49,21 @@ def test_schema_has_canonical_link_constraints():
 
     assert "summon_unique_meeting_issue" in meeting_constraints
     assert "summon_artifact_exactly_one_target" in artifact_constraints
-    assert "summon_unique_artifact_job" in artifact_constraints
+    assert "summon_unique_artifact_job_format" in artifact_constraints
+
+
+def test_pdf_owned_fields_are_persisted_without_replacing_plane_entities():
+    Client = apps.get_model("summon", "Client")
+    Opportunity = apps.get_model("summon", "Opportunity")
+    AssistantConversation = apps.get_model("summon", "AssistantConversation")
+    AssistantAction = apps.get_model("summon", "AssistantAction")
+    SummonWorkspaceSettings = apps.get_model("summon", "SummonWorkspaceSettings")
+
+    assert {"website", "head_office", "relationship_started_at"}.issubset({field.name for field in Client._meta.fields})
+    assert {"product", "source"}.issubset({field.name for field in Opportunity._meta.fields})
+    assert AssistantConversation._meta.get_field("mcp_credential").remote_field.model._meta.model_name == "credential"
+    assert AssistantAction._meta.get_field("requester").remote_field.model._meta.model_name == "user"
+    assert SummonWorkspaceSettings._meta.get_field("workspace").one_to_one is True
 
 
 def test_canonical_delete_policies_preserve_audit_without_blocking_plane_records():
@@ -67,7 +83,7 @@ def test_recreatable_unique_constraints_ignore_soft_deleted_rows():
         "summon_unique_client_name",
         "summon_unique_converted_opportunity",
         "summon_unique_credential_grant",
-        "summon_unique_artifact_job",
+        "summon_unique_artifact_job_format",
         "summon_unique_meeting_issue",
         "summon_unique_meeting_participant",
         "summon_unique_opportunity_identity",

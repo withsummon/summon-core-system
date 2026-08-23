@@ -61,6 +61,15 @@ def can_manage(credential, member):
     )
 
 
+def can_use(credential, member):
+    return (
+        credential.owner_id == member.id
+        or active_grants(credential, member)
+        .filter(permission__in=[CredentialGrant.Permission.USE, CredentialGrant.Permission.MANAGE])
+        .exists()
+    )
+
+
 def verify_password(credential, request, action):
     password = request.data.get("password")
     if not password or not request.user.check_password(password):

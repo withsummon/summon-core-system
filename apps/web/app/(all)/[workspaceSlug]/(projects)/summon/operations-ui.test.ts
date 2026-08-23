@@ -100,5 +100,6 @@ test("Credential and settings screens expose only safe configuration fields", ()
   assert.match(credentialPage, /type="password"/);
   assert.match(credentialDrawer, /type="password"/);
   assert.match(settingsPage, /getAIStatus/);
-  assert.doesNotMatch(settingsPage, /api[_-]?key|base[_-]?url|timeout/i);
+  assert.match(settingsPage, /mcp\/http\/api-key\/mcp/);
+  assert.doesNotMatch(settingsPage, /secret_ciphertext|base[_-]?url|timeout/i);
 });

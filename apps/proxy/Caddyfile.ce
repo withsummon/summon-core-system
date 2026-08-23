@@ -10,6 +10,7 @@
 	reverse_proxy /god-mode/* {$ADMIN_HOST:admin}:3000
 	
 	reverse_proxy /live/* {$LIVE_HOST:live}:3000
+	reverse_proxy /mcp/http/api-key/* {$MCP_HOST:mcp}:8211
 
 	reverse_proxy /api/* {$API_HOST:api}:8000
 

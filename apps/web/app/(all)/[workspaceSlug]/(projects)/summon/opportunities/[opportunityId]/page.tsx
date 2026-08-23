@@ -81,6 +81,8 @@ export default function SummonOpportunityDetailPage({ params }: Route.ComponentP
             <h2 className="text-sm font-semibold text-primary">Opportunity details</h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
               <Detail label="Client" value={data.client_detail?.name || "No client"} />
+              <Detail label="Product" value={data.product || "Not set"} />
+              <Detail label="Source" value={data.source || "Not set"} />
               <Detail label="Value" value={data.value || "Not set"} />
               <Detail label="Probability" value={`${data.probability}%`} />
               <Detail label="Expected close" value={data.expected_close_date || "Not set"} />
@@ -93,7 +95,7 @@ export default function SummonOpportunityDetailPage({ params }: Route.ComponentP
                 <div key={contact.id} className="py-2.5 first:pt-0 last:pb-0">
                   <p className="text-xs font-medium text-primary">{contact.name}</p>
                   <p className="mt-1 text-[10px] text-secondary">
-                    {[contact.role, contact.email || contact.phone].filter(Boolean).join(" · ") || "Contact"}
+                    {[contact.title, contact.email || contact.phone].filter(Boolean).join(" · ") || "Contact"}
                   </p>
                 </div>
               ))}

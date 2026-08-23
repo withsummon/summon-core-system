@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, useState, useEffect } from "react";
+import { Fragment } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
@@ -36,7 +36,7 @@ type WorkspaceMenuRootProps = {
 export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: WorkspaceMenuRootProps) {
   const { variant } = props;
   // store hooks
-  const { toggleSidebar, toggleAnySidebarDropdown } = useAppTheme();
+  const { toggleSidebar } = useAppTheme();
   const { config } = useInstance();
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
@@ -46,9 +46,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
   // translation
   const { t } = useTranslation();
-  // local state
-  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
-
   const handleWorkspaceNavigation = (workspace: IWorkspace) => updateUserProfile({ last_workspace_id: workspace?.id });
 
   const handleSignOut = async () => {
@@ -69,11 +66,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const workspacesList = orderWorkspacesList(Object.values(workspaces ?? {}));
   // TODO: fix workspaces list scroll
 
-  // Toggle sidebar dropdown state when either menu is open
-  useEffect(() => {
-    toggleAnySidebarDropdown(isWorkspaceMenuOpen);
-  }, [isWorkspaceMenuOpen, toggleAnySidebarDropdown]);
-
   return (
     <Menu
       as="div"
@@ -83,11 +75,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
       })}
     >
       {({ open, close }: { open: boolean; close: () => void }) => {
-        // Update local state directly
-        if (isWorkspaceMenuOpen !== open) {
-          setIsWorkspaceMenuOpen(open);
-        }
-
         return (
           <>
             {variant === "sidebar" && (

@@ -7,6 +7,7 @@
 import { API_BASE_URL } from "@plane/constants";
 import type {
   ISummonAIStatus,
+  ISummonAssistantAction,
   ISummonAssistantConversation,
   ISummonAssistantMessagePair,
   ISummonAssistantMessageRequest,
@@ -22,6 +23,7 @@ import type {
   ISummonMeeting,
   ISummonMeetingSummaryRequest,
   ISummonMeetingWorkItem,
+  ISummonMCPStatus,
   ISummonHomeSummary,
   ISummonOpportunity,
   ISummonOpportunityDetail,
@@ -31,6 +33,7 @@ import type {
   ISummonReportFilters,
   ISummonReportSummary,
   ISummonResourceLink,
+  ISummonWorkspaceSettings,
   TIssue,
 } from "@plane/types";
 import { APIService } from "@/services/api.service";
@@ -320,7 +323,8 @@ export class SummonService extends APIService {
 
   createAssistantConversation(
     workspaceSlug: string,
-    payload: Pick<ISummonAssistantConversation, "title" | "project" | "client">
+    payload: Pick<ISummonAssistantConversation, "title" | "project" | "client"> &
+      Partial<Pick<ISummonAssistantConversation, "mcp_credential">>
   ) {
     return this.data<ISummonAssistantConversation>(
       this.post(`${this.root(workspaceSlug)}/assistant/conversations/`, payload)
@@ -333,10 +337,47 @@ export class SummonService extends APIService {
     );
   }
 
+  updateAssistantConversation(
+    workspaceSlug: string,
+    conversationId: string,
+    payload: Partial<Pick<ISummonAssistantConversation, "title" | "project" | "client" | "mcp_credential">>
+  ) {
+    return this.data<ISummonAssistantConversation>(
+      this.patch(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/`, payload)
+    );
+  }
+
   sendAssistantMessage(workspaceSlug: string, conversationId: string, payload: ISummonAssistantMessageRequest) {
     return this.data<ISummonAssistantMessagePair>(
       this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/messages/`, payload)
     );
+  }
+
+  confirmAssistantAction(workspaceSlug: string, conversationId: string, actionId: string) {
+    return this.data<ISummonAssistantAction>(
+      this.post(
+        `${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/actions/${actionId}/confirm/`,
+        {}
+      )
+    );
+  }
+
+  cancelAssistantAction(workspaceSlug: string, conversationId: string, actionId: string) {
+    return this.data<ISummonAssistantAction>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/actions/${actionId}/cancel/`, {})
+    );
+  }
+
+  getWorkspaceSettings(workspaceSlug: string) {
+    return this.data<ISummonWorkspaceSettings>(this.get(`${this.root(workspaceSlug)}/settings/workspace/`));
+  }
+
+  getMCPStatus(workspaceSlug: string) {
+    return this.data<ISummonMCPStatus>(this.get(`${this.root(workspaceSlug)}/settings/mcp-status/`));
+  }
+
+  updateWorkspaceSettings(workspaceSlug: string, payload: Partial<ISummonWorkspaceSettings>) {
+    return this.data<ISummonWorkspaceSettings>(this.patch(`${this.root(workspaceSlug)}/settings/workspace/`, payload));
   }
 
   listCredentials(workspaceSlug: string) {

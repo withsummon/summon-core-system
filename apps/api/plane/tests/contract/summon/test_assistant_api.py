@@ -5,13 +5,24 @@
 from uuid import uuid4
 
 import pytest
+import requests
+from cryptography.fernet import Fernet
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from plane.app.services.llm import LLMError, LLMResponse
 from plane.db.models import Page, Project, ProjectMember, ProjectPage, User, Workspace, WorkspaceMember
-from plane.summon.models import AssistantConversation, AssistantMessage, Client, Credential, Meeting
+from plane.summon.models import (
+    AssistantAction,
+    AssistantConversation,
+    AssistantMessage,
+    Client,
+    Credential,
+    CredentialAccessLog,
+    Meeting,
+)
+from plane.summon.services.credential import encrypt_secret
 from plane.summon.services.context import build_context
 
 
@@ -84,6 +95,225 @@ def test_conversation_rejects_inaccessible_project_and_foreign_client(session_cl
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data.keys() >= {"project", "client"}
     assert not AssistantConversation.objects.exists()
+
+
+@pytest.mark.django_db
+def test_assistant_action_confirm_is_idempotent_and_cancel_never_executes(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Actions")
+    action = AssistantAction.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        requester=create_user,
+        tool="workitem",
+        arguments={"action": "create", "project_id": str(uuid4()), "name": "Ship it"},
+        preview={"title": "Create work item", "changes": {"name": "Ship it"}},
+    )
+    calls = []
+
+    def execute(current, request=None):
+        calls.append(current.id)
+        return {"id": "created-once"}
+
+    monkeypatch.setattr("plane.summon.views.operations.execute_assistant_action", execute)
+    base = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
+
+    first = session_client.post(f"{base}{action.id}/confirm/", format="json")
+    second = session_client.post(f"{base}{action.id}/confirm/", format="json")
+    assert first.status_code == second.status_code == status.HTTP_200_OK
+    assert first.data["status"] == second.data["status"] == "completed"
+    assert first.data["result"] == second.data["result"] == {"id": "created-once"}
+    assert calls == [action.id]
+
+    cancelled = AssistantAction.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        requester=create_user,
+        tool="workitem",
+        arguments={"action": "update", "project_id": str(uuid4()), "work_item_id": str(uuid4())},
+        preview={"title": "Update work item"},
+    )
+    cancelled_response = session_client.post(f"{base}{cancelled.id}/cancel/", format="json")
+    confirm_cancelled = session_client.post(f"{base}{cancelled.id}/confirm/", format="json")
+    assert cancelled_response.status_code == status.HTTP_200_OK
+    assert cancelled_response.data["status"] == "cancelled"
+    assert confirm_cancelled.status_code == status.HTTP_409_CONFLICT
+    assert calls == [action.id]
+
+
+@pytest.mark.django_db
+def test_assistant_actions_are_owner_and_workspace_scoped(session_client, workspace, create_user):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Private")
+    action = AssistantAction.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        requester=create_user,
+        tool="project",
+        arguments={"action": "create", "name": "Private"},
+        preview={"title": "Create project"},
+    )
+    _, other_api = authenticated_member(workspace)
+    url = (
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/"
+        f"actions/{action.id}/confirm/"
+    )
+
+    assert other_api.post(url, format="json").status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_mcp_read_uses_user_pat_workspace_header_and_audits_use(
+    session_client, workspace, create_user, settings, monkeypatch
+):
+    settings.SUMMON_CREDENTIAL_KEY = Fernet.generate_key().decode()
+    credential = Credential.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        name="Plane PAT",
+        provider="plane_mcp",
+        secret_ciphertext=encrypt_secret("pat-test-only"),
+    )
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        title="MCP read",
+        mcp_credential=credential,
+    )
+    calls = []
+
+    class FakeResponse:
+        def __init__(self, payload=None, status_code=200, headers=None):
+            self.payload = payload or {}
+            self.status_code = status_code
+            self.headers = {"content-type": "application/json", **(headers or {})}
+            self.text = ""
+
+        def json(self):
+            return self.payload
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError()
+
+    def fake_post(url, headers, json, timeout):
+        calls.append((headers.copy(), json))
+        if json["method"] == "initialize":
+            return FakeResponse({"jsonrpc": "2.0", "id": 1, "result": {}}, headers={"Mcp-Session-Id": "s-1"})
+        if json["method"] == "notifications/initialized":
+            return FakeResponse(status_code=202)
+        return FakeResponse({"jsonrpc": "2.0", "id": 2, "result": {"projects": [{"id": "project-1"}]}})
+
+    monkeypatch.setattr("plane.summon.services.mcp.requests.post", fake_post)
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+    response = session_client.post(
+        url,
+        {"content": "List projects", "context": {}, "tool": "project", "arguments": {"action": "list"}},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["action"] is None
+    assert len(calls) == 3
+    assert all(call[0]["Authorization"] == "Bearer pat-test-only" for call in calls)
+    assert all(call[0]["X-Workspace-slug"] == workspace.slug for call in calls)
+    assert calls[-1][1]["params"] == {"name": "project", "arguments": {"action": "list"}}
+    assert CredentialAccessLog.objects.filter(credential=credential, member=create_user, action="use").count() == 1
+
+
+@pytest.mark.django_db
+def test_mcp_write_creates_preview_without_calling_provider(
+    session_client, workspace, create_user, settings, monkeypatch
+):
+    settings.SUMMON_CREDENTIAL_KEY = Fernet.generate_key().decode()
+    credential = Credential.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        name="Plane PAT",
+        provider="plane_mcp",
+        secret_ciphertext=encrypt_secret("preview-pat"),
+    )
+    project = visible_project(workspace, create_user, "MCP")
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        title="MCP write",
+        mcp_credential=credential,
+    )
+    monkeypatch.setattr(
+        "plane.summon.services.mcp.requests.post",
+        lambda *args, **kwargs: pytest.fail("preview must not call MCP"),
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+    response = session_client.post(
+        url,
+        {
+            "content": "Create Ship it",
+            "context": {},
+            "tool": "workitem",
+            "arguments": {"action": "create", "project_id": str(project.id), "name": "Ship it"},
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["action"]["status"] == "pending"
+    assert response.data["action"]["preview"]["changes"]["name"] == "Ship it"
+    assert CredentialAccessLog.objects.filter(credential=credential, action="use").count() == 0
+
+
+@pytest.mark.django_db
+def test_mcp_invalid_pat_and_provider_unavailable_are_sanitized(
+    session_client, workspace, create_user, settings, monkeypatch
+):
+    settings.SUMMON_CREDENTIAL_KEY = Fernet.generate_key().decode()
+    credential = Credential.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        name="Plane PAT",
+        provider="plane_mcp",
+        secret_ciphertext=encrypt_secret("never-return-this-pat"),
+    )
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        title="MCP unavailable",
+        mcp_credential=credential,
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+
+    class Unauthorized:
+        status_code = 401
+        headers = {"content-type": "application/json"}
+        text = "invalid never-return-this-pat"
+
+        def json(self):
+            return {"detail": self.text}
+
+    monkeypatch.setattr("plane.summon.services.mcp.requests.post", lambda *args, **kwargs: Unauthorized())
+    invalid = session_client.post(
+        url,
+        {"content": "List", "context": {}, "tool": "project", "arguments": {"action": "list"}},
+        format="json",
+    )
+    assert invalid.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert invalid.data == {"error_code": "mcp_http_401"}
+    assert "never-return-this-pat" not in str(invalid.data)
+
+    monkeypatch.setattr(
+        "plane.summon.services.mcp.requests.post",
+        lambda *args, **kwargs: (_ for _ in ()).throw(requests.ConnectionError()),
+    )
+    unavailable = session_client.post(
+        url,
+        {"content": "List", "context": {}, "tool": "project", "arguments": {"action": "list"}},
+        format="json",
+    )
+    assert unavailable.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert unavailable.data == {"error_code": "mcp_provider_unavailable"}
 
 
 @pytest.mark.django_db

@@ -21,6 +21,7 @@ class AssistantConversation(BaseModel):
     )
     project = models.ForeignKey("db.Project", null=True, blank=True, on_delete=models.SET_NULL)
     client = models.ForeignKey("summon.Client", null=True, blank=True, on_delete=models.SET_NULL)
+    mcp_credential = models.ForeignKey("summon.Credential", null=True, blank=True, on_delete=models.SET_NULL)
     title = models.CharField(max_length=255)
     last_activity_at = models.DateTimeField(default=timezone.now)
 
@@ -55,6 +56,41 @@ class AssistantMessage(BaseModel):
     input_tokens = models.PositiveIntegerField(null=True, blank=True)
     output_tokens = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.COMPLETED)
+
+    class Meta:
+        ordering = ("created_at",)
+
+
+class AssistantAction(BaseModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        CONFIRMED = "confirmed", "Confirmed"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+        FAILED = "failed", "Failed"
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="summon_assistant_actions",
+    )
+    conversation = models.ForeignKey(
+        AssistantConversation,
+        on_delete=models.CASCADE,
+        related_name="actions",
+    )
+    requester = models.ForeignKey(
+        "db.User",
+        on_delete=models.CASCADE,
+        related_name="summon_assistant_actions",
+    )
+    tool = models.CharField(max_length=120)
+    arguments = models.JSONField(default=dict)
+    preview = models.JSONField(default=dict)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    error = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ("created_at",)

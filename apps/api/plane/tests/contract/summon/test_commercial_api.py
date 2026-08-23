@@ -56,6 +56,38 @@ def test_workspace_membership_and_role_boundary(workspace):
 
 
 @pytest.mark.django_db
+def test_pdf_client_and_opportunity_fields_persist_after_reload(workspace):
+    _, api = authenticated_user(workspace, 20)
+    clients_url = f"/api/summon/workspaces/{workspace.slug}/clients/"
+    client = api.post(
+        clients_url,
+        {
+            "name": "Acme",
+            "website": "https://acme.example",
+            "head_office": "Jakarta",
+            "relationship_started_at": "2024-03-01",
+        },
+        format="json",
+    )
+
+    assert client.status_code == status.HTTP_201_CREATED
+    client_detail = api.get(f"{clients_url}{client.data['id']}/")
+    assert client_detail.data["website"] == "https://acme.example"
+    assert client_detail.data["head_office"] == "Jakarta"
+    assert client_detail.data["relationship_started_at"] == "2024-03-01"
+
+    opportunities_url = f"/api/summon/workspaces/{workspace.slug}/opportunities/"
+    opportunity = api.post(
+        opportunities_url,
+        {"title": "Renewal", "product": "Summon Core", "source": "Referral"},
+        format="json",
+    )
+    assert opportunity.status_code == status.HTTP_201_CREATED
+    detail = api.get(f"{opportunities_url}{opportunity.data['id']}/")
+    assert (detail.data["product"], detail.data["source"]) == ("Summon Core", "Referral")
+
+
+@pytest.mark.django_db
 def test_client_queryset_and_references_are_workspace_scoped(workspace):
     member, client = authenticated_user(workspace, 15)
     other_owner, _ = authenticated_user()

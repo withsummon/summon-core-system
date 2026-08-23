@@ -15,6 +15,7 @@ export type TSummonCredentialAccessAction =
   | "rotate_denied"
   | "grant"
   | "revoke"
+  | "use"
   | "delete";
 
 export interface ISummonAIStatus {
@@ -26,10 +27,15 @@ export interface ISummonAIStatus {
 export interface ISummonClient {
   id: string;
   name: string;
-  description: string;
-  status: string;
+  company_name: string;
   industry: string;
+  email: string;
+  phone: string;
   website: string;
+  head_office: string;
+  relationship_started_at: string | null;
+  notes: string;
+  status: "lead" | "active" | "inactive";
   owner: string | null;
   created_at: string;
   updated_at: string;
@@ -41,7 +47,7 @@ export interface ISummonClientContact {
   name: string;
   email: string;
   phone: string;
-  role: string;
+  title: string;
   is_primary: boolean;
   created_at: string;
   updated_at: string;
@@ -52,6 +58,8 @@ export interface ISummonOpportunity {
   client: string | null;
   owner: string | null;
   title: string;
+  product: string;
+  source: string;
   description: string;
   stage: TSummonOpportunityStage;
   probability: number;
@@ -86,6 +94,10 @@ export interface ISummonProjectProfile {
   client: string | null;
   source_opportunity: string | null;
   delivery_status: string;
+  phase: string;
+  health: string;
+  start_date: string | null;
+  target_date: string | null;
   budget: string | null;
 }
 
@@ -296,8 +308,22 @@ export interface ISummonAssistantConversation {
   title: string;
   project: string | null;
   client: string | null;
+  mcp_credential: string | null;
   last_activity_at: string;
   messages?: ISummonAssistantMessage[];
+  actions?: ISummonAssistantAction[];
+}
+
+export interface ISummonAssistantAction {
+  id: string;
+  tool: string;
+  arguments: Record<string, unknown>;
+  preview: { title?: string; summary?: string; changes?: Record<string, unknown> };
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "failed";
+  confirmed_at: string | null;
+  result: Record<string, unknown>;
+  error: string;
+  created_at: string;
 }
 
 export interface ISummonAssistantMessageRequest {
@@ -309,12 +335,35 @@ export interface ISummonAssistantMessageRequest {
     meeting_id?: string;
     page_ids?: string[];
   };
+  intent?: string;
+  tool?: string;
+  arguments?: Record<string, unknown>;
 }
 
 export interface ISummonAssistantMessagePair {
   user_message: ISummonAssistantMessage;
   assistant_message: ISummonAssistantMessage;
+  action?: ISummonAssistantAction | null;
   context_truncated: boolean;
+}
+
+export interface ISummonWorkspaceSettings {
+  name: string;
+  slug: string;
+  logo: string | null;
+  organization_size: string | null;
+  timezone: string;
+  industry: string;
+  description: string;
+  currency: string;
+  workweek: Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">;
+}
+
+export interface ISummonMCPStatus {
+  reachable: boolean;
+  endpoint: string;
+  transport: "streamable-http";
+  authentication: string;
 }
 
 export type TSummonLLMErrorCode =
