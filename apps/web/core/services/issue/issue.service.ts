@@ -40,7 +40,7 @@ export class IssueService extends APIService {
   async getIssuesFromServer(
     workspaceSlug: string,
     projectId: string,
-    queries?: any,
+    queries: any = {},
     config = {}
   ): Promise<TIssuesResponse> {
     const path =
