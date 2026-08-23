@@ -45,5 +45,30 @@ export const automationInputValue = (input: Record<string, unknown>, name: strin
   return typeof values[name] === "string" ? values[name] : "";
 };
 
+export const filterAutomationJobs = <
+  T extends {
+    type: string;
+    project: string | null;
+    input: Record<string, unknown>;
+  },
+>(
+  jobs: T[],
+  projectNames: Map<string, string>,
+  query: string,
+  type: string
+) => {
+  const normalized = query.trim().toLowerCase();
+  return jobs.filter((job) => {
+    if (type !== "all" && job.type !== type) return false;
+    return [
+      automationInputValue(job.input, "title"),
+      job.type.replaceAll("_", " "),
+      projectNames.get(job.project ?? ""),
+    ]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(normalized));
+  });
+};
+
 export const templateVariableLabel = (variable: string) =>
   variable.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

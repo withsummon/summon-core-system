@@ -4,8 +4,13 @@ import test from "node:test";
 
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const service = readFileSync(new URL("../../../../../../core/services/summon.service.ts", import.meta.url), "utf8");
-const { automationInputValue, buildAutomationInput, isMultilineTemplateVariable, syncTemplateVariableValues } =
-  await import(new URL("./automation-form.ts", import.meta.url).href);
+const {
+  automationInputValue,
+  buildAutomationInput,
+  filterAutomationJobs,
+  isMultilineTemplateVariable,
+  syncTemplateVariableValues,
+} = await import(new URL("./automation-form.ts", import.meta.url).href);
 
 test("Automation previews before an explicit idempotent publish", () => {
   assert.match(service, /generateAutomationPreview/);
@@ -107,4 +112,35 @@ test("Structured template variables use multiline fields without per-template br
   assert.equal(isMultilineTemplateVariable("due_date"), false);
   assert.match(source, /isMultilineTemplateVariable\(variable\)/);
   assert.match(source, /Enter one item per line or structured details/);
+});
+
+test("Generated document search matches persisted titles, types, and project context", () => {
+  const jobs = [
+    {
+      id: "proposal",
+      type: "technical_proposal",
+      project: "project-bsb",
+      input: { title: "Technical Proposal" },
+    },
+    {
+      id: "minutes",
+      type: "mom",
+      project: "project-sanf",
+      input: { title: "Weekly Review" },
+    },
+  ];
+  const projectNames = new Map([
+    ["project-bsb", "Logistic Management"],
+    ["project-sanf", "Credit Scoring"],
+  ]);
+
+  assert.deepEqual(
+    filterAutomationJobs(jobs, projectNames, "logistic", "all").map((job: { id: string }) => job.id),
+    ["proposal"]
+  );
+  assert.deepEqual(
+    filterAutomationJobs(jobs, projectNames, "", "mom").map((job: { id: string }) => job.id),
+    ["minutes"]
+  );
+  assert.deepEqual(filterAutomationJobs(jobs, projectNames, "missing", "all"), []);
 });
