@@ -11,6 +11,7 @@ import { listAllCursorResults } from "./summon-pagination";
 
 type TAccessibleProject = { id: string; identifier: string; name: string };
 
+export type TPlaneIssueIndexItem = { issue: TIssue; project: TAccessibleProject };
 export type TPlanePageIndexItem = { page: TPage; project: TAccessibleProject };
 
 const issueService = new IssueService();
@@ -21,16 +22,17 @@ export async function getAccessibleProjects(workspaceSlug: string): Promise<TAcc
   return summary.projects;
 }
 
-export async function listAccessiblePlaneIssues(workspaceSlug: string): Promise<TIssue[]> {
+export async function listAccessiblePlaneIssues(workspaceSlug: string): Promise<TPlaneIssueIndexItem[]> {
   const projects = await getAccessibleProjects(workspaceSlug);
   const responses = await Promise.all(
-    projects.map((project) =>
-      listAllCursorResults<TIssue>((cursor) =>
+    projects.map(async (project) => ({
+      project,
+      issues: await listAllCursorResults<TIssue>((cursor) =>
         issueService.getIssues(workspaceSlug, project.id, cursor ? { cursor } : undefined)
-      )
-    )
+      ),
+    }))
   );
-  return responses.flat();
+  return responses.flatMap(({ project, issues }) => issues.map((issue) => ({ issue, project })));
 }
 
 export async function listAccessiblePlanePages(workspaceSlug: string): Promise<TPlanePageIndexItem[]> {
