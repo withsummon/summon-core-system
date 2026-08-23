@@ -84,6 +84,27 @@ services:
     ports:
       - "8000:8000"
 
+  mcp:
+    image: makeplane/plane-mcp-server:v0.3.1
+    restart: unless-stopped
+    networks:
+      - dev_env
+    environment:
+      PLANE_INTERNAL_BASE_URL: http://api:8000
+      PLANE_OAUTH_PROVIDER_CLIENT_ID: summon-core-local
+      PLANE_OAUTH_PROVIDER_CLIENT_SECRET: local-pat-route-only
+      PLANE_OAUTH_PROVIDER_BASE_URL: http://localhost:8211
+      REDIS_HOST: plane-redis
+      REDIS_PORT: "6379"
+      MCP_PATH_PREFIX: /mcp
+      LOG_PAYLOADS: "false"
+      LOG_USER_INFO: "false"
+    depends_on:
+      - api
+      - plane-redis
+    ports:
+      - "8211:8211"
+
   worker:
     build:
       context: ./apps/api

@@ -5,6 +5,7 @@
 from django.urls import path
 
 from plane.summon.views import (
+    AssistantActionView,
     AssistantConversationViewSet,
     AssistantMessageView,
     AssistantQueryView,
@@ -21,6 +22,7 @@ from plane.summon.views import (
     CredentialViewSet,
     HomeSummaryView,
     LLMStatusView,
+    MCPStatusView,
     MeetingSummaryView,
     MeetingViewSet,
     MeetingWorkItemDetailView,
@@ -33,6 +35,7 @@ from plane.summon.views import (
     ReportSummaryView,
     SummonPageContextViewSet,
     SummonProjectProfileView,
+    SummonWorkspaceSettingsView,
 )
 
 
@@ -77,11 +80,33 @@ urlpatterns = [
         AssistantMessageView.as_view(),
         name="summon-assistant-message-list",
     ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/confirm/",
+        AssistantActionView.as_view(),
+        {"operation": "confirm"},
+        name="summon-assistant-action-confirm",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/cancel/",
+        AssistantActionView.as_view(),
+        {"operation": "cancel"},
+        name="summon-assistant-action-cancel",
+    ),
     path("workspaces/<str:slug>/home/summary/", HomeSummaryView.as_view(), name="summon-home-summary"),
     path(
         "workspaces/<str:slug>/settings/ai-status/",
         LLMStatusView.as_view(),
         name="summon-ai-status",
+    ),
+    path(
+        "workspaces/<str:slug>/settings/workspace/",
+        SummonWorkspaceSettingsView.as_view(),
+        name="summon-workspace-settings",
+    ),
+    path(
+        "workspaces/<str:slug>/settings/mcp-status/",
+        MCPStatusView.as_view(),
+        name="summon-mcp-status",
     ),
     path("workspaces/<str:slug>/clients/", client_list, name="summon-client-list"),
     path("workspaces/<str:slug>/clients/<uuid:pk>/", client_detail, name="summon-client-detail"),

@@ -18,6 +18,7 @@ from .collaboration import (
     SummonPageContextSerializer,
 )
 from .operations import (
+    AssistantActionSerializer,
     AssistantConversationSerializer,
     AssistantMessageRequestSerializer,
     AssistantMessageSerializer,
@@ -28,6 +29,7 @@ from .operations import (
     GeneratedArtifactSerializer,
     MeetingSummaryRequestSerializer,
 )
+from .settings import SummonWorkspaceSettingsSerializer
 from .credential import (
     CredentialAccessLogSerializer,
     CredentialGrantSerializer,
@@ -37,6 +39,7 @@ from .credential import (
 )
 
 __all__ = [
+    "AssistantActionSerializer",
     "AssistantConversationSerializer",
     "AssistantMessageRequestSerializer",
     "AssistantMessageSerializer",
@@ -62,4 +65,5 @@ __all__ = [
     "CredentialRevealSerializer",
     "CredentialRotateSerializer",
     "CredentialSerializer",
+    "SummonWorkspaceSettingsSerializer",
 ]

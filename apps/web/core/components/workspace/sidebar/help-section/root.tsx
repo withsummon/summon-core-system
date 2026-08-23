@@ -13,7 +13,6 @@ import { PageIcon } from "@plane/propel/icons";
 import { CustomMenu } from "@plane/ui";
 // components
 import { ProductUpdatesModal } from "@/components/global";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { PlaneVersionNumber } from "@/components/global/version-number";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
@@ -32,13 +31,9 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
 
       <CustomMenu
         customButton={
-          <AppSidebarItem
-            variant="button"
-            item={{
-              icon: <HelpCircle className="size-5" />,
-              isActive: isNeedHelpOpen,
-            }}
-          />
+          <span className="grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover">
+            <HelpCircle className="size-5" />
+          </span>
         }
         // customButtonClassName="relative grid place-items-center rounded-md p-1.5 outline-none"
         menuButtonOnClick={() => !isNeedHelpOpen && setIsNeedHelpOpen(true)}
@@ -60,23 +55,11 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
           </div>
         </CustomMenu.MenuItem>
         <div className="my-1 border-t border-subtle" />
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={() => toggleShortcutsListModal(true)}
-            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
-          >
-            <span className="text-11">{t("keyboard_shortcuts")}</span>
-          </button>
+        <CustomMenu.MenuItem onClick={() => toggleShortcutsListModal(true)}>
+          <span className="text-11">{t("keyboard_shortcuts")}</span>
         </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={() => setProductUpdatesModalOpen(true)}
-            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
-          >
-            <span className="text-11">{t("whats_new")}</span>
-          </button>
+        <CustomMenu.MenuItem onClick={() => setProductUpdatesModalOpen(true)}>
+          <span className="text-11">{t("whats_new")}</span>
         </CustomMenu.MenuItem>
         <CustomMenu.MenuItem onClick={() => window.open("https://forum.plane.so", "_blank", "noopener,noreferrer")}>
           <div className="flex items-center gap-x-2 rounded-sm text-11">

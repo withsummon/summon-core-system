@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import {
+  EUserPermissions,
   EUserPermissionsLevel,
   SUMMON_WORKSPACE_NAVIGATION_ITEMS,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
@@ -34,6 +35,11 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
 
   // derived values
   const currentWorkspaceNavigationPreferences = workspacePreferences.items;
+  const isWorkspaceAdmin = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.WORKSPACE,
+    workspaceSlug.toString()
+  );
 
   const sortedNavigationItems = useMemo(() => {
     const slug = workspaceSlug.toString();
@@ -124,6 +130,8 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
   };
 
   const handleClose = useCallback(() => toggleExtendedSidebar(false), [toggleExtendedSidebar]);
+
+  if (!isWorkspaceAdmin) return null;
 
   return (
     <ExtendedSidebarWrapper

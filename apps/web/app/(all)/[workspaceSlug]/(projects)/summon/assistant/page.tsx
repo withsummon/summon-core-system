@@ -7,7 +7,7 @@
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { Plus, Send } from "lucide-react";
-import { Button, TextArea } from "@plane/ui";
+import { Button, Input, TextArea } from "@plane/ui";
 import type { ISummonAssistantMessageRequest } from "@plane/types";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -27,12 +27,16 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
   const [clientId, setClientId] = useState("");
   const [meetingId, setMeetingId] = useState("");
   const [pageIds, setPageIds] = useState<string[]>([]);
+  const [mcpCredentialId, setMcpCredentialId] = useState("");
+  const [toolMode, setToolMode] = useState("chat");
+  const [workItemId, setWorkItemId] = useState("");
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
   const [pending, setPending] = useState("");
   const [sendError, setSendError] = useState("");
   const [lastRequest, setLastRequest] = useState<ISummonAssistantMessageRequest>();
   const [contextTruncated, setContextTruncated] = useState(false);
+  const [actionBusy, setActionBusy] = useState("");
   const {
     data: conversations = [],
     error: conversationsError,
@@ -54,12 +58,20 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
   const { data: contextOptions, error: contextError } = useSWR(
     ["summon-assistant-context", params.workspaceSlug],
     async () => {
-      const [clients, meetings, pages] = await Promise.all([
+      const [clients, meetings, pages, credentials] = await Promise.all([
         summonService.listClients(params.workspaceSlug),
         summonService.listMeetings(params.workspaceSlug),
         summonService.listPageContexts(params.workspaceSlug),
+        summonService.listCredentials(params.workspaceSlug),
       ]);
-      return { clients, meetings, pages };
+      return {
+        clients,
+        meetings,
+        pages,
+        credentials: credentials.filter(
+          (credential) => credential.status === "active" && ["plane", "plane_mcp"].includes(credential.provider)
+        ),
+      };
     }
   );
   const messages = conversation?.messages ?? [];
@@ -71,6 +83,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
       title,
       project: projectId || null,
       client: clientId || null,
+      mcp_credential: mcpCredentialId || null,
     });
     setSelectedConversationId(created.id);
     setContextTruncated(false);
@@ -99,6 +112,11 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     let conversationId = activeConversationId;
     try {
       conversationId ||= await createConversation(payload.content.slice(0, 80));
+      if (payload.tool && conversationId && conversation?.mcp_credential !== (mcpCredentialId || null)) {
+        await summonService.updateAssistantConversation(params.workspaceSlug, conversationId, {
+          mcp_credential: mcpCredentialId || null,
+        });
+      }
       const pair = await summonService.sendAssistantMessage(params.workspaceSlug, conversationId, payload);
       setComposer("");
       setLastRequest(undefined);
@@ -122,6 +140,36 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     event.preventDefault();
     const content = composer.trim();
     if (!content) return setSendError("Enter a message before sending.");
+    const toolPayload =
+      toolMode === "list_projects"
+        ? { tool: "project", arguments: { action: "list" } }
+        : toolMode === "create_project"
+          ? { tool: "project", arguments: { action: "create", name: content } }
+          : toolMode === "list_work_items"
+            ? { tool: "workitem", arguments: { action: "list", project_id: projectId } }
+            : toolMode === "create_work_item"
+              ? { tool: "workitem", arguments: { action: "create", project_id: projectId, name: content } }
+              : toolMode === "update_work_item"
+                ? {
+                    tool: "workitem",
+                    arguments: { action: "update", project_id: projectId, work_item_id: workItemId, name: content },
+                  }
+                : toolMode === "add_comment"
+                  ? {
+                      tool: "workitem_comment",
+                      arguments: {
+                        action: "create",
+                        project_id: projectId,
+                        work_item_id: workItemId,
+                        comment_html: content,
+                      },
+                    }
+                  : {};
+    if (toolMode !== "chat" && !mcpCredentialId) return setSendError("Select an active Plane MCP credential.");
+    if (["list_work_items", "create_work_item"].includes(toolMode) && !projectId)
+      return setSendError("Select a project for this Plane MCP action.");
+    if (["update_work_item", "add_comment"].includes(toolMode) && (!projectId || !workItemId.trim()))
+      return setSendError("Select a project and enter the Plane work item ID.");
     void sendMessage({
       content,
       context: {
@@ -131,7 +179,24 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
         meeting_id: meetingId || undefined,
         page_ids: pageIds,
       },
+      ...toolPayload,
     });
+  };
+
+  const updateAction = async (actionId: string, operation: "confirm" | "cancel") => {
+    if (!activeConversationId || actionBusy) return;
+    setActionBusy(actionId);
+    setSendError("");
+    try {
+      if (operation === "confirm")
+        await summonService.confirmAssistantAction(params.workspaceSlug, activeConversationId, actionId);
+      else await summonService.cancelAssistantAction(params.workspaceSlug, activeConversationId, actionId);
+      await reloadConversation();
+    } catch (error) {
+      setSendError(summonErrorMessage(error));
+    } finally {
+      setActionBusy("");
+    }
   };
 
   return (
@@ -162,6 +227,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
               type="button"
               onClick={() => {
                 setSelectedConversationId(item.id);
+                setMcpCredentialId(item.mcp_credential ?? "");
                 setSendError("");
                 setContextTruncated(false);
               }}
@@ -200,9 +266,63 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
             onRetry={() => void reloadConversation()}
           />
           <AssistantMessageList messages={messages} pending={pending} loading={conversationLoading} />
+          {conversation?.actions?.map((action) => (
+            <div key={action.id} className="rounded-xl border border-subtle bg-layer-1 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-primary">{action.preview.title ?? "Plane MCP action"}</p>
+                  <p className="text-xs mt-1 text-secondary">{action.preview.summary ?? action.tool}</p>
+                </div>
+                <span className="rounded-full bg-surface-1 px-2 py-1 text-[10px] font-medium text-secondary uppercase">
+                  {action.status}
+                </span>
+              </div>
+              {action.status === "pending" ? (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    loading={actionBusy === action.id}
+                    onClick={() => void updateAction(action.id, "confirm")}
+                  >
+                    Confirm
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="neutral-primary"
+                    disabled={Boolean(actionBusy)}
+                    onClick={() => void updateAction(action.id, "cancel")}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : null}
+              {action.error ? <p className="text-xs mt-2 text-danger-primary">{action.error}</p> : null}
+            </div>
+          ))}
         </div>
         <form onSubmit={submit} className="space-y-3 border-t border-subtle p-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <SummonField label="Assistant mode">
+              <SummonSelect value={toolMode} onChange={(event) => setToolMode(event.target.value)}>
+                <option value="chat">AI chat</option>
+                <option value="list_projects">MCP · List projects</option>
+                <option value="create_project">MCP · Create project preview</option>
+                <option value="list_work_items">MCP · List work items</option>
+                <option value="create_work_item">MCP · Create work item preview</option>
+                <option value="update_work_item">MCP · Update work item preview</option>
+                <option value="add_comment">MCP · Add comment preview</option>
+              </SummonSelect>
+            </SummonField>
+            <SummonField label="Plane MCP credential">
+              <SummonSelect value={mcpCredentialId} onChange={(event) => setMcpCredentialId(event.target.value)}>
+                <option value="">No credential</option>
+                {contextOptions?.credentials.map((credential) => (
+                  <option key={credential.id} value={credential.id}>
+                    {credential.name}
+                  </option>
+                ))}
+              </SummonSelect>
+            </SummonField>
             <SummonField label="Project context">
               <SummonSelect value={projectId} onChange={(event) => setProjectId(event.target.value)}>
                 <option value="">No project</option>
@@ -213,6 +333,11 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
                 ))}
               </SummonSelect>
             </SummonField>
+            {["update_work_item", "add_comment"].includes(toolMode) ? (
+              <SummonField label="Plane work item ID">
+                <Input value={workItemId} onChange={(event) => setWorkItemId(event.target.value)} required />
+              </SummonField>
+            ) : null}
             <SummonField label="Client context">
               <SummonSelect value={clientId} onChange={(event) => setClientId(event.target.value)}>
                 <option value="">No client</option>

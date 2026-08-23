@@ -14,12 +14,12 @@ import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
-import { Tooltip } from "@plane/propel/tooltip";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { InboxIcon } from "@plane/propel/icons";
+import Link from "next/link";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useUserProfile } from "@/hooks/store/user";
+import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
@@ -51,6 +51,9 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         "px-2": !showLabel,
       })}
     >
+      <div className="mr-1 md:hidden">
+        <AppSidebarToggleButton />
+      </div>
       {/* Workspace Menu */}
       <div className="flex-1 shrink-0">
         <WorkspaceMenuRoot variant="top-navigation" />
@@ -61,23 +64,21 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       </div>
       {/* Additional Actions */}
       <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
-        <Tooltip tooltipContent="Inbox" position="bottom">
-          <AppSidebarItem
-            variant="link"
-            item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
-              icon: (
-                <div className="relative">
-                  <InboxIcon className="size-5" />
-                  {totalNotifications > 0 && (
-                    <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
-                  )}
-                </div>
-              ),
-              isActive: pathname?.includes("/notifications/"),
-            }}
-          />
-        </Tooltip>
+        <Link
+          href={`/${workspaceSlug?.toString()}/notifications/`}
+          aria-label="Inbox"
+          title="Inbox"
+          className={cn("grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover", {
+            "bg-layer-transparent-selected text-secondary": pathname?.includes("/notifications/"),
+          })}
+        >
+          <span className="relative">
+            <InboxIcon className="size-5" />
+            {totalNotifications > 0 && (
+              <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
+            )}
+          </span>
+        </Link>
         <HelpMenuRoot />
         <SummonThemeToggle onChange={(theme) => updateUserTheme({ theme })} />
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">

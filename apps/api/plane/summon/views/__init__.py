@@ -18,6 +18,7 @@ from .collaboration import (
     SummonPageContextViewSet,
 )
 from .operations import (
+    AssistantActionView,
     AssistantConversationViewSet,
     AssistantMessageView,
     AssistantQueryView,
@@ -28,6 +29,7 @@ from .operations import (
     ReportExportView,
     ReportSummaryView,
 )
+from .settings import MCPStatusView, SummonWorkspaceSettingsView
 from .overview import HomeSummaryView, ProjectOverviewView
 from .credential import (
     CredentialAuditView,
@@ -39,6 +41,7 @@ from .credential import (
 )
 
 __all__ = [
+    "AssistantActionView",
     "AssistantConversationViewSet",
     "AssistantMessageView",
     "ClientContactViewSet",
@@ -47,6 +50,7 @@ __all__ = [
     "OpportunityViewSet",
     "SummonProjectProfileView",
     "MeetingSummaryView",
+    "MCPStatusView",
     "MeetingViewSet",
     "MeetingWorkItemDetailView",
     "MeetingWorkItemView",
@@ -67,4 +71,5 @@ __all__ = [
     "CredentialRevealView",
     "CredentialRotateView",
     "CredentialViewSet",
+    "SummonWorkspaceSettingsView",
 ]

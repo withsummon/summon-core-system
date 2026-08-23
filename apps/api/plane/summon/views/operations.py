@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -12,6 +14,7 @@ from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.license.utils.instance_value import get_llm_configuration_status
 from plane.summon.models import (
+    AssistantAction,
     AssistantConversation,
     AssistantMessage,
     AutomationJob,
@@ -20,6 +23,7 @@ from plane.summon.models import (
 )
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.operations import (
+    AssistantActionSerializer,
     AssistantConversationSerializer,
     AssistantMessageRequestSerializer,
     AssistantMessageSerializer,
@@ -29,6 +33,8 @@ from plane.summon.serializers.operations import (
     AutomationTemplateSerializer,
     ReportFilterSerializer,
 )
+from plane.summon.services.assistant_action import execute_assistant_action, handle_tool_request
+from plane.summon.services.mcp import MCPError
 from plane.summon.services.assistant import answer_query, send_message
 from plane.summon.services.automation import (
     authorize_artifact_download,
@@ -194,8 +200,11 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
                 workspace=self.get_workspace(),
                 owner=self.request.user,
             )
-            .select_related("project", "client")
-            .prefetch_related(Prefetch("messages", queryset=AssistantMessage.objects.order_by("created_at")))
+            .select_related("project", "client", "mcp_credential")
+            .prefetch_related(
+                Prefetch("messages", queryset=AssistantMessage.objects.order_by("created_at")),
+                Prefetch("actions", queryset=AssistantAction.objects.order_by("created_at")),
+            )
         )
 
     def perform_create(self, serializer):
@@ -220,8 +229,31 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
     def post(self, request, slug, conversation_id):
         serializer = AssistantMessageRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        conversation = self.get_conversation()
+        tool = serializer.validated_data["tool"]
+        if tool:
+            try:
+                user_message, assistant_message, action = handle_tool_request(
+                    conversation,
+                    request.user,
+                    serializer.validated_data["content"],
+                    tool,
+                    serializer.validated_data["arguments"],
+                    request=request,
+                )
+            except MCPError as error:
+                return Response({"error_code": str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response(
+                {
+                    "user_message": AssistantMessageSerializer(user_message).data,
+                    "assistant_message": AssistantMessageSerializer(assistant_message).data,
+                    "action": AssistantActionSerializer(action).data if action else None,
+                    "context_truncated": False,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         user_message, assistant_message, truncated, error_code = send_message(
-            self.get_conversation(),
+            conversation,
             request.user,
             serializer.validated_data["content"],
             serializer.validated_data["context"],
@@ -236,3 +268,52 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
             data["error_code"] = error_code
             return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def get_action(self, lock=False):
+        queryset = AssistantAction.objects
+        if lock:
+            queryset = queryset.select_for_update()
+        else:
+            queryset = queryset.select_related("conversation__mcp_credential", "requester")
+        return get_object_or_404(
+            queryset,
+            id=self.kwargs["action_id"],
+            conversation_id=self.kwargs["conversation_id"],
+            conversation__owner=self.request.user,
+            workspace=self.get_workspace(),
+        )
+
+    def post(self, request, slug, conversation_id, action_id, operation):
+        with transaction.atomic():
+            action = self.get_action(lock=True)
+            if operation == "cancel":
+                if action.status == AssistantAction.Status.CANCELLED:
+                    return Response(AssistantActionSerializer(action).data)
+                if action.status != AssistantAction.Status.PENDING:
+                    return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
+                action.status = AssistantAction.Status.CANCELLED
+                action.save(update_fields=["status", "updated_at"])
+                return Response(AssistantActionSerializer(action).data)
+
+            if action.status == AssistantAction.Status.COMPLETED:
+                return Response(AssistantActionSerializer(action).data)
+            if action.status != AssistantAction.Status.PENDING:
+                return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
+            action.status = AssistantAction.Status.CONFIRMED
+            action.confirmed_at = timezone.now()
+            action.save(update_fields=["status", "confirmed_at", "updated_at"])
+            try:
+                action.result = execute_assistant_action(action, request=request)
+                action.status = AssistantAction.Status.COMPLETED
+                action.error = ""
+            except MCPError as error:
+                action.status = AssistantAction.Status.FAILED
+                action.error = str(error)
+                action.save(update_fields=["status", "error", "updated_at"])
+                return Response(AssistantActionSerializer(action).data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            action.save(update_fields=["status", "result", "error", "updated_at"])
+            return Response(AssistantActionSerializer(action).data)
