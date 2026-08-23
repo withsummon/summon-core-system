@@ -13,6 +13,7 @@ export const SUMMON_MODULES = [
   { key: "summon_opportunities", label: "Opportunities", path: "opportunities" },
   { key: "summon_clients", label: "Clients", path: "clients" },
   { key: "summon_tasks", label: "Tasks", path: "tasks" },
+  { key: "summon_meetings", label: "Meetings", path: "meetings" },
   { key: "summon_documents", label: "Documents", path: "documents" },
   { key: "summon_knowledge", label: "Knowledge", path: "knowledge" },
   { key: "summon_resources", label: "Resources", path: "resources" },

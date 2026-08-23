@@ -16,7 +16,19 @@ import {
   ViewsIcon,
   YourWorkIcon,
 } from "@plane/propel/icons";
-import { SettingsIcon } from "lucide-react";
+import {
+  Bell,
+  BookOpen,
+  Bot,
+  Briefcase,
+  CalendarDays,
+  FileText,
+  KeyRound,
+  ListTodo,
+  SettingsIcon,
+  Users,
+  Workflow,
+} from "lucide-react";
 import { cn } from "@plane/utils";
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
@@ -42,19 +54,33 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
     case "stickies":
       return <MultipleStickyIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "summon":
-    case "summon_clients":
-    case "summon_credentials":
+      return <HomeIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_projects":
       return <ProjectIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_clients":
+      return <Users className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_tasks":
+      return <ListTodo className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_meetings":
+      return <CalendarDays className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_documents":
+      return <FileText className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_knowledge":
+      return <BookOpen className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_credentials":
+      return <KeyRound className={cn("size-4 flex-shrink-0", className)} />;
     case "summon_opportunities":
+      return <Briefcase className={cn("size-4 flex-shrink-0", className)} />;
     case "summon_reports":
       return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "summon_resources":
       return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_meetings":
     case "summon_automation":
-      return <CycleIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Workflow className={cn("size-4 flex-shrink-0", className)} />;
+    case "summon_notifications":
+      return <Bell className={cn("size-4 flex-shrink-0", className)} />;
     case "summon_assistant":
-      return <YourWorkIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Bot className={cn("size-4 flex-shrink-0", className)} />;
     case "summon_settings":
       return <SettingsIcon className={cn("size-4 flex-shrink-0", className)} />;
   }

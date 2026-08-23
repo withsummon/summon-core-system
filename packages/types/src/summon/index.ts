@@ -147,6 +147,7 @@ export interface ISummonMeeting {
   status: "scheduled" | "completed" | "cancelled";
   starts_at: string;
   ends_at: string | null;
+  organizer: string | null;
   project: string | null;
   project_detail: { id: string; identifier: string; name: string } | null;
   recording_asset: string | null;
@@ -173,6 +174,8 @@ export interface ISummonMeeting {
   summary_output_tokens: number | null;
   participants: Array<{ id: string; member: { id: string; display_name: string }; response: string }>;
   work_items: ISummonMeetingWorkItem[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ISummonMeetingSummaryRequest {

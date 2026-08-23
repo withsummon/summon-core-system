@@ -22,12 +22,40 @@ import {
 } from "lucide-react";
 import { summonService } from "@/services/summon.service";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { useCommandPalette } from "@/hooks/store/use-command-palette";
 
 interface IProjectsDirectoryRootProps {
   workspaceSlug: string;
 }
 
+const getHealthBadge = (health: string) => {
+  const h = health.toLowerCase();
+  if (h.includes("good") || h.includes("on_track")) {
+    return (
+      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+        <CheckCircle className="size-3" />
+        On Track
+      </span>
+    );
+  }
+  if (h.includes("risk") || h.includes("delayed")) {
+    return (
+      <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+        <AlertCircle className="size-3" />
+        At Risk
+      </span>
+    );
+  }
+  return (
+    <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+      <Clock className="size-3" />
+      {health.replaceAll("_", " ")}
+    </span>
+  );
+};
+
 export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootProps) {
+  const { toggleCreateProjectModal } = useCommandPalette();
   const { data, error, isLoading, mutate } = useSWR(["summon-projects", workspaceSlug], () =>
     summonService.getHomeSummary(workspaceSlug)
   );
@@ -64,32 +92,6 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
       ? Math.round(allProjects.reduce((acc, p) => acc + (p.completion || 0), 0) / allProjects.length)
       : 0;
 
-  const getHealthBadge = (health: string) => {
-    const h = health.toLowerCase();
-    if (h.includes("good") || h.includes("on_track")) {
-      return (
-        <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-          <CheckCircle className="size-3" />
-          On Track
-        </span>
-      );
-    }
-    if (h.includes("risk") || h.includes("delayed")) {
-      return (
-        <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-          <AlertCircle className="size-3" />
-          At Risk
-        </span>
-      );
-    }
-    return (
-      <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-        <Clock className="size-3" />
-        {health.replaceAll("_", " ")}
-      </span>
-    );
-  };
-
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
       {/* Header */}
@@ -102,13 +104,14 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            href={`/${workspaceSlug}/projects/`}
+          <button
+            type="button"
+            onClick={() => toggleCreateProjectModal(true)}
             className="text-xs shadow-xs flex items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 py-2 font-bold text-white hover:bg-accent-primary/90"
           >
             <Plus className="size-3.5" />
             <span>Create Plane Project</span>
-          </Link>
+          </button>
         </div>
       </div>
 

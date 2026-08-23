@@ -27,3 +27,13 @@ test("PDF navigation exposes the completed Plane-backed routes before the native
   assert.doesNotMatch(modules, /summon_assistant/);
   assert.match(sidebar, /SUMMON_ASSISTANT_NAVIGATION_ITEM/);
 });
+
+test("project creation opens in place from the Summon projects directory", () => {
+  const projects = readFileSync(
+    new URL("../../../../../core/components/summon/projects/projects-directory-root.tsx", root),
+    "utf8"
+  );
+
+  assert.match(projects, /toggleCreateProjectModal\(true\)/);
+  assert.doesNotMatch(projects, /href={`\/\$\{workspaceSlug\}\/projects\/`}/);
+});
