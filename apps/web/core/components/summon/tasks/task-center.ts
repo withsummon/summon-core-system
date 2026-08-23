@@ -26,8 +26,10 @@ export function filterTaskCenterItems<T extends TTaskCenterItem>(
   tasks: T[],
   options: { scope: TTaskCenterScope; due: TTaskCenterDue; currentUserId?: string; today: string }
 ) {
-  const endOfWeek = addDays(options.today, 7 - (new Date(`${options.today}T00:00:00Z`).getUTCDay() || 7));
-  const nextSevenDays = addDays(options.today, 7);
+  const todayDate = new Date(`${options.today}T00:00:00Z`);
+  const hasToday = Number.isFinite(todayDate.getTime());
+  const endOfWeek = hasToday ? addDays(options.today, 7 - (todayDate.getUTCDay() || 7)) : "";
+  const nextSevenDays = hasToday ? addDays(options.today, 7) : "";
 
   return tasks.filter((task) => {
     const matchesScope =
@@ -42,7 +44,7 @@ export function filterTaskCenterItems<T extends TTaskCenterItem>(
     if (options.due === "completed") return completed;
     if (completed) return options.due === "all";
     if (options.due === "all") return true;
-    if (!task.target_date) return false;
+    if (!task.target_date || !hasToday) return false;
     if (options.due === "today") return task.target_date === options.today;
     if (options.due === "overdue") return task.target_date < options.today;
     if (options.due === "week") return task.target_date >= options.today && task.target_date <= endOfWeek;

@@ -59,3 +59,10 @@ test("Task Center summary uses canonical Plane state groups", () => {
     overdue: 1,
   });
 });
+
+test("Task Center tolerates the empty date used during hydration", () => {
+  assert.deepEqual(
+    filterTaskCenterItems(tasks, { scope: "all", due: "all", currentUserId: "me", today: "" }).map(({ id }) => id),
+    ["mine-overdue", "created-today", "done"]
+  );
+});
