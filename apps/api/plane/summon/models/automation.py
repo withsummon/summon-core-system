@@ -15,6 +15,8 @@ class AutomationTemplate(BaseModel):
     content_template = models.TextField()
     variables = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
+    external_source = models.CharField(max_length=255, null=True, blank=True)
+    external_id = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         ordering = ("name",)

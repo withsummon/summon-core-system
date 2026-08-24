@@ -94,10 +94,12 @@ PROJECTS = (
 )
 
 MEETING = {
+    "external_id": "meeting:pln-demo-2026-03-04",
     "title": "Demo Internal DMS Asuransi PLN ke Iglo",
     "starts_at": "2026-03-04T10:00:00+07:00",
     "ends_at": "2026-03-04T10:42:00+07:00",
     "project_identifier": "PLN-VAULT",
+    "project_repository": "pln-policy-vault",
     "agenda": "Demo internal dan pembahasan kesiapan DMS Asuransi PLN.",
     "notes": "Tindak lanjut Tim Summon disalin dari notulen tanpa menambahkan assignee atau due date.",
     "location": "Zoom Meeting",
@@ -125,6 +127,10 @@ WORK_ITEMS = (
 
 def repository_id(item):
     return f"github:withsummon/{item['repository']}"
+
+
+def client_id(name):
+    return f"client:{name}"
 
 
 def page_html(item):

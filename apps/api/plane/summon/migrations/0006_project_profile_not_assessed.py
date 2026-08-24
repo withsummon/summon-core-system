@@ -9,6 +9,36 @@ class Migration(migrations.Migration):
     dependencies = [("summon", "0005_assistantconversation_mcp_credential_and_more")]
 
     operations = [
+        migrations.AddField(
+            model_name="client",
+            name="external_id",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
+        migrations.AddField(
+            model_name="client",
+            name="external_source",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
+        migrations.AddField(
+            model_name="meeting",
+            name="external_id",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
+        migrations.AddField(
+            model_name="meeting",
+            name="external_source",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
+        migrations.AddField(
+            model_name="automationtemplate",
+            name="external_id",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
+        migrations.AddField(
+            model_name="automationtemplate",
+            name="external_source",
+            field=models.CharField(blank=True, max_length=255, null=True),
+        ),
         migrations.AlterField(
             model_name="summonprojectprofile",
             name="delivery_status",

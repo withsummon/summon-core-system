@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import json
 from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
@@ -24,6 +25,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.summon.models import (
+    AutomationTemplate,
     Client,
     Meeting,
     MeetingWorkItem,
@@ -32,9 +34,14 @@ from plane.summon.models import (
     SummonPageContext,
     SummonProjectProfile,
 )
-from plane.summon.seed_helpers import placeholder_inventory, preview_counts
-from plane.summon.seed_manifest import MEETING, PROJECTS, WORK_ITEMS, page_html, repository_id
-from plane.summon.services.automation import ensure_default_templates
+from plane.summon.seed_helpers import placeholder_inventory, preview_counts, seed_totals
+from plane.summon.seed_manifest import MEETING, PROJECTS, WORK_ITEMS, client_id, page_html, repository_id
+from plane.summon.services.automation import (
+    SYSTEM_TEMPLATE_SOURCE,
+    ensure_default_templates,
+    is_adoptable_default_template,
+)
+from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
 from plane.summon.services.page_document import write_page_document
 
 SOURCE = "summon_seed"
@@ -52,30 +59,37 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         workspace, owner = self._scope(options["workspace"], options["owner_email"])
-        inventory, digest = placeholder_inventory(workspace)
-        self._validate_collisions(workspace)
 
         if not options["apply"]:
-            projects, clients = preview_counts(workspace)
+            self._validate_collisions(workspace)
+            counts = preview_counts(workspace)
+            inventory, digest = placeholder_inventory(workspace)
             suffix = self._placeholder_summary(inventory, digest) if options["archive_placeholders"] else ""
-            self.stdout.write(f"PREVIEW created_projects={projects} created_clients={clients}{suffix}")
+            self.stdout.write(f"PREVIEW {self._count_summary('created', counts)}{suffix}")
             return
-
-        if options["archive_placeholders"] and options["placeholder_digest"] != digest:
-            raise CommandError("Placeholder digest does not match the latest preview; preview again before applying.")
 
         try:
             with transaction.atomic():
-                created_projects = self._seed(workspace, owner)
+                self._validate_collisions(workspace)
+                created = preview_counts(workspace)
+                inventory, digest = placeholder_inventory(workspace, lock=options["archive_placeholders"])
+                if options["archive_placeholders"] and options["placeholder_digest"] != digest:
+                    raise CommandError(
+                        "Placeholder digest does not match the latest preview; preview again before applying."
+                    )
+                self._seed(workspace, owner)
                 if options["archive_placeholders"]:
                     self._archive_placeholders(inventory)
+                totals = seed_totals(workspace)
         except CommandError:
             raise
         except Exception as error:
             raise CommandError(str(error)) from error
 
         suffix = self._placeholder_summary(inventory, digest) if options["archive_placeholders"] else ""
-        self.stdout.write(f"APPLIED created_projects={created_projects}{suffix}")
+        self.stdout.write(
+            f"APPLIED {self._count_summary('created', created)} {self._count_summary('total', totals)}{suffix}"
+        )
 
     def _scope(self, slug, email):
         workspace = Workspace.objects.filter(slug=slug).first()
@@ -92,38 +106,77 @@ class Command(BaseCommand):
         for item in PROJECTS:
             source_id = repository_id(item)
             seeded = Project.objects.filter(workspace=workspace, external_source=SOURCE, external_id=source_id).first()
-            collision = (
-                Project.objects.filter(workspace=workspace)
-                .filter(Q(name=item["name"]) | Q(identifier=item["identifier"]))
-                .first()
+            collision = Project.objects.filter(workspace=workspace).filter(
+                Q(name=item["name"]) | Q(identifier=item["identifier"]) | Q(external_id=source_id)
             )
-            if seeded and (seeded.name != item["name"] or seeded.identifier != item["identifier"]):
-                raise CommandError(f"Project collision for {source_id}.")
-            if collision and collision.id != getattr(seeded, "id", None):
+            if self._has_collision(collision, seeded):
                 raise CommandError(f"Project collision for {item['name']}.")
             page_id = f"project-brief:{source_id}"
             seeded_page = Page.objects.filter(workspace=workspace, external_source=SOURCE, external_id=page_id).first()
-            page_collision = Page.objects.filter(workspace=workspace, name=f"Project Brief - {item['name']}").first()
-            if page_collision and page_collision.id != getattr(seeded_page, "id", None):
+            page_collision = Page.objects.filter(workspace=workspace).filter(
+                Q(name=f"Project Brief - {item['name']}") | Q(external_id=page_id)
+            )
+            if self._has_collision(page_collision, seeded_page):
                 raise CommandError(f"Page collision for {item['name']}.")
-        for index, (name, _) in enumerate(WORK_ITEMS, start=1):
-            external_id = f"meeting:pln-demo-2026-03-04:{index}"
+        for name in {item["client"] for item in PROJECTS}:
+            external_id = client_id(name)
+            seeded = Client.objects.filter(workspace=workspace, external_source=SOURCE, external_id=external_id).first()
+            collision = Client.objects.filter(workspace=workspace).filter(Q(name=name) | Q(external_id=external_id))
+            if self._has_collision(collision, seeded):
+                raise CommandError(f"Client collision for {name}.")
+        seeded_meeting = Meeting.objects.filter(
+            workspace=workspace, external_source=SOURCE, external_id=MEETING["external_id"]
+        ).first()
+        meeting_collision = Meeting.objects.filter(workspace=workspace).filter(
+            Q(title=MEETING["title"]) | Q(external_id=MEETING["external_id"])
+        )
+        if self._has_collision(meeting_collision, seeded_meeting):
+            raise CommandError(f"Meeting collision for {MEETING['title']}.")
+        for index, _ in enumerate(WORK_ITEMS, start=1):
+            external_id = f"{MEETING['external_id']}:{index}"
             seeded = Issue.objects.filter(workspace=workspace, external_source=SOURCE, external_id=external_id).first()
-            collision = Issue.objects.filter(workspace=workspace, external_id=external_id).first()
-            if seeded and seeded.name != name:
+            collision = Issue.objects.filter(workspace=workspace, external_id=external_id)
+            if self._has_collision(collision, seeded):
                 raise CommandError(f"Issue collision for {external_id}.")
-            if collision and collision.id != getattr(seeded, "id", None):
-                raise CommandError(f"Issue collision for {external_id}.")
+        for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
+            external_id = f"template:{template_type}"
+            seeded = AutomationTemplate.objects.filter(
+                workspace=workspace,
+                external_source=SYSTEM_TEMPLATE_SOURCE,
+                external_id=external_id,
+            ).first()
+            collision = AutomationTemplate.objects.filter(workspace=workspace).filter(
+                Q(name=name) | Q(external_id=external_id)
+            )
+            if seeded:
+                collision = collision.exclude(id=seeded.id)
+            if any(
+                not is_adoptable_default_template(template, template_type, name, variables, content)
+                for template in collision
+            ):
+                raise CommandError(f"Automation template collision for {name}.")
+
+    def _has_collision(self, queryset, seeded):
+        if seeded:
+            queryset = queryset.exclude(id=seeded.id)
+        return queryset.exists()
 
     def _seed(self, workspace, owner):
-        clients = {
-            name: Client.objects.get_or_create(
-                workspace=workspace,
-                name=name,
-                defaults={"company_name": name, "owner": owner, "status": Client.Status.ACTIVE},
-            )[0]
-            for name in {item["client"] for item in PROJECTS}
-        }
+        clients = {}
+        for name in {item["client"] for item in PROJECTS}:
+            external_id = client_id(name)
+            client = Client.objects.filter(workspace=workspace, external_source=SOURCE, external_id=external_id).first()
+            if not client:
+                client = Client.objects.create(
+                    workspace=workspace,
+                    name=name,
+                    company_name=name,
+                    owner=owner,
+                    status=Client.Status.ACTIVE,
+                    external_source=SOURCE,
+                    external_id=external_id,
+                )
+            clients[name] = client
         members = list(WorkspaceMember.objects.filter(workspace=workspace, is_active=True).select_related("member"))
         created = 0
         for item in PROJECTS:
@@ -226,8 +279,14 @@ class Command(BaseCommand):
             )
 
     def _create_meeting(self, workspace, owner):
-        project = Project.objects.get(workspace=workspace, identifier=MEETING["project_identifier"])
-        meeting = Meeting.objects.filter(workspace=workspace, title=MEETING["title"]).first()
+        project = Project.objects.get(
+            workspace=workspace,
+            external_source=SOURCE,
+            external_id=f"github:withsummon/{MEETING['project_repository']}",
+        )
+        meeting = Meeting.objects.filter(
+            workspace=workspace, external_source=SOURCE, external_id=MEETING["external_id"]
+        ).first()
         if not meeting:
             meeting = Meeting.objects.create(
                 workspace=workspace,
@@ -240,11 +299,13 @@ class Command(BaseCommand):
                 status=Meeting.Status.COMPLETED,
                 starts_at=datetime.fromisoformat(MEETING["starts_at"]),
                 ends_at=datetime.fromisoformat(MEETING["ends_at"]),
+                external_source=SOURCE,
+                external_id=MEETING["external_id"],
                 created_by=owner,
             )
         todo = State.objects.get(project=project, name="Todo")
         for index, (name, description) in enumerate(WORK_ITEMS, start=1):
-            external_id = f"meeting:pln-demo-2026-03-04:{index}"
+            external_id = f"{MEETING['external_id']}:{index}"
             issue = Issue.objects.filter(workspace=workspace, external_source=SOURCE, external_id=external_id).first()
             if not issue:
                 issue = Issue.objects.create(
@@ -266,7 +327,12 @@ class Command(BaseCommand):
 
     def _placeholder_summary(self, inventory, digest):
         counts = ",".join(f"{name}={len(records)}" for name, records in inventory.items())
-        return f" placeholders={counts} placeholder_digest={digest}"
+        ids = {name: [str(record["id"]) for record in records] for name, records in inventory.items()}
+        encoded_ids = json.dumps(ids, separators=(",", ":"))
+        return f" placeholders={counts} placeholder_ids={encoded_ids} placeholder_digest={digest}"
+
+    def _count_summary(self, prefix, counts):
+        return " ".join(f"{prefix}_{name}={count}" for name, count in counts.items())
 
     def _archive_placeholders(self, inventory):
         now = timezone.now()

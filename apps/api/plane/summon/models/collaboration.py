@@ -52,6 +52,8 @@ class Meeting(BaseModel):
     summary_model = models.CharField(max_length=120, blank=True)
     summary_input_tokens = models.PositiveIntegerField(null=True, blank=True)
     summary_output_tokens = models.PositiveIntegerField(null=True, blank=True)
+    external_source = models.CharField(max_length=255, null=True, blank=True)
+    external_id = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         ordering = ("-starts_at",)

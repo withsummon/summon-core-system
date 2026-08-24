@@ -19,22 +19,69 @@ from plane.summon.services.document_renderer import render_document_files
 from plane.summon.services.page_document import write_page_document
 from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
 
+SYSTEM_TEMPLATE_SOURCE = "summon_system"
+LEGACY_TEMPLATES = (
+    ("Proposal", "proposal"),
+    ("Minutes of Meeting", "mom"),
+    ("Presentation Outline", "presentation_outline"),
+    ("POC Brief", "poc_brief"),
+)
+LEGACY_CURRENT_TEMPLATES = (("Quotation", "quotation"), ("Cost Projection", "cost_projection"))
+
+
+def is_adoptable_default_template(template, template_type, name, variables, content):
+    canonical = (
+        template.name == name
+        and template.type == template_type
+        and template.description == f"LLM-assisted {name}"
+        and template.content_template == content
+        and template.variables == variables
+    )
+    legacy = (
+        (name, template_type) in LEGACY_CURRENT_TEMPLATES
+        and template.name == name
+        and template.type == template_type
+        and template.description == f"LLM-assisted {name}"
+        and template.variables == ["title"]
+    )
+    return template.external_source is None and (canonical or legacy)
+
 
 def ensure_default_templates(workspace):
-    legacy = (("Proposal", "proposal"), ("Quotation", "quotation"), ("Minutes of Meeting", "mom"), ("Presentation Outline", "presentation_outline"), ("Cost Projection", "cost_projection"), ("POC Brief", "poc_brief"))  # fmt: skip  # noqa: E501
-    for name, template_type in legacy:
+    for name, template_type in LEGACY_TEMPLATES:
         AutomationTemplate.objects.filter(workspace=workspace, name=name, type=template_type).update(is_active=False)
     for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
-        AutomationTemplate.objects.update_or_create(
+        external_id = f"template:{template_type}"
+        if AutomationTemplate.objects.filter(
+            workspace=workspace,
+            external_source=SYSTEM_TEMPLATE_SOURCE,
+            external_id=external_id,
+        ).exists():
+            continue
+        existing = AutomationTemplate.objects.filter(workspace=workspace, name=name).first()
+        if existing:
+            if is_adoptable_default_template(existing, template_type, name, variables, content):
+                update_fields = ["external_source", "external_id", "updated_at"]
+                if existing.content_template != content:
+                    existing.description = f"LLM-assisted {name}"
+                    existing.content_template = content
+                    existing.variables = variables
+                    existing.is_active = True
+                    update_fields.extend(["description", "content_template", "variables", "is_active"])
+                existing.external_source = SYSTEM_TEMPLATE_SOURCE
+                existing.external_id = external_id
+                existing.save(update_fields=update_fields)
+            continue
+        AutomationTemplate.objects.create(
             workspace=workspace,
             name=name,
-            defaults={
-                "type": template_type,
-                "description": f"LLM-assisted {name}",
-                "content_template": content,
-                "variables": variables,
-                "is_active": True,
-            },
+            type=template_type,
+            description=f"LLM-assisted {name}",
+            content_template=content,
+            variables=variables,
+            is_active=True,
+            external_source=SYSTEM_TEMPLATE_SOURCE,
+            external_id=external_id,
         )
 
 

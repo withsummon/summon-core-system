@@ -25,6 +25,8 @@ class Client(BaseModel):
     relationship_started_at = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.LEAD)
+    external_source = models.CharField(max_length=255, null=True, blank=True)
+    external_id = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         ordering = ("name",)
