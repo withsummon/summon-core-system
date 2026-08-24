@@ -140,6 +140,14 @@ def test_default_automation_templates_are_available(session_client, workspace):
     assert "Steps to See the Issue" in templates["bug_report"]["content_template"]
     assert "KPI" in templates["bast"]["content_template"]
     assert "Insight Summary" in templates["cost_projection"]["content_template"]
+    assert "validity" in templates["quotation"]["content_template"]
+    assert "tax" in templates["quotation"]["content_template"]
+    assert "Actual Result" in templates["uat"]["content_template"]
+    assert "Defect Link" in templates["uat"]["content_template"]
+    assert "known exceptions" in templates["bast"]["content_template"]
+    assert "Unit Pricing" in templates["cost_projection"]["content_template"]
+    assert "Expected Result" in templates["bug_report"]["content_template"]
+    assert "Client Verification" in templates["bug_report"]["content_template"]
     assert all(item["variables"] for item in response.data)
 
 

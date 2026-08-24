@@ -139,6 +139,64 @@ def test_spreadsheet_preserves_blocks_and_neutralizes_formula_cells():
     assert all(cell.data_type != "f" for row in worksheet.iter_rows() for cell in row)
 
 
+def test_bug_report_workbook_separates_instructions_and_tracker_controls():
+    from openpyxl import load_workbook
+
+    columns = (
+        "Date Reported",
+        "What's Happening?",
+        "Steps to See the Issue",
+        "Expected Result",
+        "Actual Result",
+        "Environment / Device",
+        "App Version",
+        "Severity",
+        "Current Status",
+        "Evidence Link",
+        "Assigned Developer",
+        "Resolution / Root Cause",
+        "Target Fix Date",
+        "Deployment Reference",
+        "Client Verification",
+    )
+    values = (
+        "2026-08-24",
+        "Login fails",
+        "Open login",
+        "Dashboard opens",
+        "Error shown",
+        "Chrome",
+        "1.0",
+        "High",
+        "New",
+        "TBD",
+        "TBD",
+        "TBD",
+        "TBD",
+        "TBD",
+        "Not Tested",
+    )
+    markdown = "\n".join(
+        (
+            "# Bug Tracker",
+            "",
+            f"| {' | '.join(columns)} |",
+            f"| {' | '.join('---' for _ in columns)} |",
+            f"| {' | '.join(values)} |",
+        )
+    )
+    rendered = render_document_files("bug_report", "Project Bug Report", markdown)[0]
+    workbook = load_workbook(BytesIO(rendered.data))
+    tracker = workbook["Tracker"]
+
+    assert workbook.sheetnames == ["How to Use", "Tracker"]
+    assert tracker.freeze_panes == "A4"
+    assert tracker.auto_filter.ref == "A3:O4"
+    assert len(tracker.data_validations.dataValidation) >= 2
+    assert len(tracker.conditional_formatting) == 1
+    assert "Client-entered" in workbook["How to Use"]["A3"].value
+
+
 def test_pdf_uses_a4_and_unknown_document_types_are_rejected():
     rendered = render_document_files("quotation", "Proposal", MARKDOWN)[1]
     media_box = re.search(rb"/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]", rendered.data)
@@ -269,7 +327,7 @@ def test_long_presentation_creates_bounded_continuation_slides_and_pdf_pages():
         ("timeline", "Project Timeline", "Milestones", ("No", "Scope of Work", "Week/Month", "Progress")),
         (
             "bug_report",
-            "Bug Report",
+            "Tracker",
             "Client Report",
             ("Date Reported", "What's Happening?", "Steps", "Environment", "App Version", "Urgency", "Status"),
         ),

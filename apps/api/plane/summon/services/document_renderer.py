@@ -15,8 +15,10 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Mm, Pt, RGBColor
 from openpyxl import Workbook
+from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from pptx import Presentation
 from pptx.dml.color import RGBColor as PresentationRGBColor
 from pptx.enum.text import PP_ALIGN
@@ -462,6 +464,53 @@ def _xlsx(title, blocks, theme, profile):
             default=0,
         )
         worksheet.column_dimensions[get_column_letter(column)].width = min(24, max(12, longest + 2))
+    if profile.label == "Bug Report":
+        worksheet.title = "Tracker"
+        if table_header_row:
+            last_column = get_column_letter(width)
+            worksheet.auto_filter.ref = f"A{table_header_row}:{last_column}{worksheet.max_row}"
+            headers = {str(worksheet.cell(table_header_row, column).value): column for column in range(1, width + 1)}
+            validations = {
+                "Severity": '"Low,Medium,High,Critical"',
+                "Current Status": '"New,Triaged,In Progress,Ready for Retest,Closed,Blocked"',
+                "Client Verification": '"Not Tested,Verified,Rejected"',
+            }
+            for header, formula in validations.items():
+                column = headers.get(header)
+                if not column:
+                    continue
+                validation = DataValidation(type="list", formula1=formula, allow_blank=True)
+                worksheet.add_data_validation(validation)
+                letter = get_column_letter(column)
+                validation.add(f"{letter}{table_header_row + 1}:{letter}500")
+            status_column = headers.get("Current Status")
+            if status_column:
+                letter = get_column_letter(status_column)
+                cell_range = f"{letter}{table_header_row + 1}:{letter}500"
+                for status, color in (("Closed", "DCFCE7"), ("Blocked", "FEE2E2"), ("In Progress", "FEF3C7")):
+                    worksheet.conditional_formatting.add(
+                        cell_range,
+                        FormulaRule(
+                            formula=[f'${letter}{table_header_row + 1}="{status}"'],
+                            fill=PatternFill("solid", fgColor=color),
+                        ),
+                    )
+        guide = workbook.create_sheet("How to Use", 0)
+        guide.append(["Bug Report Workbook"])
+        guide.append([])
+        guide.append(
+            ["Client-entered fields stay separate from developer-maintained investigation and delivery fields."]
+        )
+        guide.append(["Do not include credentials, session data, tokens, or unredacted secrets in evidence or notes."])
+        guide.append(
+            ["Use the dropdowns for severity, status, and client verification; leave unknown facts blank or TBD."]
+        )
+        guide.column_dimensions["A"].width = 110
+        guide["A1"].font = Font(size=18, bold=True, color="FFFFFF")
+        guide["A1"].fill = PatternFill("solid", fgColor=theme.primary)
+        for cell in guide["A"]:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+        workbook.active = workbook.index(worksheet)
     output = BytesIO()
     workbook.save(output)
     return output.getvalue()
