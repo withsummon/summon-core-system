@@ -58,7 +58,15 @@ def test_home_summary_excludes_projects_without_membership(session_client, works
     response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/home/summary/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert [item["id"] for item in response.data["projects"]] == [str(visible.id)]
+    assert response.data["projects"] == [
+        {
+            "id": str(visible.id),
+            "identifier": visible.identifier,
+            "name": visible.name,
+            "health": "not_assessed",
+            "completion": 50,
+        }
+    ]
     assert [item["name"] for item in response.data["priority"]] == ["Overdue visible issue"]
     assert response.data["counts"]["projects"] == 1
     assert response.data["counts"]["issues"] == 2
@@ -67,6 +75,20 @@ def test_home_summary_excludes_projects_without_membership(session_client, works
     assert response.data["recent_activity"] == []
     assert response.data["upcoming_meetings"] == []
     assert response.data["resources"] == []
+
+
+@pytest.mark.django_db
+def test_home_summary_excludes_archived_projects(session_client, workspace, create_user):
+    visible, _, _ = create_project(workspace, create_user, "LIVE")
+    archived, _, _ = create_project(workspace, create_user, "ARCH")
+    archived.archived_at = timezone.now()
+    archived.save(update_fields=["archived_at"])
+
+    response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/home/summary/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert [item["id"] for item in response.data["projects"]] == [str(visible.id)]
+    assert response.data["counts"]["projects"] == 1
 
 
 @pytest.mark.django_db

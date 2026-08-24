@@ -20,6 +20,7 @@ test("report percentages handle empty and populated totals", () => {
 
 test("report status labels expose meaning beyond color", () => {
   assert.equal(reportLabel("on_track"), "On track");
+  assert.equal(reportLabel("not_assessed"), "Belum dinilai");
   assert.equal(reportLabel("in-progress"), "In progress");
 });
 

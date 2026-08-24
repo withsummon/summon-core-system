@@ -36,6 +36,7 @@ type TReportViewProps = {
 };
 
 const HEALTH_COLORS = {
+  not_assessed: "#94a3b8",
   on_track: "#48b979",
   at_risk: "#f4bd42",
   off_track: "#ef5b5b",
@@ -62,12 +63,14 @@ export function ReportView(props: TReportViewProps) {
   const averageHealth = data.project_health.length
     ? Math.round(data.project_health.reduce((sum, project) => sum + project.completion, 0) / data.project_health.length)
     : 0;
-  const projectHealth = ["on_track", "at_risk", "off_track"].map((health) => ({
+  const projectHealth = ["not_assessed", "on_track", "at_risk", "off_track"].map((health) => ({
     label: reportLabel(health),
     count: data.project_health.filter((project) => project.health === health).length,
     color: HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
   }));
-  const attentionProjects = data.project_health.filter((project) => project.health !== "on_track").slice(0, 3);
+  const attentionProjects = data.project_health
+    .filter((project) => project.health !== "on_track" && project.health !== "not_assessed")
+    .slice(0, 3);
   const activeClients = clients.filter((client) => client.status === "active").length;
   const reportingYear = filters.dateTo?.slice(0, 4) ?? new Date().getUTCFullYear().toString();
   const newClients = clients.filter((client) => client.created_at.startsWith(reportingYear)).length;

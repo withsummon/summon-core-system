@@ -95,12 +95,14 @@ class Opportunity(BaseModel):
 
 class SummonProjectProfile(BaseModel):
     class DeliveryStatus(models.TextChoices):
+        NOT_ASSESSED = "not_assessed", "Not assessed"
         PLANNING = "planning", "Planning"
         ACTIVE = "active", "Active"
         ON_HOLD = "on_hold", "On hold"
         COMPLETED = "completed", "Completed"
 
     class ProjectHealth(models.TextChoices):
+        NOT_ASSESSED = "not_assessed", "Not assessed"
         ON_TRACK = "on_track", "On track"
         AT_RISK = "at_risk", "At risk"
         OFF_TRACK = "off_track", "Off track"
@@ -118,10 +120,10 @@ class SummonProjectProfile(BaseModel):
     delivery_status = models.CharField(
         max_length=24,
         choices=DeliveryStatus.choices,
-        default=DeliveryStatus.PLANNING,
+        default=DeliveryStatus.NOT_ASSESSED,
     )
     phase = models.CharField(max_length=80, blank=True)
-    health = models.CharField(max_length=16, choices=ProjectHealth.choices, default=ProjectHealth.ON_TRACK)
+    health = models.CharField(max_length=16, choices=ProjectHealth.choices, default=ProjectHealth.NOT_ASSESSED)
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
     budget = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)

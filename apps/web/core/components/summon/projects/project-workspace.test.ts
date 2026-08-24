@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ISummonResourceLink } from "@plane/types";
-const { filterProjectResources, mergeProjectSummaries, projectProfileDateError, summonProjectCreateOptions } =
-  (await import(new URL("./project-workspace.ts", import.meta.url).href)) as typeof import("./project-workspace");
+const {
+  filterProjectResources,
+  mergeProjectSummaries,
+  projectHealthLabel,
+  projectHealthTone,
+  projectProfileDateError,
+  projectProfileForm,
+  summonProjectCreateOptions,
+} = (await import(new URL("./project-workspace.ts", import.meta.url).href)) as typeof import("./project-workspace");
 
 test("Summon project directory uses the one-step create flow without a default cover", () => {
   assert.deepEqual(summonProjectCreateOptions("/core/summon/projects/"), {
@@ -24,9 +31,24 @@ test("new Plane projects appear immediately while summary metrics stay canonical
     ),
     [
       { id: "existing", identifier: "OLD", name: "Existing", health: "at_risk", completion: 60 },
-      { id: "created", identifier: "NEW", name: "Created", health: "on_track", completion: 0 },
+      { id: "created", identifier: "NEW", name: "Created", health: "not_assessed", completion: 0 },
     ]
   );
+});
+
+test("unassessed projects stay neutral until delivery metadata is recorded", () => {
+  assert.deepEqual(projectProfileForm(null), {
+    client: "",
+    delivery_status: "not_assessed",
+    phase: "",
+    health: "not_assessed",
+    start_date: "",
+    target_date: "",
+    budget: "",
+  });
+  assert.equal(projectHealthLabel("not_assessed"), "Belum dinilai");
+  assert.equal(projectHealthTone("not_assessed"), "neutral");
+  assert.equal(projectHealthLabel("on_track"), "On track");
 });
 
 test("project resource tabs use authoritative categories", () => {

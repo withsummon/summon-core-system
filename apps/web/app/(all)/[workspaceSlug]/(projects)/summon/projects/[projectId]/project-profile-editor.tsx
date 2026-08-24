@@ -5,7 +5,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISummonProjectOverview, IUserLite } from "@plane/types";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
-import { projectProfileDateError } from "@/components/summon/projects/project-workspace";
+import { projectProfileDateError, projectProfileForm } from "@/components/summon/projects/project-workspace";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -21,16 +21,6 @@ type TProfileForm = {
   budget: string;
 };
 
-const profileForm = (profile: ISummonProjectOverview["profile"]): TProfileForm => ({
-  client: profile?.client || "",
-  delivery_status: profile?.delivery_status || "planning",
-  phase: profile?.phase || "",
-  health: profile?.health || "on_track",
-  start_date: profile?.start_date || "",
-  target_date: profile?.target_date || "",
-  budget: profile?.budget || "",
-});
-
 export const ProjectProfileEditor = observer(function ProjectProfileEditor(props: {
   workspaceSlug: string;
   projectId: string;
@@ -44,7 +34,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const { data: clients = [] } = useSWR(["summon-project-profile-clients", workspaceSlug], () =>
     summonService.listClients(workspaceSlug)
   );
-  const [form, setForm] = useState(() => profileForm(profile));
+  const [form, setForm] = useState<TProfileForm>(() => projectProfileForm(profile));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [leadSaving, setLeadSaving] = useState(false);
@@ -53,7 +43,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const projectLeadId = typeof projectLead === "object" ? (projectLead as IUserLite).id : projectLead || null;
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
-  useEffect(() => setForm(profileForm(profile)), [profile]);
+  useEffect(() => setForm(projectProfileForm(profile)), [profile]);
 
   const updateField = (field: keyof TProfileForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -137,6 +127,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             onChange={(event) => updateField("delivery_status", event.target.value)}
             className={controlClass}
           >
+            <option value="not_assessed">Belum dinilai</option>
             <option value="planning">Planning</option>
             <option value="active">Active</option>
             <option value="on_hold">On hold</option>
@@ -158,6 +149,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             onChange={(event) => updateField("health", event.target.value)}
             className={controlClass}
           >
+            <option value="not_assessed">Belum dinilai</option>
             <option value="on_track">On track</option>
             <option value="at_risk">At risk</option>
             <option value="off_track">Off track</option>

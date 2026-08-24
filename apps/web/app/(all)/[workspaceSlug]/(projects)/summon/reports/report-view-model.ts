@@ -37,6 +37,7 @@ export const reportRequestKey = (workspaceSlug: string, filters: ISummonReportFi
   ] as const;
 
 export function reportLabel(value: string) {
+  if (value === "not_assessed") return "Belum dinilai";
   const label = value.replaceAll(/[_-]+/g, " ");
   return label.charAt(0).toUpperCase() + label.slice(1);
 }

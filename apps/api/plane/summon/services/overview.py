@@ -232,7 +232,7 @@ def home_summary(workspace, user):
                 "id": str(project.id),
                 "identifier": project.identifier,
                 "name": project.name,
-                "health": profiles.get(project.id).health if project.id in profiles else "on_track",
+                "health": profiles.get(project.id).health if project.id in profiles else "not_assessed",
                 "completion": round(
                     (project_counts[project.id]["completed"] / project_counts[project.id]["total"]) * 100
                 )

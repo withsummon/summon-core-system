@@ -19,6 +19,7 @@ def visible_project_ids(workspace, user):
     return ProjectMember.objects.filter(
         workspace=workspace,
         project__deleted_at__isnull=True,
+        project__archived_at__isnull=True,
         member=user,
         is_active=True,
     ).values_list("project_id", flat=True)
@@ -124,7 +125,9 @@ def _report(workspace, user, filters):
             "project_id": str(project.id),
             "name": project.name,
             "health": (
-                profiles[project.id].health if project.id in profiles else SummonProjectProfile.ProjectHealth.ON_TRACK
+                profiles[project.id].health
+                if project.id in profiles
+                else SummonProjectProfile.ProjectHealth.NOT_ASSESSED
             ),
             "completion": (
                 round(project_issue_counts[project.id]["completed"] / project_issue_counts[project.id]["total"] * 100)

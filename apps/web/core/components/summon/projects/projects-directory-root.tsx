@@ -25,7 +25,7 @@ import { summonService } from "@/services/summon.service";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
-import { mergeProjectSummaries } from "./project-workspace";
+import { mergeProjectSummaries, projectHealthLabel, projectHealthTone } from "./project-workspace";
 
 interface IProjectsDirectoryRootProps {
   workspaceSlug: string;
@@ -49,10 +49,13 @@ const getHealthBadge = (health: string) => {
       </span>
     );
   }
+  const tone = projectHealthTone(health);
   return (
-    <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+    <span
+      className={`${tone === "neutral" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"} inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold`}
+    >
       <Clock className="size-3" />
-      {health.replaceAll("_", " ")}
+      {projectHealthLabel(health)}
     </span>
   );
 };
@@ -205,9 +208,10 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
             className="text-xs shadow-xs focus:border-accent-primary h-9 cursor-pointer rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-primary focus:outline-none"
           >
             <option value="all">All Health Status</option>
-            <option value="good">On Track / Good</option>
+            <option value="not_assessed">Belum dinilai</option>
+            <option value="on_track">On Track</option>
             <option value="at_risk">At Risk</option>
-            <option value="delayed">Delayed</option>
+            <option value="off_track">Off Track</option>
           </select>
 
           <div className="shadow-xs flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5">
