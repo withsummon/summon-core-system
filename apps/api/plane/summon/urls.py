@@ -10,6 +10,7 @@ from plane.summon.views import (
     AssistantMessageView,
     AssistantQueryView,
     AutomationContextExtractView,
+    AutomationJobDetailView,
     AutomationJobView,
     AutomationPublishView,
     AutomationTemplateViewSet,
@@ -186,6 +187,11 @@ urlpatterns = [
         "workspaces/<str:slug>/automation/jobs/",
         AutomationJobView.as_view(),
         name="summon-automation-job-list",
+    ),
+    path(
+        "workspaces/<str:slug>/automation/jobs/<uuid:job_id>/",
+        AutomationJobDetailView.as_view(),
+        name="summon-automation-job-detail",
     ),
     path(
         "workspaces/<str:slug>/automation/jobs/<uuid:job_id>/publish/",

@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   ArrowRight,
@@ -33,12 +34,12 @@ import { PageHead } from "@/components/core/page-title";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
-import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import {
   automationInputValue,
+  automationJobPath,
   buildAutomationInput,
   filterAutomationJobs,
   isMultilineTemplateVariable,
@@ -114,11 +115,11 @@ const orderedTemplates = (templates: ISummonAutomationTemplate[]) =>
 
 export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
+  const router = useRouter();
   const { joinedProjectIds, getProjectById } = useProject();
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [template, setTemplate] = useState("");
   const [outputProject, setOutputProject] = useState("");
   const [title, setTitle] = useState("");
@@ -130,18 +131,11 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [clientId, setClientId] = useState("");
   const [meetingId, setMeetingId] = useState("");
   const [pageIds, setPageIds] = useState<string[]>([]);
-  const [activeJob, setActiveJob] = useState<ISummonAutomationJob>();
   const [generating, setGenerating] = useState(false);
   const [extractingDocument, setExtractingDocument] = useState(false);
   const [documentName, setDocumentName] = useState("");
-  const [rendering, setRendering] = useState(false);
-  const [publishing, setPublishing] = useState(false);
   const [formError, setFormError] = useState("");
-  const [renderError, setRenderError] = useState("");
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const [previewDirty, setPreviewDirty] = useState(false);
-  const draftVersion = useRef(0);
-  const detailsRef = useRef<HTMLDivElement>(null);
   const { data, error, isLoading, mutate } = useSWR(["summon-automation", workspaceSlug], async () => {
     const [templates, jobs, clients, meetings, pages] = await Promise.all([
       summonService.listAutomationTemplates(workspaceSlug),
@@ -156,9 +150,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const templates = useMemo(() => orderedTemplates(data?.templates ?? []), [data?.templates]);
   const selectedTemplate = templates.find(({ id }) => id === template);
   const templateVariables = templateVariableNames(selectedTemplate?.variables ?? []);
-  const selectedJob = activeJob ?? jobs[0];
-  const pageArtifact = selectedJob?.artifacts.find(({ page_detail }) => page_detail);
-  const fileArtifacts = selectedJob?.artifacts.filter(({ file_detail }) => file_detail) ?? [];
   const projectNames = useMemo(
     () => new Map(joinedProjectIds.map((id) => [id, getProjectById(id)?.name ?? id])),
     [getProjectById, joinedProjectIds]
@@ -175,47 +166,21 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     [jobs, templates]
   );
   const canGeneratePreview = Boolean(template && outputProject && title.trim());
-  const hasValidPreview = !previewDirty && selectedJob?.status === "completed" && Boolean(selectedJob.preview_markdown);
-  const selectedJobTitle = selectedJob
-    ? automationInputValue(selectedJob.input, "title") || templateLabel(selectedJob.type)
-    : "";
-  const selectedJobProject = selectedJob?.project
-    ? (projectNames.get(selectedJob.project) ?? selectedJob.project)
-    : "No project";
-
-  const invalidatePreview = () => {
-    draftVersion.current += 1;
-    setPreviewDirty(true);
-  };
-
-  const updateDraft = <T,>(setter: (value: T) => void, value: T) => {
-    setter(value);
-    invalidatePreview();
-  };
 
   const selectTemplate = (templateId: string) => {
     const item = templates.find(({ id }) => id === templateId);
     setTemplate(templateId);
     setVariableValues((current) => syncTemplateVariableValues(item?.variables ?? [], current));
     if (!title.trim() && item) setTitle(item.name);
-    invalidatePreview();
   };
 
   const selectProject = (value: string) => {
     setOutputProject(value);
     setProjectId(value);
-    invalidatePreview();
   };
 
   const updateVariable = (variable: string, value: string) => {
     setVariableValues((current) => ({ ...current, [variable]: value }));
-    invalidatePreview();
-  };
-
-  const openJobDetails = (job: ISummonAutomationJob) => {
-    setActiveJob(job);
-    setDetailsOpen(true);
-    window.requestAnimationFrame(() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   const extractDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,10 +191,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     setFormError("");
     try {
       const extracted = await summonService.extractAutomationContext(workspaceSlug, file);
-      updateDraft(
-        setBrief,
-        [brief.trim(), `[Document: ${extracted.name}]\n${extracted.text}`].filter(Boolean).join("\n\n")
-      );
+      setBrief([brief.trim(), `[Document: ${extracted.name}]\n${extracted.text}`].filter(Boolean).join("\n\n"));
       setDocumentName(`${extracted.name}${extracted.truncated ? " (context dibatasi 30.000 karakter)" : ""}`);
     } catch (requestError) {
       setFormError(summonLLMErrorMessage(requestError));
@@ -241,11 +203,8 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const generatePreview = async (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!canGeneratePreview) return;
-    const submittedVersion = draftVersion.current;
     setGenerating(true);
-    setPreviewDirty(true);
     setFormError("");
-    setRenderError("");
     try {
       const job = await summonService.generateAutomationPreview(workspaceSlug, {
         template,
@@ -263,50 +222,13 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           page_ids: pageIds,
         },
       });
-      setActiveJob(job);
-      setDetailsOpen(true);
-      if (job.status === "completed" && job.preview_markdown && submittedVersion === draftVersion.current) {
-        setPreviewDirty(false);
-      } else {
-        setPreviewDirty(true);
-      }
       await mutate();
+      router.push(automationJobPath(workspaceSlug, job.id));
     } catch (requestError) {
       setFormError(summonLLMErrorMessage(requestError));
       await mutate();
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const publishPreview = async () => {
-    if (!selectedJob || !hasValidPreview || pageArtifact) return;
-    if (!window.confirm(`Publish ${selectedJobTitle} from ${selectedJobProject} to one canonical Plane Page?`)) return;
-    setPublishing(true);
-    setFormError("");
-    try {
-      const published = await summonService.publishAutomationJob(workspaceSlug, selectedJob.id);
-      setActiveJob(published);
-      await mutate();
-    } catch (requestError) {
-      setFormError(summonLLMErrorMessage(requestError));
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const generateFiles = async () => {
-    if (!selectedJob || !hasValidPreview) return;
-    setRendering(true);
-    setRenderError("");
-    try {
-      const rendered = await summonService.renderAutomationJob(workspaceSlug, selectedJob.id);
-      setActiveJob(rendered);
-      await mutate();
-    } catch (requestError) {
-      setRenderError(summonLLMErrorMessage(requestError));
-    } finally {
-      setRendering(false);
     }
   };
 
@@ -456,14 +378,14 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 <Input
                   required
                   value={title}
-                  onChange={(event) => updateDraft(setTitle, event.target.value)}
+                  onChange={(event) => setTitle(event.target.value)}
                   placeholder="Name this document"
                 />
               </SummonField>
               <SummonField label="Additional Context (Optional)">
                 <TextArea
                   value={brief}
-                  onChange={(event) => updateDraft(setBrief, event.target.value)}
+                  onChange={(event) => setBrief(event.target.value)}
                   placeholder="Add project, scope, or client-specific requirements..."
                   className="min-h-20"
                 />
@@ -516,7 +438,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                   <SummonField label="Client">
                     <SummonSelect
                       value={clientId}
-                      onChange={(event) => updateDraft(setClientId, event.target.value)}
+                      onChange={(event) => setClientId(event.target.value)}
                       className="w-full"
                     >
                       <option value="">No client source</option>
@@ -530,7 +452,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                   <SummonField label="Meeting / audio transcript">
                     <SummonSelect
                       value={meetingId}
-                      onChange={(event) => updateDraft(setMeetingId, event.target.value)}
+                      onChange={(event) => setMeetingId(event.target.value)}
                       className="w-full"
                     >
                       <option value="">No meeting source</option>
@@ -545,12 +467,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                     <SummonSelect
                       multiple
                       value={pageIds}
-                      onChange={(event) =>
-                        updateDraft(
-                          setPageIds,
-                          Array.from(event.target.selectedOptions, ({ value }) => value)
-                        )
-                      }
+                      onChange={(event) => setPageIds(Array.from(event.target.selectedOptions, ({ value }) => value))}
                       className="h-20 w-full py-1.5"
                     >
                       {data?.pages.map((item) => (
@@ -564,7 +481,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                     <input
                       type="checkbox"
                       checked={workspaceContext}
-                      onChange={(event) => updateDraft(setWorkspaceContext, event.target.checked)}
+                      onChange={(event) => setWorkspaceContext(event.target.checked)}
                       className="accent-accent-primary size-4"
                     />
                     Include workspace name
@@ -589,11 +506,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <SummonField label="Tone">
-                  <SummonSelect
-                    value={tone}
-                    onChange={(event) => updateDraft(setTone, event.target.value)}
-                    className="w-full"
-                  >
+                  <SummonSelect value={tone} onChange={(event) => setTone(event.target.value)} className="w-full">
                     <option>Professional</option>
                     <option>Concise</option>
                     <option>Formal</option>
@@ -602,7 +515,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 <SummonField label="Detail Level">
                   <SummonSelect
                     value={detailLevel}
-                    onChange={(event) => updateDraft(setDetailLevel, event.target.value)}
+                    onChange={(event) => setDetailLevel(event.target.value)}
                     className="w-full"
                   >
                     <option>Comprehensive</option>
@@ -740,23 +653,20 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1.5">
-                          <button
-                            type="button"
-                            aria-pressed={selectedJob?.id === job.id}
+                          <Link
+                            href={automationJobPath(workspaceSlug, job.id)}
                             aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
-                            onClick={() => openJobDetails(job)}
                             className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
                           >
                             <Eye className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
+                          </Link>
+                          <Link
+                            href={automationJobPath(workspaceSlug, job.id)}
                             aria-label="More document actions"
-                            onClick={() => openJobDetails(job)}
                             className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
                           >
                             <MoreHorizontal className="size-3.5" />
-                          </button>
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -795,105 +705,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               </button>
             </div>
           </div>
-
-          {detailsOpen && selectedJob ? (
-            <div ref={detailsRef} className="scroll-mt-4 border-t border-subtle bg-layer-1/30 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-primary">{selectedJobTitle}</p>
-                  <p className="mt-1 text-[10px] text-secondary">
-                    {selectedJobProject} · {selectedJob.provider || selectedJob.error_summary || selectedJob.status}
-                    {selectedJob.model ? ` · ${selectedJob.model}` : ""}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="neutral-primary"
-                    disabled={!hasValidPreview || Boolean(fileArtifacts.length)}
-                    loading={rendering}
-                    onClick={() => void generateFiles()}
-                  >
-                    Generate files
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={!hasValidPreview || Boolean(pageArtifact)}
-                    loading={publishing}
-                    onClick={() => void publishPreview()}
-                  >
-                    Publish to Plane Page
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => setDetailsOpen(false)}
-                    className="text-[11px] font-medium text-secondary"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-              {previewDirty ? (
-                <p className="text-amber-600 mt-3 text-[11px]" role="status">
-                  Inputs changed. Generate a new preview before creating files or publishing.
-                </p>
-              ) : null}
-              {renderError ? (
-                <p className="text-red-600 mt-3 text-[11px]" role="alert">
-                  {renderError}
-                </p>
-              ) : null}
-              {selectedJob.context_truncated ? (
-                <p className="bg-amber-50 text-amber-700 mt-3 rounded-lg px-3 py-2 text-[11px]">
-                  Selected context was truncated to 30,000 characters.
-                </p>
-              ) : null}
-              {selectedJob.preview_markdown ? (
-                <div className="prose-sm dark:prose-invert mt-3 max-h-72 max-w-none overflow-auto rounded-xl border border-subtle bg-surface-1 p-3 prose">
-                  <MarkdownRenderer markdown={selectedJob.preview_markdown} />
-                </div>
-              ) : (
-                <p className="mt-3 text-[11px] text-tertiary">No completed preview is available.</p>
-              )}
-              {fileArtifacts.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {fileArtifacts.map((artifact) =>
-                    artifact.file_detail ? (
-                      <a
-                        key={artifact.id}
-                        href={artifact.file_detail.href}
-                        download={artifact.file_detail.name}
-                        className="rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-[11px] font-medium text-accent-primary"
-                      >
-                        Download {OUTPUT_FORMAT_LABELS[artifact.format]}
-                      </a>
-                    ) : null
-                  )}
-                </div>
-              ) : null}
-              {pageArtifact?.page_detail ? (
-                <Link
-                  href={pageArtifact.page_detail.href}
-                  className="mt-3 inline-block text-[11px] font-semibold text-accent-primary"
-                >
-                  Open published Plane Page →
-                </Link>
-              ) : null}
-              {selectedJob.citations.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedJob.citations.map((citation) => (
-                    <Link
-                      key={citation.id}
-                      href={citation.href}
-                      className="rounded-md bg-surface-1 px-2 py-1 text-[10px] text-accent-primary"
-                    >
-                      {citation.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
         </section>
       </div>
 
@@ -936,13 +747,9 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           </div>
           <div className="mt-3 grid gap-3">
             {jobs.slice(0, 4).map((job) => (
-              <button
+              <Link
                 key={job.id}
-                type="button"
-                onClick={() => {
-                  setActiveJob(job);
-                  setDetailsOpen(true);
-                }}
+                href={automationJobPath(workspaceSlug, job.id)}
                 className="flex items-start gap-3 text-left"
               >
                 <span
@@ -962,7 +769,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                     {formatDate(job.created_at)} · {jobStatus(job).label}
                   </span>
                 </span>
-              </button>
+              </Link>
             ))}
             {!jobs.length && !isLoading ? (
               <p className="text-[11px] text-tertiary">No generation activity yet.</p>

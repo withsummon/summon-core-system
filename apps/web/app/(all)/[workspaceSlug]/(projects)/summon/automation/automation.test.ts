@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+const detailPage = new URL("./[jobId]/page.tsx", import.meta.url);
+const detailSource = readFileSync(detailPage, "utf8");
+const routes = readFileSync(new URL("../../../../../routes/extended.ts", import.meta.url), "utf8");
 const service = readFileSync(new URL("../../../../../../core/services/summon.service.ts", import.meta.url), "utf8");
 const markdownRenderer = readFileSync(
   new URL("../../../../../../core/components/ui/markdown-to-component.tsx", import.meta.url),
@@ -10,6 +13,7 @@ const markdownRenderer = readFileSync(
 );
 const {
   automationInputValue,
+  automationJobPath,
   buildAutomationInput,
   filterAutomationJobs,
   isMultilineTemplateVariable,
@@ -19,37 +23,39 @@ const {
 test("Automation previews before an explicit idempotent publish", () => {
   assert.match(service, /generateAutomationPreview/);
   assert.match(service, /publishAutomationJob/);
-  assert.match(source, /preview_markdown/);
-  assert.match(source, /Publish to Plane Page/);
-  assert.match(source, /window\.confirm/);
-  assert.match(source, /page_detail/);
+  assert.match(detailSource, /preview_markdown/);
+  assert.match(detailSource, /Publish to Plane Page/);
+  assert.match(detailSource, /window\.confirm/);
+  assert.match(detailSource, /page_detail/);
   assert.match(source, /Select Plane Project/);
   assert.match(source, /canGeneratePreview/);
   assert.doesNotMatch(source, /Workspace Page/);
 });
 
 test("Automation renders generated previews as GitHub-flavored Markdown", () => {
-  assert.match(source, /<MarkdownRenderer markdown=\{selectedJob\.preview_markdown\}/);
-  assert.doesNotMatch(source, /<pre[^>]*>[\s\S]*selectedJob\.preview_markdown/);
+  assert.match(detailSource, /<MarkdownRenderer markdown=\{data\.preview_markdown\}/);
+  assert.doesNotMatch(detailSource, /<pre[^>]*>[\s\S]*data\.preview_markdown/);
   assert.match(markdownRenderer, /remarkPlugins=\{\[remarkGfm\]\}/);
 });
 
-test("Generated document actions reveal the selected preview", () => {
-  assert.match(source, /const openJobDetails = \(job: ISummonAutomationJob\)/);
-  assert.match(source, /detailsRef\.current\?\.scrollIntoView/);
-  assert.equal(source.match(/onClick=\{\(\) => openJobDetails\(job\)\}/g)?.length, 2);
-  assert.match(source, /ref=\{detailsRef\}/);
+test("Generated document actions navigate to a dedicated detail page", () => {
+  assert.equal(typeof automationJobPath, "function");
+  assert.equal(automationJobPath?.("core", "job-123"), "/core/summon/automation/job-123/");
+  assert.equal(existsSync(detailPage), true);
+  assert.match(routes, /summon\/automation\/:jobId/);
+  assert.match(source, /href=\{automationJobPath\(workspaceSlug, job\.id\)\}/);
+  assert.doesNotMatch(source, /scrollIntoView|detailsOpen|detailsRef/);
 });
 
 test("Automation exposes explicit context, citations, metadata, and retry state", () => {
   assert.match(source, /workspaceContext/);
   assert.match(source, /pageIds/);
-  assert.match(source, /citations/);
-  assert.match(source, /context_truncated/);
-  assert.match(source, /provider/);
-  assert.match(source, /model/);
-  assert.match(source, /Retry preview/);
-  assert.doesNotMatch(source, /apiKey|LLM_API_KEY|credential.*secret/i);
+  assert.match(detailSource, /citations/);
+  assert.match(detailSource, /context_truncated/);
+  assert.match(detailSource, /provider/);
+  assert.match(detailSource, /model/);
+  assert.match(detailSource, /onRetry/);
+  assert.doesNotMatch(`${source}\n${detailSource}`, /apiKey|LLM_API_KEY|credential.*secret/i);
 });
 
 test("Automation accepts local documents as additional verified context", () => {
@@ -63,29 +69,25 @@ test("Automation renders editable files without coupling them to Plane Page publ
   assert.match(service, /renderAutomationJob/);
   assert.match(service, /\/api\/workspaces\/\$\{workspaceSlug\}\/summon\/automation-jobs\/\$\{jobId\}\/render\//);
   assert.match(source, /AI Document Generator/);
-  assert.match(source, /Generate files/);
-  assert.match(source, /editable office files and PDF/);
-  assert.match(source, /file_detail/);
-  assert.match(source, /download/);
-  assert.match(source, /docx: "DOCX"/);
-  assert.match(source, /xlsx: "XLSX"/);
-  assert.match(source, /pptx: "PPTX"/);
+  assert.match(detailSource, /Generate files/);
+  assert.match(detailSource, /file_detail/);
+  assert.match(detailSource, /download/);
+  assert.match(detailSource, /docx: "DOCX"/);
+  assert.match(detailSource, /xlsx: "XLSX"/);
+  assert.match(detailSource, /pptx: "PPTX"/);
   assert.match(source, /data\?\.templates\.map/);
-  assert.match(source, /pageArtifact/);
-  assert.match(source, /fileArtifacts/);
-  assert.doesNotMatch(source, /disabled=\{[^}]*artifacts\.length/);
+  assert.match(detailSource, /pageArtifact/);
+  assert.match(detailSource, /fileArtifacts/);
+  assert.doesNotMatch(detailSource, /disabled=\{[^}]*artifacts\.length/);
   assert.match(source, /\["presentation", "proposal_vendor", "proposal_client"\]/);
 });
 
-test("Automation invalidates stale previews and publishes the selected job snapshot", () => {
-  assert.match(source, /previewDirty/);
-  assert.match(source, /setPreviewDirty\(true\)/);
-  assert.match(source, /setPreviewDirty\(false\)/);
-  assert.match(source, /submittedVersion === draftVersion\.current/);
-  assert.match(source, /hasValidPreview/);
-  assert.match(source, /selectedJob\.input/);
-  assert.match(source, /aria-pressed=\{selectedJob\?\.id === job\.id\}/);
-  assert.doesNotMatch(source, /setActiveJob\(job\);\s+setPreviewDirty\(false\)/);
+test("Automation detail reloads and publishes the persisted job snapshot", () => {
+  assert.match(service, /getAutomationJob/);
+  assert.match(detailSource, /summonService\.getAutomationJob\(workspaceSlug, jobId\)/);
+  assert.match(detailSource, /publishAutomationJob\(workspaceSlug, data\.id\)/);
+  assert.match(detailSource, /automationInputValue\(data\.input, "title"\)/);
+  assert.doesNotMatch(source, /previewDirty|selectedJob|setActiveJob/);
 });
 
 test("Automation consumes template variables through one reusable input mapping", () => {

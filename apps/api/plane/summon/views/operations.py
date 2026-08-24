@@ -65,13 +65,7 @@ class AutomationJobView(WorkspaceContextMixin, BaseAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def get(self, request, slug):
-        project_ids = visible_project_ids(self.get_workspace(), request.user)
-        jobs = (
-            AutomationJob.objects.filter(workspace=self.get_workspace())
-            .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
-            .select_related("template", "project")
-            .prefetch_related("artifacts__page", "artifacts__file_asset")
-        )
+        jobs = visible_automation_jobs(self.get_workspace(), request.user)
         return Response(AutomationJobSerializer(jobs, many=True).data)
 
     def post(self, request, slug):
@@ -98,6 +92,24 @@ class AutomationJobView(WorkspaceContextMixin, BaseAPIView):
             data["error_code"] = job.error_summary
             return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+def visible_automation_jobs(workspace, user):
+    project_ids = visible_project_ids(workspace, user)
+    return (
+        AutomationJob.objects.filter(workspace=workspace)
+        .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
+        .select_related("template", "project")
+        .prefetch_related("artifacts__page", "artifacts__file_asset")
+    )
+
+
+class AutomationJobDetailView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def get(self, request, slug, job_id):
+        job = get_object_or_404(visible_automation_jobs(self.get_workspace(), request.user), id=job_id)
+        return Response(AutomationJobSerializer(job).data)
 
 
 class AutomationContextExtractView(WorkspaceContextMixin, BaseAPIView):

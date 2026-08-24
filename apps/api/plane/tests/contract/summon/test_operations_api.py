@@ -316,6 +316,39 @@ def test_automation_preview_requires_an_authorized_project(session_client, works
 
 
 @pytest.mark.django_db
+def test_automation_job_detail_returns_only_visible_project_jobs(session_client, workspace, create_user):
+    visible_project, _, _ = create_project(workspace, create_user, "DETAIL")
+    hidden_project = Project.objects.create(workspace=workspace, name="Hidden detail", identifier="HDETAIL")
+    visible_job = AutomationJob.objects.create(
+        workspace=workspace,
+        project=visible_project,
+        requested_by=create_user,
+        type="quotation",
+        status=AutomationJob.Status.COMPLETED,
+        input={"values": {"title": "Visible quotation"}},
+        preview_markdown="# Visible quotation",
+    )
+    hidden_job = AutomationJob.objects.create(
+        workspace=workspace,
+        project=hidden_project,
+        requested_by=create_user,
+        type="quotation",
+        status=AutomationJob.Status.COMPLETED,
+        input={"values": {"title": "Hidden quotation"}},
+        preview_markdown="# Hidden quotation",
+    )
+    jobs_url = f"/api/summon/workspaces/{workspace.slug}/automation/jobs/"
+
+    visible = session_client.get(f"{jobs_url}{visible_job.id}/")
+    hidden = session_client.get(f"{jobs_url}{hidden_job.id}/")
+
+    assert visible.status_code == status.HTTP_200_OK
+    assert visible.data["id"] == visible_job.id
+    assert visible.data["preview_markdown"] == "# Visible quotation"
+    assert hidden.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
 def test_automation_publish_rechecks_project_membership_after_preview(
     session_client,
     workspace,

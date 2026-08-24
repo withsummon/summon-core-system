@@ -45,6 +45,9 @@ export const automationInputValue = (input: Record<string, unknown>, name: strin
   return typeof values[name] === "string" ? values[name] : "";
 };
 
+export const automationJobPath = (workspaceSlug: string, jobId: string) =>
+  `/${workspaceSlug}/summon/automation/${jobId}/`;
+
 export const filterAutomationJobs = <
   T extends {
     type: string;

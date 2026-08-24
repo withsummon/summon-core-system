@@ -301,6 +301,10 @@ export class SummonService extends APIService {
     return this.data<ISummonAutomationJob[]>(this.get(`${this.root(workspaceSlug)}/automation/jobs/`));
   }
 
+  getAutomationJob(workspaceSlug: string, jobId: string) {
+    return this.data<ISummonAutomationJob>(this.get(`${this.root(workspaceSlug)}/automation/jobs/${jobId}/`));
+  }
+
   generateAutomationPreview(workspaceSlug: string, payload: ISummonAutomationPreviewRequest) {
     return this.data<ISummonAutomationJob>(this.post(`${this.root(workspaceSlug)}/automation/jobs/`, payload));
   }
