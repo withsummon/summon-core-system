@@ -141,6 +141,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [previewDirty, setPreviewDirty] = useState(false);
   const draftVersion = useRef(0);
+  const detailsRef = useRef<HTMLDivElement>(null);
   const { data, error, isLoading, mutate } = useSWR(["summon-automation", workspaceSlug], async () => {
     const [templates, jobs, clients, meetings, pages] = await Promise.all([
       summonService.listAutomationTemplates(workspaceSlug),
@@ -209,6 +210,12 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const updateVariable = (variable: string, value: string) => {
     setVariableValues((current) => ({ ...current, [variable]: value }));
     invalidatePreview();
+  };
+
+  const openJobDetails = (job: ISummonAutomationJob) => {
+    setActiveJob(job);
+    setDetailsOpen(true);
+    window.requestAnimationFrame(() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   const extractDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -737,10 +744,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                             type="button"
                             aria-pressed={selectedJob?.id === job.id}
                             aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
-                            onClick={() => {
-                              setActiveJob(job);
-                              setDetailsOpen(true);
-                            }}
+                            onClick={() => openJobDetails(job)}
                             className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
                           >
                             <Eye className="size-3.5" />
@@ -748,10 +752,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                           <button
                             type="button"
                             aria-label="More document actions"
-                            onClick={() => {
-                              setActiveJob(job);
-                              setDetailsOpen(true);
-                            }}
+                            onClick={() => openJobDetails(job)}
                             className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
                           >
                             <MoreHorizontal className="size-3.5" />
@@ -796,7 +797,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           </div>
 
           {detailsOpen && selectedJob ? (
-            <div className="border-t border-subtle bg-layer-1/30 p-4">
+            <div ref={detailsRef} className="scroll-mt-4 border-t border-subtle bg-layer-1/30 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-primary">{selectedJobTitle}</p>

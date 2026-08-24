@@ -34,6 +34,13 @@ test("Automation renders generated previews as GitHub-flavored Markdown", () => 
   assert.match(markdownRenderer, /remarkPlugins=\{\[remarkGfm\]\}/);
 });
 
+test("Generated document actions reveal the selected preview", () => {
+  assert.match(source, /const openJobDetails = \(job: ISummonAutomationJob\)/);
+  assert.match(source, /detailsRef\.current\?\.scrollIntoView/);
+  assert.equal(source.match(/onClick=\{\(\) => openJobDetails\(job\)\}/g)?.length, 2);
+  assert.match(source, /ref=\{detailsRef\}/);
+});
+
 test("Automation exposes explicit context, citations, metadata, and retry state", () => {
   assert.match(source, /workspaceContext/);
   assert.match(source, /pageIds/);
