@@ -27,7 +27,7 @@ x-app-environment: &app-environment
   SUMMON_RECORDING_FILE_SIZE_LIMIT: "262144000"
   LLM_PROVIDER: codex
   LLM_MODEL: ${LLM_MODEL:-default}
-  LLM_REQUEST_TIMEOUT_SECONDS: "60"
+  LLM_REQUEST_TIMEOUT_SECONDS: "120"
   WEBHOOK_ALLOWED_IPS: ${WEBHOOK_ALLOWED_IPS:-}
   WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
   SUMMON_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
@@ -247,7 +247,7 @@ services:
     image: withsummon-summon-core-system-codex-bridge:${SUMMON_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
-      CODEX_TIMEOUT_MS: "55000"
+      CODEX_TIMEOUT_MS: "110000"
     volumes:
       - codex_auth:/home/node/.codex
     healthcheck:
