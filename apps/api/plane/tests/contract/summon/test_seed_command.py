@@ -60,6 +60,7 @@ def test_seed_preview_has_no_writes(workspace, create_user):
     assert "created_templates=13" in output
     assert "created_meetings=1" in output
     assert "created_issues=4" in output
+    assert "created_work_items=4" in output
     assert Project.objects.filter(workspace=workspace).count() == 0
     assert Client.objects.filter(workspace=workspace).count() == 0
     assert AutomationTemplate.objects.filter(workspace=workspace).count() == 0
@@ -86,6 +87,7 @@ def test_seed_apply_is_complete_and_idempotent(workspace, create_user):
     assert "created_templates=0" in preview
     assert "created_meetings=0" in preview
     assert "created_issues=0" in preview
+    assert "created_work_items=0" in preview
     assert "total_projects=10" in first
     assert "total_clients=8" in first
     assert "total_profiles=10" in first
@@ -121,6 +123,14 @@ def test_seed_apply_is_complete_and_idempotent(workspace, create_user):
     assert AutomationTemplate.objects.filter(workspace=workspace, is_active=True).count() == 13
     assert Meeting.objects.filter(workspace=workspace, status=Meeting.Status.COMPLETED).count() == 1
     assert Issue.objects.filter(workspace=workspace, external_source="summon_seed").count() == 4
+    assert MeetingWorkItem.objects.filter(workspace=workspace).count() == 4
+
+    retired_link = MeetingWorkItem.objects.filter(workspace=workspace).first()
+    MeetingWorkItem.objects.filter(id=retired_link.id).update(deleted_at=timezone.now())
+    repair_preview = run_seed(workspace, create_user)
+    repaired = run_seed(workspace, create_user, "--apply")
+    assert "created_work_items=1" in repair_preview
+    assert "created_work_items=1" in repaired
     assert MeetingWorkItem.objects.filter(workspace=workspace).count() == 4
 
 

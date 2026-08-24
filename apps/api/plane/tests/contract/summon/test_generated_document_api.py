@@ -40,22 +40,14 @@ def memory_file_storage(monkeypatch):
 
 @pytest.mark.django_db
 def test_default_templates_converge_from_legacy_seed(session_client, workspace):
-    legacy = (
-        ("Proposal", "proposal"),
-        ("Quotation", "quotation"),
-        ("Minutes of Meeting", "mom"),
-        ("Presentation Outline", "presentation_outline"),
-        ("Cost Projection", "cost_projection"),
-        ("POC Brief", "poc_brief"),
-    )
-    for name, template_type in legacy:
+    for template_type, (name, variables, content) in automation.LEGACY_TEMPLATES.items():
         AutomationTemplate.objects.create(
             workspace=workspace,
             name=name,
             type=template_type,
-            description=f"LLM-assisted {name}",
-            content_template=f"Legacy generic {name} prompt.",
-            variables=["title"],
+            description=f"Deterministic {name} template",
+            content_template=content,
+            variables=variables,
         )
 
     response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/automation/templates/")
@@ -75,6 +67,25 @@ def test_default_templates_converge_from_legacy_seed(session_client, workspace):
             name="Quotation",
         ).content_template
     )
+
+
+@pytest.mark.django_db
+def test_default_templates_preserve_user_edited_legacy_template(session_client, workspace):
+    template = AutomationTemplate.objects.create(
+        workspace=workspace,
+        name="Proposal",
+        type="proposal",
+        description="Template operasional",
+        content_template="Isi yang sudah diedit pengguna",
+        variables=["client"],
+    )
+
+    response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/automation/templates/")
+
+    template.refresh_from_db()
+    assert response.status_code == status.HTTP_200_OK
+    assert template.is_active is True
+    assert template.content_template == "Isi yang sudah diedit pengguna"
 
 
 @pytest.mark.django_db

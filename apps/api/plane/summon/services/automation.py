@@ -20,12 +20,39 @@ from plane.summon.services.page_document import write_page_document
 from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
 
 SYSTEM_TEMPLATE_SOURCE = "summon_system"
-LEGACY_TEMPLATES = (
-    ("Proposal", "proposal"),
-    ("Minutes of Meeting", "mom"),
-    ("Presentation Outline", "presentation_outline"),
-    ("POC Brief", "poc_brief"),
-)
+LEGACY_TEMPLATES = {
+    "proposal": (
+        "Proposal",
+        ["title", "client", "scope"],
+        "# {{ title|default:'Proposal' }}\n\n**Client:** {{ client }}\n\n## Scope\n{{ scope }}",
+    ),
+    "quotation": (
+        "Quotation",
+        ["title", "client", "amount"],
+        "# {{ title|default:'Quotation' }}\n\n**Client:** {{ client }}\n\n**Amount:** {{ amount }}",
+    ),
+    "mom": (
+        "Minutes of Meeting",
+        ["title", "attendees", "decisions"],
+        "# {{ title|default:'Minutes of Meeting' }}\n\n## Attendees\n{{ attendees }}\n\n## Decisions\n{{ decisions }}",
+    ),
+    "presentation_outline": (
+        "Presentation Outline",
+        ["title", "objective", "key_points"],
+        "# {{ title|default:'Presentation' }}\n\n## Objective\n{{ objective }}\n\n## Key points\n{{ key_points }}",
+    ),
+    "cost_projection": (
+        "Cost Projection",
+        ["title", "period", "estimate"],
+        "# {{ title|default:'Cost Projection' }}\n\n**Period:** {{ period }}\n\n**Estimate:** {{ estimate }}",
+    ),
+    "poc_brief": (
+        "POC Brief",
+        ["title", "problem", "success_criteria"],
+        "# {{ title|default:'POC Brief' }}\n\n## Problem\n{{ problem }}\n\n## Success criteria\n{{ success_criteria }}",
+    ),
+}
+RETIRED_TEMPLATE_TYPES = ("proposal", "mom", "presentation_outline", "poc_brief")
 LEGACY_CURRENT_TEMPLATES = (("Quotation", "quotation"), ("Cost Projection", "cost_projection"))
 
 
@@ -37,19 +64,30 @@ def is_adoptable_default_template(template, template_type, name, variables, cont
         and template.content_template == content
         and template.variables == variables
     )
+    legacy_name, legacy_variables, legacy_content = LEGACY_TEMPLATES.get(template_type, (None, None, None))
     legacy = (
         (name, template_type) in LEGACY_CURRENT_TEMPLATES
-        and template.name == name
+        and template.name == legacy_name
         and template.type == template_type
-        and template.description == f"LLM-assisted {name}"
-        and template.variables == ["title"]
+        and template.description == f"Deterministic {legacy_name} template"
+        and template.content_template == legacy_content
+        and template.variables == legacy_variables
     )
     return template.external_source is None and (canonical or legacy)
 
 
 def ensure_default_templates(workspace):
-    for name, template_type in LEGACY_TEMPLATES:
-        AutomationTemplate.objects.filter(workspace=workspace, name=name, type=template_type).update(is_active=False)
+    for template_type in RETIRED_TEMPLATE_TYPES:
+        name, variables, content = LEGACY_TEMPLATES[template_type]
+        AutomationTemplate.objects.filter(
+            workspace=workspace,
+            name=name,
+            type=template_type,
+            description=f"Deterministic {name} template",
+            content_template=content,
+            variables=variables,
+            external_source__isnull=True,
+        ).update(is_active=False)
     for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
         external_id = f"template:{template_type}"
         if AutomationTemplate.objects.filter(

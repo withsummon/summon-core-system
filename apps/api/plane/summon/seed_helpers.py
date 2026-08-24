@@ -31,12 +31,20 @@ def preview_counts(workspace):
         Client.objects.filter(workspace=workspace, external_source=SOURCE).values_list("external_id", flat=True)
     )
     templates = list(AutomationTemplate.objects.filter(workspace=workspace))
-    meeting_exists = Meeting.objects.filter(
+    meeting = Meeting.objects.filter(
         workspace=workspace, external_source=SOURCE, external_id=MEETING["external_id"]
-    ).exists()
+    ).first()
     issue_ids = set(
         Issue.objects.filter(workspace=workspace, external_source=SOURCE).values_list("external_id", flat=True)
     )
+    linked_issue_ids = set()
+    if meeting:
+        linked_issue_ids = set(
+            MeetingWorkItem.objects.filter(workspace=workspace, meeting=meeting).values_list(
+                "issue__external_id", flat=True
+            )
+        )
+    work_item_ids = [f"{MEETING['external_id']}:{index}" for index in range(1, len(WORK_ITEMS) + 1)]
     return {
         "projects": len(missing_projects),
         "clients": sum(client_id(name) not in client_ids for name in {item["client"] for item in PROJECTS}),
@@ -54,8 +62,9 @@ def preview_counts(workspace):
             )
             for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items()
         ),
-        "meetings": int(not meeting_exists),
+        "meetings": int(meeting is None),
         "issues": sum(f"{MEETING['external_id']}:{index}" not in issue_ids for index in range(1, len(WORK_ITEMS) + 1)),
+        "work_items": sum(external_id not in linked_issue_ids for external_id in work_item_ids),
     }
 
 
