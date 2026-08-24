@@ -89,6 +89,10 @@ def get_llm_config() -> LLMConfig:
     )
     api_key, provider = _text(api_key), _text(provider).lower() or "openai"
     model = _text(model) or _text(legacy_model)
+    environment_provider = _text(os.environ.get("LLM_PROVIDER")).lower()
+    if environment_provider == "codex" and os.environ.get("CODEX_BRIDGE_URL"):
+        model = model if provider == "codex" else _text(os.environ.get("LLM_MODEL")) or "default"
+        api_key, provider = "", "codex"
     try:
         timeout = int(timeout_value)
     except (TypeError, ValueError):

@@ -98,6 +98,25 @@ def test_codex_configuration_uses_internal_bridge_without_api_key(monkeypatch):
     }
 
 
+def test_deployment_codex_configuration_overrides_stale_instance_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "codex")
+    monkeypatch.setenv("LLM_MODEL", "default")
+    monkeypatch.setenv("CODEX_BRIDGE_URL", "http://codex-bridge:8090")
+    monkeypatch.setattr(
+        llm,
+        "get_configuration_value",
+        lambda _keys: (None, "openai", "gpt-5.3-codex", None, "", "60"),
+    )
+
+    assert get_llm_config() == {
+        "api_key": "",
+        "provider": "codex",
+        "model": "default",
+        "base_url": "http://codex-bridge:8090",
+        "timeout": 60,
+    }
+
+
 @pytest.mark.parametrize("provider", ["openai", "anthropic", "gemini"])
 def test_native_configuration_ignores_a_stale_compatible_base_url(monkeypatch, provider):
     monkeypatch.setattr(

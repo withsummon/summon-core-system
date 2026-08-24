@@ -69,6 +69,11 @@ def get_llm_configuration_status():
         ]
     )
     normalized_provider = provider.strip().lower() if isinstance(provider, str) and provider.strip() else None
+    environment_provider = os.environ.get("LLM_PROVIDER", "").strip().lower()
+    if environment_provider == "codex" and os.environ.get("CODEX_BRIDGE_URL"):
+        if normalized_provider != "codex":
+            model = os.environ.get("LLM_MODEL", "default")
+        api_key, normalized_provider = "", "codex"
     return {
         "configured": bool(api_key) or (normalized_provider == "codex" and bool(os.environ.get("CODEX_BRIDGE_URL"))),
         "provider": normalized_provider,

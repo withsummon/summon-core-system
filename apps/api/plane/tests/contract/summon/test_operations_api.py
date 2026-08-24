@@ -87,6 +87,27 @@ def test_workspace_ai_status_reports_codex_configured_without_api_key(session_cl
     assert response.data == {"configured": True, "provider": "codex", "model": "gpt-5.3-codex"}
 
 
+@pytest.mark.django_db
+def test_workspace_ai_status_prefers_deployment_codex_over_stale_instance_provider(
+    session_client, workspace, settings, monkeypatch
+):
+    settings.SKIP_ENV_VAR = True
+    monkeypatch.setenv("LLM_PROVIDER", "codex")
+    monkeypatch.setenv("LLM_MODEL", "default")
+    monkeypatch.setenv("CODEX_BRIDGE_URL", "http://codex-bridge:8090")
+    for key, value in (("LLM_PROVIDER", "openai"), ("LLM_MODEL", "gpt-5.3-codex")):
+        InstanceConfiguration.objects.update_or_create(
+            key=key,
+            defaults={"value": value, "category": "AI", "is_encrypted": False},
+        )
+    InstanceConfiguration.objects.filter(key="LLM_API_KEY").delete()
+
+    response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/settings/ai-status/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == {"configured": True, "provider": "codex", "model": "default"}
+
+
 def create_project(workspace, member, identifier):
     project = Project.objects.create(workspace=workspace, name=f"Project {identifier}", identifier=identifier)
     ProjectMember.objects.create(workspace=workspace, project=project, member=member, role=20)
