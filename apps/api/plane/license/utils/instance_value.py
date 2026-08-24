@@ -68,9 +68,10 @@ def get_llm_configuration_status():
             {"key": "GPT_ENGINE", "default": os.environ.get("GPT_ENGINE", "gpt-4o-mini")},
         ]
     )
+    normalized_provider = provider.strip().lower() if isinstance(provider, str) and provider.strip() else None
     return {
-        "configured": bool(api_key),
-        "provider": provider.strip().lower() if isinstance(provider, str) and provider.strip() else None,
+        "configured": bool(api_key) or (normalized_provider == "codex" and bool(os.environ.get("CODEX_BRIDGE_URL"))),
+        "provider": normalized_provider,
         "model": next(
             (value.strip() for value in (model, legacy_model) if isinstance(value, str) and value.strip()),
             None,

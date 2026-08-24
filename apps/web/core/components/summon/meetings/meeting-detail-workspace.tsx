@@ -17,6 +17,7 @@ import {
   MapPin,
   Search,
   Share2,
+  Upload,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -35,6 +36,8 @@ type Props = {
   workspaceSlug: string;
   summarizing: boolean;
   summaryError: string;
+  uploadingRecording: boolean;
+  onUploadRecording: (file: File) => void;
   onRegenerate: () => void;
 };
 
@@ -67,6 +70,8 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   workspaceSlug,
   summarizing,
   summaryError,
+  uploadingRecording,
+  onUploadRecording,
   onRegenerate,
 }: Props) {
   const { sidebarCollapsed } = useAppTheme();
@@ -197,15 +202,31 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
             <Card
               title="Recording"
               action={
-                data.recording_asset_detail?.url ? (
-                  <a
-                    href={data.recording_asset_detail.url}
-                    download
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-[11px] font-semibold text-primary"
-                  >
-                    <Download className="size-3.5" /> Download
-                  </a>
-                ) : null
+                <div className="flex items-center gap-2">
+                  {data.recording_asset_detail?.url ? (
+                    <a
+                      href={data.recording_asset_detail.url}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-[11px] font-semibold text-primary"
+                    >
+                      <Download className="size-3.5" /> Download
+                    </a>
+                  ) : null}
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-[11px] font-semibold text-primary">
+                    <Upload className="size-3.5" /> {uploadingRecording ? "Uploading…" : "Upload audio"}
+                    <input
+                      type="file"
+                      accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg"
+                      disabled={uploadingRecording}
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) onUploadRecording(file);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               }
             >
               {data.recording_asset_detail?.url ? (
@@ -213,7 +234,9 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   <track kind="captions" />
                 </audio>
               ) : (
-                <p className="text-xs text-tertiary">No recording attached.</p>
+                <p className="text-xs text-tertiary">
+                  {data.summary_error === "transcribing" ? "Audio sedang ditranskripsi…" : "No recording attached."}
+                </p>
               )}
             </Card>
 

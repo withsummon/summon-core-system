@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export type TInstanceLLMProvider = "openai" | "openai_compatible" | "anthropic" | "gemini";
+export type TInstanceLLMProvider = "openai" | "openai_compatible" | "anthropic" | "codex" | "gemini";
 export type TInstanceLLMErrorCode =
   | "llm_not_configured"
   | "llm_authentication_failed"

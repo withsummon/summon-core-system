@@ -72,7 +72,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
             className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-accent-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <RefreshCw className={`size-3.5 ${summarizing ? "animate-spin" : ""}`} />
-            {summarizing ? "Generating" : "Regenerate"}
+            {summarizing ? "Membuat MoM…" : summary ? "Buat Ulang MoM" : "Buat MoM"}
           </button>
         }
       >
@@ -104,7 +104,12 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
         )}
         {summaryError || data.summary_error ? (
           <p className="text-xs mt-3 text-danger-primary" role="alert">
-            {summaryError || data.summary_error}
+            {summaryError ||
+              (data.summary_error === "transcribing"
+                ? "Audio sedang ditranskripsi. Tombol Buat MoM akan aktif setelah selesai."
+                : data.summary_error === "transcription_failed"
+                  ? "Transkripsi audio gagal. Silakan unggah ulang audio."
+                  : data.summary_error)}
           </p>
         ) : null}
       </Panel>

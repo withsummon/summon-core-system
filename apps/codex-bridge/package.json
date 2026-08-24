@@ -1,0 +1,8 @@
+{
+  "name": "summon-codex-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "NODE_ENV=test node --test server.test.mjs"
+  }
+}

@@ -30,8 +30,10 @@ test("meeting summary is transcript-gated and suggestions require native confirm
   assert.match(detail, /decisions/);
   assert.match(detail, /action_suggestions/);
   assert.match(detail, /window\.confirm/);
-  assert.match(detail, /Regenerate/);
+  assert.match(detail, /Buat MoM/);
   assert.match(detail, /canRegenerate/);
+  assert.match(detail, /uploadWorkspaceAsset/);
+  assert.match(detail, /MEETING_RECORDING/);
   assert.doesNotMatch(detail, /linkMeetingIssue/);
 });
 

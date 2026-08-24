@@ -81,6 +81,23 @@ def test_configuration_reads_base_url_timeout_and_deprecated_model_fallback(monk
     ]
 
 
+def test_codex_configuration_uses_internal_bridge_without_api_key(monkeypatch):
+    monkeypatch.setenv("CODEX_BRIDGE_URL", "http://codex-bridge:8090/")
+    monkeypatch.setattr(
+        llm,
+        "get_configuration_value",
+        lambda _keys: (None, "codex", "gpt-5.3-codex", None, "", "60"),
+    )
+
+    assert get_llm_config() == {
+        "api_key": "",
+        "provider": "codex",
+        "model": "gpt-5.3-codex",
+        "base_url": "http://codex-bridge:8090",
+        "timeout": 60,
+    }
+
+
 @pytest.mark.parametrize("provider", ["openai", "anthropic", "gemini"])
 def test_native_configuration_ignores_a_stale_compatible_base_url(monkeypatch, provider):
     monkeypatch.setattr(
@@ -201,6 +218,52 @@ def test_openai_meeting_summary_wraps_the_raw_schema_for_chat_completions(monkey
         "type": "json_schema",
         "json_schema": {"name": "summon_structured_response", "schema": SUMMARY_SCHEMA},
     }
+
+
+def test_codex_posts_to_internal_bridge_and_normalizes_usage(monkeypatch):
+    seen = {}
+    configure(
+        monkeypatch,
+        "codex",
+        api_key="",
+        model="gpt-5.3-codex",
+        base_url="http://codex-bridge:8090",
+        timeout=60,
+    )
+
+    def post_json(url, **kwargs):
+        seen.update(url=url, kwargs=kwargs)
+        return {"text": '{"summary":"ok"}', "usage": {"input_tokens": 7, "output_tokens": 3}}
+
+    monkeypatch.setattr(llm, "_post_json", post_json)
+    response = generate(
+        LLMRequest(
+            system="Summarize the meeting.",
+            messages=[{"role": "user", "content": "Transcript"}],
+            response_schema=SUMMARY_SCHEMA,
+        )
+    )
+
+    assert seen == {
+        "url": "http://codex-bridge:8090/generate",
+        "kwargs": {
+            "headers": {"content-type": "application/json"},
+            "payload": {
+                "model": "gpt-5.3-codex",
+                "system": "Summarize the meeting.",
+                "messages": [{"role": "user", "content": "Transcript"}],
+                "response_schema": SUMMARY_SCHEMA,
+            },
+            "timeout": 60,
+        },
+    }
+    assert response == LLMResponse(
+        text='{"summary":"ok"}',
+        provider="codex",
+        model="gpt-5.3-codex",
+        input_tokens=7,
+        output_tokens=3,
+    )
 
 
 def test_anthropic_uses_messages_contract_and_normalizes_usage(monkeypatch):

@@ -32,7 +32,7 @@ from plane.utils.cache import cache_response, invalidate_cache
 from plane.license.utils.instance_value import get_email_configuration
 
 
-LLM_PROVIDERS = {"openai", "openai_compatible", "anthropic", "gemini"}
+LLM_PROVIDERS = {"openai", "openai_compatible", "anthropic", "codex", "gemini"}
 
 
 def validate_llm_configuration(data, current_provider=None):

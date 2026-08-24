@@ -44,6 +44,7 @@ class FileAsset(BaseModel):
         PROJECT_COVER = "PROJECT_COVER"
         DRAFT_ISSUE_ATTACHMENT = "DRAFT_ISSUE_ATTACHMENT"
         DRAFT_ISSUE_DESCRIPTION = "DRAFT_ISSUE_DESCRIPTION"
+        MEETING_RECORDING = "MEETING_RECORDING"
 
     attributes = models.JSONField(default=dict)
     asset = models.FileField(upload_to=get_upload_path, max_length=800)
@@ -91,6 +92,9 @@ class FileAsset(BaseModel):
 
         if self.entity_type == self.EntityTypeContext.ISSUE_ATTACHMENT:
             return f"/api/assets/v2/workspaces/{self.workspace.slug}/projects/{self.project_id}/issues/{self.issue_id}/attachments/{self.id}/"  # noqa: E501
+
+        if self.entity_type == self.EntityTypeContext.MEETING_RECORDING:
+            return f"/api/assets/v2/workspaces/{self.workspace.slug}/{self.id}/"
 
         if self.entity_type in [
             self.EntityTypeContext.ISSUE_DESCRIPTION,

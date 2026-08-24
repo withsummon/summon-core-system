@@ -6,11 +6,11 @@ from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
-from django.utils.html import escape
+from django.db import transaction
 from rest_framework import serializers
 
 from plane.api.serializers.base import BaseSerializer
-from plane.db.models import Page, ProjectMember, ProjectPage, WorkspaceMember
+from plane.db.models import Page, ProjectMember, WorkspaceMember
 from plane.summon.models import (
     Meeting,
     MeetingParticipant,
@@ -18,7 +18,8 @@ from plane.summon.models import (
     ResourceLink,
     SummonPageContext,
 )
-from plane.summon.services.page_document import summon_document_metadata, write_page_document
+from plane.summon.services.meeting_transcript import write_meeting_transcript
+from plane.summon.services.page_document import summon_document_metadata
 
 
 class CollaborationSerializer(BaseSerializer):
@@ -81,6 +82,21 @@ class CollaborationSerializer(BaseSerializer):
         content_type = asset.attributes.get("content_type", asset.attributes.get("mime_type", "")).lower()
         return content_type.startswith("text/") or name.endswith(
             (".txt", ".md", ".text", ".srt", ".vtt", ".csv", ".json", ".xml", ".yaml", ".yml", ".log")
+        )
+
+    def is_audio_asset(self, asset):
+        return not asset or (
+            asset.entity_type == "MEETING_RECORDING"
+            and asset.attributes.get("type", "").split(";", 1)[0].lower()
+            in {
+                "audio/mpeg",
+                "audio/mp4",
+                "audio/x-m4a",
+                "audio/wav",
+                "audio/x-wav",
+                "audio/webm",
+                "audio/ogg",
+            }
         )
 
 
@@ -167,6 +183,9 @@ class MeetingSerializer(CollaborationSerializer):
         for field in ("recording_asset", "transcript_asset"):
             if not self.is_accessible_asset(self.value(attrs, field)):
                 errors[field] = "Asset must be accessible in this workspace."
+        recording_asset = self.value(attrs, "recording_asset")
+        if recording_asset and self.is_accessible_asset(recording_asset) and not self.is_audio_asset(recording_asset):
+            errors["recording_asset"] = "Recording asset must be an uploaded meeting audio file."
         transcript_asset = self.value(attrs, "transcript_asset")
         if transcript_asset and self.is_accessible_asset(transcript_asset) and not self.is_text_asset(transcript_asset):
             errors["transcript_asset"] = "Transcript asset must be a text file."
@@ -209,11 +228,21 @@ class MeetingSerializer(CollaborationSerializer):
     def update(self, instance, validated_data):
         participant_ids = validated_data.pop("participant_ids", None)
         transcript = validated_data.pop("transcript", None)
+        old_recording_id = instance.recording_asset_id
         instance = super().update(instance, validated_data)
         if participant_ids is not None:
             self._replace_participants(instance, participant_ids)
         if transcript is not None:
             self._replace_transcript(instance, transcript)
+        elif instance.recording_asset_id and instance.recording_asset_id != old_recording_id:
+            instance.summary_error = "transcribing"
+            instance.save(update_fields=["summary_error", "updated_at"])
+            from plane.summon.tasks import transcribe_meeting_recording
+
+            transaction.on_commit(
+                lambda: transcribe_meeting_recording.delay(str(instance.id), str(self.user.id)),
+                robust=True,
+            )
         return instance
 
     def _replace_participants(self, meeting, participant_ids):
@@ -231,55 +260,7 @@ class MeetingSerializer(CollaborationSerializer):
         )
 
     def _replace_transcript(self, meeting, transcript):
-        page = meeting.summary_page
-        marker = str(meeting.id)
-        page_marker = page.view_props if page else {}
-        if (
-            not page
-            or page.owned_by_id != self.user.id
-            or marker
-            not in {
-                page_marker.get("summon_transcript_meeting_id"),
-                page_marker.get("summon_summary_meeting_id"),
-            }
-        ):
-            page = Page(
-                workspace=self.workspace,
-                owned_by=self.user,
-                name=f"{meeting.title} transcript",
-                access=Page.PRIVATE_ACCESS,
-                is_global=False,
-                view_props={"full_width": False, "summon_transcript_meeting_id": marker},
-            )
-        page.name = f"{meeting.title} transcript"
-        page.view_props = {
-            **(page.view_props if isinstance(page.view_props, dict) else {}),
-            "full_width": False,
-            "summon_transcript_meeting_id": marker,
-        }
-        write_page_document(
-            page,
-            escape(transcript).replace("\n", "<br />"),
-            {"kind": "summon_meeting_transcript", "source_transcript": transcript},
-        )
-        ProjectPage.objects.get_or_create(workspace=self.workspace, project=meeting.project, page=page)
-        meeting.summary_page = page
-        meeting.summary_error = ""
-        meeting.summary_provider = ""
-        meeting.summary_model = ""
-        meeting.summary_input_tokens = None
-        meeting.summary_output_tokens = None
-        meeting.save(
-            update_fields=[
-                "summary_page",
-                "summary_error",
-                "summary_provider",
-                "summary_model",
-                "summary_input_tokens",
-                "summary_output_tokens",
-                "updated_at",
-            ]
-        )
+        write_meeting_transcript(meeting, self.user, transcript)
 
     def get_participants(self, instance):
         return [
@@ -357,6 +338,10 @@ class MeetingSerializer(CollaborationSerializer):
             "summary": data.get("summary", ""),
             "decisions": data.get("decisions", []),
             "action_suggestions": data.get("action_suggestions", []),
+            "discussion_topics": data.get("discussion_topics", []),
+            "todos_by_party": data.get("todos_by_party", []),
+            "open_items": data.get("open_items", []),
+            "next_actions": data.get("next_actions", []),
             "citations": data.get("citations", []),
             "context_truncated": bool(data.get("context_truncated", False)),
             "href": (

@@ -248,6 +248,8 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         # Comment Description
         if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
             return {"comment_id": entity_id}
+        if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING:
+            return {"entity_identifier": entity_id}
         return {}
 
     def asset_delete(self, asset_id):
@@ -356,7 +358,13 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
     def post(self, request, slug):
         name = sanitize_filename(request.data.get("name")) or "unnamed"
         type = request.data.get("type", "image/jpeg")
-        size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
+        try:
+            size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Invalid file size.", "status": False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         entity_type = request.data.get("entity_type")
         entity_identifier = request.data.get("entity_identifier", False)
 
@@ -379,24 +387,44 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
                 )
 
         # Check if the file type is allowed
-        allowed_types = [
+        image_types = [
             "image/jpeg",
             "image/png",
             "image/webp",
             "image/jpg",
             "image/gif",
         ]
+        audio_types = [
+            "audio/mpeg",
+            "audio/mp4",
+            "audio/x-m4a",
+            "audio/wav",
+            "audio/x-wav",
+            "audio/webm",
+            "audio/ogg",
+        ]
+        allowed_types = audio_types if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING else image_types
         if type not in allowed_types:
             return Response(
                 {
-                    "error": "Invalid file type. Only JPEG, PNG, WebP, JPG and GIF files are allowed.",
+                    "error": "Invalid file type for this asset.",
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Get the size limit
-        size_limit = min(settings.FILE_SIZE_LIMIT, size)
+        max_size = (
+            settings.SUMMON_RECORDING_FILE_SIZE_LIMIT
+            if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING
+            else settings.FILE_SIZE_LIMIT
+        )
+        if size <= 0 or size > max_size:
+            return Response(
+                {"error": f"File size must be between 1 and {max_size} bytes.", "status": False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        size_limit = size
 
         # Get the workspace
         workspace = Workspace.objects.get(slug=slug)
@@ -497,7 +525,9 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         # Generate a presigned URL to share an S3 object
         signed_url = storage.generate_presigned_url(
             object_name=asset.asset.name,
-            disposition="attachment",
+            disposition=(
+                "inline" if asset.entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING else "attachment"
+            ),
             filename=asset.attributes.get("name"),
         )
         # Redirect to the signed URL

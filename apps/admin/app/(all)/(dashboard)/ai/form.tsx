@@ -23,6 +23,7 @@ const PROVIDERS: Record<TInstanceLLMProvider, string> = {
   openai: "OpenAI",
   openai_compatible: "OpenAI-compatible",
   anthropic: "Anthropic",
+  codex: "Codex (ChatGPT account)",
   gemini: "Gemini",
 };
 
@@ -187,16 +188,18 @@ export function InstanceAIForm({ config }: IInstanceAIForm) {
             ) : null}
           </div>
 
-          <ControllerInput
-            control={control}
-            type="password"
-            name="LLM_API_KEY"
-            label="API key"
-            description="Leave blank to keep the saved encrypted key."
-            placeholder="Enter a replacement key"
-            error={Boolean(errors.LLM_API_KEY)}
-            required={false}
-          />
+          {provider !== "codex" ? (
+            <ControllerInput
+              control={control}
+              type="password"
+              name="LLM_API_KEY"
+              label="API key"
+              description="Leave blank to keep the saved encrypted key."
+              placeholder="Enter a replacement key"
+              error={Boolean(errors.LLM_API_KEY)}
+              required={false}
+            />
+          ) : null}
         </div>
       </div>
 

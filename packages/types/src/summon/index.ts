@@ -20,7 +20,7 @@ export type TSummonCredentialAccessAction =
 
 export interface ISummonAIStatus {
   configured: boolean;
-  provider: "openai" | "openai_compatible" | "anthropic" | "gemini" | null;
+  provider: "openai" | "openai_compatible" | "anthropic" | "codex" | "gemini" | null;
   model: string | null;
 }
 
@@ -174,11 +174,22 @@ export interface ISummonMeeting {
     summary: string;
     decisions: string[];
     action_suggestions: Array<{ title: string; details: string }>;
+    discussion_topics: Array<{ topic: string; details: string[] }>;
+    todos_by_party: Array<{ party: string; items: Array<{ task: string; notes: string }> }>;
+    open_items: string[];
+    next_actions: Array<{ action: string; owner: string; due_date: string }>;
     citations: ISummonAssistantCitation[];
     context_truncated: boolean;
     href: string;
   } | null;
-  summary_error: "" | "transcript_required" | "project_required" | "project_access_revoked" | TSummonLLMErrorCode;
+  summary_error:
+    | ""
+    | "transcribing"
+    | "transcription_failed"
+    | "transcript_required"
+    | "project_required"
+    | "project_access_revoked"
+    | TSummonLLMErrorCode;
   summary_provider: string;
   summary_model: string;
   summary_input_tokens: number | null;

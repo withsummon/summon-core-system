@@ -22,6 +22,12 @@ x-app-environment: &app-environment
   API_KEY_RATE_LIMIT: ${API_KEY_RATE_LIMIT:-60/minute}
   LIVE_SERVER_SECRET_KEY_FILE: /run/secrets/live_server_secret_key
   LIVE_BASE_URL: http://live:3000
+  CODEX_BRIDGE_URL: http://codex-bridge:8090
+  TRANSCRIPTION_URL: http://transcription:8091/transcribe
+  SUMMON_RECORDING_FILE_SIZE_LIMIT: "262144000"
+  LLM_PROVIDER: codex
+  LLM_MODEL: ${LLM_MODEL:-gpt-5.3-codex}
+  LLM_REQUEST_TIMEOUT_SECONDS: "60"
   WEBHOOK_ALLOWED_IPS: ${WEBHOOK_ALLOWED_IPS:-}
   WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
   SUMMON_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
@@ -47,6 +53,10 @@ x-api-service: &api-service
     plane-redis:
       condition: service_healthy
     plane-mq:
+      condition: service_healthy
+    codex-bridge:
+      condition: service_healthy
+    transcription:
       condition: service_healthy
 
 services:
@@ -225,6 +235,38 @@ services:
       plane-redis:
         condition: service_healthy
 
+  codex-bridge:
+    build:
+      context: ../../apps/codex-bridge
+      dockerfile: Dockerfile
+    image: withsummon-summon-core-system-codex-bridge:${SUMMON_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      CODEX_TIMEOUT_MS: "55000"
+    volumes:
+      - codex_auth:/home/node/.codex
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8090/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  transcription:
+    build:
+      context: ../../apps/transcription
+      dockerfile: Dockerfile
+    image: withsummon-summon-core-system-transcription:${SUMMON_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      TRANSCRIPTION_MAX_BYTES: "262144000"
+      WHISPER_MODEL: small
+      WHISPER_COMPUTE_TYPE: int8
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   proxy:
     image: makeplane/plane-proxy:${PLANE_RELEASE:-stable}
     restart: unless-stopped
@@ -232,7 +274,7 @@ services:
       - "80"
     environment:
       SITE_ADDRESS: :80
-      FILE_SIZE_LIMIT: ${FILE_SIZE_LIMIT:-5242880}
+      FILE_SIZE_LIMIT: ${SUMMON_RECORDING_FILE_SIZE_LIMIT:-262144000}
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
       TRUSTED_PROXIES: 0.0.0.0/0
       WEB_HOST: summon-core-web
@@ -267,6 +309,7 @@ volumes:
   logs_worker:
   logs_beat:
   logs_migrator:
+  codex_auth:
 
 secrets:
   django_secret_key:

@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-import json
-
 from botocore.exceptions import BotoCoreError, ClientError
 from django.db import transaction
 from django.utils.html import escape
@@ -14,28 +12,9 @@ from plane.db.models import Page, ProjectMember, ProjectPage
 from plane.summon.models import Meeting
 from plane.summon.services.commercial import accessible_pages
 from plane.summon.services.context import build_context, cap_context
+from plane.summon.services.meeting_mom import SUMMARY_SCHEMA, render_mom_markdown, validate_mom_response
 from plane.summon.services.page_document import summon_document_metadata, write_page_document
 from plane.summon.services.reports import visible_project_ids
-
-
-SUMMARY_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "summary": {"type": "string"},
-        "decisions": {"type": "array", "items": {"type": "string"}},
-        "action_suggestions": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {"title": {"type": "string"}, "details": {"type": "string"}},
-                "required": ["title", "details"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["summary", "decisions", "action_suggestions"],
-    "additionalProperties": False,
-}
 
 
 def _is_canonical_page(page, meeting):
@@ -102,35 +81,6 @@ def _transcript(meeting, actor, source):
     return transcript
 
 
-def _validated_summary(text):
-    try:
-        data = json.loads(text)
-        summary = data["summary"].strip()
-        decisions = [item.strip() for item in data["decisions"] if isinstance(item, str) and item.strip()]
-        suggestions = [
-            {"title": item["title"].strip(), "details": item["details"].strip()}
-            for item in data["action_suggestions"]
-            if isinstance(item, dict) and isinstance(item.get("title"), str) and isinstance(item.get("details"), str)
-        ]
-    except (AttributeError, KeyError, TypeError, ValueError):
-        raise LLMError("llm_invalid_response") from None
-    if (
-        not summary
-        or len(suggestions) != len(data["action_suggestions"])
-        or any(not item["title"] for item in suggestions)
-    ):
-        raise LLMError("llm_invalid_response")
-    return summary, decisions, suggestions
-
-
-def _markdown(meeting, summary, decisions, suggestions):
-    lines = [f"# {meeting.title} summary", "", summary, "", "## Decisions"]
-    lines.extend([f"- {decision}" for decision in decisions] or ["- None recorded."])
-    lines.extend(["", "## Suggested action items"])
-    lines.extend([f"- **{item['title']}** — {item['details']}" for item in suggestions] or ["- None suggested."])
-    return "\n".join(lines)
-
-
 def _save_failure(meeting, code):
     meeting.summary_error = code
     meeting.save(update_fields=["summary_error", "updated_at"])
@@ -151,20 +101,23 @@ def summarize_meeting(meeting, actor, selection, transcript_source=None):
         response = generate(
             LLMRequest(
                 system=(
-                    "Summarize only the supplied transcript and explicitly selected context. "
-                    "Return JSON matching the schema. Decisions and action suggestions remain proposals "
-                    "for human review."
+                    "Create a professional Summon Minutes of Meeting from only the supplied transcript and "
+                    "explicitly selected context. Follow the Summon Toolkit structure: discussion grouped by "
+                    "topic, locked decisions, explicitly open items, to-do lists separated by party, and next "
+                    "actions. Do not invent participants, clients, document numbers, decisions, parties, owners, "
+                    "or due dates. Use empty owner and due_date strings when unsupported. Distinguish proposals "
+                    "and questions from decisions. Return JSON matching the schema."
                 ),
                 messages=[{"role": "user", "content": source}],
                 response_schema=SUMMARY_SCHEMA,
             )
         )
-        summary, decisions, suggestions = _validated_summary(response.text)
+        result = validate_mom_response(response.text)
     except LLMError as error:
         _save_failure(meeting, error.code)
         raise
 
-    markdown = _markdown(meeting, summary, decisions, suggestions)
+    markdown = render_mom_markdown(meeting, result)
     with transaction.atomic():
         meeting = Meeting.objects.select_for_update().get(id=meeting.id)
         membership = (
@@ -192,10 +145,10 @@ def summarize_meeting(meeting, actor, selection, transcript_source=None):
             page = Page(
                 workspace=meeting.workspace,
                 owned_by=actor,
-                name=f"{meeting.title} summary",
+                name=f"{meeting.title} MoM",
                 is_global=False,
             )
-        page.name = f"{meeting.title} summary"
+        page.name = f"{meeting.title} MoM"
         page.view_props = {
             **(page.view_props if isinstance(page.view_props, dict) else {}),
             "summon_summary_meeting_id": str(meeting.id),
@@ -204,12 +157,10 @@ def summarize_meeting(meeting, actor, selection, transcript_source=None):
             page,
             f"<pre>{escape(markdown)}</pre>",
             {
-                "kind": "summon_meeting_summary",
+                "kind": "summon_mom",
                 "markdown": markdown,
                 "source_transcript": transcript,
-                "summary": summary,
-                "decisions": decisions,
-                "action_suggestions": suggestions,
+                **result,
                 "citations": bundle.citations,
                 "context_truncated": bundle.truncated or source_truncated,
             },

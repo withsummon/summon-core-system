@@ -102,6 +102,17 @@ def test_meeting_summary_reuses_canonical_page_and_never_creates_work_items(
                     "action_suggestions": [
                         {"title": "Prepare rollout checklist", "details": "Confirm owners before release."}
                     ],
+                    "discussion_topics": [
+                        {"topic": "Release", "details": ["Friday release approved after checklist review."]}
+                    ],
+                    "todos_by_party": [
+                        {
+                            "party": "Tim Summon",
+                            "items": [{"task": "Prepare rollout checklist", "notes": "Owner not recorded."}],
+                        }
+                    ],
+                    "open_items": ["Checklist owner has not been agreed."],
+                    "next_actions": [{"action": "Prepare rollout checklist", "owner": "", "due_date": ""}],
                 }
             ),
             provider="anthropic",
@@ -129,6 +140,16 @@ def test_meeting_summary_reuses_canonical_page_and_never_creates_work_items(
     assert response.data["summary_page_detail"]["action_suggestions"] == [
         {"title": "Prepare rollout checklist", "details": "Confirm owners before release."}
     ]
+    markdown = response.data["summary_page_detail"]["markdown"]
+    assert "# MINUTES OF MEETING" in markdown
+    assert "## TO-DO LIST — Tim Summon" in markdown
+    assert "| No | Tugas | Keterangan |" in markdown
+    assert "## RINGKASAN PEMBAHASAN" in markdown
+    assert "## KEPUTUSAN" in markdown
+    assert "## OPEN ITEMS" in markdown
+    assert "## NEXT ACTIONS" in markdown
+    assert "Tidak tercantum" in markdown
+    assert "Do not invent" in captured[0].system
     assert response.data["summary_page_detail"]["citations"][0]["id"] == str(project.id)
     assert response.data["transcript_text"] == "Decision: ship Friday. Action: prepare rollout checklist."
     assert "Decision: ship Friday" in captured[0].messages[0]["content"]

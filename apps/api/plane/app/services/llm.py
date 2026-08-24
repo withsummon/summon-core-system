@@ -93,13 +93,23 @@ def get_llm_config() -> LLMConfig:
         timeout = int(timeout_value)
     except (TypeError, ValueError):
         raise LLMError("llm_not_configured") from None
-    if not api_key or not model or not 5 <= timeout <= 120:
+    if not model or not 5 <= timeout <= 120:
         raise LLMError("llm_not_configured")
+    if provider != "codex" and not api_key:
+        raise LLMError("llm_not_configured")
+    if provider == "codex":
+        base_url = _text(os.environ.get("CODEX_BRIDGE_URL")).rstrip("/")
+        if not base_url:
+            raise LLMError("llm_not_configured")
+    elif provider == "openai_compatible":
+        base_url = _text(base_url).rstrip("/")
+    else:
+        base_url = ""
     return {
         "api_key": api_key,
         "provider": provider,
         "model": model,
-        "base_url": _text(base_url).rstrip("/") if provider == "openai_compatible" else "",
+        "base_url": base_url,
         "timeout": timeout,
     }
 
@@ -216,6 +226,22 @@ class OpenAICompatibleProvider(_Provider):
         return _response(text, self.config, usage, "prompt_tokens", "completion_tokens")
 
 
+class CodexProvider(_Provider):
+    def generate(self, request: LLMRequest) -> LLMResponse:
+        data = _post_json(
+            f"{self.config['base_url']}/generate",
+            headers={"content-type": "application/json"},
+            payload={
+                "model": self.config["model"],
+                "system": request.system,
+                "messages": request.messages,
+                "response_schema": request.response_schema,
+            },
+            timeout=self.config["timeout"],
+        )
+        return _response(data.get("text"), self.config, data.get("usage"), "input_tokens", "output_tokens")
+
+
 class AnthropicProvider(_Provider):
     def generate(self, request: LLMRequest) -> LLMResponse:
         payload = {
@@ -282,6 +308,7 @@ def get_llm_provider(config: LLMConfig):
     providers = {
         "openai": OpenAICompatibleProvider,
         "openai_compatible": OpenAICompatibleProvider,
+        "codex": CodexProvider,
         "anthropic": AnthropicProvider,
         "gemini": GeminiProvider,
     }
