@@ -33,6 +33,7 @@ import { PageHead } from "@/components/core/page-title";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
+import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -847,9 +848,9 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 </p>
               ) : null}
               {selectedJob.preview_markdown ? (
-                <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-subtle bg-surface-1 p-3 text-[11px] whitespace-pre-wrap text-primary">
-                  {selectedJob.preview_markdown}
-                </pre>
+                <div className="prose-sm dark:prose-invert mt-3 max-h-72 max-w-none overflow-auto rounded-xl border border-subtle bg-surface-1 p-3 prose">
+                  <MarkdownRenderer markdown={selectedJob.preview_markdown} />
+                </div>
               ) : (
                 <p className="mt-3 text-[11px] text-tertiary">No completed preview is available.</p>
               )}

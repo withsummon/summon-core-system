@@ -6,6 +6,7 @@
 
 import React from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface CustomComponentProps {
   href: string;
@@ -78,7 +79,7 @@ export function MarkdownRenderer({ markdown, options = {} }: Props) {
   };
 
   return (
-    <ReactMarkdown components={customComponents} {...options}>
+    <ReactMarkdown components={customComponents} remarkPlugins={[remarkGfm]} {...options}>
       {markdown}
     </ReactMarkdown>
   );

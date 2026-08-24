@@ -4,6 +4,10 @@ import test from "node:test";
 
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const service = readFileSync(new URL("../../../../../../core/services/summon.service.ts", import.meta.url), "utf8");
+const markdownRenderer = readFileSync(
+  new URL("../../../../../../core/components/ui/markdown-to-component.tsx", import.meta.url),
+  "utf8"
+);
 const {
   automationInputValue,
   buildAutomationInput,
@@ -22,6 +26,12 @@ test("Automation previews before an explicit idempotent publish", () => {
   assert.match(source, /Select Plane Project/);
   assert.match(source, /canGeneratePreview/);
   assert.doesNotMatch(source, /Workspace Page/);
+});
+
+test("Automation renders generated previews as GitHub-flavored Markdown", () => {
+  assert.match(source, /<MarkdownRenderer markdown=\{selectedJob\.preview_markdown\}/);
+  assert.doesNotMatch(source, /<pre[^>]*>[\s\S]*selectedJob\.preview_markdown/);
+  assert.match(markdownRenderer, /remarkPlugins=\{\[remarkGfm\]\}/);
 });
 
 test("Automation exposes explicit context, citations, metadata, and retry state", () => {
