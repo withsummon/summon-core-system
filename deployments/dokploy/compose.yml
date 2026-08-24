@@ -204,7 +204,12 @@ services:
   plane-minio:
     image: minio/minio:latest
     restart: unless-stopped
-    command: server /export --console-address :9090
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /export/${AWS_S3_BUCKET_NAME:-uploads}
+        exec minio server /export --console-address :9090
     environment:
       MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-summon-core}
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
