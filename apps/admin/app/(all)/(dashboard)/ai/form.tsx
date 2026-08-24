@@ -27,6 +27,13 @@ const PROVIDERS: Record<TInstanceLLMProvider, string> = {
   gemini: "Gemini",
 };
 
+const CODEX_MODELS = [
+  { value: "default", label: "Default akun Codex" },
+  { value: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+  { value: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+  { value: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+] as const;
+
 const isProvider = (value: string): value is TInstanceLLMProvider => value in PROVIDERS;
 
 export function InstanceAIForm({ config }: IInstanceAIForm) {
@@ -137,16 +144,46 @@ export function InstanceAIForm({ config }: IInstanceAIForm) {
             ) : null}
           </div>
 
-          <ControllerInput
-            control={control}
-            type="text"
-            name="LLM_MODEL"
-            label="Model"
-            description="Enter the model identifier supplied by your provider."
-            placeholder="Provider model identifier"
-            error={Boolean(errors.LLM_MODEL)}
-            required
-          />
+          {provider === "codex" ? (
+            <div className="flex flex-col gap-1">
+              <h4 className="text-13 text-tertiary">Model</h4>
+              <Controller
+                control={control}
+                name="LLM_MODEL"
+                rules={{ required: "Model is required." }}
+                render={({ field: { value, onChange } }) => (
+                  <CustomSelect
+                    value={value}
+                    label={CODEX_MODELS.find((model) => model.value === value)?.label || value}
+                    onChange={onChange}
+                    buttonClassName="rounded-md border-subtle"
+                    input
+                  >
+                    {CODEX_MODELS.map((model) => (
+                      <CustomSelect.Option key={model.value} value={model.value} className="w-full">
+                        {model.label}
+                      </CustomSelect.Option>
+                    ))}
+                  </CustomSelect>
+                )}
+              />
+              <span className="text-11 text-tertiary">Default mengikuti model aktif pada akun Codex.</span>
+              {errors.LLM_MODEL ? (
+                <span className="text-11 text-danger-primary">{errors.LLM_MODEL.message}</span>
+              ) : null}
+            </div>
+          ) : (
+            <ControllerInput
+              control={control}
+              type="text"
+              name="LLM_MODEL"
+              label="Model"
+              description="Enter the model identifier supplied by your provider."
+              placeholder="Provider model identifier"
+              error={Boolean(errors.LLM_MODEL)}
+              required
+            />
+          )}
 
           {provider === "openai_compatible" ? (
             <ControllerInput

@@ -3,10 +3,10 @@ import test from "node:test";
 
 import { buildCodexArgs, buildPrompt, validateGenerateRequest } from "./server.mjs";
 
-test("builds an isolated ephemeral Codex invocation", () => {
+test("uses the authenticated Codex account default model", () => {
   assert.deepEqual(
     buildCodexArgs({
-      model: "gpt-5.3-codex",
+      model: "default",
       outputPath: "/tmp/output",
       schemaPath: "/tmp/schema.json",
     }),
@@ -20,8 +20,6 @@ test("builds an isolated ephemeral Codex invocation", () => {
       "read-only",
       "--cd",
       "/workspace",
-      "--model",
-      "gpt-5.3-codex",
       "--output-schema",
       "/tmp/schema.json",
       "--output-last-message",
@@ -29,6 +27,16 @@ test("builds an isolated ephemeral Codex invocation", () => {
       "-",
     ]
   );
+});
+
+test("passes an explicitly selected model to Codex", () => {
+  const args = buildCodexArgs({
+    model: "gpt-5.6-sol",
+    outputPath: "/tmp/output",
+    schemaPath: null,
+  });
+
+  assert.deepEqual(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2), ["--model", "gpt-5.6-sol"]);
 });
 
 test("preserves system and message roles in the prompt", () => {
