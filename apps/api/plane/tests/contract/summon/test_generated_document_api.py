@@ -89,6 +89,28 @@ def test_default_templates_preserve_user_edited_legacy_template(session_client, 
 
 
 @pytest.mark.django_db
+def test_default_templates_refresh_system_managed_content(session_client, workspace):
+    name, variables, content = automation.DEFAULT_TEMPLATES["proposal_client"]
+    template = AutomationTemplate.objects.create(
+        workspace=workspace,
+        name=name,
+        type="proposal_client",
+        description="LLM-assisted Client Proposal",
+        content_template="stale system prompt",
+        variables=["stale"],
+        external_source=automation.SYSTEM_TEMPLATE_SOURCE,
+        external_id="template:proposal_client",
+    )
+
+    response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/automation/templates/")
+
+    template.refresh_from_db()
+    assert response.status_code == status.HTTP_200_OK
+    assert template.content_template == content
+    assert template.variables == variables
+
+
+@pytest.mark.django_db
 def test_render_is_idempotent_and_returns_downloadable_file_details(
     session_client,
     workspace,

@@ -57,6 +57,7 @@ test("Automation renders editable files without coupling them to Plane Page publ
   assert.match(source, /pageArtifact/);
   assert.match(source, /fileArtifacts/);
   assert.doesNotMatch(source, /disabled=\{[^}]*artifacts\.length/);
+  assert.match(source, /\["presentation", "proposal_vendor", "proposal_client"\]/);
 });
 
 test("Automation invalidates stale previews and publishes the selected job snapshot", () => {
@@ -75,6 +76,8 @@ test("Automation consumes template variables through one reusable input mapping"
   assert.match(source, /variableValues/);
   assert.match(source, /buildAutomationInput/);
   assert.match(source, /selectedTemplate\?\.variables/);
+  assert.match(source, /Document fields \(Optional\)/);
+  assert.doesNotMatch(source, /templateVariables\.every/);
 });
 
 test("Template examples preserve shared values and send every required variable", () => {

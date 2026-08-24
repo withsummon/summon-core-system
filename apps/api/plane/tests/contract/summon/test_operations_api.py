@@ -135,6 +135,11 @@ def test_default_automation_templates_are_available(session_client, workspace):
     assert "marun" in templates["mom_iglo"]["content_template"]
     assert "Changes Being Tested" in templates["uat"]["content_template"]
     assert "What's Happening?" in templates["bug_report"]["content_template"]
+    assert "Table of Contents" in templates["proposal_vendor"]["content_template"]
+    assert "Appendix" in templates["proposal_client"]["content_template"]
+    assert "Steps to See the Issue" in templates["bug_report"]["content_template"]
+    assert "KPI" in templates["bast"]["content_template"]
+    assert "Insight Summary" in templates["cost_projection"]["content_template"]
     assert all(item["variables"] for item in response.data)
 
 
@@ -229,6 +234,8 @@ def test_automation_preview_creates_no_page_and_publish_is_idempotent(
         }
     ]
     assert captured and project.name in captured[0].messages[0]["content"]
+    assert "structure only" in captured[0].system
+    assert "Blank fields are unknown" in captured[0].system
     assert Page.objects.filter(workspace=workspace, name="Acme Proposal").count() == 0
     assert not GeneratedArtifact.objects.filter(job_id=preview.data["id"]).exists()
 

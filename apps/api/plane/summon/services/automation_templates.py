@@ -21,12 +21,12 @@ DEFAULT_TEMPLATES = {
     "proposal_vendor": (
         "Vendor Proposal",
         ["title", "client", "request", "scope", "timeline", "resources"],
-        "Susun proposal vendor dengan Disclaimer, Executive Summary, Objectives, Client Request Detail, Scope dan Out of Scope, Success Criteria dan Deliverables, Detailed Features, Architecture, Timeline, Resource Allocation, dan Notes. Jangan menambahkan bagian harga atau nilai komersial.",  # noqa: E501
+        "Susun deck Technical Proposal vendor per slide: Cover, Disclaimer, Table of Contents, About Us, Our Services, Executive Summary, Objectives/Value Proposition, Client Request Detail, Scope of Work, Out of Scope, Success Criteria & Deliverables, Detailed Features, Technical Architecture, Timeline, Resource Allocation, Important Notes, dan Appendix berisi portfolio hanya bila tersedia di konteks. Jangan menambahkan bagian harga atau nilai komersial.",  # noqa: E501
     ),
     "proposal_client": (
         "Client Proposal",
         ["title", "client", "request", "scope", "timeline", "resources", "pricing"],
-        "Susun proposal klien dengan Disclaimer, Executive Summary, Objectives, Client Request Detail, Scope dan Out of Scope, Success Criteria dan Deliverables, Detailed Features, Architecture, Timeline, Resource Allocation, Pricing Scheme, dan Notes.",  # noqa: E501
+        "Susun deck Technical Proposal klien per slide: Cover, Disclaimer, Table of Contents, About Us, Our Services, Executive Summary, Objectives/Value Proposition, Client Request Detail, Scope of Work, Out of Scope, Success Criteria & Deliverables, Detailed Features, Technical Architecture, Timeline, Resource Allocation, Pricing Scheme, Important Notes, dan Appendix berisi portfolio hanya bila tersedia di konteks.",  # noqa: E501
     ),
     "invoice": (
         "Invoice",
@@ -36,12 +36,12 @@ DEFAULT_TEMPLATES = {
     "quotation": (
         "Quotation",
         ["title", "quotation_number", "date", "recipient", "scope", "timeline", "team", "pricing", "terms"],
-        "Susun surat quotation formal berisi metadata surat, penerima, introduction, Scope, Deliverables, Timeline, Team, Pricing, Terms, Notes, dan Signature.",  # noqa: E501
+        "Susun surat quotation formal berisi nomor/hal/lampiran, penerima, introduction, Ruang Lingkup Pekerjaan, Ruang Lingkup Fitur, Arsitektur Sistem, Kerangka Pengembangan, Deliverables dan Kriteria Penerimaan, Out of Scope, Tim Kerja/Waktu/Biaya, termin pembayaran, catatan penting, timeline lampiran, dan Signature. Jangan menghitung nilai yang tidak diberikan.",  # noqa: E501
     ),
     "cost_projection": (
         "Cost Projection",
         ["title", "period", "rates", "workload", "exchange_rate", "scenarios"],
-        "Susun proyeksi biaya bertabel: input rates termasuk model/STT dan kurs, asumsi workload minutes serta input/output tokens, biaya per session dalam USD/IDR, lalu skenario bulanan beserta rumus dan total; jangan mengarang tarif.",  # noqa: E501
+        "Susun Usage Cost Projection bertabel: Cost Inputs (kurs, rate STT/model, sumber dan tanggal verifikasi), asumsi workload dan token, Cost Projection per mode/durasi dalam USD/IDR, skenario bulanan, Insight Summary, Key Metrics, perbandingan provider/fallback bila tersedia, serta Catatan & Rekomendasi. Tampilkan rumus/asumsi dan jangan mengarang tarif.",  # noqa: E501
     ),
     "presentation": (
         "Presentation",
@@ -51,12 +51,12 @@ DEFAULT_TEMPLATES = {
     "uat": (
         "User Acceptance Test",
         ["title", "project", "client", "document_number", "version", "test_period", "changes", "test_cases"],
-        "Susun dokumen UAT dengan cover metadata; Changes Being Tested berkolom #/Change/Description; kelompok test case bertabel #/Test Case/Steps/Expected Result/Status/Notes; tutup dengan ringkasan hasil, outstanding items, dan approval.",  # noqa: E501
+        "Susun dokumen UAT dengan cover dan metadata App Version, Branch, Date, Prepared By, Client, Project, Document Number, Version, dan Test Period; Changes Being Tested berkolom #/Change/Description; kelompokkan test case per modul dalam tabel #/Test Case/Steps/Expected Result/Status/Notes; tutup dengan ringkasan hasil, outstanding items, dan approval.",  # noqa: E501
     ),
     "bast": (
         "BAST",
         ["title", "document_number", "date", "parties", "project", "scope", "deliverables", "progress", "uat"],
-        "Susun BAST formal berisi pembukaan, identitas para pihak, informasi proyek, Scope, Deliverables dan Progress, hasil Testing/UAT, pernyataan serah terima/penerimaan, catatan, serta blok tanda tangan kedua pihak.",  # noqa: E501
+        "Susun BAST formal dengan cover nomor/tanggal/para pihak, Pendahuluan, Identitas Para Pihak, Informasi Proyek, Ruang Lingkup Proyek, Metrik Keberhasilan & KPI, Out of Scope, Deliverables/Progress dan hasil Testing/UAT, Pernyataan Serah Terima, Penutup, blok tanda tangan kedua pihak, serta Lampiran daftar dokumen yang diserahkan. Jangan mengarang identitas, nilai proyek, tanggal, atau persetujuan.",  # noqa: E501
     ),
     "timeline": (
         "Project Timeline",
@@ -66,6 +66,6 @@ DEFAULT_TEMPLATES = {
     "bug_report": (
         "Bug Report",
         ["title", "client", "project", "reported_at", "environment", "app_version", "bugs"],
-        "Susun dua tabel: Client berkolom Date Reported/What's Happening?/Steps/Environment/App Version/Urgency/Status; Dev berkolom Backend Version/Assigned Dev/Dev Notes/Progress/Target Fix Date. Pertahankan keterkaitan tiap bug tanpa mengarang hasil investigasi.",  # noqa: E501
+        "Susun Bug Tracker dengan satu baris per bug dan dua kelompok kolom: Client Section berkolom Date Reported/What's Happening?/Steps to See the Issue/Environment or Device/App Version/How Urgent Is It?/Current Status; Developer Section berkolom Backend Version/Assigned Dev/Dev Notes or Resolution/Progress/Target Fix Date. Pertahankan keterkaitan tiap bug dan jangan mengarang hasil investigasi, assignee, status, atau target.",  # noqa: E501
     ),
 }

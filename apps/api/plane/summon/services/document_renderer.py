@@ -64,8 +64,8 @@ IGLO_THEME = _Theme("7A1F2B", "F4C542", "7A1F2B")
 DOCUMENT_FORMATS = {
     "mom_iglo": ("docx", "pdf"),
     "mom_summon": ("docx", "pdf"),
-    "proposal_vendor": ("docx", "pdf"),
-    "proposal_client": ("docx", "pdf"),
+    "proposal_vendor": ("pptx", "pdf"),
+    "proposal_client": ("pptx", "pdf"),
     "invoice": ("docx", "pdf"),
     "quotation": ("docx", "pdf"),
     "uat": ("docx", "pdf"),
@@ -93,7 +93,7 @@ PROFILES = {
     "quotation": _Profile("Quotation"),
     "uat": _Profile("User Acceptance Test"),
     "bast": _Profile("Handover and Acceptance (BAST)"),
-    "presentation": _Profile("Summon Presentation"),
+    "presentation": _Profile("Summon Presentation", True),
     "usage_cost": _Profile("Usage Cost", True),
     "cost_projection": _Profile("Cost Projection", True),
     "timeline": _Profile("Project Timeline", True),
@@ -328,14 +328,16 @@ def _slide_pages(title, blocks):
 
 def _pptx(title, blocks, theme, profile):
     presentation = Presentation()
-    presentation.slide_width, presentation.slide_height = Inches(13.333333), Inches(7.5)
+    slide_width, slide_height = (13.333333, 7.5) if profile.landscape else (8.267717, 11.692913)
+    content_width = slide_width - 1.6
+    presentation.slide_width, presentation.slide_height = Inches(slide_width), Inches(slide_height)
     title_slide = presentation.slides.add_slide(presentation.slide_layouts[0])
     title_slide.shapes.title.text = title
     title_slide.shapes.title.text_frame.paragraphs[0].font.color.rgb = PresentationRGBColor.from_string(theme.primary)
     title_slide.placeholders[1].text = profile.label
     for heading, content in _slide_pages(title, blocks):
         slide = presentation.slides.add_slide(presentation.slide_layouts[6])
-        title_box = slide.shapes.add_textbox(Inches(0.7), Inches(0.45), Inches(11.9), Inches(0.7))
+        title_box = slide.shapes.add_textbox(Inches(0.7), Inches(0.45), Inches(slide_width - 1.4), Inches(0.7))
         title_frame = title_box.text_frame
         title_frame.text = heading
         title_frame.paragraphs[0].font.size = PresentationPt(26)
@@ -347,7 +349,7 @@ def _pptx(title, blocks, theme, profile):
             if block.kind == "table":
                 rows, columns = len(block.rows), len(block.rows[0])
                 shape = slide.shapes.add_table(
-                    rows, columns, Inches(0.8), Inches(y), Inches(11.7), Inches(block_height - 0.12)
+                    rows, columns, Inches(0.8), Inches(y), Inches(content_width), Inches(block_height - 0.12)
                 )
                 for row_index, row in enumerate(block.rows):
                     shape.table.rows[row_index].height = Inches(_table_row_height(row))
@@ -363,7 +365,9 @@ def _pptx(title, blocks, theme, profile):
                                 theme.header_text
                             )
             else:
-                text_box = slide.shapes.add_textbox(Inches(0.8), Inches(y), Inches(11.7), Inches(block_height - 0.08))
+                text_box = slide.shapes.add_textbox(
+                    Inches(0.8), Inches(y), Inches(content_width), Inches(block_height - 0.08)
+                )
                 text_frame = text_box.text_frame
                 text_frame.word_wrap = True
                 text_frame.margin_left = text_frame.margin_right = 0
@@ -376,13 +380,26 @@ def _pptx(title, blocks, theme, profile):
     for slide in presentation.slides:
         for text, left, alignment in (
             ("withsummon.com", 0.8, PP_ALIGN.LEFT),
-            ("2026 • CONFIDENTIAL", 9.4, PP_ALIGN.RIGHT),
+            ("2026 • CONFIDENTIAL", slide_width - 3.9, PP_ALIGN.RIGHT),
         ):
-            footer = slide.shapes.add_textbox(Inches(left), Inches(7.05), Inches(3.1), Inches(0.2)).text_frame
+            footer = slide.shapes.add_textbox(
+                Inches(left), Inches(slide_height - 0.45), Inches(3.1), Inches(0.2)
+            ).text_frame
             footer.text = text
             footer.paragraphs[0].alignment = alignment
             footer.paragraphs[0].font.size = PresentationPt(9)
             footer.paragraphs[0].font.color.rgb = PresentationRGBColor.from_string(theme.primary)
+    if not profile.landscape:
+        for slide in presentation.slides:
+            fill = slide.background.fill
+            fill.solid()
+            fill.fore_color.rgb = PresentationRGBColor.from_string(theme.primary)
+            for shape in slide.shapes:
+                if shape.has_table or not hasattr(shape, "text_frame"):
+                    continue
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.color.rgb = PresentationRGBColor(255, 255, 255)
     output = BytesIO()
     presentation.save(output)
     return output.getvalue()
@@ -508,13 +525,13 @@ def _pdf(title, blocks, theme, profile):
 
 def _presentation_pdf(title, blocks, theme, profile):
     output = BytesIO()
-    page_size = (13.333333 * inch, 7.5 * inch)
+    page_size = (13.333333 * inch, 7.5 * inch) if profile.landscape else A4
     canvas = Canvas(output, pagesize=page_size, invariant=1, pageCompression=0, title=title)
     width, height = page_size
+    content_width = width - 1.6 * inch
     primary = colors.HexColor(f"#{theme.primary}")
-    body_style = ParagraphStyle(
-        "SlideBody", fontName="Helvetica", fontSize=14, leading=20, textColor=colors.HexColor("#102A43")
-    )
+    foreground = colors.white if not profile.landscape else colors.HexColor("#102A43")
+    body_style = ParagraphStyle("SlideBody", fontName="Helvetica", fontSize=14, leading=20, textColor=foreground)
     header_style = ParagraphStyle("SlideTableHeader", parent=body_style, textColor=colors.HexColor("#FFFFFF"))
     table_style = TableStyle(
         [
@@ -526,14 +543,20 @@ def _presentation_pdf(title, blocks, theme, profile):
         ]
     )
 
+    def start_page():
+        if not profile.landscape:
+            canvas.setFillColor(primary)
+            canvas.rect(0, 0, width, height, fill=1, stroke=0)
+
     def finish_page():
-        canvas.setFillColor(primary)
+        canvas.setFillColor(colors.white if not profile.landscape else primary)
         canvas.setFont("Helvetica", 9)
         canvas.drawString(0.8 * inch, 0.28 * inch, "withsummon.com")
         canvas.drawRightString(width - 0.8 * inch, 0.28 * inch, "2026 • CONFIDENTIAL")
         canvas.showPage()
 
-    canvas.setFillColor(primary)
+    start_page()
+    canvas.setFillColor(colors.white if not profile.landscape else primary)
     canvas.setFont("Helvetica-Bold", 30)
     canvas.drawString(0.8 * inch, height - 2.6 * inch, title)
     canvas.setFont("Helvetica", 16)
@@ -541,7 +564,8 @@ def _presentation_pdf(title, blocks, theme, profile):
     finish_page()
 
     for heading, content in _slide_pages(title, blocks):
-        canvas.setFillColor(primary)
+        start_page()
+        canvas.setFillColor(colors.white if not profile.landscape else primary)
         canvas.setFont("Helvetica-Bold", 26)
         canvas.drawString(0.7 * inch, height - 0.85 * inch, heading)
         y = height - 1.55 * inch
@@ -551,16 +575,16 @@ def _presentation_pdf(title, blocks, theme, profile):
                     [Paragraph(escape(value), header_style if row_index == 0 else body_style) for value in row]
                     for row_index, row in enumerate(block.rows)
                 ]
-                table = Table(cells, colWidths=[11.7 * inch / len(block.rows[0])] * len(block.rows[0]))
+                table = Table(cells, colWidths=[content_width / len(block.rows[0])] * len(block.rows[0]))
                 table.setStyle(table_style)
-                _, table_height = table.wrapOn(canvas, 11.7 * inch, y)
+                _, table_height = table.wrapOn(canvas, content_width, y)
                 y -= table_height
                 table.drawOn(canvas, 0.8 * inch, y)
                 y -= 0.12 * inch
             else:
                 prefix = "• " if block.kind == "bullet" else ""
                 paragraph = Paragraph(f"{prefix}{escape(block.text).replace(chr(10), '<br/>')}", body_style)
-                _, paragraph_height = paragraph.wrap(11.7 * inch, y)
+                _, paragraph_height = paragraph.wrap(content_width, y)
                 y -= paragraph_height
                 paragraph.drawOn(canvas, 0.8 * inch, y)
                 y -= 0.08 * inch
@@ -579,7 +603,7 @@ def render_document_files(document_type: str, title: str, markdown: str) -> list
     theme = IGLO_THEME if normalized_type == "mom_iglo" else SUMMON_THEME
     profile = PROFILES[normalized_type]
     renderers = {"docx": _docx, "pptx": _pptx, "xlsx": _xlsx, "pdf": _pdf}
-    if normalized_type == "presentation":
+    if normalized_type in {"presentation", "proposal_vendor", "proposal_client"}:
         renderers["pdf"] = _presentation_pdf
     base_filename = _filename(safe_title)
     return [

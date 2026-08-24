@@ -36,8 +36,8 @@ Prepared for the client.
     [
         ("mom_iglo", ["docx", "pdf"]),
         ("mom_summon", ["docx", "pdf"]),
-        ("proposal_vendor", ["docx", "pdf"]),
-        ("proposal_client", ["docx", "pdf"]),
+        ("proposal_vendor", ["pptx", "pdf"]),
+        ("proposal_client", ["pptx", "pdf"]),
         ("invoice", ["docx", "pdf"]),
         ("quotation", ["docx", "pdf"]),
         ("uat", ["docx", "pdf"]),
@@ -102,6 +102,20 @@ def test_presentation_is_widescreen_and_contains_markdown_content():
     assert "withsummon.com" in text
 
 
+@pytest.mark.parametrize("document_type", ["proposal_vendor", "proposal_client"])
+def test_technical_proposals_are_portrait_a4_decks(document_type):
+    from pptx import Presentation
+
+    pptx, pdf = render_document_files(document_type, "Technical Proposal", MARKDOWN)
+    presentation = Presentation(BytesIO(pptx.data))
+    media_box = re.search(rb"/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]", pdf.data)
+
+    assert presentation.slide_width / presentation.slide_height == pytest.approx(210 / 297)
+    assert str(presentation.slides[0].background.fill.fore_color.rgb) == "102A43"
+    assert media_box
+    assert float(media_box.group(1)) / float(media_box.group(2)) == pytest.approx(210 / 297)
+
+
 def test_spreadsheet_preserves_blocks_and_neutralizes_formula_cells():
     from openpyxl import load_workbook
 
@@ -126,7 +140,7 @@ def test_spreadsheet_preserves_blocks_and_neutralizes_formula_cells():
 
 
 def test_pdf_uses_a4_and_unknown_document_types_are_rejected():
-    rendered = render_document_files("proposal_client", "Proposal", MARKDOWN)[1]
+    rendered = render_document_files("quotation", "Proposal", MARKDOWN)[1]
     media_box = re.search(rb"/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]", rendered.data)
 
     assert rendered.filename == "proposal.pdf"

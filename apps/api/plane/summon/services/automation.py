@@ -90,11 +90,25 @@ def ensure_default_templates(workspace):
         ).update(is_active=False)
     for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
         external_id = f"template:{template_type}"
-        if AutomationTemplate.objects.filter(
+        managed = AutomationTemplate.objects.filter(
             workspace=workspace,
             external_source=SYSTEM_TEMPLATE_SOURCE,
             external_id=external_id,
-        ).exists():
+        ).first()
+        if managed:
+            expected = {
+                "name": name,
+                "type": template_type,
+                "description": f"LLM-assisted {name}",
+                "content_template": content,
+                "variables": variables,
+                "is_active": True,
+            }
+            changed = [field for field, value in expected.items() if getattr(managed, field) != value]
+            if changed:
+                for field, value in expected.items():
+                    setattr(managed, field, value)
+                managed.save(update_fields=[*changed, "updated_at"])
             continue
         existing = AutomationTemplate.objects.filter(workspace=workspace, name=name).first()
         if existing:
@@ -149,7 +163,9 @@ def generate_preview(template, project, requested_by, input_data, context_select
             LLMRequest(
                 system=(
                     f"{template.content_template}\n\n"
-                    "Return validated Markdown only. Do not use information outside the supplied input and context."
+                    "Treat the template as structure only; never copy facts from examples or other projects. "
+                    "Use only the supplied input and context. Blank fields are unknown: mark them TBD or omit them, "
+                    "never infer them. Return validated Markdown only."
                 ),
                 messages=[
                     {

@@ -80,7 +80,7 @@ const templateVisual = (type: string) => {
 };
 
 const outputFormats = (type?: string) => {
-  if (type === "presentation") return ["pptx", "pdf"] as const;
+  if (["presentation", "proposal_vendor", "proposal_client"].includes(type ?? "")) return ["pptx", "pdf"] as const;
   if (["usage_cost", "cost_projection", "timeline", "bug_report"].includes(type ?? "")) return ["xlsx", "pdf"] as const;
   return ["docx", "pdf"] as const;
 };
@@ -172,9 +172,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     () => Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map(({ type }) => type)])),
     [jobs, templates]
   );
-  const canGeneratePreview = Boolean(
-    template && outputProject && title.trim() && templateVariables.every((variable) => variableValues[variable]?.trim())
-  );
+  const canGeneratePreview = Boolean(template && outputProject && title.trim());
   const hasValidPreview = !previewDirty && selectedJob?.status === "completed" && Boolean(selectedJob.preview_markdown);
   const selectedJobTitle = selectedJob
     ? automationInputValue(selectedJob.input, "title") || templateLabel(selectedJob.type)
@@ -479,14 +477,13 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               {templateVariables.length ? (
                 <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5" open>
                   <summary className="cursor-pointer text-[11px] font-semibold text-primary">
-                    Required document fields
+                    Document fields (Optional)
                   </summary>
                   <div className="mt-3 grid gap-2.5">
                     {templateVariables.map((variable) => (
                       <SummonField key={variable} label={templateVariableLabel(variable)}>
                         {isMultilineTemplateVariable(variable) ? (
                           <TextArea
-                            required
                             value={variableValues[variable] ?? ""}
                             onChange={(event) => updateVariable(variable, event.target.value)}
                             placeholder="Enter one item per line or structured details"
@@ -494,7 +491,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                           />
                         ) : (
                           <Input
-                            required
                             value={variableValues[variable] ?? ""}
                             onChange={(event) => updateVariable(variable, event.target.value)}
                           />
