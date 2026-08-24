@@ -14,6 +14,16 @@ class TestS3StorageSignedURLExpiration:
 
     @patch.dict(os.environ, {}, clear=True)
     @patch("plane.settings.storage.boto3")
+    def test_inherited_storage_is_initialized_for_server_side_saves(self, mock_boto3):
+        mock_boto3.client.return_value = Mock()
+
+        storage = S3Storage()
+
+        assert storage._bucket is None
+        assert storage._connections is not None
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("plane.settings.storage.boto3")
     def test_default_expiration_without_env_variable(self, mock_boto3):
         """Test that default expiration is 3600 seconds when env variable is not set"""
         # Mock the boto3 client
