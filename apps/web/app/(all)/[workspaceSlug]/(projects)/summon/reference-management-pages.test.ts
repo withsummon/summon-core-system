@@ -24,6 +24,9 @@ test("management reporting follows the reference hierarchy with real report bind
   assert.match(source, /data\.projects/);
   assert.match(source, /data\.issues\.overdue/);
   assert.match(source, /data\.opportunity_stages/);
+  assert.match(view, /useState<TReportTab>\("overview"\)/);
+  assert.match(view, /onClick=\{\(\) => setActiveTab\(tab\.id\)\}/);
+  assert.match(view, /const showTab = \(tab: TReportTab\) => activeTab === "overview" \|\| activeTab === tab/);
   assert.match(source, /No disbursement data source configured/);
   assert.doesNotMatch(source, /24\.8B|37\.6B|Pegadaian|SANFIND|Mutiara/);
 });
@@ -46,6 +49,9 @@ test("client detail follows the reference hierarchy and persists edits through t
 
   assert.match(page, /summonService\.getClientDetail/);
   assert.match(page, /summonService\.updateClient/);
+  assert.match(page, /useState<TClientTab>\("overview"\)/);
+  assert.match(page, /onClick=\{\(\) => setActiveTab\(tab\.id\)\}/);
+  assert.match(page, /const showTab = \(tab: TClientTab\) => activeTab === "overview" \|\| activeTab === tab/);
   assert.match(page, /data\.page_contexts/);
   assert.match(page, /data\.recent_activity/);
   assert.doesNotMatch(page, /Pegadaian|Andika Pratama|Budi Santoso|Citra Lestari/);

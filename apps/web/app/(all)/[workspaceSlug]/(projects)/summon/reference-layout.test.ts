@@ -38,5 +38,7 @@ test("Knowledge dashboard is backed by accessible Plane Pages and explicit unava
   assert.match(knowledge, /listPageContexts/);
   assert.match(knowledge, /Browse by Context/);
   assert.match(knowledge, /View analytics are not available from Plane Pages/);
+  assert.doesNotMatch(knowledge, /updated_at\?\.getTime/);
+  assert.match(knowledge, /Date\.parse\(String\(.*updated_at/);
   assert.doesNotMatch(knowledge, /mock-data/);
 });
