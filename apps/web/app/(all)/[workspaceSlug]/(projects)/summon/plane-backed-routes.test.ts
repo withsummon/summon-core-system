@@ -35,5 +35,28 @@ test("project creation opens in place from the Summon projects directory", () =>
   );
 
   assert.match(projects, /toggleCreateProjectModal\(true\)/);
+  assert.match(projects, />Create Project</);
+  assert.doesNotMatch(projects, /Create Plane Project/);
   assert.doesNotMatch(projects, /href={`\/\$\{workspaceSlug\}\/projects\/`}/);
+});
+
+test("Summon create closes after the canonical project request", () => {
+  const workspaceModals = readFileSync(
+    new URL("../../../../../core/components/modals/workspace-level.tsx", root),
+    "utf8"
+  );
+  const createModal = readFileSync(
+    new URL("../../../../../core/components/project/create-project-modal.tsx", root),
+    "utf8"
+  );
+
+  assert.match(workspaceModals, /summonProjectCreateOptions\(pathname\)/);
+  assert.match(createModal, /if \(closeOnCreate\)/);
+  assert.match(createModal, /onClose\(\)/);
+});
+
+test("meeting scheduling honors the project query parameter", () => {
+  const meetings = readFileSync(new URL("meetings/page.tsx", root), "utf8");
+  assert.match(meetings, /useSearchParams\(\)/);
+  assert.match(meetings, /searchParams\.get\("project"\)/);
 });

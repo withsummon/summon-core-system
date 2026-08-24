@@ -183,6 +183,10 @@ class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
             errors["client"] = "Record must belong to this workspace."
         if not self.is_workspace_record(self.value(attrs, "source_opportunity")):
             errors["source_opportunity"] = "Record must belong to this workspace."
+        start_date = self.value(attrs, "start_date")
+        target_date = self.value(attrs, "target_date")
+        if start_date and target_date and start_date > target_date:
+            errors["target_date"] = "Target date must not be before start date."
         if errors:
             raise serializers.ValidationError(errors)
         return attrs

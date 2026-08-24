@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { observer } from "mobx-react";
 import useSWR from "swr";
 import Link from "next/link";
 import {
@@ -23,6 +24,8 @@ import {
 import { summonService } from "@/services/summon.service";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { useProject } from "@/hooks/store/use-project";
+import { mergeProjectSummaries } from "./project-workspace";
 
 interface IProjectsDirectoryRootProps {
   workspaceSlug: string;
@@ -54,8 +57,11 @@ const getHealthBadge = (health: string) => {
   );
 };
 
-export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootProps) {
+export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
+  workspaceSlug,
+}: IProjectsDirectoryRootProps) {
   const { toggleCreateProjectModal } = useCommandPalette();
+  const { joinedProjectIds, getProjectById } = useProject();
   const { data, error, isLoading, mutate } = useSWR(["summon-projects", workspaceSlug], () =>
     summonService.getHomeSummary(workspaceSlug)
   );
@@ -63,10 +69,18 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
   const [searchQuery, setSearchQuery] = useState("");
   const [healthFilter, setHealthFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const storeProjects = joinedProjectIds.map((id) => getProjectById(id)).filter((project) => project !== undefined);
+  const allProjects = useMemo(
+    () => mergeProjectSummaries(data?.projects ?? [], storeProjects),
+    [data?.projects, storeProjects]
+  );
+
+  useEffect(() => {
+    if (data && allProjects.length > data.projects.length) void mutate();
+  }, [allProjects.length, data, mutate]);
 
   const projects = useMemo(() => {
-    if (!data?.projects) return [];
-    let list = [...data.projects];
+    let list = [...allProjects];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -78,13 +92,12 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
     }
 
     return list;
-  }, [data?.projects, searchQuery, healthFilter]);
+  }, [allProjects, searchQuery, healthFilter]);
 
   if (!data) {
     return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
   }
 
-  const allProjects = data.projects || [];
   const onTrackCount = allProjects.filter((p) => p.health === "on_track" || p.health === "good").length;
   const atRiskCount = allProjects.filter((p) => p.health === "at_risk" || p.health === "delayed").length;
   const avgCompletion =
@@ -110,7 +123,7 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
             className="text-xs shadow-xs flex items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 py-2 font-bold text-white hover:bg-accent-primary/90"
           >
             <Plus className="size-3.5" />
-            <span>Create Plane Project</span>
+            <span>Create Project</span>
           </button>
         </div>
       </div>
@@ -326,4 +339,4 @@ export function ProjectsDirectoryRoot({ workspaceSlug }: IProjectsDirectoryRootP
       )}
     </div>
   );
-}
+});

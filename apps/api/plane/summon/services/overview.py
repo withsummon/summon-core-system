@@ -5,7 +5,7 @@
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from plane.db.models import Cycle, Issue, IssueActivity, Module, Page, Project
+from plane.db.models import Cycle, FileAsset, Issue, IssueActivity, Module, Page, Project
 from plane.summon.models import Client, Meeting, Opportunity, ResourceLink, SummonProjectProfile
 from plane.summon.services.reports import visible_project_ids
 
@@ -48,7 +48,23 @@ def _profile_snapshot(profile):
         "client": str(profile.client_id) if profile.client_id else None,
         "source_opportunity": str(profile.source_opportunity_id) if profile.source_opportunity_id else None,
         "delivery_status": profile.delivery_status,
+        "phase": profile.phase,
+        "health": profile.health,
+        "start_date": profile.start_date.isoformat() if profile.start_date else None,
+        "target_date": profile.target_date.isoformat() if profile.target_date else None,
         "budget": str(profile.budget) if profile.budget is not None else None,
+    }
+
+
+def _file_snapshot(asset):
+    return {
+        "id": str(asset.id),
+        "name": asset.attributes.get("name", ""),
+        "content_type": asset.attributes.get("type", ""),
+        "size": asset.size,
+        "entity_type": asset.entity_type,
+        "url": asset.asset_url,
+        "created_at": asset.created_at.isoformat().replace("+00:00", "Z"),
     }
 
 
@@ -252,6 +268,13 @@ def project_overview(workspace, user, project_id):
         Q(page__isnull=True) | Q(page__in=pages)
     )
     profile = SummonProjectProfile.objects.filter(workspace=workspace, project=project).first()
+    files = FileAsset.objects.filter(
+        workspace=workspace,
+        project=project,
+        is_uploaded=True,
+        is_deleted=False,
+        is_archived=False,
+    ).exclude(entity_type=FileAsset.EntityTypeContext.PROJECT_COVER)
     return {
         "project": {
             "id": str(project.id),
@@ -270,4 +293,5 @@ def project_overview(workspace, user, project_id):
         "meetings": _meetings(workspace, visible_ids, project),
         "resources": [_resource_snapshot(resource) for resource in resources.order_by("title")],
         "activity": _activity(workspace, visible_ids, workspace.slug, project),
+        "files": [_file_snapshot(asset) for asset in files if asset.asset_url],
     }

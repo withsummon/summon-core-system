@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
@@ -16,10 +17,11 @@ import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
 export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
+  const searchParams = useSearchParams();
   const { joinedProjectIds, getProjectById } = useProject();
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState("");
-  const [project, setProject] = useState("");
+  const [project, setProject] = useState(() => searchParams.get("project") || "");
   const [meetingId, setMeetingId] = useState("");
   const [issueId, setIssueId] = useState("");
   const [formError, setFormError] = useState("");

@@ -267,6 +267,23 @@ def test_conversion_links_existing_project_without_creating_project(workspace):
 
 
 @pytest.mark.django_db
+def test_project_profile_rejects_an_inverted_date_range(workspace):
+    actor, client = authenticated_user(workspace, 20)
+    project = Project.objects.create(workspace=workspace, name="Dated delivery", identifier="DAT")
+    ProjectMember.objects.create(workspace=workspace, project=project, member=actor, role=20)
+
+    response = client.post(
+        f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/",
+        {"start_date": "2026-09-01", "target_date": "2026-08-31"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["target_date"] == ["Target date must not be before start date."]
+    assert not SummonProjectProfile.objects.exists()
+
+
+@pytest.mark.django_db
 def test_project_profile_rejects_cross_workspace_references(workspace):
     actor, client = authenticated_user(workspace, 20)
     project = Project.objects.create(workspace=workspace, name="Scoped delivery", identifier="SCP")

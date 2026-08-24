@@ -110,6 +110,16 @@ export interface ISummonIssueSnapshot {
   completed: boolean;
 }
 
+export interface ISummonProjectFile {
+  id: string;
+  name: string;
+  content_type: string;
+  size: number;
+  entity_type: string;
+  url: string;
+  created_at: string;
+}
+
 export interface ISummonHomeSummary {
   priority: ISummonIssueSnapshot[];
   projects: Array<{ id: string; identifier: string; name: string; health: string; completion: number }>;
@@ -129,6 +139,7 @@ export interface ISummonProjectOverview {
   meetings: ISummonMeeting[];
   resources: ISummonResourceLink[];
   activity: Array<{ id: string; label: string; created_at: string; href: string }>;
+  files: ISummonProjectFile[];
 }
 
 export interface ISummonMeetingWorkItem {
