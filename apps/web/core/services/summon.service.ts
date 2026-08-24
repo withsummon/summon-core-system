@@ -305,6 +305,14 @@ export class SummonService extends APIService {
     return this.data<ISummonAutomationJob>(this.post(`${this.root(workspaceSlug)}/automation/jobs/`, payload));
   }
 
+  extractAutomationContext(workspaceSlug: string, file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    return this.data<{ name: string; text: string; truncated: boolean }>(
+      this.post(`${this.root(workspaceSlug)}/automation/context/extract/`, form)
+    );
+  }
+
   publishAutomationJob(workspaceSlug: string, jobId: string) {
     return this.data<ISummonAutomationJob>(
       this.post(`${this.root(workspaceSlug)}/automation/jobs/${jobId}/publish/`, {})

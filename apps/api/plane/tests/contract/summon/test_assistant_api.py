@@ -369,6 +369,43 @@ def test_context_resolves_each_explicit_selection_through_direct_read_permission
 
 
 @pytest.mark.django_db
+def test_context_uses_meeting_transcript_and_generated_page_markdown(workspace, create_user):
+    project = visible_project(workspace, create_user, "DOC")
+    transcript_page = Page.objects.create(
+        workspace=workspace,
+        owned_by=create_user,
+        name="Discovery transcript",
+        view_props={"summon_document": {"source_transcript": "Audio decision: launch the verified pilot."}},
+    )
+    ProjectPage.objects.create(workspace=workspace, project=project, page=transcript_page)
+    meeting = Meeting.objects.create(
+        workspace=workspace,
+        project=project,
+        organizer=create_user,
+        title="Discovery call",
+        starts_at=timezone.now(),
+        summary_page=transcript_page,
+    )
+    document_page = Page.objects.create(
+        workspace=workspace,
+        owned_by=create_user,
+        name="Generated proposal",
+        view_props={"summon_document": {"markdown": "# Proposal\n\nDocument scope: OCR rollout."}},
+    )
+    ProjectPage.objects.create(workspace=workspace, project=project, page=document_page)
+
+    context = build_context(
+        workspace,
+        create_user,
+        {"meeting_id": meeting.id, "page_ids": [document_page.id]},
+    )
+
+    assert "Audio decision: launch the verified pilot." in context.text
+    assert "Document scope: OCR rollout." in context.text
+    assert {citation["kind"] for citation in context.citations} == {"meeting", "page"}
+
+
+@pytest.mark.django_db
 def test_send_uses_only_explicit_authorized_bounded_context_and_persists_metadata(
     session_client,
     workspace,

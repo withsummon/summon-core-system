@@ -9,6 +9,7 @@ from django.db.models import Q
 from plane.db.models import Project
 from plane.summon.models import Client, Meeting
 from plane.summon.services.commercial import accessible_pages
+from plane.summon.services.page_document import summon_document_metadata
 from plane.summon.services.reports import visible_project_ids
 
 
@@ -47,6 +48,11 @@ def _cap_context_entries(entries, limit=30000):
 
 def _citation(record, label, href, kind):
     return {"id": str(record.id), "label": label, "href": href, "kind": kind}
+
+
+def _page_source(page):
+    metadata = summon_document_metadata(page)
+    return metadata.get("markdown") or metadata.get("source_transcript") or page.description_stripped or ""
 
 
 def build_context(workspace, user, selection):
@@ -90,14 +96,16 @@ def build_context(workspace, user, selection):
     meeting = (
         Meeting.objects.filter(workspace=workspace, id=selection.get("meeting_id"))
         .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
+        .select_related("summary_page")
         .first()
     )
     if meeting:
+        transcript = summon_document_metadata(meeting.summary_page).get("source_transcript", "")
         entries.append(
             (
                 "[Meeting]\n"
                 f"Title: {meeting.title}\nStarts at: {meeting.starts_at.isoformat()}\n"
-                f"Agenda: {meeting.agenda}\nNotes: {meeting.notes}",
+                f"Agenda: {meeting.agenda}\nNotes: {meeting.notes}\nTranscript: {transcript}",
                 _citation(meeting, meeting.title, f"/{workspace.slug}/summon/meetings/{meeting.id}/", "meeting"),
             )
         )
@@ -122,7 +130,7 @@ def build_context(workspace, user, selection):
         )
         entries.append(
             (
-                f"[Page]\nName: {page.name}\nContent: {page.description_stripped or ''}",
+                f"[Page]\nName: {page.name}\nContent: {_page_source(page)}",
                 _citation(page, page.name, href, "page"),
             )
         )

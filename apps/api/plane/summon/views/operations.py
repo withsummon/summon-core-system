@@ -43,6 +43,7 @@ from plane.summon.services.automation import (
     publish_job,
     render_job_files,
 )
+from plane.summon.services.context_document import extract_context_document
 from plane.summon.services.reports import report_csv, report_summary, visible_project_ids
 from plane.summon.views.commercial import WorkspaceContextMixin
 
@@ -97,6 +98,16 @@ class AutomationJobView(WorkspaceContextMixin, BaseAPIView):
             data["error_code"] = job.error_summary
             return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class AutomationContextExtractView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def post(self, request, slug):
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response({"file": "Select a document."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(extract_context_document(upload))
 
 
 class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):

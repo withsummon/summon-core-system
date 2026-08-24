@@ -131,6 +131,8 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [pageIds, setPageIds] = useState<string[]>([]);
   const [activeJob, setActiveJob] = useState<ISummonAutomationJob>();
   const [generating, setGenerating] = useState(false);
+  const [extractingDocument, setExtractingDocument] = useState(false);
+  const [documentName, setDocumentName] = useState("");
   const [rendering, setRendering] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [formError, setFormError] = useState("");
@@ -208,6 +210,26 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const updateVariable = (variable: string, value: string) => {
     setVariableValues((current) => ({ ...current, [variable]: value }));
     invalidatePreview();
+  };
+
+  const extractDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setExtractingDocument(true);
+    setFormError("");
+    try {
+      const extracted = await summonService.extractAutomationContext(workspaceSlug, file);
+      updateDraft(
+        setBrief,
+        [brief.trim(), `[Document: ${extracted.name}]\n${extracted.text}`].filter(Boolean).join("\n\n")
+      );
+      setDocumentName(`${extracted.name}${extracted.truncated ? " (context dibatasi 30.000 karakter)" : ""}`);
+    } catch (requestError) {
+      setFormError(summonLLMErrorMessage(requestError));
+    } finally {
+      setExtractingDocument(false);
+    }
   };
 
   const generatePreview = async (event?: React.FormEvent) => {
@@ -440,6 +462,20 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                   className="min-h-20"
                 />
               </SummonField>
+              <SummonField label="Upload context document (Optional)">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv"
+                  disabled={extractingDocument}
+                  onChange={(event) => void extractDocument(event)}
+                  className="text-xs block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+                />
+                <span className="mt-1 block text-[10px] text-tertiary">
+                  {extractingDocument
+                    ? "Reading document..."
+                    : documentName || "PDF, DOCX, XLSX, PPTX, TXT, MD, CSV · max 10 MB"}
+                </span>
+              </SummonField>
               {templateVariables.length ? (
                 <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5" open>
                   <summary className="cursor-pointer text-[11px] font-semibold text-primary">
@@ -487,7 +523,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                       ))}
                     </SummonSelect>
                   </SummonField>
-                  <SummonField label="Meeting">
+                  <SummonField label="Meeting / audio transcript">
                     <SummonSelect
                       value={meetingId}
                       onChange={(event) => updateDraft(setMeetingId, event.target.value)}
@@ -501,7 +537,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                       ))}
                     </SummonSelect>
                   </SummonField>
-                  <SummonField label="Plane Pages">
+                  <SummonField label="Plane Pages / documents">
                     <SummonSelect
                       multiple
                       value={pageIds}

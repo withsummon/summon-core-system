@@ -9,6 +9,7 @@ from plane.summon.views import (
     AssistantConversationViewSet,
     AssistantMessageView,
     AssistantQueryView,
+    AutomationContextExtractView,
     AutomationJobView,
     AutomationPublishView,
     AutomationTemplateViewSet,
@@ -175,6 +176,11 @@ urlpatterns = [
         "workspaces/<str:slug>/automation/templates/<uuid:pk>/",
         automation_template_detail,
         name="summon-automation-template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/automation/context/extract/",
+        AutomationContextExtractView.as_view(),
+        name="summon-automation-context-extract",
     ),
     path(
         "workspaces/<str:slug>/automation/jobs/",

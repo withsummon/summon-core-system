@@ -4,10 +4,13 @@
 
 import base64
 from datetime import timedelta
+from io import BytesIO
 from uuid import uuid4
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+from docx import Document
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -133,6 +136,34 @@ def test_default_automation_templates_are_available(session_client, workspace):
     assert "Changes Being Tested" in templates["uat"]["content_template"]
     assert "What's Happening?" in templates["bug_report"]["content_template"]
     assert all(item["variables"] for item in response.data)
+
+
+@pytest.mark.django_db
+def test_automation_extracts_uploaded_document_as_bounded_context(session_client, workspace):
+    document = Document()
+    document.add_heading("Verified project brief", level=1)
+    document.add_paragraph("Scope: OCR rollout for the claims team.")
+    payload = BytesIO()
+    document.save(payload)
+
+    response = session_client.post(
+        f"/api/summon/workspaces/{workspace.slug}/automation/context/extract/",
+        {
+            "file": SimpleUploadedFile(
+                "project-brief.docx",
+                payload.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == {
+        "name": "project-brief.docx",
+        "text": "Verified project brief\nScope: OCR rollout for the claims team.",
+        "truncated": False,
+    }
 
 
 @pytest.mark.django_db(transaction=True)

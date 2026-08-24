@@ -35,6 +35,13 @@ test("Automation exposes explicit context, citations, metadata, and retry state"
   assert.doesNotMatch(source, /apiKey|LLM_API_KEY|credential.*secret/i);
 });
 
+test("Automation accepts local documents as additional verified context", () => {
+  assert.match(service, /extractAutomationContext/);
+  assert.match(source, /accept="\.pdf,\.docx,\.xlsx,\.pptx,\.txt,\.md,\.csv"/);
+  assert.match(source, /Document: \$\{extracted\.name\}/);
+  assert.match(source, /Meeting \/ audio transcript/);
+});
+
 test("Automation renders editable files without coupling them to Plane Page publishing", () => {
   assert.match(service, /renderAutomationJob/);
   assert.match(service, /\/api\/workspaces\/\$\{workspaceSlug\}\/summon\/automation-jobs\/\$\{jobId\}\/render\//);
