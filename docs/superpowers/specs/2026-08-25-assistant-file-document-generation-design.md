@@ -20,7 +20,7 @@ When this work ships:
 
 ## Scope
 
-Supported input types are PDF, DOCX, XLSX, PPTX, TXT, MD, CSV, MP3, and M4A. A message can contain zero through five files. Unsupported files and a sixth file are rejected before submission with a clear per-file error.
+Supported input types are PDF, DOCX, XLSX, PPTX, TXT, MD, CSV, MP3, and M4A. A message can contain zero through five files. Documents use the existing 10 MB extraction limit; MP3/M4A files use the existing 250 MB recording limit. Unsupported files and a sixth file are rejected before submission with a clear per-file error.
 
 Generated output is always PDF and DOCX in the first release. Users can request any enabled Automation template, including MoM. Template management, new output formats, conversation sharing, and a new vector database are outside this scope.
 
@@ -55,7 +55,7 @@ Link the Assistant result message to the resulting `AutomationJob`. Artifact dat
 4. Ready files appear as attachment chips and become conversation context.
 5. The user can ask questions about attached files or request a generated document.
 6. If the requested document type is unclear, Assistant presents enabled template choices as buttons while continuing to accept a natural-language answer.
-7. Assistant always presents a final confirmation card containing the document type/template, selected source files, PDF + DOCX outputs, and `Generate` and `Cancel` actions.
+7. Assistant always presents a final confirmation card containing the document type/template, target Plane Project, selected source files, PDF + DOCX outputs, and `Generate` and `Cancel` actions. If no authorized Project context is selected, Assistant asks the user to select one before enabling `Generate` because Automation rendering is project-scoped.
 8. `Generate` disables repeated submission and changes the card status to `Generating`.
 9. The backend creates an `AutomationJob`, generates its preview, and renders PDF and DOCX through the existing Automation services.
 10. On success, the Assistant result card exposes `Preview`, `Download PDF`, and `Download DOCX`. Preview opens the existing dedicated Automation detail page; downloads use the existing authorized artifact endpoints.
