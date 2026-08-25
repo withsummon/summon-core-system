@@ -174,7 +174,16 @@ class AssistantQuerySerializer(serializers.Serializer):
     project_id = serializers.UUIDField(required=False, allow_null=True)
 
 
+class AssistantAttachmentSerializer(BaseSerializer):
+    class Meta:
+        model = AssistantAttachment
+        fields = ["id", "message", "original_name", "media_type", "size", "status", "language", "error", "created_at"]
+        read_only_fields = fields
+
+
 class AssistantMessageSerializer(BaseSerializer):
+    attachments = AssistantAttachmentSerializer(many=True, read_only=True)
+
     class Meta:
         model = AssistantMessage
         fields = [
@@ -187,15 +196,9 @@ class AssistantMessageSerializer(BaseSerializer):
             "input_tokens",
             "output_tokens",
             "status",
+            "attachments",
             "created_at",
         ]
-        read_only_fields = fields
-
-
-class AssistantAttachmentSerializer(BaseSerializer):
-    class Meta:
-        model = AssistantAttachment
-        fields = ["id", "message", "original_name", "media_type", "size", "status", "language", "error", "created_at"]
         read_only_fields = fields
 
 
@@ -254,6 +257,12 @@ class AssistantMessageRequestSerializer(serializers.Serializer):
     intent = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
     tool = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
     arguments = serializers.JSONField(required=False, default=dict)
+    attachment_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list,
+        max_length=5,
+    )
 
     def validate_arguments(self, value):
         if not isinstance(value, dict):

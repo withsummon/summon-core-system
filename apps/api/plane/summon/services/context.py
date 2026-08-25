@@ -115,10 +115,10 @@ def _automatic_context_entries(workspace, user, project_ids, query, excluded_pro
     return entries
 
 
-def build_context(workspace, user, selection, query=""):
+def build_context(workspace, user, selection, query="", source_entries=()):
     project_ids = list(visible_project_ids(workspace, user))
     project_id_set = set(project_ids)
-    entries = []
+    entries = list(source_entries)
 
     if selection.get("workspace"):
         entries.append((f"[Workspace]\nName: {workspace.name}", None))

@@ -4,12 +4,15 @@
 
 import json
 
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework import serializers
 
 from plane.app.services.llm import LLMError, LLMRequest, generate
 from plane.db.models import Issue, Page, Project
-from plane.summon.models import AssistantMessage, AutomationJob, Opportunity
+from plane.summon.models import AssistantAttachment, AssistantMessage, AutomationJob, Opportunity
+from plane.summon.services.assistant_attachment import attachment_context_entries
 from plane.summon.services.context import build_context
 from plane.summon.services.reports import report_summary, visible_project_ids
 
@@ -119,13 +122,33 @@ def _save_assistant_message(conversation, content, citations, **metadata):
     return message
 
 
-def send_message(conversation, user, content, selection, intent=""):
-    context = build_context(conversation.workspace, user, selection, query=content)
-    user_message = AssistantMessage.objects.create(
-        conversation=conversation,
-        workspace=conversation.workspace,
-        role=AssistantMessage.Role.USER,
-        content=content,
+def send_message(conversation, user, content, selection, intent="", attachment_ids=()):
+    with transaction.atomic():
+        attachments = list(
+            AssistantAttachment.objects.select_for_update().filter(
+                id__in=attachment_ids,
+                conversation=conversation,
+                conversation__owner=user,
+                message__isnull=True,
+                status=AssistantAttachment.Status.READY,
+            )
+        )
+        if len(attachments) != len(attachment_ids):
+            raise serializers.ValidationError({"attachment_ids": "Select up to five ready, unbound attachments."})
+        user_message = AssistantMessage.objects.create(
+            conversation=conversation,
+            workspace=conversation.workspace,
+            role=AssistantMessage.Role.USER,
+            content=content,
+        )
+        if attachments:
+            AssistantAttachment.objects.filter(id__in=[item.id for item in attachments]).update(message=user_message)
+    context = build_context(
+        conversation.workspace,
+        user,
+        selection,
+        query=content,
+        source_entries=attachment_context_entries(conversation, user),
     )
     history = [
         {"role": message.role, "content": message.content}

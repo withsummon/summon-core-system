@@ -229,7 +229,10 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
             )
             .select_related("project", "client", "mcp_credential")
             .prefetch_related(
-                Prefetch("messages", queryset=AssistantMessage.objects.order_by("created_at")),
+                Prefetch(
+                    "messages",
+                    queryset=AssistantMessage.objects.prefetch_related("attachments").order_by("created_at"),
+                ),
                 Prefetch("actions", queryset=AssistantAction.objects.order_by("created_at")),
             )
         )
@@ -250,7 +253,11 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
         )
 
     def get(self, request, slug, conversation_id):
-        messages = AssistantMessage.objects.filter(conversation=self.get_conversation()).order_by("created_at")
+        messages = (
+            AssistantMessage.objects.filter(conversation=self.get_conversation())
+            .prefetch_related("attachments")
+            .order_by("created_at")
+        )
         return Response(AssistantMessageSerializer(messages, many=True).data)
 
     def post(self, request, slug, conversation_id):
@@ -285,6 +292,7 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
             serializer.validated_data["content"],
             serializer.validated_data["context"],
             serializer.validated_data["intent"],
+            serializer.validated_data["attachment_ids"],
         )
         data = {
             "user_message": AssistantMessageSerializer(user_message).data,

@@ -267,6 +267,153 @@ def test_assistant_attachment_is_owner_scoped_and_only_unbound_files_can_be_dele
 
 
 @pytest.mark.django_db
+def test_assistant_attachment_context_is_bound_and_retained_across_messages(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+    monkeypatch,
+):
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        title="Persistent files",
+    )
+    attachments = []
+    for name, text in (("brief.txt", "Verified delivery scope"), ("notes.txt", "Approved launch decision")):
+        asset = assistant_asset(
+            workspace,
+            create_user,
+            conversation,
+            assistant_file_storage,
+            name,
+            "text/plain",
+            text.encode(),
+        )
+        attachments.append(
+            AssistantAttachment.objects.create(
+                workspace=workspace,
+                conversation=conversation,
+                file_asset=asset,
+                original_name=name,
+                media_type="text/plain",
+                size=len(text),
+                status=AssistantAttachment.Status.READY,
+                extracted_text=text,
+            )
+        )
+    processing_asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "still-processing.mp3",
+        "audio/mpeg",
+    )
+    AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        file_asset=processing_asset,
+        original_name="still-processing.mp3",
+        media_type="audio/mpeg",
+        size=4,
+        status=AssistantAttachment.Status.PROCESSING,
+    )
+    captured = []
+
+    def fake_generate(request):
+        captured.append(request)
+        return LLMResponse(text="Grounded answer", provider="openai", model="codex-test")
+
+    monkeypatch.setattr("plane.summon.services.assistant.generate", fake_generate)
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+    first = session_client.post(
+        url,
+        {
+            "content": "Summarize these files",
+            "context": {},
+            "attachment_ids": [str(attachment.id) for attachment in attachments],
+        },
+        format="json",
+    )
+
+    assert first.status_code == status.HTTP_201_CREATED
+    user_message = AssistantMessage.objects.get(id=first.data["user_message"]["id"])
+    assert set(user_message.attachments.values_list("id", flat=True)) == {item.id for item in attachments}
+    assert {item["id"] for item in first.data["user_message"]["attachments"]} == {item.id for item in attachments}
+    prompt = repr(captured[0])
+    assert "[Attached File: brief.txt]" in prompt
+    assert "[Attached File: notes.txt]" in prompt
+    assert "still-processing.mp3" not in prompt
+    assert {item["kind"] for item in first.data["assistant_message"]["citations"]} >= {"attachment"}
+
+    second = session_client.post(
+        url,
+        {"content": "What was the launch decision?", "context": {}, "attachment_ids": []},
+        format="json",
+    )
+    assert second.status_code == status.HTTP_201_CREATED
+    assert "Verified delivery scope" in repr(captured[1])
+    assert "Approved launch decision" in repr(captured[1])
+
+
+@pytest.mark.django_db
+def test_assistant_attachment_binding_rejects_unready_foreign_and_excess_files(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+    monkeypatch,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Validation")
+    foreign_conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Foreign")
+
+    def make_attachment(target, name, attachment_status):
+        asset = assistant_asset(
+            workspace,
+            create_user,
+            target,
+            assistant_file_storage,
+            name,
+            "text/plain",
+        )
+        return AssistantAttachment.objects.create(
+            workspace=workspace,
+            conversation=target,
+            file_asset=asset,
+            original_name=name,
+            media_type="text/plain",
+            size=4,
+            status=attachment_status,
+            extracted_text="ready" if attachment_status == AssistantAttachment.Status.READY else "",
+        )
+
+    processing = make_attachment(conversation, "processing.txt", AssistantAttachment.Status.PROCESSING)
+    failed = make_attachment(conversation, "failed.txt", AssistantAttachment.Status.FAILED)
+    foreign = make_attachment(foreign_conversation, "foreign.txt", AssistantAttachment.Status.READY)
+    monkeypatch.setattr(
+        "plane.summon.services.assistant.generate",
+        lambda _request: LLMResponse(text="unused", provider="openai", model="codex-test"),
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+
+    for attachment in (processing, failed, foreign):
+        response = session_client.post(
+            url,
+            {"content": "Use file", "context": {}, "attachment_ids": [str(attachment.id)]},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+    excessive = session_client.post(
+        url,
+        {"content": "Too many", "context": {}, "attachment_ids": [str(uuid4()) for _ in range(6)]},
+        format="json",
+    )
+    assert excessive.status_code == status.HTTP_400_BAD_REQUEST
+    assert not AssistantMessage.objects.filter(conversation=conversation).exists()
+
+
+@pytest.mark.django_db
 def test_conversations_are_owner_and_workspace_scoped_with_soft_delete(session_client, workspace, create_user):
     project = visible_project(workspace, create_user)
     client = Client.objects.create(workspace=workspace, name="Acme")
