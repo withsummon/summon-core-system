@@ -183,6 +183,7 @@ class AssistantAttachmentSerializer(BaseSerializer):
 
 class AssistantMessageSerializer(BaseSerializer):
     attachments = AssistantAttachmentSerializer(many=True, read_only=True)
+    automation_job = AutomationJobSerializer(read_only=True)
 
     class Meta:
         model = AssistantMessage
@@ -197,6 +198,7 @@ class AssistantMessageSerializer(BaseSerializer):
             "output_tokens",
             "status",
             "attachments",
+            "automation_job",
             "created_at",
         ]
         read_only_fields = fields

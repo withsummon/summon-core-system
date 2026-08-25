@@ -7,6 +7,7 @@ import json
 from django.utils import timezone
 
 from plane.summon.models import AssistantAction, AssistantMessage
+from plane.summon.services.assistant_document import DOCUMENT_TOOL, execute_document_action
 from plane.summon.services.mcp import READ_ACTIONS, call_plane_tool, sanitize_arguments, validate_tool
 
 
@@ -21,7 +22,9 @@ def action_preview(tool, arguments):
     }
 
 
-def execute_assistant_action(action, request=None):
+def execute_assistant_action(action, request=None, retry=False):
+    if action.tool == DOCUMENT_TOOL:
+        return execute_document_action(action, retry=retry)
     validate_tool(action.tool, action.arguments, write=True)
     return call_plane_tool(
         action.conversation,

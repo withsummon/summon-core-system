@@ -20,6 +20,8 @@ from plane.summon.models import (
     AssistantAttachment,
     AssistantConversation,
     AssistantMessage,
+    AutomationJob,
+    AutomationTemplate,
     Client,
     Credential,
     CredentialAccessLog,
@@ -97,16 +99,22 @@ def test_assistant_assets_accept_supported_files_and_enforce_owner_scope(
     assert asset.user == create_user
     assert asset.entity_identifier == str(conversation.id)
     assert asset.asset_url == f"/api/assets/v2/workspaces/{workspace.slug}/{asset.id}/"
-    assert session_client.post(
-        upload_url,
-        {**payload, "name": "script.html", "type": "text/html"},
-        format="json",
-    ).status_code == status.HTTP_400_BAD_REQUEST
-    assert session_client.post(
-        upload_url,
-        {**payload, "name": "meeting.m4a", "type": "audio/mp4", "size": 8 * 1024 * 1024},
-        format="json",
-    ).status_code == status.HTTP_200_OK
+    assert (
+        session_client.post(
+            upload_url,
+            {**payload, "name": "script.html", "type": "text/html"},
+            format="json",
+        ).status_code
+        == status.HTTP_400_BAD_REQUEST
+    )
+    assert (
+        session_client.post(
+            upload_url,
+            {**payload, "name": "meeting.m4a", "type": "audio/mp4", "size": 8 * 1024 * 1024},
+            format="json",
+        ).status_code
+        == status.HTTP_200_OK
+    )
 
     _, other_api = authenticated_member(workspace)
     asset_url = f"/api/assets/v2/workspaces/{workspace.slug}/{asset.id}/"
@@ -411,6 +419,286 @@ def test_assistant_attachment_binding_rejects_unready_foreign_and_excess_files(
     )
     assert excessive.status_code == status.HTTP_400_BAD_REQUEST
     assert not AssistantMessage.objects.filter(conversation=conversation).exists()
+
+
+@pytest.mark.django_db
+def test_assistant_document_action_routes_requests_and_reuses_template_choice(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    from plane.summon.services.automation import ensure_default_templates
+
+    ensure_default_templates(workspace)
+    project = visible_project(workspace, create_user, "DOC")
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        project=project,
+        title="Documents",
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+
+    ambiguous = session_client.post(
+        url,
+        {"content": "Buatkan dokumen dari file ini", "context": {"project_id": str(project.id)}},
+        format="json",
+    )
+
+    assert ambiguous.status_code == status.HTTP_201_CREATED
+    assert ambiguous.data["action"]["tool"] == "summon_document"
+    assert ambiguous.data["action"]["preview"]["state"] == "choose_template"
+    action_id = ambiguous.data["action"]["id"]
+    selected = session_client.post(
+        url,
+        {"content": "Minutes of Meeting - Summon", "context": {}},
+        format="json",
+    )
+    assert selected.status_code == status.HTTP_201_CREATED
+    assert selected.data["action"]["id"] == action_id
+    assert selected.data["action"]["preview"]["state"] == "confirm"
+    assert selected.data["action"]["preview"]["formats"] == ["pdf", "docx"]
+    assert AssistantAction.objects.filter(conversation=conversation, tool="summon_document").count() == 1
+
+    explicit_conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        project=project,
+        title="MoM",
+    )
+    explicit_url = (
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{explicit_conversation.id}/messages/"
+    )
+    explicit = session_client.post(
+        explicit_url,
+        {"content": "Buat MoM dari rekaman ini", "context": {"project_id": str(project.id)}},
+        format="json",
+    )
+    assert explicit.status_code == status.HTTP_201_CREATED
+    assert explicit.data["action"]["preview"]["state"] == "confirm"
+    assert explicit.data["action"]["preview"]["template"]["type"] == "mom_summon"
+
+    calls = []
+
+    def fake_generate(request):
+        calls.append(request)
+        return LLMResponse(text="Question answer", provider="openai", model="codex-test")
+
+    monkeypatch.setattr("plane.summon.services.assistant.generate", fake_generate)
+    question = session_client.post(
+        explicit_url,
+        {"content": "Apa manfaat dokumen ini?", "context": {}},
+        format="json",
+    )
+    assert question.status_code == status.HTTP_201_CREATED
+    assert question.data.get("action") is None
+    assert len(calls) == 1
+
+
+@pytest.mark.django_db
+def test_assistant_document_action_confirmation_and_retry_reuse_one_job(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    from plane.summon.services.automation import ensure_default_templates
+
+    ensure_default_templates(workspace)
+    template = AutomationTemplate.objects.get(workspace=workspace, type="mom_summon")
+    project = visible_project(workspace, create_user, "GEN")
+    conversation = AssistantConversation.objects.create(
+        workspace=workspace,
+        owner=create_user,
+        project=project,
+        title="Generate",
+    )
+    source_asset = FileAsset.objects.create(
+        workspace=workspace,
+        user=create_user,
+        created_by=create_user,
+        asset=f"{workspace.id}/source.txt",
+        attributes={"name": "source.txt", "type": "text/plain", "size": 8},
+        entity_type=FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT,
+        entity_identifier=str(conversation.id),
+        size=8,
+        is_uploaded=True,
+    )
+    source = AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        file_asset=source_asset,
+        original_name="source.txt",
+        media_type="text/plain",
+        size=8,
+        status=AssistantAttachment.Status.READY,
+        extracted_text="Evidence",
+    )
+
+    def create_action(request_text):
+        return AssistantAction.objects.create(
+            workspace=workspace,
+            conversation=conversation,
+            requester=create_user,
+            tool="summon_document",
+            arguments={
+                "request": request_text,
+                "template_id": str(template.id),
+                "project_id": str(project.id),
+                "attachment_ids": [str(source.id)],
+                "context": {"project_id": str(project.id)},
+                "formats": ["pdf", "docx"],
+            },
+            preview={"state": "confirm"},
+        )
+
+    generate_calls = []
+    render_calls = []
+
+    def fake_generate(template_arg, project_arg, actor, input_data, context, source_entries=(), job=None):
+        is_retry = job is not None
+        generate_calls.append(
+            (template_arg.id, project_arg.id, actor.id, list(source_entries), job.id if job else None)
+        )
+        if job is None:
+            job = AutomationJob.objects.create(
+                workspace=workspace,
+                template=template_arg,
+                project=project_arg,
+                requested_by=actor,
+                type=template_arg.type,
+                input={"values": input_data, "context": context},
+            )
+        job.status = (
+            AutomationJob.Status.FAILED
+            if input_data["instructions"] == "fail once" and not is_retry
+            else AutomationJob.Status.COMPLETED
+        )
+        job.preview_markdown = "" if job.status == AutomationJob.Status.FAILED else "# Generated"
+        job.error_summary = "llm_failed" if job.status == AutomationJob.Status.FAILED else ""
+        job.save(update_fields=["status", "preview_markdown", "error_summary", "updated_at"])
+        return job
+
+    monkeypatch.setattr("plane.summon.services.assistant_document.generate_preview", fake_generate)
+    monkeypatch.setattr(
+        "plane.summon.services.assistant_document.render_job_files",
+        lambda job, actor: render_calls.append((job.id, actor.id)),
+    )
+    action = create_action("generate now")
+    confirm_url = (
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
+        f"{action.id}/confirm/"
+    )
+
+    first = session_client.post(confirm_url, {}, format="json")
+    second = session_client.post(confirm_url, {}, format="json")
+
+    assert first.status_code == second.status_code == status.HTTP_200_OK
+    assert first.data["result"] == second.data["result"]
+    assert AutomationJob.objects.filter(id=first.data["result"]["automation_job_id"]).count() == 1
+    assert len(generate_calls) == len(render_calls) == 1
+    assert "[Attached File: source.txt]" in generate_calls[0][3][0][0]
+    result_message = AssistantMessage.objects.get(automation_job_id=first.data["result"]["automation_job_id"])
+    serialized = session_client.get(
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+    )
+    serialized_result = next(item for item in serialized.data if str(item["id"]) == str(result_message.id))
+    assert str(serialized_result["automation_job"]["id"]) == first.data["result"]["automation_job_id"]
+
+    failed_action = create_action("fail once")
+    failed_url = (
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
+        f"{failed_action.id}/confirm/"
+    )
+    failed = session_client.post(failed_url, {}, format="json")
+    assert failed.status_code == status.HTTP_200_OK
+    assert failed.data["status"] == AssistantAction.Status.FAILED
+    failed_job_id = failed.data["result"]["automation_job_id"]
+    retry = session_client.post(failed_url.replace("confirm", "retry"), {}, format="json")
+    assert retry.status_code == status.HTTP_200_OK
+    assert retry.data["status"] == AssistantAction.Status.COMPLETED
+    assert retry.data["result"]["automation_job_id"] == failed_job_id
+    assert AutomationJob.objects.filter(id=failed_job_id).count() == 1
+
+
+@pytest.mark.django_db
+def test_assistant_document_action_revalidates_project_template_sources_and_cancel(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+    monkeypatch,
+):
+    from plane.summon.services.automation import ensure_default_templates
+
+    ensure_default_templates(workspace)
+    template = AutomationTemplate.objects.get(workspace=workspace, type="mom_summon")
+    project = visible_project(workspace, create_user, "SAFE")
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Safe")
+    generate_calls = []
+    monkeypatch.setattr(
+        "plane.summon.services.assistant_document.generate_preview",
+        lambda *_args, **_kwargs: generate_calls.append(True),
+    )
+
+    def create_action(**overrides):
+        arguments = {
+            "request": "Generate safely",
+            "template_id": str(template.id),
+            "project_id": str(project.id),
+            "attachment_ids": [],
+            "context": {"project_id": str(project.id)},
+            "formats": ["pdf", "docx"],
+            **overrides,
+        }
+        return AssistantAction.objects.create(
+            workspace=workspace,
+            conversation=conversation,
+            requester=create_user,
+            tool="summon_document",
+            arguments=arguments,
+            preview={"state": "confirm"},
+        )
+
+    def operation(action, name):
+        return (
+            f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
+            f"{action.id}/{name}/"
+        )
+
+    missing_project = create_action(project_id=None)
+    assert session_client.post(operation(missing_project, "confirm"), {}, format="json").status_code == 400
+
+    processing_asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "processing.mp3",
+        "audio/mpeg",
+    )
+    processing = AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        file_asset=processing_asset,
+        original_name="processing.mp3",
+        media_type="audio/mpeg",
+        size=4,
+        status=AssistantAttachment.Status.PROCESSING,
+    )
+    unready = create_action(attachment_ids=[str(processing.id)])
+    assert session_client.post(operation(unready, "confirm"), {}, format="json").status_code == 400
+
+    cancelled = create_action()
+    assert session_client.post(operation(cancelled, "cancel"), {}, format="json").data["status"] == "cancelled"
+    assert session_client.post(operation(cancelled, "confirm"), {}, format="json").status_code == 409
+
+    inactive = create_action()
+    template.is_active = False
+    template.save(update_fields=["is_active", "updated_at"])
+    assert session_client.post(operation(inactive, "confirm"), {}, format="json").status_code == 400
+    assert generate_calls == []
 
 
 @pytest.mark.django_db

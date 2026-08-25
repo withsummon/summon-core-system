@@ -101,6 +101,18 @@ urlpatterns = [
         name="summon-assistant-action-confirm",
     ),
     path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/select/",
+        AssistantActionView.as_view(),
+        {"operation": "select"},
+        name="summon-assistant-action-select",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/retry/",
+        AssistantActionView.as_view(),
+        {"operation": "retry"},
+        name="summon-assistant-action-retry",
+    ),
+    path(
         "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/cancel/",
         AssistantActionView.as_view(),
         {"operation": "cancel"},

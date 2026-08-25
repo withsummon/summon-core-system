@@ -146,19 +146,43 @@ def _job_input(input_data, selection, citations=None, truncated=False):
     }
 
 
-def generate_preview(template, project, requested_by, input_data, context_selection):
-    job = AutomationJob.objects.create(
-        workspace=template.workspace,
-        template=template,
-        project=project,
-        requested_by=requested_by,
-        type=template.type,
-        status=AutomationJob.Status.RUNNING,
-        input=_job_input(input_data, context_selection),
-        started_at=timezone.now(),
-    )
+def generate_preview(template, project, requested_by, input_data, context_selection, source_entries=(), job=None):
+    if job is None:
+        job = AutomationJob.objects.create(
+            workspace=template.workspace,
+            template=template,
+            project=project,
+            requested_by=requested_by,
+            type=template.type,
+            status=AutomationJob.Status.RUNNING,
+            input=_job_input(input_data, context_selection),
+            started_at=timezone.now(),
+        )
+    else:
+        job.status = AutomationJob.Status.RUNNING
+        job.input = _job_input(input_data, context_selection)
+        job.preview_markdown = ""
+        job.error_summary = ""
+        job.started_at = timezone.now()
+        job.completed_at = None
+        job.save(
+            update_fields=[
+                "status",
+                "input",
+                "preview_markdown",
+                "error_summary",
+                "started_at",
+                "completed_at",
+                "updated_at",
+            ]
+        )
     try:
-        bundle = build_context(template.workspace, requested_by, context_selection)
+        bundle = build_context(
+            template.workspace,
+            requested_by,
+            context_selection,
+            source_entries=source_entries,
+        )
         response = generate(
             LLMRequest(
                 system=(

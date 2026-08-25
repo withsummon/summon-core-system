@@ -38,6 +38,7 @@ from plane.summon.serializers.operations import (
 )
 from plane.summon.services.assistant_action import execute_assistant_action, handle_tool_request
 from plane.summon.services.assistant_attachment import create_attachment
+from plane.summon.services.assistant_document import handle_document_message, select_document_template
 from plane.summon.services.mcp import MCPError
 from plane.summon.services.assistant import answer_query, send_message
 from plane.summon.services.automation import (
@@ -231,7 +232,13 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
             .prefetch_related(
                 Prefetch(
                     "messages",
-                    queryset=AssistantMessage.objects.prefetch_related("attachments").order_by("created_at"),
+                    queryset=AssistantMessage.objects.select_related("automation_job")
+                    .prefetch_related(
+                        "attachments",
+                        "automation_job__artifacts__page",
+                        "automation_job__artifacts__file_asset",
+                    )
+                    .order_by("created_at"),
                 ),
                 Prefetch("actions", queryset=AssistantAction.objects.order_by("created_at")),
             )
@@ -255,7 +262,12 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
     def get(self, request, slug, conversation_id):
         messages = (
             AssistantMessage.objects.filter(conversation=self.get_conversation())
-            .prefetch_related("attachments")
+            .select_related("automation_job")
+            .prefetch_related(
+                "attachments",
+                "automation_job__artifacts__page",
+                "automation_job__artifacts__file_asset",
+            )
             .order_by("created_at")
         )
         return Response(AssistantMessageSerializer(messages, many=True).data)
@@ -282,6 +294,24 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
                     "user_message": AssistantMessageSerializer(user_message).data,
                     "assistant_message": AssistantMessageSerializer(assistant_message).data,
                     "action": AssistantActionSerializer(action).data if action else None,
+                    "context_truncated": False,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        document_result = handle_document_message(
+            conversation,
+            request.user,
+            serializer.validated_data["content"],
+            serializer.validated_data["context"],
+            serializer.validated_data["attachment_ids"],
+        )
+        if document_result:
+            user_message, assistant_message, action = document_result
+            return Response(
+                {
+                    "user_message": AssistantMessageSerializer(user_message).data,
+                    "assistant_message": AssistantMessageSerializer(assistant_message).data,
+                    "action": AssistantActionSerializer(action).data,
                     "context_truncated": False,
                 },
                 status=status.HTTP_201_CREATED,
@@ -369,6 +399,9 @@ class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
     def post(self, request, slug, conversation_id, action_id, operation):
         with transaction.atomic():
             action = self.get_action(lock=True)
+            if operation == "select":
+                action = select_document_template(action, request.data.get("template_id"))
+                return Response(AssistantActionSerializer(action).data)
             if operation == "cancel":
                 if action.status == AssistantAction.Status.CANCELLED:
                     return Response(AssistantActionSerializer(action).data)
@@ -378,17 +411,34 @@ class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
                 action.save(update_fields=["status", "updated_at"])
                 return Response(AssistantActionSerializer(action).data)
 
-            if action.status == AssistantAction.Status.COMPLETED:
+            if operation == "retry":
+                if action.tool != "summon_document" or action.status != AssistantAction.Status.FAILED:
+                    return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
+            elif action.status == AssistantAction.Status.COMPLETED:
                 return Response(AssistantActionSerializer(action).data)
-            if action.status != AssistantAction.Status.PENDING:
+            elif action.status != AssistantAction.Status.PENDING:
                 return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
             action.status = AssistantAction.Status.CONFIRMED
             action.confirmed_at = timezone.now()
             action.save(update_fields=["status", "confirmed_at", "updated_at"])
             try:
-                action.result = execute_assistant_action(action, request=request)
-                action.status = AssistantAction.Status.COMPLETED
-                action.error = ""
+                result = (
+                    execute_assistant_action(action, request=request, retry=True)
+                    if operation == "retry"
+                    else execute_assistant_action(action, request=request)
+                )
+                if isinstance(result, AutomationJob):
+                    action.result = {"automation_job_id": str(result.id)}
+                    action.status = (
+                        AssistantAction.Status.COMPLETED
+                        if result.status == AutomationJob.Status.COMPLETED
+                        else AssistantAction.Status.FAILED
+                    )
+                    action.error = result.error_summary
+                else:
+                    action.result = result
+                    action.status = AssistantAction.Status.COMPLETED
+                    action.error = ""
             except MCPError as error:
                 action.status = AssistantAction.Status.FAILED
                 action.error = str(error)
