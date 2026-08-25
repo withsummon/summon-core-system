@@ -17,6 +17,7 @@ const {
   buildAutomationInput,
   filterAutomationJobs,
   isMultilineTemplateVariable,
+  meetingTranscriptReady,
   syncTemplateVariableValues,
 } = await import(new URL("./automation-form.ts", import.meta.url).href);
 
@@ -63,6 +64,13 @@ test("Automation accepts local documents as additional verified context", () => 
   assert.match(source, /accept="\.pdf,\.docx,\.xlsx,\.pptx,\.txt,\.md,\.csv"/);
   assert.match(source, /Document: \$\{extracted\.name\}/);
   assert.match(source, /Meeting \/ audio transcript/);
+});
+
+test("Automation waits for a selected meeting audio transcript before generating", () => {
+  assert.equal(meetingTranscriptReady?.(undefined), true);
+  assert.equal(meetingTranscriptReady?.({ summary_error: "transcribing", transcript_text: "" }), false);
+  assert.equal(meetingTranscriptReady?.({ summary_error: "transcription_failed", transcript_text: "" }), false);
+  assert.equal(meetingTranscriptReady?.({ summary_error: "", transcript_text: "Keputusan disetujui." }), true);
 });
 
 test("Automation renders editable files without coupling them to Plane Page publishing", () => {

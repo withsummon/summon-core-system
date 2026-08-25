@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+import type { ISummonMeeting } from "@plane/types";
+
 export const templateVariableNames = (variables: string[]) =>
   variables.filter((variable) => variable !== "title" && variable !== "brief");
 
@@ -38,6 +40,12 @@ export const buildAutomationInput = (
   brief,
   ...Object.fromEntries(templateVariableNames(variables).map((variable) => [variable, values[variable] ?? ""])),
 });
+
+export const meetingTranscriptReady = (meeting?: Pick<ISummonMeeting, "summary_error" | "transcript_text">) =>
+  !meeting ||
+  (meeting.summary_error !== "transcribing" &&
+    meeting.summary_error !== "transcription_failed" &&
+    Boolean(meeting.transcript_text.trim()));
 
 export const automationInputValue = (input: Record<string, unknown>, name: string) => {
   const nested = input.values;

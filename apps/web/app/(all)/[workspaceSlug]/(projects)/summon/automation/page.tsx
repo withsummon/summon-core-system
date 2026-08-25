@@ -29,12 +29,14 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button, Input, TextArea } from "@plane/ui";
+import { EFileAssetType } from "@plane/types";
 import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedArtifact } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
+import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import {
@@ -43,10 +45,13 @@ import {
   buildAutomationInput,
   filterAutomationJobs,
   isMultilineTemplateVariable,
+  meetingTranscriptReady,
   syncTemplateVariableValues,
   templateVariableLabel,
   templateVariableNames,
 } from "./automation-form";
+
+const fileService = new FileService();
 
 const OUTPUT_FORMAT_LABELS: Record<ISummonGeneratedArtifact["format"], string> = {
   page: "Plane Page",
@@ -133,22 +138,31 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [pageIds, setPageIds] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [extractingDocument, setExtractingDocument] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const [documentName, setDocumentName] = useState("");
   const [formError, setFormError] = useState("");
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const { data, error, isLoading, mutate } = useSWR(["summon-automation", workspaceSlug], async () => {
-    const [templates, jobs, clients, meetings, pages] = await Promise.all([
-      summonService.listAutomationTemplates(workspaceSlug),
-      summonService.listAutomationJobs(workspaceSlug),
-      summonService.listClients(workspaceSlug),
-      summonService.listMeetings(workspaceSlug),
-      summonService.listPageContexts(workspaceSlug),
-    ]);
-    return { templates, jobs, clients, meetings, pages };
-  });
+  const { data, error, isLoading, mutate } = useSWR(
+    ["summon-automation", workspaceSlug],
+    async () => {
+      const [templates, jobs, clients, meetings, pages] = await Promise.all([
+        summonService.listAutomationTemplates(workspaceSlug),
+        summonService.listAutomationJobs(workspaceSlug),
+        summonService.listClients(workspaceSlug),
+        summonService.listMeetings(workspaceSlug),
+        summonService.listPageContexts(workspaceSlug),
+      ]);
+      return { templates, jobs, clients, meetings, pages };
+    },
+    {
+      refreshInterval: (current) =>
+        current?.meetings.find(({ id }) => id === meetingId)?.summary_error === "transcribing" ? 3000 : 0,
+    }
+  );
   const jobs = useMemo(() => data?.jobs ?? [], [data?.jobs]);
   const templates = useMemo(() => orderedTemplates(data?.templates ?? []), [data?.templates]);
   const selectedTemplate = templates.find(({ id }) => id === template);
+  const selectedMeeting = data?.meetings.find(({ id }) => id === meetingId);
   const templateVariables = templateVariableNames(selectedTemplate?.variables ?? []);
   const projectNames = useMemo(
     () => new Map(joinedProjectIds.map((id) => [id, getProjectById(id)?.name ?? id])),
@@ -165,7 +179,9 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     () => Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map(({ type }) => type)])),
     [jobs, templates]
   );
-  const canGeneratePreview = Boolean(template && outputProject && title.trim());
+  const canGeneratePreview = Boolean(
+    template && outputProject && title.trim() && meetingTranscriptReady(selectedMeeting)
+  );
 
   const selectTemplate = (templateId: string) => {
     const item = templates.find(({ id }) => id === templateId);
@@ -197,6 +213,30 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       setFormError(summonLLMErrorMessage(requestError));
     } finally {
       setExtractingDocument(false);
+    }
+  };
+
+  const uploadMeetingAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !meetingId) return;
+    setUploadingAudio(true);
+    setFormError("");
+    let assetId = "";
+    try {
+      const asset = await fileService.uploadWorkspaceAsset(
+        workspaceSlug,
+        { entity_identifier: meetingId, entity_type: EFileAssetType.MEETING_RECORDING },
+        file
+      );
+      assetId = asset.asset_id;
+      await summonService.updateMeeting(workspaceSlug, meetingId, { recording_asset: assetId });
+      await mutate();
+    } catch (requestError) {
+      if (assetId) await fileService.deleteWorkspaceAsset(workspaceSlug, assetId).catch(() => undefined);
+      setFormError(summonLLMErrorMessage(requestError));
+    } finally {
+      setUploadingAudio(false);
     }
   };
 
@@ -404,6 +444,38 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                     : documentName || "PDF, DOCX, XLSX, PPTX, TXT, MD, CSV · max 10 MB"}
                 </span>
               </SummonField>
+              <SummonField label="Meeting / audio transcript (Optional)">
+                <SummonSelect
+                  value={meetingId}
+                  onChange={(event) => setMeetingId(event.target.value)}
+                  className="w-full"
+                >
+                  <option value="">No meeting source</option>
+                  {data?.meetings.map((meeting) => (
+                    <option key={meeting.id} value={meeting.id}>
+                      {meeting.title}
+                    </option>
+                  ))}
+                </SummonSelect>
+                <input
+                  type="file"
+                  accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"
+                  disabled={!meetingId || uploadingAudio}
+                  onChange={(event) => void uploadMeetingAudio(event)}
+                  className="text-xs mt-2 block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+                />
+                <span className="mt-1 block text-[10px] text-tertiary">
+                  {uploadingAudio
+                    ? "Uploading audio..."
+                    : selectedMeeting?.summary_error === "transcribing"
+                      ? "Audio sedang ditranskripsi..."
+                      : selectedMeeting?.summary_error === "transcription_failed"
+                        ? "Transkripsi gagal. Upload ulang MP3 atau M4A."
+                        : selectedMeeting?.transcript_text
+                          ? "Transcript siap digunakan."
+                          : "Pilih meeting, lalu upload MP3 atau M4A · max 250 MB"}
+                </span>
+              </SummonField>
               {templateVariables.length ? (
                 <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5" open>
                   <summary className="cursor-pointer text-[11px] font-semibold text-primary">
@@ -445,20 +517,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                       {data?.clients.map((client) => (
                         <option key={client.id} value={client.id}>
                           {client.name}
-                        </option>
-                      ))}
-                    </SummonSelect>
-                  </SummonField>
-                  <SummonField label="Meeting / audio transcript">
-                    <SummonSelect
-                      value={meetingId}
-                      onChange={(event) => setMeetingId(event.target.value)}
-                      className="w-full"
-                    >
-                      <option value="">No meeting source</option>
-                      {data?.meetings.map((meeting) => (
-                        <option key={meeting.id} value={meeting.id}>
-                          {meeting.title}
                         </option>
                       ))}
                     </SummonSelect>

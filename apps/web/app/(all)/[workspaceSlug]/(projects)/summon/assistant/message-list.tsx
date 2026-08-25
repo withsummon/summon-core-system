@@ -85,7 +85,7 @@ export function AssistantMessageList(props: {
         <article key={message.id} className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
           <span
             className={`grid size-8 flex-none place-items-center rounded-xl ${
-              message.role === "user" ? "bg-accent-strong text-on-color" : "bg-accent-subtle text-accent-primary"
+              message.role === "user" ? "bg-accent-primary text-white" : "bg-accent-subtle text-accent-primary"
             }`}
           >
             {message.role === "user" ? <User className="size-4" /> : <Bot className="size-4" />}
@@ -100,7 +100,7 @@ export function AssistantMessageList(props: {
             <div
               className={`text-sm rounded-2xl px-4 py-3 text-left ${
                 message.role === "user"
-                  ? "bg-accent-strong text-on-color"
+                  ? "bg-accent-primary text-white"
                   : "border border-subtle bg-layer-1 text-primary"
               }`}
             >
@@ -134,10 +134,10 @@ export function AssistantMessageList(props: {
       {pending ? (
         <div className="space-y-4" aria-live="polite">
           <div className="flex flex-row-reverse gap-3">
-            <span className="bg-accent-strong grid size-8 flex-none place-items-center rounded-xl text-on-color">
+            <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-primary text-white">
               <User className="size-4" />
             </span>
-            <div className="text-sm bg-accent-strong max-w-[88%] rounded-2xl px-4 py-3 text-on-color">{pending}</div>
+            <div className="text-sm max-w-[88%] rounded-2xl bg-accent-primary px-4 py-3 text-white">{pending}</div>
           </div>
           <div className="flex gap-3">
             <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">
