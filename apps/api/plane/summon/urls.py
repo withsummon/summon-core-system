@@ -6,6 +6,8 @@ from django.urls import path
 
 from plane.summon.views import (
     AssistantActionView,
+    AssistantAttachmentDetailView,
+    AssistantAttachmentView,
     AssistantConversationViewSet,
     AssistantMessageView,
     AssistantQueryView,
@@ -81,6 +83,16 @@ urlpatterns = [
         "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/messages/",
         AssistantMessageView.as_view(),
         name="summon-assistant-message-list",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/attachments/",
+        AssistantAttachmentView.as_view(),
+        name="summon-assistant-attachment-list",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/attachments/<uuid:attachment_id>/",
+        AssistantAttachmentDetailView.as_view(),
+        name="summon-assistant-attachment-detail",
     ),
     path(
         "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/confirm/",

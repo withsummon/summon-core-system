@@ -8,6 +8,7 @@ from plane.api.serializers.base import BaseSerializer
 from plane.db.models import Project, ProjectMember
 from plane.summon.models import (
     AssistantAction,
+    AssistantAttachment,
     AssistantConversation,
     AssistantMessage,
     AutomationJob,
@@ -188,6 +189,13 @@ class AssistantMessageSerializer(BaseSerializer):
             "status",
             "created_at",
         ]
+        read_only_fields = fields
+
+
+class AssistantAttachmentSerializer(BaseSerializer):
+    class Meta:
+        model = AssistantAttachment
+        fields = ["id", "message", "original_name", "media_type", "size", "status", "language", "error", "created_at"]
         read_only_fields = fields
 
 

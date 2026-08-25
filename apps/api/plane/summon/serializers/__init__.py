@@ -19,6 +19,7 @@ from .collaboration import (
 )
 from .operations import (
     AssistantActionSerializer,
+    AssistantAttachmentSerializer,
     AssistantConversationSerializer,
     AssistantMessageRequestSerializer,
     AssistantMessageSerializer,
@@ -40,6 +41,7 @@ from .credential import (
 
 __all__ = [
     "AssistantActionSerializer",
+    "AssistantAttachmentSerializer",
     "AssistantConversationSerializer",
     "AssistantMessageRequestSerializer",
     "AssistantMessageSerializer",

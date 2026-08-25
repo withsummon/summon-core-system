@@ -19,6 +19,8 @@ from .collaboration import (
 )
 from .operations import (
     AssistantActionView,
+    AssistantAttachmentDetailView,
+    AssistantAttachmentView,
     AssistantConversationViewSet,
     AssistantMessageView,
     AssistantQueryView,
@@ -44,6 +46,8 @@ from .credential import (
 
 __all__ = [
     "AssistantActionView",
+    "AssistantAttachmentDetailView",
+    "AssistantAttachmentView",
     "AssistantConversationViewSet",
     "AssistantMessageView",
     "ClientContactViewSet",

@@ -8,6 +8,7 @@ from rest_framework import status
 from plane.bgtasks import copy_s3_object
 from plane.db.models import FileAsset, Project, ProjectMember
 from plane.summon.models import Meeting
+from plane.summon.services.transcription import transcribe_file_asset
 
 
 @pytest.mark.django_db
@@ -135,7 +136,7 @@ def test_recording_transcription_is_saved_as_the_meeting_transcript(workspace, c
         def json(self):
             return {"text": "[00:00:00] Keputusan disetujui.", "language": "id"}
 
-    monkeypatch.setattr(tasks.requests, "post", lambda *_args, **_kwargs: Response())
+    monkeypatch.setattr("plane.summon.services.transcription.requests.post", lambda *_args, **_kwargs: Response())
 
     tasks.transcribe_meeting_recording(str(meeting.id), str(create_user.id))
 
@@ -145,3 +146,28 @@ def test_recording_transcription_is_saved_as_the_meeting_transcript(workspace, c
         "[00:00:00] Keputusan disetujui."
     )
     assert meeting.summary_page.view_props["summon_document"]["transcription_language"] == "id"
+
+
+@pytest.mark.django_db
+def test_file_asset_transcription_returns_text_and_language(workspace, create_user, monkeypatch):
+    asset = FileAsset.objects.create(
+        workspace=workspace,
+        created_by=create_user,
+        asset=f"{workspace.id}/meeting.m4a",
+        attributes={"name": "meeting.m4a", "type": "audio/mp4"},
+        entity_type="MEETING_RECORDING",
+        size=5,
+        is_uploaded=True,
+    )
+    monkeypatch.setattr(asset.asset.storage, "open", lambda _name, _mode="rb": io.BytesIO(b"audio"))
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"text": "[00:00:00] Keputusan disetujui.", "language": "id"}
+
+    monkeypatch.setattr("plane.summon.services.transcription.requests.post", lambda *_args, **_kwargs: Response())
+
+    assert transcribe_file_asset(asset) == ("[00:00:00] Keputusan disetujui.", "id")

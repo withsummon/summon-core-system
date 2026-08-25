@@ -7,6 +7,8 @@ from uuid import uuid4
 import pytest
 import requests
 from cryptography.fernet import Fernet
+from django.core.files.base import ContentFile
+from django.core.files.storage import InMemoryStorage
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -40,6 +42,28 @@ def visible_project(workspace, user, identifier="AST"):
     project = Project.objects.create(workspace=workspace, name=f"Project {identifier}", identifier=identifier)
     ProjectMember.objects.create(workspace=workspace, project=project, member=user, role=15)
     return project
+
+
+@pytest.fixture
+def assistant_file_storage(monkeypatch):
+    storage = InMemoryStorage()
+    monkeypatch.setattr(FileAsset._meta.get_field("asset"), "storage", storage)
+    return storage
+
+
+def assistant_asset(workspace, user, conversation, storage, name, media_type, content=b"file"):
+    key = storage.save(f"{workspace.id}/{name}", ContentFile(content))
+    return FileAsset.objects.create(
+        workspace=workspace,
+        user=user,
+        created_by=user,
+        asset=key,
+        attributes={"name": name, "type": media_type, "size": len(content)},
+        entity_type=FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT,
+        entity_identifier=str(conversation.id),
+        size=len(content),
+        is_uploaded=True,
+    )
 
 
 @pytest.mark.django_db
@@ -105,6 +129,141 @@ def test_assistant_assets_accept_supported_files_and_enforce_owner_scope(
     assert other_api.get(asset_url).status_code == status.HTTP_404_NOT_FOUND
     assert other_api.delete(asset_url).status_code == status.HTTP_404_NOT_FOUND
     assert session_client.get(asset_url).status_code == status.HTTP_302_FOUND
+
+
+@pytest.mark.django_db
+def test_assistant_attachment_extracts_document_and_serializes_safe_metadata(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Brief")
+    asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "brief.txt",
+        "text/plain",
+        b"Verified scope",
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/attachments/"
+
+    response = session_client.post(url, {"asset_id": str(asset.id)}, format="json")
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["status"] == AssistantAttachment.Status.READY
+    assert response.data["original_name"] == "brief.txt"
+    assert "extracted_text" not in response.data
+    attachment = AssistantAttachment.objects.get(id=response.data["id"])
+    assert attachment.extracted_text == "Verified scope"
+    assert session_client.get(url).data[0]["id"] == response.data["id"]
+
+
+@pytest.mark.django_db
+def test_assistant_attachment_audio_is_queued_and_unbound_limit_is_five(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+    django_capture_on_commit_callbacks,
+    monkeypatch,
+):
+    from plane.summon import tasks
+
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Audio")
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/attachments/"
+    calls = []
+    monkeypatch.setattr(tasks.transcribe_assistant_attachment, "delay", lambda *args: calls.append(args))
+    for index in range(4):
+        asset = assistant_asset(
+            workspace,
+            create_user,
+            conversation,
+            assistant_file_storage,
+            f"note-{index}.txt",
+            "text/plain",
+        )
+        response = session_client.post(url, {"asset_id": str(asset.id)}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+    audio = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "meeting.m4a",
+        "audio/mp4",
+    )
+
+    with django_capture_on_commit_callbacks(execute=True):
+        queued = session_client.post(url, {"asset_id": str(audio.id)}, format="json")
+
+    assert queued.status_code == status.HTTP_201_CREATED
+    assert queued.data["status"] == AssistantAttachment.Status.PROCESSING
+    assert calls == [(str(queued.data["id"]), str(create_user.id))]
+    sixth = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "sixth.txt",
+        "text/plain",
+    )
+    rejected = session_client.post(url, {"asset_id": str(sixth.id)}, format="json")
+    assert rejected.status_code == status.HTTP_400_BAD_REQUEST
+    assert rejected.data["error_code"] == "maximum_five_attachments"
+    message = AssistantMessage.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        role=AssistantMessage.Role.USER,
+        content="Use the first file",
+    )
+    first = AssistantAttachment.objects.filter(conversation=conversation).order_by("created_at").first()
+    first.message = message
+    first.save(update_fields=["message", "updated_at"])
+    assert session_client.post(url, {"asset_id": str(sixth.id)}, format="json").status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+def test_assistant_attachment_is_owner_scoped_and_only_unbound_files_can_be_deleted(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Private")
+    asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "private.txt",
+        "text/plain",
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/attachments/"
+    created = session_client.post(url, {"asset_id": str(asset.id)}, format="json")
+    detail_url = f"{url}{created.data['id']}/"
+    _, other_api = authenticated_member(workspace)
+
+    assert other_api.get(url).status_code == status.HTTP_404_NOT_FOUND
+    assert other_api.post(url, {"asset_id": str(asset.id)}, format="json").status_code == status.HTTP_404_NOT_FOUND
+    assert other_api.delete(detail_url).status_code == status.HTTP_404_NOT_FOUND
+    message = AssistantMessage.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        role=AssistantMessage.Role.USER,
+        content="Use this file",
+    )
+    attachment = AssistantAttachment.objects.get(id=created.data["id"])
+    attachment.message = message
+    attachment.save(update_fields=["message", "updated_at"])
+    assert session_client.delete(detail_url).status_code == status.HTTP_409_CONFLICT
+
+    attachment.message = None
+    attachment.save(update_fields=["message", "updated_at"])
+    assert session_client.delete(detail_url).status_code == status.HTTP_204_NO_CONTENT
+    assert FileAsset.all_objects.get(id=asset.id).is_deleted
 
 
 @pytest.mark.django_db
