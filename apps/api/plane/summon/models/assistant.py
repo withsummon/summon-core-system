@@ -55,7 +55,54 @@ class AssistantMessage(BaseModel):
     model = models.CharField(max_length=120, blank=True)
     input_tokens = models.PositiveIntegerField(null=True, blank=True)
     output_tokens = models.PositiveIntegerField(null=True, blank=True)
+    automation_job = models.ForeignKey(
+        "summon.AutomationJob",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="assistant_messages",
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.COMPLETED)
+
+    class Meta:
+        ordering = ("created_at",)
+
+
+class AssistantAttachment(BaseModel):
+    class Status(models.TextChoices):
+        PROCESSING = "processing", "Processing"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="summon_assistant_attachments",
+    )
+    conversation = models.ForeignKey(
+        AssistantConversation,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    message = models.ForeignKey(
+        AssistantMessage,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="attachments",
+    )
+    file_asset = models.OneToOneField(
+        "db.FileAsset",
+        on_delete=models.CASCADE,
+        related_name="summon_assistant_attachment",
+    )
+    original_name = models.CharField(max_length=255)
+    media_type = models.CharField(max_length=120)
+    size = models.PositiveBigIntegerField()
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PROCESSING)
+    extracted_text = models.TextField(blank=True)
+    language = models.CharField(max_length=20, blank=True)
+    error = models.CharField(max_length=80, blank=True)
 
     class Meta:
         ordering = ("created_at",)

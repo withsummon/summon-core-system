@@ -11,6 +11,7 @@ from django.utils import timezone
 
 EXPECTED_MODELS = {
     "AssistantAction",
+    "AssistantAttachment",
     "AssistantConversation",
     "AssistantMessage",
     "AutomationJob",
@@ -53,6 +54,8 @@ def test_schema_has_canonical_link_constraints():
 
 
 def test_pdf_owned_fields_are_persisted_without_replacing_plane_entities():
+    AssistantAttachment = apps.get_model("summon", "AssistantAttachment")
+    AssistantMessage = apps.get_model("summon", "AssistantMessage")
     Client = apps.get_model("summon", "Client")
     Opportunity = apps.get_model("summon", "Opportunity")
     AssistantConversation = apps.get_model("summon", "AssistantConversation")
@@ -62,6 +65,12 @@ def test_pdf_owned_fields_are_persisted_without_replacing_plane_entities():
     assert {"website", "head_office", "relationship_started_at"}.issubset({field.name for field in Client._meta.fields})
     assert {"product", "source"}.issubset({field.name for field in Opportunity._meta.fields})
     assert AssistantConversation._meta.get_field("mcp_credential").remote_field.model._meta.model_name == "credential"
+    assert AssistantAttachment._meta.get_field("conversation").remote_field.model._meta.model_name == (
+        "assistantconversation"
+    )
+    assert AssistantAttachment._meta.get_field("file_asset").one_to_one is True
+    assert AssistantAttachment._meta.get_field("message").null is True
+    assert AssistantMessage._meta.get_field("automation_job").remote_field.model._meta.model_name == "automationjob"
     assert AssistantAction._meta.get_field("requester").remote_field.model._meta.model_name == "user"
     assert SummonWorkspaceSettings._meta.get_field("workspace").one_to_one is True
 

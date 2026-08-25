@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 from .automation import AutomationJob, AutomationTemplate, GeneratedArtifact
-from .assistant import AssistantAction, AssistantConversation, AssistantMessage
+from .assistant import AssistantAction, AssistantAttachment, AssistantConversation, AssistantMessage
 from .collaboration import Meeting, MeetingParticipant, MeetingWorkItem, ResourceLink, SummonPageContext
 from .commercial import Client, ClientContact, Opportunity, SummonProjectProfile
 from .credential import Credential, CredentialAccessLog, CredentialGrant
@@ -11,6 +11,7 @@ from .settings import SummonWorkspaceSettings
 
 __all__ = [
     "AssistantAction",
+    "AssistantAttachment",
     "AssistantConversation",
     "AssistantMessage",
     "AutomationJob",
