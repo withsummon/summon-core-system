@@ -6,16 +6,26 @@
 
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import type { ISummonAssistantMessageRequest } from "@plane/types";
+import { EFileAssetType, type ISummonAssistantMessageRequest } from "@plane/types";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
+import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { AssistantActionCard } from "./assistant-action-card";
 import { AssistantComposer, type AssistantComposerState } from "./assistant-composer";
 import { AssistantMessageList, assistantErrorMessage } from "./message-list";
 import { AssistantConversationSidebar } from "./conversation-sidebar";
+
+const fileService = new FileService();
+const MAX_ATTACHMENTS = 5;
+const DOCUMENT_EXTENSIONS = new Set([".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".csv"]);
+const AUDIO_EXTENSIONS = new Set([".mp3", ".m4a"]);
+const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+const AUDIO_MAX_BYTES = 250 * 1024 * 1024;
+
+const extensionOf = (name: string) => name.slice(name.lastIndexOf(".")).toLowerCase();
 
 const EMPTY_COMPOSER: AssistantComposerState = {
   content: "",
@@ -41,6 +51,8 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
   const [lastRequest, setLastRequest] = useState<ISummonAssistantMessageRequest>();
   const [contextTruncated, setContextTruncated] = useState(false);
   const [actionBusy, setActionBusy] = useState("");
+  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const [removingAttachment, setRemovingAttachment] = useState("");
   const {
     data: conversations = [],
     error: conversationsError,
@@ -57,7 +69,11 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     mutate: reloadConversation,
   } = useSWR(
     activeConversationId ? ["summon-assistant-conversation", params.workspaceSlug, activeConversationId] : null,
-    () => summonService.getAssistantConversation(params.workspaceSlug, activeConversationId)
+    () => summonService.getAssistantConversation(params.workspaceSlug, activeConversationId),
+    {
+      refreshInterval: (current) =>
+        current?.attachments?.some((attachment) => attachment.status === "processing") ? 3000 : 0,
+    }
   );
   const { data: contextOptions, error: contextError } = useSWR(
     ["summon-assistant-context", params.workspaceSlug],
@@ -79,6 +95,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     }
   );
   const messages = conversation?.messages ?? [];
+  const pendingAttachments = conversation?.attachments?.filter((attachment) => !attachment.message) ?? [];
   const lastMessage = messages.at(-1);
   const providerMessage = lastMessage?.role === "assistant" ? lastMessage : undefined;
 
@@ -104,6 +121,79 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
       setSendError(summonErrorMessage(error));
     } finally {
       setCreating(false);
+    }
+  };
+
+  const uploadAttachments = async (files: File[]) => {
+    if (!files.length) return;
+    if (pendingAttachments.length + uploadingFiles.length + files.length > MAX_ATTACHMENTS) {
+      setSendError(`Maximum ${MAX_ATTACHMENTS} files per message.`);
+      return;
+    }
+    for (const file of files) {
+      const extension = extensionOf(file.name);
+      const isAudio = AUDIO_EXTENSIONS.has(extension);
+      if ((!isAudio && !DOCUMENT_EXTENSIONS.has(extension)) || file.size <= 0) {
+        setSendError(`${file.name}: unsupported or empty file.`);
+        return;
+      }
+      if (file.size > (isAudio ? AUDIO_MAX_BYTES : DOCUMENT_MAX_BYTES)) {
+        setSendError(`${file.name}: maximum size is ${isAudio ? "250 MB" : "10 MB"}.`);
+        return;
+      }
+    }
+
+    setSendError("");
+    setUploadingFiles((current) => [...current, ...files]);
+    let conversationId = activeConversationId;
+    try {
+      conversationId ||= await createConversation("File context");
+      const failures = await Promise.all(
+        files.map(async (file) => {
+          let assetId = "";
+          try {
+            const asset = await fileService.uploadWorkspaceAsset(
+              params.workspaceSlug,
+              { entity_identifier: conversationId, entity_type: EFileAssetType.ASSISTANT_ATTACHMENT },
+              file
+            );
+            assetId = asset.asset_id;
+            await summonService.createAssistantAttachment(params.workspaceSlug, conversationId, assetId);
+            return "";
+          } catch (error) {
+            if (assetId) await fileService.deleteWorkspaceAsset(params.workspaceSlug, assetId).catch(() => undefined);
+            return `${file.name}: ${summonErrorMessage(error)}`;
+          } finally {
+            setUploadingFiles((current) => current.filter((item) => item !== file));
+          }
+        })
+      );
+      const message = failures.filter(Boolean).join(" ");
+      if (message) setSendError(message);
+    } catch (error) {
+      setSendError(summonErrorMessage(error));
+      setUploadingFiles([]);
+    } finally {
+      await Promise.allSettled([
+        reloadConversations(),
+        conversationId
+          ? mutateConversationCache(["summon-assistant-conversation", params.workspaceSlug, conversationId])
+          : Promise.resolve(),
+      ]);
+    }
+  };
+
+  const removeAttachment = async (attachmentId: string) => {
+    if (!activeConversationId || removingAttachment) return;
+    setRemovingAttachment(attachmentId);
+    setSendError("");
+    try {
+      await summonService.deleteAssistantAttachment(params.workspaceSlug, activeConversationId, attachmentId);
+      await reloadConversation();
+    } catch (error) {
+      setSendError(summonErrorMessage(error));
+    } finally {
+      setRemovingAttachment("");
     }
   };
 
@@ -144,6 +234,8 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
     event.preventDefault();
     const content = composer.content.trim();
     if (!content) return setSendError("Enter a message before sending.");
+    if (pendingAttachments.some((attachment) => attachment.status === "processing"))
+      return setSendError("Wait until audio transcription is ready before sending.");
     const toolPayload =
       composer.toolMode === "list_projects"
         ? { tool: "project", arguments: { action: "list" } }
@@ -192,17 +284,29 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
         meeting_id: composer.meetingId || undefined,
         page_ids: composer.pageIds,
       },
+      attachment_ids: pendingAttachments
+        .filter((attachment) => attachment.status === "ready")
+        .map((attachment) => attachment.id),
       ...toolPayload,
     });
   };
 
-  const updateAction = async (actionId: string, operation: "confirm" | "cancel") => {
+  const updateAction = async (actionId: string, operation: "confirm" | "cancel" | "retry", templateId?: string) => {
     if (!activeConversationId || actionBusy) return;
     setActionBusy(actionId);
     setSendError("");
     try {
-      if (operation === "confirm")
+      if (templateId)
+        await summonService.selectAssistantDocumentTemplate(
+          params.workspaceSlug,
+          activeConversationId,
+          actionId,
+          templateId
+        );
+      else if (operation === "confirm")
         await summonService.confirmAssistantAction(params.workspaceSlug, activeConversationId, actionId);
+      else if (operation === "retry")
+        await summonService.retryAssistantAction(params.workspaceSlug, activeConversationId, actionId);
       else await summonService.cancelAssistantAction(params.workspaceSlug, activeConversationId, actionId);
       await reloadConversation();
     } catch (error) {
@@ -262,6 +366,7 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
                 messages={messages}
                 pending={pending}
                 loading={conversationLoading}
+                workspaceSlug={params.workspaceSlug}
                 onSuggestion={(prompt) => setComposer((current) => ({ ...current, content: prompt }))}
               />
               {conversation?.actions?.map((action) => (
@@ -270,8 +375,11 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
                   action={action}
                   busy={actionBusy === action.id}
                   anyBusy={Boolean(actionBusy)}
+                  workspaceSlug={params.workspaceSlug}
                   onConfirm={() => void updateAction(action.id, "confirm")}
                   onCancel={() => void updateAction(action.id, "cancel")}
+                  onRetry={() => void updateAction(action.id, "retry")}
+                  onSelect={(templateId) => void updateAction(action.id, "confirm", templateId)}
                 />
               ))}
             </div>
@@ -288,9 +396,14 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
             contextTruncated={contextTruncated}
             sendError={sendError}
             canRetry={Boolean(lastRequest)}
+            attachments={pendingAttachments}
+            uploadingFiles={uploadingFiles}
+            removingAttachment={removingAttachment}
             onChange={(patch) => setComposer((current) => ({ ...current, ...patch }))}
             onSubmit={submit}
             onRetry={() => lastRequest && void sendMessage(lastRequest)}
+            onFiles={(files) => void uploadAttachments(files)}
+            onRemoveAttachment={(attachmentId) => void removeAttachment(attachmentId)}
           />
         </SummonCard>
       </div>

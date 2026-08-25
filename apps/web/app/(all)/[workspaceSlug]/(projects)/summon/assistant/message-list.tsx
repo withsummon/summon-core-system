@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useRef } from "react";
-import { ArrowUpRight, Bot, Sparkles, User } from "lucide-react";
-import type { ISummonAssistantMessage } from "@plane/types";
+import { ArrowUpRight, Bot, Download, Eye, Paperclip, Sparkles, User } from "lucide-react";
+import type { ISummonAssistantMessage, ISummonAutomationJob } from "@plane/types";
 import Link from "next/link";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
@@ -39,10 +39,38 @@ export function assistantErrorMessage(error: unknown) {
   }
 }
 
+function AssistantArtifactCard({ job, workspaceSlug }: { job: ISummonAutomationJob; workspaceSlug: string }) {
+  const files = job.artifacts.filter((artifact) => artifact.file_detail);
+  return (
+    <div className="mt-3 rounded-xl border border-subtle bg-surface-1 p-3">
+      <p className="text-xs font-semibold text-primary">Generated document</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          href={`/${workspaceSlug}/summon/automation/${job.id}/`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-[11px] font-medium text-accent-primary"
+        >
+          <Eye className="size-3.5" /> Preview
+        </Link>
+        {files.map((artifact) => (
+          <a
+            key={artifact.id}
+            href={artifact.file_detail?.href}
+            download={artifact.file_detail?.name}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-[11px] font-medium text-accent-primary"
+          >
+            <Download className="size-3.5" /> Download {artifact.format.toUpperCase()}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AssistantMessageList(props: {
   messages: ISummonAssistantMessage[];
   pending: string;
   loading: boolean;
+  workspaceSlug: string;
   onSuggestion: (prompt: string) => void;
 }) {
   const { messages, pending, loading } = props;
@@ -85,7 +113,7 @@ export function AssistantMessageList(props: {
         <article key={message.id} className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
           <span
             className={`grid size-8 flex-none place-items-center rounded-xl ${
-              message.role === "user" ? "bg-accent-primary text-white" : "bg-accent-subtle text-accent-primary"
+              message.role === "user" ? "bg-accent-primary text-on-color" : "bg-accent-subtle text-accent-primary"
             }`}
           >
             {message.role === "user" ? <User className="size-4" /> : <Bot className="size-4" />}
@@ -100,7 +128,7 @@ export function AssistantMessageList(props: {
             <div
               className={`text-sm rounded-2xl px-4 py-3 text-left ${
                 message.role === "user"
-                  ? "bg-accent-primary text-white"
+                  ? "border border-accent-strong bg-accent-primary text-on-color"
                   : "border border-subtle bg-layer-1 text-primary"
               }`}
             >
@@ -111,6 +139,18 @@ export function AssistantMessageList(props: {
               ) : (
                 <p className="whitespace-pre-wrap">{message.content}</p>
               )}
+              {message.attachments.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Attached files">
+                  {message.attachments.map((attachment) => (
+                    <span
+                      key={attachment.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-current/20 px-2 py-1 text-[10px] font-medium"
+                    >
+                      <Paperclip className="size-3" /> {attachment.original_name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {message.citations.length ? (
                 <div className="mt-3 flex flex-wrap gap-2" aria-label="Sources">
                   {message.citations.map((citation) => (
@@ -127,6 +167,9 @@ export function AssistantMessageList(props: {
                   ))}
                 </div>
               ) : null}
+              {message.automation_job ? (
+                <AssistantArtifactCard job={message.automation_job} workspaceSlug={props.workspaceSlug} />
+              ) : null}
             </div>
           </div>
         </article>
@@ -134,10 +177,12 @@ export function AssistantMessageList(props: {
       {pending ? (
         <div className="space-y-4" aria-live="polite">
           <div className="flex flex-row-reverse gap-3">
-            <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-primary text-white">
+            <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-primary text-on-color">
               <User className="size-4" />
             </span>
-            <div className="text-sm max-w-[88%] rounded-2xl bg-accent-primary px-4 py-3 text-white">{pending}</div>
+            <div className="text-sm max-w-[88%] rounded-2xl border border-accent-strong bg-accent-primary px-4 py-3 text-on-color">
+              {pending}
+            </div>
           </div>
           <div className="flex gap-3">
             <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">

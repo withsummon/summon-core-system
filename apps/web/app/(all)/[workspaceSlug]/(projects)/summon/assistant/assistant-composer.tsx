@@ -1,7 +1,13 @@
 import type { FormEventHandler } from "react";
-import { ChevronDown, Send, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, FileAudio, FileText, LoaderCircle, Paperclip, Send, SlidersHorizontal, X } from "lucide-react";
 import { Button, Input, TextArea } from "@plane/ui";
-import type { ISummonClient, ISummonCredential, ISummonMeeting, ISummonPageContext } from "@plane/types";
+import type {
+  ISummonAssistantAttachment,
+  ISummonClient,
+  ISummonCredential,
+  ISummonMeeting,
+  ISummonPageContext,
+} from "@plane/types";
 import { SummonField, SummonSelect } from "@/components/summon/forms";
 import { shouldSubmitAssistantComposer } from "./composer-keyboard.js";
 
@@ -29,10 +35,17 @@ interface AssistantComposerProps {
   contextTruncated: boolean;
   sendError: string;
   canRetry: boolean;
+  attachments: ISummonAssistantAttachment[];
+  uploadingFiles: File[];
+  removingAttachment: string;
   onChange: (patch: Partial<AssistantComposerState>) => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onRetry: () => void;
+  onFiles: (files: File[]) => void;
+  onRemoveAttachment: (attachmentId: string) => void;
 }
+
+const MAX_ATTACHMENTS = 5;
 
 export function AssistantComposer(props: AssistantComposerProps) {
   const { value } = props;
@@ -187,7 +200,70 @@ export function AssistantComposer(props: AssistantComposerProps) {
           </div>
         ) : null}
 
-        <div className="shadow-sm flex items-end gap-2 rounded-2xl border border-strong bg-surface-1 p-2 focus-within:border-accent-strong">
+        {props.attachments.length || props.uploadingFiles.length ? (
+          <div className="flex flex-wrap gap-2" aria-label="File context">
+            {props.attachments.map((attachment) => {
+              const AudioIcon = attachment.media_type.startsWith("audio/") ? FileAudio : FileText;
+              return (
+                <span
+                  key={attachment.id}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-[11px] text-secondary"
+                >
+                  <AudioIcon className="size-3.5 flex-none" />
+                  <span className="max-w-44 truncate">{attachment.original_name}</span>
+                  <span className={attachment.status === "failed" ? "text-danger-primary" : "text-tertiary"}>
+                    {attachment.status === "processing" ? "transcribing" : attachment.status}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${attachment.original_name}`}
+                    disabled={props.removingAttachment === attachment.id}
+                    onClick={() => props.onRemoveAttachment(attachment.id)}
+                    className="rounded p-0.5 hover:bg-layer-2 disabled:opacity-50"
+                  >
+                    {props.removingAttachment === attachment.id ? (
+                      <LoaderCircle className="size-3 animate-spin" />
+                    ) : (
+                      <X className="size-3" />
+                    )}
+                  </button>
+                </span>
+              );
+            })}
+            {props.uploadingFiles.map((file) => (
+              <span
+                key={`${file.name}-${file.size}-${file.lastModified}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-[11px] text-secondary"
+              >
+                <LoaderCircle className="size-3.5 animate-spin" /> {file.name} · uploading
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div
+          className="shadow-sm flex items-end gap-2 rounded-2xl border border-strong bg-surface-1 p-2 focus-within:border-accent-strong"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            props.onFiles(Array.from(event.dataTransfer.files));
+          }}
+        >
+          <label className="grid size-8 flex-none cursor-pointer place-items-center rounded-lg text-secondary hover:bg-layer-1 hover:text-primary">
+            <Paperclip className="size-4" />
+            <span className="sr-only">Attach files</span>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.mp3,.m4a,audio/mpeg,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a"
+              disabled={props.attachments.length + props.uploadingFiles.length >= MAX_ATTACHMENTS}
+              onChange={(event) => {
+                props.onFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+              className="sr-only"
+            />
+          </label>
           <TextArea
             required
             aria-label="Message Summon Assistant"
@@ -212,7 +288,9 @@ export function AssistantComposer(props: AssistantComposerProps) {
             <Send className="size-4" />
           </Button>
         </div>
-        <p className="text-center text-[10px] text-tertiary">Enter to send · Shift+Enter for a new line</p>
+        <p className="text-center text-[10px] text-tertiary">
+          Attach up to {MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB
+        </p>
       </div>
     </form>
   );

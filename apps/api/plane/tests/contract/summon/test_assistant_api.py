@@ -110,7 +110,15 @@ def test_assistant_assets_accept_supported_files_and_enforce_owner_scope(
     assert (
         session_client.post(
             upload_url,
-            {**payload, "name": "meeting.m4a", "type": "audio/mp4", "size": 8 * 1024 * 1024},
+            {**payload, "name": "meeting.m4a", "type": "audio/m4a", "size": 8 * 1024 * 1024},
+            format="json",
+        ).status_code
+        == status.HTTP_200_OK
+    )
+    assert (
+        session_client.post(
+            upload_url,
+            {**payload, "name": "meeting.mp3", "type": "audio/mp3", "size": 8 * 1024 * 1024},
             format="json",
         ).status_code
         == status.HTTP_200_OK
@@ -203,7 +211,7 @@ def test_assistant_attachment_audio_is_queued_and_unbound_limit_is_five(
         conversation,
         assistant_file_storage,
         "meeting.m4a",
-        "audio/mp4",
+        "audio/m4a",
     )
 
     with django_capture_on_commit_callbacks(execute=True):

@@ -503,6 +503,9 @@ ATTACHMENT_MIME_TYPES = [
     "application/vnd.oasis.opendocument.database",
     # Audio
     "audio/mpeg",
+    "audio/mp3",
+    "audio/mp4",
+    "audio/m4a",
     "audio/wav",
     "audio/ogg",
     "audio/midi",

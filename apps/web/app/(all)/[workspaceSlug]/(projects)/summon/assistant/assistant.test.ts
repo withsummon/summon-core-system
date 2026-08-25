@@ -75,3 +75,31 @@ test("Assistant contracts support persistent file context and document generatio
     assert.match(types, new RegExp(marker));
   }
 });
+
+test("Assistant uploads at most five document or audio files and retains their context", () => {
+  for (const marker of [
+    'type="file"',
+    "multiple",
+    ".mp3,.m4a",
+    "MAX_ATTACHMENTS",
+    "uploadWorkspaceAsset",
+    "ASSISTANT_ATTACHMENT",
+    "attachment_ids",
+    "refreshInterval",
+  ]) {
+    assert.match(implementation, new RegExp(marker));
+  }
+});
+
+test("Assistant requires document confirmation and exposes generated preview and downloads", () => {
+  for (const marker of [
+    "template_options",
+    "selectAssistantDocumentTemplate",
+    "Generate",
+    "Preview",
+    "Download",
+    "retryAssistantAction",
+  ]) {
+    assert.match(implementation, new RegExp(marker));
+  }
+});

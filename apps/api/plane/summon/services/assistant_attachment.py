@@ -17,7 +17,10 @@ DOCUMENT_TYPES = {
     ".txt": {"text/plain"},
     ".xlsx": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
 }
-AUDIO_TYPES = {".m4a": {"audio/mp4", "audio/x-m4a"}, ".mp3": {"audio/mpeg"}}
+AUDIO_TYPES = {
+    ".m4a": {"audio/mp4", "audio/m4a", "audio/x-m4a"},
+    ".mp3": {"audio/mpeg", "audio/mp3"},
+}
 
 
 def _validate_asset(conversation, actor, asset):

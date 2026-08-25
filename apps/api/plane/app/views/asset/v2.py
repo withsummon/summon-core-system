@@ -429,7 +429,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             "text/markdown",
             "text/csv",
         }
-        assistant_audio_types = {"audio/mpeg", "audio/mp4", "audio/x-m4a"}
+        assistant_audio_types = {"audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a", "audio/x-m4a"}
         assistant_document_extensions = {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".csv"}
         assistant_audio_extensions = {".mp3", ".m4a"}
         extension = Path(name).suffix.lower()
