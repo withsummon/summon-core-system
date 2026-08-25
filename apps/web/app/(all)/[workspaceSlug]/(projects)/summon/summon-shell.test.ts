@@ -30,11 +30,13 @@ test("community plan badge is disabled in the Summon sidebar", () => {
   assert.match(appSidebar, /showEditionBadge=\{false\}/);
 });
 
-test("mobile navigation uses a drawer without shrinking page content", () => {
+test("sidebar toggle stays reachable when the sidebar is closed", () => {
   const topNavigation = source("../../../../../core/components/navigation/top-navigation-root.tsx");
   const resizableSidebar = source("../../../../../core/components/sidebar/resizable-sidebar.tsx");
 
-  assert.match(topNavigation, /md:hidden[\s\S]*AppSidebarToggleButton/);
+  assert.match(topNavigation, /sidebarCollapsed/);
+  assert.match(topNavigation, /!sidebarCollapsed && "md:hidden"/);
+  assert.match(topNavigation, /AppSidebarToggleButton/);
   assert.match(resizableSidebar, /max-md:absolute/);
   assert.match(resizableSidebar, /aria-label="Close sidebar"/);
 });

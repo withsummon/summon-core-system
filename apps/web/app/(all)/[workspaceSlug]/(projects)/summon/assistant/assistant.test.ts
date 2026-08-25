@@ -4,9 +4,11 @@ import test from "node:test";
 
 const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const messageList = readFileSync(new URL("./message-list.tsx", import.meta.url), "utf8");
+const composer = readFileSync(new URL("./assistant-composer.tsx", import.meta.url), "utf8");
+const actionCard = readFileSync(new URL("./assistant-action-card.tsx", import.meta.url), "utf8");
 const service = readFileSync("apps/web/core/services/summon.service.ts", "utf8");
 const types = readFileSync("packages/types/src/summon/index.ts", "utf8");
-const implementation = `${page}\n${messageList}`;
+const implementation = `${page}\n${messageList}\n${composer}\n${actionCard}`;
 
 test("Assistant uses the persistent conversation service instead of the one-shot query", () => {
   for (const method of [
@@ -31,11 +33,12 @@ test("Assistant reads persisted messages back after send and reload", () => {
   assert.match(page, /contextTruncated/);
 });
 
-test("Assistant sends only explicit authorized context and never credentials", () => {
+test("Assistant retrieves authorized knowledge automatically and accepts optional focus", () => {
   for (const contextKey of ["workspace", "project_id", "client_id", "meeting_id", "page_ids"]) {
     assert.match(page, new RegExp(contextKey));
   }
-  assert.doesNotMatch(page, /apiKey|LLM_API_KEY|credential.*secret|authorization/i);
+  assert.match(implementation, /retrieved automatically/);
+  assert.doesNotMatch(implementation, /apiKey|LLM_API_KEY|credential.*secret|authorization/i);
 });
 
 test("Assistant exposes citations, provider state, normalized errors, retry, pending, and confirmed navigation", () => {

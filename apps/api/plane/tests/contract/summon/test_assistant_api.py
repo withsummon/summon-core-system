@@ -406,7 +406,67 @@ def test_context_uses_meeting_transcript_and_generated_page_markdown(workspace, 
 
 
 @pytest.mark.django_db
-def test_send_uses_only_explicit_authorized_bounded_context_and_persists_metadata(
+def test_assistant_automatically_retrieves_authorized_project_and_document_context(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    project = visible_project(workspace, create_user, "OCR")
+    project.description = "Sucofindo handwritten field report OCR and structured extraction."
+    project.save()
+    page = Page.objects.create(
+        workspace=workspace,
+        owned_by=create_user,
+        name="Sucofindo OCR project brief",
+        view_props={"summon_document": {"markdown": "Verified scope: extract handwritten inspection reports."}},
+    )
+    ProjectPage.objects.create(workspace=workspace, project=project, page=page)
+
+    hidden_project = Project.objects.create(
+        workspace=workspace,
+        name="Hidden OCR",
+        identifier="HOCR",
+        description="PRIVATE PROJECT MUST NOT ENTER THE PROMPT",
+    )
+    hidden_user, _ = authenticated_member(workspace)
+    hidden_page = Page.objects.create(
+        workspace=workspace,
+        owned_by=hidden_user,
+        name="Hidden OCR document",
+        view_props={"summon_document": {"markdown": "PRIVATE DOCUMENT MUST NOT ENTER THE PROMPT"}},
+    )
+    ProjectPage.objects.create(workspace=workspace, project=hidden_project, page=hidden_page)
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="RAG")
+    captured = []
+
+    def fake_generate(request):
+        captured.append(request)
+        return LLMResponse(text="Grounded answer", provider="openai", model="codex-test")
+
+    monkeypatch.setattr("plane.summon.services.assistant.generate", fake_generate)
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/messages/"
+
+    response = session_client.post(
+        url,
+        {"content": "Apa yang Summon kerjakan untuk handwritten report OCR?", "context": {}},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    prompt = repr(captured[0])
+    assert "Sucofindo handwritten field report OCR" in prompt
+    assert "extract handwritten inspection reports" in prompt
+    assert "PRIVATE PROJECT MUST NOT ENTER THE PROMPT" not in prompt
+    assert "PRIVATE DOCUMENT MUST NOT ENTER THE PROMPT" not in prompt
+    assert {citation["kind"] for citation in response.data["assistant_message"]["citations"]} == {
+        "project",
+        "page",
+    }
+
+
+@pytest.mark.django_db
+def test_send_uses_only_authorized_bounded_context_and_persists_metadata(
     session_client,
     workspace,
     create_user,
@@ -471,7 +531,7 @@ def test_send_uses_only_explicit_authorized_bounded_context_and_persists_metadat
     )
 
     assert first.status_code == status.HTTP_201_CREATED
-    assert "selected context was truncated" in captured[0].system
+    assert "retrieved context was truncated" in captured[0].system
     context_text = captured[0].system.partition("<context>\n")[2].partition("\n</context>")[0]
     assert len(context_text) == 30000
     assert first.data["context_truncated"] is True
@@ -502,7 +562,10 @@ def test_send_uses_only_explicit_authorized_bounded_context_and_persists_metadat
 
     second = session_client.post(url, {"content": "No context this time", "context": {}}, format="json")
     assert second.status_code == status.HTTP_201_CREATED
-    assert captured[1].system.partition("<context>\n")[2].partition("\n</context>")[0] == ""
+    automatic_context = captured[1].system.partition("<context>\n")[2].partition("\n</context>")[0]
+    assert "[Retrieved Project]" in automatic_context
+    for marker in ("TOP SECRET PROJECT", "TOP SECRET PAGE", "TOP SECRET CLIENT", "TOP SECRET CREDENTIAL"):
+        assert marker not in captured[1].system
     assert AssistantMessage.objects.filter(conversation=conversation).count() == 4
     listed = session_client.get(url)
     assert listed.status_code == status.HTTP_200_OK

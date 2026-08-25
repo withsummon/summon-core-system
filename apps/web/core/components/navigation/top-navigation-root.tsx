@@ -18,6 +18,7 @@ import { InboxIcon } from "@plane/propel/icons";
 import Link from "next/link";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
+import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUserProfile } from "@/hooks/store/user";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
@@ -28,6 +29,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
 
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
+  const { sidebarCollapsed } = useAppTheme();
   const { updateUserTheme } = useUserProfile();
   const { preferences } = useAppRailPreferences();
 
@@ -51,7 +53,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         "px-2": !showLabel,
       })}
     >
-      <div className="mr-1 md:hidden">
+      <div className={cn("mr-1", !sidebarCollapsed && "md:hidden")}>
         <AppSidebarToggleButton />
       </div>
       {/* Workspace Menu */}

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import re
 from dataclasses import dataclass
 
 from django.db.models import Q
@@ -55,7 +56,66 @@ def _page_source(page):
     return metadata.get("markdown") or metadata.get("source_transcript") or page.description_stripped or ""
 
 
-def build_context(workspace, user, selection):
+def _relevance(text, terms):
+    normalized = text.casefold()
+    return sum(term in normalized for term in terms)
+
+
+def _automatic_context_entries(workspace, user, project_ids, query, excluded_project_id, excluded_page_ids):
+    terms = {term for term in re.findall(r"[a-z0-9]+", query.casefold()) if len(term) > 2}
+    project_id_set = set(project_ids)
+    entries = []
+    projects = list(
+        Project.objects.filter(workspace=workspace, id__in=project_ids)
+        .exclude(id=excluded_project_id)
+        .order_by("name")[:20]
+    )
+    for project in projects:
+        entries.append(
+            (
+                f"[Retrieved Project]\nName: {project.name}\nIdentifier: {project.identifier}\n"
+                f"Description: {project.description[:1000]}",
+                _citation(
+                    project,
+                    project.name,
+                    f"/{workspace.slug}/summon/projects/{project.id}/",
+                    "project",
+                ),
+            )
+        )
+
+    candidates = []
+    pages = (
+        accessible_pages(workspace, user, project_ids)
+        .filter(archived_at__isnull=True)
+        .exclude(id__in=excluded_page_ids)
+        .prefetch_related("projects")
+        .distinct()
+        .order_by("-updated_at")[:100]
+    )
+    for page in pages:
+        source = _page_source(page)
+        score = 4 * _relevance(page.name, terms) + _relevance(source, terms)
+        candidates.append((score, page, source))
+    candidates.sort(key=lambda item: (item[0], item[1].updated_at), reverse=True)
+
+    for _, page, source in candidates[:8]:
+        page_project = next((item for item in page.projects.all() if item.id in project_id_set), None)
+        href = (
+            f"/{workspace.slug}/projects/{page_project.id}/pages/{page.id}/"
+            if page_project
+            else f"/{workspace.slug}/summon/knowledge/"
+        )
+        entries.append(
+            (
+                f"[Retrieved Page]\nName: {page.name}\nContent: {source[:4000]}",
+                _citation(page, page.name, href, "page"),
+            )
+        )
+    return entries
+
+
+def build_context(workspace, user, selection, query=""):
     project_ids = list(visible_project_ids(workspace, user))
     project_id_set = set(project_ids)
     entries = []
@@ -132,6 +192,18 @@ def build_context(workspace, user, selection):
             (
                 f"[Page]\nName: {page.name}\nContent: {_page_source(page)}",
                 _citation(page, page.name, href, "page"),
+            )
+        )
+
+    if query.strip():
+        entries.extend(
+            _automatic_context_entries(
+                workspace,
+                user,
+                project_ids,
+                query,
+                project.id if project else None,
+                requested_page_ids,
             )
         )
 
