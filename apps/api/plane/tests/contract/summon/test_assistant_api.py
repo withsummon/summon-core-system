@@ -167,6 +167,8 @@ def test_assistant_attachment_extracts_document_and_serializes_safe_metadata(
     attachment = AssistantAttachment.objects.get(id=response.data["id"])
     assert attachment.extracted_text == "Verified scope"
     assert session_client.get(url).data[0]["id"] == response.data["id"]
+    detail = session_client.get(f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/")
+    assert detail.data["attachments"][0]["id"] == response.data["id"]
 
 
 @pytest.mark.django_db

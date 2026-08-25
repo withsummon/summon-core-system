@@ -241,6 +241,7 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
                     .order_by("created_at"),
                 ),
                 Prefetch("actions", queryset=AssistantAction.objects.order_by("created_at")),
+                Prefetch("attachments", queryset=AssistantAttachment.objects.order_by("created_at")),
             )
         )
 

@@ -61,3 +61,17 @@ test("Assistant exposes citations, provider state, normalized errors, retry, pen
     assert.match(implementation, new RegExp(marker));
   }
 });
+
+test("Assistant contracts support persistent file context and document generation", () => {
+  for (const method of [
+    "createAssistantAttachment",
+    "deleteAssistantAttachment",
+    "selectAssistantDocumentTemplate",
+    "retryAssistantAction",
+  ]) {
+    assert.match(service, new RegExp(method));
+  }
+  for (const marker of ["ISummonAssistantAttachment", "automation_job", "attachment_ids"]) {
+    assert.match(types, new RegExp(marker));
+  }
+});

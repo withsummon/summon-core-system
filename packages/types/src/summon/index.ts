@@ -314,7 +314,21 @@ export interface ISummonAssistantCitation {
   id: string;
   label: string;
   href: string;
-  kind: "project" | "issue" | "page" | "client" | "meeting" | "resource";
+  kind: "project" | "issue" | "page" | "client" | "meeting" | "resource" | "attachment";
+}
+
+export type TSummonAssistantAttachmentStatus = "processing" | "ready" | "failed";
+
+export interface ISummonAssistantAttachment {
+  id: string;
+  message: string | null;
+  original_name: string;
+  media_type: string;
+  size: number;
+  status: TSummonAssistantAttachmentStatus;
+  language: string;
+  error: string;
+  created_at: string;
 }
 
 export interface ISummonAssistantMessage {
@@ -325,6 +339,8 @@ export interface ISummonAssistantMessage {
   provider: string;
   model: string;
   status: "completed" | "failed";
+  attachments: ISummonAssistantAttachment[];
+  automation_job: ISummonAutomationJob | null;
   created_at: string;
 }
 
@@ -337,13 +353,32 @@ export interface ISummonAssistantConversation {
   last_activity_at: string;
   messages?: ISummonAssistantMessage[];
   actions?: ISummonAssistantAction[];
+  attachments?: ISummonAssistantAttachment[];
+}
+
+export interface ISummonAssistantDocumentTemplateChoice {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface ISummonAssistantActionPreview {
+  title?: string;
+  summary?: string;
+  changes?: Record<string, unknown>;
+  state?: "choose_template" | "confirm";
+  template?: ISummonAssistantDocumentTemplateChoice | null;
+  template_options?: ISummonAssistantDocumentTemplateChoice[];
+  project?: { id: string; name: string } | null;
+  sources?: Array<{ id: string; name: string; status: TSummonAssistantAttachmentStatus }>;
+  formats?: Array<"pdf" | "docx">;
 }
 
 export interface ISummonAssistantAction {
   id: string;
   tool: string;
   arguments: Record<string, unknown>;
-  preview: { title?: string; summary?: string; changes?: Record<string, unknown> };
+  preview: ISummonAssistantActionPreview;
   status: "pending" | "confirmed" | "completed" | "cancelled" | "failed";
   confirmed_at: string | null;
   result: Record<string, unknown>;
@@ -363,6 +398,7 @@ export interface ISummonAssistantMessageRequest {
   intent?: string;
   tool?: string;
   arguments?: Record<string, unknown>;
+  attachment_ids?: string[];
 }
 
 export interface ISummonAssistantMessagePair {

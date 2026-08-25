@@ -8,6 +8,7 @@ import { API_BASE_URL } from "@plane/constants";
 import type {
   ISummonAIStatus,
   ISummonAssistantAction,
+  ISummonAssistantAttachment,
   ISummonAssistantConversation,
   ISummonAssistantMessagePair,
   ISummonAssistantMessageRequest,
@@ -365,6 +366,28 @@ export class SummonService extends APIService {
     );
   }
 
+  createAssistantAttachment(workspaceSlug: string, conversationId: string, assetId: string) {
+    return this.data<ISummonAssistantAttachment>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/attachments/`, {
+        asset_id: assetId,
+      })
+    );
+  }
+
+  deleteAssistantAttachment(workspaceSlug: string, conversationId: string, attachmentId: string) {
+    return this.data<void>(
+      this.delete(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/attachments/${attachmentId}/`)
+    );
+  }
+
+  selectAssistantDocumentTemplate(workspaceSlug: string, conversationId: string, actionId: string, templateId: string) {
+    return this.data<ISummonAssistantAction>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/actions/${actionId}/select/`, {
+        template_id: templateId,
+      })
+    );
+  }
+
   confirmAssistantAction(workspaceSlug: string, conversationId: string, actionId: string) {
     return this.data<ISummonAssistantAction>(
       this.post(
@@ -377,6 +400,12 @@ export class SummonService extends APIService {
   cancelAssistantAction(workspaceSlug: string, conversationId: string, actionId: string) {
     return this.data<ISummonAssistantAction>(
       this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/actions/${actionId}/cancel/`, {})
+    );
+  }
+
+  retryAssistantAction(workspaceSlug: string, conversationId: string, actionId: string) {
+    return this.data<ISummonAssistantAction>(
+      this.post(`${this.root(workspaceSlug)}/assistant/conversations/${conversationId}/actions/${actionId}/retry/`, {})
     );
   }
 

@@ -224,11 +224,22 @@ class AssistantActionSerializer(BaseSerializer):
 class AssistantConversationSerializer(BaseSerializer):
     messages = AssistantMessageSerializer(many=True, read_only=True)
     actions = AssistantActionSerializer(many=True, read_only=True)
+    attachments = AssistantAttachmentSerializer(many=True, read_only=True)
 
     class Meta:
         model = AssistantConversation
-        fields = ["id", "title", "project", "client", "mcp_credential", "last_activity_at", "messages", "actions"]
-        read_only_fields = ["id", "last_activity_at", "messages", "actions"]
+        fields = [
+            "id",
+            "title",
+            "project",
+            "client",
+            "mcp_credential",
+            "last_activity_at",
+            "messages",
+            "actions",
+            "attachments",
+        ]
+        read_only_fields = ["id", "last_activity_at", "messages", "actions", "attachments"]
 
     def validate(self, attrs):
         workspace = self.context["workspace"]
