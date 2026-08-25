@@ -4,6 +4,7 @@
 
 # Python imports
 import uuid
+from pathlib import Path
 
 # Django imports
 from django.conf import settings
@@ -26,7 +27,7 @@ from plane.utils.cache import invalidate_cache_directly
 from plane.utils.path_validator import sanitize_filename
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.throttles.asset import AssetRateThrottle
-from plane.summon.models import GeneratedArtifact
+from plane.summon.models import AssistantAttachment, GeneratedArtifact
 from plane.summon.services.automation import authorize_artifact_download
 
 
@@ -41,6 +42,20 @@ def authorize_summon_generated_asset(asset, actor):
     if not artifact:
         raise Http404
     authorize_artifact_download(artifact, actor)
+
+
+def authorize_assistant_attachment_asset(asset, actor, allow_unlinked=False):
+    if asset.entity_type != FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT:
+        return
+    attachment = AssistantAttachment.objects.filter(
+        file_asset=asset,
+        workspace_id=asset.workspace_id,
+        conversation__owner=actor,
+        deleted_at__isnull=True,
+    ).first()
+    if attachment or (allow_unlinked and asset.user_id == actor.id):
+        return
+    raise Http404
 
 
 class UserAssetsV2Endpoint(BaseAPIView):
@@ -250,6 +265,8 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             return {"comment_id": entity_id}
         if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING:
             return {"entity_identifier": entity_id}
+        if entity_type == FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT:
+            return {"entity_identifier": entity_id}
         return {}
 
     def asset_delete(self, asset_id):
@@ -403,8 +420,28 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             "audio/webm",
             "audio/ogg",
         ]
-        allowed_types = audio_types if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING else image_types
-        if type not in allowed_types:
+        assistant_document_types = {
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "text/plain",
+            "text/markdown",
+            "text/csv",
+        }
+        assistant_audio_types = {"audio/mpeg", "audio/mp4", "audio/x-m4a"}
+        assistant_document_extensions = {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".csv"}
+        assistant_audio_extensions = {".mp3", ".m4a"}
+        extension = Path(name).suffix.lower()
+        if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING:
+            allowed = type in audio_types
+        elif entity_type == FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT:
+            allowed = (type in assistant_document_types and extension in assistant_document_extensions) or (
+                type in assistant_audio_types and extension in assistant_audio_extensions
+            )
+        else:
+            allowed = type in image_types
+        if not allowed:
             return Response(
                 {
                     "error": "Invalid file type for this asset.",
@@ -414,11 +451,14 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             )
 
         # Get the size limit
-        max_size = (
-            settings.SUMMON_RECORDING_FILE_SIZE_LIMIT
-            if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING
-            else settings.FILE_SIZE_LIMIT
-        )
+        if entity_type == FileAsset.EntityTypeContext.MEETING_RECORDING or (
+            entity_type == FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT and type in assistant_audio_types
+        ):
+            max_size = settings.SUMMON_RECORDING_FILE_SIZE_LIMIT
+        elif entity_type == FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT:
+            max_size = 10 * 1024 * 1024
+        else:
+            max_size = settings.FILE_SIZE_LIMIT
         if size <= 0 or size > max_size:
             return Response(
                 {"error": f"File size must be between 1 and {max_size} bytes.", "status": False},
@@ -438,6 +478,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             asset=asset_key,
             size=size_limit,
             workspace=workspace,
+            user=request.user if entity_type == FileAsset.EntityTypeContext.ASSISTANT_ATTACHMENT else None,
             created_by=request.user,
             entity_type=entity_type,
             **self.get_entity_id_field(entity_type=entity_type, entity_id=entity_identifier),
@@ -461,6 +502,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
     def patch(self, request, slug, asset_id):
         # get the asset id
         asset = FileAsset.objects.get(id=asset_id, workspace__slug=slug)
+        authorize_assistant_attachment_asset(asset, request.user, allow_unlinked=True)
         # enforce project-level access for project-bound assets
         if not self.has_project_asset_access(request, asset):
             return Response(
@@ -488,6 +530,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def delete(self, request, slug, asset_id):
         asset = FileAsset.objects.get(id=asset_id, workspace__slug=slug)
+        authorize_assistant_attachment_asset(asset, request.user)
         # enforce project-level access for project-bound assets
         if not self.has_project_asset_access(request, asset):
             return Response(
@@ -506,6 +549,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         # get the asset id
         asset = FileAsset.objects.get(id=asset_id, workspace__slug=slug)
         authorize_summon_generated_asset(asset, request.user)
+        authorize_assistant_attachment_asset(asset, request.user)
         # enforce project-level access for project-bound assets
         if not self.has_project_asset_access(request, asset):
             return Response(

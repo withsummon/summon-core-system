@@ -12,9 +12,10 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from plane.app.services.llm import LLMError, LLMResponse
-from plane.db.models import Page, Project, ProjectMember, ProjectPage, User, Workspace, WorkspaceMember
+from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, User, Workspace, WorkspaceMember
 from plane.summon.models import (
     AssistantAction,
+    AssistantAttachment,
     AssistantConversation,
     AssistantMessage,
     Client,
@@ -39,6 +40,71 @@ def visible_project(workspace, user, identifier="AST"):
     project = Project.objects.create(workspace=workspace, name=f"Project {identifier}", identifier=identifier)
     ProjectMember.objects.create(workspace=workspace, project=project, member=user, role=15)
     return project
+
+
+@pytest.mark.django_db
+def test_assistant_assets_accept_supported_files_and_enforce_owner_scope(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    from plane.app.views.asset import v2
+
+    monkeypatch.setattr(
+        v2.S3Storage,
+        "generate_presigned_post",
+        lambda *_args, **_kwargs: {"url": "https://upload.example", "fields": {}},
+    )
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Files")
+    upload_url = f"/api/assets/v2/workspaces/{workspace.slug}/"
+    payload = {
+        "name": "brief.pdf",
+        "type": "application/pdf",
+        "size": 1024,
+        "entity_type": "ASSISTANT_ATTACHMENT",
+        "entity_identifier": str(conversation.id),
+    }
+
+    uploaded = session_client.post(upload_url, payload, format="json")
+
+    assert uploaded.status_code == status.HTTP_200_OK
+    asset = FileAsset.objects.get(id=uploaded.data["asset_id"])
+    assert asset.user == create_user
+    assert asset.entity_identifier == str(conversation.id)
+    assert asset.asset_url == f"/api/assets/v2/workspaces/{workspace.slug}/{asset.id}/"
+    assert session_client.post(
+        upload_url,
+        {**payload, "name": "script.html", "type": "text/html"},
+        format="json",
+    ).status_code == status.HTTP_400_BAD_REQUEST
+    assert session_client.post(
+        upload_url,
+        {**payload, "name": "meeting.m4a", "type": "audio/mp4", "size": 8 * 1024 * 1024},
+        format="json",
+    ).status_code == status.HTTP_200_OK
+
+    _, other_api = authenticated_member(workspace)
+    asset_url = f"/api/assets/v2/workspaces/{workspace.slug}/{asset.id}/"
+    assert other_api.patch(asset_url, {}, format="json").status_code == status.HTTP_404_NOT_FOUND
+    assert session_client.patch(asset_url, {}, format="json").status_code == status.HTTP_204_NO_CONTENT
+    assert session_client.get(asset_url).status_code == status.HTTP_404_NOT_FOUND
+
+    AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        file_asset=asset,
+        original_name="brief.pdf",
+        media_type="application/pdf",
+        size=1024,
+        status=AssistantAttachment.Status.READY,
+        extracted_text="Verified scope",
+    )
+    monkeypatch.setattr(v2.S3Storage, "generate_presigned_url", lambda *_args, **_kwargs: "https://download.example")
+
+    assert other_api.get(asset_url).status_code == status.HTTP_404_NOT_FOUND
+    assert other_api.delete(asset_url).status_code == status.HTTP_404_NOT_FOUND
+    assert session_client.get(asset_url).status_code == status.HTTP_302_FOUND
 
 
 @pytest.mark.django_db
