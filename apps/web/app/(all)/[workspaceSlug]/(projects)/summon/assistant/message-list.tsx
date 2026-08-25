@@ -47,7 +47,9 @@ export function AssistantMessageList(props: {
 }) {
   const { messages, pending, loading } = props;
   const latestMessageRef = useRef<HTMLDivElement>(null);
-  useEffect(() => latestMessageRef.current?.scrollIntoView({ block: "end" }), [messages.length, pending]);
+  useEffect(() => {
+    latestMessageRef.current?.scrollIntoView({ block: "end" });
+  }, [messages.length, pending]);
 
   if (!loading && !messages.length && !pending)
     return (
