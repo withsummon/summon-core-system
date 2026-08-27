@@ -2,45 +2,29 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Q
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.license.utils.instance_value import get_llm_configuration_status
-from plane.db.models import FileAsset
 from plane.summon.models import (
-    AssistantAction,
-    AssistantAttachment,
-    AssistantConversation,
-    AssistantMessage,
     AutomationJob,
     AutomationTemplate,
     GeneratedArtifact,
 )
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.operations import (
-    AssistantActionSerializer,
-    AssistantAttachmentSerializer,
-    AssistantConversationSerializer,
-    AssistantMessageRequestSerializer,
-    AssistantMessageSerializer,
     AssistantQuerySerializer,
     AutomationJobSerializer,
     AutomationRunSerializer,
     AutomationTemplateSerializer,
     ReportFilterSerializer,
 )
-from plane.summon.services.assistant_action import execute_assistant_action, handle_tool_request
-from plane.summon.services.assistant_attachment import create_attachment
-from plane.summon.services.assistant_document import handle_document_message, select_document_template
-from plane.summon.services.mcp import MCPError
-from plane.summon.services.assistant import answer_query, send_message
+from plane.summon.services.assistant import answer_query
 from plane.summon.services.automation import (
     authorize_artifact_download,
     ensure_default_templates,
@@ -215,235 +199,3 @@ class AssistantQueryView(WorkspaceContextMixin, BaseAPIView):
         serializer = AssistantQuerySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(answer_query(self.get_workspace(), request.user, **serializer.validated_data))
-
-
-class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
-    model = AssistantConversation
-    serializer_class = AssistantConversationSerializer
-    permission_classes = [SummonWorkspacePermission]
-
-    def get_queryset(self):
-        return (
-            AssistantConversation.objects.filter(
-                workspace=self.get_workspace(),
-                owner=self.request.user,
-            )
-            .select_related("project", "client", "mcp_credential")
-            .prefetch_related(
-                Prefetch(
-                    "messages",
-                    queryset=AssistantMessage.objects.select_related("automation_job")
-                    .prefetch_related(
-                        "attachments",
-                        "automation_job__artifacts__page",
-                        "automation_job__artifacts__file_asset",
-                    )
-                    .order_by("created_at"),
-                ),
-                Prefetch("actions", queryset=AssistantAction.objects.order_by("created_at")),
-                Prefetch("attachments", queryset=AssistantAttachment.objects.order_by("created_at")),
-            )
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(workspace=self.get_workspace(), owner=self.request.user)
-
-
-class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
-
-    def get_conversation(self):
-        return get_object_or_404(
-            AssistantConversation,
-            id=self.kwargs["conversation_id"],
-            workspace=self.get_workspace(),
-            owner=self.request.user,
-        )
-
-    def get(self, request, slug, conversation_id):
-        messages = (
-            AssistantMessage.objects.filter(conversation=self.get_conversation())
-            .select_related("automation_job")
-            .prefetch_related(
-                "attachments",
-                "automation_job__artifacts__page",
-                "automation_job__artifacts__file_asset",
-            )
-            .order_by("created_at")
-        )
-        return Response(AssistantMessageSerializer(messages, many=True).data)
-
-    def post(self, request, slug, conversation_id):
-        serializer = AssistantMessageRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        conversation = self.get_conversation()
-        tool = serializer.validated_data["tool"]
-        if tool:
-            try:
-                user_message, assistant_message, action = handle_tool_request(
-                    conversation,
-                    request.user,
-                    serializer.validated_data["content"],
-                    tool,
-                    serializer.validated_data["arguments"],
-                    request=request,
-                )
-            except MCPError as error:
-                return Response({"error_code": str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            return Response(
-                {
-                    "user_message": AssistantMessageSerializer(user_message).data,
-                    "assistant_message": AssistantMessageSerializer(assistant_message).data,
-                    "action": AssistantActionSerializer(action).data if action else None,
-                    "context_truncated": False,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-        document_result = handle_document_message(
-            conversation,
-            request.user,
-            serializer.validated_data["content"],
-            serializer.validated_data["context"],
-            serializer.validated_data["attachment_ids"],
-        )
-        if document_result:
-            user_message, assistant_message, action = document_result
-            return Response(
-                {
-                    "user_message": AssistantMessageSerializer(user_message).data,
-                    "assistant_message": AssistantMessageSerializer(assistant_message).data,
-                    "action": AssistantActionSerializer(action).data,
-                    "context_truncated": False,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-        user_message, assistant_message, truncated, error_code = send_message(
-            conversation,
-            request.user,
-            serializer.validated_data["content"],
-            serializer.validated_data["context"],
-            serializer.validated_data["intent"],
-            serializer.validated_data["attachment_ids"],
-        )
-        data = {
-            "user_message": AssistantMessageSerializer(user_message).data,
-            "assistant_message": AssistantMessageSerializer(assistant_message).data,
-            "context_truncated": truncated,
-        }
-        if error_code:
-            data["error_code"] = error_code
-            return Response(data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response(data, status=status.HTTP_201_CREATED)
-
-
-class AssistantAttachmentView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
-
-    def get_conversation(self):
-        return get_object_or_404(
-            AssistantConversation,
-            id=self.kwargs["conversation_id"],
-            workspace=self.get_workspace(),
-            owner=self.request.user,
-        )
-
-    def get(self, request, slug, conversation_id):
-        attachments = AssistantAttachment.objects.filter(conversation=self.get_conversation()).order_by("created_at")
-        return Response(AssistantAttachmentSerializer(attachments, many=True).data)
-
-    def post(self, request, slug, conversation_id):
-        conversation = self.get_conversation()
-        asset = get_object_or_404(FileAsset, id=request.data.get("asset_id"), workspace=conversation.workspace)
-        attachment = create_attachment(conversation, request.user, asset)
-        return Response(AssistantAttachmentSerializer(attachment).data, status=status.HTTP_201_CREATED)
-
-
-class AssistantAttachmentDetailView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
-
-    def delete(self, request, slug, conversation_id, attachment_id):
-        attachment = get_object_or_404(
-            AssistantAttachment,
-            id=attachment_id,
-            conversation_id=conversation_id,
-            conversation__owner=request.user,
-            workspace=self.get_workspace(),
-        )
-        if attachment.message_id:
-            return Response({"error_code": "attachment_already_bound"}, status=status.HTTP_409_CONFLICT)
-        now = timezone.now()
-        attachment.deleted_at = now
-        attachment.save(update_fields=["deleted_at", "updated_at"])
-        attachment.file_asset.is_deleted = True
-        attachment.file_asset.deleted_at = now
-        attachment.file_asset.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class AssistantActionView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
-
-    def get_action(self, lock=False):
-        queryset = AssistantAction.objects
-        if lock:
-            queryset = queryset.select_for_update()
-        else:
-            queryset = queryset.select_related("conversation__mcp_credential", "requester")
-        return get_object_or_404(
-            queryset,
-            id=self.kwargs["action_id"],
-            conversation_id=self.kwargs["conversation_id"],
-            conversation__owner=self.request.user,
-            workspace=self.get_workspace(),
-        )
-
-    def post(self, request, slug, conversation_id, action_id, operation):
-        with transaction.atomic():
-            action = self.get_action(lock=True)
-            if operation == "select":
-                action = select_document_template(action, request.data.get("template_id"))
-                return Response(AssistantActionSerializer(action).data)
-            if operation == "cancel":
-                if action.status == AssistantAction.Status.CANCELLED:
-                    return Response(AssistantActionSerializer(action).data)
-                if action.status != AssistantAction.Status.PENDING:
-                    return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
-                action.status = AssistantAction.Status.CANCELLED
-                action.save(update_fields=["status", "updated_at"])
-                return Response(AssistantActionSerializer(action).data)
-
-            if operation == "retry":
-                if action.tool != "summon_document" or action.status != AssistantAction.Status.FAILED:
-                    return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
-            elif action.status == AssistantAction.Status.COMPLETED:
-                return Response(AssistantActionSerializer(action).data)
-            elif action.status != AssistantAction.Status.PENDING:
-                return Response({"status": action.status}, status=status.HTTP_409_CONFLICT)
-            action.status = AssistantAction.Status.CONFIRMED
-            action.confirmed_at = timezone.now()
-            action.save(update_fields=["status", "confirmed_at", "updated_at"])
-            try:
-                result = (
-                    execute_assistant_action(action, request=request, retry=True)
-                    if operation == "retry"
-                    else execute_assistant_action(action, request=request)
-                )
-                if isinstance(result, AutomationJob):
-                    action.result = {"automation_job_id": str(result.id)}
-                    action.status = (
-                        AssistantAction.Status.COMPLETED
-                        if result.status == AutomationJob.Status.COMPLETED
-                        else AssistantAction.Status.FAILED
-                    )
-                    action.error = result.error_summary
-                else:
-                    action.result = result
-                    action.status = AssistantAction.Status.COMPLETED
-                    action.error = ""
-            except MCPError as error:
-                action.status = AssistantAction.Status.FAILED
-                action.error = str(error)
-                action.save(update_fields=["status", "error", "updated_at"])
-                return Response(AssistantActionSerializer(action).data, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            action.save(update_fields=["status", "result", "error", "updated_at"])
-            return Response(AssistantActionSerializer(action).data)

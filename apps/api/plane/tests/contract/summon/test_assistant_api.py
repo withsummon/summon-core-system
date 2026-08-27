@@ -9,6 +9,7 @@ import requests
 from cryptography.fernet import Fernet
 from django.core.files.base import ContentFile
 from django.core.files.storage import InMemoryStorage
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -177,6 +178,66 @@ def test_assistant_attachment_extracts_document_and_serializes_safe_metadata(
     assert session_client.get(url).data[0]["id"] == response.data["id"]
     detail = session_client.get(f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/")
     assert detail.data["attachments"][0]["id"] == response.data["id"]
+
+
+@pytest.mark.django_db
+def test_conversation_list_is_lightweight_and_detail_only_repeats_pending_attachments(
+    session_client,
+    workspace,
+    create_user,
+    assistant_file_storage,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Payload")
+    message = AssistantMessage.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        role=AssistantMessage.Role.USER,
+        content="Use this file",
+    )
+    bound_asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "bound.txt",
+        "text/plain",
+    )
+    bound = AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        message=message,
+        file_asset=bound_asset,
+        original_name="bound.txt",
+        media_type="text/plain",
+        size=4,
+        status=AssistantAttachment.Status.READY,
+    )
+    pending_asset = assistant_asset(
+        workspace,
+        create_user,
+        conversation,
+        assistant_file_storage,
+        "pending.txt",
+        "text/plain",
+    )
+    pending = AssistantAttachment.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        file_asset=pending_asset,
+        original_name="pending.txt",
+        media_type="text/plain",
+        size=4,
+        status=AssistantAttachment.Status.READY,
+    )
+    url = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/"
+
+    listed = session_client.get(url)
+    detail = session_client.get(f"{url}{conversation.id}/")
+
+    assert listed.status_code == detail.status_code == status.HTTP_200_OK
+    assert not {"messages", "actions", "attachments"}.intersection(listed.data[0])
+    assert [str(item["id"]) for item in detail.data["attachments"]] == [str(pending.id)]
+    assert [str(item["id"]) for item in detail.data["messages"][0]["attachments"]] == [str(bound.id)]
 
 
 @pytest.mark.django_db
@@ -632,6 +693,39 @@ def test_assistant_document_action_confirmation_and_retry_reuse_one_job(
     assert AutomationJob.objects.filter(id=failed_job_id).count() == 1
 
 
+@pytest.mark.django_db(transaction=True)
+def test_assistant_action_executes_external_work_outside_database_transaction(
+    session_client,
+    workspace,
+    create_user,
+    monkeypatch,
+):
+    conversation = AssistantConversation.objects.create(workspace=workspace, owner=create_user, title="Locks")
+    action = AssistantAction.objects.create(
+        workspace=workspace,
+        conversation=conversation,
+        requester=create_user,
+        tool="plane.search",
+        arguments={},
+        preview={},
+    )
+
+    def fake_execute(*_args, **_kwargs):
+        assert not transaction.get_connection().in_atomic_block
+        return {"ok": True}
+
+    monkeypatch.setattr("plane.summon.views.assistant.execute_assistant_action", fake_execute)
+    url = (
+        f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
+        f"{action.id}/confirm/"
+    )
+
+    response = session_client.post(url, {}, format="json")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["status"] == AssistantAction.Status.COMPLETED
+
+
 @pytest.mark.django_db
 def test_assistant_document_action_revalidates_project_template_sources_and_cancel(
     session_client,
@@ -679,6 +773,8 @@ def test_assistant_document_action_revalidates_project_template_sources_and_canc
 
     missing_project = create_action(project_id=None)
     assert session_client.post(operation(missing_project, "confirm"), {}, format="json").status_code == 400
+    missing_project.refresh_from_db()
+    assert missing_project.status == AssistantAction.Status.PENDING
 
     processing_asset = assistant_asset(
         workspace,
@@ -789,7 +885,7 @@ def test_assistant_action_confirm_is_idempotent_and_cancel_never_executes(
         calls.append(current.id)
         return {"id": "created-once"}
 
-    monkeypatch.setattr("plane.summon.views.operations.execute_assistant_action", execute)
+    monkeypatch.setattr("plane.summon.views.assistant.execute_assistant_action", execute)
     base = f"/api/summon/workspaces/{workspace.slug}/assistant/conversations/{conversation.id}/actions/"
 
     first = session_client.post(f"{base}{action.id}/confirm/", format="json")

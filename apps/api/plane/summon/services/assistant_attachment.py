@@ -5,7 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from plane.db.models import FileAsset
-from plane.summon.models import AssistantAttachment
+from plane.summon.models import AssistantAttachment, AssistantConversation
 from plane.summon.services.context_document import MAX_UPLOAD_BYTES, extract_context_document
 
 DOCUMENT_TYPES = {
@@ -47,12 +47,16 @@ def _validate_asset(conversation, actor, asset):
     return name, media_type, extension
 
 
-def create_attachment(conversation, actor, asset):
-    name, media_type, extension = _validate_asset(conversation, actor, asset)
+def _validate_attachment_slot(conversation, asset):
     if AssistantAttachment.objects.filter(file_asset=asset).exists():
         raise serializers.ValidationError({"asset_id": "Attachment already exists."})
     if AssistantAttachment.objects.filter(conversation=conversation, message__isnull=True).count() >= 5:
         raise serializers.ValidationError({"error_code": "maximum_five_attachments"})
+
+
+def create_attachment(conversation, actor, asset):
+    name, media_type, extension = _validate_asset(conversation, actor, asset)
+    _validate_attachment_slot(conversation, asset)
 
     extracted_text = ""
     status = AssistantAttachment.Status.PROCESSING
@@ -65,6 +69,8 @@ def create_attachment(conversation, actor, asset):
         status = AssistantAttachment.Status.READY
 
     with transaction.atomic():
+        conversation = AssistantConversation.objects.select_for_update().get(pk=conversation.pk)
+        _validate_attachment_slot(conversation, asset)
         attachment = AssistantAttachment.objects.create(
             workspace=conversation.workspace,
             conversation=conversation,

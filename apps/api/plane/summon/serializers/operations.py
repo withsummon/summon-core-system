@@ -221,11 +221,7 @@ class AssistantActionSerializer(BaseSerializer):
         read_only_fields = fields
 
 
-class AssistantConversationSerializer(BaseSerializer):
-    messages = AssistantMessageSerializer(many=True, read_only=True)
-    actions = AssistantActionSerializer(many=True, read_only=True)
-    attachments = AssistantAttachmentSerializer(many=True, read_only=True)
-
+class AssistantConversationListSerializer(BaseSerializer):
     class Meta:
         model = AssistantConversation
         fields = [
@@ -235,11 +231,8 @@ class AssistantConversationSerializer(BaseSerializer):
             "client",
             "mcp_credential",
             "last_activity_at",
-            "messages",
-            "actions",
-            "attachments",
         ]
-        read_only_fields = ["id", "last_activity_at", "messages", "actions", "attachments"]
+        read_only_fields = ["id", "last_activity_at"]
 
     def validate(self, attrs):
         workspace = self.context["workspace"]
@@ -262,6 +255,21 @@ class AssistantConversationSerializer(BaseSerializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+
+class AssistantConversationSerializer(AssistantConversationListSerializer):
+    messages = AssistantMessageSerializer(many=True, read_only=True)
+    actions = AssistantActionSerializer(many=True, read_only=True)
+    attachments = AssistantAttachmentSerializer(many=True, read_only=True)
+
+    class Meta(AssistantConversationListSerializer.Meta):
+        fields = [*AssistantConversationListSerializer.Meta.fields, "messages", "actions", "attachments"]
+        read_only_fields = [
+            *AssistantConversationListSerializer.Meta.read_only_fields,
+            "messages",
+            "actions",
+            "attachments",
+        ]
 
 
 class AssistantMessageRequestSerializer(serializers.Serializer):

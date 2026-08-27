@@ -17,12 +17,14 @@ from .collaboration import (
     ResourceLinkViewSet,
     SummonPageContextViewSet,
 )
-from .operations import (
+from .assistant import (
     AssistantActionView,
     AssistantAttachmentDetailView,
     AssistantAttachmentView,
     AssistantConversationViewSet,
     AssistantMessageView,
+)
+from .operations import (
     AssistantQueryView,
     AutomationJobDetailView,
     AutomationJobView,
