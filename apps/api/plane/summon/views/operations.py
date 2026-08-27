@@ -27,11 +27,11 @@ from plane.summon.serializers.operations import (
 from plane.summon.services.assistant import answer_query
 from plane.summon.services.automation import (
     authorize_artifact_download,
-    ensure_default_templates,
     generate_preview,
     publish_job,
     render_job_files,
 )
+from plane.summon.services.automation_templates import refresh_default_templates
 from plane.summon.services.context_document import extract_context_document
 from plane.summon.services.reports import report_csv, report_summary, visible_project_ids
 from plane.summon.views.commercial import WorkspaceContextMixin
@@ -43,7 +43,7 @@ class AutomationTemplateViewSet(WorkspaceContextMixin, BaseViewSet):
     permission_classes = [SummonWorkspacePermission]
 
     def get_queryset(self):
-        ensure_default_templates(self.get_workspace())
+        refresh_default_templates(self.get_workspace())
         return AutomationTemplate.objects.filter(workspace=self.get_workspace(), is_active=True)
 
     def perform_create(self, serializer):

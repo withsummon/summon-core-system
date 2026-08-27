@@ -13,7 +13,8 @@ from plane.summon.models import (
     AutomationTemplate,
 )
 from plane.summon.services.assistant_attachment import attachment_context_entries
-from plane.summon.services.automation import ensure_default_templates, generate_preview, render_job_files
+from plane.summon.services.automation import generate_preview, render_job_files
+from plane.summon.services.automation_templates import refresh_default_templates
 from plane.summon.services.reports import visible_project_ids
 
 DOCUMENT_TOOL = "summon_document"
@@ -40,7 +41,7 @@ def _normalize(value):
 
 
 def _templates(workspace):
-    ensure_default_templates(workspace)
+    refresh_default_templates(workspace)
     return list(AutomationTemplate.objects.filter(workspace=workspace, is_active=True).order_by("name"))
 
 

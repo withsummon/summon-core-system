@@ -78,8 +78,9 @@ def test_meeting_crud_uses_plane_assets_and_participants(workspace):
         workspace=workspace,
         project=project,
         user=actor,
-        asset=f"{workspace.id}/recording.mp4",
-        attributes={"name": "recording.mp4"},
+        asset=f"{workspace.id}/recording.m4a",
+        attributes={"name": "recording.m4a", "type": "audio/mp4"},
+        entity_type=FileAsset.EntityTypeContext.MEETING_RECORDING,
         is_uploaded=True,
     )
     url = f"/api/summon/workspaces/{workspace.slug}/meetings/"
@@ -99,8 +100,8 @@ def test_meeting_crud_uses_plane_assets_and_participants(workspace):
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["recording_asset_detail"] == {
         "id": str(asset.id),
-        "name": "recording.mp4",
-        "url": None,
+        "name": "recording.m4a",
+        "url": f"/api/assets/v2/workspaces/{workspace.slug}/{asset.id}/",
     }
     assert response.data["participants"][0]["member"]["id"] == str(participant.id)
     meeting_id = response.data["id"]

@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 
 from plane.db.models import FileAsset, Page, Project, ProjectMember, User, WorkspaceMember
 from plane.summon.models import AutomationJob, AutomationTemplate, GeneratedArtifact
-from plane.summon.services import automation
+from plane.summon.services import automation, automation_templates
 
 
 def create_project_job(workspace, user, identifier="DOC"):
@@ -40,7 +40,7 @@ def memory_file_storage(monkeypatch):
 
 @pytest.mark.django_db
 def test_default_templates_converge_from_legacy_seed(session_client, workspace):
-    for template_type, (name, variables, content) in automation.LEGACY_TEMPLATES.items():
+    for template_type, (name, variables, content) in automation_templates.LEGACY_TEMPLATES.items():
         AutomationTemplate.objects.create(
             workspace=workspace,
             name=name,
@@ -53,7 +53,7 @@ def test_default_templates_converge_from_legacy_seed(session_client, workspace):
     response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/automation/templates/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert {item["type"] for item in response.data} == set(automation.DEFAULT_TEMPLATES)
+    assert {item["type"] for item in response.data} == set(automation_templates.DEFAULT_TEMPLATES)
     assert len(response.data) == 13
     assert not AutomationTemplate.objects.filter(
         workspace=workspace,
@@ -90,7 +90,7 @@ def test_default_templates_preserve_user_edited_legacy_template(session_client, 
 
 @pytest.mark.django_db
 def test_default_templates_refresh_system_managed_content(session_client, workspace):
-    name, variables, content = automation.DEFAULT_TEMPLATES["proposal_client"]
+    name, variables, content = automation_templates.DEFAULT_TEMPLATES["proposal_client"]
     template = AutomationTemplate.objects.create(
         workspace=workspace,
         name=name,
@@ -98,7 +98,7 @@ def test_default_templates_refresh_system_managed_content(session_client, worksp
         description="LLM-assisted Client Proposal",
         content_template="stale system prompt",
         variables=["stale"],
-        external_source=automation.SYSTEM_TEMPLATE_SOURCE,
+        external_source=automation_templates.SYSTEM_TEMPLATE_SOURCE,
         external_id="template:proposal_client",
     )
 

@@ -36,12 +36,12 @@ from plane.summon.models import (
 )
 from plane.summon.seed_helpers import placeholder_inventory, preview_counts, seed_totals
 from plane.summon.seed_manifest import MEETING, PROJECTS, WORK_ITEMS, client_id, page_html, repository_id
-from plane.summon.services.automation import (
+from plane.summon.services.automation_templates import (
+    DEFAULT_TEMPLATES,
     SYSTEM_TEMPLATE_SOURCE,
     ensure_default_templates,
     is_adoptable_default_template,
 )
-from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
 from plane.summon.services.page_document import write_page_document
 
 SOURCE = "summon_seed"

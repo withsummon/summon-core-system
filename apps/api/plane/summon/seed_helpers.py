@@ -16,8 +16,11 @@ from plane.summon.models import (
     SummonProjectProfile,
 )
 from plane.summon.seed_manifest import MEETING, PROJECTS, WORK_ITEMS, client_id, repository_id
-from plane.summon.services.automation import SYSTEM_TEMPLATE_SOURCE, is_adoptable_default_template
-from plane.summon.services.automation_templates import DEFAULT_TEMPLATES
+from plane.summon.services.automation_templates import (
+    DEFAULT_TEMPLATES,
+    SYSTEM_TEMPLATE_SOURCE,
+    is_adoptable_default_template,
+)
 
 SOURCE = "summon_seed"
 

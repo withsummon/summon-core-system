@@ -499,7 +499,7 @@ def test_assistant_document_action_routes_requests_and_reuses_template_choice(
     create_user,
     monkeypatch,
 ):
-    from plane.summon.services.automation import ensure_default_templates
+    from plane.summon.services.automation_templates import ensure_default_templates
 
     ensure_default_templates(workspace)
     project = visible_project(workspace, create_user, "DOC")
@@ -574,7 +574,7 @@ def test_assistant_document_action_confirmation_and_retry_reuse_one_job(
     create_user,
     monkeypatch,
 ):
-    from plane.summon.services.automation import ensure_default_templates
+    from plane.summon.services.automation_templates import ensure_default_templates
 
     ensure_default_templates(workspace)
     template = AutomationTemplate.objects.get(workspace=workspace, type="mom_summon")
@@ -734,7 +734,7 @@ def test_assistant_document_action_revalidates_project_template_sources_and_canc
     assistant_file_storage,
     monkeypatch,
 ):
-    from plane.summon.services.automation import ensure_default_templates
+    from plane.summon.services.automation_templates import ensure_default_templates
 
     ensure_default_templates(workspace)
     template = AutomationTemplate.objects.get(workspace=workspace, type="mom_summon")
