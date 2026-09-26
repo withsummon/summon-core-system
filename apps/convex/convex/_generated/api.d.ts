@@ -14,6 +14,13 @@ import type * as assets_content from "../assets/content.js";
 import type * as assets_http from "../assets/http.js";
 import type * as assets_index from "../assets/index.js";
 import type * as assets_upload from "../assets/upload.js";
+import type * as assistant_access from "../assistant/access.js";
+import type * as assistant_actions from "../assistant/actions.js";
+import type * as assistant_context from "../assistant/context.js";
+import type * as assistant_http from "../assistant/http.js";
+import type * as assistant_index from "../assistant/index.js";
+import type * as assistant_messages from "../assistant/messages.js";
+import type * as assistant_provider from "../assistant/provider.js";
 import type * as auth from "../auth.js";
 import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
@@ -40,6 +47,7 @@ import type * as tasks_index from "../tasks/index.js";
 import type * as tasks_labels from "../tasks/labels.js";
 import type * as tasks_properties from "../tasks/properties.js";
 import type * as tasks_states from "../tasks/states.js";
+import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
@@ -51,6 +59,13 @@ declare const fullApi: ApiFromModules<{
   "assets/http": typeof assets_http;
   "assets/index": typeof assets_index;
   "assets/upload": typeof assets_upload;
+  "assistant/access": typeof assistant_access;
+  "assistant/actions": typeof assistant_actions;
+  "assistant/context": typeof assistant_context;
+  "assistant/http": typeof assistant_http;
+  "assistant/index": typeof assistant_index;
+  "assistant/messages": typeof assistant_messages;
+  "assistant/provider": typeof assistant_provider;
   auth: typeof auth;
   "commercial/clients": typeof commercial_clients;
   "commercial/contacts": typeof commercial_contacts;
@@ -77,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/labels": typeof tasks_labels;
   "tasks/properties": typeof tasks_properties;
   "tasks/states": typeof tasks_states;
+  "tasks/status": typeof tasks_status;
   "workspaces/index": typeof workspaces_index;
 }>;
 
