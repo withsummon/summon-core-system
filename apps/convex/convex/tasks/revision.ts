@@ -1,3 +1,4 @@
+import { recordTaskEvent } from "../notifications/delivery";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -7,7 +8,7 @@ export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: numbe
 }
 export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId: Id<"users">) {
   await ctx.db.patch(task._id, { updatedAt: Math.max(Date.now(), task.updatedAt + 1) });
-  await ctx.db.insert("taskEvents", {
+  await recordTaskEvent(ctx, {
     workspaceId: task.workspaceId,
     projectId: task.projectId,
     taskId: task._id,

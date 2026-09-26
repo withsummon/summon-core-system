@@ -34,9 +34,22 @@ import type * as documents_index from "../documents/index.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
+import type * as mcp_access from "../mcp/access.js";
+import type * as mcp_client from "../mcp/client.js";
+import type * as mcp_credentials from "../mcp/credentials.js";
+import type * as mcp_crypto from "../mcp/crypto.js";
+import type * as mcp_invocations from "../mcp/invocations.js";
+import type * as mcp_sensitive from "../mcp/sensitive.js";
+import type * as mcp_sensitiveAccess from "../mcp/sensitiveAccess.js";
+import type * as mcp_stepUp from "../mcp/stepUp.js";
+import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_transport from "../mcp/transport.js";
+import type * as mcp_vault from "../mcp/vault.js";
 import type * as meetings_access from "../meetings/access.js";
 import type * as meetings_index from "../meetings/index.js";
 import type * as meetings_tasks from "../meetings/tasks.js";
+import type * as notifications_delivery from "../notifications/delivery.js";
+import type * as notifications_index from "../notifications/index.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
 import type * as reporting_commercial from "../reporting/commercial.js";
@@ -50,51 +63,25 @@ import type * as resources_index from "../resources/index.js";
 import type * as settings_index from "../settings/index.js";
 import type * as tasks_assignees from "../tasks/assignees.js";
 import type * as tasks_center from "../tasks/center.js";
+import type * as tasks_description from "../tasks/description.js";
+import type * as tasks_hierarchy from "../tasks/hierarchy.js";
 import type * as tasks_index from "../tasks/index.js";
 import type * as tasks_labels from "../tasks/labels.js";
 import type * as tasks_properties from "../tasks/properties.js";
+import type * as tasks_relationships from "../tasks/relationships.js";
+import type * as tasks_revision from "../tasks/revision.js";
+import type * as tasks_rich_content from "../tasks/rich_content.js";
 import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
-import type * as mcp_access from "../mcp/access.js";
-import type * as mcp_client from "../mcp/client.js";
-import type * as mcp_credentials from "../mcp/credentials.js";
-import type * as mcp_crypto from "../mcp/crypto.js";
-import type * as mcp_invocations from "../mcp/invocations.js";
-import type * as mcp_tools from "../mcp/tools.js";
-import type * as mcp_transport from "../mcp/transport.js";
-import type * as mcp_vault from "../mcp/vault.js";
-
-import type * as tasks_description from "../tasks/description.js";
-import type * as tasks_hierarchy from "../tasks/hierarchy.js";
-import type * as tasks_relationships from "../tasks/relationships.js";
-import type * as tasks_revision from "../tasks/revision.js";
-import type * as tasks_rich_content from "../tasks/rich_content.js";
-
-import type * as mcp_sensitive from "../mcp/sensitive.js";
-import type * as mcp_sensitiveAccess from "../mcp/sensitiveAccess.js";
-import type * as mcp_stepUp from "../mcp/stepUp.js";
-
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "mcp/sensitive": typeof mcp_sensitive;
-  "mcp/sensitiveAccess": typeof mcp_sensitiveAccess;
-  "mcp/stepUp": typeof mcp_stepUp;
-  "tasks/description": typeof tasks_description;
-  "tasks/hierarchy": typeof tasks_hierarchy;
-  "tasks/relationships": typeof tasks_relationships;
-  "tasks/revision": typeof tasks_revision;
-  "tasks/rich_content": typeof tasks_rich_content;
-  "mcp/access": typeof mcp_access;
-  "mcp/client": typeof mcp_client;
-  "mcp/credentials": typeof mcp_credentials;
-  "mcp/crypto": typeof mcp_crypto;
-  "mcp/invocations": typeof mcp_invocations;
-  "mcp/tools": typeof mcp_tools;
-  "mcp/transport": typeof mcp_transport;
-  "mcp/vault": typeof mcp_vault;
   "assets/access": typeof assets_access;
   "assets/cleanup": typeof assets_cleanup;
   "assets/content": typeof assets_content;
@@ -121,9 +108,22 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;
+  "mcp/access": typeof mcp_access;
+  "mcp/client": typeof mcp_client;
+  "mcp/credentials": typeof mcp_credentials;
+  "mcp/crypto": typeof mcp_crypto;
+  "mcp/invocations": typeof mcp_invocations;
+  "mcp/sensitive": typeof mcp_sensitive;
+  "mcp/sensitiveAccess": typeof mcp_sensitiveAccess;
+  "mcp/stepUp": typeof mcp_stepUp;
+  "mcp/tools": typeof mcp_tools;
+  "mcp/transport": typeof mcp_transport;
+  "mcp/vault": typeof mcp_vault;
   "meetings/access": typeof meetings_access;
   "meetings/index": typeof meetings_index;
   "meetings/tasks": typeof meetings_tasks;
+  "notifications/delivery": typeof notifications_delivery;
+  "notifications/index": typeof notifications_index;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
   "reporting/commercial": typeof reporting_commercial;
@@ -137,9 +137,14 @@ declare const fullApi: ApiFromModules<{
   "settings/index": typeof settings_index;
   "tasks/assignees": typeof tasks_assignees;
   "tasks/center": typeof tasks_center;
+  "tasks/description": typeof tasks_description;
+  "tasks/hierarchy": typeof tasks_hierarchy;
   "tasks/index": typeof tasks_index;
   "tasks/labels": typeof tasks_labels;
   "tasks/properties": typeof tasks_properties;
+  "tasks/relationships": typeof tasks_relationships;
+  "tasks/revision": typeof tasks_revision;
+  "tasks/rich_content": typeof tasks_rich_content;
   "tasks/states": typeof tasks_states;
   "tasks/status": typeof tasks_status;
   "workspaces/index": typeof workspaces_index;
@@ -153,7 +158,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -163,6 +171,9 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {};

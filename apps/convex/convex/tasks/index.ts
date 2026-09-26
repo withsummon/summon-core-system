@@ -1,3 +1,4 @@
+import { recordTaskEvent } from "../notifications/delivery";
 import { syncPlainDescription } from "./description";
 import { requireParent, checkAncestors } from "./hierarchy";
 import { taskChanged } from "./revision";
@@ -69,13 +70,14 @@ export const create = mutation({
       createdBy: user._id,
       updatedAt: Date.now(),
     });
+    await ctx.db.insert("taskSubscriptions", { taskId, userId: user._id });
     if (parent) {
       await checkAncestors(ctx, taskId, parent);
       await ctx.db.insert("taskParents", { projectId: project._id, childId: taskId, parentId: parent._id });
       await taskChanged(ctx, parent, user._id);
     }
     await ctx.db.patch(project._id, { nextSequence: project.nextSequence + 1 });
-    await ctx.db.insert("taskEvents", {
+    await recordTaskEvent(ctx, {
       workspaceId: project.workspaceId,
       projectId: project._id,
       taskId,
@@ -131,7 +133,7 @@ export const update = mutation({
       completedAt,
       updatedAt: Math.max(Date.now(), task.updatedAt + 1),
     });
-    await ctx.db.insert("taskEvents", {
+    await recordTaskEvent(ctx, {
       workspaceId: task.workspaceId,
       projectId: task.projectId,
       taskId,
