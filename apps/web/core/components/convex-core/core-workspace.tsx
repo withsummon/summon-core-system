@@ -19,6 +19,7 @@ const Documents = lazy(() => import("./documents/documents").then((module) => ({
 const WorkspaceSettings = lazy(() =>
   import("./workspace-settings").then((module) => ({ default: module.WorkspaceSettings }))
 );
+const Assistant = lazy(() => import("./assistant/assistant-module").then((module) => ({ default: module.Assistant })));
 const Meetings = lazy(() => import("./meetings/meeting-module").then((module) => ({ default: module.Meetings })));
 
 export function CoreWorkspace() {
@@ -275,6 +276,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "opportunities", label: "Opportunities" },
           { id: "documents", label: "Documents" },
           { id: "meetings", label: "Meetings" },
+          { id: "assistant", label: "Assistant" },
           { id: "settings", label: "Settings" },
         ].map((item) => (
           <Button
@@ -287,7 +289,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "documents" ? (
+        {module === "assistant" ? (
+          <Assistant workspace={workspace} />
+        ) : module === "documents" ? (
           <Documents workspace={workspace} />
         ) : module === "meetings" ? (
           <Meetings workspace={workspace} />
