@@ -18,7 +18,7 @@ Task contributions include completed/overdue/due-in-seven-days/later/no-date and
 
 ## Remaining scope
 
-No native CSV export, automatic atomic report snapshots, accounting/ledger/invoice/expense reports, automation job usage, milestone/cycle reports, file counts, recent activity feed, or full legacy overview assembly. Existing resources/meetings/document APIs can supply their own paginated panels; no missing domain is represented as a misleading zero. Archived/deleted scope exclusions follow native owners. There is no justification to retire legacy reporting consumers yet.
+No automatic atomic report snapshots, accounting/ledger/invoice/expense reports, automation job usage, milestone/cycle reports, file counts, recent activity feed, or full legacy overview assembly. The native frontend can export completed supported contributions to CSV; legacy client-status/file/automation/activity rows are explicitly omitted. Existing resources/meetings/document APIs can supply their own paginated panels; no missing domain is represented as a misleading zero. Archived/deleted scope exclusions follow native owners. There is no justification to retire legacy reporting consumers yet.
 
 ## Verification
 

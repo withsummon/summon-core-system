@@ -5,7 +5,9 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-import { loadReport, type LoadedReport, type ReportScope } from "./load-report";
+import { loadReport, type ReportScope } from "./load-report";
+import { csvDownload } from "@plane/utils";
+import { completedReport, reportCsvRows, type CompleteReport } from "./summary";
 import { ReportResults } from "./report-results";
 const selectClass = "h-10 w-full rounded-md border border-subtle-1 bg-surface-1 px-3 text-14";
 export function Reports({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
@@ -143,13 +145,13 @@ export function Reports({ workspace }: { workspace: FunctionReturnType<typeof ap
 }
 function ReportRun({ scope }: { scope: ReportScope }) {
   const client = useConvex();
-  const [result, setResult] = useState<LoadedReport | null>(null);
+  const [result, setResult] = useState<CompleteReport | null>(null);
   const [pages, setPages] = useState(0);
   const [error, setError] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     void loadReport(client, scope, controller.signal, () => setPages((value) => value + 1))
-      .then(setResult)
+      .then((report) => setResult(completedReport(report, scope)))
       .catch(() => {
         if (!controller.signal.aborted) {
           setError(true);
@@ -175,7 +177,15 @@ function ReportRun({ scope }: { scope: ReportScope }) {
       <p role="status" className="text-12 text-secondary">
         All pages loaded · Changes made during loading may affect this report. Refresh for updated results.
       </p>
-      <ReportResults report={result} />
+      <Button
+        variant="secondary"
+        onClick={() =>
+          csvDownload(reportCsvRows(result), `summon-report-${scope.today}`, { formulaProtection: "text" })
+        }
+      >
+        Download CSV
+      </Button>
+      <ReportResults report={result.summary} />
       <p className="border-t border-subtle-1 pt-4 text-12 text-secondary">
         Includes delivery, commercial, documents and meetings. Accounting, files and automation usage are not included.
       </p>

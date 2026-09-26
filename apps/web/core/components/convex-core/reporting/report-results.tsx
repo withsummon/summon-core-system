@@ -1,5 +1,4 @@
-import type { LoadedReport } from "./load-report";
-import { sumAmounts } from "./pages";
+import type { ReportSummary } from "./summary";
 
 const label = (value: string) => value.replaceAll("_", " ");
 function Metric({ name, value }: { name: string; value: number | string }) {
@@ -10,19 +9,8 @@ function Metric({ name, value }: { name: string; value: number | string }) {
     </div>
   );
 }
-export function ReportResults({ report }: { report: LoadedReport }) {
-  const tasks = report.tasks.reduce(
-    (sum, part) => ({
-      total: sum.total + part.total,
-      completed: sum.completed + part.completed,
-      overdue: sum.overdue + part.overdue,
-      dueInSevenDays: sum.dueInSevenDays + part.dueInSevenDays,
-      later: sum.later + part.later,
-      noDueDate: sum.noDueDate + part.noDueDate,
-    }),
-    { total: 0, completed: 0, overdue: 0, dueInSevenDays: 0, later: 0, noDueDate: 0 }
-  );
-  const projects = report.projects.flatMap((part) => part.projects);
+export function ReportResults({ report }: { report: ReportSummary }) {
+  const { tasks, projects } = report;
   return (
     <div className="space-y-8">
       <section aria-labelledby="delivery-report">
@@ -45,13 +33,10 @@ export function ReportResults({ report }: { report: LoadedReport }) {
             Commercial
           </h2>
           <dl className="grid grid-cols-2 gap-5">
-            <Metric name="Clients" value={report.clients.reduce((sum, part) => sum + part.count, 0)} />
-            <Metric name="Opportunities" value={report.opportunities.reduce((sum, part) => sum + part.count, 0)} />
+            <Metric name="Clients" value={report.clients} />
+            <Metric name="Opportunities" value={report.opportunities} />
             <div className="col-span-2">
-              <Metric
-                name="Open pipeline value"
-                value={sumAmounts(report.opportunities.map((part) => part.pipelineValue))}
-              />
+              <Metric name="Open pipeline value" value={report.pipelineValue} />
             </div>
           </dl>
         </section>
@@ -60,13 +45,12 @@ export function ReportResults({ report }: { report: LoadedReport }) {
             Knowledge & meetings
           </h2>
           <dl className="grid grid-cols-2 gap-5">
-            <Metric name="Documents" value={report.documents.reduce((sum, part) => sum + part.count, 0)} />
-            <Metric name="Meetings" value={report.meetings.reduce((sum, part) => sum + part.total, 0)} />
+            <Metric name="Documents" value={report.documents} />
+            <Metric name="Meetings" value={report.meetings} />
           </dl>
           <p className="mt-4 text-14 text-secondary">
-            {report.meetings.reduce((sum, part) => sum + part.statuses.scheduled, 0)} scheduled ·{" "}
-            {report.meetings.reduce((sum, part) => sum + part.statuses.completed, 0)} completed ·{" "}
-            {report.meetings.reduce((sum, part) => sum + part.statuses.cancelled, 0)} cancelled
+            {report.meetingStatuses.scheduled} scheduled · {report.meetingStatuses.completed} completed ·{" "}
+            {report.meetingStatuses.cancelled} cancelled
           </p>
         </section>
       </div>
