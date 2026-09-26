@@ -141,11 +141,14 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
 function CollaborativeDocumentEditor(props: ICollaborativeDocumentEditorProps) {
   const { id, realtimeConfig, serverHandler, user } = props;
 
-  const token = useMemo(() => JSON.stringify(user), [user]);
+  const token = useMemo(() => realtimeConfig.authToken ?? JSON.stringify(user), [realtimeConfig.authToken, user]);
 
   return (
     <CollaborationProvider
-      docId={id}
+      docId={realtimeConfig.roomName ?? id}
+      cacheKey={realtimeConfig.cacheKey}
+      persistOffline={realtimeConfig.persistOffline}
+      onStateless={realtimeConfig.onStateless}
       serverUrl={realtimeConfig.url}
       authToken={token}
       onStateChange={serverHandler?.onStateChange}

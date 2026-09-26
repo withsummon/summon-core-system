@@ -15,6 +15,8 @@ const Opportunities = lazy(() =>
   import("./commercial/opportunities").then((module) => ({ default: module.Opportunities }))
 );
 
+const Documents = lazy(() => import("./documents/documents").then((module) => ({ default: module.Documents })));
+
 export function CoreWorkspace() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   if (isLoading)
@@ -267,6 +269,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "projects", label: "Projects" },
           { id: "clients", label: "Clients" },
           { id: "opportunities", label: "Opportunities" },
+          { id: "documents", label: "Documents" },
         ].map((item) => (
           <Button
             key={item.id}
@@ -278,7 +281,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "clients" ? (
+        {module === "documents" ? (
+          <Documents workspace={workspace} />
+        ) : module === "clients" ? (
           <Clients workspace={workspace} />
         ) : module === "opportunities" ? (
           <Opportunities workspace={workspace} />

@@ -66,7 +66,13 @@ export const collaborationContext = query({
       !document.isLocked &&
       !document.archived &&
       (await canAccessDocument(ctx, document, user._id, true));
-    return { documentId, userId: user._id, name: user.name ?? null, documentName: document.name, canWrite };
+    return {
+      documentId,
+      userId: user._id,
+      name: user.name ?? user.email ?? null,
+      documentName: document.name,
+      canWrite,
+    };
   },
 });
 export const list = query({

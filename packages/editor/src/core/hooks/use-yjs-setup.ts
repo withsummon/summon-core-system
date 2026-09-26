@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { HocuspocusProviderConfiguration } from "@hocuspocus/provider";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 // react
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,7 +25,10 @@ const isForcedCloseCode = (code: number | undefined): boolean => {
 type UseYjsSetupArgs = {
   docId: string;
   serverUrl: string;
-  authToken: string;
+  authToken: HocuspocusProviderConfiguration["token"];
+  cacheKey?: string;
+  persistOffline?: boolean;
+  onStateless?: (payload: string) => void;
   onStateChange?: (state: CollaborationState) => void;
   options?: {
     maxConnectionAttempts?: number;
@@ -33,7 +37,17 @@ type UseYjsSetupArgs = {
 
 const DEFAULT_MAX_RETRIES = 3;
 
-export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseYjsSetupArgs) => {
+export const useYjsSetup = ({
+  docId,
+  serverUrl,
+  authToken,
+  cacheKey = docId,
+  persistOffline = true,
+  onStateless,
+  onStateChange,
+}: UseYjsSetupArgs) => {
+  const statelessRef = useRef(onStateless);
+  statelessRef.current = onStateless;
   // Current collaboration stage
   const [stage, setStage] = useState<CollabStage>({ kind: "initial" });
 
@@ -62,6 +76,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
     const provider = new HocuspocusProvider({
       name: docId,
       token: authToken,
+      onStateless: ({ payload }) => statelessRef.current?.(payload),
       url: serverUrl,
       onAuthenticationFailed: () => {
         if (isDisposedRef.current) return;
@@ -160,7 +175,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         setStage(newStage);
 
         retryCountRef.current = 0;
-        forcedCloseSignalRef.current = false;
+        forcedCloseSignalRef.current = true;
 
         // Only pause if it's a real forced close (not manual disconnect)
         // Manual disconnect leaves it as is (shouldConnect=false already set if manual)
@@ -197,7 +212,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
 
     // Handle page visibility changes (sleep/wake, tab switching)
     const handleVisibilityChange = (event?: Event) => {
-      if (isDisposedRef.current) return;
+      if (isDisposedRef.current || forcedCloseSignalRef.current) return;
 
       const isVisible = document.visibilityState === "visible";
       const isFocus = event?.type === "focus";
@@ -238,7 +253,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
 
     // Handle online/offline events
     const handleOnline = () => {
-      if (isDisposedRef.current) return;
+      if (isDisposedRef.current || forcedCloseSignalRef.current) return;
 
       const wsProvider = provider.configuration.websocketProvider;
       if (wsProvider) {
@@ -269,9 +284,9 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
 
   // IndexedDB persistence lifecycle
   useEffect(() => {
-    if (!yjsSession) return;
+    if (!yjsSession || !persistOffline) return;
 
-    const idbPersistence = new IndexeddbPersistence(docId, yjsSession.provider.document);
+    const idbPersistence = new IndexeddbPersistence(cacheKey, yjsSession.provider.document);
 
     const onIdbSynced = () => {
       const yFragment = idbPersistence.doc.getXmlFragment("default");
@@ -290,7 +305,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         console.error(`Error destroying local provider:`, error);
       }
     };
-  }, [docId, yjsSession]);
+  }, [cacheKey, yjsSession, persistOffline]);
 
   // Observe Y.Doc content changes to update hasCachedContent (catches fallback scenario)
   useEffect(() => {
