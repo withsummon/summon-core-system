@@ -10,6 +10,10 @@ import { SummonField } from "@/components/summon/forms";
 import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
+const Reports = lazy(() => import("./reporting/reports").then((module) => ({ default: module.Reports })));
+const ProjectOverview = lazy(() =>
+  import("./reporting/project-overview").then((module) => ({ default: module.ProjectOverview }))
+);
 const Clients = lazy(() => import("./commercial/clients").then((module) => ({ default: module.Clients })));
 const Opportunities = lazy(() =>
   import("./commercial/opportunities").then((module) => ({ default: module.Opportunities }))
@@ -194,6 +198,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
           {project.membershipRole === "admin" && project.workspaceRole !== "guest" && (
             <Membership key={project._id} scope={{ kind: "project", projectId: project._id }} />
           )}
+          <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />
           <ProjectTasks key={project._id} project={project} />
         </div>
       ) : workspace.membershipRole !== "admin" ? (
@@ -277,6 +282,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "documents", label: "Documents" },
           { id: "meetings", label: "Meetings" },
           { id: "assistant", label: "Assistant" },
+          { id: "reports", label: "Reports" },
           { id: "settings", label: "Settings" },
         ].map((item) => (
           <Button
@@ -289,7 +295,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "assistant" ? (
+        {module === "reports" ? (
+          <Reports workspace={workspace} />
+        ) : module === "assistant" ? (
           <Assistant workspace={workspace} />
         ) : module === "documents" ? (
           <Documents workspace={workspace} />
