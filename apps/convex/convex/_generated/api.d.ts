@@ -57,9 +57,26 @@ import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
+import type * as mcp_access from "../mcp/access.js";
+import type * as mcp_client from "../mcp/client.js";
+import type * as mcp_credentials from "../mcp/credentials.js";
+import type * as mcp_crypto from "../mcp/crypto.js";
+import type * as mcp_invocations from "../mcp/invocations.js";
+import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_transport from "../mcp/transport.js";
+import type * as mcp_vault from "../mcp/vault.js";
+
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "mcp/access": typeof mcp_access;
+  "mcp/client": typeof mcp_client;
+  "mcp/credentials": typeof mcp_credentials;
+  "mcp/crypto": typeof mcp_crypto;
+  "mcp/invocations": typeof mcp_invocations;
+  "mcp/tools": typeof mcp_tools;
+  "mcp/transport": typeof mcp_transport;
+  "mcp/vault": typeof mcp_vault;
   "assets/access": typeof assets_access;
   "assets/cleanup": typeof assets_cleanup;
   "assets/content": typeof assets_content;
