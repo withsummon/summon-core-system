@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as meetings_access from "../meetings/access.js";
+import type * as meetings_index from "../meetings/index.js";
+import type * as meetings_tasks from "../meetings/tasks.js";
 import type * as auth from "../auth.js";
 import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
@@ -30,6 +33,9 @@ import type * as workspaces_index from "../workspaces/index.js";
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "meetings/access": typeof meetings_access;
+  "meetings/index": typeof meetings_index;
+  "meetings/tasks": typeof meetings_tasks;
   auth: typeof auth;
   "commercial/clients": typeof commercial_clients;
   "commercial/contacts": typeof commercial_contacts;
