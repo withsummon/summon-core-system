@@ -1,0 +1,37 @@
+services:
+  backend:
+    image: ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8
+    restart: unless-stopped
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    ports:
+      - "127.0.0.1:3210:3210"
+      - "127.0.0.1:3211:3211"
+    volumes:
+      - data:/convex/data
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME:?Set a unique instance name}
+      INSTANCE_SECRET: ${INSTANCE_SECRET:?Set a random instance secret}
+      CONVEX_CLOUD_ORIGIN: ${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+      CONVEX_SITE_ORIGIN: ${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
+      DISABLE_BEACON: "true"
+      DISABLE_METRICS_ENDPOINT: "true"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard@sha256:4ebaebfd300c203753e5016be459a2408d1655b81beeb2b793229a6878f1ac45
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6791:6791"
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: ${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  data:
