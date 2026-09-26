@@ -17,7 +17,7 @@ const due = v.union(
   v.literal("completed")
 );
 function matchesScope(task: Doc<"tasks">, selected: Infer<typeof scope>, userId: Id<"users">) {
-  const assignees = task.assigneeIds ?? [];
+  const assignees = task.assigneeIds;
   const matches = {
     all: true,
     mine: assignees.includes(userId),
@@ -74,7 +74,7 @@ export const list = query({
         if (!membership?.active) return null;
         const matches = [
           !args.projectId || task.projectId === args.projectId,
-          !args.priority || (task.priority ?? "none") === args.priority,
+          !args.priority || task.priority === args.priority,
           matchesScope(task, args.scope, user._id),
           matchesDue(task, args.due, args.today),
           `${task.title} ${project.name} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search),

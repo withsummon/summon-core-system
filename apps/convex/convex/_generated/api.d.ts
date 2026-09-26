@@ -32,7 +32,6 @@ import type * as tasks_assignees from "../tasks/assignees.js";
 import type * as tasks_center from "../tasks/center.js";
 import type * as tasks_index from "../tasks/index.js";
 import type * as tasks_labels from "../tasks/labels.js";
-import type * as tasks_migrations from "../tasks/migrations.js";
 import type * as tasks_properties from "../tasks/properties.js";
 import type * as tasks_states from "../tasks/states.js";
 import type * as workspaces_index from "../workspaces/index.js";
@@ -64,7 +63,6 @@ declare const fullApi: ApiFromModules<{
   "tasks/center": typeof tasks_center;
   "tasks/index": typeof tasks_index;
   "tasks/labels": typeof tasks_labels;
-  "tasks/migrations": typeof tasks_migrations;
   "tasks/properties": typeof tasks_properties;
   "tasks/states": typeof tasks_states;
   "workspaces/index": typeof workspaces_index;

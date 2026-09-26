@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import type { FunctionArgs } from "convex/server";
 const properties = {
@@ -186,30 +186,6 @@ describe("task properties", () => {
       })
     ).rejects.toThrow("must match");
   });
-  test("the bounded internal backfill preserves old task identity and status", async () => {
-    const { t, owner, workspaceId, projectId, userId } = await workspaceJourney();
-    const taskId = await t.run((ctx) =>
-      ctx.db.insert("tasks", {
-        workspaceId,
-        projectId,
-        title: "First slice",
-        description: "",
-        status: "done",
-        sequence: 5,
-        createdBy: userId,
-        updatedAt: 12345,
-      })
-    );
-    const result = await t.mutation(internal.tasks.migrations.backfillProperties, { cursor: null });
-    expect(result.isDone).toBe(true);
-    expect(await owner.query(api.tasks.index.get, { taskId })).toMatchObject({
-      ...properties,
-      _id: taskId,
-      status: "done",
-      sequence: 5,
-      completedAt: 12345,
-    });
-  });
 });
 describe("project task taxonomy", () => {
   test("project defaults are unique and new tasks use the current default custom state", async () => {
@@ -354,4 +330,24 @@ describe("workspace task center", () => {
     });
     expect(second.page.map((row) => row.task._id)).toEqual([taskId]);
   });
+});
+
+test("task URL resolution parses IDs at the owner and does not bypass project access", async () => {
+  const { t, owner, projectId, workspaceId } = await workspaceJourney();
+  const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Private detail" });
+  expect(await owner.query(api.tasks.index.resolve, { taskId })).toMatchObject({ _id: taskId });
+  await expect(owner.query(api.tasks.index.resolve, { taskId: "untrusted-route-value" })).rejects.toThrow("not found");
+  const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Workspace admin only" }));
+  await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "admin" });
+  const other = t.withIdentity({ subject: otherId });
+  await expect(other.query(api.tasks.index.resolve, { taskId })).rejects.toThrow("access");
+  await expect(
+    other.mutation(api.tasks.index.update, {
+      taskId,
+      title: "Unauthorized",
+      description: "",
+      status: "todo",
+      ...properties,
+    })
+  ).rejects.toThrow("access");
 });

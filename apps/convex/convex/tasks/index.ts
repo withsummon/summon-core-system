@@ -112,7 +112,7 @@ export const update = mutation({
     const { data, state } = await validateProperties(ctx, project, properties);
     if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
     const statusChanged = task.status !== requestedStatus || task.stateId !== data.stateId;
-    const completedAt = statusChanged ? (requestedStatus === "done" ? Date.now() : null) : (task.completedAt ?? null);
+    const completedAt = statusChanged ? (requestedStatus === "done" ? Date.now() : null) : task.completedAt;
     await ctx.db.patch(taskId, {
       ...data,
       title,

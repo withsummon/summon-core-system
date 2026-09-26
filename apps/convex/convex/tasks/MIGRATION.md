@@ -12,18 +12,23 @@ Assignees must be active writers in the project and workspace. Invalid assignee/
 
 ## Existing first-slice records
 
-New writes populate all extended properties. The schema temporarily allows missing properties solely because local first-slice and benchmark task records already exist.
+The additive migration and its behavioral test are recorded in commit `8e5d49e123`. The primary agent deployed that version locally and ran the bounded internal backfill to completion. The receipt at `/tmp/summon-migration-control/task-properties-backfill.json` was read back before tightening the schema:
 
-1. Deploy the additive schema/functions.
-2. Run internal `tasks/migrations:backfillProperties` with `{ "cursor": null }`, then each returned cursor until `isDone`.
-3. Verify every page completes. Existing IDs, sequences, statuses, and creation attribution are preserved. Old done tasks use their last first-slice `updatedAt` as completion time; this is the available first-slice evidence, not reconstructed history.
-4. Make extended task properties required, remove `backfillProperties`, and remove its transitional defaults in task center/update. Keep the behavioral migration evidence in the change record.
+```json
+{
+  "deployment": "http://127.0.0.1:3210",
+  "controlCommit": "8e5d49e123",
+  "migrated": 1001,
+  "pages": 11,
+  "isDone": true
+}
+```
 
-No deployment or backfill was performed by this subtask.
+Task properties are now required by the schema. The temporary backfill function, optional properties, and transitional read defaults are removed. Existing IDs, sequences, statuses, and creation attribution were preserved. Old done tasks use their last first-slice `updatedAt` as completion time; this is available first-slice evidence, not reconstructed history. This receipt concerns the local instance only. Any other instance with old task records must first run the additive commit's backfill before adopting this required schema.
 
 ## Verification and review
 
-The original task authorization, pagination-budget, concurrency, and retry tests remain in `__tests__/journey.test.ts`. `__tests__/properties.test.ts` adds native-boundary scenarios for property persistence, completion/reopen, invalid references/dates, assignment authority, custom-state defaults/lifecycle, role restrictions, backfill, workspace filtering, and empty-page continuation.
+The original task authorization, pagination-budget, concurrency, and retry tests remain in `__tests__/journey.test.ts`. `__tests__/properties.test.ts` adds native-boundary scenarios for property persistence, completion/reopen, invalid references/dates, assignment authority, custom-state defaults/lifecycle, role restrictions, workspace filtering, and empty-page continuation.
 
 Owner review: task creation complexity 12, reference validation 12, state save 16; others at most 10. The state save warning is a justified owner complexity: one transaction validates identity, name uniqueness, project authority, finite ordering, populated-group immutability, unique default selection, and the bounded state catalog. Guard clauses keep those independent decisions visible; splitting the atomic workflow into generic wrappers would not remove them. No function exceeds 20. No lint suppression was added.
 
