@@ -7,10 +7,11 @@
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List, Clock } from "lucide-react";
+import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { useProject } from "@/hooks/store/use-project";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { Select } from "@plane/propel/select";
 
 interface IDocumentsRootProps {
   workspaceSlug: string;
@@ -142,18 +143,15 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <select
+          <Select
             value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="text-xs shadow-xs focus:border-accent-primary h-9 cursor-pointer rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-primary focus:outline-none"
-          >
-            <option value="all">All Projects</option>
-            {projectsList.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setSelectedProjectId(value)}
+            className="w-auto min-w-40"
+            options={[
+              { value: "all", label: "All Projects" },
+              ...projectsList.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
 
           <div className="shadow-xs flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5">
             <button

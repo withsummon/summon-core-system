@@ -83,7 +83,7 @@ test("Automation renders editable files without coupling them to Plane Page publ
   assert.match(detailSource, /docx: "DOCX"/);
   assert.match(detailSource, /xlsx: "XLSX"/);
   assert.match(detailSource, /pptx: "PPTX"/);
-  assert.match(source, /data\?\.templates\.map/);
+  assert.match(source, /\(data\?\.templates \?\? \[\]\)\.map/);
   assert.match(detailSource, /pageArtifact/);
   assert.match(detailSource, /fileArtifacts/);
   assert.doesNotMatch(detailSource, /disabled=\{[^}]*artifacts\.length/);

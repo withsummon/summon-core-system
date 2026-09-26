@@ -12,18 +12,9 @@ export function SummonFilterRow({ children }: { children: ReactNode }) {
 
 export function SummonField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="text-xs flex min-w-0 flex-col gap-1.5 font-medium text-secondary">
+    <label className="flex min-w-0 flex-col gap-1.5 text-12 font-medium text-secondary">
       {label}
       {children}
     </label>
-  );
-}
-
-export function SummonSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={`text-sm h-9 rounded-md border border-strong bg-surface-1 px-3 text-primary outline-none focus:border-accent-strong ${props.className ?? ""}`}
-    />
   );
 }

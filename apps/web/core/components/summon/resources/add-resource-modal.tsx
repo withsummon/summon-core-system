@@ -7,6 +7,8 @@
 import React, { useState } from "react";
 import { X, Plus, Link2 } from "lucide-react";
 import type { ICreateResourcePayload } from "./types";
+import { Select } from "@plane/propel/select";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 
 interface IAddResourceModalProps {
   isOpen: boolean;
@@ -23,8 +25,6 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +52,11 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="shadow-2xl flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Panel
+        width={EDialogWidth.LG}
+        className="flex max-h-[90vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-subtle px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -61,14 +64,15 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               <Link2 className="size-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-primary">Add New Resource Link</h2>
+              <Dialog.Title className="text-16 font-bold text-primary">Add New Resource Link</Dialog.Title>
               <p className="text-xs text-secondary">Save an external link, document, or repository reference</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-secondary hover:bg-layer-1 hover:text-primary"
+            aria-label="Close"
+            className="grid size-10 place-items-center rounded-lg text-secondary hover:bg-layer-1 hover:text-primary"
           >
             <X className="size-5" />
           </button>
@@ -93,7 +97,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Technical Proposal - BSB v1.2.pdf"
-              className="text-xs focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-primary focus:outline-none"
+              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
             />
           </div>
 
@@ -108,7 +112,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="text-xs focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-primary focus:outline-none"
+              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
             />
           </div>
 
@@ -117,39 +121,37 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               <label htmlFor="resource-category" className="text-xs block font-semibold text-primary">
                 Category / Type
               </label>
-              <select
+              <Select
                 id="resource-category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="text-xs focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-primary focus:outline-none"
-              >
-                <option value="document">Document</option>
-                <option value="repository">Repository (GitHub/GitLab)</option>
-                <option value="figma">Figma Files</option>
-                <option value="deployment">Live Deployment</option>
-                <option value="drive">Google Drive</option>
-                <option value="recording">Video Recording</option>
-                <option value="account">Account / Credential</option>
-              </select>
+                onValueChange={(value) => setCategory(value)}
+                className="mt-1"
+                options={[
+                  { value: "document", label: "Document" },
+                  { value: "repository", label: "Repository (GitHub/GitLab)" },
+                  { value: "figma", label: "Figma Files" },
+                  { value: "deployment", label: "Live Deployment" },
+                  { value: "drive", label: "Google Drive" },
+                  { value: "recording", label: "Video Recording" },
+                  { value: "account", label: "Account / Credential" },
+                ]}
+              />
             </div>
 
             <div>
               <label htmlFor="resource-project" className="text-xs block font-semibold text-primary">
                 Linked Project
               </label>
-              <select
+              <Select
                 id="resource-project"
                 value={project}
-                onChange={(e) => setProject(e.target.value)}
-                className="text-xs focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-primary focus:outline-none"
-              >
-                <option value="">No project (Global)</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) => setProject(value)}
+                className="mt-1"
+                options={[
+                  { value: "", label: "No project (Global)" },
+                  ...projects.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+              />
             </div>
           </div>
 
@@ -163,7 +165,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Context or notes about this resource..."
-              className="text-xs focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-primary focus:outline-none"
+              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
             />
           </div>
 
@@ -185,7 +187,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 }

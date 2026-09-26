@@ -8,8 +8,11 @@ test("commercial detail routes use persisted detail contracts", () => {
   assert.match(source("./clients/[clientId]/page.tsx"), /getClientDetail/);
   const opportunity = source("./opportunities/[opportunityId]/page.tsx");
   assert.match(opportunity, /getOpportunityDetail/);
-  assert.match(opportunity, /transitionOpportunity/);
-  assert.match(opportunity, /await mutate\(\)/);
+  assert.match(opportunity, /<OpportunityInspector/);
+  // The list and detail routes share one inspector, which owns the stage transition and refetch.
+  const inspector = source("../../../../../core/components/summon/opportunities/opportunity-inspector.tsx");
+  assert.match(inspector, /transitionOpportunity/);
+  assert.match(inspector, /await onChanged\(\)/);
 });
 
 test("commercial routes expose list and detail paths", () => {

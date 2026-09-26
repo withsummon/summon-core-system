@@ -26,6 +26,7 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { mergeProjectSummaries, projectHealthLabel, projectHealthTone } from "./project-workspace";
+import { Select } from "@plane/propel/select";
 
 interface IProjectsDirectoryRootProps {
   workspaceSlug: string;
@@ -202,17 +203,18 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <select
+          <Select
             value={healthFilter}
-            onChange={(e) => setHealthFilter(e.target.value)}
-            className="text-xs shadow-xs focus:border-accent-primary h-9 cursor-pointer rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-primary focus:outline-none"
-          >
-            <option value="all">All Health Status</option>
-            <option value="not_assessed">Belum dinilai</option>
-            <option value="on_track">On Track</option>
-            <option value="at_risk">At Risk</option>
-            <option value="off_track">Off Track</option>
-          </select>
+            onValueChange={(value) => setHealthFilter(value)}
+            className="w-auto min-w-40"
+            options={[
+              { value: "all", label: "All Health Status" },
+              { value: "not_assessed", label: "Belum dinilai" },
+              { value: "on_track", label: "On Track" },
+              { value: "at_risk", label: "At Risk" },
+              { value: "off_track", label: "Off Track" },
+            ]}
+          />
 
           <div className="shadow-xs flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5">
             <button

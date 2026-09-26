@@ -21,16 +21,21 @@ import {
   Mail,
   Pencil,
   Phone,
+  Plus,
   Target,
   X,
 } from "lucide-react";
 import { Button, Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
+import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+import { Select } from "@plane/propel/select";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { DatePicker } from "@plane/propel/date-picker";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "Not set";
@@ -138,6 +143,12 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           >
             <CircleEllipsis className="size-4" />
           </button>
+          <Link
+            href={opportunityCreateHref(workspaceSlug, data.id)}
+            className="text-xs inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 font-medium text-primary hover:bg-layer-1"
+          >
+            <Plus className="size-3.5" /> New opportunity
+          </Link>
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -203,7 +214,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
 
           {showTab("opportunities") ? (
             <DataSection
-              title="Active Opportunities"
+              title="Opportunities"
               action="View all opportunities"
               href={`/${workspaceSlug}/summon/opportunities/`}
             >
@@ -219,7 +230,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-subtle">
-                    {activeOpportunities.map((opportunity) => {
+                    {data.opportunities.map((opportunity) => {
                       const opportunityOwner = opportunity.owner ? getUserDetails(opportunity.owner) : undefined;
                       return (
                         <tr key={opportunity.id}>
@@ -252,10 +263,10 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                         </tr>
                       );
                     })}
-                    {!activeOpportunities.length ? (
+                    {!data.opportunities.length ? (
                       <tr>
                         <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
-                          No active opportunities linked to this client.
+                          No opportunities linked to this client.
                         </td>
                       </tr>
                     ) : null}
@@ -494,82 +505,76 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         ) : null}
       </div>
 
-      {editing ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" role="presentation">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-client-title"
-            className="shadow-2xl max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-subtle bg-surface-1 p-5"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 id="edit-client-title" className="text-lg font-semibold text-primary">
-                  Edit Client
-                </h2>
-                <p className="text-xs mt-1 text-secondary">Changes are saved to the Summon client record.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-                aria-label="Close edit client"
-              >
-                <X className="size-4" />
-              </button>
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <Dialog.Panel
+          width={EDialogWidth.XL}
+          className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Dialog.Title className="text-18 font-semibold text-primary">Edit Client</Dialog.Title>
+              <p className="text-xs mt-1 text-secondary">Changes are saved to the Summon client record.</p>
             </div>
-            <form onSubmit={updateClient} className="mt-5 grid gap-3 sm:grid-cols-2">
-              <EditField label="Client name">
-                <Input name="name" required defaultValue={data.name} />
-              </EditField>
-              <EditField label="Legal name">
-                <Input name="company_name" defaultValue={data.company_name} />
-              </EditField>
-              <EditField label="Industry">
-                <Input name="industry" defaultValue={data.industry} />
-              </EditField>
-              <EditField label="Website">
-                <Input name="website" type="url" defaultValue={data.website} />
-              </EditField>
-              <EditField label="Head office">
-                <Input name="head_office" defaultValue={data.head_office} />
-              </EditField>
-              <EditField label="Relationship started">
-                <Input name="relationship_started_at" type="date" defaultValue={data.relationship_started_at || ""} />
-              </EditField>
-              <EditField label="Status">
-                <select
-                  name="status"
-                  defaultValue={data.status}
-                  className="text-xs h-9 rounded-md border border-subtle bg-surface-1 px-3 text-primary"
-                >
-                  <option value="lead">Lead</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </EditField>
-              <label className="text-[11px] text-secondary sm:col-span-2">
-                Notes
-                <textarea
-                  name="notes"
-                  rows={4}
-                  defaultValue={data.notes}
-                  className="text-xs mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-primary"
-                />
-              </label>
-              {formError ? <p className="text-xs text-danger-primary sm:col-span-2">{formError}</p> : null}
-              <div className="flex justify-end gap-2 sm:col-span-2">
-                <Button type="button" variant="neutral-primary" onClick={() => setEditing(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" loading={saving}>
-                  Save changes
-                </Button>
-              </div>
-            </form>
-          </section>
-        </div>
-      ) : null}
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+              aria-label="Close edit client"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <form onSubmit={updateClient} className="mt-5 grid gap-3 sm:grid-cols-2">
+            <EditField label="Client name">
+              <Input name="name" required defaultValue={data.name} />
+            </EditField>
+            <EditField label="Legal name">
+              <Input name="company_name" defaultValue={data.company_name} />
+            </EditField>
+            <EditField label="Industry">
+              <Input name="industry" defaultValue={data.industry} />
+            </EditField>
+            <EditField label="Website">
+              <Input name="website" type="url" defaultValue={data.website} />
+            </EditField>
+            <EditField label="Head office">
+              <Input name="head_office" defaultValue={data.head_office} />
+            </EditField>
+            <EditField label="Relationship started">
+              <DatePicker name="relationship_started_at" defaultValue={data.relationship_started_at || ""} />
+            </EditField>
+            <EditField label="Status">
+              <Select
+                name="status"
+                defaultValue={data.status}
+                options={[
+                  { value: "lead", label: "Lead" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
+            </EditField>
+            <label className="text-[11px] text-secondary sm:col-span-2">
+              Notes
+              <textarea
+                name="notes"
+                rows={4}
+                defaultValue={data.notes}
+                className="text-xs mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-primary"
+              />
+            </label>
+            {formError ? <p className="text-xs text-danger-primary sm:col-span-2">{formError}</p> : null}
+            <div className="flex justify-end gap-2 sm:col-span-2">
+              <Button type="button" variant="neutral-primary" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={saving}>
+                Save changes
+              </Button>
+            </div>
+          </form>
+        </Dialog.Panel>
+      </Dialog>
     </section>
   );
 }

@@ -10,6 +10,8 @@ import { summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
+import { Select } from "@plane/propel/select";
+import { DatePicker } from "@plane/propel/date-picker";
 
 type TProfileForm = {
   client: string;
@@ -58,9 +60,11 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
     }
     setSaving(true);
     setError("");
+    const { client, ...rest } = form;
     const payload = {
-      ...form,
-      client: form.client || null,
+      ...rest,
+      // The server keeps a linked profile's client in step with its source opportunity.
+      ...(profile?.source_opportunity ? {} : { client: client || null }),
       start_date: form.start_date || null,
       target_date: form.target_date || null,
       budget: form.budget || null,
@@ -107,32 +111,29 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
         </button>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Field label="Client">
-          <select
+        <Field label={profile?.source_opportunity ? "Client (set by the won opportunity)" : "Client"}>
+          <Select
             value={form.client}
-            onChange={(event) => updateField("client", event.target.value)}
-            className={controlClass}
-          >
-            <option value="">Not linked</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.company_name || client.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => updateField("client", value)}
+            disabled={Boolean(profile?.source_opportunity)}
+            options={[
+              { value: "", label: "Not linked" },
+              ...clients.map((client) => ({ value: client.id, label: client.company_name || client.name })),
+            ]}
+          />
         </Field>
         <Field label="Delivery status">
-          <select
+          <Select
             value={form.delivery_status}
-            onChange={(event) => updateField("delivery_status", event.target.value)}
-            className={controlClass}
-          >
-            <option value="not_assessed">Belum dinilai</option>
-            <option value="planning">Planning</option>
-            <option value="active">Active</option>
-            <option value="on_hold">On hold</option>
-            <option value="completed">Completed</option>
-          </select>
+            onValueChange={(value) => updateField("delivery_status", value)}
+            options={[
+              { value: "not_assessed", label: "Belum dinilai" },
+              { value: "planning", label: "Planning" },
+              { value: "active", label: "Active" },
+              { value: "on_hold", label: "On hold" },
+              { value: "completed", label: "Completed" },
+            ]}
+          />
         </Field>
         <Field label="Phase">
           <input
@@ -144,32 +145,25 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
           />
         </Field>
         <Field label="Health">
-          <select
+          <Select
             value={form.health}
-            onChange={(event) => updateField("health", event.target.value)}
-            className={controlClass}
-          >
-            <option value="not_assessed">Belum dinilai</option>
-            <option value="on_track">On track</option>
-            <option value="at_risk">At risk</option>
-            <option value="off_track">Off track</option>
-          </select>
-        </Field>
-        <Field label="Start date">
-          <input
-            type="date"
-            value={form.start_date}
-            onChange={(event) => updateField("start_date", event.target.value)}
-            className={controlClass}
+            onValueChange={(value) => updateField("health", value)}
+            options={[
+              { value: "not_assessed", label: "Belum dinilai" },
+              { value: "on_track", label: "On track" },
+              { value: "at_risk", label: "At risk" },
+              { value: "off_track", label: "Off track" },
+            ]}
           />
         </Field>
+        <Field label="Start date">
+          <DatePicker value={form.start_date} onValueChange={(value) => updateField("start_date", value)} />
+        </Field>
         <Field label="Target date">
-          <input
-            type="date"
+          <DatePicker
             value={form.target_date}
             min={form.start_date || undefined}
-            onChange={(event) => updateField("target_date", event.target.value)}
-            className={controlClass}
+            onValueChange={(value) => updateField("target_date", value)}
           />
         </Field>
         <Field label="Budget">
@@ -237,4 +231,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const controlClass =
-  "h-9 w-full rounded-xl border border-subtle bg-surface-1 px-3 text-xs text-primary outline-none focus:border-accent-strong";
+  "h-9 w-full rounded-xl border border-subtle bg-surface-1 px-3 text-12 text-primary outline-none focus:border-accent-strong";

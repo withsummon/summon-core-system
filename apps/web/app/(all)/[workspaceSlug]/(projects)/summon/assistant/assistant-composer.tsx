@@ -8,8 +8,9 @@ import type {
   ISummonMeeting,
   ISummonPageContext,
 } from "@plane/types";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { shouldSubmitAssistantComposer } from "./composer-keyboard.js";
+import { MultiSelect, Select } from "@plane/propel/select";
 
 export interface AssistantComposerState {
   content: string;
@@ -75,44 +76,39 @@ export function AssistantComposer(props: AssistantComposerProps) {
           </summary>
           <div className="grid gap-3 border-t border-subtle p-3 sm:grid-cols-2 xl:grid-cols-3">
             <SummonField label="Assistant mode">
-              <SummonSelect
+              <Select
                 value={value.toolMode}
-                onChange={(event) => props.onChange({ toolMode: event.target.value })}
-              >
-                <option value="chat">AI chat</option>
-                <option value="list_projects">MCP · List projects</option>
-                <option value="create_project">MCP · Create project preview</option>
-                <option value="list_work_items">MCP · List work items</option>
-                <option value="create_work_item">MCP · Create work item preview</option>
-                <option value="update_work_item">MCP · Update work item preview</option>
-                <option value="add_comment">MCP · Add comment preview</option>
-              </SummonSelect>
+                onValueChange={(next) => props.onChange({ toolMode: next })}
+                options={[
+                  { value: "chat", label: "AI chat" },
+                  { value: "list_projects", label: "MCP \u00b7 List projects" },
+                  { value: "create_project", label: "MCP \u00b7 Create project preview" },
+                  { value: "list_work_items", label: "MCP \u00b7 List work items" },
+                  { value: "create_work_item", label: "MCP \u00b7 Create work item preview" },
+                  { value: "update_work_item", label: "MCP \u00b7 Update work item preview" },
+                  { value: "add_comment", label: "MCP \u00b7 Add comment preview" },
+                ]}
+              />
             </SummonField>
             <SummonField label="Plane MCP credential">
-              <SummonSelect
+              <Select
                 value={value.mcpCredentialId}
-                onChange={(event) => props.onChange({ mcpCredentialId: event.target.value })}
-              >
-                <option value="">No credential</option>
-                {props.credentials?.map((credential) => (
-                  <option key={credential.id} value={credential.id}>
-                    {credential.name}
-                  </option>
-                ))}
-              </SummonSelect>
+                onValueChange={(next) => props.onChange({ mcpCredentialId: next })}
+                options={[
+                  { value: "", label: "No credential" },
+                  ...(props.credentials ?? []).map((credential) => ({ value: credential.id, label: credential.name })),
+                ]}
+              />
             </SummonField>
             <SummonField label="Project context">
-              <SummonSelect
+              <Select
                 value={value.projectId}
-                onChange={(event) => props.onChange({ projectId: event.target.value })}
-              >
-                <option value="">Automatic</option>
-                {props.projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </SummonSelect>
+                onValueChange={(next) => props.onChange({ projectId: next })}
+                options={[
+                  { value: "", label: "Automatic" },
+                  ...props.projects.map((project) => ({ value: project.id, label: project.name })),
+                ]}
+              />
             </SummonField>
             {["update_work_item", "add_comment"].includes(value.toolMode) ? (
               <SummonField label="Plane work item ID">
@@ -124,47 +120,32 @@ export function AssistantComposer(props: AssistantComposerProps) {
               </SummonField>
             ) : null}
             <SummonField label="Client context">
-              <SummonSelect
+              <Select
                 value={value.clientId}
-                onChange={(event) => props.onChange({ clientId: event.target.value })}
-              >
-                <option value="">Automatic</option>
-                {props.clients?.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-              </SummonSelect>
+                onValueChange={(next) => props.onChange({ clientId: next })}
+                options={[
+                  { value: "", label: "Automatic" },
+                  ...(props.clients ?? []).map((client) => ({ value: client.id, label: client.name })),
+                ]}
+              />
             </SummonField>
             <SummonField label="Meeting context">
-              <SummonSelect
+              <Select
                 value={value.meetingId}
-                onChange={(event) => props.onChange({ meetingId: event.target.value })}
-              >
-                <option value="">Automatic</option>
-                {props.meetings?.map((meeting) => (
-                  <option key={meeting.id} value={meeting.id}>
-                    {meeting.title}
-                  </option>
-                ))}
-              </SummonSelect>
+                onValueChange={(next) => props.onChange({ meetingId: next })}
+                options={[
+                  { value: "", label: "Automatic" },
+                  ...(props.meetings ?? []).map((meeting) => ({ value: meeting.id, label: meeting.title })),
+                ]}
+              />
             </SummonField>
             <SummonField label="Plane Pages context">
-              <SummonSelect
-                multiple
+              <MultiSelect
                 value={value.pageIds}
-                onChange={(event) =>
-                  props.onChange({ pageIds: Array.from(event.target.selectedOptions, ({ value: id }) => id) })
-                }
-                className="h-16 py-1.5"
+                onValueChange={(values) => props.onChange({ pageIds: values })}
                 aria-describedby="assistant-page-context-help"
-              >
-                {props.pages?.map((page) => (
-                  <option key={page.id} value={page.page}>
-                    {page.page_detail.name}
-                  </option>
-                ))}
-              </SummonSelect>
+                options={(props.pages ?? []).map((page) => ({ value: page.page, label: page.page_detail.name }))}
+              />
             </SummonField>
             <label className="text-xs inline-flex items-center gap-2 self-end pb-2 font-medium text-secondary">
               <input

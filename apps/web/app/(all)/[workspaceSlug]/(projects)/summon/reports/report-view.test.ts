@@ -63,7 +63,9 @@ test("report and CSV use the same filters without client-side money conversion o
   assert.match(page, /getReportExportUrl\(workspaceSlug, filters\)/);
   assert.match(view, /data\.commercial\.pipeline_value/);
   assert.match(view, /stage\.value/);
-  assert.match(visuals, /type="date"/);
+  // Date-range filters use the Base UI date picker from @plane/propel.
+  assert.match(visuals, /<DatePicker[\s\S]*id="report-date-from"/);
+  assert.match(visuals, /<DatePicker[\s\S]*id="report-date-to"/);
   assert.match(visuals, /<svg/);
   assert.doesNotMatch(implementation, /parseFloat|parseInt|Number\(|recharts|chart\.js|echarts/i);
 });

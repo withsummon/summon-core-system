@@ -9,12 +9,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+import { Select } from "@plane/propel/select";
+import { DatePicker } from "@plane/propel/date-picker";
 
 export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
   const searchParams = useSearchParams();
@@ -117,23 +119,34 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
               <SummonField label="Title">
                 <Input required value={title} onChange={(event) => setTitle(event.target.value)} />
               </SummonField>
-              <SummonField label="Starts at">
-                <Input
-                  required
-                  type="datetime-local"
-                  value={startsAt}
-                  onChange={(event) => setStartsAt(event.target.value)}
-                />
-              </SummonField>
+              <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
+                <SummonField label="Start date">
+                  <DatePicker
+                    required
+                    clearable={false}
+                    value={startsAt.slice(0, 10)}
+                    onValueChange={(date) => setStartsAt(date ? `${date}T${startsAt.slice(11, 16) || "09:00"}` : "")}
+                  />
+                </SummonField>
+                <SummonField label="Time">
+                  <Input
+                    required
+                    type="time"
+                    value={startsAt.slice(11, 16)}
+                    disabled={!startsAt}
+                    onChange={(event) => setStartsAt(`${startsAt.slice(0, 10)}T${event.target.value}`)}
+                  />
+                </SummonField>
+              </div>
               <SummonField label="Plane Project">
-                <SummonSelect value={project} onChange={(event) => setProject(event.target.value)}>
-                  <option value="">Workspace meeting</option>
-                  {joinedProjectIds.map((id) => (
-                    <option key={id} value={id}>
-                      {getProjectById(id)?.name ?? id}
-                    </option>
-                  ))}
-                </SummonSelect>
+                <Select
+                  value={project}
+                  onValueChange={(value) => setProject(value)}
+                  options={[
+                    { value: "", label: "Workspace meeting" },
+                    ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
+                  ]}
+                />
               </SummonField>
               <Button type="submit" loading={saving}>
                 Create meeting
@@ -144,14 +157,15 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
             <h2 className="text-sm font-semibold text-primary">Link Plane action item</h2>
             <form onSubmit={linkIssue} className="mt-4 grid gap-3">
               <SummonField label="Meeting">
-                <SummonSelect required value={meetingId} onChange={(event) => setMeetingId(event.target.value)}>
-                  <option value="">Select meeting</option>
-                  {data.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.title}
-                    </option>
-                  ))}
-                </SummonSelect>
+                <Select
+                  required
+                  value={meetingId}
+                  onValueChange={(value) => setMeetingId(value)}
+                  options={[
+                    { value: "", label: "Select meeting" },
+                    ...data.map((item) => ({ value: item.id, label: item.title })),
+                  ]}
+                />
               </SummonField>
               <SummonField label="Plane work item ID">
                 <Input

@@ -49,6 +49,7 @@ import {
   type TTaskCenterDue,
   type TTaskCenterScope,
 } from "./task-center";
+import { Select } from "@plane/propel/select";
 
 interface ITasksRootProps {
   workspaceSlug: string;
@@ -343,32 +344,30 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
 
               {filtersOpen && (
                 <div className="flex flex-wrap gap-2 border-b border-subtle bg-layer-1/40 px-4 py-2.5">
-                  <select
+                  <Select
                     value={projectFilter}
-                    onChange={(event) => setProjectFilter(event.target.value)}
+                    onValueChange={(value) => setProjectFilter(value)}
                     aria-label="Filter by project"
-                    className="h-8 rounded-lg border border-subtle bg-surface-1 px-2.5 text-[11px] text-primary"
-                  >
-                    <option value="all">All Projects</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    className="h-8 w-auto min-w-32"
+                    options={[
+                      { value: "all", label: "All Projects" },
+                      ...projects.map((project) => ({ value: project.id, label: project.name })),
+                    ]}
+                  />
+                  <Select
                     value={priorityFilter}
-                    onChange={(event) => setPriorityFilter(event.target.value)}
+                    onValueChange={(value) => setPriorityFilter(value)}
                     aria-label="Filter by priority"
-                    className="h-8 rounded-lg border border-subtle bg-surface-1 px-2.5 text-[11px] text-primary"
-                  >
-                    <option value="all">All Priorities</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                    <option value="none">None</option>
-                  </select>
+                    className="h-8 w-auto min-w-32"
+                    options={[
+                      { value: "all", label: "All Priorities" },
+                      { value: "urgent", label: "Urgent" },
+                      { value: "high", label: "High" },
+                      { value: "medium", label: "Medium" },
+                      { value: "low", label: "Low" },
+                      { value: "none", label: "None" },
+                    ]}
+                  />
                 </div>
               )}
 
@@ -519,18 +518,16 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                     <ChevronRight className="size-3.5" />
                   </button>
                 </div>
-                <label className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   Rows per page:
-                  <select
-                    value={pageSize}
-                    onChange={(event) => setPageSize(Number(event.target.value))}
-                    className="h-8 rounded-lg border border-subtle bg-surface-1 px-2 text-[10px] text-primary"
-                  >
-                    <option value={8}>8</option>
-                    <option value={12}>12</option>
-                    <option value={24}>24</option>
-                  </select>
-                </label>
+                  <Select
+                    aria-label="Rows per page"
+                    value={String(pageSize)}
+                    onValueChange={(value) => setPageSize(Number(value))}
+                    className="h-8 w-20"
+                    options={["8", "12", "24"].map((size) => ({ value: size, label: size }))}
+                  />
+                </div>
               </footer>
             </section>
 

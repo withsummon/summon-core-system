@@ -152,6 +152,12 @@ export class SummonService extends APIService {
     );
   }
 
+  startDelivery(workspaceSlug: string, opportunityId: string, projectId: string) {
+    return this.data<ISummonProjectProfile>(
+      this.post(`${this.root(workspaceSlug)}/opportunities/${opportunityId}/delivery/`, { project: projectId })
+    );
+  }
+
   getProjectProfile(workspaceSlug: string, projectId: string) {
     return this.data<ISummonProjectProfile>(this.get(`${this.root(workspaceSlug)}/projects/${projectId}/profile/`));
   }

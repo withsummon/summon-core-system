@@ -22,7 +22,6 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import type { ISummonResourceLink } from "@plane/types";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import { CategoryCardsRow } from "./category-cards-row";
@@ -33,6 +32,7 @@ import { ResourceIcon } from "./resource-icon";
 import { ResourceBadge } from "./resource-badge";
 import { AddResourceModal } from "./add-resource-modal";
 import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload } from "./types";
+import { Select } from "@plane/propel/select";
 
 interface IResourcesRootProps {
   workspaceSlug: string;
@@ -61,12 +61,11 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
   // 1. Live Data Fetching from Database API
   const {
     data: resources = [],
-    error: resourcesError,
     isLoading: isResourcesLoading,
     mutate: mutateResources,
   } = useSWR(["summon-resources", workspaceSlug], () => summonService.listResources(workspaceSlug));
 
-  const { data: credentials = [], mutate: mutateCredentials } = useSWR(["summon-credentials", workspaceSlug], () =>
+  const { data: credentials = [] } = useSWR(["summon-credentials", workspaceSlug], () =>
     summonService.listCredentials(workspaceSlug)
   );
 
@@ -247,21 +246,18 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Project Dropdown */}
           <div className="relative">
-            <select
+            <Select
               value={selectedProjectId}
-              onChange={(e) => {
-                setSelectedProjectId(e.target.value);
+              onValueChange={(value) => {
+                setSelectedProjectId(value);
                 setCurrentPage(1);
               }}
-              className="text-xs shadow-xs focus:border-accent-primary h-9 cursor-pointer appearance-none rounded-xl border border-subtle bg-surface-1 pr-8 pl-3 font-medium text-primary focus:outline-none"
-            >
-              <option value="all">All Projects</option>
-              {projectsList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              className="w-auto min-w-40"
+              options={[
+                { value: "all", label: "All Projects" },
+                ...projectsList.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-tertiary" />
           </div>
 
@@ -315,15 +311,16 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               <div className="flex items-center gap-3">
                 {/* Sort Dropdown */}
                 <div className="relative">
-                  <select
+                  <Select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as TResourceSortOption)}
-                    className="text-xs h-8 cursor-pointer appearance-none rounded-lg border border-subtle bg-layer-1 pr-7 pl-2.5 font-medium text-secondary hover:text-primary focus:outline-none"
-                  >
-                    <option value="recently_updated">Sort: Recently Updated</option>
-                    <option value="name_asc">Sort: Name (A-Z)</option>
-                    <option value="name_desc">Sort: Name (Z-A)</option>
-                  </select>
+                    onValueChange={(value) => setSortBy(value as TResourceSortOption)}
+                    className="h-8 w-auto min-w-32"
+                    options={[
+                      { value: "recently_updated", label: "Sort: Recently Updated" },
+                      { value: "name_asc", label: "Sort: Name (A-Z)" },
+                      { value: "name_desc", label: "Sort: Name (Z-A)" },
+                    ]}
+                  />
                   <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-tertiary" />
                 </div>
 

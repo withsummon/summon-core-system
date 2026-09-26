@@ -32,7 +32,7 @@ import { Button, Input, TextArea } from "@plane/ui";
 import { EFileAssetType } from "@plane/types";
 import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedArtifact } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
@@ -50,6 +50,7 @@ import {
   templateVariableLabel,
   templateVariableNames,
 } from "./automation-form";
+import { MultiSelect, Select } from "@plane/propel/select";
 
 const fileService = new FileService();
 
@@ -375,19 +376,15 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 1
               </span>
               <SummonField label="Select Template">
-                <SummonSelect
+                <Select
                   required
                   value={template}
-                  onChange={(event) => selectTemplate(event.target.value)}
-                  className="w-full"
-                >
-                  <option value="">Select template</option>
-                  {data?.templates.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </SummonSelect>
+                  onValueChange={(value) => selectTemplate(value)}
+                  options={[
+                    { value: "", label: "Select template" },
+                    ...(data?.templates ?? []).map((item) => ({ value: item.id, label: item.name })),
+                  ]}
+                />
               </SummonField>
             </div>
             <div className="relative pl-7">
@@ -395,19 +392,15 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 2
               </span>
               <SummonField label="Select Project Context">
-                <SummonSelect
+                <Select
                   required
                   value={outputProject}
-                  onChange={(event) => selectProject(event.target.value)}
-                  className="w-full"
-                >
-                  <option value="">Select Plane Project</option>
-                  {joinedProjectIds.map((id) => (
-                    <option key={id} value={id}>
-                      {getProjectById(id)?.name ?? id}
-                    </option>
-                  ))}
-                </SummonSelect>
+                  onValueChange={(value) => selectProject(value)}
+                  options={[
+                    { value: "", label: "Select Plane Project" },
+                    ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
+                  ]}
+                />
               </SummonField>
             </div>
             <div className="relative grid gap-2.5 pl-7">
@@ -445,18 +438,14 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 </span>
               </SummonField>
               <SummonField label="Meeting / audio transcript (Optional)">
-                <SummonSelect
+                <Select
                   value={meetingId}
-                  onChange={(event) => setMeetingId(event.target.value)}
-                  className="w-full"
-                >
-                  <option value="">No meeting source</option>
-                  {data?.meetings.map((meeting) => (
-                    <option key={meeting.id} value={meeting.id}>
-                      {meeting.title}
-                    </option>
-                  ))}
-                </SummonSelect>
+                  onValueChange={(value) => setMeetingId(value)}
+                  options={[
+                    { value: "", label: "No meeting source" },
+                    ...(data?.meetings ?? []).map((meeting) => ({ value: meeting.id, label: meeting.title })),
+                  ]}
+                />
                 <input
                   type="file"
                   accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"
@@ -508,32 +497,21 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 </summary>
                 <div className="mt-3 grid gap-2.5">
                   <SummonField label="Client">
-                    <SummonSelect
+                    <Select
                       value={clientId}
-                      onChange={(event) => setClientId(event.target.value)}
-                      className="w-full"
-                    >
-                      <option value="">No client source</option>
-                      {data?.clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </SummonSelect>
+                      onValueChange={(value) => setClientId(value)}
+                      options={[
+                        { value: "", label: "No client source" },
+                        ...(data?.clients ?? []).map((client) => ({ value: client.id, label: client.name })),
+                      ]}
+                    />
                   </SummonField>
                   <SummonField label="Plane Pages / documents">
-                    <SummonSelect
-                      multiple
+                    <MultiSelect
                       value={pageIds}
-                      onChange={(event) => setPageIds(Array.from(event.target.selectedOptions, ({ value }) => value))}
-                      className="h-20 w-full py-1.5"
-                    >
-                      {data?.pages.map((item) => (
-                        <option key={item.id} value={item.page}>
-                          {item.page_detail.name}
-                        </option>
-                      ))}
-                    </SummonSelect>
+                      onValueChange={(values) => setPageIds(values)}
+                      options={(data?.pages ?? []).map((item) => ({ value: item.page, label: item.page_detail.name }))}
+                    />
                   </SummonField>
                   <label className="inline-flex items-center gap-2 text-[11px] font-medium text-secondary">
                     <input
@@ -564,22 +542,26 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <SummonField label="Tone">
-                  <SummonSelect value={tone} onChange={(event) => setTone(event.target.value)} className="w-full">
-                    <option>Professional</option>
-                    <option>Concise</option>
-                    <option>Formal</option>
-                  </SummonSelect>
+                  <Select
+                    value={tone}
+                    onValueChange={(value) => setTone(value)}
+                    options={[
+                      { value: "Professional", label: "Professional" },
+                      { value: "Concise", label: "Concise" },
+                      { value: "Formal", label: "Formal" },
+                    ]}
+                  />
                 </SummonField>
                 <SummonField label="Detail Level">
-                  <SummonSelect
+                  <Select
                     value={detailLevel}
-                    onChange={(event) => setDetailLevel(event.target.value)}
-                    className="w-full"
-                  >
-                    <option>Comprehensive</option>
-                    <option>Standard</option>
-                    <option>Summary</option>
-                  </SummonSelect>
+                    onValueChange={(value) => setDetailLevel(value)}
+                    options={[
+                      { value: "Comprehensive", label: "Comprehensive" },
+                      { value: "Standard", label: "Standard" },
+                      { value: "Summary", label: "Summary" },
+                    ]}
+                  />
                 </SummonField>
               </div>
             </div>

@@ -7,8 +7,10 @@
 import type { ReactNode } from "react";
 import { CalendarDays, ChevronDown, Download, SlidersHorizontal } from "lucide-react";
 import type { ISummonClient, ISummonReportFilters } from "@plane/types";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { percentage, reportLabel, type TReportFilterParam } from "./report-view-model";
+import { Select } from "@plane/propel/select";
+import { DatePicker } from "@plane/propel/date-picker";
 
 export function ReportPanel(props: { children: ReactNode; className?: string }) {
   return (
@@ -126,7 +128,6 @@ export function ReportFilters(props: {
   onFilterChange: (name: TReportFilterParam, value: string) => void;
 }) {
   const { filters, projects, clients, exportUrl, canExport, onFilterChange } = props;
-  const controlClass = "focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-1";
   const dateLabel =
     filters.dateFrom || filters.dateTo ? `${filters.dateFrom || "Start"} – ${filters.dateTo || "Today"}` : "All dates";
   return (
@@ -139,23 +140,19 @@ export function ReportFilters(props: {
         </summary>
         <div className="shadow-xl absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3">
           <SummonField label="From date">
-            <input
+            <DatePicker
               id="report-date-from"
-              className={`text-xs h-9 w-full rounded-md border border-strong bg-surface-1 px-3 text-primary outline-none ${controlClass}`}
-              type="date"
               max={filters.dateTo}
               value={filters.dateFrom ?? ""}
-              onChange={(event) => onFilterChange("date_from", event.target.value)}
+              onValueChange={(value) => onFilterChange("date_from", value)}
             />
           </SummonField>
           <SummonField label="To date">
-            <input
+            <DatePicker
               id="report-date-to"
-              className={`text-xs h-9 w-full rounded-md border border-strong bg-surface-1 px-3 text-primary outline-none ${controlClass}`}
-              type="date"
               min={filters.dateFrom}
               value={filters.dateTo ?? ""}
-              onChange={(event) => onFilterChange("date_to", event.target.value)}
+              onValueChange={(value) => onFilterChange("date_to", value)}
             />
           </SummonField>
         </div>
@@ -168,32 +165,24 @@ export function ReportFilters(props: {
         </summary>
         <div className="shadow-xl absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3">
           <SummonField label="Project">
-            <SummonSelect
-              className={controlClass}
+            <Select
               value={filters.projectId ?? ""}
-              onChange={(event) => onFilterChange("project_id", event.target.value)}
-            >
-              <option value="">All accessible projects</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </SummonSelect>
+              onValueChange={(value) => onFilterChange("project_id", value)}
+              options={[
+                { value: "", label: "All accessible projects" },
+                ...projects.map((project) => ({ value: project.id, label: project.name })),
+              ]}
+            />
           </SummonField>
           <SummonField label="Client">
-            <SummonSelect
-              className={controlClass}
+            <Select
               value={filters.clientId ?? ""}
-              onChange={(event) => onFilterChange("client_id", event.target.value)}
-            >
-              <option value="">All clients</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </SummonSelect>
+              onValueChange={(value) => onFilterChange("client_id", value)}
+              options={[
+                { value: "", label: "All clients" },
+                ...clients.map((client) => ({ value: client.id, label: client.name })),
+              ]}
+            />
           </SummonField>
         </div>
       </details>

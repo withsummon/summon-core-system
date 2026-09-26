@@ -13,6 +13,7 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+import { DatePicker } from "@plane/propel/date-picker";
 
 export default function SummonClientsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
@@ -131,7 +132,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
             <Input name="head_office" placeholder="Head office" />
             <label htmlFor="relationship_started_at" className="text-[11px] text-secondary">
               Relationship started
-              <Input id="relationship_started_at" name="relationship_started_at" type="date" className="mt-1" />
+              <DatePicker id="relationship_started_at" name="relationship_started_at" className="mt-1" />
             </label>
             <textarea
               name="notes"

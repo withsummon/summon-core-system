@@ -8,10 +8,12 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Button, Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
+import { Select } from "@plane/propel/select";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 
 export function CredentialDrawer(props: {
   workspaceSlug: string;
@@ -139,17 +141,14 @@ export function CredentialDrawer(props: {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex justify-end bg-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Credential details"
-    >
-      <button type="button" className="min-w-8 flex-1" aria-label="Close credential drawer" onClick={close} />
-      <aside className="vertical-scrollbar shadow-xl h-full w-full max-w-lg overflow-y-auto border-l border-subtle bg-surface-1 p-5">
+    <Dialog open onOpenChange={(open) => !open && close()}>
+      <Dialog.Panel
+        width={EDialogWidth.LG}
+        className="vertical-scrollbar top-0 right-0 left-auto h-dvh max-w-lg translate-x-0 translate-y-0 overflow-y-auto rounded-none border-y-0 border-r-0 p-5"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-primary">{credential.name}</h2>
+            <Dialog.Title className="text-18 font-semibold text-primary">{credential.name}</Dialog.Title>
             <p className="text-xs text-secondary">
               {credential.provider} · {credential.account_identifier}
             </p>
@@ -201,11 +200,15 @@ export function CredentialDrawer(props: {
             <Input value={member} onChange={(event) => setMember(event.target.value)} placeholder="User UUID" />
           </SummonField>
           <SummonField label="Permission">
-            <SummonSelect value={permission} onChange={(event) => setPermission(event.target.value)}>
-              <option value="view">View</option>
-              <option value="use">Use</option>
-              <option value="manage">Manage</option>
-            </SummonSelect>
+            <Select
+              value={permission}
+              onValueChange={(value) => setPermission(value)}
+              options={[
+                { value: "view", label: "View" },
+                { value: "use", label: "Use" },
+                { value: "manage", label: "Manage" },
+              ]}
+            />
           </SummonField>
           <Button variant="neutral-primary" onClick={grant} loading={loading} disabled={loading || !member}>
             Grant
@@ -252,7 +255,7 @@ export function CredentialDrawer(props: {
             Revoke credential
           </Button>
         </div>
-      </aside>
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 }

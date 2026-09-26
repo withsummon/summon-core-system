@@ -32,7 +32,7 @@ import { Button, Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
-import { SummonField, SummonSelect } from "@/components/summon/forms";
+import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
@@ -41,6 +41,9 @@ import { ProjectService } from "@/services/project";
 import { summonService } from "@/services/summon.service";
 import { summarizeCredentials } from "../reference-view-model";
 import type { Route } from "./+types/page";
+import { Select } from "@plane/propel/select";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { DatePicker } from "@plane/propel/date-picker";
 
 const projectService = new ProjectService();
 const tabs = ["Overview", "Access", "Activity Log", "Attachments", "Notes"] as const;
@@ -249,18 +252,15 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             ))}
           </div>
           <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <SummonSelect
+            <Select
               value={projectFilter}
-              onChange={(event) => setProjectFilter(event.target.value)}
+              onValueChange={(value) => setProjectFilter(value)}
               className="w-40"
-            >
-              <option value="all">All Projects</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </SummonSelect>
+              options={[
+                { value: "all", label: "All Projects" },
+                ...projects.map((project) => ({ value: project.id, label: project.name })),
+              ]}
+            />
             <div className="flex items-center gap-2 text-[11px] text-secondary">
               <span>{filtered.length} credentials</span>
               <button
@@ -676,17 +676,15 @@ function CredentialForm(props: {
 }) {
   const metadata = props.credential?.metadata ?? {};
   return (
-    <div
-      className="fixed inset-0 z-40 grid place-items-center bg-backdrop p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={props.credential ? "Update credential" : "Add credential"}
-    >
-      <div className="vertical-scrollbar shadow-xl max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-subtle bg-surface-1 p-5">
+    <Dialog open onOpenChange={(open) => !open && props.onClose()}>
+      <Dialog.Panel
+        width={EDialogWidth.XXL}
+        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-5"
+      >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-primary">
+          <Dialog.Title className="text-18 font-semibold text-primary">
             {props.credential ? "Update Credential" : "Add Credential"}
-          </h2>
+          </Dialog.Title>
           <button type="button" onClick={props.onClose} aria-label="Close">
             <X className="size-4 text-secondary" />
           </button>
@@ -699,24 +697,28 @@ function CredentialForm(props: {
             placeholder="Account identifier"
           />
           <SummonField label="Provider">
-            <SummonSelect name="provider" defaultValue={props.credential?.provider || "plane_mcp"}>
-              <option value="plane_mcp">Plane MCP PAT</option>
-              <option value="server">Server</option>
-              <option value="database">Database</option>
-              <option value="github">GitHub</option>
-              <option value="figma">Figma</option>
-              <option value="other">Other</option>
-            </SummonSelect>
+            <Select
+              name="provider"
+              defaultValue={props.credential?.provider || "plane_mcp"}
+              options={[
+                { value: "plane_mcp", label: "Plane MCP PAT" },
+                { value: "server", label: "Server" },
+                { value: "database", label: "Database" },
+                { value: "github", label: "GitHub" },
+                { value: "figma", label: "Figma" },
+                { value: "other", label: "Other" },
+              ]}
+            />
           </SummonField>
           <SummonField label="Project">
-            <SummonSelect name="project" defaultValue={props.credential?.project || ""}>
-              <option value="">No project</option>
-              {props.projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </SummonSelect>
+            <Select
+              name="project"
+              defaultValue={props.credential?.project || ""}
+              options={[
+                { value: "", label: "No project" },
+                ...props.projects.map((project) => ({ value: project.id, label: project.name })),
+              ]}
+            />
           </SummonField>
           {!props.credential ? (
             <Input name="secret" type="password" required autoComplete="new-password" placeholder="Secret or PAT" />
@@ -737,9 +739,10 @@ function CredentialForm(props: {
             defaultValue={typeof metadata.protocol === "string" ? metadata.protocol : ""}
             placeholder="Protocol"
           />
-          <Input
+          <DatePicker
             name="expires_at"
-            type="date"
+            aria-label="Expires on"
+            placeholder="Expiry date"
             defaultValue={typeof metadata.expires_at === "string" ? metadata.expires_at.slice(0, 10) : ""}
           />
           <Input
@@ -748,12 +751,16 @@ function CredentialForm(props: {
             placeholder="Tags, comma separated"
           />
           <SummonField label="Risk">
-            <SummonSelect name="risk" defaultValue={typeof metadata.risk === "string" ? metadata.risk : ""}>
-              <option value="">Not assessed</option>
-              <option value="low">Low</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </SummonSelect>
+            <Select
+              name="risk"
+              defaultValue={typeof metadata.risk === "string" ? metadata.risk : ""}
+              options={[
+                { value: "", label: "Not assessed" },
+                { value: "low", label: "Low" },
+                { value: "high", label: "High" },
+                { value: "critical", label: "Critical" },
+              ]}
+            />
           </SummonField>
           <textarea
             name="description"
@@ -776,7 +783,7 @@ function CredentialForm(props: {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 }

@@ -82,6 +82,7 @@ export interface ISummonOpportunityDetail extends ISummonOpportunity {
   client_detail: ISummonClient | null;
   contacts: ISummonClientContact[];
   project_profile: ISummonProjectProfile | null;
+  delivery_project: { id: string; identifier: string; name: string } | null;
   meetings: ISummonMeeting[];
   page_contexts: ISummonPageContext[];
   work_items: ISummonMeetingWorkItem[];

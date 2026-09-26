@@ -41,6 +41,11 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
     overview.profile?.client ? ["summon-project-client", workspaceSlug, overview.profile.client] : null,
     () => summonService.getClient(workspaceSlug, overview.profile?.client || "")
   );
+  const sourceOpportunityId = overview.profile?.source_opportunity;
+  const { data: sourceOpportunity } = useSWR(
+    sourceOpportunityId ? ["summon-project-opportunity", workspaceSlug, sourceOpportunityId] : null,
+    () => summonService.getOpportunity(workspaceSlug, sourceOpportunityId || "")
+  );
   const project = getProjectById(projectId);
   const lead = project?.project_lead;
   const leadDetails = typeof lead === "object" ? (lead as IUserLite) : lead ? getUserDetails(lead) : undefined;
@@ -71,7 +76,18 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-[11px]">
-              <Meta label="Client" value={client?.company_name || client?.name || "Not linked"} />
+              <Meta
+                label="Client"
+                value={client?.company_name || client?.name || "Not linked"}
+                href={client ? `/${workspaceSlug}/summon/clients/${client.id}/` : undefined}
+              />
+              {sourceOpportunityId ? (
+                <Meta
+                  label="Opportunity"
+                  value={sourceOpportunity?.title || "Won opportunity"}
+                  href={`/${workspaceSlug}/summon/opportunities/${sourceOpportunityId}/`}
+                />
+              ) : null}
               <Meta label="Project manager" value={leadDetails?.display_name || "Not assigned"} />
               <Meta label="Start date" value={formatDate(overview.profile?.start_date)} />
               <Meta label="Target date" value={formatDate(overview.profile?.target_date)} />
@@ -182,11 +198,17 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
   );
 });
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div>
       <span className="text-tertiary">{label}</span>
-      <strong className="ml-2 font-medium text-primary">{value}</strong>
+      {href ? (
+        <Link href={href} className="ml-2 font-medium text-accent-primary hover:underline">
+          {value}
+        </Link>
+      ) : (
+        <strong className="ml-2 font-medium text-primary">{value}</strong>
+      )}
     </div>
   );
 }
