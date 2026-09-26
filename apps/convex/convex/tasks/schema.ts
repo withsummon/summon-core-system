@@ -41,14 +41,8 @@ export const taskTables = {
     sequence: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
-    // Temporary optional schema for the existing first-slice records. Remove after migrations.backfillProperties completes.
-    priority: v.optional(taskProperties.priority),
-    assigneeIds: v.optional(taskProperties.assigneeIds),
-    labelIds: v.optional(taskProperties.labelIds),
-    startDate: v.optional(taskProperties.startDate),
-    targetDate: v.optional(taskProperties.targetDate),
-    stateId: v.optional(taskProperties.stateId),
-    completedAt: v.optional(v.union(v.number(), v.null())),
+    ...taskProperties,
+    completedAt: v.union(v.number(), v.null()),
   })
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
