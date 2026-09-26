@@ -41,9 +41,7 @@ complexity checks pass. Main-run Chrome acceptance owns rendered editor, two-use
 collaboration, lock/unlock and refresh verification. Backend/live tests separately
 verify ACLs, CAS conflicts, title seeding and rejection recovery.
 
-File uploads, AI editor actions and issue embeds are disabled in this slice.
-Their existing editor interface explicitly rejects unavailable attachment
-operations rather than writing to Django. Mentions, hierarchy, page restore,
+AI editor actions and issue embeds remain disabled. Mentions, hierarchy, page restore,
 version UI, sharing dialogs and all legacy page navigation are not migrated.
 No Django/live-service retirement or full document parity is claimed here.
 
@@ -51,4 +49,18 @@ No Django/live-service retirement or full document parity is claimed here.
 
 Two independent sessions (127.0.0.1 and localhost on port 3010) opened the same workspace document. Owner text persisted into the peer editor; peer edits appeared in the owner without reload. Locking switched both editors to read-only; DOM verification showed both title and content contenteditable=false. Unlock restored editing. Renaming the title followed by immediate deep-link reload retained the title and shared body. Switching visibility to private removed the peer's content immediately; review then localized the unavailable-document boundary so it does not claim the whole workspace is inaccessible. Chrome readback of the denied deep link then confirmed the document-specific message and Back to documents while retaining all workspace navigation.
 
-Desktop and 390×844 editor screenshots were inspected. Title and content have explicit accessible textbox names. File attachments and offline IndexedDB replay remain disabled in this slice; recovery is an explicit local download rather than silent replay of rejected writes. Shared presence across multiple live server processes is still unverified.
+Desktop and 390×844 editor screenshots were inspected. Title and content have explicit accessible textbox names. That browser acceptance preceded the asset integration below. Offline IndexedDB replay remains disabled; recovery is an explicit local download rather than silent replay of rejected writes. Shared presence across multiple live server processes is still unverified.
+
+## Authenticated document assets
+
+The existing image uploader is now connected to Convex assets. File limits and MIME choices come from the backend policy query. Uploads carry a SHA-256 digest, finalize only after server validation, and persist canonical asset IDs into the existing image node. Raw upload storage references are checked as strings and normalized at the backend owner.
+
+Image reads resolve IDs against the active document, then request the HTTP site with an Authorization header. Credentials are never placed in image URLs. The editor receives blob URLs; leaving the document aborts pending requests, prevents late results from creating URLs, and revokes existing URLs. Downloads use separate attachment blobs. The candidate environment must configure `VITE_CONVEX_SITE_URL` alongside the Convex API and live URLs.
+
+Deleting an editor image uses the backend's seven-day reversible deletion; undo restores it after fresh ACL/lock checks. Duplication copies bytes into an independent asset in the same document. Cross-document copies are not supported by this slice. The generic handler supports the server's restricted file formats, but this existing editor exposes image upload UI; there is no new generic attachment block UI here.
+
+Four module-local behavior tests cover URL teardown, late-response cancellation, a fresh transfer after cancellation, and malformed upload responses. Native web types and focused lint pass. Real browser image upload/render/undo/download acceptance is a separate primary-agent gate, not implied by these checks.
+
+Image undo review found a shared editor assumption: private image IDs skipped the restoration tracker and relied on a DOM image error. Authenticated ID resolution can reject before any image URL exists. The tracker now restores explicitly deleted assets regardless of URL format. Native handlers order each asset’s deletion, undo, and subsequent source resolution. Three additional behavior tests cover immediate undo ordering, failed deletion followed by explicit restoration, and independent assets. This shared-owner change still requires the primary browser undo check after rebuilding the editor.
+
+Primary Chrome repeated the exact undo journey after the fix: a fresh image upload followed immediately by Backspace and Command+Z restored a rendered blob image (192-pixel image readback). The older image deleted before the fix remained unavailable, consistent with its previously soft-deleted asset. Post-fix reload acceptance was still underway at this receipt; it is not inferred from the undo result. The primary run executed all ten document-asset and assistant transport tests successfully.

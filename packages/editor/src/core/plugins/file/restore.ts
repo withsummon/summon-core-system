@@ -7,8 +7,6 @@
 import type { Editor } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
-// plane imports
-import { CORE_EXTENSIONS } from "@plane/utils";
 // helpers
 import { CORE_ASSETS_META_DATA_RECORD } from "@/helpers/assets";
 // plane editor imports
@@ -59,9 +57,8 @@ export const TrackFileRestorationPlugin = (editor: Editor, restoreHandler: TFile
               asset: assetMetaData,
             });
           }
-          // if the src is just a id (private bucket), then we don't need to handle restore from here but
-          // only while it fails to load
-          if (nodeType === CORE_EXTENSIONS.CUSTOM_IMAGE && !node.attrs.src?.startsWith("http")) return;
+          // Private asset IDs also need tracked undo: source resolvers may reject
+          // deleted assets before an image element can emit its error event.
           addedFiles.push(node as TFileNode);
         });
 

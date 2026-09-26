@@ -1,27 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
-import type { CollaborationState, EditorRefApi, IEditorProps, TFileHandler, TRealtimeConfig } from "@plane/editor";
+import type { CollaborationState, EditorRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { api } from "@summon/convex/api";
 
-async function attachmentsUnavailable(): Promise<never> {
-  throw new Error("File attachments are not available in this editor yet.");
-}
-const fileHandler: TFileHandler = {
-  assetsUploadStatus: {},
-  cancel: () => {},
-  checkIfAssetExists: attachmentsUnavailable,
-  delete: attachmentsUnavailable,
-  getAssetDownloadSrc: attachmentsUnavailable,
-  getAssetSrc: attachmentsUnavailable,
-  restore: attachmentsUnavailable,
-  upload: attachmentsUnavailable,
-  duplicate: attachmentsUnavailable,
-  validation: { maxFileSize: 0 },
-};
-const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "image", "issue-embed"];
+import { useDocumentAssets } from "./use-document-assets";
+
+const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
 const extendedEditorProps = {};
 const editorProps = { attributes: { role: "textbox", "aria-label": "Document content", "aria-multiline": "true" } };
@@ -46,7 +33,7 @@ export function DocumentEditor({
   if (!token) return <p role="status">Restoring editor session…</p>;
   if (!url)
     return <p role="alert">Collaborative editing is unavailable. Please contact your workspace administrator.</p>;
-  return <AuthenticatedEditor context={context} token={token} url={url} />;
+  return <AuthenticatedEditor key={context.documentId} context={context} token={token} url={url} />;
 }
 function AuthenticatedEditor({
   context,
@@ -61,6 +48,7 @@ function AuthenticatedEditor({
   const tokenRef = useRef(token);
   tokenRef.current = token;
   const getToken = useCallback(() => tokenRef.current, []);
+  const fileHandler = useDocumentAssets(context.documentId, getToken);
   const [state, setState] = useState<CollaborationState>({
     stage: { kind: "initial" },
     isServerSynced: false,
@@ -96,6 +84,9 @@ function AuthenticatedEditor({
   );
   const serverHandler = useMemo(() => ({ onStateChange: setState }), []);
   const connected = state.isServerSynced;
+  if (!import.meta.env.VITE_CONVEX_SITE_URL)
+    return <p role="alert">Document file storage is not configured. Contact your workspace administrator.</p>;
+  if (!fileHandler) return <p role="status">Preparing document files…</p>;
   return (
     <section className="space-y-3">
       <div className="text-xs flex flex-wrap items-center justify-between gap-2 text-secondary">
