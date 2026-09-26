@@ -11,9 +11,9 @@
     "deploy": "pnpm check:types && convex deploy --typecheck disable",
     "codegen": "convex codegen --typecheck disable",
     "check:types": "tsc --noEmit",
-    "check:lint": "oxlint --deny-warnings convex",
+    "check:lint": "oxlint --deny-warnings .",
     "check:format": "oxfmt --check .",
-    "fix:lint": "oxlint --fix convex",
+    "fix:lint": "oxlint --fix .",
     "fix:format": "oxfmt .",
     "test": "vitest run"
   },
