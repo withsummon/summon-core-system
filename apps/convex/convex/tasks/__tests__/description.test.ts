@@ -34,6 +34,23 @@ describe("canonical task rich description", () => {
       owner.mutation(api.tasks.description.save, { taskId, expectedUpdatedAt: task.updatedAt, html: "<p>stale</p>" })
     ).rejects.toThrow("changed");
   });
+  test("editor color marks and alignment persist without allowing CSS URL injection", async () => {
+    const { owner, projectId } = await workspaceJourney();
+    const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Formatting" });
+    const task = await owner.query(api.tasks.index.get, { taskId });
+    await owner.mutation(api.tasks.description.save, {
+      taskId,
+      expectedUpdatedAt: task.updatedAt,
+      html: '<p style="text-align: center; background-image: url(https://example.com)"><span data-text-color="peach" data-background-color="red">Color</span><span data-text-color="red; background-image: url(https://example.com)" style="color: rgb(255, 0, 0)">Safe style</span></p>',
+    });
+    const { html } = await owner.query(api.tasks.description.get, { taskId });
+    expect(html).toContain("text-align:center");
+    expect(html).toContain('data-text-color="peach"');
+    expect(html).toContain('data-background-color="red"');
+    expect(html).toContain("color:rgb(255, 0, 0)");
+    expect(html).not.toContain("url(");
+    expect(html).not.toContain("background-image");
+  });
   test("legacy text update intentionally replaces formatting rather than leaving stale rich content", async () => {
     const { owner, projectId } = await workspaceJourney();
     const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Plan" });
