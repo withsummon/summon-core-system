@@ -8,6 +8,12 @@
  * @module
  */
 
+import type * as assets_access from "../assets/access.js";
+import type * as assets_cleanup from "../assets/cleanup.js";
+import type * as assets_content from "../assets/content.js";
+import type * as assets_http from "../assets/http.js";
+import type * as assets_index from "../assets/index.js";
+import type * as assets_upload from "../assets/upload.js";
 import type * as auth from "../auth.js";
 import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
@@ -39,6 +45,12 @@ import type * as workspaces_index from "../workspaces/index.js";
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "assets/access": typeof assets_access;
+  "assets/cleanup": typeof assets_cleanup;
+  "assets/content": typeof assets_content;
+  "assets/http": typeof assets_http;
+  "assets/index": typeof assets_index;
+  "assets/upload": typeof assets_upload;
   auth: typeof auth;
   "commercial/clients": typeof commercial_clients;
   "commercial/contacts": typeof commercial_contacts;
