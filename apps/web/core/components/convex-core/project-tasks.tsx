@@ -1,19 +1,14 @@
 import { useState } from "react";
-import { optimisticallyUpdateValueInPaginatedQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useSearchParams } from "react-router";
+import { optimisticallyUpdateValueInPaginatedQuery, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
-import type { Doc } from "@summon/convex/data-model";
+import { statusOptions } from "./tasks/options";
+import { ProjectTaxonomy } from "./tasks/project-taxonomy";
+import { TaskDetail } from "./tasks/task-detail";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-
-const statusOptions = Object.values({
-  backlog: { value: "backlog", label: "Backlog" },
-  todo: { value: "todo", label: "To do" },
-  in_progress: { value: "in_progress", label: "In progress" },
-  done: { value: "done", label: "Done" },
-  cancelled: { value: "cancelled", label: "Cancelled" },
-} as const satisfies { [Status in Doc<"tasks">["status"]]: { value: Status; label: string } });
 
 export function ProjectTasks({ project }: { project: FunctionReturnType<typeof api.projects.index.list>[number] }) {
   const { results, status, loadMore } = usePaginatedQuery(
@@ -21,19 +16,31 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
     { projectId: project._id },
     { initialNumItems: 50 }
   );
+  const states = useQuery(api.tasks.states.list, { projectId: project._id });
   const canWrite = project.membershipRole !== "guest" && project.workspaceRole !== "guest";
   const create = useMutation(api.tasks.index.create);
   const setStatus = useMutation(api.tasks.index.setStatus).withOptimisticUpdate((store, args) => {
     optimisticallyUpdateValueInPaginatedQuery(store, api.tasks.index.list, { projectId: project._id }, (task) =>
-      task._id === args.taskId ? { ...task, status: args.status } : task
+      task._id === args.taskId && task.status !== args.status ? { ...task, status: args.status, stateId: null } : task
     );
   });
+  const [params, setParams] = useSearchParams();
+  const selected = params.get("task");
+  const setSelected = (id: string | null) =>
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (id) next.set("task", id);
+      else next.delete("task");
+      return next;
+    });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  if (selected) return <TaskDetail taskId={selected} project={project} onBack={() => setSelected(null)} />;
   return (
     <section aria-label="Tasks" className="space-y-5">
+      {canWrite && project.membershipRole === "admin" && <ProjectTaxonomy projectId={project._id} />}
       {canWrite && (
         <form
           className="flex max-w-xl flex-col gap-3"
@@ -100,41 +107,52 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
                   {project.identifier}-{task.sequence}
                 </span>
                 <div className="col-span-2 col-start-1 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
-                  <p
+                  <button
+                    type="button"
+                    onClick={() => setSelected(task._id)}
                     className={
                       task.status === "done" ? "text-sm break-words text-secondary line-through" : "text-sm break-words"
                     }
                   >
                     {task.title}
-                  </p>
+                  </button>
+                  {task.stateId && (
+                    <p className="text-xs mt-1 text-secondary">
+                      State: {states?.find((state) => state._id === task.stateId)?.name ?? "Loading state…"}
+                    </p>
+                  )}
                   {task.description && (
-                    <p className="text-xs mt-1 break-words whitespace-pre-wrap text-secondary">{task.description}</p>
+                    <p className="text-xs mt-1 line-clamp-2 break-words whitespace-pre-wrap text-secondary">
+                      {task.description}
+                    </p>
                   )}
                 </div>
-                <label className="sr-only" htmlFor={`status-${task._id}`}>
-                  Status for {task.title}
-                </label>
-                <select
-                  id={`status-${task._id}`}
-                  disabled={!canWrite}
-                  value={task.status}
-                  className="text-sm col-start-2 row-start-1 rounded-md border border-subtle-1 bg-layer-2 px-2 py-1 md:col-start-3"
-                  onChange={(event) => {
-                    const nextStatus = statusOptions.find((option) => option.value === event.target.value);
-                    if (nextStatus) {
-                      setError("");
-                      void setStatus({ taskId: task._id, status: nextStatus.value }).catch(() =>
-                        setError("The status could not be saved. Your previous status has been restored.")
-                      );
-                    }
-                  }}
-                >
-                  {statusOptions.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                <div className="col-start-2 row-start-1 space-y-1 md:col-start-3">
+                  <label className="text-xs block text-secondary" htmlFor={`status-${task._id}`}>
+                    Status group<span className="sr-only"> for {task.title}</span>
+                  </label>
+                  <select
+                    id={`status-${task._id}`}
+                    disabled={!canWrite}
+                    value={task.status}
+                    className="text-sm rounded-md border border-subtle-1 bg-layer-2 px-2 py-1"
+                    onChange={(event) => {
+                      const nextStatus = statusOptions.find((option) => option.value === event.target.value);
+                      if (nextStatus) {
+                        setError("");
+                        void setStatus({ taskId: task._id, status: nextStatus.value }).catch(() =>
+                          setError("The status could not be saved. Your previous status has been restored.")
+                        );
+                      }
+                    }}
+                  >
+                    {statusOptions.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </li>
             ))}
           </ul>
