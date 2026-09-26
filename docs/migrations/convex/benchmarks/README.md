@@ -38,6 +38,7 @@ Harnesses live under `apps/convex/benchmarks`; Django fixture creation is `tools
 
 ```sh
 export BENCH_ARTIFACT_DIR=/tmp/summon-benchmark-new-run
+export BENCH_CANDIDATE_ARTIFACT=<full-commit-actually-deployed-to-local-Convex>
 node tools/benchmarks/prepare-local.mjs
 node apps/convex/benchmarks/django-session.mjs
 node apps/convex/benchmarks/auth-smoke.mjs

@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { ConvexHttpClient, ConvexClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
 const directory = process.env.BENCH_ARTIFACT_DIR ?? "/tmp/summon-migration-control";
+const candidateArtifact = process.env.BENCH_CANDIDATE_ARTIFACT;
+assert.match(candidateArtifact ?? "", /^[a-f0-9]{40}$/, "Set BENCH_CANDIDATE_ARTIFACT to the deployed source commit.");
 const read = (name) => JSON.parse(readFileSync(`${directory}/${name}.json`, "utf8"));
 const legacy = read("django-fixture");
 const candidate = read("convex-fixture");
@@ -141,7 +143,7 @@ const summaries = Object.fromEntries(
   })
 );
 const result = {
-  candidateArtifact: "c6484ec885",
+  candidateArtifact,
   controlRuntime: "Gunicorn 23.0.0, two Uvicorn workers, plane.settings.production, DEBUG=0, PostgreSQL15.7",
   candidateRuntime: "Pinned self-hosted Convex native backend, SQLite, local Docker",
   timestamp: new Date().toISOString(),
@@ -149,7 +151,7 @@ const result = {
   scope:
     "Local Docker, authenticated HTTP, 500 tasks, 50-row first page, sequential alternating backends; not production capacity or full feature parity",
   limitations: [
-    "Django returns richer task records and runs its inherited mutation side effects; candidate implements only title/description/status and atomic event audit.",
+    "Django returns richer inherited task records and side effects; native task contracts differ. Consult the deployed candidate's migration receipts before attributing a runtime speedup.",
     "Convex propagation is subscription latency; Django has no equivalent task subscription in this current UI, so no realtime speedup ratio is reported.",
     "Read byte count is parsed JSON serialization for Convex versus raw JSON body for Django; excludes protocol headers/envelopes.",
     "Warm reads and sequential writes, no cold-start or sustained-load claim.",
