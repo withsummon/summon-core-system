@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import type { FunctionArgs } from "convex/server";
@@ -48,6 +48,7 @@ describe("task properties", () => {
       completedAt: null,
     });
     await owner.mutation(api.tasks.index.update, {
+      expectedUpdatedAt: (await owner.query(api.tasks.index.get, { taskId })).updatedAt,
       taskId,
       title: "Release v2",
       description: "Updated",
@@ -77,6 +78,7 @@ describe("task properties", () => {
     await owner.mutation(api.tasks.index.setStatus, { taskId, status: "done" });
     expect((await owner.query(api.tasks.index.get, { taskId })).completedAt).toBe(completed.completedAt);
     await owner.mutation(api.tasks.index.update, {
+      expectedUpdatedAt: (await owner.query(api.tasks.index.get, { taskId })).updatedAt,
       taskId,
       title: "Notes only",
       description: "",
@@ -139,6 +141,7 @@ describe("task properties", () => {
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "guest" });
     await expect(
       owner.mutation(api.tasks.index.update, {
+        expectedUpdatedAt: (await owner.query(api.tasks.index.get, { taskId })).updatedAt,
         taskId,
         title: "Assign",
         description: "",
@@ -343,6 +346,7 @@ test("task URL resolution parses IDs at the owner and does not bypass project ac
   await expect(other.query(api.tasks.index.resolve, { taskId })).rejects.toThrow("access");
   await expect(
     other.mutation(api.tasks.index.update, {
+      expectedUpdatedAt: (await owner.query(api.tasks.index.get, { taskId })).updatedAt,
       taskId,
       title: "Unauthorized",
       description: "",
@@ -350,4 +354,37 @@ test("task URL resolution parses IDs at the owner and does not bypass project ac
       ...properties,
     })
   ).rejects.toThrow("access");
+});
+
+test("two drafts cannot overwrite each other even when the wall clock does not advance", async () => {
+  vi.spyOn(Date, "now").mockReturnValue(1000000);
+  try {
+    const { owner, projectId } = await workspaceJourney();
+    const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Draft" });
+    const original = await owner.query(api.tasks.index.get, { taskId });
+    const draft = {
+      taskId,
+      expectedUpdatedAt: original.updatedAt,
+      title: "Edit",
+      description: "",
+      status: "todo" as const,
+      ...properties,
+    };
+    await owner.mutation(api.tasks.index.setStatus, { taskId, status: "done" });
+    await expect(owner.mutation(api.tasks.index.update, draft)).rejects.toThrow("changed while you were editing");
+    const completed = await owner.query(api.tasks.index.get, { taskId });
+    expect(completed.status).toBe("done");
+    expect(completed.updatedAt).toBe(original.updatedAt + 1);
+    const currentDraft = { ...draft, expectedUpdatedAt: completed.updatedAt, status: "done" as const };
+    const results = await Promise.allSettled([
+      owner.mutation(api.tasks.index.update, { ...currentDraft, title: "First" }),
+      owner.mutation(api.tasks.index.update, { ...currentDraft, title: "Second" }),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const latest = await owner.query(api.tasks.index.get, { taskId });
+    expect(latest.updatedAt).toBe(completed.updatedAt + 1);
+    expect(latest.completedAt).toBe(completed.completedAt);
+  } finally {
+    vi.restoreAllMocks();
+  }
 });
