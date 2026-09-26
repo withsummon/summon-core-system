@@ -82,7 +82,7 @@ export const setStatus = mutation({
       status: args.status,
       stateId: null,
       completedAt: args.status === "done" ? Date.now() : null,
-      updatedAt: Date.now(),
+      updatedAt: Math.max(Date.now(), task.updatedAt + 1),
     });
     await ctx.db.insert("taskEvents", {
       workspaceId: task.workspaceId,
@@ -104,10 +104,22 @@ export const get = query({
   },
 });
 export const update = mutation({
-  args: { taskId: v.id("tasks"), title: v.string(), description: v.string(), status, ...taskProperties },
-  handler: async (ctx, { taskId, title: rawTitle, description, status: requestedStatus, ...properties }) => {
+  args: {
+    taskId: v.id("tasks"),
+    expectedUpdatedAt: v.number(),
+    title: v.string(),
+    description: v.string(),
+    status,
+    ...taskProperties,
+  },
+  handler: async (
+    ctx,
+    { taskId, expectedUpdatedAt, title: rawTitle, description, status: requestedStatus, ...properties }
+  ) => {
     const task = await requireTask(ctx, taskId);
     const { user, project } = await requireProject(ctx, task.projectId, true);
+    if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt !== task.updatedAt)
+      throw new ConvexError("This task changed while you were editing. Reopen the latest task before saving.");
     const { title } = parseTaskText(rawTitle, description);
     const { data, state } = await validateProperties(ctx, project, properties);
     if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
@@ -119,7 +131,7 @@ export const update = mutation({
       description,
       status: requestedStatus,
       completedAt,
-      updatedAt: Date.now(),
+      updatedAt: Math.max(Date.now(), task.updatedAt + 1),
     });
     await ctx.db.insert("taskEvents", {
       workspaceId: task.workspaceId,
