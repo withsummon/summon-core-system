@@ -16,6 +16,7 @@
     "build": "tsc --noEmit && tsdown",
     "dev": "tsdown --watch --no-clean --onSuccess \"node --env-file=.env .\"",
     "start": "node --env-file=.env .",
+    "start:convex": "node --env-file=.env dist/convex-start.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -27,6 +28,8 @@
     "clean": "rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
+    "@summon/convex": "workspace:*",
+    "convex": "catalog:",
     "@effect/platform": "catalog:",
     "@effect/platform-node": "catalog:",
     "@fontsource/inter": "catalog:",

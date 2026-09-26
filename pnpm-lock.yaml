@@ -785,6 +785,9 @@ importers:
       '@react-pdf/types':
         specifier: 'catalog:'
         version: 2.9.2
+      '@summon/convex':
+        specifier: workspace:*
+        version: link:../convex
       '@tiptap/core':
         specifier: 'catalog:'
         version: 2.26.3(@tiptap/pm@2.26.1)
@@ -797,6 +800,9 @@ importers:
       compression:
         specifier: 'catalog:'
         version: 1.8.1(supports-color@8.1.1)
+      convex:
+        specifier: 'catalog:'
+        version: 1.46.0(react@18.3.1)
       cors:
         specifier: 'catalog:'
         version: 2.8.5
