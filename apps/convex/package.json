@@ -1,0 +1,31 @@
+{
+  "name": "@summon/convex",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api": "./convex/_generated/api.js",
+    "./data-model": "./convex/_generated/dataModel.d.ts"
+  },
+  "scripts": {
+    "dev": "convex dev --typecheck disable",
+    "deploy": "pnpm check:types && convex deploy --typecheck disable",
+    "codegen": "convex codegen --typecheck disable",
+    "check:types": "tsc --noEmit",
+    "check:lint": "oxlint --deny-warnings convex",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix convex",
+    "fix:format": "oxfmt .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@convex-dev/auth": "catalog:",
+    "convex": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "convex-test": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import Script from "next/script";
 import { Links, Meta, Outlet, Scripts } from "react-router";
@@ -11,7 +12,6 @@ import type { LinksFunction } from "react-router";
 import { ThemeProvider } from "next-themes";
 // plane imports
 import { SITE_DESCRIPTION, SITE_TITLE } from "@plane/constants";
-import { cn } from "@plane/utils";
 // types
 // assets
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
@@ -25,8 +25,7 @@ import type { Route } from "./+types/root";
 // lib
 import { isStaleAssetError, recoverFromStaleAsset } from "@/lib/stale-asset-error";
 // local
-import { CustomErrorComponent } from "./error";
-import { AppProvider } from "./provider";
+const CustomErrorComponent = lazy(() => import("./error").then((module) => ({ default: module.CustomErrorComponent })));
 // fonts
 // SAFETY: This font package exposes global CSS only and must execute for its side effect.
 // oxlint-disable-next-line import/no-unassigned-import
@@ -128,13 +127,11 @@ export const meta: Route.MetaFunction = () => [
 
 export default function Root() {
   return (
-    <AppProvider>
-      <div className={cn("relative flex h-screen w-full flex-col overflow-hidden bg-canvas", "desktop-app-container")}>
-        <main className="relative h-full w-full overflow-hidden">
-          <Outlet />
-        </main>
-      </div>
-    </AppProvider>
+    <div className="desktop-app-container relative flex h-screen w-full flex-col overflow-hidden bg-canvas">
+      <main className="relative h-full w-full overflow-hidden">
+        <Outlet />
+      </main>
+    </div>
   );
 }
 
@@ -148,5 +145,15 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   // the same way entry.client.tsx does instead of just showing the error page.
   if (import.meta.env.PROD && isStaleAssetError(error)) recoverFromStaleAsset();
 
-  return <CustomErrorComponent error={error} />;
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="p-8">
+          Loading error details…
+        </p>
+      }
+    >
+      <CustomErrorComponent error={error} />
+    </Suspense>
+  );
 }

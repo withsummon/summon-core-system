@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { route } from "@react-router/dev/routes";
+import { layout, route } from "@react-router/dev/routes";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 import { coreRoutes } from "./routes/core";
 import { extendedRoutes } from "./routes/extended";
@@ -17,6 +17,9 @@ import { mergeRoutes } from "./routes/helper";
 const mergedRoutes: RouteConfigEntry[] = mergeRoutes(coreRoutes, extendedRoutes);
 
 // Add catch-all route at the end (404 handler)
-const routes: RouteConfigEntry[] = [...mergedRoutes, route("*", "./not-found.tsx")];
+const routes: RouteConfigEntry[] = [
+  route("core", "./core.tsx"),
+  layout("./legacy-layout.tsx", [...mergedRoutes, route("*", "./not-found.tsx")]),
+];
 
 export default routes;
