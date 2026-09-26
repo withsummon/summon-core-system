@@ -123,7 +123,8 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
           <SummonCard>
             <h2 className="text-xs font-semibold text-primary">Document actions</h2>
             <div className="mt-3 grid gap-2">
-              <Button size="xl"
+              <Button
+                size="xl"
                 variant="secondary"
                 disabled={!hasPreview || Boolean(fileArtifacts.length)}
                 loading={rendering}
@@ -131,7 +132,8 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
               >
                 Generate files
               </Button>
-              <Button size="xl"
+              <Button
+                size="xl"
                 disabled={!hasPreview || Boolean(pageArtifact)}
                 loading={publishing}
                 onClick={() => void publishPreview()}

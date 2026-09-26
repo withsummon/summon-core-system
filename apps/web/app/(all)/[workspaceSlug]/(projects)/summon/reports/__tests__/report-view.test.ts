@@ -1,17 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
-
-const modelSource = readFileSync(new URL("./report-view-model.ts", import.meta.url), "utf8");
-const modelUrl = `data:text/javascript;base64,${Buffer.from(
-  ts.transpileModule(modelSource, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext },
-  }).outputText
-).toString("base64")}`;
-// SAFETY: The loaded module is a direct TypeScript transpilation of report-view-model.ts above.
-const model = (await import(modelUrl)) as typeof import("./report-view-model");
-const { percentage, readReportFilters, reportLabel, reportRequestKey, trendPolylinePoints, updateReportFilter } = model;
+import {
+  percentage,
+  readReportFilters,
+  reportLabel,
+  reportRequestKey,
+  trendPolylinePoints,
+  updateReportFilter,
+} from "../report-view-model.ts";
 
 test("report percentages handle empty and populated totals", () => {
   assert.equal(percentage(0, 0), 0);
@@ -54,9 +51,9 @@ test("trend points stay finite for empty and zero-only series", () => {
 });
 
 test("report and CSV use the same filters without client-side money conversion or chart packages", () => {
-  const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
-  const view = readFileSync(new URL("./report-view.tsx", import.meta.url), "utf8");
-  const visuals = readFileSync(new URL("./report-visuals.tsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../page.tsx", import.meta.url), "utf8");
+  const view = readFileSync(new URL("../report-view.tsx", import.meta.url), "utf8");
+  const visuals = readFileSync(new URL("../report-visuals.tsx", import.meta.url), "utf8");
   const implementation = `${page}\n${view}\n${visuals}`;
 
   assert.match(page, /getReport\(workspaceSlug, filters\)/);

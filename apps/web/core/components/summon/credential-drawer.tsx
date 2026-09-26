@@ -186,7 +186,8 @@ export function CredentialDrawer(props: {
               autoComplete="new-password"
             />
           </SummonField>
-          <Button size="xl"
+          <Button
+            size="xl"
             variant="secondary"
             onClick={rotate}
             loading={loading}
@@ -246,7 +247,8 @@ export function CredentialDrawer(props: {
           <p className="text-xs mt-1 text-secondary">
             Current password confirmation is required and the action is audited.
           </p>
-          <Button size="xl"
+          <Button
+            size="xl"
             className="mt-3"
             variant="error-fill"
             onClick={revokeCredential}

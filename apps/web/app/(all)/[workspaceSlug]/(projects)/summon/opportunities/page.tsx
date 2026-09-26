@@ -161,11 +161,7 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
                     </Button>
                   ) : null}
                   {stage !== "all" ? (
-                    <Button
-                      size="xl"
-                      variant="secondary"
-                      onClick={() => router.replace(hrefFor({ stage: "all" }))}
-                    >
+                    <Button size="xl" variant="secondary" onClick={() => router.replace(hrefFor({ stage: "all" }))}>
                       Show all stages
                     </Button>
                   ) : null}
@@ -471,14 +467,7 @@ function CreateOpportunityDialog(props: {
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              size="xl"
-              variant="secondary"
-              className="h-10"
-              onClick={close}
-              disabled={saving}
-            >
+            <Button type="button" size="xl" variant="secondary" className="h-10" onClick={close} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" size="xl" className="h-10" loading={saving}>

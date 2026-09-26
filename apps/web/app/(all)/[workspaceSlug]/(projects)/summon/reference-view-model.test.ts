@@ -6,7 +6,6 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-// @ts-expect-error -- Node's strip-types test runner requires the source extension.
 import { filterOpportunityRecords, summarizeCredentials } from "./reference-view-model.ts";
 
 test("opportunity master list applies stage and cross-record search together", () => {

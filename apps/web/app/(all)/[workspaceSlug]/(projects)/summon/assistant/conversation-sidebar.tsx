@@ -22,13 +22,7 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
           <h2 className="text-sm font-semibold text-primary">Chats</h2>
           <p className="truncate text-[11px] text-secondary">Private to you</p>
         </div>
-        <Button
-          size="lg"
-          variant="secondary"
-          loading={props.creating}
-          onClick={props.onCreate}
-          aria-label="New chat"
-        >
+        <Button size="lg" variant="secondary" loading={props.creating} onClick={props.onCreate} aria-label="New chat">
           <Plus className="size-3.5" /> New
         </Button>
       </div>

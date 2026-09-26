@@ -22,9 +22,7 @@ export const InvitationForm = observer(function InvitationForm(props: TInvitatio
   return (
     <form onSubmit={onSubmit} className={className}>
       <div className="space-y-4">
-        <Dialog.Title className="text-body-md-medium leading-6 text-primary">
-          {title}
-        </Dialog.Title>
+        <Dialog.Title className="text-body-md-medium leading-6 text-primary">{title}</Dialog.Title>
         <div className="text-body-xs-regular text-secondary">{description}</div>
         {children}
       </div>

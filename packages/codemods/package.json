@@ -5,13 +5,20 @@
   "scripts": {
     "test": "vitest run",
     "function-declaration": "jscodeshift -t ./function-declaration.ts --extensions=tsx --parser=tsx ../../apps/*/app ../../apps/*/ce ../../apps/*/core ../../apps/*/ee ../../apps/*/helpers ../../packages/*/src --ignore-pattern='**/node_modules/**' --ignore-pattern='**/dist/**' --ignore-pattern='**/build/**' --ignore-pattern='**/*.d.ts'",
-    "remove-directives": "jscodeshift -t ./remove-directives.ts --extensions=ts,tsx --parser=tsx ../../apps/*/app ../../apps/*/ce ../../apps/*/core ../../apps/*/ee ../../apps/*/helpers ../../apps/*/src ../../packages/*/src --ignore-pattern='**/node_modules/**' --ignore-pattern='**/dist/**' --ignore-pattern='**/build/**' --ignore-pattern='**/*.d.ts'"
+    "remove-directives": "jscodeshift -t ./remove-directives.ts --extensions=ts,tsx --parser=tsx ../../apps/*/app ../../apps/*/ce ../../apps/*/core ../../apps/*/ee ../../apps/*/helpers ../../apps/*/src ../../packages/*/src --ignore-pattern='**/node_modules/**' --ignore-pattern='**/dist/**' --ignore-pattern='**/build/**' --ignore-pattern='**/*.d.ts'",
+    "check:lint": "oxlint --deny-warnings .",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix .",
+    "fix:format": "oxfmt .",
+    "check:types": "tsc --noEmit"
   },
   "devDependencies": {
     "@hypermod/utils": "catalog:",
     "@types/jscodeshift": "catalog:",
+    "@types/node": "catalog:",
     "ast-types": "catalog:",
     "jscodeshift": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }
