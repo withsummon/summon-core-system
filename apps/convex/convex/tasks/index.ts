@@ -2,7 +2,8 @@ import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
-import { status } from "../schema";
+import { status, taskProperties } from "./schema";
+import { initialProperties, requireTask, validateProperties, parseTaskText } from "./properties";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
@@ -25,19 +26,36 @@ export const list = query({
   },
 });
 export const create = mutation({
-  args: { projectId: v.id("projects"), title: v.string(), description: v.optional(v.string()) },
+  args: {
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.optional(status),
+    properties: v.optional(v.object(taskProperties)),
+  },
   handler: async (ctx, args) => {
     const { user, project } = await requireProject(ctx, args.projectId, true);
-    const title = args.title.trim();
-    const description = args.description ?? "";
-    if (!title || title.length > 255 || description.length > 100_000)
-      throw new ConvexError("Enter a title up to 255 characters and a description up to 100,000 characters.");
+    const { title, description } = parseTaskText(args.title, args.description ?? "");
+    const defaultState = await ctx.db
+      .query("taskStates")
+      .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
+      .unique();
+    const { data, state } = await validateProperties(
+      ctx,
+      project,
+      args.properties ?? { ...initialProperties, stateId: defaultState?._id ?? null }
+    );
+    if (state && args.status && state.status !== args.status)
+      throw new ConvexError("Task status must match its custom state.");
+    const nextStatus = state?.status ?? args.status ?? "todo";
     const taskId = await ctx.db.insert("tasks", {
       workspaceId: project.workspaceId,
       projectId: project._id,
       title,
       description,
-      status: "todo",
+      ...data,
+      completedAt: nextStatus === "done" ? Date.now() : null,
+      status: nextStatus,
       sequence: project.nextSequence,
       createdBy: user._id,
       updatedAt: Date.now(),
@@ -49,7 +67,7 @@ export const create = mutation({
       taskId,
       actorId: user._id,
       kind: "created",
-      status: "todo",
+      status: nextStatus,
     });
     return taskId;
   },
@@ -57,11 +75,15 @@ export const create = mutation({
 export const setStatus = mutation({
   args: { taskId: v.id("tasks"), status },
   handler: async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw new ConvexError("Task not found.");
+    const task = await requireTask(ctx, args.taskId);
     const { user } = await requireProject(ctx, task.projectId, true);
     if (task.status === args.status) return;
-    await ctx.db.patch(task._id, { status: args.status, updatedAt: Date.now() });
+    await ctx.db.patch(task._id, {
+      status: args.status,
+      stateId: null,
+      completedAt: args.status === "done" ? Date.now() : null,
+      updatedAt: Date.now(),
+    });
     await ctx.db.insert("taskEvents", {
       workspaceId: task.workspaceId,
       projectId: task.projectId,
@@ -70,5 +92,54 @@ export const setStatus = mutation({
       kind: "status_changed",
       status: args.status,
     });
+  },
+});
+
+export const get = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const task = await requireTask(ctx, args.taskId);
+    await requireProject(ctx, task.projectId);
+    return task;
+  },
+});
+export const update = mutation({
+  args: { taskId: v.id("tasks"), title: v.string(), description: v.string(), status, ...taskProperties },
+  handler: async (ctx, { taskId, title: rawTitle, description, status: requestedStatus, ...properties }) => {
+    const task = await requireTask(ctx, taskId);
+    const { user, project } = await requireProject(ctx, task.projectId, true);
+    const { title } = parseTaskText(rawTitle, description);
+    const { data, state } = await validateProperties(ctx, project, properties);
+    if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
+    const statusChanged = task.status !== requestedStatus || task.stateId !== data.stateId;
+    const completedAt = statusChanged ? (requestedStatus === "done" ? Date.now() : null) : (task.completedAt ?? null);
+    await ctx.db.patch(taskId, {
+      ...data,
+      title,
+      description,
+      status: requestedStatus,
+      completedAt,
+      updatedAt: Date.now(),
+    });
+    await ctx.db.insert("taskEvents", {
+      workspaceId: task.workspaceId,
+      projectId: task.projectId,
+      taskId,
+      actorId: user._id,
+      kind: statusChanged ? "status_changed" : "updated",
+      status: requestedStatus,
+    });
+    return taskId;
+  },
+});
+
+export const resolve = query({
+  args: { taskId: v.string() },
+  handler: async (ctx, args) => {
+    const taskId = ctx.db.normalizeId("tasks", args.taskId);
+    if (!taskId) throw new ConvexError("Task not found.");
+    const task = await requireTask(ctx, taskId);
+    await requireProject(ctx, task.projectId);
+    return task;
   },
 });

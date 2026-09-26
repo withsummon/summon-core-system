@@ -8,9 +8,6 @@
  * @module
  */
 
-import type * as meetings_access from "../meetings/access.js";
-import type * as meetings_index from "../meetings/index.js";
-import type * as meetings_tasks from "../meetings/tasks.js";
 import type * as auth from "../auth.js";
 import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
@@ -18,24 +15,31 @@ import type * as commercial_delivery from "../commercial/delivery.js";
 import type * as commercial_directory from "../commercial/directory.js";
 import type * as commercial_opportunities from "../commercial/opportunities.js";
 import type * as commercial_validation from "../commercial/validation.js";
+import type * as crons from "../crons.js";
 import type * as documents_access from "../documents/access.js";
 import type * as documents_index from "../documents/index.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
+import type * as meetings_access from "../meetings/access.js";
+import type * as meetings_index from "../meetings/index.js";
+import type * as meetings_tasks from "../meetings/tasks.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
 import type * as resources_index from "../resources/index.js";
 import type * as settings_index from "../settings/index.js";
+import type * as tasks_assignees from "../tasks/assignees.js";
+import type * as tasks_center from "../tasks/center.js";
 import type * as tasks_index from "../tasks/index.js";
+import type * as tasks_labels from "../tasks/labels.js";
+import type * as tasks_migrations from "../tasks/migrations.js";
+import type * as tasks_properties from "../tasks/properties.js";
+import type * as tasks_states from "../tasks/states.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "meetings/access": typeof meetings_access;
-  "meetings/index": typeof meetings_index;
-  "meetings/tasks": typeof meetings_tasks;
   auth: typeof auth;
   "commercial/clients": typeof commercial_clients;
   "commercial/contacts": typeof commercial_contacts;
@@ -43,16 +47,26 @@ declare const fullApi: ApiFromModules<{
   "commercial/directory": typeof commercial_directory;
   "commercial/opportunities": typeof commercial_opportunities;
   "commercial/validation": typeof commercial_validation;
+  crons: typeof crons;
   "documents/access": typeof documents_access;
   "documents/index": typeof documents_index;
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;
+  "meetings/access": typeof meetings_access;
+  "meetings/index": typeof meetings_index;
+  "meetings/tasks": typeof meetings_tasks;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
   "resources/index": typeof resources_index;
   "settings/index": typeof settings_index;
+  "tasks/assignees": typeof tasks_assignees;
+  "tasks/center": typeof tasks_center;
   "tasks/index": typeof tasks_index;
+  "tasks/labels": typeof tasks_labels;
+  "tasks/migrations": typeof tasks_migrations;
+  "tasks/properties": typeof tasks_properties;
+  "tasks/states": typeof tasks_states;
   "workspaces/index": typeof workspaces_index;
 }>;
 
