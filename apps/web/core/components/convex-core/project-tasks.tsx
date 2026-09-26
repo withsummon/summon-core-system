@@ -74,7 +74,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
               onChange={(event) => setDescription(event.target.value)}
               maxLength={100000}
               rows={2}
-              className="text-sm rounded-md border border-subtle-1 bg-layer-2 p-3"
+              className="rounded-md border border-subtle-1 bg-layer-2 p-3 text-14"
             />
           </SummonField>
           <Button type="submit" loading={pending} className="self-start">
@@ -83,7 +83,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
         </form>
       )}
       {error && (
-        <p role="alert" className="text-sm text-danger-primary">
+        <p role="alert" className="text-14 text-danger-primary">
           {error}
         </p>
       )}
@@ -92,7 +92,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
       ) : (
         <div className="overflow-hidden rounded-lg border border-subtle-1">
           {results.length === 0 && (
-            <p className="text-sm p-6 text-secondary">
+            <p className="p-6 text-14 text-secondary">
               {canWrite ? "No tasks yet. Create the first task above." : "No tasks yet."}
             </p>
           )}
@@ -103,7 +103,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
                 data-task-id={task._id}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-subtle-1 px-4 py-3 last:border-b-0 md:grid-cols-[6rem_minmax(0,1fr)_auto]"
               >
-                <span className="text-xs col-start-1 row-start-1 text-secondary">
+                <span className="col-start-1 row-start-1 text-12 text-secondary">
                   {project.identifier}-{task.sequence}
                 </span>
                 <div className="col-span-2 col-start-1 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
@@ -111,31 +111,31 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
                     type="button"
                     onClick={() => setSelected(task._id)}
                     className={
-                      task.status === "done" ? "text-sm break-words text-secondary line-through" : "text-sm break-words"
+                      task.status === "done" ? "text-14 break-words text-secondary line-through" : "text-14 break-words"
                     }
                   >
                     {task.title}
                   </button>
                   {task.stateId && (
-                    <p className="text-xs mt-1 text-secondary">
+                    <p className="mt-1 text-12 text-secondary">
                       State: {states?.find((state) => state._id === task.stateId)?.name ?? "Loading state…"}
                     </p>
                   )}
                   {task.description && (
-                    <p className="text-xs mt-1 line-clamp-2 break-words whitespace-pre-wrap text-secondary">
+                    <p className="mt-1 line-clamp-2 text-12 break-words whitespace-pre-wrap text-secondary">
                       {task.description}
                     </p>
                   )}
                 </div>
                 <div className="col-start-2 row-start-1 space-y-1 md:col-start-3">
-                  <label className="text-xs block text-secondary" htmlFor={`status-${task._id}`}>
+                  <label className="block text-12 text-secondary" htmlFor={`status-${task._id}`}>
                     Status group<span className="sr-only"> for {task.title}</span>
                   </label>
                   <select
                     id={`status-${task._id}`}
                     disabled={!canWrite}
                     value={task.status}
-                    className="text-sm rounded-md border border-subtle-1 bg-layer-2 px-2 py-1"
+                    className="rounded-md border border-subtle-1 bg-layer-2 px-2 py-1 text-14"
                     onChange={(event) => {
                       const nextStatus = statusOptions.find((option) => option.value === event.target.value);
                       if (nextStatus) {

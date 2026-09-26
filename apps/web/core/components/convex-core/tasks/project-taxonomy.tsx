@@ -15,12 +15,12 @@ export function ProjectTaxonomy({ projectId }: { projectId: Id<"projects"> }) {
   const [label, setLabel] = useState<Doc<"taskLabels"> | null | undefined>();
   return (
     <details className="rounded-lg border border-subtle-1 p-4">
-      <summary className="text-sm cursor-pointer font-medium">Project states & labels</summary>
+      <summary className="cursor-pointer text-14 font-medium">Project states & labels</summary>
       <div className="mt-4 grid gap-5 md:grid-cols-2">
         <section className="space-y-3">
-          <h3 className="text-sm font-medium">Workflow states</h3>
+          <h3 className="text-14 font-medium">Workflow states</h3>
           {states?.map((item) => (
-            <button className="text-sm block" key={item._id} onClick={() => setState(item)}>
+            <button className="block text-14" key={item._id} onClick={() => setState(item)}>
               {item.name} · {statusOptions.find((group) => group.value === item.status)?.label}
               {item.isDefault ? " · Default" : ""}
             </button>
@@ -38,9 +38,9 @@ export function ProjectTaxonomy({ projectId }: { projectId: Id<"projects"> }) {
           )}
         </section>
         <section className="space-y-3">
-          <h3 className="text-sm font-medium">Labels</h3>
+          <h3 className="text-14 font-medium">Labels</h3>
           {labels?.map((item) => (
-            <button className="text-sm block" key={item._id} onClick={() => setLabel(item)}>
+            <button className="block text-14" key={item._id} onClick={() => setLabel(item)}>
               <span style={{ color: item.color }} aria-hidden>
                 ●{" "}
               </span>
@@ -141,7 +141,7 @@ function StateForm({
             ))}
           </select>
         </SummonField>
-        <label className="text-sm flex gap-2">
+        <label className="flex gap-2 text-14">
           <input type="checkbox" name="default" defaultChecked={state?.isDefault} />
           Default for new tasks
         </label>
@@ -155,7 +155,7 @@ function StateForm({
         </div>
       </fieldset>
       {error && (
-        <p role="alert" className="text-sm text-danger-primary">
+        <p role="alert" className="text-14 text-danger-primary">
           {error}
         </p>
       )}
@@ -213,7 +213,7 @@ function LabelForm({
         </div>
       </fieldset>
       {error && (
-        <p role="alert" className="text-sm text-danger-primary">
+        <p role="alert" className="text-14 text-danger-primary">
           {error}
         </p>
       )}

@@ -1,4 +1,4 @@
-import { Component, useState } from "react";
+import { Component, lazy, Suspense, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
@@ -9,6 +9,11 @@ import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
 import { statusOptions } from "./options";
+
+const RichDescription = lazy(() =>
+  import("./rich-description").then((module) => ({ default: module.RichDescription }))
+);
+const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Task = FunctionReturnType<typeof api.tasks.index.get>;
@@ -29,7 +34,7 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
         <Button variant="secondary" onClick={onBack}>
           Back to tasks
         </Button>
-        <span className="text-sm text-secondary">
+        <span className="text-14 text-secondary">
           {project.identifier}-{task.sequence}
         </span>
         {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
@@ -38,8 +43,8 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
         <TaskForm task={task} projectId={project._id} onDone={() => setEditing(false)} />
       ) : (
         <>
-          <h2 className="text-2xl font-semibold break-words">{task.title}</h2>
-          <dl className="text-sm grid gap-4 sm:grid-cols-3">
+          <h2 className="text-24 font-semibold break-words">{task.title}</h2>
+          <dl className="grid gap-4 text-14 sm:grid-cols-3">
             <div>
               <dt className="text-secondary">State</dt>
               <dd>
@@ -73,9 +78,10 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
               </dd>
             </div>
           </dl>
-          <div className="text-sm min-h-32 rounded-lg border border-subtle-1 p-4 break-words whitespace-pre-wrap">
-            {task.description || "No description"}
-          </div>
+          <Suspense fallback={<p role="status">Loading task details…</p>}>
+            <RichDescription taskId={task._id} canWrite={canWrite} />
+            <TaskStructure task={task} canWrite={canWrite} />
+          </Suspense>
         </>
       )}
     </article>
@@ -148,14 +154,6 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           />
         </SummonField>
-        <SummonField label="Description">
-          <textarea
-            className={`${selectClass} min-h-48 w-full`}
-            value={draft.description}
-            maxLength={100000}
-            onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-          />
-        </SummonField>
         <TaskProperties projectId={projectId} draft={draft} onChange={setDraft} />
         <div className="flex gap-2">
           <Button type="submit" loading={pending}>
@@ -167,7 +165,7 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
         </div>
       </fieldset>
       {error && (
-        <p role="alert" className="text-sm text-danger-primary">
+        <p role="alert" className="text-14 text-danger-primary">
           {error}
         </p>
       )}
@@ -256,9 +254,9 @@ function TaskProperties({
         />
       </SummonField>
       <fieldset className="space-y-2">
-        <legend className="text-sm mb-2 font-medium">Assignees</legend>
+        <legend className="mb-2 text-14 font-medium">Assignees</legend>
         {members.map((member) => (
-          <label key={member.id} className="text-sm flex gap-2">
+          <label key={member.id} className="flex gap-2 text-14">
             <input
               type="checkbox"
               checked={draft.assigneeIds.includes(member.id)}
@@ -282,7 +280,7 @@ function TaskProperties({
         {draft.assigneeIds
           .filter((id) => !members.some((member) => member.id === id))
           .map((id) => (
-            <label key={id} className="text-sm flex gap-2">
+            <label key={id} className="flex gap-2 text-14">
               <input
                 type="checkbox"
                 checked
@@ -293,9 +291,9 @@ function TaskProperties({
           ))}
       </fieldset>
       <fieldset className="space-y-2">
-        <legend className="text-sm mb-2 font-medium">Labels</legend>
+        <legend className="mb-2 text-14 font-medium">Labels</legend>
         {labels?.map((label) => (
-          <label key={label._id} className="text-sm flex gap-2">
+          <label key={label._id} className="flex gap-2 text-14">
             <input
               type="checkbox"
               checked={draft.labelIds.includes(label._id)}
@@ -314,7 +312,7 @@ function TaskProperties({
             {label.name}
           </label>
         ))}
-        {labels?.length === 0 && <p className="text-sm text-secondary">No project labels yet.</p>}
+        {labels?.length === 0 && <p className="text-14 text-secondary">No project labels yet.</p>}
       </fieldset>
     </div>
   );
@@ -330,8 +328,8 @@ export function TaskDetail(props: { taskId: string; project: Project; onBack: ()
 function TaskUnavailable({ onBack }: { onBack: () => void }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold">This task is unavailable</h2>
-      <p role="alert" className="text-sm text-secondary">
+      <h2 className="text-20 font-semibold">This task is unavailable</h2>
+      <p role="alert" className="text-14 text-secondary">
         It may have been removed, or your access may have changed.
       </p>
       <Button variant="secondary" onClick={onBack}>

@@ -53,7 +53,7 @@ function Workspace() {
           Summon Core
         </Link>
         <div className="flex items-center gap-4">
-          <span role="status" className="text-xs text-secondary">
+          <span role="status" className="text-12 text-secondary">
             {connection.isWebSocketConnected ? "Live" : "Reconnecting…"}
           </span>
           <Button
@@ -73,29 +73,29 @@ function Workspace() {
       )}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <aside className="w-full shrink-0 border-b border-subtle-1 p-4 md:w-60 md:border-r md:border-b-0">
-          <h2 className="text-xs mb-3 font-semibold text-secondary">WORKSPACES</h2>
+          <h2 className="mb-3 text-12 font-semibold text-secondary">WORKSPACES</h2>
           <nav className="flex flex-col gap-1">
             {workspaces?.map((item) => (
               <button
                 key={item._id}
                 aria-current={workspace?._id === item._id ? "page" : undefined}
-                className="text-sm rounded-md px-3 py-2 text-left hover:bg-layer-2 aria-[current=page]:bg-layer-2"
+                className="rounded-md px-3 py-2 text-left text-14 hover:bg-layer-2 aria-[current=page]:bg-layer-2"
                 onClick={() => setParams({ workspace: item.slug })}
               >
                 {item.name}
               </button>
             ))}
           </nav>
-          <button className="text-sm mt-3 px-3 py-2 text-accent-primary" onClick={() => setParams({})}>
+          <button className="mt-3 px-3 py-2 text-14 text-accent-primary" onClick={() => setParams({})}>
             Create workspace
           </button>
-          <details className="text-sm mt-6 border-t border-subtle-1 pt-4">
+          <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
             <summary className="cursor-pointer">Account details</summary>
             {identity && (
               <div className="mt-3 space-y-2">
                 <p className="break-all text-secondary">{identity.email}</p>
-                <p className="text-xs text-secondary">Your user ID</p>
-                <code className="text-xs block break-all select-all">{identity.id}</code>
+                <p className="text-12 text-secondary">Your user ID</p>
+                <code className="block text-12 break-all select-all">{identity.id}</code>
               </div>
             )}
           </details>
@@ -137,7 +137,7 @@ function CreateWorkspace({ onCreated }: { onCreated: (slug: string) => void }) {
         }
       }}
     >
-      <h1 className="text-2xl font-semibold">Create a workspace</h1>
+      <h1 className="text-24 font-semibold">Create a workspace</h1>
       <SummonField label="Workspace name">
         <Input value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} />
       </SummonField>
@@ -167,44 +167,69 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
   const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
   const [params, setParams] = useSearchParams();
   const project = projects?.find((item) => item.identifier === params.get("project"));
+  const hasSelectedTask = Boolean(params.get("task"));
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm mb-1 text-secondary">{workspace.name}</p>
-        <h1 className="text-2xl font-semibold">{project ? project.name : "Projects"}</h1>
-      </div>
-      {workspace.membershipRole === "admin" && (
-        <div className="space-y-3">
-          <Membership scope={{ kind: "workspace", workspaceId: workspace._id }} />
-          <Button variant="secondary" onClick={() => setParams({ workspace: workspace.slug })}>
-            New project
-          </Button>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="mb-1 text-12 text-secondary">{workspace.name}</p>
+          <h1 className={hasSelectedTask ? "text-20 font-semibold break-words" : "text-28 font-semibold break-words"}>
+            {project ? project.name : "Projects"}
+          </h1>
         </div>
+        <div className="flex max-w-full flex-wrap items-end gap-2">
+          <label className="min-w-0 space-y-1 text-12 text-secondary">
+            <span className="block">Project</span>
+            <select
+              aria-label="Project"
+              className="max-w-full rounded-md border border-subtle-1 bg-layer-2 px-3 py-2 text-14 text-primary sm:max-w-64"
+              value={project?.identifier ?? ""}
+              onChange={(event) => {
+                const next = projects?.find((item) => item.identifier === event.target.value);
+                setParams(
+                  next ? { workspace: workspace.slug, project: next.identifier } : { workspace: workspace.slug }
+                );
+              }}
+            >
+              <option value="">Choose project</option>
+              {projects?.map((item) => (
+                <option key={item._id} value={item.identifier}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {workspace.membershipRole === "admin" && (
+            <Button variant="secondary" onClick={() => setParams({ workspace: workspace.slug })}>
+              New project
+            </Button>
+          )}
+        </div>
+      </header>
+      {(workspace.membershipRole === "admin" ||
+        (project?.membershipRole === "admin" && project.workspaceRole !== "guest")) && (
+        <details className="rounded-lg border border-subtle-1 px-3 py-2">
+          <summary className="cursor-pointer text-12 font-medium text-secondary">Manage access</summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {workspace.membershipRole === "admin" && (
+              <Membership scope={{ kind: "workspace", workspaceId: workspace._id }} />
+            )}
+            {project?.membershipRole === "admin" && project.workspaceRole !== "guest" && (
+              <Membership key={project._id} scope={{ kind: "project", projectId: project._id }} />
+            )}
+          </div>
+        </details>
       )}
-      <nav aria-label="Projects" className="flex flex-wrap gap-2">
-        {projects?.map((item) => (
-          <Button
-            key={item._id}
-            variant={project?._id === item._id ? "primary" : "secondary"}
-            onClick={() => setParams({ workspace: workspace.slug, project: item.identifier })}
-          >
-            {item.name}
-          </Button>
-        ))}
-      </nav>
       {projects === undefined ? (
         <p role="status">Loading projects…</p>
       ) : project ? (
         <div className="space-y-6">
-          {project.membershipRole === "admin" && project.workspaceRole !== "guest" && (
-            <Membership key={project._id} scope={{ kind: "project", projectId: project._id }} />
-          )}
-          <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />
+          {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
           <ProjectTasks key={project._id} project={project} />
         </div>
       ) : workspace.membershipRole !== "admin" ? (
-        <p className="text-sm text-secondary">
-          Choose a project above. Your workspace administrator can create projects and grant access.
+        <p className="text-14 text-secondary">
+          Choose a project. Your workspace administrator can create projects and grant access.
         </p>
       ) : (
         <CreateProject

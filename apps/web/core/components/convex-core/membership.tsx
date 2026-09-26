@@ -46,9 +46,9 @@ export function Membership({ scope }: { scope: Scope }) {
 
   return (
     <details className="max-w-xl rounded-lg border border-subtle-1 p-4">
-      <summary className="text-sm cursor-pointer font-medium">Manage {scope.kind} access</summary>
+      <summary className="cursor-pointer text-14 font-medium">Manage {scope.kind} access</summary>
       <div className="mt-4 space-y-4">
-        <p className="text-sm text-secondary">
+        <p className="text-14 text-secondary">
           Ask the person to share their user ID from Account details. Project access also requires workspace membership.
         </p>
         <form
@@ -96,13 +96,13 @@ export function Membership({ scope }: { scope: Scope }) {
         </form>
         {target && (
           <div className="space-y-3">
-            <p className="text-sm">
+            <p className="text-14">
               {target.name || target.email || "User"}
-              <span className="font-mono text-xs mt-1 block break-all text-secondary">{target.id}</span>
+              <span className="font-mono mt-1 block text-12 break-all text-secondary">{target.id}</span>
             </p>
             <SummonField label="Access role">
               <select
-                className="text-sm rounded-md border border-subtle-1 bg-layer-2 p-2"
+                className="rounded-md border border-subtle-1 bg-layer-2 p-2 text-14"
                 value={role}
                 disabled={pending}
                 onChange={(event) => {
@@ -128,12 +128,12 @@ export function Membership({ scope }: { scope: Scope }) {
           </div>
         )}
         {error && (
-          <p role="alert" className="text-sm text-danger-primary">
+          <p role="alert" className="text-14 text-danger-primary">
             {error}
           </p>
         )}
         {message && (
-          <p role="status" className="text-sm text-secondary">
+          <p role="status" className="text-14 text-secondary">
             {message}
           </p>
         )}
