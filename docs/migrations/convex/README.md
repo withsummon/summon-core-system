@@ -35,3 +35,9 @@ Meeting summary generation must continue to create/update its canonical document
 Record intent, feedback, session/access, route/import, data, render/paint and input readiness separately. Compare equivalent fixtures, identities, build mode, host topology, cache state and query scope. The current task/document aggregator discovers projects through a home summary and scans all project pages; deleting that fanout is a query-shape improvement and must not be credited solely to the Convex runtime.
 
 Candidates: existing Django owner with bounded query; Convex reactive bounded query; reject component caches and duplicate permission policies. Retain rejected/invalid samples with reasons. Control source identity is recorded in `control.json`; measurements remain pending until recorded as passing results.
+
+## Current acceptance evidence
+
+- [First-slice browser and backend QA](first-slice-qa.md), [task UI](task-frontend.md), [commercial](commercial-frontend.md), [settings](workspace-settings.md), [documents](documents-frontend.md), [meetings](meetings-frontend.md), and [assistant](assistant-frontend.md).
+- [Local restore rehearsal](backup-restore.md) verifies exact records and stored files in an isolated instance.
+- [Retirement gates](retirement-gates.md) record active legacy consumers and the conditions for stopping Django/Postgres. The full migration and remote application deployment are not complete.
