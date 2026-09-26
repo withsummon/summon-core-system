@@ -31,6 +31,7 @@ from plane.summon.views import (
     MeetingViewSet,
     MeetingWorkItemDetailView,
     MeetingWorkItemView,
+    OpportunityDeliveryView,
     OpportunityTransitionView,
     OpportunityViewSet,
     ProjectOverviewView,
@@ -156,6 +157,11 @@ urlpatterns = [
         "workspaces/<str:slug>/opportunities/<uuid:pk>/transitions/",
         OpportunityTransitionView.as_view(),
         name="summon-opportunity-transition",
+    ),
+    path(
+        "workspaces/<str:slug>/opportunities/<uuid:pk>/delivery/",
+        OpportunityDeliveryView.as_view(),
+        name="summon-opportunity-delivery",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/profile/",

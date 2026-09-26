@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.app.permissions import ProjectEntityPermission
+from plane.app.permissions import ProjectAdminPermission, ProjectEntityPermission
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Project, Workspace
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
@@ -17,10 +18,11 @@ from plane.summon.serializers import (
     ClientSerializer,
     OpportunityDetailSerializer,
     OpportunitySerializer,
+    OpportunityDeliverySerializer,
     OpportunityTransitionSerializer,
     SummonProjectProfileSerializer,
 )
-from plane.summon.services.commercial import transition_opportunity
+from plane.summon.services.commercial import start_delivery, transition_opportunity
 
 
 class WorkspaceContextMixin:
@@ -87,9 +89,14 @@ class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
     permission_classes = [SummonWorkspacePermission]
 
     def get_queryset(self):
-        return Opportunity.objects.filter(
+        queryset = Opportunity.objects.filter(
             workspace__slug=self.kwargs["slug"], workspace__deleted_at__isnull=True
         ).order_by("-created_at")
+        return queryset.select_for_update() if self.action in ("update", "partial_update") else queryset
+
+    def update(self, request, *args, **kwargs):
+        with transaction.atomic():
+            return super().update(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(workspace=self.get_workspace())
@@ -117,8 +124,34 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
         )
 
 
+class OpportunityDeliveryView(WorkspaceContextMixin, BaseAPIView):
+    permission_classes = [SummonWorkspacePermission]
+
+    def post(self, request, slug, pk):
+        opportunity = get_object_or_404(Opportunity, id=pk, workspace__slug=slug, workspace__deleted_at__isnull=True)
+        serializer = OpportunityDeliverySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = get_object_or_404(
+            Project,
+            id=serializer.validated_data["project"],
+            workspace=opportunity.workspace,
+            archived_at__isnull=True,
+        )
+        profile, created = start_delivery(opportunity.id, project, request.user)
+        return Response(
+            SummonProjectProfileSerializer(profile, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
 class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
     permission_classes = [SummonWorkspacePermission, ProjectEntityPermission]
+
+    def get_permissions(self):
+        # Members read the profile; commercial and budget fields are edited by project admins.
+        if self.request.method in ("POST", "PATCH"):
+            return [SummonWorkspacePermission(), ProjectAdminPermission()]
+        return super().get_permissions()
 
     def get_project(self):
         return get_object_or_404(

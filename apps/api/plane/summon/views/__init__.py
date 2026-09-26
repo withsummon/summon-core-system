@@ -5,6 +5,7 @@
 from .commercial import (
     ClientContactViewSet,
     ClientViewSet,
+    OpportunityDeliveryView,
     OpportunityTransitionView,
     OpportunityViewSet,
     SummonProjectProfileView,
@@ -54,6 +55,7 @@ __all__ = [
     "AssistantMessageView",
     "ClientContactViewSet",
     "ClientViewSet",
+    "OpportunityDeliveryView",
     "OpportunityTransitionView",
     "OpportunityViewSet",
     "SummonProjectProfileView",

@@ -73,6 +73,13 @@ class OpportunitySerializer(WorkspaceScopedSerializer):
         errors = {}
         if not self.is_workspace_record(self.value(attrs, "client")):
             errors["client"] = "Record must belong to this workspace."
+        if (
+            self.instance
+            and "client" in attrs
+            and getattr(attrs["client"], "id", None) != self.instance.client_id
+            and SummonProjectProfile.objects.filter(source_opportunity=self.instance).exists()
+        ):
+            errors["client"] = "Client cannot change after delivery has started."
         if not self.is_workspace_member(self.value(attrs, "owner")):
             errors["owner"] = "Member must belong to this workspace."
         if errors:
@@ -125,6 +132,7 @@ class OpportunityDetailSerializer(OpportunitySerializer):
     client_detail = serializers.SerializerMethodField()
     contacts = serializers.SerializerMethodField()
     project_profile = serializers.SerializerMethodField()
+    delivery_project = serializers.SerializerMethodField()
     meetings = serializers.SerializerMethodField()
     page_contexts = serializers.SerializerMethodField()
     work_items = serializers.SerializerMethodField()
@@ -147,6 +155,12 @@ class OpportunityDetailSerializer(OpportunitySerializer):
         profile = detail_project_profile(instance, self.context["request"].user)
         return SummonProjectProfileSerializer(profile, context=self.context).data if profile else None
 
+    def get_delivery_project(self, instance):
+        profile = detail_project_profile(instance, self.context["request"].user)
+        if not profile:
+            return None
+        return {"id": str(profile.project.id), "identifier": profile.project.identifier, "name": profile.project.name}
+
     def get_meetings(self, instance):
         return MeetingSerializer(
             detail_meetings(instance, self.context["request"].user, "source_opportunity"),
@@ -166,6 +180,10 @@ class OpportunityDetailSerializer(OpportunitySerializer):
         return detail_activity(instance, self.context["request"].user, "source_opportunity")
 
 
+class OpportunityDeliverySerializer(serializers.Serializer):
+    project = serializers.UUIDField()
+
+
 class OpportunityTransitionSerializer(serializers.Serializer):
     stage = serializers.ChoiceField(choices=Opportunity.Stage.choices)
     probability = serializers.IntegerField(min_value=0, max_value=100, required=False)
@@ -175,14 +193,17 @@ class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
     class Meta:
         model = SummonProjectProfile
         fields = "__all__"
-        read_only_fields = ["workspace", "project", "created_by", "updated_by", "deleted_at"]
+        # The opportunity link is written only by the start-delivery handoff.
+        read_only_fields = ["workspace", "project", "source_opportunity", "created_by", "updated_by", "deleted_at"]
 
     def validate(self, attrs):
         errors = {}
-        if not self.is_workspace_record(self.value(attrs, "client")):
+        client = self.value(attrs, "client")
+        if not self.is_workspace_record(client):
             errors["client"] = "Record must belong to this workspace."
-        if not self.is_workspace_record(self.value(attrs, "source_opportunity")):
-            errors["source_opportunity"] = "Record must belong to this workspace."
+        source_opportunity = getattr(self.instance, "source_opportunity", None)
+        if "client" in attrs and source_opportunity and source_opportunity.client_id != getattr(client, "id", None):
+            errors["client"] = "Client must match the source opportunity's client."
         start_date = self.value(attrs, "start_date")
         target_date = self.value(attrs, "target_date")
         if start_date and target_date and start_date > target_date:

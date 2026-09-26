@@ -241,29 +241,20 @@ def test_transition_cannot_target_another_workspace_opportunity(workspace):
 
 
 @pytest.mark.django_db
-def test_conversion_links_existing_project_without_creating_project(workspace):
+def test_profile_route_cannot_write_the_opportunity_link(workspace):
     actor, client = authenticated_user(workspace, 20)
     project = Project.objects.create(workspace=workspace, name="Delivery", identifier="DEL")
     ProjectMember.objects.create(workspace=workspace, project=project, member=actor, role=20)
     opportunity = Opportunity.objects.create(workspace=workspace, title="Won deal", stage="won")
-    project_count = Project.objects.count()
-    url = f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/"
 
     response = client.post(
-        url,
-        {
-            "source_opportunity": str(opportunity.id),
-            "delivery_status": "planning",
-            "budget": "125000.00",
-        },
+        f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/",
+        {"source_opportunity": str(opportunity.id), "delivery_status": "planning"},
         format="json",
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert Project.objects.count() == project_count
-    profile = SummonProjectProfile.objects.get(project=project)
-    assert profile.source_opportunity == opportunity
-    assert str(client.get(url).data["project"]) == str(project.id)
+    assert SummonProjectProfile.objects.get(project=project).source_opportunity is None
 
 
 @pytest.mark.django_db
@@ -292,7 +283,6 @@ def test_project_profile_rejects_cross_workspace_references(workspace):
     other_workspace = create_workspace(other_owner, "other-profile")
     other_project = Project.objects.create(workspace=other_workspace, name="Other delivery", identifier="OTH")
     other_client = Client.objects.create(workspace=other_workspace, name="Other account")
-    other_opportunity = Opportunity.objects.create(workspace=other_workspace, title="Other deal")
     project_count = Project.objects.count()
 
     wrong_project = client.post(
@@ -304,14 +294,11 @@ def test_project_profile_rejects_cross_workspace_references(workspace):
 
     response = client.post(
         f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/profile/",
-        {
-            "client": str(other_client.id),
-            "source_opportunity": str(other_opportunity.id),
-        },
+        {"client": str(other_client.id)},
         format="json",
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert {"client", "source_opportunity"}.issubset(response.data)
+    assert "client" in response.data
     assert Project.objects.count() == project_count
     assert not SummonProjectProfile.objects.exists()
 

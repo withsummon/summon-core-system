@@ -2,11 +2,64 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db import transaction
 from django.db.models import Q
+from rest_framework import exceptions, serializers, status
 
-from plane.db.models import IssueActivity, Page, Project
+from plane.app.permissions import ROLE
+from plane.db.models import IssueActivity, Page, Project, ProjectMember
 from plane.summon.models import Meeting, MeetingWorkItem, Opportunity, SummonPageContext, SummonProjectProfile
 from plane.summon.services.reports import visible_project_ids
+
+
+class DeliveryConflict(exceptions.APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "delivery_conflict"
+
+
+def start_delivery(opportunity_id, project: Project, actor) -> tuple[SummonProjectProfile, bool]:
+    """Link a won, client-linked opportunity to one delivery project it shares a client with.
+
+    Idempotent for the same opportunity and project, so a retried or double-submitted
+    handoff never produces a second delivery project. Returns (profile, created).
+    """
+    if not ProjectMember.objects.filter(project=project, member=actor, role=ROLE.ADMIN.value, is_active=True).exists():
+        raise exceptions.PermissionDenied("Only project admins can start delivery in this project.")
+
+    with transaction.atomic():
+        # Different opportunities can target the same project. Lock its row before
+        # checking for a profile so a competing request returns 409, not an
+        # uncaught unique-constraint error.
+        project = Project.objects.select_for_update().get(id=project.id)
+        opportunity = (
+            Opportunity.objects.select_for_update(of=("self",)).select_related("client").get(id=opportunity_id)
+        )
+        if opportunity.stage != Opportunity.Stage.WON:
+            raise serializers.ValidationError({"stage": "Mark the opportunity as won before starting delivery."})
+        if opportunity.client is None or opportunity.client.deleted_at is not None:
+            raise serializers.ValidationError({"client": "Link a client to the opportunity before starting delivery."})
+
+        linked = SummonProjectProfile.objects.filter(source_opportunity=opportunity).first()
+        if linked:
+            if linked.project_id == project.id:
+                return linked, False
+            raise DeliveryConflict({"source_opportunity": "This opportunity already has a delivery project."})
+
+        profile = SummonProjectProfile.objects.select_for_update().filter(project=project).first()
+        if profile is None:
+            profile = SummonProjectProfile.objects.create(
+                workspace=opportunity.workspace,
+                project=project,
+                client=opportunity.client,
+                source_opportunity=opportunity,
+            )
+            return profile, True
+        if profile.source_opportunity_id or (profile.client_id and profile.client_id != opportunity.client_id):
+            raise DeliveryConflict({"project": "This project is already linked to another client or opportunity."})
+        profile.client = opportunity.client
+        profile.source_opportunity = opportunity
+        profile.save(update_fields=["client", "source_opportunity", "updated_by", "updated_at"])
+        return profile, False
 
 
 def transition_opportunity(opportunity: Opportunity, stage: str, actor, probability=None) -> Opportunity:
@@ -76,11 +129,15 @@ def detail_work_items(opportunity, user):
 
 def detail_project_profile(opportunity, user):
     project_ids = visible_linked_projects(opportunity, user, "source_opportunity").values_list("id", flat=True)
-    return SummonProjectProfile.objects.filter(
-        workspace=opportunity.workspace,
-        source_opportunity=opportunity,
-        project_id__in=project_ids,
-    ).first()
+    return (
+        SummonProjectProfile.objects.filter(
+            workspace=opportunity.workspace,
+            source_opportunity=opportunity,
+            project_id__in=project_ids,
+        )
+        .select_related("project")
+        .first()
+    )
 
 
 def detail_activity(record, user, profile_field):

@@ -8,6 +8,7 @@ from .commercial import (
     ClientSerializer,
     OpportunityDetailSerializer,
     OpportunitySerializer,
+    OpportunityDeliverySerializer,
     OpportunityTransitionSerializer,
     SummonProjectProfileSerializer,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "ClientSerializer",
     "OpportunityDetailSerializer",
     "OpportunitySerializer",
+    "OpportunityDeliverySerializer",
     "OpportunityTransitionSerializer",
     "SummonProjectProfileSerializer",
     "MeetingSerializer",
