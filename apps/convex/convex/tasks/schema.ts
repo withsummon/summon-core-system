@@ -31,7 +31,22 @@ export const stateFields = {
   isDefault: v.boolean(),
 };
 export const labelFields = { name: v.string(), description: v.string(), color: v.string(), sortOrder: v.number() };
+export const relationKind = v.union(v.literal("blocks"), v.literal("relates_to"), v.literal("duplicate"));
 export const taskTables = {
+  taskDescriptions: defineTable({ taskId: v.id("tasks"), html: v.string() }).index("by_task", ["taskId"]),
+  taskParents: defineTable({ projectId: v.id("projects"), childId: v.id("tasks"), parentId: v.id("tasks") })
+    .index("by_child", ["childId"])
+    .index("by_parent", ["parentId"]),
+  taskRelations: defineTable({
+    projectId: v.id("projects"),
+    fromId: v.id("tasks"),
+    toId: v.id("tasks"),
+    kind: relationKind,
+  })
+    .index("by_from", ["fromId"])
+    .index("by_to", ["toId"])
+    .index("by_project", ["projectId"])
+    .index("by_pair", ["fromId", "toId"]),
   tasks: defineTable({
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),

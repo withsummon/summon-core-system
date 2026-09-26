@@ -66,9 +66,20 @@ import type * as mcp_tools from "../mcp/tools.js";
 import type * as mcp_transport from "../mcp/transport.js";
 import type * as mcp_vault from "../mcp/vault.js";
 
+import type * as tasks_description from "../tasks/description.js";
+import type * as tasks_hierarchy from "../tasks/hierarchy.js";
+import type * as tasks_relationships from "../tasks/relationships.js";
+import type * as tasks_revision from "../tasks/revision.js";
+import type * as tasks_rich_content from "../tasks/rich_content.js";
+
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "tasks/description": typeof tasks_description;
+  "tasks/hierarchy": typeof tasks_hierarchy;
+  "tasks/relationships": typeof tasks_relationships;
+  "tasks/revision": typeof tasks_revision;
+  "tasks/rich_content": typeof tasks_rich_content;
   "mcp/access": typeof mcp_access;
   "mcp/client": typeof mcp_client;
   "mcp/credentials": typeof mcp_credentials;
