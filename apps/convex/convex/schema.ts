@@ -1,3 +1,4 @@
+import { settingsTables } from "./settings/schema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
@@ -13,6 +14,7 @@ export const status = v.union(
 );
 export default defineSchema({
   ...authTables,
+  ...settingsTables,
   ...commercialTables,
   workspaces: defineTable({ name: v.string(), slug: v.string() }).index("by_slug", ["slug"]),
   workspaceMembers: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), role, active: v.boolean() })

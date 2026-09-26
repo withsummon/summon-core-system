@@ -20,10 +20,15 @@ import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
+import type * as settings_index from "../settings/index.js";
 import type * as tasks_index from "../tasks/index.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
@@ -38,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   "identity/index": typeof identity_index;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
+  "settings/index": typeof settings_index;
   "tasks/index": typeof tasks_index;
   "workspaces/index": typeof workspaces_index;
 }>;
@@ -50,7 +56,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -60,6 +69,9 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {};
