@@ -25,16 +25,16 @@ export function AIFeaturesMenu(props: Props) {
   const popup = useRef<Instance | null>(null);
 
   useEffect(() => {
-    if (!menuRef.current) return;
+    const frame = document.querySelector(".frame-renderer");
+    if (!menuRef.current || !frame) return;
 
     menuRef.current.remove();
     menuRef.current.style.visibility = "visible";
 
-    // @ts-expect-error - Tippy types are incorrect
     popup.current = tippy(document.body, {
       getReferenceClientRect: null,
       content: menuRef.current,
-      appendTo: () => document.querySelector(".frame-renderer"),
+      appendTo: frame,
       trigger: "manual",
       interactive: true,
       arrow: false,

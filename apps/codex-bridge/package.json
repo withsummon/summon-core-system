@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "NODE_ENV=test node --test server.test.mjs"
+    "test": "NODE_ENV=test node --test server.test.mjs",
+    "check:lint": "oxlint --deny-warnings .",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix .",
+    "fix:format": "oxfmt ."
   }
 }

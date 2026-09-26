@@ -12,6 +12,12 @@
     "./index.css": "./index.css",
     "./postcss.config.js": "./postcss.config.js"
   },
+  "scripts": {
+    "check:lint": "oxlint --deny-warnings .",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix .",
+    "fix:format": "oxfmt ."
+  },
   "dependencies": {
     "@tailwindcss/postcss": "catalog:",
     "postcss": "catalog:"

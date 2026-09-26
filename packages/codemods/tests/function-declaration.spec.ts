@@ -471,14 +471,17 @@ export const MyObserverComponent = observer(() => {
   it("should preserve dependency arrays when transforming wrapped components", async () => {
     const result = await applyTransform(
       transformer,
-      `
+      {
+        path: "file.tsx",
+        source: `
       import { useMemo } from "react";
 
       const MyComponent = useMemo(() => {
         return () => <div>Hello</div>;
       }, [dep]);
       `,
-      { parser: "tsx", path: "file.tsx" }
+      },
+      { parser: "tsx" }
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -493,7 +496,9 @@ export const MyObserverComponent = observer(() => {
   it("should preserve dependency arrays for constants that look like components", async () => {
     const result = await applyTransform(
       transformer,
-      `
+      {
+        path: "file.tsx",
+        source: `
       import { useMemo } from "react";
 
       const ACTION_HANDLERS = useMemo(function ACTION_HANDLERS() {
@@ -502,7 +507,8 @@ export const MyObserverComponent = observer(() => {
         };
       }, []);
       `,
-      { parser: "tsx", path: "file.tsx" }
+      },
+      { parser: "tsx" }
     );
 
     expect(result).toMatchInlineSnapshot(`

@@ -201,5 +201,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Enforce native TypeScript and Oxc toolchain
+        run: pnpm check:toolchain
+
       - name: Run check:types
         run: pnpm turbo run check:types --affected

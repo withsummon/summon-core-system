@@ -105,7 +105,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
       project,
       stateGroup: state?.group ?? issue.state__group,
       stateName: state?.name,
-      assignees: issue.assignee_ids.map(id => getUserDetails(id)).filter(Boolean),
+      assignees: issue.assignee_ids.map((id) => getUserDetails(id)).filter(Boolean),
     };
   });
   const filtered = filterTaskCenterItems(tasks, { scope, due, currentUserId: currentUser?.id, today }).filter(

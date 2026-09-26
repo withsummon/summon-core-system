@@ -11,14 +11,16 @@
     "start": "turbo run start",
     "clean": "turbo run clean && rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist",
     "fix": "turbo run fix",
-    "fix:format": "turbo run fix:format",
+    "fix:format": "oxfmt package.json turbo.json pnpm-workspace.yaml .oxfmtrc.json .oxlintrc.json tools .github && turbo run fix:format",
     "fix:lint": "turbo run fix:lint",
-    "check": "turbo run check",
-    "check:lint": "turbo run check:lint",
-    "check:format": "turbo run check:format",
-    "check:types": "turbo run check:types",
+    "check": "pnpm check:toolchain && turbo run check",
+    "check:lint": "pnpm check:toolchain && oxlint --deny-warnings tools && turbo run check:lint",
+    "check:format": "oxfmt --check package.json turbo.json pnpm-workspace.yaml .oxfmtrc.json .oxlintrc.json tools .github && turbo run check:format",
+    "check:types": "pnpm check:toolchain && turbo run check:types",
     "prepare": "husky",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "tsgo": "tsc",
+    "check:toolchain": "node tools/check-toolchain.mjs"
   },
   "devDependencies": {
     "husky": "catalog:",
@@ -26,7 +28,8 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "react-doctor": "^0.4.2",
-    "turbo": "catalog:"
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,cjs,mjs,cts,mts,json,css,md}": [
