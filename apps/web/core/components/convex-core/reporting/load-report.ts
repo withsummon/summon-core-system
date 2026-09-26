@@ -43,6 +43,6 @@ export async function loadReport(
       progress
     ),
   ]);
-  return { tasks, projects, clients, opportunities, meetings, documents };
+  return { coverage: "complete" as const, tasks, projects, clients, opportunities, meetings, documents };
 }
 export type LoadedReport = Awaited<ReturnType<typeof loadReport>>;
