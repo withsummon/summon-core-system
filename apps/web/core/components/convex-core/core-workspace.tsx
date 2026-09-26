@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useConvexConnectionState, useMutation, useQuery } from "convex/react";
@@ -10,6 +10,10 @@ import { SummonField } from "@/components/summon/forms";
 import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
+const Clients = lazy(() => import("./commercial/clients").then((module) => ({ default: module.Clients })));
+const Opportunities = lazy(() =>
+  import("./commercial/opportunities").then((module) => ({ default: module.Opportunities }))
+);
 
 export function CoreWorkspace() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -88,7 +92,7 @@ function Workspace() {
           {workspaces === undefined ? (
             <p role="status">Loading workspaces…</p>
           ) : workspace ? (
-            <Projects key={workspace._id} workspace={workspace} />
+            <WorkspaceModules key={workspace._id} workspace={workspace} />
           ) : (
             <CreateWorkspace onCreated={(slug) => setParams({ workspace: slug })} />
           )}
@@ -250,5 +254,38 @@ function CreateProject({
         Create project
       </Button>
     </form>
+  );
+}
+
+function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
+  const [params, setParams] = useSearchParams();
+  const module = params.get("module") ?? "projects";
+  return (
+    <div className="space-y-6">
+      <nav aria-label="Workspace modules" className="flex flex-wrap gap-2 border-b border-subtle-1 pb-4">
+        {[
+          { id: "projects", label: "Projects" },
+          { id: "clients", label: "Clients" },
+          { id: "opportunities", label: "Opportunities" },
+        ].map((item) => (
+          <Button
+            key={item.id}
+            variant={module === item.id ? "primary" : "secondary"}
+            onClick={() => setParams({ workspace: workspace.slug, module: item.id })}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </nav>
+      <Suspense fallback={<p role="status">Loading module…</p>}>
+        {module === "clients" ? (
+          <Clients workspace={workspace} />
+        ) : module === "opportunities" ? (
+          <Opportunities workspace={workspace} />
+        ) : (
+          <Projects workspace={workspace} />
+        )}
+      </Suspense>
+    </div>
   );
 }
