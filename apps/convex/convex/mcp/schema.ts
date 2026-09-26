@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+export const operation = v.union(v.literal("reveal"), v.literal("rotate"), v.literal("revoke"), v.literal("delete"));
 export const permission = v.union(v.literal("view"), v.literal("use"), v.literal("manage"));
 export const credentialFields = {
   name: v.string(),
@@ -9,11 +10,20 @@ export const credentialFields = {
   remoteProjectId: v.union(v.string(), v.null()),
 };
 export const mcpTables = {
+  mcpStepUps: defineTable({
+    credentialId: v.id("mcpCredentials"),
+    actorId: v.id("users"),
+    sessionId: v.id("authSessions"),
+    operation,
+    credentialRevision: v.number(),
+    expiresAt: v.number(),
+    consumed: v.boolean(),
+  }).index("by_expiry", ["expiresAt"]),
   mcpCredentials: defineTable({
     workspaceId: v.id("workspaces"),
     ownerId: v.id("users"),
     ...credentialFields,
-    status: v.union(v.literal("active"), v.literal("revoked")),
+    status: v.union(v.literal("active"), v.literal("revoked"), v.literal("deleted")),
     revision: v.number(),
   }).index("by_workspace", ["workspaceId"]),
   mcpSecrets: defineTable({

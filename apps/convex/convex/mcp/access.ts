@@ -16,7 +16,7 @@ export async function requireCredential(
   access: "view" | "use" | "manage" = "view"
 ) {
   const credential = await ctx.db.get(credentialId);
-  if (!credential) throw new ConvexError("Credential not found.");
+  if (!credential || credential.status === "deleted") throw new ConvexError("Credential not found.");
   const scope = await requireWorkspace(ctx, credential.workspaceId, access !== "view");
   if (credential.projectId) await requireProject(ctx, credential.projectId, access !== "view");
   const granted = await credentialPermission(ctx, credential, scope.user._id);

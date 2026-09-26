@@ -72,9 +72,16 @@ import type * as tasks_relationships from "../tasks/relationships.js";
 import type * as tasks_revision from "../tasks/revision.js";
 import type * as tasks_rich_content from "../tasks/rich_content.js";
 
+import type * as mcp_sensitive from "../mcp/sensitive.js";
+import type * as mcp_sensitiveAccess from "../mcp/sensitiveAccess.js";
+import type * as mcp_stepUp from "../mcp/stepUp.js";
+
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "mcp/sensitive": typeof mcp_sensitive;
+  "mcp/sensitiveAccess": typeof mcp_sensitiveAccess;
+  "mcp/stepUp": typeof mcp_stepUp;
   "tasks/description": typeof tasks_description;
   "tasks/hierarchy": typeof tasks_hierarchy;
   "tasks/relationships": typeof tasks_relationships;

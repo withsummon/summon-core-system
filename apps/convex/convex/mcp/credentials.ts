@@ -71,6 +71,7 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
     const available = await Promise.all(
       result.page.map(async (credential) => {
+        if (credential.status === "deleted") return null;
         const permission = await credentialPermission(ctx, credential, user._id);
         if (!permission) return null;
         const projectId = credential.projectId;
