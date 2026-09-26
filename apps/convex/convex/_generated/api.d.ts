@@ -15,20 +15,19 @@ import type * as commercial_delivery from "../commercial/delivery.js";
 import type * as commercial_directory from "../commercial/directory.js";
 import type * as commercial_opportunities from "../commercial/opportunities.js";
 import type * as commercial_validation from "../commercial/validation.js";
+import type * as documents_access from "../documents/access.js";
+import type * as documents_index from "../documents/index.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
+import type * as resources_index from "../resources/index.js";
 import type * as settings_index from "../settings/index.js";
 import type * as tasks_index from "../tasks/index.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
@@ -38,11 +37,14 @@ declare const fullApi: ApiFromModules<{
   "commercial/directory": typeof commercial_directory;
   "commercial/opportunities": typeof commercial_opportunities;
   "commercial/validation": typeof commercial_validation;
+  "documents/access": typeof documents_access;
+  "documents/index": typeof documents_index;
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
+  "resources/index": typeof resources_index;
   "settings/index": typeof settings_index;
   "tasks/index": typeof tasks_index;
   "workspaces/index": typeof workspaces_index;
@@ -56,10 +58,7 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -69,9 +68,6 @@ export declare const api: FilterApi<
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
+export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 
 export declare const components: {};

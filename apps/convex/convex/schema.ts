@@ -1,3 +1,5 @@
+import { documentTables } from "./documents/schema";
+import { resourceTables } from "./resources/schema";
 import { settingsTables } from "./settings/schema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -14,6 +16,8 @@ export const status = v.union(
 );
 export default defineSchema({
   ...authTables,
+  ...documentTables,
+  ...resourceTables,
   ...settingsTables,
   ...commercialTables,
   workspaces: defineTable({ name: v.string(), slug: v.string() }).index("by_slug", ["slug"]),
