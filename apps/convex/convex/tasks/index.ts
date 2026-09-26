@@ -1,3 +1,7 @@
+import { syncPlainDescription } from "./description";
+import { requireParent, checkAncestors } from "./hierarchy";
+import { taskChanged } from "./revision";
+import { requireTaskRevision } from "./revision";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
@@ -33,10 +37,14 @@ export const create = mutation({
     description: v.optional(v.string()),
     status: v.optional(status),
     properties: v.optional(v.object(taskProperties)),
+    parent: v.optional(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() })),
   },
   handler: async (ctx, args) => {
     const { user, project } = await requireProject(ctx, args.projectId, true);
     const { title, description } = parseTaskText(args.title, args.description ?? "");
+    const parent = args.parent
+      ? await requireParent(ctx, project._id, args.parent.taskId, args.parent.expectedUpdatedAt)
+      : null;
     const defaultState = await ctx.db
       .query("taskStates")
       .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
@@ -61,6 +69,11 @@ export const create = mutation({
       createdBy: user._id,
       updatedAt: Date.now(),
     });
+    if (parent) {
+      await checkAncestors(ctx, taskId, parent);
+      await ctx.db.insert("taskParents", { projectId: project._id, childId: taskId, parentId: parent._id });
+      await taskChanged(ctx, parent, user._id);
+    }
     await ctx.db.patch(project._id, { nextSequence: project.nextSequence + 1 });
     await ctx.db.insert("taskEvents", {
       workspaceId: project.workspaceId,
@@ -103,9 +116,9 @@ export const update = mutation({
   ) => {
     const task = await requireTask(ctx, taskId);
     const { user, project } = await requireProject(ctx, task.projectId, true);
-    if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt !== task.updatedAt)
-      throw new ConvexError("This task changed while you were editing. Reopen the latest task before saving.");
+    requireTaskRevision(task, expectedUpdatedAt);
     const { title } = parseTaskText(rawTitle, description);
+    await syncPlainDescription(ctx, task, description);
     const { data, state } = await validateProperties(ctx, project, properties);
     if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
     const statusChanged = task.status !== requestedStatus || task.stateId !== data.stateId;

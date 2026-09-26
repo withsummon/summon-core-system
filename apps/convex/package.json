@@ -19,10 +19,12 @@
   },
   "dependencies": {
     "@convex-dev/auth": "catalog:",
-    "convex": "catalog:"
+    "convex": "catalog:",
+    "sanitize-html": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/sanitize-html": "catalog:",
     "convex-test": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
