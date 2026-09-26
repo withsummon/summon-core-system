@@ -1,0 +1,65 @@
+import { ConvexError } from "convex/values";
+import type { QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { Infer } from "convex/values";
+import { v } from "convex/values";
+import { date } from "../commercial/validation";
+import { taskProperties } from "./schema";
+
+export const initialProperties = {
+  priority: "none",
+  assigneeIds: [],
+  labelIds: [],
+  startDate: null,
+  targetDate: null,
+  stateId: null,
+  completedAt: null,
+} satisfies Infer<typeof properties> & { completedAt: null };
+const properties = v.object(taskProperties);
+export async function validateProperties(ctx: QueryCtx, project: Doc<"projects">, data: Infer<typeof properties>) {
+  const startDate = date(data.startDate);
+  const targetDate = date(data.targetDate);
+  if (startDate && targetDate && startDate > targetDate) throw new ConvexError("Start date cannot exceed target date.");
+  if (data.assigneeIds.length > 100 || new Set(data.assigneeIds).size !== data.assigneeIds.length)
+    throw new ConvexError("Choose up to 100 distinct assignees.");
+  if (data.labelIds.length > 100 || new Set(data.labelIds).size !== data.labelIds.length)
+    throw new ConvexError("Choose up to 100 distinct labels.");
+  await Promise.all(
+    data.assigneeIds.map(async (userId) => {
+      const [member, workspaceMember] = await Promise.all([
+        ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
+          .unique(),
+        ctx.db
+          .query("workspaceMembers")
+          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
+          .unique(),
+      ]);
+      if (!member?.active || member.role === "guest" || !workspaceMember?.active || workspaceMember.role === "guest")
+        throw new ConvexError("Assignees must be active project writers.");
+    })
+  );
+  await Promise.all(
+    data.labelIds.map(async (labelId) => {
+      const label = await ctx.db.get(labelId);
+      if (!label || label.projectId !== project._id) throw new ConvexError("Labels must belong to this project.");
+    })
+  );
+  const state = data.stateId ? await ctx.db.get(data.stateId) : null;
+  if (data.stateId && (!state || state.projectId !== project._id))
+    throw new ConvexError("State must belong to this project.");
+  return { data: { ...data, startDate, targetDate }, state };
+}
+export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">) {
+  const task = await ctx.db.get(taskId);
+  if (!task) throw new ConvexError("Task not found.");
+  return task;
+}
+
+export function parseTaskText(rawTitle: string, description: string) {
+  const title = rawTitle.trim();
+  if (!title || title.length > 255 || description.length > 100000)
+    throw new ConvexError("Enter a title up to 255 characters and a description up to 100,000 characters.");
+  return { title, description };
+}
