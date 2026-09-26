@@ -1,3 +1,4 @@
+import { notificationTables } from "./notifications/schema";
 import { mcpTables } from "./mcp/schema";
 import { assistantTables } from "./assistant/schema";
 import { taskTables } from "./tasks/schema";
@@ -14,6 +15,7 @@ import { resourceTables } from "./resources/schema";
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
   ...authTables,
+  ...notificationTables,
   ...mcpTables,
   ...assistantTables,
   ...assetTables,
