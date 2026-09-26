@@ -1,0 +1,25 @@
+# MCP credential and invocation slice
+
+## Scope and owners
+
+This is an explicitly identified **external Plane MCP integration**, matching Django's `services/mcp.py` allowlist and configured `SUMMON_MCP_URL`. It does not pretend remote Plane identifiers are Convex identifiers. Credential metadata records the remote workspace slug and, for a project-scoped credential, both the native project and external project identifier. Existing `requireWorkspace`/`requireProject` owners enforce current native membership; project administrators cannot bypass a missing credential grant, and workspace administrators do not automatically own other users' credentials.
+
+`credentials.ts` owns private metadata, expiring `view`/`use`/`manage` grants, and immutable append-only audit events. `vault.create` accepts a supplied secret server-side, authorizes before encryption, and reauthorizes before storing. A separate `mcpSecrets` table holds AES-256-GCM ciphertext with a random 96-bit nonce. Public reads never return this table or decrypted credentials. The server's base64 32-byte `SUMMON_CREDENTIAL_KEY` is required. Ciphertext version **2** is intentionally distinct from Django's Fernet `v1`; legacy encrypted rows cannot be copied directly. No legacy secrets or configuration values were transferred during implementation.
+
+Metadata edits require the exact revision, increment it, and invalidate pending previews. The existing legacy password-step-up contract is not bypassed: secret reveal, rotation, credential deletion, and credential revocation have no public API in this slice. They remain unavailable until an equivalent recent-authentication owner is implemented. Grant revocation remains available as in the legacy non-step-up grant flow.
+
+## Explicit invocation approval
+
+`invocations.propose` validates an allowlisted tool/action and bounded JSON arguments, rejects embedded credential fields, injects the credential's remote workspace scope, and stores an immutable preview. Project-bound credentials reject another remote project and workspace-wide member actions. A request identifier can create a preview only once; mismatched reuse fails. Preview creation makes no network request. Both reads and writes require a separate explicit `client.confirm` call in this initial slice.
+
+Confirmation claims the preview atomically, verifies current credential grants/revision and native permissions, and performs the MCP initialize/initialized/tools-call exchange. It requests protocol 2025-11-25 and explicitly supports negotiation to 2025-06-18 or 2025-03-26; other versions fail before dispatch. Subsequent requests carry the negotiated MCP-Protocol-Version header. Incremental SSE parsing supports multiline events and mixed notifications, matches the JSON-RPC request ID, and closes the response stream as soon as that response arrives. The endpoint comes only from server configuration; callers cannot supply a URL, credentials, redirect policy, or arbitrary method. Redirects are rejected to prevent credential forwarding. The server reauthorizes after initialization immediately before the tools call and after the external response before publishing its result. Provider responses are size-limited and known secret fields plus the exact supplied token are redacted. Audit rows contain operation identities, never arguments or credential values.
+
+External writes are not transactionally atomic with Convex. A transport failure or access revocation after dispatch marks a write `unknown`; it is never automatically retried. A process crash may leave `dispatching`, which likewise cannot be dispatched again. Operators must inspect the remote system before making a new request. This preserves uncertainty rather than falsely reporting a failure as safe to retry. Failed reads are marked failed.
+
+## Evidence and remaining parity
+
+Module-local tests cover encrypted storage, tamper detection, missing configuration, public secret exclusion, expiring permission grants, explicit preview/no network, request deduplication, metadata conflicts, scoped arguments, handshake/session headers, redirect refusal policy, secret-free results/audit, revoked access before/after dispatch, and ambiguous writes with no retry.
+
+Only mocked transport calls have run. **Live MCP/provider/key configuration on the Convex deployment is unverified.** Existing Django environment key names were inspected only for presence; no values were printed, copied, or sent to an endpoint. No real MCP call occurred.
+
+Remaining: password-equivalent step-up and reveal/rotate/revoke/delete flows; credential key rotation/migration tooling; browser management UI; automatic assistant tool planning; native MCP server exposure for external assistants; full remote tool schema discovery/version compatibility; administrative reconciliation of a crashed dispatch; remote backend deployment verification. Remote tool arguments remain bounded JSON matching the legacy allowlist, with exact tool-specific validation ultimately owned by the configured MCP server. No Django or remote Plane retirement claim is made by this slice.
