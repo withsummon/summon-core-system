@@ -1,3 +1,4 @@
+import { reply as assistantReply, options as assistantOptions } from "./assistant/http";
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { read, options } from "./assets/http";
@@ -5,4 +6,6 @@ const http = httpRouter();
 auth.addHttpRoutes(http);
 http.route({ pathPrefix: "/assets/", method: "GET", handler: read });
 http.route({ pathPrefix: "/assets/", method: "OPTIONS", handler: options });
+http.route({ path: "/assistant/reply", method: "POST", handler: assistantReply });
+http.route({ path: "/assistant/reply", method: "OPTIONS", handler: assistantOptions });
 export default http;

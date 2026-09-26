@@ -1,3 +1,4 @@
+import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
@@ -75,23 +76,7 @@ export const create = mutation({
 export const setStatus = mutation({
   args: { taskId: v.id("tasks"), status },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
-    const { user } = await requireProject(ctx, task.projectId, true);
-    if (task.status === args.status) return;
-    await ctx.db.patch(task._id, {
-      status: args.status,
-      stateId: null,
-      completedAt: args.status === "done" ? Date.now() : null,
-      updatedAt: Math.max(Date.now(), task.updatedAt + 1),
-    });
-    await ctx.db.insert("taskEvents", {
-      workspaceId: task.workspaceId,
-      projectId: task.projectId,
-      taskId: task._id,
-      actorId: user._id,
-      kind: "status_changed",
-      status: args.status,
-    });
+    await changeTaskStatus(ctx, args);
   },
 });
 
