@@ -266,7 +266,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
       <div className="h-7">
         {parentId ? (
           <CustomMenu
-            customButton={
+            render={
               <button
                 type="button"
                 className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"

@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { Tooltip } from "../tooltip";
 import { Avatar as AvatarPrimitive } from "@base-ui-components/react/avatar";
 import { cn } from "../utils/classname";
 
@@ -88,6 +89,7 @@ export const isAValidNumber = (value: unknown): value is number => typeof value 
 export function Avatar(props: Props) {
   const {
     name,
+    showTooltip = true,
     fallbackBackgroundColor,
     fallbackText,
     fallbackTextColor,
@@ -101,15 +103,15 @@ export function Avatar(props: Props) {
   const sizeInfo = getSizeInfo(size);
 
   const fallbackLetter = name?.[0]?.toUpperCase() ?? fallbackText ?? "?";
-  return (
+  const avatar = (
     <div
       className={cn("grid place-items-center overflow-hidden", getBorderRadius(shape), {
         [sizeInfo.avatarSize]: !isAValidNumber(size),
       })}
-      tabIndex={-1}
+      style={isAValidNumber(size) ? { width: size, height: size } : undefined}
     >
       <AvatarPrimitive.Root className={cn("h-full w-full", getBorderRadius(shape), className)}>
-        <AvatarPrimitive.Image src={src} width="48" height="48" />
+        <AvatarPrimitive.Image src={src} alt={name ?? ""} className="h-full w-full object-cover" />
         <AvatarPrimitive.Fallback
           className={cn(sizeInfo.fontSize, "grid h-full w-full place-items-center", getBorderRadius(shape), className)}
           style={{
@@ -122,4 +124,5 @@ export function Avatar(props: Props) {
       </AvatarPrimitive.Root>
     </div>
   );
+  return showTooltip && name ? <Tooltip tooltipContent={name}>{avatar}</Tooltip> : avatar;
 }

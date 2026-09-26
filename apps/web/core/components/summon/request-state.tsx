@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Button } from "@plane/ui";
+import { Button } from "@plane/propel/button";
 
 export function SummonRequestState(props: {
   loading?: boolean;
@@ -61,7 +61,7 @@ export function SummonRequestState(props: {
       >
         <p>Could not load this module. Check your access or try again.</p>
         {onRetry ? (
-          <Button className="mt-3" variant="neutral-primary" size="sm" onClick={onRetry}>
+          <Button className="mt-3" variant="secondary" size="lg" onClick={onRetry}>
             Retry
           </Button>
         ) : null}

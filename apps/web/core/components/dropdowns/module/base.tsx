@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -14,7 +14,6 @@ import { ComboDropDown } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
-import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { DropdownButton } from "../buttons";
 import { BUTTON_VARIANTS_WITHOUT_TEXT } from "../constants";
@@ -64,6 +63,7 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
     multiple,
     onChange,
     onClose,
+    onDropdownOpen,
     placeholder = "",
     placement,
     projectId,
@@ -78,24 +78,13 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
   // states
   const [isOpen, setIsOpen] = useState(false);
   // refs
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  // popper-js refs
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-  // store hooks
-  const { isMobile } = usePlatformOS();
 
-  const { handleClose, handleKeyDown, handleOnClick } = useDropdown({
-    dropdownRef,
-    inputRef,
-    isOpen,
-    onClose,
-    setIsOpen,
-  });
+  // store hooks
+
+  const { handleOpenChange } = useDropdown({ onClose, onOpen: onDropdownOpen, setIsOpen });
 
   const dropdownOnChange = (val: string & string[]) => {
     onChange(val);
-    if (!multiple) handleClose();
   };
 
   const comboboxProps = {
@@ -105,96 +94,73 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
     multiple,
   };
 
-  useEffect(() => {
-    if (isOpen && inputRef.current && !isMobile) {
-      inputRef.current.focus();
-    }
-  }, [isOpen, isMobile]);
-
-  const comboButton = (
-    <>
-      {button ? (
-        <button
-          ref={setReferenceElement}
-          type="button"
-          className={cn("clickable block h-full w-full outline-none hover:bg-layer-1", buttonContainerClassName)}
-          onClick={handleOnClick}
-          disabled={disabled}
-          tabIndex={tabIndex}
-        >
-          {button}
-        </button>
-      ) : (
-        <button
-          ref={setReferenceElement}
-          type="button"
-          className={cn(
-            "clickable block h-full max-w-full outline-none hover:bg-layer-1",
-            {
-              "cursor-not-allowed text-secondary": disabled,
-              "cursor-pointer": !disabled,
-            },
-            buttonContainerClassName
-          )}
-          onClick={handleOnClick}
-          disabled={disabled}
-          tabIndex={tabIndex}
-        >
-          <DropdownButton
-            className={buttonClassName}
-            isActive={isOpen}
-            tooltipHeading={t("common.module")}
-            tooltipContent={
-              Array.isArray(value)
-                ? `${value
-                    .map((moduleId) => getModuleById(moduleId)?.name)
-                    .toString()
-                    .replaceAll(",", ", ")}`
-                : ""
-            }
-            showTooltip={showTooltip}
-            variant={buttonVariant}
-            renderToolTipByDefault={renderByDefault}
-          >
-            <ModuleButtonContent
-              disabled={disabled}
-              dropdownArrow={dropdownArrow}
-              dropdownArrowClassName={dropdownArrowClassName}
-              hideIcon={hideIcon}
-              hideText={BUTTON_VARIANTS_WITHOUT_TEXT.includes(buttonVariant)}
-              placeholder={placeholder}
-              showCount={showCount}
-              showTooltip={showTooltip}
-              value={value}
-              onChange={onChange as any}
-              className={itemClassName}
-            />
-          </DropdownButton>
-        </button>
+  const comboButton = button ? (
+    <button
+      type="button"
+      className={cn("clickable block h-full w-full outline-none hover:bg-layer-1", buttonContainerClassName)}
+      disabled={disabled}
+      tabIndex={tabIndex}
+    >
+      {button}
+    </button>
+  ) : (
+    <button
+      type="button"
+      className={cn(
+        "clickable block h-full max-w-full outline-none hover:bg-layer-1",
+        {
+          "cursor-not-allowed text-secondary": disabled,
+          "cursor-pointer": !disabled,
+        },
+        buttonContainerClassName
       )}
-    </>
+      disabled={disabled}
+      tabIndex={tabIndex}
+    >
+      <DropdownButton
+        className={buttonClassName}
+        isActive={isOpen}
+        tooltipHeading={t("common.module")}
+        tooltipContent={
+          Array.isArray(value)
+            ? `${value
+                .map((moduleId) => getModuleById(moduleId)?.name)
+                .toString()
+                .replaceAll(",", ", ")}`
+            : ""
+        }
+        showTooltip={showTooltip}
+        variant={buttonVariant}
+        renderToolTipByDefault={renderByDefault}
+      >
+        <ModuleButtonContent
+          disabled={disabled}
+          dropdownArrow={dropdownArrow}
+          dropdownArrowClassName={dropdownArrowClassName}
+          hideIcon={hideIcon}
+          hideText={BUTTON_VARIANTS_WITHOUT_TEXT.includes(buttonVariant)}
+          placeholder={placeholder}
+          showCount={showCount}
+          showTooltip={showTooltip}
+          value={value}
+          onChange={onChange as any}
+          className={itemClassName}
+        />
+      </DropdownButton>
+    </button>
   );
 
   return (
     <ComboDropDown
-      as="div"
-      ref={dropdownRef}
+      open={isOpen}
       className={cn("h-full", className)}
-      onKeyDown={handleKeyDown}
       button={comboButton}
-      renderByDefault={renderByDefault}
       {...comboboxProps}
+      placement={placement}
+      onOpenChange={handleOpenChange}
     >
       {isOpen && projectId && (
-        <ModuleOptions
-          isOpen={isOpen}
-          placement={placement}
-          referenceElement={referenceElement}
-          multiple={multiple}
-          getModuleById={getModuleById}
-          moduleIds={moduleIds}
-          value={value}
-        />
+        <ModuleOptions multiple={multiple} getModuleById={getModuleById} moduleIds={moduleIds} value={value} />
       )}
     </ComboDropDown>
   );

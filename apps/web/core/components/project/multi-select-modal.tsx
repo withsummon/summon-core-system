@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane ui
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -88,13 +88,12 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
 
   return (
     <ModalCore isOpen={isOpen} width={EModalWidth.LG} position={EModalPosition.TOP} handleClose={handleClose}>
-      <Combobox as="div" multiple value={selectedProjectIds} onChange={handleSelectedProjectChange}>
+      <Combobox.Root open filter={null} multiple value={selectedProjectIds} onValueChange={handleSelectedProjectChange}>
         <div className="flex items-center gap-2 border-b border-subtle px-4">
           <SearchIcon className="size-4 flex-shrink-0 text-placeholder" aria-hidden="true" />
           <Combobox.Input
             className="h-12 w-full border-0 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder focus:ring-0"
             placeholder="Search for projects"
-            displayValue={() => ""}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -122,10 +121,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
             })}
           </div>
         )}
-        <Combobox.Options
-          static
-          className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto py-2 transition-[height] duration-200 ease-in-out"
-        >
+        <Combobox.List className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto py-2 transition-[height] duration-200 ease-in-out">
           {filteredProjectIds.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-3 py-8 text-center">
               <SimpleEmptyState
@@ -145,10 +141,10 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
                 if (!projectDetails) return null;
                 const isProjectSelected = selectedProjectIds.includes(projectDetails.id);
                 return (
-                  <Combobox.Option
+                  <Combobox.Item
                     key={projectDetails.id}
                     value={projectDetails.id}
-                    className={({ active }) =>
+                    className={({ highlighted: active }) =>
                       cn(
                         "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-md p-2 text-secondary transition-colors select-none",
                         {
@@ -166,13 +162,13 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
                       <span className="flex-shrink-0 text-10">{projectDetails.identifier}</span>
                       <p className="truncate text-13">{projectDetails.name}</p>
                     </div>
-                  </Combobox.Option>
+                  </Combobox.Item>
                 );
               })}
             </ul>
           )}
-        </Combobox.Options>
-      </Combobox>
+        </Combobox.List>
+      </Combobox.Root>
       <div className="flex items-center justify-end gap-2 border-t border-subtle p-3">
         <Button variant="secondary" size="lg" onClick={handleClose}>
           {t("cancel")}

@@ -7,7 +7,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { EditIcon, TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
@@ -80,85 +80,81 @@ export const ProjectSettingLabelGroup = observer(function ProjectSettingLabelGro
         <div
           className={`rounded-sm ${isDroppingInLabel ? "border-[2px] border-accent-strong" : "border-[1.5px] border-transparent"}`}
         >
-          <Disclosure
-            as="div"
+          <CollapsiblePrimitive.Root
             className={`rounded-sm text-primary ${
               !isDroppingInLabel ? "border-[0.5px] border-subtle" : ""
             } ${isDragging ? "bg-layer-1" : "bg-surface-1"}`}
             defaultOpen
-          >
-            {({ open }) => (
-              <>
-                <div className={`py-3 pr-3 pl-1 ${!isUpdating && "max-h-full overflow-y-hidden"}`}>
+            render={(rootProps, { open }) => (
+              <div {...rootProps}>
+                {
                   <>
-                    <div className="relative flex cursor-pointer items-center justify-between gap-2">
-                      {isEditLabelForm ? (
-                        <CreateUpdateLabelInline
-                          labelForm={isEditLabelForm}
-                          setLabelForm={setEditLabelForm}
-                          isUpdating
-                          labelToUpdate={label}
-                          labelOperationsCallbacks={labelOperationsCallbacks}
-                          onClose={() => {
-                            setEditLabelForm(false);
-                            setIsUpdating(false);
-                          }}
-                        />
-                      ) : (
-                        <LabelItemBlock
-                          label={label}
-                          isDragging={isDragging}
-                          customMenuItems={customMenuItems}
-                          handleLabelDelete={handleLabelDelete}
-                          isLabelGroup
-                          dragHandleRef={dragHandleRef}
-                        />
-                      )}
+                    <div className={`py-3 pr-3 pl-1 ${!isUpdating && "max-h-full overflow-y-hidden"}`}>
+                      <>
+                        <div className="relative flex cursor-pointer items-center justify-between gap-2">
+                          {isEditLabelForm ? (
+                            <CreateUpdateLabelInline
+                              labelForm={isEditLabelForm}
+                              setLabelForm={setEditLabelForm}
+                              isUpdating
+                              labelToUpdate={label}
+                              labelOperationsCallbacks={labelOperationsCallbacks}
+                              onClose={() => {
+                                setEditLabelForm(false);
+                                setIsUpdating(false);
+                              }}
+                            />
+                          ) : (
+                            <LabelItemBlock
+                              label={label}
+                              isDragging={isDragging}
+                              customMenuItems={customMenuItems}
+                              handleLabelDelete={handleLabelDelete}
+                              isLabelGroup
+                              dragHandleRef={dragHandleRef}
+                            />
+                          )}
 
-                      <Disclosure.Button>
-                        <span>
-                          <ChevronDownIcon
-                            className={`h-4 w-4 text-placeholder ${!open ? "rotate-90 transform" : ""}`}
-                          />
-                        </span>
-                      </Disclosure.Button>
-                    </div>
-                    <Transition
-                      show={open}
-                      enter="transition duration-100 ease-out"
-                      enterFrom="transform opacity-0"
-                      enterTo="transform opacity-100"
-                      leave="transition duration-75 ease-out"
-                      leaveFrom="transform opacity-100"
-                      leaveTo="transform opacity-0"
-                    >
-                      <Disclosure.Panel>
-                        <div className="ml-6">
-                          {labelChildren.map((child, index) => (
-                            <div key={child.id} className={`group flex w-full items-center text-13`}>
-                              <div className="w-full">
-                                <ProjectSettingLabelItem
-                                  label={child}
-                                  handleLabelDelete={() => handleLabelDelete(child)}
-                                  setIsUpdating={setIsUpdating}
-                                  isParentDragging={isDragging}
-                                  isChild
-                                  isLastChild={index === labelChildren.length - 1}
-                                  onDrop={onDrop}
-                                  isEditable={isEditable}
-                                  labelOperationsCallbacks={labelOperationsCallbacks}
-                                />
-                              </div>
-                            </div>
-                          ))}
+                          <CollapsiblePrimitive.Trigger>
+                            <span>
+                              <ChevronDownIcon
+                                className={`h-4 w-4 text-placeholder ${!open ? "rotate-90 transform" : ""}`}
+                              />
+                            </span>
+                          </CollapsiblePrimitive.Trigger>
                         </div>
-                      </Disclosure.Panel>
-                    </Transition>
+                        {open && (
+                          <>
+                            <CollapsiblePrimitive.Panel>
+                              <div className="ml-6">
+                                {labelChildren.map((child, index) => (
+                                  <div key={child.id} className={`group flex w-full items-center text-13`}>
+                                    <div className="w-full">
+                                      <ProjectSettingLabelItem
+                                        label={child}
+                                        handleLabelDelete={() => handleLabelDelete(child)}
+                                        setIsUpdating={setIsUpdating}
+                                        isParentDragging={isDragging}
+                                        isChild
+                                        isLastChild={index === labelChildren.length - 1}
+                                        onDrop={onDrop}
+                                        isEditable={isEditable}
+                                        labelOperationsCallbacks={labelOperationsCallbacks}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CollapsiblePrimitive.Panel>
+                          </>
+                        )}
+                      </>
+                    </div>
                   </>
-                </div>
-              </>
+                }
+              </div>
             )}
-          </Disclosure>
+          ></CollapsiblePrimitive.Root>
         </div>
       )}
     </LabelDndHOC>

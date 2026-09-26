@@ -9,7 +9,7 @@ import { cva } from "class-variance-authority";
 import type React from "react";
 
 export const iconButtonVariants = cva(
-  "inline-flex aspect-square items-center justify-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-none disabled:pointer-events-none",
+  "inline-flex aspect-square items-center justify-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:pointer-events-none",
   {
     variants: {
       variant: {
@@ -27,10 +27,10 @@ export const iconButtonVariants = cva(
           "bg-layer-transparent text-secondary hover:bg-layer-transparent-hover focus:bg-layer-transparent-active active:bg-layer-transparent-active disabled:bg-layer-transparent disabled:text-disabled",
       },
       size: {
-        sm: "size-5 rounded-sm",
-        base: "size-6 rounded-md",
-        lg: "size-7 rounded-md",
-        xl: "size-8 rounded-md",
+        sm: "size-7 rounded-md",
+        base: "size-8 rounded-md",
+        lg: "size-9 rounded-md",
+        xl: "size-10 rounded-md",
       },
     },
     defaultVariants: {

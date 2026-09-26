@@ -8,7 +8,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { Building2, Plus, Search } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
@@ -140,7 +141,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
               placeholder="Relationship notes"
               className="text-xs rounded-md border border-subtle bg-surface-1 p-2 text-primary"
             />
-            <Button type="submit" loading={creating}>
+            <Button size="xl" type="submit" loading={creating}>
               Create client
             </Button>
             {formError ? <p className="text-xs text-danger-primary">{formError}</p> : null}

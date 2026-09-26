@@ -4,70 +4,55 @@
  * See the LICENSE file for details.
  */
 
-import { Combobox } from "@headlessui/react";
-import type { ElementType, KeyboardEventHandler, ReactNode, Ref } from "react";
-import React, { Fragment, forwardRef, useEffect, useRef, useState } from "react";
+import type { ReactNode, ReactElement, Ref } from "react";
+import { forwardRef } from "react";
+import type { TPlacement } from "@plane/propel/utils";
+import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
+import { ComboboxPrimitive } from "@plane/propel/combobox";
 
 type Props = {
-  as?: ElementType | undefined;
-  ref?: Ref<HTMLElement> | undefined;
-  tabIndex?: number | undefined;
-  className?: string | undefined;
+  ref?: Ref<HTMLDivElement>;
+  tabIndex?: number;
+  className?: string;
   value?: string | string[] | null;
   onChange?: (value: any) => void;
-  disabled?: boolean | undefined;
-  onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
+  disabled?: boolean;
   multiple?: boolean;
-  renderByDefault?: boolean;
-  button: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  placement?: TPlacement;
+  button: ReactElement;
   children: ReactNode;
 };
 
-const ComboDropDown = forwardRef(function ComboDropDown(props: Props, ref) {
-  const { button, renderByDefault = true, children, ...rest } = props;
-
-  const dropDownButtonRef = useRef<HTMLDivElement | null>(null);
-
-  const [shouldRender, setShouldRender] = useState(renderByDefault);
-
-  const onHover = () => {
-    setShouldRender(true);
-  };
-
-  useEffect(() => {
-    const element = dropDownButtonRef.current as any;
-
-    if (!element) return;
-
-    element.addEventListener("mouseenter", onHover);
-
-    return () => {
-      element?.removeEventListener("mouseenter", onHover);
-    };
-  }, [dropDownButtonRef, shouldRender]);
-
-  if (!shouldRender) {
-    return (
-      <div ref={dropDownButtonRef} className="flex h-full items-center">
-        {button}
-      </div>
-    );
-  }
+/** Features own values and open state; Base UI owns anchoring, dismissal, focus, and list navigation. */
+const ComboDropDown = forwardRef<HTMLDivElement, Props>(function ComboDropDown(
+  { button, open, onOpenChange, placement = "bottom-start", children, value, onChange, disabled, multiple, ...rest },
+  ref
+) {
+  const { side, align } = convertPlacementToSideAndAlign(placement);
+  const popup = (
+    <ComboboxPrimitive.Positioner side={side} align={align} sideOffset={4} className="z-[120]">
+      <ComboboxPrimitive.Popup data-prevent-outside-click>{children}</ComboboxPrimitive.Popup>
+    </ComboboxPrimitive.Positioner>
+  );
 
   return (
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    <Combobox {...rest} ref={ref}>
-      <Combobox.Button as={Fragment}>{button}</Combobox.Button>
-      {children}
-    </Combobox>
+    <div {...rest} ref={ref}>
+      <ComboboxPrimitive.Root<string, string | null, boolean>
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        multiple={multiple}
+        open={open}
+        onOpenChange={onOpenChange}
+        filter={null}
+      >
+        <ComboboxPrimitive.Trigger render={button} disabled={disabled} />
+        <ComboboxPrimitive.Portal>{popup}</ComboboxPrimitive.Portal>
+      </ComboboxPrimitive.Root>
+    </div>
   );
 });
 
-const ComboOptions = Combobox.Options;
-const ComboOption = Combobox.Option;
-const ComboInput = Combobox.Input;
-
-ComboDropDown.displayName = "ComboDropDown";
-
-export { ComboDropDown, ComboOptions, ComboOption, ComboInput };
+export { ComboDropDown };

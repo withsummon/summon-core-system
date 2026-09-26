@@ -9,7 +9,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Plus, Search } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
@@ -122,7 +123,7 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
             className="h-10 w-full pl-9"
           />
         </div>
-        <Button size="md" className="h-10" onClick={() => setCreateOpen(true)}>
+        <Button size="xl" className="h-10" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
           New opportunity
         </Button>
@@ -155,14 +156,14 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
                 </p>
                 <div className="flex justify-center gap-2">
                   {query ? (
-                    <Button size="md" variant="neutral-primary" onClick={() => setQuery("")}>
+                    <Button size="xl" variant="secondary" onClick={() => setQuery("")}>
                       Clear search
                     </Button>
                   ) : null}
                   {stage !== "all" ? (
                     <Button
-                      size="md"
-                      variant="neutral-primary"
+                      size="xl"
+                      variant="secondary"
                       onClick={() => router.replace(hrefFor({ stage: "all" }))}
                     >
                       Show all stages
@@ -472,15 +473,15 @@ function CreateOpportunityDialog(props: {
           <div className="flex justify-end gap-2">
             <Button
               type="button"
-              size="md"
-              variant="neutral-primary"
+              size="xl"
+              variant="secondary"
               className="h-10"
               onClick={close}
               disabled={saving}
             >
               Cancel
             </Button>
-            <Button type="submit" size="md" className="h-10" loading={saving}>
+            <Button type="submit" size="xl" className="h-10" loading={saving}>
               {saving ? "Creating…" : "Create opportunity"}
             </Button>
           </div>

@@ -1,6 +1,7 @@
 import type { FormEventHandler } from "react";
 import { ChevronDown, FileAudio, FileText, LoaderCircle, Paperclip, Send, SlidersHorizontal, X } from "lucide-react";
-import { Button, Input, TextArea } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input, TextArea } from "@plane/ui";
 import type {
   ISummonAssistantAttachment,
   ISummonClient,
@@ -174,7 +175,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
           <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
             <p className="text-xs text-danger-primary">{props.sendError}</p>
             {props.canRetry ? (
-              <Button type="button" size="sm" variant="neutral-primary" onClick={props.onRetry}>
+              <Button type="button" size="lg" variant="secondary" onClick={props.onRetry}>
                 Retry message
               </Button>
             ) : null}
@@ -265,7 +266,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
             placeholder="Message Summon Assistant…"
             className="max-h-40 min-h-12 flex-1 resize-y border-0 bg-transparent shadow-none"
           />
-          <Button type="submit" size="sm" loading={props.sending} aria-label="Send message">
+          <Button type="submit" size="lg" loading={props.sending} aria-label="Send message">
             <Send className="size-4" />
           </Button>
         </div>

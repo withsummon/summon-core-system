@@ -7,7 +7,8 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { CircleDashed } from "lucide-react";
+import { CircleDashed, ChevronRight } from "lucide-react";
+import { Button } from "@plane/propel/button";
 import { PlusIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -26,6 +27,7 @@ import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 
 interface IHeaderGroupByCard {
   groupID: string;
+  isExpanded: boolean;
   groupBy: TIssueGroupByOptions;
   icon?: React.ReactNode;
   title: string;
@@ -42,6 +44,8 @@ interface IHeaderGroupByCard {
 export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHeaderGroupByCard) {
   const {
     groupID,
+    groupBy,
+    isExpanded,
     icon,
     title,
     count,
@@ -110,15 +114,23 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
         </div>
 
-        {/* eslint-disable-next-line jsx_a11y/click-events-have-key-events eslint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div
-          className="relative flex w-full cursor-pointer flex-row items-center gap-1 overflow-hidden"
-          onClick={() => handleCollapsedGroups(groupID)}
-        >
-          <div className="line-clamp-1 inline-block truncate font-medium text-primary">{title}</div>
-          <div className="pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
-          <div className="px-2.5"></div>
-        </div>
+        {groupBy ? (
+          <Button
+            variant="ghost"
+            aria-expanded={isExpanded}
+            className="min-w-0 flex-1 justify-start gap-2 px-0 text-left"
+            onClick={() => handleCollapsedGroups(groupID)}
+          >
+            <ChevronRight aria-hidden="true" className={cn("size-3.5 shrink-0", isExpanded && "rotate-90")} />
+            <span className="truncate font-medium text-primary">{title}</span>
+            <span className="text-xs text-secondary tabular-nums">{count || 0}</span>
+          </Button>
+        ) : (
+          <h2 className="text-sm flex min-w-0 flex-1 items-center gap-2 py-1 font-medium text-primary">
+            <span className="truncate">{title}</span>
+            <span className="text-xs font-normal text-secondary tabular-nums">{count || 0}</span>
+          </h2>
+        )}
 
         {!disableIssueCreation &&
           (renderExistingIssueModal ? (
@@ -145,15 +157,16 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               </CustomMenu.MenuItem>
             </CustomMenu>
           ) : (
-            // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-            <div
-              className="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xs transition-all hover:bg-layer-1"
+            <Button
+              variant="ghost"
+              aria-label={`Add work item to ${title}`}
+              className="grid size-7 shrink-0 place-items-center p-0"
               onClick={() => {
                 setIsOpen(true);
               }}
             >
               <PlusIcon width={14} strokeWidth={2} />
-            </div>
+            </Button>
           ))}
 
         {isEpic ? (

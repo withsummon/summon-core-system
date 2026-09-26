@@ -10,7 +10,6 @@ import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
 // plane ui
 // helpers
 // hooks
-import useKeypress from "@/hooks/use-keypress";
 // plane web components
 import { CreateProjectForm } from "@/components/projects/create/root";
 // plane web types
@@ -77,12 +76,8 @@ export function CreateProjectModal(props: Props) {
     }
   };
 
-  useKeypress("Escape", () => {
-    if (isOpen) onClose();
-  });
-
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXXXL}>
+    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XXXXL}>
       {currentStep === EProjectCreationSteps.CREATE_PROJECT && (
         <CreateProjectForm
           setToFavorite={setToFavorite}

@@ -8,7 +8,6 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
 
-import { Disclosure } from "@headlessui/react";
 // plane imports
 import { ROLE, EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { TrashIcon, SuspendedUserIcon } from "@plane/propel/icons";
@@ -49,66 +48,62 @@ export function NameColumn(props: NameProps) {
   const isSuspended = rowData.is_active === false;
 
   return (
-    <Disclosure>
-      {() => (
-        <div className="group relative">
-          <div className="flex w-72 items-center justify-between gap-x-4 gap-y-2">
-            <div className="flex flex-1 items-center gap-x-2 gap-y-2">
-              {isSuspended ? (
-                <div className="rounded-full bg-layer-1">
-                  <SuspendedUserIcon className="size-6 text-placeholder" />
-                </div>
-              ) : avatar_url && avatar_url.trim() !== "" ? (
-                <Link href={`/${workspaceSlug}/profile/${id}`}>
-                  <span className="relative flex size-6 items-center justify-center rounded-full text-on-color capitalize">
-                    <img
-                      src={getFileURL(avatar_url)}
-                      className="absolute top-0 left-0 h-full w-full rounded-full object-cover"
-                      alt={display_name || email}
-                    />
-                  </span>
-                </Link>
-              ) : (
-                <Link href={`/${workspaceSlug}/profile/${id}`}>
-                  <span className="relative flex size-6 items-center justify-center rounded-full bg-layer-3 text-11 text-tertiary capitalize">
-                    {(email ?? display_name ?? "?")[0]}
-                  </span>
-                </Link>
-              )}
-              <span className={isSuspended ? "text-placeholder" : ""}>
-                {first_name} {last_name}
-              </span>
+    <div className="group relative">
+      <div className="flex w-72 items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-1 items-center gap-x-2 gap-y-2">
+          {isSuspended ? (
+            <div className="rounded-full bg-layer-1">
+              <SuspendedUserIcon className="size-6 text-placeholder" />
             </div>
-
-            {!isSuspended && (isAdmin || id === currentUser?.id) && (
-              <PopoverMenu
-                data={[""]}
-                keyExtractor={(item) => item}
-                popoverClassName="justify-end"
-                buttonClassName="outline-none	origin-center rotate-90 size-8 aspect-square flex-shrink-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
-                render={() => (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className="flex cursor-pointer items-center gap-x-3"
-                    onClick={() => setRemoveMemberModal(rowData)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setRemoveMemberModal(rowData);
-                      }
-                    }}
-                    data-ph-element={MEMBER_TRACKER_ELEMENTS.WORKSPACE_MEMBER_TABLE_CONTEXT_MENU}
-                  >
-                    <TrashIcon className="size-3.5 align-middle" /> {id === currentUser?.id ? "Leave " : "Remove "}
-                  </div>
-                )}
-              />
-            )}
-          </div>
+          ) : avatar_url && avatar_url.trim() !== "" ? (
+            <Link href={`/${workspaceSlug}/profile/${id}`}>
+              <span className="relative flex size-6 items-center justify-center rounded-full text-on-color capitalize">
+                <img
+                  src={getFileURL(avatar_url)}
+                  className="absolute top-0 left-0 h-full w-full rounded-full object-cover"
+                  alt={display_name || email}
+                />
+              </span>
+            </Link>
+          ) : (
+            <Link href={`/${workspaceSlug}/profile/${id}`}>
+              <span className="relative flex size-6 items-center justify-center rounded-full bg-layer-3 text-11 text-tertiary capitalize">
+                {(email ?? display_name ?? "?")[0]}
+              </span>
+            </Link>
+          )}
+          <span className={isSuspended ? "text-placeholder" : ""}>
+            {first_name} {last_name}
+          </span>
         </div>
-      )}
-    </Disclosure>
+
+        {!isSuspended && (isAdmin || id === currentUser?.id) && (
+          <PopoverMenu
+            data={[""]}
+            keyExtractor={(item) => item}
+            popoverClassName="justify-end"
+            buttonClassName="outline-none	origin-center rotate-90 size-8 aspect-square flex-shrink-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+            render={() => (
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex cursor-pointer items-center gap-x-3"
+                onClick={() => setRemoveMemberModal(rowData)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setRemoveMemberModal(rowData);
+                  }
+                }}
+                data-ph-element={MEMBER_TRACKER_ELEMENTS.WORKSPACE_MEMBER_TABLE_CONTEXT_MENU}
+              >
+                <TrashIcon className="size-3.5 align-middle" /> {id === currentUser?.id ? "Leave " : "Remove "}
+              </div>
+            )}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -5,7 +5,6 @@
  */
 
 import React from "react";
-import { Transition } from "@headlessui/react";
 // plane imports
 import type { SingleOrArray, IFilterOption, TFilterValue } from "@plane/types";
 import { cn, toFilterArray } from "@plane/utils";
@@ -49,18 +48,7 @@ export function SelectedOptionsDisplay<V extends TFilterValue>(props: TSelectedO
           {index < Math.min(displayCount, selectedOptions.length) - 1 && <span className="mx-1 text-tertiary">,</span>}
         </React.Fragment>
       ))}
-      {remainingCount > 0 && (
-        <Transition
-          show
-          appear
-          enter="transition-opacity duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          className="ml-1 whitespace-nowrap text-tertiary"
-        >
-          +{remainingCount} more
-        </Transition>
-      )}
+      {remainingCount > 0 && <span className="ml-1 whitespace-nowrap text-tertiary">+{remainingCount} more</span>}
     </div>
   );
 }

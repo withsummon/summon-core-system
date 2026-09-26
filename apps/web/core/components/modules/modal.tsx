@@ -16,7 +16,6 @@ import { ModuleForm } from "@/components/modules";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 import { useProject } from "@/hooks/store/use-project";
-import useKeypress from "@/hooks/use-keypress";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
 type Props = {
@@ -129,12 +128,8 @@ export const CreateUpdateModuleModal = observer(function CreateUpdateModuleModal
       setActiveProject(projectId ?? workspaceProjectIds?.[0] ?? null);
   }, [activeProject, data, projectId, workspaceProjectIds, isOpen]);
 
-  useKeypress("Escape", () => {
-    if (isOpen) handleClose();
-  });
-
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXL}>
+    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <ModuleForm
         handleFormSubmit={handleFormSubmit}
         handleClose={handleClose}

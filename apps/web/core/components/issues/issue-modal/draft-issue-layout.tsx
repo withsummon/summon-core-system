@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { ModalCore } from "@plane/ui";
 import { useState } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
@@ -22,12 +23,14 @@ import { IssueFormRoot } from "./form";
 import type { IssueFormProps } from "./form";
 
 export interface DraftIssueProps extends IssueFormProps {
+  modalProps: Omit<React.ComponentProps<typeof ModalCore>, "children" | "handleClose">;
+  canDismiss: () => boolean;
   changesMade: Partial<TIssue> | null;
   onChange: (formData: Partial<TIssue> | null) => void;
 }
 
 export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftIssueProps) {
-  const { changesMade, data, onChange, onClose, projectId } = props;
+  const { changesMade, data, onChange, onClose, projectId, modalProps, canDismiss } = props;
   // states
   const [issueDiscardModal, setIssueDiscardModal] = useState(false);
   // router params
@@ -57,6 +60,7 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   };
 
   const handleClose = () => {
+    if (!canDismiss()) return;
     // If the user is updating an existing work item, we don't need to show the discard modal
     if (data?.id) {
       onClose();
@@ -124,7 +128,7 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   };
 
   return (
-    <>
+    <ModalCore {...modalProps} handleClose={handleClose}>
       <ConfirmIssueDiscard
         isOpen={issueDiscardModal}
         handleClose={() => setIssueDiscardModal(false)}
@@ -136,6 +140,6 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
         }}
       />
       <IssueFormRoot {...props} onClose={handleClose} handleDraftAndClose={handleDraftAndClose} />
-    </>
+    </ModalCore>
   );
 });

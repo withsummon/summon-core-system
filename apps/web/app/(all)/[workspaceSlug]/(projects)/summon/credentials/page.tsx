@@ -28,7 +28,8 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
@@ -197,10 +198,10 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               className="pl-9"
             />
           </div>
-          <Button variant="neutral-primary" size="sm">
+          <Button variant="secondary" size="lg">
             <Filter className="mr-1.5 size-3.5" /> Filter
           </Button>
-          <Button size="sm" onClick={openCreate}>
+          <Button size="lg" onClick={openCreate}>
             <Plus className="mr-1.5 size-3.5" /> Add Credential <ChevronDown className="ml-2 size-3.5" />
           </Button>
         </div>
@@ -774,10 +775,10 @@ function CredentialForm(props: {
           </p>
           {props.error ? <p className="text-xs text-danger-primary sm:col-span-2">{props.error}</p> : null}
           <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="neutral-primary" onClick={props.onClose}>
+            <Button size="xl" type="button" variant="secondary" onClick={props.onClose}>
               Cancel
             </Button>
-            <Button type="submit" loading={props.saving}>
+            <Button size="xl" type="submit" loading={props.saving}>
               <Check className="mr-1.5 size-3.5" />
               Save credential
             </Button>

@@ -39,7 +39,7 @@ export const SendWorkspaceInvitationModal = observer(function SendWorkspaceInvit
   });
 
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXL}>
+    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <InvitationForm
         title={t("workspace_settings.settings.members.modal.title")}
         description={t("workspace_settings.settings.members.modal.description")}

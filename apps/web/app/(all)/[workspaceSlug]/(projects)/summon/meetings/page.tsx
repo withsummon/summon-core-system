@@ -8,7 +8,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
@@ -148,7 +149,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
                   ]}
                 />
               </SummonField>
-              <Button type="submit" loading={saving}>
+              <Button size="xl" type="submit" loading={saving}>
                 Create meeting
               </Button>
             </form>
@@ -175,7 +176,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
                   placeholder="UUID from the work item URL"
                 />
               </SummonField>
-              <Button type="submit" loading={saving}>
+              <Button size="xl" type="submit" loading={saving}>
                 Link work item
               </Button>
             </form>

@@ -4,14 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreHorizontal, ArchiveIcon, Settings } from "lucide-react";
-import { Disclosure } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { ChevronRightIcon } from "@plane/propel/icons";
 import { EUserWorkspaceRoles } from "@plane/types";
@@ -22,24 +21,19 @@ import { useUserPermissions } from "@/hooks/store/user";
 
 export type SidebarWorkspaceMenuHeaderProps = {
   isWorkspaceMenuOpen: boolean;
-  toggleWorkspaceMenu: (value: boolean) => void;
 };
 
 export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenuHeader(
   props: SidebarWorkspaceMenuHeaderProps
 ) {
-  const { isWorkspaceMenuOpen, toggleWorkspaceMenu } = props;
+  const { isWorkspaceMenuOpen } = props;
   // state
   const [isMenuActive, setIsMenuActive] = useState(false);
-  // refs
-  const actionSectionRef = useRef<HTMLDivElement | null>(null);
   // hooks
   const { workspaceSlug } = useParams();
   const router = useRouter();
   const { allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
-
-  useOutsideClickDetector(actionSectionRef, () => setIsMenuActive(false));
 
   // TODO: fix types
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,22 +41,13 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
 
   return (
     <div className="group/workspace-button mt-2.5 flex rounded-sm bg-surface-1 px-2 hover:bg-surface-2">
-      <Disclosure.Button
-        as="button"
-        className="sticky top-0 z-10 flex w-full flex-1 items-center justify-between gap-1 py-1.5 text-13 font-semibold text-placeholder"
-        onClick={() => toggleWorkspaceMenu(!isWorkspaceMenuOpen)}
-      >
+      <CollapsiblePrimitive.Trigger className="sticky top-0 z-10 flex w-full flex-1 items-center justify-between gap-1 py-1.5 text-13 font-semibold text-placeholder">
         <span>{t("common.workspace")}</span>
-      </Disclosure.Button>
+      </CollapsiblePrimitive.Trigger>
       <CustomMenu
+        handleOpenChange={setIsMenuActive}
         customButton={
-          <span
-            ref={actionSectionRef}
-            className="my-auto grid place-items-center rounded-sm p-0.5 text-placeholder hover:bg-layer-1"
-            onClick={() => {
-              setIsMenuActive(!isMenuActive);
-            }}
-          >
+          <span className="my-auto grid place-items-center rounded-sm p-0.5 text-placeholder hover:bg-layer-1">
             <MoreHorizontal className="size-4" />
           </span>
         }
@@ -91,11 +76,7 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
           </CustomMenu.MenuItem>
         )}
       </CustomMenu>
-      <Disclosure.Button
-        as="button"
-        className="group/workspace-button sticky top-0 z-10 flex items-center justify-between gap-1 rounded-sm px-0.5 py-1.5 text-11 font-semibold text-placeholder hover:bg-surface-2"
-        onClick={() => toggleWorkspaceMenu(!isWorkspaceMenuOpen)}
-      >
+      <CollapsiblePrimitive.Trigger className="group/workspace-button sticky top-0 z-10 flex items-center justify-between gap-1 rounded-sm px-0.5 py-1.5 text-11 font-semibold text-placeholder hover:bg-surface-2">
         {" "}
         <span className="pointer-events-none flex-shrink-0 rounded-sm opacity-0 group-hover/workspace-button:pointer-events-auto group-hover/workspace-button:opacity-100 hover:bg-layer-1">
           <ChevronRightIcon
@@ -104,7 +85,7 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
             })}
           />
         </span>
-      </Disclosure.Button>
+      </CollapsiblePrimitive.Trigger>
     </div>
   );
 });

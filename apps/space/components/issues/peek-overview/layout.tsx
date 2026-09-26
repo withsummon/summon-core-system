@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, useEffect } from "react";
+import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog } from "@plane/propel/dialog";
 // hooks
 import { useIssueDetails } from "@/hooks/store/use-issue-details";
 // local imports
@@ -63,62 +63,37 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: TIss
 
   return (
     <>
-      <Transition.Root appear show={isSidePeekOpen} as={Fragment}>
-        <Dialog as="div" onClose={handleClose}>
-          <Transition.Child
-            as={Fragment}
-            enter="transition-transform duration-300"
-            enterFrom="translate-x-full"
-            enterTo="translate-x-0"
-            leave="transition-transform duration-200"
-            leaveFrom="translate-x-0"
-            leaveTo="translate-x-full"
-          >
-            <Dialog.Panel className="fixed top-0 right-0 z-20 h-full w-1/2 border-l border-subtle-1 bg-surface-1 shadow-raised-200">
-              <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
-            </Dialog.Panel>
-          </Transition.Child>
-        </Dialog>
-      </Transition.Root>
-      <Transition.Root appear show={isModalPeekOpen} as={Fragment}>
-        <Dialog as="div" onClose={handleClose}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 z-20 bg-backdrop transition-opacity" />
-          </Transition.Child>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <Dialog.Panel>
-              <div
-                className={`fixed top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface-1 transition-all duration-300 ${
-                  peekMode === "modal" ? "h-[70%] w-3/5" : "size-[95%]"
-                }`}
-              >
-                {peekMode === "modal" && (
-                  <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
-                )}
-                {peekMode === "full" && (
-                  <FullScreenPeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
-                )}
-              </div>
-            </Dialog.Panel>
-          </Transition.Child>
-        </Dialog>
-      </Transition.Root>
+      <Dialog
+        open={isSidePeekOpen}
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+      >
+        <Dialog.Panel
+          aria-label="Work item details"
+          className="top-0 right-0 left-auto h-full max-h-none w-full translate-x-0 translate-y-0 rounded-none sm:w-1/2 sm:max-w-none"
+        >
+          <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
+        </Dialog.Panel>
+      </Dialog>
+      <Dialog
+        open={isModalPeekOpen}
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+      >
+        <Dialog.Panel
+          aria-label="Work item details"
+          className={peekMode === "modal" ? "h-[70%] w-[95%] sm:w-3/5 sm:max-w-none" : "size-[95%] sm:max-w-none"}
+        >
+          {peekMode === "modal" && (
+            <SidePeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
+          )}
+          {peekMode === "full" && (
+            <FullScreenPeekView anchor={anchor} handleClose={handleClose} issueDetails={issueDetails} />
+          )}
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 });

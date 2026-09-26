@@ -26,7 +26,6 @@ import { RichTextEditor } from "@/components/editor/rich-text";
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
 import { useInstance } from "@/hooks/store/use-instance";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import useKeypress from "@/hooks/use-keypress";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web services
 import { WorkspaceService } from "@/services/workspace.service";
@@ -51,7 +50,6 @@ type TIssueDescriptionEditorProps = {
   setGptAssistantModal: React.Dispatch<React.SetStateAction<boolean>>;
   handleGptAssistantClose: () => void;
   onAssetUpload: (assetId: string) => void;
-  onClose: () => void;
 };
 
 export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(props: TIssueDescriptionEditorProps) {
@@ -71,7 +69,6 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
     setGptAssistantModal,
     handleGptAssistantClose,
     onAssetUpload,
-    onClose,
   } = props;
   // i18n
   const { t } = useTranslation();
@@ -91,21 +88,6 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
     if (descriptionHtmlData) handleDescriptionHTMLDataChange(descriptionHtmlData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [descriptionHtmlData]);
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (editorRef.current?.isEditorReadyToDiscard()) {
-      onClose();
-    } else {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Editor is still processing changes. Please wait before proceeding.",
-      });
-      event.preventDefault(); // Prevent default action if editor is not ready to discard
-    }
-  };
-
-  useKeypress("Escape", handleKeyDown);
 
   // handlers
   const handleAiAssistance = async (response: string) => {

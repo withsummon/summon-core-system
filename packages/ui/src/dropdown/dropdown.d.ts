@@ -1,4 +1,4 @@
-import type { Placement } from "@popperjs/core";
+import type { TPlacement } from "@plane/propel/utils";
 
 export interface IDropdown {
   // root props
@@ -6,7 +6,7 @@ export interface IDropdown {
   onClose?: () => void;
   containerClassName?: string | ((isOpen: boolean) => string);
   tabIndex?: number;
-  placement?: Placement;
+  placement?: TPlacement;
   disabled?: boolean;
 
   // button props
@@ -64,8 +64,7 @@ export interface IDropdownButton {
   buttonContent?: (isOpen: boolean, value: string | string[] | undefined) => React.ReactNode;
   buttonClassName?: string;
   buttonContainerClassName?: string;
-  handleOnClick: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-  setReferenceElement: (element: HTMLButtonElement | null) => void;
+  tabIndex?: number;
   disabled?: boolean;
 }
 

@@ -4,14 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
+import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { sortBy } from "lodash-es";
-import React, { useMemo, useRef, useState } from "react";
-import { usePopper } from "react-popper";
+import React, { useMemo, useState } from "react";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
 // local imports
-import { useDropdownKeyPressed } from "../hooks/use-dropdown-key-pressed";
 import { cn } from "../utils";
 import { DropdownButton } from "./common";
 import { DropdownOptions } from "./common/options";
@@ -49,52 +47,22 @@ export function Dropdown(props: ISingleSelectDropdown) {
   // states
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-  // refs
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  // popper-js refs
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-
-  // popper-js init
-  const { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: placement ?? "bottom-start",
-    modifiers: [
-      {
-        name: "preventOverflow",
-        options: {
-          padding: 12,
-        },
-      },
-    ],
-  });
-
-  // handlers
-  const toggleDropdown = () => {
-    if (!isOpen) onOpen?.();
-    setIsOpen((prevIsOpen) => !prevIsOpen);
-    if (isOpen) onClose?.();
+  const { side, align } = convertPlacementToSideAndAlign(placement ?? "bottom-start");
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) onOpen?.();
+    else {
+      onClose?.();
+      setQuery("");
+    }
   };
-
-  const handleOnClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    toggleDropdown();
-  };
-
-  const handleClose = () => {
-    if (!isOpen) return;
-    setIsOpen(false);
-    onClose?.();
-    setQuery?.("");
-  };
-
   // options
   const sortedOptions = useMemo(() => {
     if (!options) return undefined;
 
     const filteredOptions = queryArray
-      ? (options || []).filter((options) => {
-          const queryString = queryArray.map((query) => options.data[query]).join(" ");
+      ? options.filter((option) => {
+          const queryString = queryArray.map((field) => option.data[field]).join(" ");
           return queryString.toLowerCase().includes(query.toLowerCase());
         })
       : options;
@@ -106,48 +74,43 @@ export function Dropdown(props: ISingleSelectDropdown) {
       (option) => !(value ?? []).includes(option.data[option.value]),
       () => sortByKey && sortByKey.toLowerCase(),
     ]);
-  }, [query, options]);
-
-  // hooks
-  const handleKeyDown = useDropdownKeyPressed(toggleDropdown, handleClose);
-
-  useOutsideClickDetector(dropdownRef, handleClose, true);
+  }, [query, options, queryArray, disableSorting, sortByKey, firstItem, value]);
 
   return (
-    <Combobox
-      as="div"
-      ref={dropdownRef}
+    <Combobox.Root
       value={value}
-      onChange={onChange}
-      className={cn(
-        "h-full",
-        typeof containerClassName === "function" ? containerClassName(isOpen) : containerClassName
-      )}
-      tabIndex={tabIndex}
-      onKeyDown={handleKeyDown}
+      onValueChange={onChange}
+      multiple={false}
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      filter={null}
       disabled={disabled}
     >
-      <DropdownButton
-        value={value}
-        isOpen={isOpen}
-        setReferenceElement={setReferenceElement}
-        handleOnClick={handleOnClick}
-        buttonContent={buttonContent}
-        buttonClassName={buttonClassName}
-        buttonContainerClassName={buttonContainerClassName}
-        disabled={disabled}
-      />
-
-      {isOpen && (
-        <Combobox.Options className="fixed z-10" static>
-          <div
+      <div
+        className={cn(
+          "h-full",
+          typeof containerClassName === "function" ? containerClassName(isOpen) : containerClassName
+        )}
+      >
+        <DropdownButton
+          value={value}
+          isOpen={isOpen}
+          tabIndex={tabIndex}
+          buttonContent={buttonContent}
+          buttonClassName={buttonClassName}
+          buttonContainerClassName={buttonContainerClassName}
+          disabled={disabled}
+        />
+      </div>
+      <Combobox.Portal>
+        <Combobox.Positioner side={side} align={align} sideOffset={4} collisionPadding={12} className="z-[120]">
+          <Combobox.Popup
             className={cn(
-              "my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2 text-11 shadow-raised-200 focus:outline-none",
+              "w-48 rounded-md border border-strong bg-surface-1 p-2 text-11 shadow-raised-200 outline-none",
               optionsContainerClassName
             )}
-            ref={setPopperElement}
-            style={styles.popper}
-            {...attributes.popper}
           >
             <DropdownOptions
               isOpen={isOpen}
@@ -163,11 +126,10 @@ export function Dropdown(props: ISingleSelectDropdown) {
               value={value}
               renderItem={renderItem}
               loader={loader}
-              handleClose={handleClose}
             />
-          </div>
-        </Combobox.Options>
-      )}
-    </Combobox>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
   );
 }

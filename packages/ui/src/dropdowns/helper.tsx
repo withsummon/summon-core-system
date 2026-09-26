@@ -27,6 +27,7 @@ export interface IDropdownProps {
   buttonClassName?: string;
   className?: string;
   customButton?: React.ReactNode;
+  render?: React.ReactElement;
   disabled?: boolean;
   input?: boolean;
   label?: string | React.ReactNode;
@@ -43,7 +44,7 @@ export interface IDropdownProps {
 
 export interface IPortalProps {
   children: React.ReactNode;
-  container?: Element | null;
+  container?: HTMLElement | null;
   asChild?: boolean;
 }
 
@@ -56,7 +57,7 @@ export interface ICustomMenuDropdownProps extends IDropdownProps {
   menuItemsClassName?: string;
   onMenuClose?: () => void;
   closeOnSelect?: boolean;
-  portalElement?: Element | null;
+  portalElement?: HTMLElement | null;
   openOnHover?: boolean;
   ariaLabel?: string;
 }

@@ -55,7 +55,7 @@ export const LayoutQuickActions = observer(function LayoutQuickActions(props: Pr
         closeOnSelect
         maxHeight="lg"
         className="flex size-[26px] flex-shrink-0 items-center justify-center rounded"
-        customButton={<IconButton size="lg" variant="tertiary" icon={Ellipsis} />}
+        render={<IconButton size="lg" variant="tertiary" icon={Ellipsis} />}
       >
         {MENU_ITEMS.map((item) => {
           if (item.shouldRender === false) return null;

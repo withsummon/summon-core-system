@@ -6,7 +6,7 @@
 
 import { memo } from "react";
 import { ALargeSmall, Ban } from "lucide-react";
-import { Popover } from "@headlessui/react";
+import { Popover } from "@plane/propel/popover";
 // plane editor
 import { COLORS_LIST } from "@plane/editor";
 import type { TEditorCommands } from "@plane/editor";
@@ -31,92 +31,88 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
   const activeBackgroundColor = COLORS_LIST.find((c) => isColorActive("background-color", c.key));
 
   return (
-    <Popover as="div" className="h-7 px-2">
-      {({ open }) => (
-        <>
-          <Popover.Button
-            type="button"
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-sm px-2 text-13 outline-none",
-              "text-tertiary hover:bg-layer-1",
-              {
-                "bg-layer-1 text-primary": open,
-              }
-            )}
+    <div className="h-7 px-2">
+      <Popover>
+        <Popover.Button
+          type="button"
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-sm px-2 text-13 outline-none",
+            "text-tertiary hover:bg-layer-1 data-[popup-open]:bg-layer-1 data-[popup-open]:text-primary"
+          )}
+        >
+          Color
+          <span
+            className={cn("grid size-6 shrink-0 place-items-center rounded-sm border-[0.5px] border-strong", {
+              "bg-surface-1": !activeBackgroundColor,
+            })}
+            style={{
+              backgroundColor: activeBackgroundColor ? activeBackgroundColor.backgroundColor : "transparent",
+            }}
           >
-            Color
-            <span
-              className={cn("grid size-6 shrink-0 place-items-center rounded-sm border-[0.5px] border-strong", {
-                "bg-surface-1": !activeBackgroundColor,
+            <ALargeSmall
+              className={cn("size-3.5", {
+                "text-primary": !activeTextColor,
               })}
               style={{
-                backgroundColor: activeBackgroundColor ? activeBackgroundColor.backgroundColor : "transparent",
+                color: activeTextColor ? activeTextColor.textColor : "inherit",
               }}
-            >
-              <ALargeSmall
-                className={cn("size-3.5", {
-                  "text-primary": !activeTextColor,
-                })}
-                style={{
-                  color: activeTextColor ? activeTextColor.textColor : "inherit",
-                }}
-              />
-            </span>
-          </Popover.Button>
-          <Popover.Panel
-            as="div"
-            className="fixed z-20 mt-1 space-y-2 rounded-md border-[0.5px] border-strong bg-surface-1 p-2 shadow-raised-200"
-          >
-            <div className="space-y-1.5">
-              <p className="text-11 font-semibold text-tertiary">Text colors</p>
-              <div className="flex items-center gap-2">
-                {COLORS_LIST.map((color) => (
-                  <button
-                    key={color.key}
-                    type="button"
-                    className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
-                    style={{
-                      backgroundColor: color.textColor,
-                    }}
-                    onClick={() => handleColorSelect("text-color", color.key)}
-                  />
-                ))}
+            />
+          </span>
+        </Popover.Button>
+        <Popover.Panel
+          className="z-20 space-y-2 rounded-md border-[0.5px] border-strong bg-surface-1 p-2 shadow-raised-200"
+          positionerClassName="z-50"
+          placement="bottom-start"
+        >
+          <div className="space-y-1.5">
+            <p className="text-11 font-semibold text-tertiary">Text colors</p>
+            <div className="flex items-center gap-2">
+              {COLORS_LIST.map((color) => (
                 <button
+                  key={color.key}
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
-                  onClick={() => handleColorSelect("text-color", undefined)}
-                >
-                  <Ban className="size-4" />
-                </button>
-              </div>
+                  className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
+                  style={{
+                    backgroundColor: color.textColor,
+                  }}
+                  onClick={() => handleColorSelect("text-color", color.key)}
+                />
+              ))}
+              <button
+                type="button"
+                className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                onClick={() => handleColorSelect("text-color", undefined)}
+              >
+                <Ban className="size-4" />
+              </button>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-11 font-semibold text-tertiary">Background colors</p>
-              <div className="flex items-center gap-2">
-                {COLORS_LIST.map((color) => (
-                  <button
-                    key={color.key}
-                    type="button"
-                    className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
-                    style={{
-                      backgroundColor: color.backgroundColor,
-                    }}
-                    onClick={() => handleColorSelect("background-color", color.key)}
-                  />
-                ))}
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-11 font-semibold text-tertiary">Background colors</p>
+            <div className="flex items-center gap-2">
+              {COLORS_LIST.map((color) => (
                 <button
+                  key={color.key}
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
-                  onClick={() => handleColorSelect("background-color", undefined)}
-                >
-                  <Ban className="size-4" />
-                </button>
-              </div>
+                  className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
+                  style={{
+                    backgroundColor: color.backgroundColor,
+                  }}
+                  onClick={() => handleColorSelect("background-color", color.key)}
+                />
+              ))}
+              <button
+                type="button"
+                className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                onClick={() => handleColorSelect("background-color", undefined)}
+              >
+                <Ban className="size-4" />
+              </button>
             </div>
-          </Popover.Panel>
-        </>
-      )}
-    </Popover>
+          </div>
+        </Popover.Panel>
+      </Popover>
+    </div>
   );
 });
 

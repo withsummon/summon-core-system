@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { AnalyticsIcon, CycleIcon, ProjectIcon, ViewsIcon } from "@plane/propel/icons";
 import { EUserWorkspaceRoles } from "@plane/types";
@@ -57,25 +57,13 @@ export const SidebarWorkspaceMenu = observer(function SidebarWorkspaceMenu() {
   ];
 
   return (
-    <Disclosure as="div" defaultOpen>
-      <SidebarWorkspaceMenuHeader isWorkspaceMenuOpen={isWorkspaceMenuOpen} toggleWorkspaceMenu={toggleWorkspaceMenu} />
-      <Transition
-        show={isWorkspaceMenuOpen}
-        enter="transition duration-100 ease-out"
-        enterFrom="transform scale-95 opacity-0"
-        enterTo="transform scale-100 opacity-100"
-        leave="transition duration-75 ease-out"
-        leaveFrom="transform scale-100 opacity-100"
-        leaveTo="transform scale-95 opacity-0"
-      >
-        {isWorkspaceMenuOpen && (
-          <Disclosure.Panel as="div" className="mt-0.5 flex flex-col gap-0.5" static>
-            {SIDEBAR_WORKSPACE_MENU_ITEMS.map((item) => (
-              <SidebarWorkspaceMenuItem key={item.key} item={item} />
-            ))}
-          </Disclosure.Panel>
-        )}
-      </Transition>
-    </Disclosure>
+    <CollapsiblePrimitive.Root open={isWorkspaceMenuOpen} onOpenChange={toggleWorkspaceMenu}>
+      <SidebarWorkspaceMenuHeader isWorkspaceMenuOpen={isWorkspaceMenuOpen} />
+      <CollapsiblePrimitive.Panel className="mt-0.5 flex flex-col gap-0.5">
+        {SIDEBAR_WORKSPACE_MENU_ITEMS.map((item) => (
+          <SidebarWorkspaceMenuItem key={item.key} item={item} />
+        ))}
+      </CollapsiblePrimitive.Panel>
+    </CollapsiblePrimitive.Root>
   );
 });

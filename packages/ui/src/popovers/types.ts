@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { Placement } from "@popperjs/core";
+import type { TPlacement } from "@plane/propel/utils";
 import type { MutableRefObject, ReactNode } from "react";
 
 export type TPopoverButtonDefaultOptions = {
@@ -17,7 +17,7 @@ export type TPopoverButtonDefaultOptions = {
 
 export type TPopoverDefaultOptions = TPopoverButtonDefaultOptions & {
   // popper styling
-  popperPosition?: Placement | undefined;
+  popperPosition?: TPlacement | undefined;
   popperPadding?: number | undefined;
   // panel styling
   panelClassName?: string;

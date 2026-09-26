@@ -15,7 +15,8 @@ import {
   Video,
   NotebookPen,
 } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
 import { summonErrorMessage } from "@/components/summon/screen";
@@ -420,7 +421,7 @@ function StageForm(props: {
       </SummonField>
       <Button
         type="submit"
-        size="md"
+        size="xl"
         className="h-10"
         disabled={!changed || !probabilityValid}
         loading={status === "saving"}

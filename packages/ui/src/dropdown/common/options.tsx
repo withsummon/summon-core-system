@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 
 import React from "react";
 import { CheckIcon } from "@plane/propel/icons";
@@ -27,7 +27,6 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
     disableSearch,
     keyExtractor,
     options,
-    handleClose,
     renderItem,
     loader,
     isMobile = false,
@@ -38,7 +37,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
         <InputSearch
           isOpen={isOpen}
           query={query}
-          updateQuery={(query) => setQuery(query)}
+          updateQuery={setQuery}
           inputIcon={inputIcon}
           inputPlaceholder={inputPlaceholder}
           inputClassName={inputClassName}
@@ -46,16 +45,16 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
           isMobile={isMobile}
         />
       )}
-      <div className={cn("max-h-48 space-y-1 overflow-y-scroll", !disableSearch && "mt-2")}>
+      <Combobox.List className={cn("max-h-48 space-y-1 overflow-y-scroll", !disableSearch && "mt-2")}>
         <>
           {options ? (
             options.length > 0 ? (
               options?.map((option) => (
-                <Combobox.Option
+                <Combobox.Item
                   key={keyExtractor(option)}
                   value={keyExtractor(option)}
                   disabled={option.disabled}
-                  className={({ active, selected }) =>
+                  className={({ highlighted: active, selected }) =>
                     cn(
                       "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
                       {
@@ -66,21 +65,24 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
                       option.className && option.className({ active, selected })
                     )
                   }
-                  onClick={handleClose}
                 >
-                  {({ selected }) => (
-                    <>
-                      {renderItem ? (
-                        <>{renderItem({ value: keyExtractor(option), selected, disabled: option.disabled })}</>
-                      ) : (
-                        <>
-                          <span className="flex-grow truncate">{option.value}</span>
-                          {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                        </>
-                      )}
-                    </>
-                  )}
-                </Combobox.Option>
+                  <>
+                    <span className="flex-grow truncate">
+                      {renderItem
+                        ? renderItem({
+                            value: keyExtractor(option),
+                            selected: Array.isArray(props.value)
+                              ? props.value.includes(keyExtractor(option))
+                              : props.value === keyExtractor(option),
+                            disabled: option.disabled,
+                          })
+                        : option.value}
+                    </span>
+                    <Combobox.ItemIndicator>
+                      <CheckIcon className="size-3.5" />
+                    </Combobox.ItemIndicator>
+                  </>
+                </Combobox.Item>
               ))
             ) : (
               <p className="px-1.5 py-1 text-placeholder italic">No matching results</p>
@@ -91,7 +93,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
             <DropdownOptionsLoader />
           )}
         </>
-      </div>
+      </Combobox.List>
     </>
   );
 }

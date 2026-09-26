@@ -8,7 +8,7 @@ import { Fragment, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronUpIcon, ChevronDownIcon } from "@plane/propel/icons";
@@ -120,117 +120,124 @@ export const ModuleAnalyticsProgress = observer(function ModuleAnalyticsProgress
   if (!moduleDetails) return <></>;
   return (
     <div className="space-y-4 border-t border-subtle px-3 py-4">
-      <Disclosure defaultOpen={isModuleDateValid ? true : false}>
-        {({ open }) => (
-          <div className="space-y-6">
-            {/* progress bar header */}
-            {isModuleDateValid ? (
-              <div className="relative flex w-full items-center justify-between gap-2">
-                <Disclosure.Button className="relative flex w-full items-center gap-2">
-                  <div className="text-13 font-medium text-secondary">{t("common.progress")}</div>
-                  {progressHeaderPercentage > 0 && (
-                    <div className="bg-amber-500/20 text-amber-500 flex h-5 w-9 items-center justify-center rounded-sm text-11 font-medium">{`${progressHeaderPercentage}%`}</div>
-                  )}
-                </Disclosure.Button>
-                {isCurrentEstimateTypeIsPoints && (
-                  <>
-                    <div>
-                      <CustomSelect
-                        value={plotType}
-                        label={
-                          <span>
-                            {t(moduleBurnDownChartOptions.find((v) => v.value === plotType)?.i18n_label || "none")}
-                          </span>
-                        }
-                        onChange={onChange}
-                        maxHeight="lg"
-                      >
-                        {moduleBurnDownChartOptions.map((item) => (
-                          <CustomSelect.Option key={item.value} value={item.value}>
-                            {t(item.i18n_label)}
-                          </CustomSelect.Option>
-                        ))}
-                      </CustomSelect>
-                    </div>
-                    {loader && <Spinner className="h-3 w-3" />}
-                  </>
-                )}
-                <Disclosure.Button className="ml-auto">
-                  {open ? (
-                    <ChevronUpIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : (
-                    <ChevronDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                </Disclosure.Button>
-              </div>
-            ) : (
-              <div className="relative flex w-full items-center justify-between gap-2">
-                <div className="text-13 font-medium text-secondary">Progress</div>
-                <div className="flex items-center gap-1">
-                  <AlertCircle height={14} width={14} className="text-secondary" />
-                  <span className="text-11 text-secondary italic">
-                    {moduleDetails?.start_date && moduleDetails?.target_date
-                      ? t("project_module.empty_state.sidebar.in_active")
-                      : t("project_module.empty_state.sidebar.invalid_date")}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <Transition show={open}>
-              <Disclosure.Panel className="space-y-4">
-                {/* progress burndown chart */}
-                <div>
-                  {moduleStartDate && moduleEndDate && completionChartDistributionData && (
-                    <Fragment>
-                      {plotType === "points" ? (
-                        <ProgressChart
-                          distribution={completionChartDistributionData}
-                          totalIssues={totalEstimatePoints}
-                          plotTitle={"points"}
-                        />
+      <CollapsiblePrimitive.Root
+        defaultOpen={isModuleDateValid ? true : false}
+        render={(rootProps, { open }) => (
+          <div {...rootProps}>
+            {
+              <div className="space-y-6">
+                {/* progress bar header */}
+                {isModuleDateValid ? (
+                  <div className="relative flex w-full items-center justify-between gap-2">
+                    <CollapsiblePrimitive.Trigger className="relative flex w-full items-center gap-2">
+                      <div className="text-13 font-medium text-secondary">{t("common.progress")}</div>
+                      {progressHeaderPercentage > 0 && (
+                        <div className="bg-amber-500/20 text-amber-500 flex h-5 w-9 items-center justify-center rounded-sm text-11 font-medium">{`${progressHeaderPercentage}%`}</div>
+                      )}
+                    </CollapsiblePrimitive.Trigger>
+                    {isCurrentEstimateTypeIsPoints && (
+                      <>
+                        <div>
+                          <CustomSelect
+                            value={plotType}
+                            label={
+                              <span>
+                                {t(moduleBurnDownChartOptions.find((v) => v.value === plotType)?.i18n_label || "none")}
+                              </span>
+                            }
+                            onChange={onChange}
+                            maxHeight="lg"
+                          >
+                            {moduleBurnDownChartOptions.map((item) => (
+                              <CustomSelect.Option key={item.value} value={item.value}>
+                                {t(item.i18n_label)}
+                              </CustomSelect.Option>
+                            ))}
+                          </CustomSelect>
+                        </div>
+                        {loader && <Spinner className="h-3 w-3" />}
+                      </>
+                    )}
+                    <CollapsiblePrimitive.Trigger className="ml-auto">
+                      {open ? (
+                        <ChevronUpIcon className="h-3.5 w-3.5" aria-hidden="true" />
                       ) : (
-                        <ProgressChart
-                          distribution={completionChartDistributionData}
-                          totalIssues={totalIssues}
-                          plotTitle={"work items"}
-                        />
+                        <ChevronDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
                       )}
-                    </Fragment>
-                  )}
-                </div>
-
-                {/* progress detailed view */}
-                {chartDistributionData && (
-                  <div className="w-full border-t border-subtle pt-5">
-                    <ModuleProgressStats
-                      distribution={chartDistributionData}
-                      groupedIssues={groupedIssues}
-                      handleFiltersUpdate={updateFilterValueFromSidebar.bind(
-                        updateFilterValueFromSidebar,
-                        EIssuesStoreType.MODULE,
-                        moduleId
-                      )}
-                      isEditable={Boolean(!peekModule) && moduleFilter !== undefined}
-                      moduleId={moduleId}
-                      noBackground={false}
-                      plotType={plotType}
-                      roundedTab={false}
-                      selectedFilters={{
-                        assignees: selectedAssignees,
-                        labels: selectedLabels,
-                        stateGroups: selectedStateGroups,
-                      }}
-                      size="xs"
-                      totalIssuesCount={plotType === "points" ? totalEstimatePoints || 0 : totalIssues || 0}
-                    />
+                    </CollapsiblePrimitive.Trigger>
+                  </div>
+                ) : (
+                  <div className="relative flex w-full items-center justify-between gap-2">
+                    <div className="text-13 font-medium text-secondary">Progress</div>
+                    <div className="flex items-center gap-1">
+                      <AlertCircle height={14} width={14} className="text-secondary" />
+                      <span className="text-11 text-secondary italic">
+                        {moduleDetails?.start_date && moduleDetails?.target_date
+                          ? t("project_module.empty_state.sidebar.in_active")
+                          : t("project_module.empty_state.sidebar.invalid_date")}
+                      </span>
+                    </div>
                   </div>
                 )}
-              </Disclosure.Panel>
-            </Transition>
+
+                {open && (
+                  <>
+                    <CollapsiblePrimitive.Panel className="space-y-4">
+                      {/* progress burndown chart */}
+                      <div>
+                        {moduleStartDate && moduleEndDate && completionChartDistributionData && (
+                          <Fragment>
+                            {plotType === "points" ? (
+                              <ProgressChart
+                                distribution={completionChartDistributionData}
+                                totalIssues={totalEstimatePoints}
+                                plotTitle={"points"}
+                              />
+                            ) : (
+                              <ProgressChart
+                                distribution={completionChartDistributionData}
+                                totalIssues={totalIssues}
+                                plotTitle={"work items"}
+                              />
+                            )}
+                          </Fragment>
+                        )}
+                      </div>
+
+                      {/* progress detailed view */}
+                      {chartDistributionData && (
+                        <div className="w-full border-t border-subtle pt-5">
+                          <ModuleProgressStats
+                            distribution={chartDistributionData}
+                            groupedIssues={groupedIssues}
+                            handleFiltersUpdate={updateFilterValueFromSidebar.bind(
+                              updateFilterValueFromSidebar,
+                              EIssuesStoreType.MODULE,
+                              moduleId
+                            )}
+                            isEditable={Boolean(!peekModule) && moduleFilter !== undefined}
+                            moduleId={moduleId}
+                            noBackground={false}
+                            plotType={plotType}
+                            roundedTab={false}
+                            selectedFilters={{
+                              assignees: selectedAssignees,
+                              labels: selectedLabels,
+                              stateGroups: selectedStateGroups,
+                            }}
+                            size="xs"
+                            totalIssuesCount={plotType === "points" ? totalEstimatePoints || 0 : totalIssues || 0}
+                          />
+                        </div>
+                      )}
+                    </CollapsiblePrimitive.Panel>
+                  </>
+                )}
+              </div>
+            }
           </div>
         )}
-      </Disclosure>
+      ></CollapsiblePrimitive.Root>
     </div>
   );
 });

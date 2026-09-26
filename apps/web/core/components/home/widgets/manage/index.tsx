@@ -14,7 +14,7 @@ import { WidgetList } from "./widget-list";
 export type TProps = {
   workspaceSlug: string;
   isModalOpen: boolean;
-  handleOnClose?: () => void;
+  handleOnClose: () => void;
 };
 
 export const ManageWidgetsModal = observer(function ManageWidgetsModal(props: TProps) {

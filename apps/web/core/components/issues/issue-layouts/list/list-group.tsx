@@ -269,6 +269,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
         })}
       >
         <HeaderGroupByCard
+          isExpanded={shouldExpand}
           groupID={group.id}
           groupBy={group_by}
           icon={group.icon}

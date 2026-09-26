@@ -1,5 +1,5 @@
 import { MessageSquareText, Plus } from "lucide-react";
-import { Button } from "@plane/ui";
+import { Button } from "@plane/propel/button";
 import type { ISummonAssistantConversation } from "@plane/types";
 import { SummonRequestState } from "@/components/summon/request-state";
 
@@ -23,8 +23,8 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
           <p className="truncate text-[11px] text-secondary">Private to you</p>
         </div>
         <Button
-          size="sm"
-          variant="neutral-primary"
+          size="lg"
+          variant="secondary"
           loading={props.creating}
           onClick={props.onCreate}
           aria-label="New chat"

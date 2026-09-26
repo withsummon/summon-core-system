@@ -28,7 +28,8 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Button, Input, TextArea } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input, TextArea } from "@plane/ui";
 import { EFileAssetType } from "@plane/types";
 import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedArtifact } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
@@ -565,7 +566,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 </SummonField>
               </div>
             </div>
-            <Button type="submit" disabled={!canGeneratePreview} loading={generating} className="w-full">
+            <Button size="xl" type="submit" disabled={!canGeneratePreview} loading={generating} className="w-full">
               <Sparkles className="mr-2 size-4" /> Generate Preview
             </Button>
             <p className="text-center text-[10px] text-tertiary">
@@ -574,7 +575,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             {formError ? (
               <div className="bg-red-50 text-red-600 grid gap-2 rounded-lg p-2.5 text-[11px]" role="alert">
                 <span>{formError}</span>
-                <Button type="button" size="sm" variant="neutral-primary" onClick={() => void generatePreview()}>
+                <Button type="button" size="lg" variant="secondary" onClick={() => void generatePreview()}>
                   Retry preview
                 </Button>
               </div>

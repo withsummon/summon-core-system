@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, Check, CircleAlert } from "lucide-react";
-import { Button } from "@plane/ui";
+import { Button } from "@plane/propel/button";
 import type { ISummonGeneratedArtifact } from "@plane/types";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonScreen, summonLLMErrorMessage } from "@/components/summon/screen";
@@ -123,15 +123,15 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
           <SummonCard>
             <h2 className="text-xs font-semibold text-primary">Document actions</h2>
             <div className="mt-3 grid gap-2">
-              <Button
-                variant="neutral-primary"
+              <Button size="xl"
+                variant="secondary"
                 disabled={!hasPreview || Boolean(fileArtifacts.length)}
                 loading={rendering}
                 onClick={() => void generateFiles()}
               >
                 Generate files
               </Button>
-              <Button
+              <Button size="xl"
                 disabled={!hasPreview || Boolean(pageArtifact)}
                 loading={publishing}
                 onClick={() => void publishPreview()}

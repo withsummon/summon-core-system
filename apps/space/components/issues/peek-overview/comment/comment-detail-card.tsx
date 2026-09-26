@@ -4,11 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { MessageSquare, MoreVertical } from "lucide-react";
-import { Menu, Transition } from "@headlessui/react";
+import { CustomMenu } from "@plane/ui";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
@@ -168,60 +168,15 @@ export const CommentCard = observer(function CommentCard(props: Props) {
         </div>
       </div>
       {!isInIframe && currentUser?.id === comment?.actor_detail?.id && (
-        <Menu as="div" className="relative w-min text-left">
-          <Menu.Button
-            type="button"
-            onClick={() => {}}
-            className="relative grid cursor-pointer place-items-center rounded-sm p-1 text-tertiary outline-none hover:bg-layer-transparent-hover"
-          >
-            <MoreVertical className="size-4" strokeWidth={2} />
-          </Menu.Button>
-
-          <Transition
-            as={React.Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            <Menu.Items className="shadow-lg absolute right-0 z-10 mt-1 max-h-36 min-w-[8rem] origin-top-right overflow-auto overflow-y-scroll rounded-md border border-strong bg-surface-1 p-1 text-11 whitespace-nowrap focus:outline-none">
-              <Menu.Item>
-                {({ active }) => (
-                  <div className="py-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(true);
-                      }}
-                      className={`w-full truncate rounded-sm px-1 py-1.5 text-left text-secondary select-none hover:bg-layer-transparent-hover ${
-                        active ? "bg-layer-transparent-hover" : ""
-                      }`}
-                    >
-                      Edit
-                    </button>
-                  </div>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <div className="py-1">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className={`w-full truncate rounded-sm px-1 py-1.5 text-left text-secondary select-none hover:bg-layer-transparent-hover ${
-                        active ? "bg-layer-transparent-hover" : ""
-                      }`}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </Menu.Item>
-            </Menu.Items>
-          </Transition>
-        </Menu>
+        <CustomMenu
+          ariaLabel="Comment actions"
+          customButton={<MoreVertical className="size-4" />}
+          noChevron
+          placement="bottom-end"
+        >
+          <CustomMenu.MenuItem onClick={() => setIsEditing(true)}>Edit</CustomMenu.MenuItem>
+          <CustomMenu.MenuItem onClick={handleDelete}>Delete</CustomMenu.MenuItem>
+        </CustomMenu>
       )}
     </div>
   );

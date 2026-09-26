@@ -5,3 +5,5 @@
  */
 
 export * from "./collapsible";
+
+export { Collapsible as CollapsiblePrimitive } from "@base-ui-components/react/collapsible";

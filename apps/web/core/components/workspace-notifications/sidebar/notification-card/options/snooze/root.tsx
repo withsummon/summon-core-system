@@ -5,10 +5,10 @@
  */
 
 import type { Dispatch, SetStateAction } from "react";
-import { Fragment } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { Clock } from "lucide-react";
-import { Popover, Transition } from "@headlessui/react";
+import { Popover } from "@plane/propel/popover";
 // plane imports
 import { NOTIFICATION_SNOOZE_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -34,6 +34,8 @@ type TNotificationItemSnoozeOption = {
 export const NotificationItemSnoozeOption = observer(function NotificationItemSnoozeOption(
   props: TNotificationItemSnoozeOption
 ) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
   const { workspaceSlug, notification, setIsSnoozeStateModalOpen, customSnoozeModal, setCustomSnoozeModal } = props;
   // hooks
   const { isMobile } = usePlatformOS();
@@ -89,73 +91,62 @@ export const NotificationItemSnoozeOption = observer(function NotificationItemSn
         onClose={() => setCustomSnoozeModal(false)}
         onSubmit={handleNotificationSnoozeDate}
       />
-      <Popover className="relative">
-        {({ open }) => {
-          if (open) setIsSnoozeStateModalOpen(true);
-          else setIsSnoozeStateModalOpen(false);
+      <div className="relative">
+        <Popover
+          open={popoverOpen}
+          onOpenChange={(nextOpen) => {
+            setPopoverOpen(nextOpen);
+            setIsSnoozeStateModalOpen(nextOpen);
+          }}
+        >
+          <Tooltip
+            tooltipContent={
+              data.snoozed_till ? t("notification.options.mark_unsnooze") : t("notification.options.mark_snooze")
+            }
+            isMobile={isMobile}
+          >
+            <Popover.Button
+              className={cn(
+                "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2",
+                popoverOpen ? "bg-layer-1" : ""
+              )}
+            >
+              <Clock className="h-3 w-3 text-tertiary" />
+            </Popover.Button>
+          </Tooltip>
 
-          return (
-            <>
-              <Tooltip
-                tooltipContent={
-                  data.snoozed_till ? t("notification.options.mark_unsnooze") : t("notification.options.mark_snooze")
-                }
-                isMobile={isMobile}
-              >
-                <Popover.Button
-                  className={cn(
-                    "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2",
-                    open ? "bg-layer-1" : ""
-                  )}
+          <Popover.Panel className="z-10 min-w-44 select-none" positionerClassName="z-50" placement="bottom-start">
+            <div className="space-y-1 rounded-md border border-subtle bg-surface-1 p-2">
+              {data.snoozed_till && (
+                <button
+                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDropdownSelect("un-snooze");
+                  }}
                 >
-                  <Clock className="h-3 w-3 text-tertiary" />
-                </Popover.Button>
-              </Tooltip>
+                  <div>{t("notification.options.mark_unsnooze")}</div>
+                </button>
+              )}
 
-              <Transition
-                as={Fragment}
-                enter="transition ease-out duration-200"
-                enterFrom="opacity-0 translate-y-1"
-                enterTo="opacity-100 translate-y-0"
-                leave="transition ease-in duration-150"
-                leaveFrom="opacity-100 translate-y-0"
-                leaveTo="opacity-0 translate-y-1"
-              >
-                <Popover.Panel className="absolute right-0 z-10 mt-2 min-w-44 select-none">
-                  <div className="space-y-1 rounded-md border border-subtle bg-surface-1 p-2">
-                    {data.snoozed_till && (
-                      <button
-                        className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDropdownSelect("un-snooze");
-                        }}
-                      >
-                        <div>{t("notification.options.mark_unsnooze")}</div>
-                      </button>
-                    )}
-
-                    {NOTIFICATION_SNOOZE_OPTIONS.map((option) => (
-                      <button
-                        key={option.key}
-                        className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDropdownSelect(option.value != undefined ? option.value() : option.value);
-                        }}
-                      >
-                        <div>{t(option?.i18n_label)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </Popover.Panel>
-              </Transition>
-            </>
-          );
-        }}
-      </Popover>
+              {NOTIFICATION_SNOOZE_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDropdownSelect(option.value != undefined ? option.value() : option.value);
+                  }}
+                >
+                  <div>{t(option?.i18n_label)}</div>
+                </button>
+              ))}
+            </div>
+          </Popover.Panel>
+        </Popover>
+      </div>
     </>
   );
 });

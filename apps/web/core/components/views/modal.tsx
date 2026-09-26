@@ -16,7 +16,6 @@ import { useIssues } from "@/hooks/store/use-issues";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { useWorkItemFilters } from "@/hooks/store/work-item-filters/use-work-item-filters";
 import { useAppRouter } from "@/hooks/use-app-router";
-import useKeypress from "@/hooks/use-keypress";
 // local imports
 import { ProjectViewForm } from "./form";
 
@@ -83,12 +82,8 @@ export const CreateUpdateProjectViewModal = observer(function CreateUpdateProjec
     else await handleUpdateView(formData);
   };
 
-  useKeypress("Escape", () => {
-    if (isOpen) handleClose();
-  });
-
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXL}>
+    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <ProjectViewForm
         data={data}
         handleClose={handleClose}

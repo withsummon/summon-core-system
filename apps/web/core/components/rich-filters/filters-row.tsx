@@ -7,7 +7,6 @@
 import React, { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import { ListFilterPlus } from "lucide-react";
-import { Transition } from "@headlessui/react";
 // plane imports
 import { Button } from "@plane/propel/button";
 import type { IFilterInstance } from "@plane/shared-state";
@@ -89,7 +88,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
 
   const rightContent = !disabledAllOperations && (
     <>
-      <ElementTransition show={filter.canClearFilters}>
+      {filter.canClearFilters && (
         <Button
           variant="secondary"
           className={COMMON_OPERATION_BUTTON_CLASSNAME}
@@ -98,8 +97,8 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
         >
           {filter.clearFilterOptions?.label ?? "Clear all"}
         </Button>
-      </ElementTransition>
-      <ElementTransition show={filter.canSaveView}>
+      )}
+      {filter.canSaveView && (
         <Button
           variant="secondary"
           className={COMMON_OPERATION_BUTTON_CLASSNAME}
@@ -108,8 +107,8 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
         >
           {filter.saveViewOptions?.label ?? "Save view"}
         </Button>
-      </ElementTransition>
-      <ElementTransition show={filter.canUpdateView}>
+      )}
+      {filter.canUpdateView && (
         <Button
           variant="secondary"
           className={COMMON_OPERATION_BUTTON_CLASSNAME}
@@ -120,7 +119,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
         >
           {isUpdating ? "Confirming" : (filter.updateViewOptions?.label ?? "Update view")}
         </Button>
-      </ElementTransition>
+      )}
     </>
   );
 
@@ -149,57 +148,15 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
 
   if (!filter.configManager.areConfigsReady && !hasAnyConditions) {
     return (
-      <RowTransition show={filter.isVisible}>
+      <div hidden={!filter.isVisible}>
         <Loader>
           <Loader.Item height="44px" width="100%" className={cn({ "rounded-none": variant === "header" })} />
         </Loader>
-      </RowTransition>
+      </div>
     );
   }
 
-  return <RowTransition show={filter.isVisible}>{variant === "modal" ? ModalVariant : HeaderVariant}</RowTransition>;
+  return <div hidden={!filter.isVisible}>{variant === "modal" ? ModalVariant : HeaderVariant}</div>;
 });
 
 const COMMON_OPERATION_BUTTON_CLASSNAME = "py-1";
-
-type TElementTransitionProps = {
-  children: React.ReactNode;
-  show: boolean;
-};
-
-const ElementTransition = observer(function ElementTransition(props: TElementTransitionProps) {
-  return (
-    <Transition
-      show={props.show}
-      enter="transition ease-out duration-200"
-      enterFrom="opacity-0 scale-95"
-      enterTo="opacity-100 scale-100"
-      leave="transition ease-in duration-150"
-      leaveFrom="opacity-100 scale-100"
-      leaveTo="opacity-0 scale-95"
-    >
-      {props.children}
-    </Transition>
-  );
-});
-
-type TRowTransitionProps = {
-  children: React.ReactNode;
-  show: boolean;
-};
-
-const RowTransition = observer(function RowTransition(props: TRowTransitionProps) {
-  return (
-    <Transition
-      show={props.show}
-      enter="transition-all duration-150 ease-out"
-      enterFrom="opacity-0 -translate-y-1"
-      enterTo="opacity-100 translate-y-0"
-      leave="transition-all duration-100 ease-in"
-      leaveFrom="opacity-100 translate-y-0"
-      leaveTo="opacity-0 -translate-y-1"
-    >
-      {props.children}
-    </Transition>
-  );
-});

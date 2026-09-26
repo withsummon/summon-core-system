@@ -347,7 +347,7 @@ export function InstanceSetupForm() {
                   className="h-4 w-4"
                   iconClassName="w-3 h-3"
                   id="is_telemetry_enabled"
-                  onChange={() => handleFormChange("is_telemetry_enabled", !formData.is_telemetry_enabled)}
+                  onCheckedChange={(checked) => handleFormChange("is_telemetry_enabled", checked)}
                   checked={formData.is_telemetry_enabled}
                 />
               </div>

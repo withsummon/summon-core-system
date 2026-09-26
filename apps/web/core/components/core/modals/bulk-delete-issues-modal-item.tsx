@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // hooks
 import type { ISearchIssueResponse } from "@plane/types";
 // components
@@ -22,11 +22,10 @@ export const BulkDeleteIssuesModalItem = observer(function BulkDeleteIssuesModal
   const color = issue.state__color;
 
   return (
-    <Combobox.Option
+    <Combobox.Item
       key={issue.id}
-      as="div"
       value={issue.id}
-      className={({ active }) =>
+      className={({ highlighted: active }) =>
         `my-0.5 flex cursor-pointer items-center justify-between rounded-md px-3 py-2 select-none ${
           active ? "bg-layer-1 text-primary" : ""
         }`
@@ -49,6 +48,6 @@ export const BulkDeleteIssuesModalItem = observer(function BulkDeleteIssuesModal
         />
         <span>{issue.name}</span>
       </div>
-    </Combobox.Option>
+    </Combobox.Item>
   );
 });

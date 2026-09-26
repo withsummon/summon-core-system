@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import { CalendarCheck } from "lucide-react";
-// headless ui
-import { Tab } from "@headlessui/react";
+
+import { Tabs } from "@plane/propel/tabs";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { PriorityIcon } from "@plane/propel/icons";
@@ -68,18 +68,6 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
   const assigneesResolvedPath = resolvedTheme === "light" ? lightAssigneeAsset : darkAssigneeAsset;
   const labelsResolvedPath = resolvedTheme === "light" ? lightLabelAsset : darkLabelAsset;
 
-  const currentValue = (tab: string | null) => {
-    switch (tab) {
-      case "Priority-Issues":
-        return 0;
-      case "Assignees":
-        return 1;
-      case "Labels":
-        return 2;
-      default:
-        return 0;
-    }
-  };
   const {
     issues: { fetchNextActiveCycleIssues },
   } = useIssues(EIssuesStoreType.CYCLE);
@@ -105,74 +93,54 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
 
   return cycleId ? (
     <div className="col-span-1 flex min-h-[17rem] flex-col gap-4 overflow-hidden rounded-lg border border-subtle bg-surface-1 p-4 lg:col-span-2 xl:col-span-1">
-      <Tab.Group
-        as={Fragment}
-        defaultIndex={currentValue(tab)}
-        onChange={(i) => {
-          switch (i) {
-            case 0:
-              return setTab("Priority-Issues");
-            case 1:
-              return setTab("Assignees");
-            case 2:
-              return setTab("Labels");
-
-            default:
-              return setTab("Priority-Issues");
-          }
-        }}
-      >
-        <Tab.List
-          as="div"
+      <Tabs value={tab || "Priority-Issues"} onValueChange={(value) => setTab(String(value))}>
+        <Tabs.List
           className="relative grid rounded-sm border-[0.5px] border-subtle bg-layer-1 p-[1px]"
           style={{
             gridTemplateColumns: `repeat(3, 1fr)`,
           }}
         >
-          <Tab
-            className={({ selected }) =>
-              cn(
-                "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
-                {
-                  "bg-surface-1 text-tertiary": selected,
-                  "hover:text-tertiary": !selected,
-                }
-              )
-            }
+          <Tabs.Trigger
+            value="Priority-Issues"
+            className={cn(
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              {
+                "bg-surface-1 text-tertiary": tab === "Priority-Issues",
+                "hover:text-tertiary": tab !== "Priority-Issues",
+              }
+            )}
           >
             {t("project_cycles.active_cycle.priority_issue")}
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              cn(
-                "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
-                {
-                  "bg-surface-1 text-tertiary": selected,
-                  "hover:text-tertiary": !selected,
-                }
-              )
-            }
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="Assignees"
+            className={cn(
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              {
+                "bg-surface-1 text-tertiary": tab === "Assignees",
+                "hover:text-tertiary": tab !== "Assignees",
+              }
+            )}
           >
             {t("project_cycles.active_cycle.assignees")}
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              cn(
-                "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
-                {
-                  "bg-surface-1 text-tertiary": selected,
-                  "hover:text-tertiary": !selected,
-                }
-              )
-            }
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="Labels"
+            className={cn(
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              {
+                "bg-surface-1 text-tertiary": tab === "Labels",
+                "hover:text-tertiary": tab !== "Labels",
+              }
+            )}
           >
             {t("project_cycles.active_cycle.labels")}
-          </Tab>
-        </Tab.List>
+          </Tabs.Trigger>
+        </Tabs.List>
 
-        <Tab.Panels as={Fragment}>
-          <Tab.Panel
-            as="div"
+        <>
+          <Tabs.Content
+            value="Priority-Issues"
             className="vertical-scrollbar flex scrollbar-sm h-52 w-full flex-col gap-1 overflow-y-auto text-secondary"
           >
             <div
@@ -260,10 +228,10 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                 loaders
               )}
             </div>
-          </Tab.Panel>
+          </Tabs.Content>
 
-          <Tab.Panel
-            as="div"
+          <Tabs.Content
+            value="Assignees"
             className="vertical-scrollbar flex scrollbar-sm h-52 w-full flex-col gap-1 overflow-y-auto text-secondary"
           >
             {cycle && !isEmpty(cycle.distribution) ? (
@@ -322,10 +290,10 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
             ) : (
               loaders
             )}
-          </Tab.Panel>
+          </Tabs.Content>
 
-          <Tab.Panel
-            as="div"
+          <Tabs.Content
+            value="Labels"
             className="vertical-scrollbar flex scrollbar-sm h-52 w-full flex-col gap-1 overflow-y-auto text-secondary"
           >
             {cycle && !isEmpty(cycle.distribution) ? (
@@ -365,9 +333,9 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
             ) : (
               loaders
             )}
-          </Tab.Panel>
-        </Tab.Panels>
-      </Tab.Group>
+          </Tabs.Content>
+        </>
+      </Tabs>
     </div>
   ) : (
     <Loader className="col-span-1 flex min-h-[17rem] flex-col gap-4 overflow-hidden bg-surface-1 lg:col-span-2 xl:col-span-1">

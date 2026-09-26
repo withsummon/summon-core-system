@@ -10,7 +10,7 @@ import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-sc
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import { Ellipsis } from "lucide-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -170,13 +170,15 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
         })}
       >
         <>
-          <Disclosure as="div" className="flex flex-col" defaultOpen={isAllProjectsListOpen}>
+          <CollapsiblePrimitive.Root
+            className="flex flex-col"
+            open={isAllProjectsListOpen}
+            onOpenChange={toggleListDisclosure}
+          >
             <div className="group flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover">
-              <Disclosure.Button
-                as="button"
+              <CollapsiblePrimitive.Trigger
                 type="button"
                 className="flex w-full items-center gap-1 text-left text-13 font-semibold whitespace-nowrap text-placeholder"
-                onClick={() => toggleListDisclosure(!isAllProjectsListOpen)}
                 aria-label={t(
                   isAllProjectsListOpen
                     ? "aria_labels.projects_sidebar.close_projects_menu"
@@ -184,7 +186,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                 )}
               >
                 <span className="text-13 font-semibold">{t("projects")}</span>
-              </Disclosure.Button>
+              </CollapsiblePrimitive.Trigger>
               <div className="flex items-center gap-1">
                 {isAuthorizedUser && (
                   <Tooltip tooltipHeading={t("create_project")} tooltipContent="">
@@ -218,60 +220,54 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                 />
               </div>
             </div>
-            <Transition
-              show={isAllProjectsListOpen}
-              enter="transition duration-100 ease-out"
-              enterFrom="transform scale-95 opacity-0"
-              enterTo="transform scale-100 opacity-100"
-              leave="transition duration-75 ease-out"
-              leaveFrom="transform scale-100 opacity-100"
-              leaveTo="transform scale-95 opacity-0"
-            >
-              {loader === "init-loader" && (
-                <Loader className="w-full space-y-1.5">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Loader.Item key={index} height="28px" />
-                  ))}
-                </Loader>
-              )}
-              {isAllProjectsListOpen && (
-                <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
-                  <>
-                    {displayedProjects.map((projectId, index) => (
-                      <SidebarProjectsListItem
-                        key={projectId}
-                        projectId={projectId}
-                        handleCopyText={() => handleCopyText(projectId)}
-                        projectListType={"JOINED"}
-                        disableDrag={false}
-                        disableDrop={false}
-                        isLastChild={index === displayedProjects.length - 1}
-                        handleOnProjectDrop={handleOnProjectDrop}
-                      />
+            {isAllProjectsListOpen && (
+              <>
+                {loader === "init-loader" && (
+                  <Loader className="w-full space-y-1.5">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Loader.Item key={index} height="28px" />
                     ))}
-                    {hasMoreProjects && (
-                      <SidebarNavItem>
-                        <button
-                          type="button"
-                          onClick={() => toggleExtendedProjectSidebar()}
-                          className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
-                          id="extended-project-sidebar-toggle"
-                          aria-label={t(
-                            isExtendedProjectSidebarOpened
-                              ? "aria_labels.app_sidebar.close_extended_sidebar"
-                              : "aria_labels.app_sidebar.open_extended_sidebar"
-                          )}
-                        >
-                          <Ellipsis className="size-4 flex-shrink-0" />
-                          <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
-                        </button>
-                      </SidebarNavItem>
-                    )}
-                  </>
-                </Disclosure.Panel>
-              )}
-            </Transition>
-          </Disclosure>
+                  </Loader>
+                )}
+                {isAllProjectsListOpen && (
+                  <CollapsiblePrimitive.Panel className="flex flex-col gap-0.5">
+                    <>
+                      {displayedProjects.map((projectId, index) => (
+                        <SidebarProjectsListItem
+                          key={projectId}
+                          projectId={projectId}
+                          handleCopyText={() => handleCopyText(projectId)}
+                          projectListType={"JOINED"}
+                          disableDrag={false}
+                          disableDrop={false}
+                          isLastChild={index === displayedProjects.length - 1}
+                          handleOnProjectDrop={handleOnProjectDrop}
+                        />
+                      ))}
+                      {hasMoreProjects && (
+                        <SidebarNavItem>
+                          <button
+                            type="button"
+                            onClick={() => toggleExtendedProjectSidebar()}
+                            className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
+                            id="extended-project-sidebar-toggle"
+                            aria-label={t(
+                              isExtendedProjectSidebarOpened
+                                ? "aria_labels.app_sidebar.close_extended_sidebar"
+                                : "aria_labels.app_sidebar.open_extended_sidebar"
+                            )}
+                          >
+                            <Ellipsis className="size-4 flex-shrink-0" />
+                            <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
+                          </button>
+                        </SidebarNavItem>
+                      )}
+                    </>
+                  </CollapsiblePrimitive.Panel>
+                )}
+              </>
+            )}
+          </CollapsiblePrimitive.Root>
         </>
 
         {isAuthorizedUser && joinedProjects?.length === 0 && (

@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { TwitterPicker } from "react-color";
 import type { SubmitHandler } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
-import { Popover, Transition } from "@headlessui/react";
+import { Popover } from "@plane/propel/popover";
 // plane imports
 import { getRandomLabelColor, LABEL_COLOR_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -164,48 +164,36 @@ export const CreateUpdateLabelInline = observer(
           className={`flex w-full scroll-m-8 items-center gap-2 bg-surface-1 ${labelForm ? "" : "hidden"}`}
         >
           <div className="flex-shrink-0">
-            <Popover className="relative z-10 flex h-full w-full items-center justify-center">
-              {({ open }) => (
-                <>
-                  <Popover.Button
-                    className={`group inline-flex items-center text-14 font-medium focus:outline-none ${
-                      open ? "text-primary" : "text-secondary"
-                    }`}
-                  >
-                    <span
-                      className="h-4 w-4 rounded-full"
-                      style={{
-                        backgroundColor: watch("color"),
-                      }}
-                    />
-                  </Popover.Button>
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
+              <Popover>
+                <Popover.Button className="group inline-flex items-center text-14 font-medium text-secondary focus:outline-none data-[popup-open]:text-primary">
+                  <span
+                    className="h-4 w-4 rounded-full"
+                    style={{
+                      backgroundColor: watch("color"),
+                    }}
+                  />
+                </Popover.Button>
 
-                  <Transition
-                    as={React.Fragment}
-                    enter="transition ease-out duration-200"
-                    enterFrom="opacity-0 translate-y-1"
-                    enterTo="opacity-100 translate-y-0"
-                    leave="transition ease-in duration-150"
-                    leaveFrom="opacity-100 translate-y-0"
-                    leaveTo="opacity-0 translate-y-1"
-                  >
-                    <Popover.Panel className="absolute top-full left-0 z-20 mt-3 w-screen max-w-xs px-2 sm:px-0">
-                      <Controller
-                        name="color"
-                        control={control}
-                        render={({ field: { value, onChange } }) => (
-                          <TwitterPicker
-                            colors={LABEL_COLOR_OPTIONS}
-                            color={value}
-                            onChange={(value) => onChange(value.hex)}
-                          />
-                        )}
+                <Popover.Panel
+                  className="z-20 w-screen max-w-xs px-2 sm:px-0"
+                  positionerClassName="z-50"
+                  placement="bottom-start"
+                >
+                  <Controller
+                    name="color"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <TwitterPicker
+                        colors={LABEL_COLOR_OPTIONS}
+                        color={value}
+                        onChange={(value) => onChange(value.hex)}
                       />
-                    </Popover.Panel>
-                  </Transition>
-                </>
-              )}
-            </Popover>
+                    )}
+                  />
+                </Popover.Panel>
+              </Popover>
+            </div>
           </div>
           <div className="flex flex-1 flex-col justify-center">
             <Controller

@@ -23,25 +23,27 @@ export function MobileLayoutSelection({
   isMobile?: boolean;
 }) {
   const { t } = useTranslation();
+  const selectedLayout = ISSUE_LAYOUTS.find((layout) => layout.key === activeLayout);
   return (
     <CustomMenu
       maxHeight={"md"}
       className="flex flex-grow justify-center text-13 text-secondary"
       placement="bottom-start"
-      customButton={
-        <Button variant="secondary" className="relative px-2">
+      render={
+        <Button variant="secondary" className="relative gap-1.5 px-2" aria-label="Work item layout">
           {activeLayout && (
             <IssueLayoutIcon layout={activeLayout} size={14} strokeWidth={2} className={`h-3.5 w-3.5`} />
           )}
+          <span>{selectedLayout ? t(selectedLayout.i18n_label) : "Layout"}</span>
           <ChevronDownIcon className="my-auto size-3 text-secondary" strokeWidth={2} />
         </Button>
       }
       customButtonClassName="flex flex-grow justify-center text-secondary text-13"
       closeOnSelect
     >
-      {ISSUE_LAYOUTS.filter((l) => layouts.includes(l.key)).map((layout, index) => (
+      {ISSUE_LAYOUTS.filter((l) => layouts.includes(l.key)).map((layout) => (
         <CustomMenu.MenuItem
-          key={index}
+          key={layout.key}
           onClick={() => {
             onChange(layout.key);
           }}

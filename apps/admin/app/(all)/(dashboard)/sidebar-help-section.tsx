@@ -8,7 +8,6 @@ import { useState, useRef } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { HelpCircle, MessageSquare, MoveLeft } from "lucide-react";
-import { Transition } from "@headlessui/react";
 import { WEB_BASE_URL } from "@plane/constants";
 // plane internal packages
 import { GithubIcon, NewTabIcon, PageIcon } from "@plane/propel/icons";
@@ -93,15 +92,7 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
       </div>
 
       <div className="relative">
-        <Transition
-          show={isNeedHelpOpen}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
+        {isNeedHelpOpen && (
           <div
             className={`absolute bottom-2 z-[15] min-w-[10rem] ${
               isSidebarCollapsed ? "left-full" : "-left-[75px]"
@@ -138,7 +129,7 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
             </div>
             <div className="px-2 pt-2 pb-1 text-10">Version: v{instance?.current_version}</div>
           </div>
-        </Transition>
+        )}
       </div>
     </div>
   );

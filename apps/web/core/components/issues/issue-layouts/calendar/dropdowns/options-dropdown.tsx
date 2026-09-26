@@ -7,9 +7,8 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { usePopper } from "react-popper";
 import { MoreVerticalIcon } from "lucide-react";
-import { Popover, Transition } from "@headlessui/react";
+import { Popover } from "@plane/propel/popover";
 // hooks
 // ui
 // icons
@@ -39,6 +38,9 @@ interface ICalendarHeader {
 }
 
 export const CalendarOptionsDropdown = observer(function CalendarOptionsDropdown(props: ICalendarHeader) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const closePopover = () => setPopoverOpen(false);
+
   const { issuesFilterStore, updateFilters } = props;
 
   const { t } = useTranslation();
@@ -48,25 +50,10 @@ export const CalendarOptionsDropdown = observer(function CalendarOptionsDropdown
   const issueCalendarView = useCalendarView();
   const [windowWidth] = useSize();
 
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-
-  const { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: "auto",
-    modifiers: [
-      {
-        name: "preventOverflow",
-        options: {
-          padding: 12,
-        },
-      },
-    ],
-  });
-
   const calendarLayout = issuesFilterStore.issueFilters?.displayFilters?.calendar?.layout ?? "month";
   const showWeekends = issuesFilterStore.issueFilters?.displayFilters?.calendar?.show_weekends ?? false;
 
-  const handleLayoutChange = (layout: TCalendarLayouts, closePopover: any) => {
+  const handleLayoutChange = (layout: TCalendarLayouts) => {
     if (!updateFilters) return;
 
     updateFilters(projectId?.toString(), EIssueFilterType.DISPLAY_FILTERS, {
@@ -98,19 +85,19 @@ export const CalendarOptionsDropdown = observer(function CalendarOptionsDropdown
   };
 
   return (
-    <Popover className="relative flex items-center">
-      {({ open, close: closePopover }) => (
-        <>
-          <Popover.Button as={React.Fragment}>
-            <button type="button" ref={setReferenceElement}>
+    <div className="relative flex items-center">
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <Popover.Button
+          render={
+            <button type="button">
               <div
                 className={`hidden items-center gap-1.5 rounded-sm bg-layer-1 px-2.5 py-1 text-11 outline-none hover:bg-layer-1 md:flex ${
-                  open ? "text-primary" : "text-secondary"
+                  popoverOpen ? "text-primary" : "text-secondary"
                 }`}
               >
                 <div className="font-medium">{t("common.options")}</div>
                 <div
-                  className={`flex h-3.5 w-3.5 items-center justify-center transition-all ${open ? "" : "rotate-180"}`}
+                  className={`flex h-3.5 w-3.5 items-center justify-center transition-all ${popoverOpen ? "" : "rotate-180"}`}
                 >
                   <ChevronUpIcon width={12} strokeWidth={2} />
                 </div>
@@ -119,54 +106,37 @@ export const CalendarOptionsDropdown = observer(function CalendarOptionsDropdown
                 <MoreVerticalIcon className="h-4 text-secondary" strokeWidth={2} />
               </div>
             </button>
-          </Popover.Button>
-          <Transition
-            as={React.Fragment}
-            enter="transition ease-out duration-200"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-150"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
-          >
-            <Popover.Panel className="fixed z-50">
-              <div
-                ref={setPopperElement}
-                style={styles.popper}
-                {...attributes.popper}
-                className="absolute right-0 z-10 mt-1 min-w-[12rem] overflow-hidden rounded-sm border border-subtle bg-surface-1 p-1 shadow-raised-200"
-              >
-                <div>
-                  {Object.entries(CALENDAR_LAYOUTS).map(([layout, layoutDetails]) => (
-                    <button
-                      key={layout}
-                      type="button"
-                      className="flex w-full items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-left text-11 hover:bg-layer-1"
-                      onClick={() => handleLayoutChange(layoutDetails.key, closePopover)}
-                    >
-                      {layoutDetails.title}
-                      {calendarLayout === layout && <CheckIcon width={12} height={12} strokeWidth={2} />}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-left text-11 hover:bg-layer-1"
-                    onClick={handleToggleWeekends}
-                  >
-                    {t("common.actions.show_weekends")}
-                    <ToggleSwitch
-                      value={showWeekends}
-                      onChange={() => {
-                        if (windowWidth <= 768) closePopover(); // close the popover on mobile
-                      }}
-                    />
-                  </button>
-                </div>
-              </div>
-            </Popover.Panel>
-          </Transition>
-        </>
-      )}
-    </Popover>
+          }
+        />
+        <Popover.Panel className="z-50" positionerClassName="z-50" placement="bottom-end">
+          <div className="min-w-[12rem] overflow-hidden rounded-sm border border-subtle bg-surface-1 p-1 shadow-raised-200">
+            <div>
+              {Object.entries(CALENDAR_LAYOUTS).map(([layout, layoutDetails]) => (
+                <button
+                  key={layout}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-left text-11 hover:bg-layer-1"
+                  onClick={() => handleLayoutChange(layoutDetails.key)}
+                >
+                  {layoutDetails.title}
+                  {calendarLayout === layout && <CheckIcon width={12} height={12} strokeWidth={2} />}
+                </button>
+              ))}
+              <label className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-left text-11 hover:bg-layer-1">
+                {t("common.actions.show_weekends")}
+                <ToggleSwitch
+                  value={showWeekends}
+                  label={t("common.actions.show_weekends")}
+                  onChange={() => {
+                    handleToggleWeekends();
+                    if (windowWidth <= 768) closePopover(); // close the popover on mobile
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        </Popover.Panel>
+      </Popover>
+    </div>
   );
 });

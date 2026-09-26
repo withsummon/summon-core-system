@@ -4,12 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { useState, Fragment, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { TwitterPicker } from "react-color";
 import { Controller, useForm } from "react-hook-form";
-import { usePopper } from "react-popper";
 import { Loader } from "lucide-react";
-import { Popover } from "@headlessui/react";
+import { Popover } from "@plane/propel/popover";
 import { PlusIcon, CloseIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
 // hooks
@@ -33,12 +32,13 @@ const defaultValues: Partial<IIssueLabel> = {
 };
 
 export function LabelCreate(props: ILabelCreate) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
   const { workspaceSlug, projectId, issueId, values, labelOperations, disabled = false } = props;
   // state
   const [isCreateToggle, setIsCreateToggle] = useState(false);
   const handleIsCreateToggle = () => setIsCreateToggle(!isCreateToggle);
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
+
   // react hook form
   const {
     handleSubmit,
@@ -48,18 +48,6 @@ export function LabelCreate(props: ILabelCreate) {
     setFocus,
   } = useForm<Partial<IIssueLabel>>({
     defaultValues,
-  });
-
-  const { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: "bottom-start",
-    modifiers: [
-      {
-        name: "preventOverflow",
-        options: {
-          padding: 12,
-        },
-      },
-    ],
   });
 
   useEffect(() => {
@@ -98,32 +86,31 @@ export function LabelCreate(props: ILabelCreate) {
               name="color"
               control={control}
               render={({ field: { value, onChange } }) => (
-                <Popover>
-                  <>
-                    <Popover.Button as={Fragment}>
-                      <button type="button" ref={setReferenceElement} className="grid place-items-center outline-none">
-                        {value && value?.trim() !== "" && (
-                          <span
-                            className="h-5 w-5 rounded-sm"
-                            style={{
-                              backgroundColor: value ?? "black",
-                            }}
-                          />
-                        )}
-                      </button>
-                    </Popover.Button>
-                    <Popover.Panel className="fixed z-10">
-                      <div
-                        className="max-w-xs p-2 sm:px-0"
-                        ref={setPopperElement}
-                        style={styles.popper}
-                        {...attributes.popper}
-                      >
-                        <TwitterPicker triangle={"hide"} color={value} onChange={(value) => onChange(value.hex)} />
-                      </div>
-                    </Popover.Panel>
-                  </>
-                </Popover>
+                <div>
+                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <>
+                      <Popover.Button
+                        render={
+                          <button type="button" className="grid place-items-center outline-none">
+                            {value && value?.trim() !== "" && (
+                              <span
+                                className="h-5 w-5 rounded-sm"
+                                style={{
+                                  backgroundColor: value ?? "black",
+                                }}
+                              />
+                            )}
+                          </button>
+                        }
+                      ></Popover.Button>
+                      <Popover.Panel className="z-10" positionerClassName="z-50" placement="bottom-start">
+                        <div className="max-w-xs p-2 sm:px-0">
+                          <TwitterPicker triangle={"hide"} color={value} onChange={(value) => onChange(value.hex)} />
+                        </div>
+                      </Popover.Panel>
+                    </>
+                  </Popover>
+                </div>
               )}
             />
           </div>

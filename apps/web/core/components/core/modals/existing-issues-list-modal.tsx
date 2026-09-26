@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Rocket } from "lucide-react";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // types
@@ -137,9 +137,10 @@ export function ExistingIssuesListModal(props: Props) {
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <Combobox
-        as="div"
-        onChange={(val: ISearchIssueResponse) => {
+      <Combobox.Root
+        open
+        filter={null}
+        onValueChange={(val: ISearchIssueResponse) => {
           if (selectedIssues.some((i) => i.id === val.id))
             setSelectedIssues((prevData) => prevData.filter((i) => i.id !== val.id));
           else setSelectedIssues((prevData) => [...prevData, val]);
@@ -210,7 +211,7 @@ export function ExistingIssuesListModal(props: Props) {
           )}
         </div>
 
-        <Combobox.Options static className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto">
+        <Combobox.List className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto">
           {/* TODO: Translate here */}
           {searchTerm !== "" && (
             <h5 className="mx-2 text-13 text-secondary">
@@ -246,12 +247,10 @@ export function ExistingIssuesListModal(props: Props) {
                     const selected = selectedIssues.some((i) => i.id === issue.id);
 
                     return (
-                      <Combobox.Option
+                      <Combobox.Item
                         key={issue.id}
-                        as="label"
-                        htmlFor={`issue-${issue.id}`}
                         value={issue}
-                        className={({ active }) =>
+                        className={({ highlighted: active }) =>
                           `group my-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-secondary select-none ${
                             active ? "bg-layer-1 text-primary" : ""
                           } ${selected ? "text-primary" : ""}`
@@ -292,15 +291,15 @@ export function ExistingIssuesListModal(props: Props) {
                         >
                           <Rocket className="h-4 w-4" />
                         </a>
-                      </Combobox.Option>
+                      </Combobox.Item>
                     );
                   })}
                 </ul>
               )}
             </>
           )}
-        </Combobox.Options>
-      </Combobox>
+        </Combobox.List>
+      </Combobox.Root>
       <div className="flex items-center justify-between p-3">
         <Button
           variant="link"

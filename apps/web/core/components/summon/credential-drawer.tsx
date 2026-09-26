@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -153,7 +154,7 @@ export function CredentialDrawer(props: {
               {credential.provider} · {credential.account_identifier}
             </p>
           </div>
-          <Button variant="neutral-primary" size="sm" onClick={close}>
+          <Button variant="secondary" size="lg" onClick={close}>
             Close
           </Button>
         </div>
@@ -168,7 +169,7 @@ export function CredentialDrawer(props: {
               autoComplete="current-password"
             />
           </SummonField>
-          <Button onClick={reveal} loading={loading} disabled={loading || !password}>
+          <Button size="xl" onClick={reveal} loading={loading} disabled={loading || !password}>
             Reveal once
           </Button>
           <output className="font-mono text-sm min-h-10 rounded bg-layer-2 p-3 break-all text-primary">
@@ -185,8 +186,8 @@ export function CredentialDrawer(props: {
               autoComplete="new-password"
             />
           </SummonField>
-          <Button
-            variant="neutral-primary"
+          <Button size="xl"
+            variant="secondary"
             onClick={rotate}
             loading={loading}
             disabled={loading || !password || !newSecret}
@@ -210,7 +211,7 @@ export function CredentialDrawer(props: {
               ]}
             />
           </SummonField>
-          <Button variant="neutral-primary" onClick={grant} loading={loading} disabled={loading || !member}>
+          <Button size="xl" variant="secondary" onClick={grant} loading={loading} disabled={loading || !member}>
             Grant
           </Button>
           <SummonRequestState loading={accessLoading} error={accessError} onRetry={() => void mutate()} />
@@ -220,7 +221,7 @@ export function CredentialDrawer(props: {
                 <span className="truncate text-secondary">
                   {item.member} · {item.permission}
                 </span>
-                <Button variant="link-neutral" size="sm" disabled={loading} onClick={() => void revokeGrant(item.id)}>
+                <Button variant="ghost" size="lg" disabled={loading} onClick={() => void revokeGrant(item.id)}>
                   Revoke
                 </Button>
               </div>
@@ -245,9 +246,9 @@ export function CredentialDrawer(props: {
           <p className="text-xs mt-1 text-secondary">
             Current password confirmation is required and the action is audited.
           </p>
-          <Button
+          <Button size="xl"
             className="mt-3"
-            variant="danger"
+            variant="error-fill"
             onClick={revokeCredential}
             loading={loading}
             disabled={loading || !password}

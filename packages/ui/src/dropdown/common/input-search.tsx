@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 import React, { useEffect, useRef } from "react";
 import { SearchIcon } from "@plane/propel/icons";
 // helpers
@@ -50,7 +50,6 @@ export function InputSearch(props: IInputSearch) {
     >
       {inputIcon ? <>{inputIcon}</> : <SearchIcon className="h-4 w-4 text-tertiary" aria-hidden="true" />}
       <Combobox.Input
-        as="input"
         ref={inputRef}
         className={cn(
           "w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none",

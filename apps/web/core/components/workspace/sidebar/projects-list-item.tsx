@@ -15,7 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 import { Settings, Share2, LogOut, MoreHorizontal } from "lucide-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
@@ -279,7 +279,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     <>
       <PublishProjectModal isOpen={publishModalOpen} projectId={projectId} onClose={() => setPublishModal(false)} />
       <LeaveProjectModal project={project} isOpen={leaveProjectModalOpen} onClose={() => setLeaveProjectModal(false)} />
-      <Disclosure key={`${project.id}_${URLProjectId}`} defaultOpen={isProjectListOpen} as="div">
+      <CollapsiblePrimitive.Root
+        key={`${project.id}_${URLProjectId}`}
+        open={isProjectListOpen}
+        onOpenChange={setIsProjectListOpen}
+      >
         <div
           id={`sidebar-${projectId}-${projectListType}`}
           className={cn("relative", {
@@ -323,32 +327,31 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </Tooltip>
             )}
             <>
-              <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
-                {isAccordionMode ? (
-                  <Disclosure.Button
-                    as="button"
-                    type="button"
-                    className={cn("flex w-full flex-grow items-center gap-1.5 text-left select-none", {})}
-                    aria-label={
-                      isProjectListOpen
-                        ? t("aria_labels.projects_sidebar.close_project_menu")
-                        : t("aria_labels.projects_sidebar.open_project_menu")
-                    }
-                  >
-                    <div className="grid size-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={16} />
-                    </div>
-                    <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
-                  </Disclosure.Button>
-                ) : (
+              {isAccordionMode ? (
+                <CollapsiblePrimitive.Trigger
+                  type="button"
+                  className={cn("flex w-full flex-grow items-center gap-1.5 text-left select-none", {})}
+                  aria-label={
+                    isProjectListOpen
+                      ? t("aria_labels.projects_sidebar.close_project_menu")
+                      : t("aria_labels.projects_sidebar.open_project_menu")
+                  }
+                >
+                  <div className="grid size-4 flex-shrink-0 place-items-center">
+                    <Logo logo={project.logo_props} size={16} />
+                  </div>
+                  <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                </CollapsiblePrimitive.Trigger>
+              ) : (
+                <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
                   <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
                     <div className="grid size-4 flex-shrink-0 place-items-center">
                       <Logo logo={project.logo_props} size={16} />
                     </div>
                     <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
                   </div>
-                )}
-              </ControlLink>
+                </ControlLink>
+              )}
               <div className="flex items-center gap-1">
                 <CustomMenu
                   customButton={<MoreHorizontal className="size-4 text-placeholder" aria-hidden="true" />}
@@ -456,27 +459,19 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </div>
             </>
           </div>
-          {isAccordionMode && (
-            <Transition
-              show={isProjectListOpen}
-              enter="transition duration-100 ease-out"
-              enterFrom="transform scale-95 opacity-0"
-              enterTo="transform scale-100 opacity-100"
-              leave="transition duration-75 ease-out"
-              leaveFrom="transform scale-100 opacity-100"
-              leaveTo="transform scale-95 opacity-0"
-            >
+          {isAccordionMode && isProjectListOpen && (
+            <>
               {isProjectListOpen && (
-                <Disclosure.Panel as="div" className="relative mt-1 mb-1.5 flex flex-col gap-0.5 pl-6">
+                <CollapsiblePrimitive.Panel className="relative mt-1 mb-1.5 flex flex-col gap-0.5 pl-6">
                   <div className="absolute top-0 bottom-1 left-[15px] w-[1px] bg-layer-3" />
                   <ProjectNavigation workspaceSlug={workspaceSlug.toString()} projectId={projectId.toString()} />
-                </Disclosure.Panel>
+                </CollapsiblePrimitive.Panel>
               )}
-            </Transition>
+            </>
           )}
           {isLastChild && <DropIndicator isVisible={instruction === "DRAG_BELOW"} />}
         </div>
-      </Disclosure>
+      </CollapsiblePrimitive.Root>
     </>
   );
 });

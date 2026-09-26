@@ -25,7 +25,8 @@ import {
   Target,
   X,
 } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -430,7 +431,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                 <Detail label="Head Office" value={data.head_office || "Not set"} />
                 <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
                 <div className="sm:col-span-2">
-                  <Button type="button" onClick={() => setEditing(true)}>
+                  <Button size="xl" type="button" onClick={() => setEditing(true)}>
                     <Pencil className="mr-2 size-3.5" /> Edit Client
                   </Button>
                 </div>
@@ -565,10 +566,10 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             </label>
             {formError ? <p className="text-xs text-danger-primary sm:col-span-2">{formError}</p> : null}
             <div className="flex justify-end gap-2 sm:col-span-2">
-              <Button type="button" variant="neutral-primary" onClick={() => setEditing(false)}>
+              <Button size="xl" type="button" variant="secondary" onClick={() => setEditing(false)}>
                 Cancel
               </Button>
-              <Button type="submit" loading={saving}>
+              <Button size="xl" type="submit" loading={saving}>
                 Save changes
               </Button>
             </div>

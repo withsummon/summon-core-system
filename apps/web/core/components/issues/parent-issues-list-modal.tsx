@@ -8,8 +8,8 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 // icons
 import { Rocket } from "lucide-react";
-// headless ui
-import { Combobox } from "@headlessui/react";
+
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { SearchIcon } from "@plane/propel/icons";
@@ -91,9 +91,11 @@ export function ParentIssuesListModal({
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <Combobox
+      <Combobox.Root
+        open
+        filter={null}
         value={value}
-        onChange={(val) => {
+        onValueChange={(val) => {
           onChange(val);
           handleClose();
         }}
@@ -108,11 +110,10 @@ export function ParentIssuesListModal({
             placeholder={t("common.search.placeholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            displayValue={() => ""}
             tabIndex={baseTabIndex}
           />
         </div>
-        <Combobox.Options static className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto">
+        <Combobox.List className="vertical-scrollbar scrollbar-md max-h-80 scroll-py-2 overflow-y-auto">
           {searchTerm !== "" && (
             <h5 className="mx-2 text-13 text-secondary">
               Search results for{" "}
@@ -144,10 +145,10 @@ export function ParentIssuesListModal({
               ) : (
                 <ul className={`text-13 ${issues.length > 0 ? "p-2" : ""}`}>
                   {issues.map((issue) => (
-                    <Combobox.Option
+                    <Combobox.Item
                       key={issue.id}
                       value={issue}
-                      className={({ active, selected }) =>
+                      className={({ highlighted: active, selected }) =>
                         `group my-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-secondary select-none ${
                           active ? "bg-layer-1 text-primary" : ""
                         } ${selected ? "text-primary" : ""}`
@@ -187,14 +188,14 @@ export function ParentIssuesListModal({
                       >
                         <Rocket className="h-4 w-4" />
                       </a>
-                    </Combobox.Option>
+                    </Combobox.Item>
                   ))}
                 </ul>
               )}
             </>
           )}
-        </Combobox.Options>
-      </Combobox>
+        </Combobox.List>
+      </Combobox.Root>
     </ModalCore>
   );
 }

@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Tab } from "@headlessui/react";
-import React, { Fragment, useEffect, useState } from "react";
+import { Tabs as Primitive } from "@plane/propel/tabs";
+import React, { useEffect, useState } from "react";
 // helpers
 import { useLocalStorage } from "@plane/hooks";
 import { cn } from "../utils";
@@ -61,18 +61,17 @@ export function Tabs(props: TTabsProps) {
     }
   }, [selectedTab, setValue, storeInLocalStorage, storageKey]);
 
-  const currentTabIndex = (tabKey: string): number => tabs.findIndex((tab) => tab.key === tabKey);
-
   const handleTabChange = (key: string) => {
     setSelectedTab(key);
   };
 
   return (
     <div className="flex h-full w-full flex-col">
-      <Tab.Group defaultIndex={currentTabIndex(selectedTab)}>
+      <Primitive value={selectedTab} onValueChange={(value) => handleTabChange(String(value))}>
         <div className={cn("flex h-full w-full flex-col gap-2", containerClassName)}>
           <div className={cn("flex w-full items-center gap-4", tabListContainerClassName)}>
             <TabList
+              autoWrap={false}
               tabs={tabs}
               tabListClassName={tabListClassName}
               tabClassName={tabClassName}
@@ -81,15 +80,19 @@ export function Tabs(props: TTabsProps) {
             />
             {actions && <div className="flex-grow">{actions}</div>}
           </div>
-          <Tab.Panels as={Fragment}>
+          <>
             {tabs.map((tab) => (
-              <Tab.Panel key={tab.key} as="div" className={cn("relative outline-none", tabPanelClassName)}>
+              <Primitive.Content
+                key={tab.key}
+                value={tab.key}
+                className={cn("relative outline-none", tabPanelClassName)}
+              >
                 {tab.content}
-              </Tab.Panel>
+              </Primitive.Content>
             ))}
-          </Tab.Panels>
+          </>
         </div>
-      </Tab.Group>
+      </Primitive>
     </div>
   );
 }

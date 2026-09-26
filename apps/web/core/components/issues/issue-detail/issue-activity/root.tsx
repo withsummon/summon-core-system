@@ -81,7 +81,6 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
         workspaceSlug={workspaceSlug}
         entityId={issueId}
         activityOperations={activityOperations}
-        showToolbarInitially
         projectId={projectId}
       />
     ),
@@ -93,7 +92,7 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
     <div className="space-y-4">
       {/* header */}
       <div className="flex items-center justify-between">
-        <div className="text-h5-medium text-primary">{t("common.activity")}</div>
+        <h2 className="text-sm font-semibold text-primary">{t("common.activity")}</h2>
         <div className="flex items-center gap-2">
           <ActivitySortRoot sortOrder={sortOrder || E_SORT_ORDER.ASC} toggleSort={toggleSortOrder} />
           <ActivityFilterRoot

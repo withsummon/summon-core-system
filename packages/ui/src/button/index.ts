@@ -5,5 +5,6 @@
  */
 
 export * from "./button";
-export * from "./helper";
+export { getButtonStyling } from "@plane/propel/button";
+export type { TButtonVariant, TButtonSize } from "@plane/propel/button";
 export * from "./toggle-switch";

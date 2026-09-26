@@ -5,6 +5,7 @@
  */
 
 import { memo, useMemo } from "react";
+import { cn } from "../utils/classname";
 import { Popover as BasePopover } from "@base-ui-components/react/popover";
 import type { TPlacement, TSide, TAlign } from "../utils/placement";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
@@ -14,8 +15,10 @@ export interface PopoverContentProps extends React.ComponentProps<typeof BasePop
   align?: TAlign;
   sideOffset?: BasePopover.Positioner.Props["sideOffset"];
   side?: TSide;
+  collisionPadding?: BasePopover.Positioner.Props["collisionPadding"];
   containerRef?: React.RefObject<HTMLElement>;
   positionerClassName?: string;
+  renderInPortal?: boolean;
 }
 
 // PopoverContent component
@@ -27,7 +30,9 @@ const PopoverContent = memo(function PopoverContent({
   align = "center",
   sideOffset = 8,
   containerRef,
+  collisionPadding,
   positionerClassName,
+  renderInPortal = true,
   ...props
 }: PopoverContentProps) {
   // side and align calculations
@@ -39,15 +44,28 @@ const PopoverContent = memo(function PopoverContent({
     return { finalSide: side, finalAlign: align };
   }, [placement, side, align]);
 
-  return (
-    <PopoverPortal container={containerRef?.current}>
-      <PopoverPositioner side={finalSide} sideOffset={sideOffset} align={finalAlign} className={positionerClassName}>
-        <BasePopover.Popup data-slot="popover-content" className={className} {...props}>
-          {children}
-        </BasePopover.Popup>
-      </PopoverPositioner>
-    </PopoverPortal>
+  const popup = (
+    <PopoverPositioner
+      collisionPadding={collisionPadding}
+      side={finalSide}
+      sideOffset={sideOffset}
+      align={finalAlign}
+      className={positionerClassName}
+    >
+      <BasePopover.Popup
+        data-slot="popover-content"
+        className={cn(
+          "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </BasePopover.Popup>
+    </PopoverPositioner>
   );
+
+  return renderInPortal ? <PopoverPortal container={containerRef?.current}>{popup}</PopoverPortal> : popup;
 });
 
 // wrapper components

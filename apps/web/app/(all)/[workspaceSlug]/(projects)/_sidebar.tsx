@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { useParams, usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ import { useLocalStorage } from "@plane/hooks";
 // components
 import { ResizableSidebar } from "@/components/sidebar/resizable-sidebar";
 // hooks
+import useSize from "@/hooks/use-window-size";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 // local imports
 import { ExtendedAppSidebar } from "./extended-sidebar";
@@ -34,6 +35,14 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
   // routes
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const [viewportWidth] = useSize();
+  const isMobile = viewportWidth < 768;
+  useEffect(() => {
+    if (isMobile) {
+      toggleSidebar(true);
+      toggleSidebarPeek(false);
+    }
+  }, [isMobile, pathname, toggleSidebar, toggleSidebarPeek]);
   // derived values
   const isAnyExtendedSidebarOpen = isExtendedSidebarOpened;
 
@@ -54,7 +63,6 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
         defaultCollapsed={sidebarCollapsed}
         peekDuration={1500}
         onWidthChange={handleWidthChange}
-        onCollapsedChange={toggleSidebar}
         isCollapsed={sidebarCollapsed}
         toggleCollapsed={toggleSidebar}
         togglePeek={toggleSidebarPeek}

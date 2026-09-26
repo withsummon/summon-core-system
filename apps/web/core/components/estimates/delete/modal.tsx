@@ -59,7 +59,14 @@ export const DeleteEstimateModal = observer(function DeleteEstimateModal(props: 
   };
 
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXL}>
+    <ModalCore
+      isOpen={isOpen}
+      handleClose={() => {
+        if (!buttonLoader) handleClose();
+      }}
+      position={EModalPosition.TOP}
+      width={EModalWidth.XXL}
+    >
       <div className="relative space-y-6 py-5">
         {/* heading */}
         <div className="relative flex items-center justify-between gap-2 px-5">

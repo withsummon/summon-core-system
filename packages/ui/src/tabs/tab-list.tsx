@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Tab } from "@headlessui/react";
+import { Tabs as Primitive } from "@plane/propel/tabs";
 import type { LucideProps } from "lucide-react";
 import type { FC } from "react";
 import React from "react";
@@ -31,45 +31,42 @@ type TTabListProps = {
 
 export function TabList({ autoWrap = true, ...props }: TTabListProps) {
   return autoWrap ? (
-    <Tab.Group>
+    <Primitive
+      value={props.selectedTab}
+      defaultValue={props.tabs[0]?.key}
+      onValueChange={(value) => props.onTabChange?.(String(value))}
+    >
       <TabListInner {...props} />
-    </Tab.Group>
+    </Primitive>
   ) : (
     <TabListInner {...props} />
   );
 }
 
-function TabListInner({ tabs, tabListClassName, tabClassName, size = "md", selectedTab, onTabChange }: TTabListProps) {
+function TabListInner({ tabs, tabListClassName, tabClassName, size = "md" }: TTabListProps) {
   return (
-    <Tab.List
-      as="div"
+    <Primitive.List
       className={cn(
         "flex w-full min-w-fit items-center justify-between gap-1.5 rounded-md bg-layer-1 p-0.5 text-13",
         tabListClassName
       )}
     >
       {tabs.map((tab) => (
-        <Tab
-          className={({ selected }) =>
-            cn(
-              "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-sm p-1 font-medium text-primary transition-all outline-none focus:outline-none",
-              (selectedTab ? selectedTab === tab.key : selected)
-                ? "shadow-sm bg-layer-transparent-active text-primary"
-                : tab.disabled
-                  ? "cursor-not-allowed text-placeholder"
-                  : "text-placeholder hover:bg-layer-transparent-hover hover:text-tertiary",
-              {
-                "text-11": size === "sm",
-                "text-13": size === "md",
-                "text-14": size === "lg",
-              },
-              tabClassName
-            )
-          }
+        <Primitive.Trigger
+          value={tab.key}
+          className={cn(
+            "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-sm p-1 font-medium text-primary transition-colors duration-150 motion-reduce:transition-none",
+            "data-[selected]:shadow-sm hover:bg-layer-transparent-hover disabled:cursor-not-allowed disabled:text-placeholder data-[selected]:bg-layer-transparent-active data-[selected]:text-primary",
+            {
+              "text-11": size === "sm",
+              "text-13": size === "md",
+              "text-14": size === "lg",
+            },
+            tabClassName
+          )}
           key={tab.key}
           onClick={() => {
             if (!tab.disabled) {
-              onTabChange?.(tab.key);
               tab.onClick?.();
             }
           }}
@@ -79,8 +76,8 @@ function TabListInner({ tabs, tabListClassName, tabClassName, size = "md", selec
             <tab.icon className={cn({ "size-3": size === "sm", "size-4": size === "md", "size-5": size === "lg" })} />
           )}
           {tab.label}
-        </Tab>
+        </Primitive.Trigger>
       ))}
-    </Tab.List>
+    </Primitive.List>
   );
 }

@@ -20,7 +20,7 @@ import { orderBy } from "lodash-es";
 import { useParams } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import { Star, MoreHorizontal, GripVertical } from "lucide-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
@@ -147,146 +147,144 @@ export function FavoriteFolder(props: Props) {
     />
   ) : (
     <>
-      <Disclosure key={`${favorite.id}`} ref={elementRef} defaultOpen={false}>
-        {({ open }) => (
-          <div
-            // id={`sidebar-${projectId}-${projectListType}`}
-            className={cn("relative", {
-              "bg-layer-1 opacity-60": isDragging,
-              "border-[2px] border-accent-strong": instruction === "make-child",
-            })}
-          >
-            {/* draggable drop top indicator */}
-            <DropIndicator isVisible={instruction === "reorder-above"} />
-            <div
-              className={cn(
-                "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-1-hover",
-                {
-                  "bg-surface-2": isMenuActive,
-                }
-              )}
-            >
-              {/* draggable indicator */}
-
-              <div className="absolute left-0 hidden h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs bg-surface-2 text-secondary transition-colors group-hover:flex hover:text-primary">
-                <GripVertical className="h-3 w-3" />
-              </div>
-
-              <>
-                <Tooltip tooltipContent={`${favorite.name}`} position="right" className="ml-8" isMobile={isMobile}>
-                  <div className="flex flex-grow truncate">
-                    <Disclosure.Button
-                      as="button"
-                      type="button"
-                      className="flex w-full flex-grow items-center gap-1.5 text-left select-none"
-                    >
-                      <Tooltip
-                        isMobile={isMobile}
-                        tooltipContent={
-                          favorite.sort_order === null ? "Join the project to rearrange" : "Drag to rearrange"
-                        }
-                        position="top-end"
-                        disabled={isDragging}
-                      >
-                        <div
-                          className={cn(
-                            "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
-                            {
-                              "cursor-not-allowed opacity-60": favorite.sort_order === null,
-                              "cursor-grabbing": isDragging,
-                            }
-                          )}
-                        >
-                          <DragHandle className="bg-transparent" />
-                        </div>
-                      </Tooltip>
-                      <div className="grid size-5 flex-shrink-0 place-items-center">
-                        <FavoriteFolderIcon />
-                      </div>
-                      <p className="truncate text-13 font-medium text-secondary">{favorite.name}</p>
-                    </Disclosure.Button>
-                  </div>
-                </Tooltip>
-                <CustomMenu
-                  customButton={
-                    <span
-                      ref={actionSectionRef}
-                      className="grid place-items-center rounded-sm p-0.5 text-placeholder hover:bg-layer-1"
-                    >
-                      <MoreHorizontal className="size-3" />
-                    </span>
-                  }
-                  menuButtonOnClick={() => setIsMenuActive(!isMenuActive)}
+      <CollapsiblePrimitive.Root
+        key={`${favorite.id}`}
+        ref={elementRef}
+        defaultOpen={false}
+        render={(rootProps, { open }) => (
+          <div {...rootProps}>
+            {
+              <div
+                // id={`sidebar-${projectId}-${projectListType}`}
+                className={cn("relative", {
+                  "bg-layer-1 opacity-60": isDragging,
+                  "border-[2px] border-accent-strong": instruction === "make-child",
+                })}
+              >
+                {/* draggable drop top indicator */}
+                <DropIndicator isVisible={instruction === "reorder-above"} />
+                <div
                   className={cn(
-                    "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
+                    "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-1-hover",
                     {
-                      "pointer-events-auto opacity-100": isMenuActive,
+                      "bg-surface-2": isMenuActive,
                     }
                   )}
-                  customButtonClassName="grid place-items-center"
-                  placement="bottom-start"
-                  ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
                 >
-                  <CustomMenu.MenuItem onClick={() => handleRemoveFromFavorites(favorite)}>
-                    <span className="flex items-center justify-start gap-2">
-                      <Star className="fill-yellow-500 stroke-yellow-500 h-3.5 w-3.5" />
-                      <span>Remove from favorites</span>
-                    </span>
-                  </CustomMenu.MenuItem>
-                  <CustomMenu.MenuItem onClick={() => setFolderToRename(favorite.id)}>
-                    <div className="flex items-center justify-start gap-2">
-                      <DraftIcon className="h-3.5 w-3.5 stroke-[1.5] text-tertiary" />
-                      <span>Rename Folder</span>
-                    </div>
-                  </CustomMenu.MenuItem>
-                </CustomMenu>
-                <Disclosure.Button
-                  as="button"
-                  type="button"
-                  className={cn("hidden rounded-sm p-0.5 group-hover/project-item:inline-block hover:bg-layer-1", {
-                    "inline-block": isMenuActive,
-                  })}
-                  aria-label={t(
-                    open ? "aria_labels.projects_sidebar.close_folder" : "aria_labels.projects_sidebar.open_folder"
-                  )}
-                >
-                  <ChevronRightIcon
-                    className={cn("size-3 flex-shrink-0 text-placeholder transition-transform", {
-                      "rotate-90": open,
-                    })}
-                  />
-                </Disclosure.Button>
-              </>
-            </div>
-            {favorite.children && favorite.children.length > 0 && (
-              <Transition
-                enter="transition duration-100 ease-out"
-                enterFrom="transform scale-95 opacity-0"
-                enterTo="transform scale-100 opacity-100"
-                leave="transition duration-75 ease-out"
-                leaveFrom="transform scale-100 opacity-100"
-                leaveTo="transform scale-95 opacity-0"
-              >
-                <Disclosure.Panel as="div" className="mt-1 flex flex-col gap-0.5 px-2">
-                  {orderBy(favorite.children, "sequence", "desc").map((child, index) => (
-                    <FavoriteRoot
-                      key={child.id}
-                      workspaceSlug={workspaceSlug.toString()}
-                      favorite={child}
-                      isLastChild={index === favorite.children.length - 1}
-                      parentId={favorite.id}
-                      handleRemoveFromFavorites={handleRemoveFromFavorites}
-                      handleDrop={handleDrop}
-                    />
-                  ))}
-                </Disclosure.Panel>
-              </Transition>
-            )}
-            {/* draggable drop bottom indicator */}
-            {isLastChild && <DropIndicator isVisible={instruction === "reorder-below"} />}
+                  {/* draggable indicator */}
+
+                  <div className="absolute left-0 hidden h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs bg-surface-2 text-secondary transition-colors group-hover:flex hover:text-primary">
+                    <GripVertical className="h-3 w-3" />
+                  </div>
+
+                  <>
+                    <Tooltip tooltipContent={`${favorite.name}`} position="right" className="ml-8" isMobile={isMobile}>
+                      <div className="flex flex-grow truncate">
+                        <CollapsiblePrimitive.Trigger
+                          type="button"
+                          className="flex w-full flex-grow items-center gap-1.5 text-left select-none"
+                        >
+                          <Tooltip
+                            isMobile={isMobile}
+                            tooltipContent={
+                              favorite.sort_order === null ? "Join the project to rearrange" : "Drag to rearrange"
+                            }
+                            position="top-end"
+                            disabled={isDragging}
+                          >
+                            <div
+                              className={cn(
+                                "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
+                                {
+                                  "cursor-not-allowed opacity-60": favorite.sort_order === null,
+                                  "cursor-grabbing": isDragging,
+                                }
+                              )}
+                            >
+                              <DragHandle className="bg-transparent" />
+                            </div>
+                          </Tooltip>
+                          <div className="grid size-5 flex-shrink-0 place-items-center">
+                            <FavoriteFolderIcon />
+                          </div>
+                          <p className="truncate text-13 font-medium text-secondary">{favorite.name}</p>
+                        </CollapsiblePrimitive.Trigger>
+                      </div>
+                    </Tooltip>
+                    <CustomMenu
+                      customButton={
+                        <span
+                          ref={actionSectionRef}
+                          className="grid place-items-center rounded-sm p-0.5 text-placeholder hover:bg-layer-1"
+                        >
+                          <MoreHorizontal className="size-3" />
+                        </span>
+                      }
+                      menuButtonOnClick={() => setIsMenuActive(!isMenuActive)}
+                      className={cn(
+                        "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
+                        {
+                          "pointer-events-auto opacity-100": isMenuActive,
+                        }
+                      )}
+                      customButtonClassName="grid place-items-center"
+                      placement="bottom-start"
+                      ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
+                    >
+                      <CustomMenu.MenuItem onClick={() => handleRemoveFromFavorites(favorite)}>
+                        <span className="flex items-center justify-start gap-2">
+                          <Star className="fill-yellow-500 stroke-yellow-500 h-3.5 w-3.5" />
+                          <span>Remove from favorites</span>
+                        </span>
+                      </CustomMenu.MenuItem>
+                      <CustomMenu.MenuItem onClick={() => setFolderToRename(favorite.id)}>
+                        <div className="flex items-center justify-start gap-2">
+                          <DraftIcon className="h-3.5 w-3.5 stroke-[1.5] text-tertiary" />
+                          <span>Rename Folder</span>
+                        </div>
+                      </CustomMenu.MenuItem>
+                    </CustomMenu>
+                    <CollapsiblePrimitive.Trigger
+                      type="button"
+                      className={cn("hidden rounded-sm p-0.5 group-hover/project-item:inline-block hover:bg-layer-1", {
+                        "inline-block": isMenuActive,
+                      })}
+                      aria-label={t(
+                        open ? "aria_labels.projects_sidebar.close_folder" : "aria_labels.projects_sidebar.open_folder"
+                      )}
+                    >
+                      <ChevronRightIcon
+                        className={cn("size-3 flex-shrink-0 text-placeholder transition-transform", {
+                          "rotate-90": open,
+                        })}
+                      />
+                    </CollapsiblePrimitive.Trigger>
+                  </>
+                </div>
+                {favorite.children && favorite.children.length > 0 && (
+                  <>
+                    <CollapsiblePrimitive.Panel className="mt-1 flex flex-col gap-0.5 px-2">
+                      {orderBy(favorite.children, "sequence", "desc").map((child, index) => (
+                        <FavoriteRoot
+                          key={child.id}
+                          workspaceSlug={workspaceSlug.toString()}
+                          favorite={child}
+                          isLastChild={index === favorite.children.length - 1}
+                          parentId={favorite.id}
+                          handleRemoveFromFavorites={handleRemoveFromFavorites}
+                          handleDrop={handleDrop}
+                        />
+                      ))}
+                    </CollapsiblePrimitive.Panel>
+                  </>
+                )}
+                {/* draggable drop bottom indicator */}
+                {isLastChild && <DropIndicator isVisible={instruction === "reorder-below"} />}
+              </div>
+            }
           </div>
         )}
-      </Disclosure>
+      ></CollapsiblePrimitive.Root>
     </>
   );
 }

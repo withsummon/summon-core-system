@@ -8,7 +8,8 @@ import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { CheckCircle2, Copy, PlugZap } from "lucide-react";
-import { Button, Input } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonCard, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
@@ -112,7 +113,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                 </div>
               </fieldset>
               <div className="flex items-center gap-3 sm:col-span-2">
-                <Button type="submit" loading={saving}>
+                <Button size="xl" type="submit" loading={saving}>
                   Save settings
                 </Button>
                 {saved ? (
@@ -171,7 +172,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                 >
                   Manage API tokens
                 </Link>
-                <Button size="sm" variant="neutral-primary" onClick={() => void reloadMCP()}>
+                <Button size="lg" variant="secondary" onClick={() => void reloadMCP()}>
                   Check status
                 </Button>
               </div>

@@ -4,16 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useTheme as useNextTheme } from "next-themes";
 import { LogOut, UserCog2, Palette } from "lucide-react";
-import { Menu, Transition } from "@headlessui/react";
+import { CustomMenu } from "@plane/ui";
+import { MenuPrimitive } from "@plane/propel/menu";
 // plane internal packages
 import { API_BASE_URL } from "@plane/constants";
 import { AuthService } from "@plane/services";
 import { Avatar } from "@plane/ui";
-import { getFileURL, cn } from "@plane/utils";
+import { getFileURL } from "@plane/utils";
 // hooks
 import { useTheme, useUser } from "@/hooks/store";
 
@@ -36,43 +37,25 @@ export const AdminSidebarDropdown = observer(function AdminSidebarDropdown() {
 
   const handleSignOut = () => signOut();
 
-  const getSidebarMenuItems = () => (
-    <Menu.Items
-      className={cn(
-        "shadow-lg absolute left-0 z-20 mt-1.5 flex w-52 flex-col divide-y divide-subtle rounded-md border border-subtle bg-surface-1 px-1 py-2 text-11 outline-none",
-        {
-          "left-4": isSidebarCollapsed,
-        }
-      )}
-    >
-      <div className="flex flex-col gap-2.5 pb-2">
-        <span className="truncate px-2 text-secondary">{currentUser?.email}</span>
-      </div>
-      <div className="py-2">
-        <Menu.Item
-          as="button"
-          type="button"
-          className="flex w-full items-center gap-2 rounded-sm px-2 py-1 hover:bg-layer-1-hover"
-          onClick={handleThemeSwitch}
+  const menuItems = (
+    <>
+      <div className="truncate border-b border-subtle px-2 py-2 text-secondary">{currentUser?.email}</div>
+      <CustomMenu.MenuItem onClick={handleThemeSwitch}>
+        <Palette className="size-4" />
+        Switch to {resolvedTheme === "dark" ? "light" : "dark"} mode
+      </CustomMenu.MenuItem>
+      <form method="POST" action={`${API_BASE_URL}/api/instances/admins/sign-out/`} onSubmit={handleSignOut}>
+        <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+        <MenuPrimitive.Item
+          nativeButton
+          render={<button type="submit" />}
+          className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover"
         >
-          <Palette className="h-4 w-4 stroke-[1.5]" />
-          Switch to {resolvedTheme === "dark" ? "light" : "dark"} mode
-        </Menu.Item>
-      </div>
-      <div className="py-2">
-        <form method="POST" action={`${API_BASE_URL}/api/instances/admins/sign-out/`} onSubmit={handleSignOut}>
-          <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
-          <Menu.Item
-            as="button"
-            type="submit"
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1 hover:bg-layer-1-hover"
-          >
-            <LogOut className="h-4 w-4 stroke-[1.5]" />
-            Sign out
-          </Menu.Item>
-        </form>
-      </div>
-    </Menu.Items>
+          <LogOut className="size-4" />
+          Sign out
+        </MenuPrimitive.Item>
+      </form>
+    </>
   );
 
   useEffect(() => {
@@ -81,70 +64,40 @@ export const AdminSidebarDropdown = observer(function AdminSidebarDropdown() {
   }, [csrfToken]);
 
   return (
-    <div className="flex max-h-header items-center gap-x-5 gap-y-2 border-b border-subtle px-4 py-2.5">
-      <div className="h-full w-full truncate">
-        <div
-          className={`flex flex-grow items-center gap-x-2 truncate rounded-sm ${
-            isSidebarCollapsed ? "justify-center" : ""
-          }`}
+    <div className="flex max-h-header items-center gap-5 border-b border-subtle px-4 py-2.5">
+      {isSidebarCollapsed ? (
+        <CustomMenu
+          ariaLabel="Admin account"
+          customButton={<UserCog2 className="size-5" />}
+          noChevron
+          optionsClassName="w-52"
+          placement="right-start"
         >
-          <Menu as="div" className="flex-shrink-0">
-            <Menu.Button
-              className={cn("grid place-items-center outline-none", {
-                "cursor-default": !isSidebarCollapsed,
-              })}
+          {menuItems}
+        </CustomMenu>
+      ) : (
+        <>
+          <UserCog2 className="size-5 shrink-0 text-primary" />
+          <h4 className="grow truncate text-body-md-medium text-primary">Instance admin</h4>
+          {currentUser && (
+            <CustomMenu
+              ariaLabel="Admin account"
+              customButton={
+                <Avatar
+                  name={currentUser.display_name}
+                  src={getFileURL(currentUser.avatar_url)}
+                  size={24}
+                  shape="square"
+                />
+              }
+              noChevron
+              optionsClassName="w-52"
+              placement="bottom-end"
             >
-              <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1">
-                <UserCog2 className="size-5 text-primary" />
-              </div>
-            </Menu.Button>
-            {isSidebarCollapsed && (
-              <Transition
-                as={Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
-              >
-                {getSidebarMenuItems()}
-              </Transition>
-            )}
-          </Menu>
-
-          {!isSidebarCollapsed && (
-            <div className="flex w-full gap-2">
-              <h4 className="grow truncate text-body-md-medium text-primary">Instance admin</h4>
-            </div>
+              {menuItems}
+            </CustomMenu>
           )}
-        </div>
-      </div>
-
-      {!isSidebarCollapsed && currentUser && (
-        <Menu as="div" className="relative flex-shrink-0">
-          <Menu.Button className="grid place-items-center outline-none">
-            <Avatar
-              name={currentUser.display_name}
-              src={getFileURL(currentUser.avatar_url)}
-              size={24}
-              shape="square"
-              className="!text-body-sm-medium"
-            />
-          </Menu.Button>
-
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            {getSidebarMenuItems()}
-          </Transition>
-        </Menu>
+        </>
       )}
     </div>
   );

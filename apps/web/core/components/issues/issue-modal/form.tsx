@@ -17,6 +17,7 @@ import type { EditorRefApi } from "@plane/editor";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
 // hooks
@@ -48,6 +49,7 @@ import { useProjectIssueProperties } from "@/hooks/use-project-issue-properties"
 
 export interface IssueFormProps {
   data?: Partial<TIssue>;
+  editorRef: React.RefObject<EditorRefApi>;
   issueTitleRef: React.MutableRefObject<HTMLInputElement | null>;
   isCreateMoreToggleEnabled: boolean;
   onAssetUpload: (assetId: string) => void;
@@ -76,6 +78,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   const {
     data,
     issueTitleRef,
+    editorRef,
     onAssetUpload,
     onChange,
     onClose,
@@ -100,7 +103,6 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   const [isMoving, setIsMoving] = useState<boolean>(false);
 
   // refs
-  const editorRef = useRef<EditorRefApi>(null);
   const submitBtnRef = useRef<HTMLButtonElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -360,7 +362,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
             className="flex w-full flex-col"
           >
             <div className="rounded-t-lg bg-surface-1 p-5">
-              <h3 className="pb-2 text-h4-medium text-secondary">{modalTitle}</h3>
+              <Dialog.Title className="pb-2 text-h4-medium text-secondary">{modalTitle}</Dialog.Title>
               <div className="flex items-center justify-between pt-2 pb-4">
                 <div className="flex items-center gap-x-1">
                   <IssueProjectSelect
@@ -415,7 +417,6 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   setGptAssistantModal={setGptAssistantModal}
                   handleGptAssistantClose={() => reset(getValues())}
                   onAssetUpload={onAssetUpload}
-                  onClose={onClose}
                 />
               </div>
             </div>
@@ -441,22 +442,17 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                 />
               </div>
               {showActionButtons && (
-                <div
-                  className="flex items-center justify-end gap-4 border-t-[0.5px] border-subtle pt-6 pb-3"
-                  tabIndex={getIndex("create_more")}
-                >
+                <div className="flex items-center justify-end gap-4 border-t-[0.5px] border-subtle pt-6 pb-3">
                   {!data?.id && (
-                    <div
-                      className="inline-flex cursor-pointer items-center gap-1.5"
-                      onClick={() => onCreateMoreToggleChange(!isCreateMoreToggleEnabled)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") onCreateMoreToggleChange(!isCreateMoreToggleEnabled);
-                      }}
-                      role="button"
-                    >
-                      <ToggleSwitch value={isCreateMoreToggleEnabled} onChange={() => {}} size="sm" />
+                    <label className="inline-flex cursor-pointer items-center gap-1.5">
+                      <ToggleSwitch
+                        value={isCreateMoreToggleEnabled}
+                        onChange={onCreateMoreToggleChange}
+                        label={t("create_more")}
+                        size="sm"
+                      />
                       <span className="text-caption-sm-regular">{t("create_more")}</span>
-                    </div>
+                    </label>
                   )}
                   <div className="flex items-center gap-2">
                     <div tabIndex={getIndex("discard_button")}>

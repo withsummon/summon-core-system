@@ -93,11 +93,11 @@ export const Select = memo(function Select({
       defaultValue={defaultValue}
       onValueChange={(next) => onValueChange?.(next as string)}
       name={name}
-      id={id}
       disabled={disabled}
       required={required}
     >
       <BaseSelect.Trigger
+        id={id}
         nativeButton
         render={<button type="button" />}
         data-slot="select-trigger"
@@ -149,11 +149,11 @@ export const MultiSelect = memo(function MultiSelect({
       defaultValue={defaultValue}
       onValueChange={(next) => onValueChange?.(next as string[])}
       name={name}
-      id={id}
       disabled={disabled}
       required={required}
     >
       <BaseSelect.Trigger
+        id={id}
         nativeButton
         render={<button type="button" />}
         data-slot="select-trigger"

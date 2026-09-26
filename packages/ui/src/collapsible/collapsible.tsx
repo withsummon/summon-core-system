@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Disclosure, Transition } from "@headlessui/react";
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
+import { Collapsible as Primitive } from "@plane/propel/collapsible";
 
 export type TCollapsibleProps = {
   title: string | React.ReactNode;
@@ -18,45 +18,22 @@ export type TCollapsibleProps = {
   defaultOpen?: boolean;
 };
 
-export function Collapsible(props: TCollapsibleProps) {
-  const { title, children, buttonRef, className, buttonClassName, isOpen, onToggle, defaultOpen } = props;
-  // state
-  const [localIsOpen, setLocalIsOpen] = useState<boolean>(isOpen || defaultOpen ? true : false);
-
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setLocalIsOpen(isOpen);
-    }
-  }, [isOpen]);
-
-  // handlers
-  const handleOnClick = useCallback(() => {
-    if (isOpen !== undefined) {
-      if (onToggle) onToggle();
-    } else {
-      setLocalIsOpen((prev) => !prev);
-    }
-  }, [isOpen, onToggle]);
-
+export function Collapsible({
+  title,
+  children,
+  buttonRef,
+  className,
+  buttonClassName,
+  isOpen,
+  onToggle,
+  defaultOpen,
+}: TCollapsibleProps) {
   return (
-    <Disclosure as="div" className={className}>
-      <Disclosure.Button ref={buttonRef} className={buttonClassName} onClick={handleOnClick}>
+    <Primitive.CollapsibleRoot className={className} isOpen={isOpen} onToggle={onToggle} defaultOpen={defaultOpen}>
+      <Primitive.CollapsibleTrigger buttonRef={buttonRef} className={buttonClassName}>
         {title}
-      </Disclosure.Button>
-      <Transition
-        show={localIsOpen}
-        enter="transition-all duration-300 ease-in-out"
-        enterFrom="grid-rows-[0fr] opacity-0"
-        enterTo="grid-rows-[1fr] opacity-100"
-        leave="transition-all duration-300 ease-in-out"
-        leaveFrom="grid-rows-[1fr] opacity-100"
-        leaveTo="grid-rows-[0fr] opacity-0"
-        className="grid overflow-hidden"
-      >
-        <Disclosure.Panel static className="min-h-0">
-          {children}
-        </Disclosure.Panel>
-      </Transition>
-    </Disclosure>
+      </Primitive.CollapsibleTrigger>
+      <Primitive.CollapsibleContent>{children}</Primitive.CollapsibleContent>
+    </Primitive.CollapsibleRoot>
   );
 }

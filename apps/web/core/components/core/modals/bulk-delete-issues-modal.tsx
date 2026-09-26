@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -158,8 +158,10 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form>
-        <Combobox
-          onChange={(val: string) => {
+        <Combobox.Root
+          open
+          filter={null}
+          onValueChange={(val: string) => {
             const selectedIssues = watch("delete_issue_ids");
             if (selectedIssues.includes(val))
               setValue(
@@ -174,7 +176,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
               className="text-opacity-40 pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-primary"
               aria-hidden="true"
             />
-            <input
+            <Combobox.Input
               type="text"
               className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none focus:ring-0 sm:text-13"
               placeholder="Search..."
@@ -182,7 +184,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
             />
           </div>
 
-          <Combobox.Options static className="max-h-80 scroll-py-2 divide-y divide-subtle-1 overflow-y-auto">
+          <Combobox.List className="max-h-80 scroll-py-2 divide-y divide-subtle-1 overflow-y-auto">
             {isSearching ? (
               <Loader className="space-y-3 p-3">
                 <Loader.Item height="40px" />
@@ -193,8 +195,8 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
             ) : (
               <>{issueList}</>
             )}
-          </Combobox.Options>
-        </Combobox>
+          </Combobox.List>
+        </Combobox.Root>
 
         {issues.length > 0 && (
           <div className="flex items-center justify-end gap-2 p-3">

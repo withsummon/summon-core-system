@@ -4,15 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Placement } from "@popperjs/core";
+import { useCallback, useMemo, useState } from "react";
+import type { TPlacement as Placement } from "@plane/propel/utils";
 import { useParams } from "next/navigation";
-import { usePopper } from "react-popper";
 import { Loader } from "lucide-react";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane imports
 import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { CheckIcon, SearchIcon, ChevronDownIcon } from "@plane/propel/icons";
 // types
@@ -24,8 +22,7 @@ import { sortBySelectedFirst } from "@plane/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";
-import { useDropdownKeyDown } from "@/hooks/use-dropdown-key-down";
-import { usePlatformOS } from "@/hooks/use-platform-os";
+import { useDropdown } from "@/hooks/use-dropdown";
 
 export interface ILabelDropdownProps {
   projectId: string | null;
@@ -78,16 +75,9 @@ export function LabelDropdown(props: ILabelDropdownProps) {
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   //refs
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  // popper-js refs
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
 
   //hooks
   const { fetchProjectLabels, getProjectLabels, createLabel } = useLabel();
-  const { isMobile } = usePlatformOS();
   const storeLabels = getProjectLabels(projectId);
   const { allowPermissions } = useUserPermissions();
 
@@ -126,18 +116,6 @@ export function LabelDropdown(props: ILabelDropdownProps) {
     [options, query, value]
   );
 
-  const { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: placement ?? "bottom-start",
-    modifiers: [
-      {
-        name: "preventOverflow",
-        options: {
-          padding: 12,
-        },
-      },
-    ],
-  });
-
   const onOpen = useCallback(() => {
     if (!storeLabels && workspaceSlug && projectId)
       fetchProjectLabels(workspaceSlug, projectId)
@@ -146,19 +124,6 @@ export function LabelDropdown(props: ILabelDropdownProps) {
           setIsLoading(false);
         });
   }, [storeLabels, workspaceSlug, projectId, fetchProjectLabels, setIsLoading]);
-
-  const toggleDropdown = useCallback(() => {
-    if (!isOpen) onOpen();
-    setIsOpen((prevIsOpen) => !prevIsOpen);
-    if (isOpen && onClose) onClose();
-  }, [onOpen, onClose, isOpen, setIsOpen]);
-
-  const handleClose = () => {
-    if (!isOpen) return;
-    setIsOpen(false);
-    setQuery("");
-    if (onClose) onClose();
-  };
 
   const handleAddLabel = async (labelName: string) => {
     if (!projectId) return;
@@ -169,41 +134,24 @@ export function LabelDropdown(props: ILabelDropdownProps) {
     setSubmitting(false);
   };
 
-  const searchInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    if (query !== "" && e.key === "Escape") {
-      setQuery("");
-      e.preventDefault();
-    }
+  const { handleOpenChange } = useDropdown({ setIsOpen, onOpen, onClose, setQuery });
 
-    if (query !== "" && e.key === "Enter" && !e.nativeEvent.isComposing && canCreateLabel) {
+  const searchInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      query !== "" &&
+      e.key === "Enter" &&
+      !e.nativeEvent.isComposing &&
+      canCreateLabel &&
+      filteredOptions?.length === 0
+    ) {
       e.preventDefault();
       await handleAddLabel(query);
     }
   };
-  const handleKeyDown = useDropdownKeyDown(toggleDropdown, handleClose);
-
-  const handleOnClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-      e.stopPropagation();
-      e.preventDefault();
-      toggleDropdown();
-    },
-    [toggleDropdown]
-  );
-
-  useEffect(() => {
-    if (isOpen && inputRef.current && !isMobile) {
-      inputRef.current.focus();
-    }
-  }, [isOpen, isMobile]);
-
-  useOutsideClickDetector(dropdownRef, handleClose);
 
   const comboButton = useMemo(
     () => (
       <button
-        ref={setReferenceElement}
         type="button"
         className={`clickable flex h-full w-full items-center justify-center gap-1 text-caption-sm-regular ${fullWidth && "hover:bg-layer-1"} ${
           disabled
@@ -212,24 +160,13 @@ export function LabelDropdown(props: ILabelDropdownProps) {
               ? "cursor-pointer"
               : "cursor-pointer hover:bg-layer-1"
         } ${buttonClassName}`}
-        onClick={handleOnClick}
         disabled={disabled}
       >
         {label}
         {!hideDropdownArrow && !disabled && <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />}
       </button>
     ),
-    [
-      buttonClassName,
-      disabled,
-      fullWidth,
-      handleOnClick,
-      hideDropdownArrow,
-      label,
-      maxRender,
-      value.length,
-      setReferenceElement,
-    ]
+    [buttonClassName, disabled, fullWidth, , hideDropdownArrow, label, maxRender, value.length]
   );
 
   const preventPropagation = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -240,43 +177,37 @@ export function LabelDropdown(props: ILabelDropdownProps) {
   return (
     <div className={`${fullHeight ? "h-full" : "h-5"}`} onClick={preventPropagation}>
       <ComboDropDown
-        as="div"
-        ref={dropdownRef}
+        open={isOpen}
         className={`h-full w-auto max-w-full flex-shrink-0 text-left ${className}`}
         value={value}
         onChange={onChange}
         disabled={disabled}
-        onKeyDown={handleKeyDown}
         button={comboButton}
-        renderByDefault={renderByDefault}
         multiple
+        placement={placement}
+        onOpenChange={handleOpenChange}
       >
         {isOpen && (
-          <Combobox.Options className="fixed z-10" static>
+          <div className="z-10">
             <div
               className={`z-10 my-1 h-auto w-48 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-caption-sm-regular whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
-              ref={setPopperElement}
-              style={styles.popper}
-              {...attributes.popper}
             >
               <div className="flex w-full items-center justify-start rounded-sm border border-subtle bg-surface-2 px-2">
                 <SearchIcon className="h-3.5 w-3.5 text-tertiary" />
                 <Combobox.Input
-                  ref={inputRef}
                   className="w-full bg-transparent px-2 py-1 text-caption-sm-regular text-secondary placeholder:text-placeholder focus:outline-none"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t("common.search.label")}
-                  displayValue={(assigned: any) => assigned?.name || ""}
                   onKeyDown={searchInputKeyDown}
                 />
               </div>
-              <div className={`mt-2 max-h-48 space-y-1 overflow-y-scroll`}>
+              <Combobox.List className={`mt-2 max-h-48 space-y-1 overflow-y-scroll`}>
                 {isLoading ? (
                   <p className="text-center text-secondary">{t("common.loading")}</p>
                 ) : filteredOptions && filteredOptions.length > 0 ? (
                   filteredOptions.map((option) => (
-                    <Combobox.Option
+                    <Combobox.Item
                       key={option.value}
                       value={option.value}
                       onKeyDown={(e) => {
@@ -285,23 +216,26 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                           e.stopPropagation();
                         }
                       }}
-                      className={({ active, selected }) =>
+                      className={({ highlighted: active, selected }) =>
                         `flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none hover:bg-layer-1 ${
                           active ? "bg-layer-1" : ""
                         } ${selected ? "text-primary" : "text-secondary"}`
                       }
-                    >
-                      {({ selected }) => (
-                        <>
-                          {option.content}
-                          {selected && (
-                            <div className="flex-shrink-0">
-                              <CheckIcon className={`h-3.5 w-3.5`} />
-                            </div>
-                          )}
-                        </>
+                      render={(itemProps, { selected }) => (
+                        <div {...itemProps}>
+                          {
+                            <>
+                              {option.content}
+                              {selected && (
+                                <div className="flex-shrink-0">
+                                  <CheckIcon className={`h-3.5 w-3.5`} />
+                                </div>
+                              )}
+                            </>
+                          }
+                        </div>
                       )}
-                    </Combobox.Option>
+                    ></Combobox.Item>
                   ))
                 ) : submitting ? (
                   <Loader className="h-3.5 w-3.5 animate-spin" />
@@ -325,9 +259,9 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                 ) : (
                   <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
                 )}
-              </div>
+              </Combobox.List>
             </div>
-          </Combobox.Options>
+          </div>
         )}
       </ComboDropDown>
     </div>

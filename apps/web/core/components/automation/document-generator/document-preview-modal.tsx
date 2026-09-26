@@ -6,6 +6,9 @@
 
 import React from "react";
 import { X, Download, Copy, Check, FileText } from "lucide-react";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { Button } from "@plane/propel/button";
+import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { TypeIcon } from "./type-icon";
 import type { IGeneratedDocument } from "./types";
@@ -19,7 +22,7 @@ interface IDocumentPreviewModalProps {
 export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ document, isOpen, onClose }) => {
   const [isCopied, setIsCopied] = React.useState(false);
 
-  if (!isOpen || !document) return null;
+  if (!document) return null;
 
   const handleCopy = () => {
     if (document.content) {
@@ -43,17 +46,14 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
-      <div
-        className="shadow-2xl relative flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Panel width={EDialogWidth.XXXXL} className="flex h-[85vh] flex-col overflow-hidden">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-6 py-4">
           <div className="flex items-center gap-3">
             <TypeIcon type={document.type} boxed size={20} />
             <div>
-              <h3 className="text-sm font-semibold text-primary">{document.title}</h3>
+              <Dialog.Title className="text-14 font-semibold text-primary">{document.title}</Dialog.Title>
               <p className="text-xs text-secondary">
                 {document.context} • {document.createdAt}
               </p>
@@ -61,29 +61,15 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="text-xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
-            >
+            <Button variant="secondary" onClick={handleCopy}>
               {isCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               <span>{isCopied ? "Copied" : "Copy"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-white transition-colors"
-            >
+            </Button>
+            <Button onClick={handleDownload}>
               <Download size={14} />
               <span>Download {document.format || "DOCX"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
-            >
-              <X size={18} />
-            </button>
+            </Button>
+            <IconButton variant="ghost" icon={X} aria-label="Close preview" onClick={onClose} />
           </div>
         </div>
 
@@ -166,7 +152,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
             <span>Summon AI Document System</span>
           </div>
         </div>
-      </div>
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 };

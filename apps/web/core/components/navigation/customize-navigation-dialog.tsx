@@ -217,7 +217,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
                     <Checkbox
                       checked={!!personalPreferences.items[item.key]?.enabled}
-                      onChange={(e) => togglePersonalItem(item.key, e.target.checked)}
+                      onCheckedChange={(checked) => togglePersonalItem(item.key, checked)}
                     />
                     <div className="flex flex-1 items-center gap-2">
                       {getSidebarNavigationItemIcon(item.key)}
@@ -248,7 +248,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                       <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
                       <Checkbox
                         checked={!!workspacePreferences.items[item.key]?.is_pinned}
-                        onChange={(e) => handleWorkspaceItemToggle(item.key, e.target.checked)}
+                        onCheckedChange={(checked) => handleWorkspaceItemToggle(item.key, checked)}
                       />
                       <div className="flex flex-1 items-center gap-2">
                         {icon}
@@ -311,7 +311,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                   <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
                     <Checkbox
                       checked={projectPreferences.showLimitedProjects}
-                      onChange={(e) => updateShowLimitedProjects(e.target.checked)}
+                      onCheckedChange={updateShowLimitedProjects}
                     />
                     <span className="text-13 text-primary">{t("show_limited_projects_on_sidebar")}</span>
                   </label>

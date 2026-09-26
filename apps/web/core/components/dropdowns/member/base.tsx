@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
@@ -63,9 +63,7 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     value,
   } = props;
   // refs
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  // popper-js refs
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
+
   // states
   const [isOpen, setIsOpen] = useState(false);
 
@@ -76,16 +74,10 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     multiple,
   };
 
-  const { handleClose, handleKeyDown, handleOnClick } = useDropdown({
-    dropdownRef,
-    isOpen,
-    onClose,
-    setIsOpen,
-  });
+  const { handleOpenChange } = useDropdown({ onClose, onOpen: onDropdownOpen, setIsOpen });
 
   const dropdownOnChange = (val: string & string[]) => {
     onChange(val);
-    if (!multiple) handleClose();
   };
 
   const getDisplayName = (value: string | string[] | null, showUserDetails: boolean, placeholder: string = "") => {
@@ -108,81 +100,76 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     }
   };
 
-  const comboButton = (
-    <>
-      {button ? (
-        <button
-          ref={setReferenceElement}
-          type="button"
-          className={cn("clickable block h-full w-full outline-none", buttonContainerClassName)}
-          onClick={handleOnClick}
-          disabled={disabled}
-          tabIndex={tabIndex}
-        >
-          {button}
-        </button>
-      ) : (
-        <button
-          ref={setReferenceElement}
-          type="button"
-          className={cn(
-            "clickable block h-full max-w-full outline-none",
-            {
-              "cursor-not-allowed text-secondary": disabled,
-              "cursor-pointer": !disabled,
-            },
-            buttonContainerClassName
-          )}
-          onClick={handleOnClick}
-          disabled={disabled}
-          tabIndex={tabIndex}
-        >
-          <DropdownButton
-            className={cn("text-11", buttonClassName)}
-            isActive={isOpen}
-            tooltipHeading={placeholder}
-            tooltipContent={
-              tooltipContent ?? `${value?.length ?? 0} ${value?.length !== 1 ? t("assignees") : t("assignee")}`
-            }
-            showTooltip={showTooltip}
-            variant={buttonVariant}
-            renderToolTipByDefault={renderByDefault}
-          >
-            {!hideIcon && <ButtonAvatars showTooltip={showTooltip} userIds={value} icon={icon} />}
-            {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
-              <span className="flex-grow truncate text-left text-body-xs-medium leading-5">
-                {getDisplayName(value, showUserDetails, placeholder)}
-              </span>
-            )}
-            {dropdownArrow && (
-              <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
-            )}
-          </DropdownButton>
-        </button>
+  const selectedMemberNames = (Array.isArray(value) ? value : value ? [value] : [])
+    .map((id) => getUserDetails(id)?.display_name)
+    .filter(Boolean)
+    .join(", ");
+  const accessibleLabel = selectedMemberNames ? `${placeholder}: ${selectedMemberNames}` : placeholder;
+
+  const comboButton = button ? (
+    <button
+      aria-label={accessibleLabel}
+      type="button"
+      className={cn("clickable block h-full w-full outline-none", buttonContainerClassName)}
+      disabled={disabled}
+      tabIndex={tabIndex}
+    >
+      {button}
+    </button>
+  ) : (
+    <button
+      aria-label={accessibleLabel}
+      type="button"
+      className={cn(
+        "clickable block h-full max-w-full outline-none",
+        {
+          "cursor-not-allowed text-secondary": disabled,
+          "cursor-pointer": !disabled,
+        },
+        buttonContainerClassName
       )}
-    </>
+      disabled={disabled}
+      tabIndex={tabIndex}
+    >
+      <DropdownButton
+        className={cn("text-11", buttonClassName)}
+        isActive={isOpen}
+        tooltipHeading={placeholder}
+        tooltipContent={
+          tooltipContent ?? `${value?.length ?? 0} ${value?.length !== 1 ? t("assignees") : t("assignee")}`
+        }
+        showTooltip={showTooltip}
+        variant={buttonVariant}
+        renderToolTipByDefault={renderByDefault}
+      >
+        {!hideIcon && <ButtonAvatars showTooltip={showTooltip} userIds={value} icon={icon} />}
+        {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
+          <span className="flex-grow truncate text-left text-body-xs-medium leading-5">
+            {getDisplayName(value, showUserDetails, placeholder)}
+          </span>
+        )}
+        {dropdownArrow && (
+          <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
+        )}
+      </DropdownButton>
+    </button>
   );
 
   return (
     <ComboDropDown
-      as="div"
-      ref={dropdownRef}
+      open={isOpen}
       {...comboboxProps}
       className={cn("h-full", className)}
       onChange={dropdownOnChange}
-      onKeyDown={handleKeyDown}
       button={comboButton}
-      renderByDefault={renderByDefault}
+      placement={placement}
+      onOpenChange={handleOpenChange}
     >
       {isOpen && (
         <MemberOptions
           getUserDetails={getUserDetails}
-          isOpen={isOpen}
           memberIds={memberIds}
-          onDropdownOpen={onDropdownOpen}
           optionsClassName={optionsClassName}
-          placement={placement}
-          referenceElement={referenceElement}
           value={value}
         />
       )}

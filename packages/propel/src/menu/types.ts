@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export type TPlacement = "top" | "bottom" | "left" | "right";
+import type { TPlacement } from "../utils/placement";
 
 export type TMenuProps = {
   customButtonClassName?: string;
@@ -12,10 +12,12 @@ export type TMenuProps = {
   buttonClassName?: string;
   className?: string;
   customButton?: React.ReactNode;
+  /** Compose an interactive trigger directly; customButton is noninteractive content. */
+  render?: React.ReactElement;
   disabled?: boolean;
   input?: boolean;
   label?: string | React.ReactNode;
-  maxHeight?: "sm" | "rg" | "md" | "lg";
+  maxHeight?: "sm" | "rg" | "md" | "lg" | "xl" | "2xl";
   noChevron?: boolean;
   chevronClassName?: string;
   onOpen?: () => void;
@@ -31,7 +33,7 @@ export type TMenuProps = {
   menuItemsClassName?: string;
   onMenuClose?: () => void;
   closeOnSelect?: boolean;
-  portalElement?: Element | null;
+  portalElement?: HTMLElement | null;
   openOnHover?: boolean;
   ariaLabel?: string;
   handleOpenChange?: (open: boolean) => void;
@@ -49,6 +51,6 @@ export type TSubMenuProps = {
 export type TMenuItemProps = {
   children: React.ReactNode;
   disabled?: boolean;
-  onClick?: (_args?: unknown) => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
 };

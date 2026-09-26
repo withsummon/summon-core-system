@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Tab } from "@headlessui/react";
+import { Tabs } from "@plane/propel/tabs";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { TWorkItemFilterCondition } from "@plane/shared-state";
@@ -60,7 +60,6 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
     "stat-assignees"
   );
   // derived values
-  const currentTabIndex = (tab: string): number => PROGRESS_STATS.findIndex((stat) => stat.key === tab);
   const currentDistribution = distribution as TCycleDistribution;
   const currentEstimateDistribution = distribution as TCycleEstimateDistribution;
   const selectedAssigneeIds = toFilterArray(selectedFilters?.assignees?.value || []) as string[];
@@ -121,9 +120,8 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
 
   return (
     <div>
-      <Tab.Group defaultIndex={currentTabIndex(currentTab ? currentTab : "stat-assignees")}>
-        <Tab.List
-          as="div"
+      <Tabs value={currentTab || "stat-assignees"} onValueChange={(value) => setCycleTab(String(value))}>
+        <Tabs.List
           className={cn(
             `flex w-full items-center justify-between gap-2 rounded-md p-1`,
             roundedTab ? `rounded-3xl` : `rounded-md`,
@@ -132,7 +130,8 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
           )}
         >
           {PROGRESS_STATS.map((stat) => (
-            <Tab
+            <Tabs.Trigger
+              value={stat.key}
               className={cn(
                 `w-full cursor-pointer p-1 text-primary transition-all outline-none focus:outline-none`,
                 roundedTab ? `rounded-3xl border border-subtle` : `rounded-sm`,
@@ -141,14 +140,13 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
                   : "text-placeholder hover:text-secondary"
               )}
               key={stat.key}
-              onClick={() => setCycleTab(stat.key)}
             >
               {t(stat.i18n_title)}
-            </Tab>
+            </Tabs.Trigger>
           ))}
-        </Tab.List>
-        <Tab.Panels className="py-3 text-secondary">
-          <Tab.Panel key={"stat-states"}>
+        </Tabs.List>
+        <div className="py-3 text-secondary">
+          <Tabs.Content value="stat-states">
             <StateGroupStatComponent
               distribution={distributionStateData}
               handleStateGroupFiltersUpdate={handleStateGroupFiltersUpdate}
@@ -156,25 +154,25 @@ export const CycleProgressStats = observer(function CycleProgressStats(props: TC
               selectedStateGroups={selectedStateGroups}
               totalIssuesCount={totalIssuesCount}
             />
-          </Tab.Panel>
-          <Tab.Panel key={"stat-assignees"}>
+          </Tabs.Content>
+          <Tabs.Content value="stat-assignees">
             <AssigneeStatComponent
               distribution={distributionAssigneeData}
               handleAssigneeFiltersUpdate={handleAssigneeFiltersUpdate}
               isEditable={isEditable}
               selectedAssigneeIds={selectedAssigneeIds}
             />
-          </Tab.Panel>
-          <Tab.Panel key={"stat-labels"}>
+          </Tabs.Content>
+          <Tabs.Content value="stat-labels">
             <LabelStatComponent
               distribution={distributionLabelData}
               handleLabelFiltersUpdate={handleLabelFiltersUpdate}
               isEditable={isEditable}
               selectedLabelIds={selectedLabelIds}
             />
-          </Tab.Panel>
-        </Tab.Panels>
-      </Tab.Group>
+          </Tabs.Content>
+        </div>
+      </Tabs>
     </div>
   );
 });

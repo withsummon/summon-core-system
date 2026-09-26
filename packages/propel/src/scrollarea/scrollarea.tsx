@@ -14,7 +14,8 @@ type ScrollAreaScrollType = "always" | "scroll" | "hover";
 type ScrollAreaSize = "sm" | "md" | "lg";
 
 interface ScrollAreaProps extends React.ComponentProps<typeof BaseScrollArea.Root> {
-  orientation?: ScrollAreaOrientation;
+  orientation?: ScrollAreaOrientation | "both";
+  scrollHideDelay?: number;
   scrollType?: ScrollAreaScrollType;
   size?: ScrollAreaSize;
   rootClassName?: string;
@@ -24,12 +25,16 @@ interface ScrollAreaProps extends React.ComponentProps<typeof BaseScrollArea.Roo
 function ScrollArea({
   children,
   orientation,
+  scrollHideDelay = 300,
   scrollType,
   size = "md",
   rootClassName,
   viewportClassName,
   ...props
 }: ScrollAreaProps) {
+  const scrollbarStyle: React.CSSProperties & { "--scroll-hide-delay": string } = {
+    "--scroll-hide-delay": `${scrollHideDelay}ms`,
+  };
   return (
     <BaseScrollArea.Root data-slot="scroll-area" className={cn("relative", rootClassName)} {...props}>
       <BaseScrollArea.Viewport
@@ -41,7 +46,15 @@ function ScrollArea({
       >
         {children}
       </BaseScrollArea.Viewport>
-      <ScrollBar orientation={orientation} scrollType={scrollType} size={size} />
+      <ScrollBar
+        orientation={orientation === "both" ? "vertical" : orientation}
+        scrollType={scrollType}
+        size={size}
+        style={scrollbarStyle}
+      />
+      {orientation === "both" && (
+        <ScrollBar orientation="horizontal" scrollType={scrollType} size={size} style={scrollbarStyle} />
+      )}
       <BaseScrollArea.Corner />
     </BaseScrollArea.Root>
   );
@@ -82,7 +95,7 @@ const ScrollBar = React.memo(function ScrollBar({
       data-slot="scroll-area-scrollbar"
       orientation={orientation}
       className={cn(
-        "group/track mr-1 flex justify-center rounded-sm bg-transparent opacity-0 transition-opacity delay-300",
+        "group/track mr-1 flex justify-center rounded-sm bg-transparent opacity-0 transition-opacity delay-[var(--scroll-hide-delay)]",
         orientation === "vertical" && verticalSizeStyles[size],
         orientation === "horizontal" && horizontalSizeStyles[size],
         scrollType === "always" && "opacity-100",

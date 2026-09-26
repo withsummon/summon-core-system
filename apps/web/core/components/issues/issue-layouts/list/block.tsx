@@ -172,8 +172,9 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
     <ControlLink
       id={`issue-${issue.id}`}
       href={workItemLink}
+      aria-label={`${projectIdentifier}-${issue.sequence_id}: ${issue.name}`}
       onClick={() => handleIssuePeekOverview(issue)}
-      className="w-full cursor-pointer"
+      className="w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
       disabled={!!issue?.tempId || issue?.is_draft}
     >
       <Row
@@ -220,7 +221,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
                     <MultipleSelectEntityAction
                       className={cn(
-                        "pointer-events-none opacity-0 transition-opacity group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
+                        "pointer-events-none opacity-0 transition-opacity group-focus-within/list-block:pointer-events-auto group-focus-within/list-block:opacity-100 group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
                         {
                           "pointer-events-auto opacity-100": isIssueSelected,
                         }
@@ -253,6 +254,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   <button
                     type="button"
                     className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
+                    aria-label={isExpanded ? "Collapse sub-work items" : "Expand sub-work items"}
+                    aria-expanded={isExpanded}
                     onClick={handleToggleExpand}
                   >
                     <ChevronRightIcon

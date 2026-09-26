@@ -5,7 +5,10 @@
  */
 
 import React, { useState } from "react";
-import { X, Copy, Check, Share2, Download, FileText, Tag } from "lucide-react";
+import { X, Copy, Check, Download, FileText, Tag } from "lucide-react";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { Button } from "@plane/propel/button";
+import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IKnowledgeItem } from "./types";
 
@@ -18,7 +21,7 @@ interface IKnowledgeDetailModalProps {
 export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ item, isOpen, onClose }) => {
   const [copied, setCopied] = useState(false);
 
-  if (!isOpen || !item) return null;
+  if (!item) return null;
 
   const handleCopy = () => {
     if (item.content) {
@@ -42,11 +45,8 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs duration-200">
-      <div
-        className="shadow-2xl relative flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-subtle bg-surface-1"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Panel width={EDialogWidth.XXXXL} className="flex h-[85vh] flex-col overflow-hidden">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-6 py-4">
           <div className="flex items-center gap-3">
@@ -54,7 +54,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
               <FileText size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-primary">{item.title}</h3>
+              <Dialog.Title className="text-14 font-semibold text-primary">{item.title}</Dialog.Title>
               <p className="text-xs text-secondary">
                 {item.context} • Updated {item.updatedAt}
               </p>
@@ -62,29 +62,15 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="text-xs flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-3 py-1.5 font-medium text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
-            >
+            <Button variant="secondary" onClick={handleCopy}>
               {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               <span>{copied ? "Copied" : "Copy"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="bg-blue-600 text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-white transition-colors"
-            >
+            </Button>
+            <Button onClick={handleDownload}>
               <Download size={14} />
               <span>Export</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-placeholder transition-colors hover:bg-surface-2 hover:text-primary"
-            >
-              <X size={18} />
-            </button>
+            </Button>
+            <IconButton variant="ghost" icon={X} aria-label="Close preview" onClick={onClose} />
           </div>
         </div>
 
@@ -177,7 +163,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
             <span>Summon Knowledge Engine</span>
           </div>
         </div>
-      </div>
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 };

@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { SearchIcon } from "@plane/propel/icons";
@@ -93,11 +93,10 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
             const stateColor = issue.state__color || "";
 
             return (
-              <Combobox.Option
+              <Combobox.Item
                 key={issue.id}
-                as="div"
                 value={issue.id}
-                className={({ active, selected }) =>
+                className={({ highlighted: active, selected }) =>
                   `flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-secondary select-none ${
                     active || selected ? "bg-layer-1 text-primary" : ""
                   } `
@@ -115,7 +114,7 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
                   </span>
                   <span className="text-secondary">{issue.name}</span>
                 </div>
-              </Combobox.Option>
+              </Combobox.Item>
             );
           })}
         </ul>
@@ -132,13 +131,20 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <Combobox value={value} onChange={handleSubmit}>
+      <Combobox.Root
+        open
+        filter={null}
+        value={value}
+        onValueChange={(selectedItem) => {
+          if (selectedItem !== null) handleSubmit(selectedItem);
+        }}
+      >
         <div className="relative m-1">
           <SearchIcon
             className="text-opacity-40 pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-primary"
             aria-hidden="true"
           />
-          <input
+          <Combobox.Input
             type="text"
             className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none focus:ring-0 sm:text-13"
             placeholder="Search..."
@@ -146,7 +152,7 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
           />
         </div>
 
-        <Combobox.Options static className="max-h-80 scroll-py-2 divide-y divide-subtle-1 overflow-y-auto">
+        <Combobox.List className="max-h-80 scroll-py-2 divide-y divide-subtle-1 overflow-y-auto">
           {isSearching ? (
             <Loader className="space-y-3 p-3">
               <Loader.Item height="40px" />
@@ -157,8 +163,8 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
           ) : (
             <>{issueList}</>
           )}
-        </Combobox.Options>
-      </Combobox>
+        </Combobox.List>
+      </Combobox.Root>
     </ModalCore>
   );
 }

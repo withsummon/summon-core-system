@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ArrowUpRight, FolderKanban, FolderPlus, Link2, ListChecks, RotateCw } from "lucide-react";
-import { Button } from "@plane/ui";
+import { Button } from "@plane/propel/button";
 import type { ISummonOpportunityDetail } from "@plane/types";
 import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { summonErrorMessage } from "@/components/summon/screen";
@@ -139,7 +139,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
                 ...clients.map((client) => ({ value: client.id, label: client.company_name || client.name })),
               ]}
             />
-            <Button size="sm" disabled={!selectedClient || busy} loading={busy} onClick={() => void saveClient()}>
+            <Button size="lg" disabled={!selectedClient || busy} loading={busy} onClick={() => void saveClient()}>
               Save client
             </Button>
             <Link href={`/${workspaceSlug}/summon/clients/`} className="text-11 font-medium text-accent-primary">
@@ -156,10 +156,10 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
           </p>
           {mode === "choose" ? (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={busy} onClick={() => setCreateOpen(true)}>
+              <Button size="lg" disabled={busy} onClick={() => setCreateOpen(true)}>
                 <FolderPlus className="mr-1.5 size-3.5" /> Create project
               </Button>
-              <Button size="sm" variant="neutral-primary" disabled={busy} onClick={() => setMode("link")}>
+              <Button size="lg" variant="secondary" disabled={busy} onClick={() => setMode("link")}>
                 <Link2 className="mr-1.5 size-3.5" /> Link existing project
               </Button>
             </div>
@@ -179,14 +179,14 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
                 ]}
               />
               <Button
-                size="sm"
+                size="lg"
                 disabled={!selectedProject || busy}
                 loading={busy}
                 onClick={() => void attach(selectedProject)}
               >
                 Link project
               </Button>
-              <Button size="sm" variant="neutral-primary" disabled={busy} onClick={() => setMode("choose")}>
+              <Button size="lg" variant="secondary" disabled={busy} onClick={() => setMode("choose")}>
                 Cancel
               </Button>
             </div>
@@ -201,7 +201,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
             but it isn’t linked to this opportunity yet.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" loading={busy} disabled={busy} onClick={() => void attach(unlinkedProjectId)}>
+            <Button size="lg" loading={busy} disabled={busy} onClick={() => void attach(unlinkedProjectId)}>
               <RotateCw className="mr-1.5 size-3.5" /> Retry link
             </Button>
             <Link

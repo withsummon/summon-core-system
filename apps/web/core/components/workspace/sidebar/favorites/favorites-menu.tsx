@@ -16,7 +16,7 @@ import { orderBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { FolderPlus } from "lucide-react";
-import { Disclosure, Transition } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 import { IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronRightIcon } from "@plane/propel/icons";
@@ -180,15 +180,14 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
 
   return (
     <>
-      <Disclosure as="div" defaultOpen ref={containerRef}>
+      <CollapsiblePrimitive.Root open={isFavoriteMenuOpen} onOpenChange={toggleFavoriteMenu} ref={containerRef}>
         <div
           ref={elementRef}
           className={cn(
             "group/favorites-button flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover"
           )}
         >
-          <Disclosure.Button
-            as="button"
+          <CollapsiblePrimitive.Trigger
             type="button"
             className={cn(
               "flex w-full items-center gap-1 text-left text-13 font-semibold whitespace-nowrap text-placeholder",
@@ -196,7 +195,6 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                 "bg-layer-1 opacity-60": isDragging,
               }
             )}
-            onClick={() => toggleFavoriteMenu(!isFavoriteMenuOpen)}
             aria-label={t(
               isFavoriteMenuOpen
                 ? "aria_labels.projects_sidebar.close_favorites_menu"
@@ -204,7 +202,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
             )}
           >
             <span className="text-13 font-semibold">{t("favorites")}</span>
-          </Disclosure.Button>
+          </CollapsiblePrimitive.Trigger>
           <div className="pointer-events-none flex items-center opacity-0 group-hover/favorites-button:pointer-events-auto group-hover/favorites-button:opacity-100">
             <Tooltip tooltipHeading={t("create_folder")} tooltipContent="">
               <IconButton
@@ -218,11 +216,9 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                 icon={FolderPlus}
               />
             </Tooltip>
-            <Disclosure.Button
-              as="button"
+            <CollapsiblePrimitive.Trigger
               type="button"
               className="grid flex-shrink-0 place-items-center rounded-sm p-0.5 hover:bg-layer-transparent-hover"
-              onClick={() => toggleFavoriteMenu(!isFavoriteMenuOpen)}
               aria-label={t(
                 isFavoriteMenuOpen
                   ? "aria_labels.projects_sidebar.close_favorites_menu"
@@ -234,55 +230,43 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                   "rotate-90": isFavoriteMenuOpen,
                 })}
               />
-            </Disclosure.Button>
+            </CollapsiblePrimitive.Trigger>
           </div>
         </div>
-        <Transition
-          show={isFavoriteMenuOpen}
-          enter="transition duration-100 ease-out"
-          enterFrom="transform scale-95 opacity-0"
-          enterTo="transform scale-100 opacity-100"
-          leave="transition duration-75 ease-out"
-          leaveFrom="transform scale-100 opacity-100"
-          leaveTo="transform scale-95 opacity-0"
-        >
-          {isFavoriteMenuOpen && (
-            <Disclosure.Panel as="div" className="mt-0.5 flex flex-col gap-0.5" static>
-              {createNewFolder && <NewFavoriteFolder setCreateNewFolder={setCreateNewFolder} actionType="create" />}
-              {Object.keys(groupedFavorites).length === 0 ? (
+        <CollapsiblePrimitive.Panel className="mt-0.5 flex flex-col gap-0.5">
+          {createNewFolder && <NewFavoriteFolder setCreateNewFolder={setCreateNewFolder} actionType="create" />}
+          {Object.keys(groupedFavorites).length === 0 ? (
+            <>
+              <span className="px-8 py-1.5 text-11 font-medium text-placeholder">{t("no_favorites_yet")}</span>
+            </>
+          ) : (
+            orderBy(Object.values(groupedFavorites), "sequence", "desc")
+              .filter((fav) => !fav.parent)
+              .map((fav, index, { length }) => (
                 <>
-                  <span className="px-8 py-1.5 text-11 font-medium text-placeholder">{t("no_favorites_yet")}</span>
+                  {fav?.is_folder ? (
+                    <FavoriteFolder
+                      favorite={fav}
+                      isLastChild={index === length - 1}
+                      handleRemoveFromFavorites={handleRemoveFromFavorites}
+                      handleRemoveFromFavoritesFolder={handleRemoveFromFavoritesFolder}
+                      handleDrop={handleDrop}
+                    />
+                  ) : (
+                    <FavoriteRoot
+                      workspaceSlug={workspaceSlug.toString()}
+                      favorite={fav}
+                      isLastChild={index === length - 1}
+                      parentId={undefined}
+                      handleRemoveFromFavorites={handleRemoveFromFavorites}
+                      handleDrop={handleDrop}
+                    />
+                  )}
                 </>
-              ) : (
-                orderBy(Object.values(groupedFavorites), "sequence", "desc")
-                  .filter((fav) => !fav.parent)
-                  .map((fav, index, { length }) => (
-                    <>
-                      {fav?.is_folder ? (
-                        <FavoriteFolder
-                          favorite={fav}
-                          isLastChild={index === length - 1}
-                          handleRemoveFromFavorites={handleRemoveFromFavorites}
-                          handleRemoveFromFavoritesFolder={handleRemoveFromFavoritesFolder}
-                          handleDrop={handleDrop}
-                        />
-                      ) : (
-                        <FavoriteRoot
-                          workspaceSlug={workspaceSlug.toString()}
-                          favorite={fav}
-                          isLastChild={index === length - 1}
-                          parentId={undefined}
-                          handleRemoveFromFavorites={handleRemoveFromFavorites}
-                          handleDrop={handleDrop}
-                        />
-                      )}
-                    </>
-                  ))
-              )}
-            </Disclosure.Panel>
+              ))
           )}
-        </Transition>
-      </Disclosure>
+        </CollapsiblePrimitive.Panel>
+      </CollapsiblePrimitive.Root>
     </>
   );
 });

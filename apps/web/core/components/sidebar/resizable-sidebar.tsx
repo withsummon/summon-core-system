@@ -21,7 +21,6 @@ interface ResizableSidebarProps {
   peekDuration?: number;
   toggleCollapsed: (value?: boolean) => void;
   onWidthChange?: (width: number) => void;
-  onCollapsedChange?: (collapsed: boolean) => void;
   className?: string;
   children?: ReactElement;
   extendedSidebar?: ReactElement;
@@ -35,7 +34,6 @@ export function ResizableSidebar({
   peekDuration = 500,
   isCollapsed = false,
   toggleCollapsed: toggleCollapsedProp,
-  onCollapsedChange,
   width,
   setWidth,
   onWidthChange,
@@ -166,10 +164,6 @@ export function ResizableSidebar({
     onWidthChange?.(width);
   }, [width, onWidthChange]);
 
-  useEffect(() => {
-    onCollapsedChange?.(isCollapsed);
-  }, [isCollapsed, onCollapsedChange]);
-
   return (
     <>
       {!isCollapsed && (
@@ -186,7 +180,7 @@ export function ResizableSidebar({
         className={cn(
           "z-20 h-full border-r border-subtle bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
+          isCollapsed ? "invisible w-0 translate-x-[-100%] opacity-0" : "visible translate-x-0 opacity-100",
           "max-md:absolute",
           className
         )}
@@ -227,7 +221,7 @@ export function ResizableSidebar({
         className={cn(
           "shadow-sm absolute left-0 z-20 h-full bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
-          isCollapsed && showPeek ? "translate-x-0 opacity-100" : "translate-x-[-100%] opacity-0",
+          isCollapsed && showPeek ? "visible translate-x-0 opacity-100" : "invisible translate-x-[-100%] opacity-0",
           "pointer-events-none",
           isCollapsed && showPeek && "pointer-events-auto",
           !showPeek ? "w-0" : "w-full"

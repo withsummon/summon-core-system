@@ -9,6 +9,7 @@ import { isEqual, xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // Plane imports
+import type { EditorRefApi } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TBaseIssue, TIssue } from "@plane/types";
@@ -59,6 +60,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   }
   // ref
   const issueTitleRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<EditorRefApi>(null);
   // states
   const [changesMade, setChangesMade] = useState<Partial<TIssue> | null>(null);
   const [createMore, setCreateMore] = useState(false);
@@ -389,7 +391,20 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   // don't open the modal if there are no projects
   if (!allowedProjectIds || allowedProjectIds.length === 0 || !activeProjectId) return null;
 
+  const canDismiss = () => {
+    if (editorRef.current && !editorRef.current.isEditorReadyToDiscard()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Editor is still processing changes. Please wait before proceeding.",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const commonIssueModalProps: IssueFormProps = {
+    editorRef,
     issueTitleRef: issueTitleRef,
     data: {
       ...data,
@@ -412,18 +427,30 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     isProjectSelectionDisabled: isProjectSelectionDisabled,
   };
 
-  return (
+  const modalProps = {
+    initialFocus: issueTitleRef,
+    isOpen,
+    position: EModalPosition.TOP,
+    width: isDuplicateModalOpen ? EModalWidth.VIXL : EModalWidth.XXXXL,
+    className: "rounded-lg !bg-transparent shadow-none",
+  };
+
+  return withDraftIssueWrapper ? (
+    <DraftIssueLayout
+      {...commonIssueModalProps}
+      changesMade={changesMade}
+      onChange={handleFormChange}
+      modalProps={modalProps}
+      canDismiss={canDismiss}
+    />
+  ) : (
     <ModalCore
-      isOpen={isOpen}
-      position={EModalPosition.TOP}
-      width={isDuplicateModalOpen ? EModalWidth.VIXL : EModalWidth.XXXXL}
-      className="rounded-lg !bg-transparent shadow-none transition-[width] ease-linear"
+      {...modalProps}
+      handleClose={() => {
+        if (canDismiss()) handleClose();
+      }}
     >
-      {withDraftIssueWrapper ? (
-        <DraftIssueLayout {...commonIssueModalProps} changesMade={changesMade} onChange={handleFormChange} />
-      ) : (
-        <IssueFormRoot {...commonIssueModalProps} />
-      )}
+      <IssueFormRoot {...commonIssueModalProps} />
     </ModalCore>
   );
 });

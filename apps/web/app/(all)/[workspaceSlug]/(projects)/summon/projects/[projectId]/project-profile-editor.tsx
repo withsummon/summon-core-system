@@ -3,13 +3,15 @@ import { observer } from "mobx-react";
 import useSWR from "swr";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { ISummonProjectOverview, IUserLite } from "@plane/types";
+import type { ISummonProjectOverview } from "@plane/types";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { projectProfileDateError, projectProfileForm } from "@/components/summon/projects/project-workspace";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
+import { Button } from "@plane/propel/button";
+import { Input } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
 import { DatePicker } from "@plane/propel/date-picker";
 
@@ -42,7 +44,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const [leadSaving, setLeadSaving] = useState(false);
   const project = getProjectById(projectId);
   const projectLead = project?.project_lead;
-  const projectLeadId = typeof projectLead === "object" ? (projectLead as IUserLite).id : projectLead || null;
+  const projectLeadId = typeof projectLead === "object" ? (projectLead?.id ?? null) : projectLead || null;
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
   useEffect(() => setForm(projectProfileForm(profile)), [profile]);
@@ -98,17 +100,17 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   if (!isAdmin) return null;
 
   return (
-    <section className="shadow-xs rounded-2xl border border-accent-subtle bg-surface-1 p-4">
+    <section className="rounded-lg border border-subtle bg-surface-1 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-primary">Edit project profile</h2>
-          <p className="mt-1 text-[11px] text-secondary">
-            Commercial metadata is saved separately from Plane project settings.
+          <p className="text-xs mt-1 text-secondary">
+            Update delivery details. Changes to the project manager save immediately.
           </p>
         </div>
-        <button type="button" onClick={onClose} className="text-xs text-secondary hover:text-primary">
+        <Button variant="ghost" size="base" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Field label={profile?.source_opportunity ? "Client (set by the won opportunity)" : "Client"}>
@@ -136,11 +138,11 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
           />
         </Field>
         <Field label="Phase">
-          <input
+          <Input
             value={form.phase}
             maxLength={80}
             onChange={(event) => updateField("phase", event.target.value)}
-            className={controlClass}
+            className="text-base sm:text-sm w-full"
             placeholder="e.g. Delivery"
           />
         </Field>
@@ -167,13 +169,13 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
           />
         </Field>
         <Field label="Budget">
-          <input
+          <Input
             type="number"
             min="0"
             step="0.01"
             value={form.budget}
             onChange={(event) => updateField("budget", event.target.value)}
-            className={controlClass}
+            className="text-base sm:text-sm w-full"
             placeholder="0.00"
           />
         </Field>
@@ -195,27 +197,17 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
         </Field>
       </div>
       {error && (
-        <p role="alert" className="text-xs bg-red-50 text-red-600 mt-3 rounded-xl px-3 py-2">
+        <p role="alert" className="text-xs mt-3 rounded-md bg-danger-subtle px-3 py-2 text-danger-primary">
           {error}
         </p>
       )}
       <div className="mt-4 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={saving}
-          className="text-xs rounded-xl border border-subtle px-4 py-2 text-secondary"
-        >
+        <Button variant="secondary" onClick={onClose} disabled={saving}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => void saveProfile()}
-          disabled={saving}
-          className="text-xs rounded-xl bg-accent-primary px-4 py-2 font-medium text-white disabled:opacity-60"
-        >
-          {saving ? "Saving..." : "Save profile"}
-        </button>
+        </Button>
+        <Button onClick={() => void saveProfile()} loading={saving}>
+          {saving ? "Saving…" : "Save profile"}
+        </Button>
       </div>
     </section>
   );
@@ -223,12 +215,9 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="grid gap-1.5 text-[11px] font-medium text-secondary">
+    <label className="text-xs grid gap-1.5 font-medium text-secondary">
       <span>{label}</span>
       {children}
     </label>
   );
 }
-
-const controlClass =
-  "h-9 w-full rounded-xl border border-subtle bg-surface-1 px-3 text-12 text-primary outline-none focus:border-accent-strong";

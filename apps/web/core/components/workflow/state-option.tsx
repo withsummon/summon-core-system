@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Combobox } from "@headlessui/react";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 import { CheckIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
 
@@ -27,19 +27,22 @@ export const StateOption = observer(function StateOption(props: TStateOptionProp
   const { option, className = "" } = props;
 
   return (
-    <Combobox.Option
+    <Combobox.Item
       key={option.value}
       value={option.value}
-      className={({ active, selected }) =>
+      className={({ highlighted: active, selected }) =>
         cn(`${className} ${active ? "bg-layer-transparent-hover" : ""} ${selected ? "text-primary" : "text-secondary"}`)
       }
-    >
-      {({ selected }) => (
-        <>
-          <span className="flex-grow truncate">{option.content}</span>
-          {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-        </>
+      render={(itemProps, { selected }) => (
+        <div {...itemProps}>
+          {
+            <>
+              <span className="flex-grow truncate">{option.content}</span>
+              {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+            </>
+          }
+        </div>
       )}
-    </Combobox.Option>
+    ></Combobox.Item>
   );
 });

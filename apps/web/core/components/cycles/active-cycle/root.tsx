@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
-import { Disclosure } from "@headlessui/react";
+import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -118,13 +118,15 @@ export const ActiveCycleRoot = observer(function ActiveCycleRoot(props: IActiveC
   return (
     <>
       {showHeader ? (
-        <Disclosure as="div" className="flex flex-shrink-0 flex-col" defaultOpen>
-          {({ open }) => (
-            <>
-              <Disclosure.Button className="sticky top-0 z-[2] w-full flex-shrink-0 cursor-pointer border-b border-subtle bg-layer-1">
+        <CollapsiblePrimitive.Root
+          className="flex flex-shrink-0 flex-col"
+          defaultOpen
+          render={(rootProps, { open }) => (
+            <div {...rootProps}>
+              <CollapsiblePrimitive.Trigger className="sticky top-0 z-[2] w-full flex-shrink-0 cursor-pointer border-b border-subtle bg-layer-1">
                 <CycleListGroupHeader title={t("project_cycles.active_cycle.label")} type="current" isExpanded={open} />
-              </Disclosure.Button>
-              <Disclosure.Panel>
+              </CollapsiblePrimitive.Trigger>
+              <CollapsiblePrimitive.Panel>
                 <ActiveCyclesComponent
                   cycleId={cycleId}
                   activeCycle={activeCycle}
@@ -134,10 +136,10 @@ export const ActiveCycleRoot = observer(function ActiveCycleRoot(props: IActiveC
                   handleFiltersUpdate={handleFiltersUpdate}
                   cycleIssueDetails={cycleIssueDetails}
                 />
-              </Disclosure.Panel>
-            </>
+              </CollapsiblePrimitive.Panel>
+            </div>
           )}
-        </Disclosure>
+        />
       ) : (
         <ActiveCyclesComponent
           cycleId={cycleId}

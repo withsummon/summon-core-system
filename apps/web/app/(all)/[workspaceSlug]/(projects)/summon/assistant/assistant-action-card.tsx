@@ -1,4 +1,4 @@
-import { Button } from "@plane/ui";
+import { Button } from "@plane/propel/button";
 import type { ISummonAssistantAction } from "@plane/types";
 import { Eye } from "lucide-react";
 import Link from "next/link";
@@ -32,8 +32,8 @@ export function AssistantActionCard(props: {
           {action.preview.template_options?.map((template) => (
             <Button
               key={template.id}
-              size="sm"
-              variant="neutral-primary"
+              size="lg"
+              variant="secondary"
               disabled={props.anyBusy}
               onClick={() => props.onSelect(template.id)}
             >
@@ -72,7 +72,7 @@ export function AssistantActionCard(props: {
         <div className="mt-3 flex gap-2">
           {action.preview.state !== "choose_template" ? (
             <Button
-              size="sm"
+              size="lg"
               loading={props.busy}
               disabled={documentAction && !action.preview.project}
               onClick={props.onConfirm}
@@ -80,7 +80,7 @@ export function AssistantActionCard(props: {
               {documentAction ? "Generate" : "Confirm"}
             </Button>
           ) : null}
-          <Button size="sm" variant="neutral-primary" disabled={props.anyBusy} onClick={props.onCancel}>
+          <Button size="lg" variant="secondary" disabled={props.anyBusy} onClick={props.onCancel}>
             Cancel
           </Button>
         </div>
@@ -94,7 +94,7 @@ export function AssistantActionCard(props: {
         </Link>
       ) : null}
       {documentAction && action.status === "failed" ? (
-        <Button className="mt-3" size="sm" loading={props.busy} disabled={props.anyBusy} onClick={props.onRetry}>
+        <Button className="mt-3" size="lg" loading={props.busy} disabled={props.anyBusy} onClick={props.onRetry}>
           Retry generation
         </Button>
       ) : null}
