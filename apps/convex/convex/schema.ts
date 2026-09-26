@@ -1,3 +1,4 @@
+import { meetingTables } from "./meetings/schema";
 import { documentTables } from "./documents/schema";
 import { resourceTables } from "./resources/schema";
 import { settingsTables } from "./settings/schema";
@@ -16,6 +17,7 @@ export const status = v.union(
 );
 export default defineSchema({
   ...authTables,
+  ...meetingTables,
   ...documentTables,
   ...resourceTables,
   ...settingsTables,
