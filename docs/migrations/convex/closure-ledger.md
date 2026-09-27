@@ -2,6 +2,19 @@
 
 Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `ae84433f63`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
 
+## Progress reconciliation through a382f3edef
+
+Current-cycle progress (D15) now has bounded native pages, explicit partial UI
+coverage and recorded one-page Chrome realtime/narrow-width acceptance in
+`9019e17173`; >100 memberships and sparse pages have BDD evidence. Current module
+progress (D17) is implemented in `a382f3edef`, with shared task aggregation and UI,
+completed/pending distributions, writer-only module analytics and local exact
+archive activation. Module browser acceptance and remote activation remain
+separate gates. `docs/migrations/convex/{cycle-progress,module-progress}.md` record
+the evidence and exclusions. These two rows below are no longer instructions to
+reimplement missing source. D16 historical burndown remains unimplemented; current
+counts and transfer snapshots are not substitutes. No inherited route is retired.
+
 ## Current normalized reconciliation through ae84433f63
 
 **Authority:** current production source and committed receipts sampled on 2026-09-27; this editor did not rerun browser/runtime checks. The primary rows in sections 1–3 are updated below. Older dated checkpoint sections retain their original statements as historical evidence, not current work instructions. None of these facts retires an inherited app/PAT/public/admin route.
