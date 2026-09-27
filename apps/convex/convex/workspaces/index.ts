@@ -1,3 +1,4 @@
+import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
@@ -55,7 +56,7 @@ export const resolveMember = query({
   },
 });
 
-async function requireAnotherAdmin(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
+export async function requireAnotherAdmin(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
   const admins = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_role_active", (q) =>
@@ -120,6 +121,7 @@ export async function grantWorkspaceMembership(
   ctx: MutationCtx,
   args: { workspaceId: Id<"workspaces">; userId: Id<"users">; role: Infer<typeof role> }
 ) {
+  await requireUnrestrictedAccount(ctx, args.userId);
   if (!(await ctx.db.get(args.userId))) throw new ConvexError("User not found.");
   const existing = await ctx.db
     .query("workspaceMembers")

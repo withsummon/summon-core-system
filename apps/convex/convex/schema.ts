@@ -92,6 +92,7 @@ export default defineSchema({
     active: v.boolean(),
   })
     .index("by_project_user", ["projectId", "userId"])
+    .index("by_user", ["userId"])
     .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_project_role_active", ["projectId", "role", "active"]),
 });

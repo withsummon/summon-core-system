@@ -1,3 +1,4 @@
+import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { createProject } from "./create";
@@ -84,6 +85,7 @@ export async function grantProjectMembership(
     role: Infer<typeof role>;
   }
 ) {
+  await requireUnrestrictedAccount(ctx, args.userId);
   const { workspaceId, ...membership } = args;
   const workspaceMember = await ctx.db
     .query("workspaceMembers")
