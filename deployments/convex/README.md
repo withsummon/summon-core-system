@@ -31,3 +31,7 @@ The explicit `10.77.2.0/28` default network addresses this host's exhausted auto
 - Existing Django/Postgres services remain intact. This checkpoint does not establish inherited-feature parity or authorize retirement.
 
 Sources: [Convex self-hosting](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md), [Convex Auth manual setup](https://labs.convex.dev/auth/setup/manual).
+
+### Application checkpoint 903cee2124
+
+Committed functions `903cee21243acfacb92950ef7615b55513d80a84` deployed to the remote backend with schema/index validation. A production web bundle served locally at `http://127.0.0.1:3016/core` targets the owned remote API/actions domains. Chrome verified synthetic sign-up, workspace/project/task creation and a second tab receiving the task without reload; no browser errors were captured. The served index hash matched the recorded build artifact. See `docs/migrations/convex/checkpoints/903cee2124-remote.json` for exact hashes and the dependency-state limitation. This is local frontend plus remote backend verification, not public frontend rollout or full Plane parity.
