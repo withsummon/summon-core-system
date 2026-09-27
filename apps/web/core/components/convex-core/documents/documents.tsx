@@ -15,6 +15,7 @@ import { DocumentEditor } from "./editor";
 import { DocumentHierarchy } from "./hierarchy";
 import { DocumentLabels } from "./labels";
 import { DocumentHistory } from "./history";
+import { DuplicateDocument } from "./duplicate";
 import { DocumentTrash } from "./trash";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
@@ -149,6 +150,7 @@ function DocumentDetail({
         </Button>
         <div className="flex flex-wrap gap-2">
           <FavoriteToggle workspaceId={document.workspaceId} target={{ type: "page", id: document._id }} />
+          <DuplicateDocument document={document} />
           {context.canWrite && (
             <Button variant="secondary" onClick={() => setSettings((value) => !value)}>
               Document settings
