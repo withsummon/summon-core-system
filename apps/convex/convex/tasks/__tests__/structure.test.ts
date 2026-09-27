@@ -13,7 +13,7 @@ describe("task hierarchy and dependency journeys", () => {
       title: "Review",
       parent: { taskId: parentId, expectedUpdatedAt: parent.updatedAt },
     });
-    expect((await owner.query(api.tasks.hierarchy.parent, { taskId: childId }))?._id).toBe(parentId);
+    expect((await owner.query(api.tasks.hierarchy.parent, { taskId: childId })).task?._id).toBe(parentId);
     expect(
       (
         await owner.query(api.tasks.hierarchy.children, {
@@ -28,7 +28,10 @@ describe("task hierarchy and dependency journeys", () => {
       expectedUpdatedAt: child.updatedAt,
       parent: null,
     });
-    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: childId })).toBeNull();
+    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: childId })).toEqual({
+      task: null,
+      hasParent: false,
+    });
     expect((await owner.query(api.tasks.index.get, { taskId: childId })).title).toBe("Review");
   });
   test("reject transitive and self parenting without changing the graph", async () => {
@@ -51,7 +54,7 @@ describe("task hierarchy and dependency journeys", () => {
     await link(c, b);
     await expect(link(a, c)).rejects.toThrow("ancestor");
     await expect(link(a, a)).rejects.toThrow("ancestor");
-    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: a })).toBeNull();
+    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: a })).toEqual({ task: null, hasParent: false });
   });
   test("reject cross-project parents and related tasks even for a writer in both projects", async () => {
     const { owner, projectId, workspaceId } = await workspaceJourney();

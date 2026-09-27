@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
-import type { Doc } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
@@ -20,23 +20,28 @@ export function ModuleTasks({ module }: { module: Module }) {
       </header>
       {assigning && module.canWrite && <LinkTask module={module} onClose={() => setAssigning(false)} />}
       <ul className="divide-y divide-subtle-1">
-        {tasks.results.map((task) => (
-          <li key={task._id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <button
-              className="max-w-full min-w-0 text-left text-14 break-words hover:text-accent-primary"
-              onClick={() =>
-                setParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.delete("projectView");
-                  next.delete("projectModule");
-                  next.set("task", task._id);
-                  return next;
-                })
-              }
-            >
-              {task.title}
-            </button>
-            {module.canEdit && <RemoveTask task={task} module={module} />}
+        {tasks.results.map((row) => (
+          <li key={row.taskId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            {row.task ? (
+              <button
+                className="max-w-full min-w-0 text-left text-14 break-words hover:text-accent-primary"
+                onClick={() =>
+                  setParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.delete("projectView");
+                    next.delete("taskView");
+                    next.delete("projectModule");
+                    next.set("task", row.taskId);
+                    return next;
+                  })
+                }
+              >
+                {row.task.title}
+              </button>
+            ) : (
+              <span className="text-14 text-secondary">Task unavailable</span>
+            )}
+            {module.canEdit && <RemoveTask taskId={row.taskId} updatedAt={row.updatedAt} module={module} />}
           </li>
         ))}
       </ul>
@@ -121,7 +126,7 @@ function LinkTask({ module, onClose }: { module: Module; onClose: () => void }) 
     </form>
   );
 }
-function RemoveTask({ task, module }: { task: Doc<"tasks">; module: Module }) {
+function RemoveTask({ taskId, updatedAt, module }: { taskId: Id<"tasks">; updatedAt: number; module: Module }) {
   const remove = useMutation(api.modules.tasks.set);
   const [snapshot, setSnapshot] = useState<{ taskVersion: number; moduleVersion: number } | null>(null);
   const [pending, setPending] = useState(false);
@@ -138,7 +143,7 @@ function RemoveTask({ task, module }: { task: Doc<"tasks">; module: Module }) {
               setError("");
               try {
                 await remove({
-                  taskId: task._id,
+                  taskId,
                   moduleId: module._id,
                   assigned: false,
                   expectedTaskUpdatedAt: snapshot.taskVersion,
@@ -161,7 +166,7 @@ function RemoveTask({ task, module }: { task: Doc<"tasks">; module: Module }) {
       ) : (
         <Button
           variant="secondary"
-          onClick={() => setSnapshot({ taskVersion: task.updatedAt, moduleVersion: module.updatedAt })}
+          onClick={() => setSnapshot({ taskVersion: updatedAt, moduleVersion: module.updatedAt })}
         >
           Remove from module
         </Button>

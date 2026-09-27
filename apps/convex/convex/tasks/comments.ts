@@ -5,16 +5,17 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { recordTaskEvent } from "../notifications/delivery";
-import { requireTask } from "./properties";
+import { requireTask, taskIsActive } from "./access";
 import { taskRichContent } from "./rich_content";
 
 async function commentAccess(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const task = await requireTask(ctx, taskId);
+  const task = await requireTask(ctx, taskId, "read");
   const permission = await requireProject(ctx, task.projectId);
   const canCreate =
     (permission.member.role !== "guest" && permission.projectMember.role !== "guest") ||
     task.createdBy === permission.user._id;
-  return { ...permission, task, canCreate };
+  const active = taskIsActive(task);
+  return { ...permission, task, canCreate: active && canCreate };
 }
 export const access = query({
   args: { taskId: v.id("tasks") },
@@ -47,7 +48,11 @@ async function editableComment(
   return { comment, task, ...permission };
 }
 export const list = query({
-  args: { taskId: v.id("tasks"), deleted: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
+  args: {
+    taskId: v.id("tasks"),
+    deleted: v.optional(v.boolean()),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const permission = await commentAccess(ctx, args.taskId);
     const { task } = permission;
@@ -76,9 +81,11 @@ export const list = query({
             ...comment,
             authorName: author?.name ?? null,
             canEdit:
+              taskIsActive(task) &&
               comment.deletedAt == null &&
               (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
             canRestore:
+              taskIsActive(task) &&
               comment.deletedAt != null &&
               (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
           };
@@ -159,7 +166,10 @@ export const restore = mutation({
   args: { commentId: v.id("taskComments"), expectedUpdatedAt: v.number() },
   handler: async (ctx, args) => {
     const { comment, task, user } = await editableComment(ctx, args.commentId, args.expectedUpdatedAt, true);
-    await ctx.db.patch(comment._id, { deletedAt: null, updatedAt: Math.max(Date.now(), comment.updatedAt + 1) });
+    await ctx.db.patch(comment._id, {
+      deletedAt: null,
+      updatedAt: Math.max(Date.now(), comment.updatedAt + 1),
+    });
     await recordTaskEvent(ctx, {
       workspaceId: task.workspaceId,
       projectId: task.projectId,

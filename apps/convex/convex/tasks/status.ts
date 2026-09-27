@@ -2,7 +2,7 @@ import { recordTaskEvent } from "../notifications/delivery";
 import type { MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
-import { requireTask } from "./properties";
+import { requireTask } from "./access";
 export async function changeTaskStatus(
   ctx: MutationCtx,
   args: { taskId: Id<"tasks">; status: Doc<"tasks">["status"] }

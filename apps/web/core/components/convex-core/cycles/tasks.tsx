@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
-import type { Doc } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
@@ -18,25 +18,30 @@ export function CycleTasks({ cycle }: { cycle: Cycle }) {
         <h3 className="text-20 font-medium">Tasks</h3>
         {cycle.canEdit && <Button onClick={() => setAssigning(true)}>Assign task</Button>}
       </header>
-      {assigning && cycle.canWrite && <AssignTask cycle={cycle} onClose={() => setAssigning(false)} />}
+      {assigning && cycle.canEdit && <AssignTask cycle={cycle} onClose={() => setAssigning(false)} />}
       <ul className="divide-y divide-subtle-1">
-        {tasks.results.map((task) => (
-          <li key={task._id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <button
-              className="max-w-full min-w-0 text-left text-14 break-words hover:text-accent-primary"
-              onClick={() =>
-                setParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.delete("projectView");
-                  next.delete("cycle");
-                  next.set("task", task._id);
-                  return next;
-                })
-              }
-            >
-              {task.title}
-            </button>
-            {cycle.canEdit && <RemoveTask task={task} cycle={cycle} />}
+        {tasks.results.map((row) => (
+          <li key={row.taskId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            {row.task ? (
+              <button
+                className="max-w-full min-w-0 text-left text-14 break-words hover:text-accent-primary"
+                onClick={() =>
+                  setParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.delete("projectView");
+                    next.delete("taskView");
+                    next.delete("cycle");
+                    next.set("task", row.taskId);
+                    return next;
+                  })
+                }
+              >
+                {row.task.title}
+              </button>
+            ) : (
+              <span className="text-14 text-secondary">Task unavailable</span>
+            )}
+            {cycle.canEdit && <RemoveTask taskId={row.taskId} updatedAt={row.updatedAt} cycle={cycle} />}
           </li>
         ))}
       </ul>
@@ -125,7 +130,7 @@ function AssignTask({ cycle, onClose }: { cycle: Cycle; onClose: () => void }) {
     </form>
   );
 }
-function RemoveTask({ task, cycle }: { task: Doc<"tasks">; cycle: Cycle }) {
+function RemoveTask({ taskId, updatedAt, cycle }: { taskId: Id<"tasks">; updatedAt: number; cycle: Cycle }) {
   const remove = useMutation(api.cycles.tasks.remove);
   const [snapshot, setSnapshot] = useState<{ taskVersion: number; cycleVersion: number } | null>(null);
   const [pending, setPending] = useState(false);
@@ -142,7 +147,7 @@ function RemoveTask({ task, cycle }: { task: Doc<"tasks">; cycle: Cycle }) {
               setError("");
               try {
                 await remove({
-                  taskId: task._id,
+                  taskId,
                   cycleId: cycle._id,
                   expectedTaskUpdatedAt: snapshot.taskVersion,
                   expectedCycleUpdatedAt: snapshot.cycleVersion,
@@ -164,7 +169,7 @@ function RemoveTask({ task, cycle }: { task: Doc<"tasks">; cycle: Cycle }) {
       ) : (
         <Button
           variant="secondary"
-          onClick={() => setSnapshot({ taskVersion: task.updatedAt, cycleVersion: cycle.updatedAt })}
+          onClick={() => setSnapshot({ taskVersion: updatedAt, cycleVersion: cycle.updatedAt })}
         >
           Remove from cycle
         </Button>

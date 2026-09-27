@@ -1,7 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import { requireTask } from "../tasks/properties";
+import { requireTask, taskIsActive } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
@@ -18,7 +18,8 @@ export const set = mutation({
     const { module, user } = await requireModule(ctx, args.moduleId, true);
     requireEditableModule(module);
     requireModuleRevision(module, args.expectedModuleUpdatedAt);
-    const task = await requireTask(ctx, args.taskId);
+    const task = args.assigned ? await requireTask(ctx, args.taskId) : await ctx.db.get(args.taskId);
+    if (!task) throw new ConvexError("Task not found.");
     if (task.projectId !== module.projectId) throw new ConvexError("Task belongs to another project.");
     const previous = await ctx.db
       .query("moduleTasks")
@@ -34,19 +35,31 @@ export const set = mutation({
 export const list = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireModule(ctx, args.moduleId);
+    const { module, member, projectMember } = await requireModule(ctx, args.moduleId);
+    const canDetach = member.role !== "guest" && projectMember.role !== "guest" && !module.archived;
     const result = await ctx.db
       .query("moduleTasks")
       .withIndex("by_module_task", (q) => q.eq("moduleId", args.moduleId))
       .paginate(pageBudget(args.paginationOpts));
     const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
-    return { ...result, page: tasks.filter((task) => task !== null) };
+    return {
+      ...result,
+      page: tasks
+        .filter((task) => task !== null)
+        .filter((task) => taskIsActive(task) || canDetach)
+        .map((task) => ({
+          taskId: task._id,
+          updatedAt: task.updatedAt,
+          task: taskIsActive(task) ? task : null,
+          unavailable: !taskIsActive(task),
+        })),
+    };
   },
 });
 export const forTask = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireTask(ctx, args.taskId, "read");
     await requireProject(ctx, task.projectId);
     const result = await ctx.db
       .query("moduleTasks")

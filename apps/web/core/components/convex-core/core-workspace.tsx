@@ -299,7 +299,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
               <Cycles key={project._id} project={project} />
             ) : (
               <>
-                {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
+                {!hasSelectedTask && !params.get("taskView") && (
+                  <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />
+                )}
                 <ProjectTasks key={project._id} project={project} />
               </>
             )}

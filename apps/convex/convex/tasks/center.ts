@@ -1,3 +1,4 @@
+import { taskIsActive } from "./access";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query } from "../_generated/server";
@@ -65,6 +66,7 @@ export const list = query({
     // The cursor covers scanned rows; consumers must continue through empty filtered pages. Never report page size as a global total.
     const visible = await Promise.all(
       result.page.map(async (task) => {
+        if (!taskIsActive(task)) return null;
         const project = await ctx.db.get(task.projectId);
         if (!project || project.archived) return null;
         const membership = await ctx.db
@@ -81,7 +83,11 @@ export const list = query({
         ];
         if (!matches.every(Boolean)) return null;
         const state = task.stateId ? await ctx.db.get(task.stateId) : null;
-        return { task, project: { id: project._id, name: project.name, identifier: project.identifier }, state };
+        return {
+          task,
+          project: { id: project._id, name: project.name, identifier: project.identifier },
+          state,
+        };
       })
     );
     return { ...result, page: visible.filter((task) => task !== null) };

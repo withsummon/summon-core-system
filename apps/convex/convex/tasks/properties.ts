@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import { date } from "../commercial/validation";
@@ -50,11 +50,6 @@ export async function validateProperties(ctx: QueryCtx, project: Doc<"projects">
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
   return { data: { ...data, startDate, targetDate }, state };
-}
-export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const task = await ctx.db.get(taskId);
-  if (!task) throw new ConvexError("Task not found.");
-  return task;
 }
 
 export function parseTaskText(rawTitle: string, description: string) {

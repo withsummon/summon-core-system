@@ -1,3 +1,4 @@
+import { requireTask, taskIsActive, taskDetail } from "./access";
 import { recordTaskEvent } from "../notifications/delivery";
 import { syncPlainDescription } from "./description";
 import { requireParent, checkAncestors } from "./hierarchy";
@@ -9,7 +10,7 @@ import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { status, taskProperties } from "./schema";
-import { initialProperties, requireTask, validateProperties, parseTaskText } from "./properties";
+import { initialProperties, validateProperties, parseTaskText } from "./properties";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
@@ -24,11 +25,16 @@ export const list = query({
       args.paginationOpts.numItems > MAX_PAGE_TASKS
     )
       throw new ConvexError("Request an integer between 1 and 100 tasks per page.");
-    return ctx.db
+    const result = await ctx.db
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .order("desc")
-      .paginate({ ...args.paginationOpts, maximumRowsRead: MAX_PAGE_TASKS, maximumBytesRead: MAX_PAGE_BYTES });
+      .paginate({
+        ...args.paginationOpts,
+        maximumRowsRead: MAX_PAGE_TASKS,
+        maximumBytesRead: MAX_PAGE_BYTES,
+      });
+    return { ...result, page: result.page.filter(taskIsActive) };
   },
 });
 export const create = mutation({
@@ -59,6 +65,8 @@ export const create = mutation({
       throw new ConvexError("Task status must match its custom state.");
     const nextStatus = state?.status ?? args.status ?? "todo";
     const taskId = await ctx.db.insert("tasks", {
+      archivedAt: null,
+      deletedAt: null,
       workspaceId: project.workspaceId,
       projectId: project._id,
       title,
@@ -73,7 +81,11 @@ export const create = mutation({
     await ctx.db.insert("taskSubscriptions", { taskId, userId: user._id });
     if (parent) {
       await checkAncestors(ctx, taskId, parent);
-      await ctx.db.insert("taskParents", { projectId: project._id, childId: taskId, parentId: parent._id });
+      await ctx.db.insert("taskParents", {
+        projectId: project._id,
+        childId: taskId,
+        parentId: parent._id,
+      });
       await taskChanged(ctx, parent, user._id);
     }
     await ctx.db.patch(project._id, { nextSequence: project.nextSequence + 1 });
@@ -98,9 +110,8 @@ export const setStatus = mutation({
 export const get = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
-    await requireProject(ctx, task.projectId);
-    return task;
+    const task = await requireTask(ctx, args.taskId, "read");
+    return taskDetail(ctx, task);
   },
 });
 export const update = mutation({
@@ -150,8 +161,7 @@ export const resolve = query({
   handler: async (ctx, args) => {
     const taskId = ctx.db.normalizeId("tasks", args.taskId);
     if (!taskId) throw new ConvexError("Task not found.");
-    const task = await requireTask(ctx, taskId);
-    await requireProject(ctx, task.projectId);
-    return task;
+    const task = await requireTask(ctx, taskId, "read");
+    return taskDetail(ctx, task);
   },
 });

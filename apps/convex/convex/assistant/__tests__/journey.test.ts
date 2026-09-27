@@ -219,7 +219,46 @@ test("revoked task access blocks action preview reads and confirmation", async (
     if (member) await ctx.db.patch(member._id, { active: false });
   });
   await expect(owner.query(api.assistant.actions.get, { actionId })).rejects.toThrow();
-  await expect(owner.query(api.assistant.actions.list, { conversationId, paginationOpts: page })).rejects.toThrow();
+  expect((await owner.query(api.assistant.actions.list, { conversationId, paginationOpts: page })).page).toEqual([]);
   await expect(owner.mutation(api.assistant.actions.confirm, { actionId })).rejects.toThrow();
   expect(await t.run((ctx) => ctx.db.get(taskId))).toMatchObject({ status: "todo" });
+});
+test("mixed project action pages omit revoked rows while retaining authorized rows and continuation", async () => {
+  const { t, owner, projectId, workspaceId, userId } = await workspaceJourney();
+  const conversationId = await owner.mutation(api.assistant.index.save, {
+    workspaceId,
+    title: "Workspace actions",
+    context: { projectId: null, clientId: null, meetingId: null, documentIds: [] },
+  });
+  const visibleTask = await owner.mutation(api.tasks.index.create, { projectId, title: "Visible" });
+  const visibleAction = await owner.mutation(api.assistant.actions.propose, {
+    conversationId,
+    taskId: visibleTask,
+    nextStatus: "done",
+  });
+  const hiddenProject = await owner.mutation(api.projects.index.create, {
+    workspaceId,
+    name: "Hidden",
+    identifier: "HID",
+  });
+  const hiddenTask = await owner.mutation(api.tasks.index.create, { projectId: hiddenProject, title: "Hidden title" });
+  await owner.mutation(api.assistant.actions.propose, { conversationId, taskId: hiddenTask, nextStatus: "done" });
+  await t.run(async (ctx) => {
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", hiddenProject).eq("userId", userId))
+      .unique();
+    await ctx.db.patch(membership!._id, { active: false });
+  });
+  const first = await owner.query(api.assistant.actions.list, {
+    conversationId,
+    paginationOpts: { cursor: null, numItems: 1 },
+  });
+  expect(first.page).toEqual([]);
+  expect(first.isDone).toBe(false);
+  const second = await owner.query(api.assistant.actions.list, {
+    conversationId,
+    paginationOpts: { cursor: first.continueCursor, numItems: 1 },
+  });
+  expect(second.page.map((row) => row._id)).toEqual([visibleAction]);
 });
