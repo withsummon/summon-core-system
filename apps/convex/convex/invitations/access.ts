@@ -1,3 +1,4 @@
+import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
@@ -17,6 +18,7 @@ export async function issuerAccess(
   userId: Id<"users">,
   role: Doc<"invitations">["role"]
 ) {
+  await requireUnrestrictedAccount(ctx, userId);
   const workspace = await ctx.db.get(workspaceId);
   const member = await ctx.db
     .query("workspaceMembers")

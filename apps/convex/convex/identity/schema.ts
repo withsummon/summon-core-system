@@ -8,6 +8,16 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  instanceAuthority: defineTable({ key: v.literal("instance"), initializedAt: v.number() }).index("by_key", ["key"]),
+  instanceAdmins: defineTable({
+    instanceId: v.id("instanceAuthority"),
+    userId: v.id("users"),
+    role: v.literal("admin"),
+    revision: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_instance", ["instanceId"]),
+  accountRestrictions: defineTable({ userId: v.id("users"), deactivatedAt: v.number() }).index("by_user", ["userId"]),
   userProfiles: defineTable({
     userId: v.id("users"),
     ...profileFields,
