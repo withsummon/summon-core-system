@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ConvexError } from "convex/values";
 import { StickyDrafts } from "../drafts.ts";
 const row = { html: "<p>Initial</p>", backgroundColor: "gray", updatedAt: 10 };
 test("two presentations share a serial draft and only exact own acknowledgements advance CAS", async () => {
@@ -111,5 +112,29 @@ test("moving uses its own acknowledgement before saving edits queued during the 
   assert.deepEqual(revisions, [11]);
   assert.equal(drafts.get("note")?.html, "<p>After moving</p>");
   assert.equal(drafts.get("note")?.updatedAt, 12);
+  drafts.dispose();
+});
+
+test("Convex application errors show their public data without transport diagnostics and retain the losing draft", async () => {
+  const conflict = new ConvexError("This sticky changed. Reopen it before saving.");
+  conflict.message =
+    "[CONVEX M(stickies/index:update)] [Request ID: private-request] Server Error\nUncaught ConvexError: This sticky changed. Reopen it before saving.\n at handler (convex/stickies/index.ts:20:1)";
+  const drafts = new StickyDrafts(
+    async () => {
+      throw conflict;
+    },
+    () => {}
+  );
+  drafts.observe("note", row);
+  drafts.edit("note", { html: "<p>Losing draft retained</p>" });
+  await drafts.flush("note");
+  assert.equal(drafts.get("note")?.error, conflict.data);
+  assert.equal(drafts.get("note")?.html, "<p>Losing draft retained</p>");
+  assert.equal(drafts.get("note")?.updatedAt, 10);
+  await assert.rejects(drafts.flushAll(), (error: Error) => {
+    assert.match(error.message, /Some sticky changes are still unsaved/);
+    assert.doesNotMatch(error.message, /private-request|convex\/stickies|Server Error/);
+    return true;
+  });
   drafts.dispose();
 });
