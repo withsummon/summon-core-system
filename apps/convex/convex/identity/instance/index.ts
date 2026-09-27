@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, query } from "../../_generated/server";
 import type { QueryCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { requireIdentity } from "../session";
+import { requireUser } from "../session";
 import { requireUnrestrictedAccount } from "../deactivation/access";
 export async function requireNotInstanceAdmin(ctx: QueryCtx, userId: Id<"users">) {
   const setup = await ctx.db
@@ -38,7 +38,7 @@ export const bootstrap = internalMutation({
 export const me = query({
   args: {},
   handler: async (ctx) => {
-    const { user } = await requireIdentity(ctx);
+    const user = await requireUser(ctx);
     const membership = await ctx.db
       .query("instanceAdmins")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
