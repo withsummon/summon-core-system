@@ -718,6 +718,9 @@ importers:
       '@convex-dev/auth':
         specifier: 'catalog:'
         version: 0.0.95(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
+      '@plane/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       convex:
         specifier: 'catalog:'
         version: 1.46.0(react@18.3.1)
