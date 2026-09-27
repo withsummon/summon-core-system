@@ -84,11 +84,7 @@ import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   "assets/access": typeof assets_access;
@@ -176,10 +172,7 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -189,9 +182,6 @@ export declare const api: FilterApi<
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
+export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 
 export declare const components: {};
