@@ -116,6 +116,7 @@ export const add = mutation({
       throw new ConvexError("A project supports up to 1000 task relationships.");
     if (kind === "blocks") assertAcyclic(edges, fromId, toId);
     const id = await ctx.db.insert("taskRelations", {
+      workspaceId: task.workspaceId,
       projectId: task.projectId,
       fromId,
       toId,
