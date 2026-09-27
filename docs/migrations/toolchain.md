@@ -56,3 +56,9 @@ A later integrated run exposed pnpm 11's default `verifyDepsBeforeRun: install`:
 The tsdown 0.23 ESM-only export generator owns package manifests. Its generated export maps remain intact; obsolete top-level main/module fields were removed to match its output. No legacy-bundler consumer requiring those fields is known in this workspace. Existing editor/UI dependency additions remain unstaged. Native compiler enforcement still passes for all 22 manifests.
 
 References: [pnpm dependency verification](https://github.com/pnpm/pnpm.io/blob/main/docs/settings/build.md), [tsdown export generation](https://github.com/rolldown/tsdown/blob/main/docs/options/package-exports.md). Installed implementations were inspected alongside documentation.
+
+## Behavioral test entry point
+
+`pnpm test` runs the Convex module tests followed by the native web behavior tests. `pnpm --filter web test` uses Node's quoted recursive test glob, so each module/submodule keeps its own `__tests__` folder without a hand-maintained file list. Node 22.18.0 enables TypeScript stripping by default; native TypeScript 7 remains the separate type checker.
+
+The web PR workflow now also targets `main` and has a behavioral job that builds the shared editor dependencies before running both suites. Its Node version is explicit. Locally, all 19 frontend behavior tests passed through the new package command. CI execution itself is unverified because these local commits have not been pushed.
