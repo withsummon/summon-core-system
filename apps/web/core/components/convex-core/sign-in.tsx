@@ -5,14 +5,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-type Flow =
-  | "signIn"
-  | "signUp"
-  | "reset"
-  | "reset-verification"
-  | "email-verification"
-  | "magic"
-  | "magic-verification";
+import { authFlowEnabled, type Flow } from "./auth-policy";
 const presentation: Record<
   Flow,
   {
@@ -98,12 +91,16 @@ export function SignIn() {
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const form = presentation[flow];
+  const enabled = available !== undefined && authFlowEnabled(flow, available);
+  const loading = available === undefined || providers === undefined;
+  const hasMethod = available?.passwordSignIn || available?.magicCode || (providers?.length ?? 0) > 0;
   return (
     <div className="flex min-h-full items-center justify-center p-6">
       <form
         className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-subtle-1 bg-surface-1 p-8"
         onSubmit={async (event) => {
           event.preventDefault();
+          if (!enabled || pending) return;
           setPending(true);
           setError("");
           const data = new FormData(event.currentTarget);
@@ -130,55 +127,57 @@ export function SignIn() {
           <p className="text-sm mb-2 text-secondary">Summon Core</p>
           <h1 className="text-2xl font-semibold">{form.title}</h1>
         </div>
-        {form.notice && (
+        {loading && <p role="status">Loading sign-in options…</p>}
+        {!loading && !hasMethod && (
+          <p role="status">No authentication methods are available. Contact your administrator.</p>
+        )}
+        {enabled && form.notice && (
           <p role="status" className="text-14 text-secondary">
             {form.notice}
           </p>
         )}
-        <fieldset disabled={pending} className="space-y-5">
-          <SummonField label="Email">
-            <Input
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              readOnly={form.verification}
-              required
-            />
-          </SummonField>
-          {form.verification && (
-            <SummonField label="Verification code">
-              <Input name="code" autoComplete="one-time-code" required maxLength={100} />
-            </SummonField>
-          )}
-          {form.password && (
-            <SummonField label={form.password.label}>
+        {enabled && (
+          <fieldset disabled={pending} className="space-y-5">
+            <SummonField label="Email">
               <Input
-                key={flow}
-                name={form.password.name}
-                type="password"
-                autoComplete={form.password.autoComplete}
-                minLength={8}
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                readOnly={form.verification}
                 required
               />
             </SummonField>
-          )}
-          <input type="hidden" name="flow" value={flow} />
-          <Button
-            type="submit"
-            loading={pending}
-            disabled={available === undefined || (form.mail && !available.passwordReset)}
-          >
-            {form.submit}
-          </Button>
-        </fieldset>
+            {form.verification && (
+              <SummonField label="Verification code">
+                <Input name="code" autoComplete="one-time-code" required maxLength={100} />
+              </SummonField>
+            )}
+            {form.password && (
+              <SummonField label={form.password.label}>
+                <Input
+                  key={flow}
+                  name={form.password.name}
+                  type="password"
+                  autoComplete={form.password.autoComplete}
+                  minLength={8}
+                  required
+                />
+              </SummonField>
+            )}
+            <input type="hidden" name="flow" value={flow} />
+            <Button type="submit" loading={pending} disabled={pending}>
+              {form.submit}
+            </Button>
+          </fieldset>
+        )}
         {error && (
           <p role="alert" className="text-sm text-danger-primary">
             {error}
           </p>
         )}
-        {(flow === "signIn" || flow === "signUp") &&
+        {(!enabled || flow === "signIn" || flow === "signUp") &&
           providers?.map((provider) => (
             <Button
               key={provider.id}
@@ -200,7 +199,7 @@ export function SignIn() {
               Continue with {provider.name}
             </Button>
           ))}
-        {flow === "signIn" && available?.magicCode && (
+        {(flow === "signIn" || !enabled) && available?.magicCode && (
           <Button
             type="button"
             variant="secondary"
@@ -225,21 +224,24 @@ export function SignIn() {
             Forgot password?
           </Button>
         )}
-        {available && !available.passwordReset && (
+        {available?.passwordSignIn && !available.passwordReset && (
           <p className="text-12 text-secondary">
             Password reset is unavailable: account email delivery is not configured.
           </p>
         )}
-        <Button
-          variant="secondary"
-          disabled={pending}
-          onClick={() => {
-            setFlow(flow === "signIn" ? "signUp" : "signIn");
-            setError("");
-          }}
-        >
-          {flow === "signIn" ? "Create an account" : "Back to sign in"}
-        </Button>
+        {(available?.passwordSignIn || flow !== "signIn") && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => {
+              setFlow(flow === "signIn" ? "signUp" : "signIn");
+              setError("");
+            }}
+          >
+            {flow === "signIn" ? "Create an account" : "Back to sign in"}
+          </Button>
+        )}
       </form>
     </div>
   );
