@@ -50,6 +50,7 @@ import type * as documents_lifecycle from "../documents/lifecycle.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
+import type * as identity_profile from "../identity/profile.js";
 import type * as intakes_access from "../intakes/access.js";
 import type * as intakes_index from "../intakes/index.js";
 import type * as intakes_lifecycle from "../intakes/lifecycle.js";
@@ -175,6 +176,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;
+  "identity/profile": typeof identity_profile;
   "intakes/access": typeof intakes_access;
   "intakes/index": typeof intakes_index;
   "intakes/lifecycle": typeof intakes_lifecycle;

@@ -1,0 +1,9 @@
+# Account profile slice
+
+Legacy owner: UserEndpoint and UserSerializer first/last/display name and timezone fields. Native owner: identity/profile with implicit current identity; no user ID is accepted from the caller. Auth users.name remains the sole public display-name field. Private first/last/timezone metadata lives in userProfiles indexed by user; both records change atomically. Missing profile means a not-yet-configured account with revision0, not a migrated credential.
+
+Names are bounded and first/last names reject URL-shaped input. Timezone uses existing settings/timezone validation. Every save captures a revision; concurrent insertion/update conflicts cannot overwrite a newer profile. Frontend uses established fields in Account details; its draft is keyed by identity, never by live revision. Review caught and fixed missing identity-key isolation.
+
+Verification: five identity BDD tests passed (two new profile journeys), scoped Oxc zero warnings/errors, web TS7 passed. Chrome saved synthetic Northstar QA Owner with Asia/Jakarta, and its authored comment name changed live. A second tab retained its stale draft and received the conflict error after the first saved a newer revision. Profile form inspected at desktop and390px; no horizontal overflow (scrollWidth390), viewport override cleared.
+
+Scope remaining: timezone is profile metadata; timestamp presentation still uses existing browser/project behavior. This does not replace full preference/onboarding/avatar/cover/locale settings or credential/email/session/OAuth/reset/deactivation flows. No credential was changed. Legacy endpoints remain until consumers and those contracts migrate. Local HMR briefly queried this new function before backend deployment; reload after deploy recovered, so this is not a clean production rollout claim.

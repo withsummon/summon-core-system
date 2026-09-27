@@ -1,4 +1,5 @@
 import { savedViewTables } from "./savedViews/schema";
+import { identityTables } from "./identity/schema";
 import { intakeTables } from "./intakes/schema";
 import { quickLinkTables } from "./quickLinks/schema";
 import { moduleTables } from "./modules/schema";
@@ -21,6 +22,7 @@ import { resourceTables } from "./resources/schema";
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
   ...authTables,
+  ...identityTables,
   ...savedViewTables,
   ...quickLinkTables,
   ...cycleTables,
