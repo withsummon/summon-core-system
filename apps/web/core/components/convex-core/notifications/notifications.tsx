@@ -6,6 +6,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
+import { MarkAllRead } from "./mark-all-read";
 import { notificationTarget } from "./comment-target";
 import { mutationMessage } from "../commercial/forms";
 type View = FunctionArgs<typeof api.notifications.index.list>["view"];
@@ -28,6 +29,10 @@ export function Notifications({
   const requestedView = params.get("inbox");
   const view: View = requestedView === "archived" || requestedView === "snoozed" ? requestedView : "inbox";
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
+  const categories = (["assigned", "subscribed", "created"] as const).filter((category) =>
+    params.getAll("category").includes(category)
+  );
   const mentionsOnly = params.get("mentions") === "true";
   const [now, setNow] = useState(Date.now);
   const [browsingHistory, setBrowsingHistory] = useState(false);
@@ -48,7 +53,7 @@ export function Notifications({
   }, [browsingHistory]);
   const notifications = usePaginatedQuery(
     api.notifications.index.list,
-    { workspaceId: workspace._id, view, unreadOnly, mentionsOnly, now },
+    { workspaceId: workspace._id, view, unreadOnly, mentionsOnly, categories, now },
     { initialNumItems: 30 }
   );
   const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
@@ -58,7 +63,10 @@ export function Notifications({
         <p className="text-12 text-secondary">{workspace.name}</p>
         <h1 className="text-28 font-semibold">Notifications</h1>
       </header>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle-1 pb-3">
+      <fieldset
+        disabled={markingRead}
+        className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle-1 pb-3"
+      >
         <nav aria-label="Notification views" className="flex flex-wrap gap-2">
           {(["inbox", "snoozed", "archived"] as const).map((value) => (
             <Button
@@ -108,7 +116,38 @@ export function Notifications({
           />
           Unread only
         </label>
-      </div>
+      </fieldset>
+      <fieldset disabled={markingRead} className="flex flex-wrap gap-4">
+        <legend className="mb-2 text-14 font-medium">Task relationship · any selected</legend>
+        {(["assigned", "subscribed", "created"] as const).map((category) => (
+          <label key={category} className="flex items-center gap-2 text-14">
+            <input
+              type="checkbox"
+              checked={categories.includes(category)}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setBrowsingHistory(false);
+                setNow(Date.now());
+                setParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.delete("category");
+                  for (const value of ["assigned", "subscribed", "created"] as const)
+                    if (value === category ? checked : categories.includes(value)) next.append("category", value);
+                  return next;
+                });
+              }}
+            />
+            {category === "assigned" ? "Assigned to me" : category === "created" ? "Created by me" : "Subscribed only"}
+          </label>
+        ))}
+        <p className="w-full text-12 text-secondary">
+          No selection shows all relationships. Subscribed only excludes tasks assigned to or created by you.
+        </p>
+      </fieldset>
+      <MarkAllRead
+        selection={{ workspaceId: workspace._id, view, mentionsOnly, categories }}
+        onPending={setMarkingRead}
+      />
       <div className="flex flex-wrap items-center gap-3">
         <Button
           variant="secondary"
