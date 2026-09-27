@@ -12,7 +12,11 @@ export function AttachmentUpload({ taskId }: { taskId: Id<"tasks"> }) {
 }
 export function FileAttachmentUpload({
   prepare,
+  label = "Attach a file",
+  supportedTypes,
 }: {
+  label?: string;
+  supportedTypes?: readonly string[];
   prepare: (
     file: Omit<FunctionArgs<typeof api.assets.taskAttachments.prepare>, "taskId">
   ) => Promise<FunctionReturnType<typeof api.assets.taskAttachments.prepare>>;
@@ -26,13 +30,13 @@ export function FileAttachmentUpload({
   return (
     <div className="space-y-2">
       <label className="flex flex-wrap items-center gap-2 text-14">
-        <span>Attach a file</span>
+        <span>{label}</span>
         <input
-          aria-label="Attach a file"
+          aria-label={label}
           className="max-w-full text-12"
           type="file"
           disabled={pending || !policy}
-          accept={policy ? Object.keys(policy.typesByExtension).join(",") : undefined}
+          accept={supportedTypes?.join(",") ?? (policy ? Object.keys(policy.typesByExtension).join(",") : undefined)}
           onChange={async (event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
@@ -41,6 +45,7 @@ export function FileAttachmentUpload({
             setError("");
             try {
               const contentType = attachmentContentType(file, policy);
+              if (supportedTypes && !supportedTypes.includes(contentType)) throw new Error("Choose a supported image.");
               await transfers.run(async (signal) => {
                 const bytes = await file.arrayBuffer();
                 signal.throwIfAborted();
@@ -73,12 +78,7 @@ export function FileAttachmentUpload({
           }}
         />
       </label>
-      {policy && (
-        <p className="text-12 text-secondary">
-          {Object.keys(policy.typesByExtension).join(", ")} · images up to {policy.imageMaxBytes / 1024 / 1024} MB ·
-          other files up to {policy.maxBytes / 1024 / 1024} MB
-        </p>
-      )}
+      {policy && <UploadPolicy policy={policy} supportedTypes={supportedTypes} />}
       {pending && (
         <div className="flex flex-wrap items-center gap-2">
           <p role="status" className="text-14">
@@ -95,5 +95,21 @@ export function FileAttachmentUpload({
         </p>
       )}
     </div>
+  );
+}
+
+function UploadPolicy({
+  policy,
+  supportedTypes,
+}: {
+  policy: FunctionReturnType<typeof api.assets.index.policy>;
+  supportedTypes?: readonly string[];
+}) {
+  return (
+    <p className="text-12 text-secondary">
+      {supportedTypes ? supportedTypes.join(", ") : Object.keys(policy.typesByExtension).join(", ")} · images up to{" "}
+      {policy.imageMaxBytes / 1024 / 1024} MB
+      {!supportedTypes && ` · other files up to ${policy.maxBytes / 1024 / 1024} MB`}
+    </p>
   );
 }
