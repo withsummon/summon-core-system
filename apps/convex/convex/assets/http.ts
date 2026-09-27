@@ -12,8 +12,11 @@ export const read = httpAction(async (ctx, request) => {
   if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers: cors });
   try {
+    const url = new URL(request.url);
+    const workspace = url.searchParams.get("workspace");
     const asset = await ctx.runQuery(internal.assets.index.download, {
-      assetId: new URL(request.url).pathname.slice("/assets/".length),
+      assetId: url.pathname.slice("/assets/".length),
+      ...(workspace ? { readWorkspaceId: workspace } : {}),
     });
     const blob = asset.storageId ? await ctx.storage.get(asset.storageId) : null;
     if (!blob) return new Response("Asset not found.", { status: 404, headers: cors });

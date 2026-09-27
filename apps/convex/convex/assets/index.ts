@@ -1,3 +1,5 @@
+import type { Id } from "../_generated/dataModel";
+import { publishAvatar } from "../identity/avatar_owner";
 import { publishProjectCover } from "../projects/cover_owner";
 import { publishWorkspaceLogo } from "../settings/logo_owner";
 import { draftAttachmentChanged } from "./draft_access";
@@ -22,10 +24,11 @@ export const uploadFields = {
 const upload = v.object(uploadFields);
 export async function prepareAsset(
   ctx: MutationCtx,
-  args: Infer<typeof upload>,
+  args: Omit<Infer<typeof upload>, "workspaceId"> & { workspaceId: Id<"workspaces"> | null },
   appearance?:
     | { purpose: "workspaceLogo"; workspaceLogoRevision: number }
     | { purpose: "projectCover"; projectCoverRevision: number }
+    | { purpose: "userAvatar"; avatarUserId: Id<"users">; avatarRevision: number }
 ) {
   const { user } = await requireAssetScope(ctx, { ...args, ...appearance }, true);
   validateIntent(args.name, args.contentType, args.size, args.sha256);
@@ -92,6 +95,7 @@ export const commit = internalMutation({
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
     if (asset.purpose === "workspaceLogo") await publishWorkspaceLogo(ctx, asset);
     if (asset.purpose === "projectCover") await publishProjectCover(ctx, asset);
+    if (asset.purpose === "userAvatar") await publishAvatar(ctx, asset);
     await ctx.db.patch(assetId, { status: "ready" });
     if (asset.draftId) await draftAttachmentChanged(ctx, asset.draftId);
     if (asset.taskId) {
@@ -116,17 +120,21 @@ export const get = query({
   handler: async (ctx, { assetId }) => descriptor((await requireAsset(ctx, assetId)).asset),
 });
 export const download = internalQuery({
-  args: { assetId: v.string() },
+  args: { assetId: v.string(), readWorkspaceId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const assetId = ctx.db.normalizeId("assets", args.assetId);
     if (!assetId) throw new ConvexError("Asset not found.");
-    return (await requireAsset(ctx, assetId)).asset;
+    const readWorkspaceId =
+      args.readWorkspaceId === undefined ? undefined : ctx.db.normalizeId("workspaces", args.readWorkspaceId);
+    if (readWorkspaceId === null) throw new ConvexError("Workspace not found.");
+    return (await requireAsset(ctx, assetId, false, readWorkspaceId)).asset;
   },
 });
 export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.purpose === "userAvatar") throw new ConvexError("Remove avatars through your profile.");
     if (asset.purpose === "workspaceLogo")
       throw new ConvexError("Remove workspace logos through workspace appearance.");
     if (asset.purpose === "projectCover") throw new ConvexError("Remove project covers through project appearance.");

@@ -1,4 +1,4 @@
-import { descriptor } from "../assets/access";
+import { descriptor, assetWorkspaceId } from "../assets/access";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -35,7 +35,7 @@ export async function replaceWorkspaceLogo(
 }
 export async function publishWorkspaceLogo(ctx: MutationCtx, asset: Doc<"assets">) {
   if (asset.workspaceLogoRevision === undefined) throw new ConvexError("Workspace logo revision is missing.");
-  const { workspace } = await requireLogoWrite(ctx, asset.workspaceId, asset.workspaceLogoRevision);
+  const { workspace } = await requireLogoWrite(ctx, assetWorkspaceId(asset), asset.workspaceLogoRevision);
   await replaceWorkspaceLogo(ctx, workspace, asset._id);
 }
 
