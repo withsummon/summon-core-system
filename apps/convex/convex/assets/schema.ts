@@ -12,6 +12,8 @@ export const assetScope = {
 export const assetTables = {
   assets: defineTable({
     ...assetScope,
+    workspaceLogoRevision: v.optional(v.number()),
+    purpose: v.optional(v.literal("workspaceLogo")),
     documentCopyId: v.optional(v.id("documentCopies")),
     // Required by the task attachment owner; absent on older, non-task assets.
     attachmentRevision: v.optional(v.number()),
@@ -30,6 +32,7 @@ export const assetTables = {
     ),
     expiresAt: v.number(),
   })
+    .index("by_workspace_purpose_status", ["workspaceId", "purpose", "status"])
     .index("by_draft", ["draftId"])
     .index("by_draft_status_expiry", ["draftId", "status", "expiresAt"])
     .index("by_storage", ["storageId"])
