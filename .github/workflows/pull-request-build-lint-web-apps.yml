@@ -21,9 +21,6 @@ jobs:
     name: check:format
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
     env:
       TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
       TURBO_SCM_HEAD: ${{ github.sha }}
@@ -65,9 +62,6 @@ jobs:
     name: Build packages
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
     env:
       TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
       TURBO_SCM_HEAD: ${{ github.sha }}
@@ -125,9 +119,6 @@ jobs:
     name: check:lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
     env:
       TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
       TURBO_SCM_HEAD: ${{ github.sha }}
