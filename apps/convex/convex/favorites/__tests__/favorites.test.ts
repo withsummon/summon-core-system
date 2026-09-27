@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import type { Id } from "../../_generated/dataModel";
 async function fixture() {
@@ -170,46 +170,6 @@ test("current target visibility removes revoked project titles without breaking 
     paginationOpts: { cursor: page.continueCursor, numItems: 1 },
   });
   expect(next.page[0].name).toBe("Visible");
-});
-test("saved-view migration is idempotent and reconciles removals without dual writers", async () => {
-  const f = await fixture();
-  const viewId = await f.t.run((ctx) =>
-    ctx.db.insert("savedViews", {
-      workspaceId: f.workspaceId,
-      projectId: null,
-      ownerId: f.userId,
-      name: "View",
-      description: "",
-      filters: {
-        match: "all",
-        statuses: [],
-        stateIds: [],
-        priorities: [],
-        assigneeIds: [],
-        labelIds: [],
-        creatorIds: [],
-        startDate: null,
-        targetDate: null,
-      },
-      isLocked: false,
-      updatedAt: Date.now(),
-      deletedAt: null,
-    })
-  );
-  const sourceId = await f.t.run((ctx) =>
-    ctx.db.insert("savedViewFavorites", { workspaceId: f.workspaceId, projectId: null, viewId, userId: f.userId })
-  );
-  expect((await f.owner.mutation(internal.favorites.migrations.backfill, { cursor: null })).inserted).toBe(1);
-  expect((await f.owner.mutation(internal.favorites.migrations.backfill, { cursor: null })).inserted).toBe(0);
-  await f.t.run((ctx) => ctx.db.delete(sourceId));
-  const replacement = await f.t.run((ctx) =>
-    ctx.db.insert("savedViewFavorites", { workspaceId: f.workspaceId, projectId: null, viewId, userId: f.userId })
-  );
-  expect((await f.owner.mutation(internal.favorites.migrations.backfill, { cursor: null })).relinked).toBe(1);
-  expect(await f.t.run((ctx) => ctx.db.query("favorites").collect())).toHaveLength(1);
-  expect((await f.owner.mutation(internal.favorites.migrations.reconcile, { cursor: null })).removed).toBe(0);
-  await f.t.run((ctx) => ctx.db.delete(replacement));
-  expect((await f.owner.mutation(internal.favorites.migrations.reconcile, { cursor: null })).removed).toBe(1);
 });
 
 test("moving a subtree updates height and a trashed ancestor does not silently swallow re-add", async () => {

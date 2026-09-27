@@ -52,7 +52,6 @@ import type * as documents_index from "../documents/index.js";
 import type * as documents_lifecycle from "../documents/lifecycle.js";
 import type * as favorites_access from "../favorites/access.js";
 import type * as favorites_index from "../favorites/index.js";
-import type * as favorites_migrations from "../favorites/migrations.js";
 import type * as favorites_reorder from "../favorites/reorder.js";
 import type * as favorites_views from "../favorites/views.js";
 import type * as favorites_write from "../favorites/write.js";
@@ -203,7 +202,6 @@ declare const fullApi: ApiFromModules<{
   "documents/lifecycle": typeof documents_lifecycle;
   "favorites/access": typeof favorites_access;
   "favorites/index": typeof favorites_index;
-  "favorites/migrations": typeof favorites_migrations;
   "favorites/reorder": typeof favorites_reorder;
   "favorites/views": typeof favorites_views;
   "favorites/write": typeof favorites_write;
