@@ -11,3 +11,7 @@ BDD covers cross-project creation and route identity, cycles across projects, re
 ## Local activation
 
 Backend `54412181ec` passed16 focused hierarchy/guest/lifecycle tests, native TypeScript7, scoped Oxc and exact-archive TypeScript checks, then finalized deployment to `http://127.0.0.1:3210`. The immutable archive excluded concurrent intake-discussion work. The task-detail UI was mounted only after that deployment and passed web TypeScript7/Oxc. Browser acceptance remains pending; remote runtime was not changed.
+
+## Local Chrome acceptance
+
+Parent review exercised the development app at `http://127.0.0.1:3010/core`: QADEL1 initially had no parent. Set parent selected the NSTAR project and NSTAR7; saving created the link. The parent link navigated to NSTAR7, and its child link navigated back to QADEL1 using the correct project. NSTAR7 retained its existing NSTAR6 parent. Removing the new parent link from QADEL1 restored Parent: None and left its existing Implements relationship unchanged. This verifies the local development journey only; it is not immutable-production or guest-browser acceptance.
