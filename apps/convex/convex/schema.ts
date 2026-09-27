@@ -1,3 +1,4 @@
+import { projectNetwork } from "./projects/network_schema";
 import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
 import { projectPersonalTables } from "./projects/schema";
@@ -72,6 +73,7 @@ export default defineSchema({
     description: v.string(),
     metadataRevision: v.number(),
     features: v.optional(projectFeatures),
+    network: v.optional(projectNetwork),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),

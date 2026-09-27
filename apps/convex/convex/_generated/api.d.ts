@@ -165,6 +165,8 @@ import type * as projects_features from "../projects/features.js";
 import type * as projects_index from "../projects/index.js";
 import type * as projects_lifecycle from "../projects/lifecycle.js";
 import type * as projects_navigation from "../projects/navigation.js";
+import type * as projects_network from "../projects/network.js";
+import type * as projects_network_schema from "../projects/network_schema.js";
 import type * as projects_order from "../projects/order.js";
 import type * as projects_order_owner from "../projects/order_owner.js";
 import type * as projects_settings from "../projects/settings.js";
@@ -398,6 +400,8 @@ declare const fullApi: ApiFromModules<{
   "projects/index": typeof projects_index;
   "projects/lifecycle": typeof projects_lifecycle;
   "projects/navigation": typeof projects_navigation;
+  "projects/network": typeof projects_network;
+  "projects/network_schema": typeof projects_network_schema;
   "projects/order": typeof projects_order;
   "projects/order_owner": typeof projects_order_owner;
   "projects/settings": typeof projects_settings;
