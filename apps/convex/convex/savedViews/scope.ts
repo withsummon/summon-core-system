@@ -7,6 +7,8 @@ export function projectReader(ctx: QueryCtx, workspaceId: Id<"workspaces">, user
     let result = cache.get(projectId);
     if (!result) {
       result = (async () => {
+        const workspace = await ctx.db.get(workspaceId);
+        if (!workspace || workspace.deletedAt != null) return null;
         const project = await ctx.db.get(projectId);
         if (!project || project.archived || project.deletedAt != null || project.workspaceId !== workspaceId)
           return null;

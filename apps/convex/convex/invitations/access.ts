@@ -26,6 +26,7 @@ export async function issuerAccess(
     .unique();
   if (
     !workspace ||
+    workspace.deletedAt != null ||
     !member?.active ||
     member.role === "guest" ||
     (rank[member.role] < rank[role] && projectId === null)

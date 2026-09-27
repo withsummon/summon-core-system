@@ -66,6 +66,8 @@ export async function taskCanRead(ctx: QueryCtx, task: Doc<"tasks">, userId: Id<
   const project = await ctx.db.get(task.projectId);
   if (!project || project.archived || project.deletedAt != null || project.workspaceId !== task.workspaceId)
     return false;
+  const ancestor = await ctx.db.get(task.workspaceId);
+  if (!ancestor || ancestor.deletedAt != null) return false;
   const workspace = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", task.workspaceId).eq("userId", userId))

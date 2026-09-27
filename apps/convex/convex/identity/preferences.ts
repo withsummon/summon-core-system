@@ -67,7 +67,9 @@ export const destination = query({
     const candidates = await Promise.all(
       memberships.filter((member) => member.active).map((member) => ctx.db.get(member.workspaceId))
     );
-    const workspaces = candidates.filter((workspace) => workspace !== null);
+    const workspaces = candidates
+      .filter((workspace) => workspace !== null)
+      .filter((workspace) => workspace.deletedAt == null);
     const selected = workspaces.find((workspace) => workspace._id === currentPreferences.lastWorkspaceId);
     const oldest = workspaces.reduce<(typeof workspaces)[number] | null>(
       (current, workspace) =>
