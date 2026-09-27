@@ -10,12 +10,12 @@ Preserved defaults: empty theme, language en, Sunday week start (0), docked app 
 
 ## Stored-data transition
 
-Existing profiles may omit `preferences` temporarily. `profile.get` returns the exact default preferences for those rows. All new profile rows persist defaults. Internal `identity.migrations.preferences({cursor})` reads at most 100 rows/1 MiB per page, fills only missing preferences, and reports processed/changed/isDone/continueCursor. Filling the already-observed default does not increment profile revision. Explicit values are never overwritten.
+The additive checkpoint ddcd deployed on both hosts. Parent verified complete backfills: local processed one/changed one then zero changes; remote zero rows/changes on both passes. Receipts are `/tmp/summon-migration-control/preferences-{local,remote}-{1,2}.json`.
 
-Removal condition: parent records complete backfill and zero-change second scans on both local and remote deployments, then makes preferences required and removes this compatibility read and migration entrypoint. No deployment or backfill was run by this slice.
+The final schema now requires preferences for every persisted profile. The missing-preferences read fallback and internal migration entrypoint were removed. Absent profile rows still use canonical defaultProfile until the first save; all new rows persist defaults. One migration-only test was removed because its legacy missing-field fixture is now rejected by the required schema; private defaults, shared revision, and validation behavior tests remain. This source cleanup has not itself been deployed by this agent.
 
 ## Verification and remaining scope
 
-Eleven profile/preferences behavior tests pass, including private defaults, cross-surface CAS, anonymous access, membership revocation, onboarding without authority, invalid-value atomicity, and convergent backfill preserving saved values. Native TypeScript 7 and scoped Oxlint/format pass. No browser or deployed runtime claim is made.
+Thirteen identity behavior tests pass, including private defaults, cross-surface CAS, anonymous access, membership revocation, onboarding without authority, invalid-value atomicity. Native TypeScript 7 and scoped Oxlint/format pass. No browser or deployed runtime claim is made.
 
 Frontend preference controls and inherited profile REST aliases are not switched here. Billing/company/goals/mobile/avatar/marketing-consent metadata and credentials/email/provider/account lifecycle remain separate parity work. Theme and onboarding flags are stored correctly but do not themselves wire the inherited application bootstrap to Convex.

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import { defaultPreferences } from "../preferences_fields";
 
@@ -89,26 +89,3 @@ test.each([
   expect((await owner.query(api.identity.profile.get, {})).revision).toBe(0);
 });
 
-test("bounded backfill preserves stored preferences and revisions and converges", async () => {
-  const { t, owner, userId } = await workspaceJourney();
-  await t.run((ctx) =>
-    ctx.db.insert("userProfiles", { userId, firstName: "Old", lastName: "Profile", timezone: "UTC", revision: 4 })
-  );
-  expect((await owner.query(api.identity.profile.get, {})).preferences).toEqual(defaultPreferences);
-  expect(await t.mutation(internal.identity.migrations.preferences, { cursor: null })).toMatchObject({
-    processed: 1,
-    changed: 1,
-    isDone: true,
-  });
-  const preferences = {
-    ...defaultPreferences,
-    language: "id",
-    theme: { theme: "custom", primary: "#abc", darkPalette: true },
-  };
-  await owner.mutation(api.identity.preferences.save, { expectedRevision: 4, preferences });
-  expect(await t.mutation(internal.identity.migrations.preferences, { cursor: null })).toMatchObject({
-    changed: 0,
-    isDone: true,
-  });
-  expect(await owner.query(api.identity.profile.get, {})).toMatchObject({ firstName: "Old", revision: 5, preferences });
-});

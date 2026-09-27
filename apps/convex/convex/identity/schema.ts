@@ -11,7 +11,7 @@ export const identityTables = {
   userProfiles: defineTable({
     userId: v.id("users"),
     ...profileFields,
-    preferences: v.optional(preferences),
+    preferences,
     revision: v.number(),
   }).index("by_user", ["userId"]),
 };

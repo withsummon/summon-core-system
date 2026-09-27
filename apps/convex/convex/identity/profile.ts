@@ -1,7 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
-import { defaultPreferences } from "./preferences_fields";
 import { profileFields } from "./schema";
 import { text } from "../commercial/validation";
 import { validateTimezone } from "../settings/timezone";
@@ -25,7 +24,7 @@ export const get = query({
       lastName: stored.lastName,
       timezone: stored.timezone,
       revision: stored.revision,
-      preferences: stored.preferences ?? defaultPreferences,
+      preferences: stored.preferences,
     };
   },
 });
