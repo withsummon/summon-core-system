@@ -106,6 +106,7 @@ import type * as meetings_summary_validation from "../meetings/summary/validatio
 import type * as meetings_tasks from "../meetings/tasks.js";
 import type * as modules_access from "../modules/access.js";
 import type * as modules_index from "../modules/index.js";
+import type * as modules_links from "../modules/links.js";
 import type * as modules_members from "../modules/members.js";
 import type * as modules_tasks from "../modules/tasks.js";
 import type * as navigation_address from "../navigation/address.js";
@@ -282,6 +283,7 @@ declare const fullApi: ApiFromModules<{
   "meetings/tasks": typeof meetings_tasks;
   "modules/access": typeof modules_access;
   "modules/index": typeof modules_index;
+  "modules/links": typeof modules_links;
   "modules/members": typeof modules_members;
   "modules/tasks": typeof modules_tasks;
   "navigation/address": typeof navigation_address;

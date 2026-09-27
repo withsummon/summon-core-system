@@ -1,0 +1,9 @@
+# Module links
+
+The registered inherited `ModuleLinkViewSet` uses `ProjectEntityPermission`: active members may read and members/admins may write. Its queryset binds workspace, project and module. Native links reuse the current module access/editability owner, bind every mutation to the exact module and link ID, and capture the link metadata timestamp. Archived modules keep readable links but disallow edits; module recovery keeps the same link IDs.
+
+Inherited deletion comes through Django's `AuditModel` soft-delete default, not a permanent-delete override. Native removal therefore retains a tombstone (`deletedAt`), hides it from active indexed results and allows recreating the same URL. No inherited module-link restore endpoint was found, so the UI confirms removal without advertising recovery. This new table had no deployed rows; required lifecycle fields need no backfill.
+
+URLs and metadata use the existing quick-link validation owner. Scheme-less HTTP normalization, duplicate active URLs, unsafe schemes and metadata size are handled there/the module boundary. The UI preserves captured opaque metadata during title/URL edits. New links default metadata to an empty object. Forms remain mounted when a module becomes read-only, and show authoritative mutation conflicts without refreshing away the draft.
+
+Three backend behavior tests cover normalization, duplicate URL, metadata preservation, stale edit/removal, exact-module binding, current guest read-only access, foreign access denial, retained removal tombstones, module archive/trash/restore and unsafe URL rejection. Browser acceptance is pending activation. Expected journeys: add/open/edit link, stale two-tab edit, cancel/confirm removal, same-URL recreation, guest controls hidden, and archive/recovery preservation. Inspect desktop and 390-pixel widths with a long URL.

@@ -17,6 +17,18 @@ export const moduleFields = {
   leadId: v.union(v.id("users"), v.null()),
 };
 export const moduleTables = {
+  moduleLinks: defineTable({
+    moduleId: v.id("modules"),
+    url: v.string(),
+    title: v.union(v.string(), v.null()),
+    metadata: v.any(),
+    deletedAt: v.union(v.number(), v.null()),
+    createdBy: v.id("users"),
+    updatedBy: v.id("users"),
+    updatedAt: v.number(),
+  })
+    .index("by_module", ["moduleId", "deletedAt"])
+    .index("by_module_url", ["moduleId", "url", "deletedAt"]),
   modules: defineTable({
     ...moduleFields,
     description: v.string(),
