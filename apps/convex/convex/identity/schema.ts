@@ -45,6 +45,7 @@ export const identityTables = {
   userProfiles: defineTable({
     userId: v.id("users"),
     ...profileFields,
+    marketingEmailConsent: v.optional(v.boolean()),
     preferences,
     revision: v.number(),
   }).index("by_user", ["userId"]),
