@@ -208,9 +208,15 @@ import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
+import type * as commercial_member_directory from "../commercial/member_directory.js";
+
+import type * as documents_mentions from "../documents/mentions.js";
+
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "documents/mentions": typeof documents_mentions;
+  "commercial/member_directory": typeof commercial_member_directory;
   "assets/access": typeof assets_access;
   "assets/attachment_lifecycle": typeof assets_attachment_lifecycle;
   "assets/cleanup": typeof assets_cleanup;
