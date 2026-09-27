@@ -70,10 +70,16 @@ import type * as identity_preferences_fields from "../identity/preferences_field
 import type * as identity_mail_availability from "../identity/mail/availability.js";
 import type * as identity_mail_config from "../identity/mail/config.js";
 import type * as identity_mail_provider from "../identity/mail/provider.js";
+import type * as identity_oauth_availability from "../identity/oauth/availability.js";
+import type * as identity_oauth_config from "../identity/oauth/config.js";
+import type * as identity_oauth_providers from "../identity/oauth/providers.js";
 import type * as identity_profile from "../identity/profile.js";
 import type * as identity_mail_availability from "../identity/mail/availability.js";
 import type * as identity_mail_config from "../identity/mail/config.js";
 import type * as identity_mail_provider from "../identity/mail/provider.js";
+import type * as identity_oauth_availability from "../identity/oauth/availability.js";
+import type * as identity_oauth_config from "../identity/oauth/config.js";
+import type * as identity_oauth_providers from "../identity/oauth/providers.js";
 import type * as identity_profile_owner from "../identity/profile_owner.js";
 import type * as identity_session from "../identity/session.js";
 import type * as intakes_access from "../intakes/access.js";
@@ -241,6 +247,9 @@ declare const fullApi: ApiFromModules<{
   "identity/mail/availability": typeof identity_mail_availability;
   "identity/mail/config": typeof identity_mail_config;
   "identity/mail/provider": typeof identity_mail_provider;
+  "identity/oauth/availability": typeof identity_oauth_availability;
+  "identity/oauth/config": typeof identity_oauth_config;
+  "identity/oauth/providers": typeof identity_oauth_providers;
   "identity/profile": typeof identity_profile;
   "identity/profile_owner": typeof identity_profile_owner;
   "identity/session": typeof identity_session;
