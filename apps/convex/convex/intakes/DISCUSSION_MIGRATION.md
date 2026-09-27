@@ -57,3 +57,18 @@ select the current generated intake/task destination and retain focused comments
 Changing intake selection clears the previous focused-comment selector. No parallel
 comment UI or reaction state machine was added. Browser acceptance and remote
 activation remain separate gates.
+
+## Primary Chrome acceptance — 2026-09-27
+
+On dev3010, the primary created synthetic NSTAR-8, “Intake discussion browser QA”
+(task `k975rn2y2yc9wz57561kyjj1qx8f7qhv`). While Pending/Triage, it posted
+“Triage discussion persists before admission.” and added a 😎 comment reaction.
+Accepting the submission retained the same task number, comment, reaction and
+subscription. Open project task reached the same task ID with that discussion.
+
+For recoverable cleanup, the accepted intake bridge was removed while the ordinary
+task remained available. The task was then moved to Trash; the primary verified
+“NSTAR-8 Intake discussion browser QA” in the Task trash DOM. No hard deletion
+was performed. This proves one-user discussion/admission continuity. Peer/guest
+sessions and notification delivery were not browser-tested in this journey;
+those boundaries retain module BDD evidence only. Remote acceptance is unclaimed.
