@@ -14,6 +14,7 @@ const relationLabels = { blocks: "Blocks", blocked_by: "Blocked by", relates_to:
 function TaskLink({ task }: { task: Task }) {
   const [params] = useSearchParams();
   const next = new URLSearchParams(params);
+  next.delete("comment");
   next.set("task", task._id);
   next.delete("taskView");
   return (

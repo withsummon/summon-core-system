@@ -56,7 +56,7 @@ function TaskDetailContent({
           {project.identifier}-{task.sequence}
         </span>
         <div className="flex flex-wrap gap-2">
-          {task.archivedAt === null && task.deletedAt === null && <TaskSubscription taskId={task._id} />}
+          {task.deletedAt === null && <TaskSubscription taskId={task._id} />}
           {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
         </div>
       </header>

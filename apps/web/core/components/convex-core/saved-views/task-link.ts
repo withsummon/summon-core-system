@@ -3,6 +3,7 @@ export function savedViewTaskLink(params: URLSearchParams, projectIdentifier: st
   const next = new URLSearchParams(params);
   next.set("module", "projects");
   next.set("project", projectIdentifier);
+  next.delete("comment");
   next.set("task", taskId);
   for (const key of [
     "projectView",

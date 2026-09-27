@@ -31,6 +31,7 @@ export function CycleTasks({ cycle }: { cycle: Cycle }) {
                     next.delete("projectView");
                     next.delete("taskView");
                     next.delete("cycle");
+                    next.delete("comment");
                     next.set("task", row.taskId);
                     return next;
                   })
