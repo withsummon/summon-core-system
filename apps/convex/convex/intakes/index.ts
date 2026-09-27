@@ -12,7 +12,6 @@ import { initialProperties, parseTaskText } from "../tasks/properties";
 import { priority } from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
-import { recordTaskEvent } from "../notifications/delivery";
 import { requireTask } from "../tasks/access";
 import { intakeCapabilities, requireIntakeTask, requireIntakeRevision } from "./access";
 import { intakeStatus } from "./schema";
@@ -232,17 +231,9 @@ export const decide = mutation({
         stateId: state._id,
         status: state.status,
         completedAt: state.status === "done" ? Date.now() : null,
-        updatedAt: Math.max(Date.now(), task.updatedAt + 1),
       });
-      await recordTaskEvent(ctx, {
-        workspaceId: task.workspaceId,
-        projectId: task.projectId,
-        taskId: task._id,
-        actorId: access.user._id,
-        kind: "status_changed",
-        status: state.status,
-      });
-    } else await taskChanged(ctx, task, access.user._id);
+    }
+    await taskChanged(ctx, task, access.user._id);
     await ctx.db.patch(intake._id, {
       status: args.status,
       snoozedUntil: args.snoozedUntil,

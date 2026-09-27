@@ -1,4 +1,4 @@
-import { recordTaskEvent } from "../notifications/delivery";
+import { taskChanged } from "./revision";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -13,14 +13,6 @@ export async function changeTaskStatus(ctx: MutationCtx, args: { taskId: Id<"tas
     status: args.status,
     stateId: null,
     completedAt: args.status === "done" ? Date.now() : null,
-    updatedAt: Math.max(Date.now(), task.updatedAt + 1),
   });
-  await recordTaskEvent(ctx, {
-    workspaceId: task.workspaceId,
-    projectId: task.projectId,
-    taskId: task._id,
-    actorId: user._id,
-    kind: "status_changed",
-    status: args.status,
-  });
+  await taskChanged(ctx, task, user._id);
 }

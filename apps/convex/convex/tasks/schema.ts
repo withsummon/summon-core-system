@@ -41,6 +41,27 @@ export const relationKind = v.union(
   v.literal("finish_before"),
   v.literal("implemented_by")
 );
+const activityMember = v.object({ id: v.id("users"), name: v.union(v.string(), v.null()) });
+const activityLabel = v.object({ id: v.id("taskLabels"), name: v.union(v.string(), v.null()) });
+const activityState = v.object({
+  status: taskStatus,
+  id: v.union(v.id("taskStates"), v.null()),
+  name: v.union(v.string(), v.null()),
+});
+const activityEstimate = v.union(
+  v.null(),
+  v.object({ id: v.id("estimatePoints"), value: v.union(v.string(), v.null()) })
+);
+export const taskChange = v.union(
+  v.object({ field: v.literal("title"), before: v.string(), after: v.string() }),
+  v.object({ field: v.literal("priority"), before: priority, after: priority }),
+  v.object({ field: v.literal("state"), before: activityState, after: activityState }),
+  v.object({ field: v.literal("startDate"), before: taskProperties.startDate, after: taskProperties.startDate }),
+  v.object({ field: v.literal("targetDate"), before: taskProperties.targetDate, after: taskProperties.targetDate }),
+  v.object({ field: v.literal("assignees"), added: v.array(activityMember), removed: v.array(activityMember) }),
+  v.object({ field: v.literal("labels"), added: v.array(activityLabel), removed: v.array(activityLabel) }),
+  v.object({ field: v.literal("estimate"), before: activityEstimate, after: activityEstimate })
+);
 export const taskTables = {
   taskCommentReactions: defineTable({
     commentId: v.id("taskComments"),
@@ -134,6 +155,7 @@ export const taskTables = {
     taskId: v.id("tasks"),
     actorId: v.id("users"),
     commentId: v.optional(v.id("taskComments")),
+    changes: v.optional(v.array(taskChange)),
     kind: v.union(
       v.literal("created"),
       v.literal("status_changed"),

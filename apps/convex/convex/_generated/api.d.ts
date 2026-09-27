@@ -180,6 +180,7 @@ import type * as stickies_content from "../stickies/content.js";
 import type * as stickies_index from "../stickies/index.js";
 import type * as tasks_access from "../tasks/access.js";
 import type * as tasks_activity from "../tasks/activity.js";
+import type * as tasks_activity_changes from "../tasks/activity_changes.js";
 import type * as tasks_assignees from "../tasks/assignees.js";
 import type * as tasks_bulk_memberships from "../tasks/bulk_memberships.js";
 import type * as tasks_bulk_properties from "../tasks/bulk_properties.js";
@@ -419,6 +420,7 @@ declare const fullApi: ApiFromModules<{
   "stickies/index": typeof stickies_index;
   "tasks/access": typeof tasks_access;
   "tasks/activity": typeof tasks_activity;
+  "tasks/activity_changes": typeof tasks_activity_changes;
   "tasks/assignees": typeof tasks_assignees;
   "tasks/bulk_memberships": typeof tasks_bulk_memberships;
   "tasks/bulk_properties": typeof tasks_bulk_properties;

@@ -22,6 +22,7 @@ export const list = query({
           at: event._creationTime,
           kind: event.kind,
           status: event.status,
+          changes: event.changes ?? null,
           actorName: actor?.name ?? null,
         };
       })
