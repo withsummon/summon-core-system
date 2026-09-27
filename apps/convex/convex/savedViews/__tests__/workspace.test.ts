@@ -109,6 +109,7 @@ test("selected taxonomy metadata and directories redact revoked projects without
     data: { name: "Secret state", description: "", color: "", status: "todo", sortOrder: 0, isDefault: true },
   });
   const labelId = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId: f.projectId,
     data: { name: "Secret label", description: "", color: "", sortOrder: 0 },
   });
@@ -232,6 +233,7 @@ test("workspace definitions reject cross-workspace taxonomy and reuse canonical 
     identifier: "OTH",
   });
   const labelId = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId,
     data: { name: "Foreign", description: "", color: "", sortOrder: 0 },
   });

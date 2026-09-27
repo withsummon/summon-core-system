@@ -27,6 +27,7 @@ async function fixture() {
     identifier: "TAX",
   });
   const labelId = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId,
     data: { name: "Reference", description: "", color: "blue", sortOrder: 0 },
   });
@@ -106,6 +107,7 @@ test("foreign-workspace and newly guessed unavailable labels cannot be attached"
     identifier: "FOREIGN",
   });
   const foreignLabelId = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId: foreignProjectId,
     data: { name: "Hidden", description: "", color: "", sortOrder: 0 },
   });

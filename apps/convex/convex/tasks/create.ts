@@ -1,3 +1,4 @@
+import { requireUsableLabel } from "./label_access";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
@@ -34,6 +35,7 @@ export async function createTask(
   html?: string
 ) {
   const { title, description, status: nextStatus, ...data } = fields;
+  await Promise.all(fields.labelIds.map((id) => requireUsableLabel(ctx, id)));
   const taskId = await ctx.db.insert("tasks", {
     archivedAt: null,
     deletedAt: null,

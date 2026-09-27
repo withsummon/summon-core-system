@@ -1,3 +1,4 @@
+import { requireUsableLabel } from "../label_access";
 import { validateEstimatePoint } from "../../estimates/access";
 import { liveDraftAssets } from "../../assets/draft_access";
 import { ConvexError, v } from "convex/values";
@@ -52,6 +53,7 @@ export const commit = internalMutation({
           throw new ConvexError("Copied bytes do not match the source.");
       })
     );
+    await Promise.all(draft.properties.labelIds.map((id) => requireUsableLabel(ctx, id)));
     const { _id, _creationTime, ...fields } = draft;
     const draftId = await ctx.db.insert("taskDrafts", { ...fields, updatedAt: Date.now() });
     await Promise.all(

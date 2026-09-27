@@ -1,3 +1,4 @@
+import { requireUsableLabel } from "../tasks/label_access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -46,7 +47,7 @@ export const set = mutation({
       .unique();
     if (args.assigned) {
       if (existing) return;
-      const label = await ctx.db.get(args.labelId);
+      const label = await requireUsableLabel(ctx, args.labelId);
       const read = projectReader(ctx, document.workspaceId, user._id);
       if (!label || label.workspaceId !== document.workspaceId || !(await read(label.projectId)))
         throw new ConvexError("Label is unavailable.");

@@ -317,10 +317,12 @@ test("state and label clauses use any selected value within each field while all
     data: { name: "Ready", description: "", color: "", status: "todo", sortOrder: 0, isDefault: true },
   });
   const labelId = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId: f.projectId,
     data: { name: "Match", description: "", color: "", sortOrder: 0 },
   });
   const otherLabel = await f.owner.mutation(api.tasks.labels.save, {
+    parentId: null,
     projectId: f.projectId,
     data: { name: "Other", description: "", color: "", sortOrder: 1 },
   });
