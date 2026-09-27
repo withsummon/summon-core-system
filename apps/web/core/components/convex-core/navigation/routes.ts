@@ -3,24 +3,21 @@ import type { api } from "@summon/convex/api";
 type Preference = FunctionReturnType<typeof api.navigation.preferences.list>["preferences"][number];
 export const preferenceLabels: Record<Preference["key"], string> = {
   views: "Views",
-  active_cycles: "Project cycles",
+  active_cycles: "Workspace cycles",
   analytics: "Reports",
   drafts: "Drafts",
   your_work: "My tasks",
   archives: "Archived projects",
   stickies: "Stickies",
 };
-export function preferenceRoute(workspace: string, key: Preference["key"], project?: string) {
+export function preferenceRoute(workspace: string, key: Preference["key"]) {
   const params = new URLSearchParams({ workspace });
   switch (key) {
     case "views":
       params.set("module", "views");
       break;
     case "active_cycles":
-      if (!project) return null;
-      params.set("module", "projects");
-      params.set("project", project);
-      params.set("projectView", "cycles");
+      params.set("module", "cycles");
       break;
     case "analytics":
       params.set("module", "reports");

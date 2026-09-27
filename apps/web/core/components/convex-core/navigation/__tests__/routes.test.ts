@@ -4,11 +4,11 @@ import { preferenceRoute, reorderPreferences } from "../routes.ts";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
-test("personal shortcuts target actual native owners and project cycles requires project context", () => {
-  assert.equal(preferenceRoute("north", "active_cycles"), null);
-  const cycle = new URL(preferenceRoute("north", "active_cycles", "NSTAR")!, "http://localhost");
-  assert.equal(cycle.searchParams.get("projectView"), "cycles");
-  assert.equal(cycle.searchParams.get("project"), "NSTAR");
+test("personal shortcuts target actual native owners and workspace cycles needs no project selection", () => {
+  const cycle = new URL(preferenceRoute("north", "active_cycles"), "http://localhost");
+  assert.equal(cycle.searchParams.get("module"), "cycles");
+  assert.equal(cycle.searchParams.has("projectView"), false);
+  assert.equal(cycle.searchParams.has("project"), false);
   const draft = new URL(preferenceRoute("north", "drafts")!, "http://localhost");
   assert.equal(draft.searchParams.get("taskSection"), "drafts");
   const mine = new URL(preferenceRoute("north", "your_work")!, "http://localhost");

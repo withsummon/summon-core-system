@@ -1,5 +1,6 @@
+import { useCycleClock } from "./use-cycle-clock";
 import { FavoriteToggle } from "../favorites/toggle";
-import { Component, useEffect, useState } from "react";
+import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -17,27 +18,7 @@ export function Cycles({ project }: { project: Project }) {
   const [params, setParams] = useSearchParams();
   const selected = params.get("cycle");
   const deleted = params.get("cycleView") === "trash";
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    const refresh = () => {
-      clearTimeout(timer);
-      const current = Date.now();
-      setNow(current);
-      timer = setTimeout(refresh, 60_000 - (current % 60_000));
-    };
-    const resume = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    refresh();
-    window.addEventListener("focus", resume);
-    document.addEventListener("visibilitychange", resume);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("focus", resume);
-      document.removeEventListener("visibilitychange", resume);
-    };
-  }, []);
+  const [now, refreshClock] = useCycleClock();
   const cycles = usePaginatedQuery(api.cycles.index.list, selected ? "skip" : { projectId: project._id, deleted }, {
     initialNumItems: 30,
   });
@@ -61,7 +42,7 @@ export function Cycles({ project }: { project: Project }) {
           cycleId={selected}
           project={project}
           now={now}
-          onRefresh={() => setNow(Date.now())}
+          onRefresh={refreshClock}
           onBack={() => select(null)}
         />
       </CycleBoundary>
@@ -99,7 +80,7 @@ export function Cycles({ project }: { project: Project }) {
             Trash
           </Button>
         </nav>
-        <Button variant="secondary" onClick={() => setNow(Date.now())}>
+        <Button variant="secondary" onClick={refreshClock}>
           Refresh phases
         </Button>
       </div>

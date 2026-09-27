@@ -20,6 +20,7 @@ import {
   ChartNoAxesCombined,
   Settings,
   Menu,
+  Repeat2,
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
@@ -27,6 +28,7 @@ import { Favorites } from "./favorites";
 const modules = [
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "tasks", label: "Tasks", icon: ListTodo },
+  { id: "cycles", label: "Cycles", icon: Repeat2 },
   { id: "views", label: "Views", icon: LayoutList },
   { id: "stickies", label: "Stickies", icon: StickyNote },
   { id: "clients", label: "Clients", icon: Users },
