@@ -54,3 +54,19 @@ all 52 frontend tests and native web TypeScript 7 pass. The existing unordered
 project chooser remains active pending the separate D01 both-host backfill.
 Browser acceptance and remote deployment are not yet claimed. No inherited
 route is retired.
+
+## Primary Chrome acceptance
+
+On local3010, saved Cycles as Northstar Release's default and moved Modules to
+More. The existing explicit module detail remained open. Switching to QA Delivery
+Engagement showed its Tasks list; switching back to Northstar Release opened Cycles.
+More exposed Modules and its click opened the module list. Explicit Tasks set
+projectView=tasks and displayed tasks despite the Cycles preference. The actual
+Overview destination rendered ProjectOverview.
+
+At390px the navigation and customization form wrapped without horizontal overflow
+(document width390); select, checkboxes, Save/Cancel/Reset remained visible.
+Reset restored the original no-override state and Modules returned to primary
+navigation. Temporary viewport override was cleared. This is local dev acceptance;
+private cross-user/guest/revoked behavior remains BDD evidence. Remote activation
+and underlying project-order initialization are separate gates.
