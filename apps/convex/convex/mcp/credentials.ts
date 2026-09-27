@@ -7,7 +7,7 @@ import type { Infer } from "convex/values";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { pageBudget, text } from "../commercial/validation";
 import { credentialFields, permission as grantPermission } from "./schema";
-import { audit, credentialPermission, requireCredential } from "./access";
+import { audit, credentialCapabilities, credentialPermission, requireCredential } from "./access";
 const metadata = v.object(credentialFields);
 async function validate(ctx: QueryCtx, workspaceId: Id<"workspaces">, data: Infer<typeof metadata>) {
   const access = await requireWorkspace(ctx, workspaceId, true);
@@ -56,14 +56,17 @@ export const createEncrypted = internalMutation({
 export const get = query({
   args: { credentialId: v.id("mcpCredentials") },
   handler: async (ctx, args) => {
-    const { credential, permission } = await requireCredential(ctx, args.credentialId);
-    return { ...credential, permission };
+    const { credential, permission, canWrite, canUse, canManage, canReveal } = await requireCredential(
+      ctx,
+      args.credentialId
+    );
+    return { ...credential, permission, canWrite, canUse, canManage, canReveal };
   },
 });
 export const list = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const { user, member: workspaceMember } = await requireWorkspace(ctx, args.workspaceId);
     const result = await ctx.db
       .query("mcpCredentials")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
@@ -74,6 +77,7 @@ export const list = query({
         if (credential.status === "deleted") return null;
         const permission = await credentialPermission(ctx, credential, user._id);
         if (!permission) return null;
+        let projectRole: "admin" | "member" | "guest" | null = null;
         const projectId = credential.projectId;
         if (projectId) {
           const project = await ctx.db.get(projectId);
@@ -82,8 +86,13 @@ export const list = query({
             .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", user._id))
             .unique();
           if (!project || project.archived || !member?.active) return null;
+          projectRole = member.role;
         }
-        return { ...credential, permission };
+        return {
+          ...credential,
+          permission,
+          ...credentialCapabilities(workspaceMember.role, projectRole, permission, credential.status),
+        };
       })
     );
     return { ...result, page: available.filter((row) => row !== null) };
@@ -164,7 +173,10 @@ export const resolve = query({
   handler: async (ctx, args) => {
     const credentialId = ctx.db.normalizeId("mcpCredentials", args.credentialId);
     if (!credentialId) throw new ConvexError("Credential not found.");
-    const { credential, permission } = await requireCredential(ctx, credentialId);
-    return { ...credential, permission };
+    const { credential, permission, canWrite, canUse, canManage, canReveal } = await requireCredential(
+      ctx,
+      credentialId
+    );
+    return { ...credential, permission, canWrite, canUse, canManage, canReveal };
   },
 });

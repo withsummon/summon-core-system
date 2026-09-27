@@ -18,11 +18,18 @@ export async function requireCredential(
   const credential = await ctx.db.get(credentialId);
   if (!credential || credential.status === "deleted") throw new ConvexError("Credential not found.");
   const scope = await requireWorkspace(ctx, credential.workspaceId, access !== "view");
-  if (credential.projectId) await requireProject(ctx, credential.projectId, access !== "view");
+  const projectAccess = credential.projectId
+    ? await requireProject(ctx, credential.projectId, access !== "view")
+    : null;
   const granted = await credentialPermission(ctx, credential, scope.user._id);
   if (!granted || (access === "manage" && granted !== "manage") || (access === "use" && granted === "view"))
     throw new ConvexError("Credential access denied.");
-  return { ...scope, credential, permission: granted };
+  return {
+    ...scope,
+    credential,
+    permission: granted,
+    ...credentialCapabilities(scope.member.role, projectAccess?.projectMember.role ?? null, granted, credential.status),
+  };
 }
 export async function audit(
   ctx: MutationCtx,
@@ -40,4 +47,19 @@ export async function audit(
     invocationId,
     memberId,
   });
+}
+
+export function credentialCapabilities(
+  workspaceRole: Doc<"workspaceMembers">["role"],
+  projectRole: Doc<"projectMembers">["role"] | null,
+  permission: "view" | "use" | "manage",
+  status: Doc<"mcpCredentials">["status"]
+) {
+  const canWrite = workspaceRole !== "guest" && projectRole !== "guest";
+  return {
+    canWrite,
+    canUse: canWrite && permission !== "view" && status === "active",
+    canManage: canWrite && permission === "manage",
+    canReveal: workspaceRole !== "guest" && permission !== "use",
+  };
 }

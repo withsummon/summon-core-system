@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { requireUser } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { requireCredential, audit } from "./access";
-import { validateTool } from "./tools";
+import { validateTool, toolCapabilities } from "./tools";
 async function requireInvocation(ctx: QueryCtx, invocationId: Id<"mcpInvocations">) {
   const invocation = await ctx.db.get(invocationId);
   if (!invocation) throw new ConvexError("Invocation not found.");
@@ -139,5 +139,13 @@ export const fail = internalMutation({
           : "The MCP request failed. Check access and integration configuration.",
     });
     await audit(ctx, credential, user._id, status, invocation._id);
+  },
+});
+
+export const capabilities = query({
+  args: { credentialId: v.id("mcpCredentials") },
+  handler: async (ctx, args) => {
+    const { credential } = await requireCredential(ctx, args.credentialId, "use");
+    return { tools: toolCapabilities(credential), configured: Boolean(process.env.SUMMON_MCP_URL) };
   },
 });

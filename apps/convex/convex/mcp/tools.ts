@@ -56,13 +56,10 @@ export function validateTool(
   if (!isWrite && !read[tool]?.includes(args.action)) throw new ConvexError("Tool or action is not allowlisted.");
   if (args.workspace_slug !== undefined && args.workspace_slug !== scope.remoteWorkspaceSlug)
     throw new ConvexError("Tool workspace does not match the credential.");
-  if (
-    scope.remoteProjectId &&
-    (args.project_id !== scope.remoteProjectId || (tool === "project" && args.action !== "retrieve"))
-  )
+  if (scope.remoteProjectId && args.project_id !== scope.remoteProjectId)
     throw new ConvexError("Tool project does not match the credential.");
-  if (scope.remoteProjectId && tool === "member" && args.action !== "list_project")
-    throw new ConvexError("This member action is outside the credential project scope.");
+  if (!scopeAllowsAction(tool, args.action, scope.remoteProjectId))
+    throw new ConvexError("This action is outside the credential project scope.");
   args.workspace_slug = scope.remoteWorkspaceSlug;
   return { argumentsJson: JSON.stringify(args), write: isWrite };
 }
@@ -76,4 +73,22 @@ export function redact(value: unknown, secret: string): unknown {
       sensitive.has(key.toLowerCase()) ? "[redacted]" : redact(item, secret),
     ])
   );
+}
+
+function scopeAllowsAction(tool: string, action: string, projectId: string | null) {
+  if (!projectId) return true;
+  if (tool === "project") return action === "retrieve";
+  if (tool === "member") return action === "list_project";
+  return true;
+}
+export function toolCapabilities(scope: { remoteProjectId: string | null }) {
+  return [...new Set([...Object.keys(read), ...Object.keys(write)])]
+    .map((tool) => ({
+      tool,
+      actions: [
+        ...(read[tool] ?? []).map((action) => ({ action, write: false })),
+        ...(write[tool] ?? []).map((action) => ({ action, write: true })),
+      ].filter(({ action }) => scopeAllowsAction(tool, action, scope.remoteProjectId)),
+    }))
+    .filter((tool) => tool.actions.length > 0);
 }
