@@ -1,3 +1,4 @@
+import { validateProjectMetadata } from "./metadata_fields";
 import { canAdministerProject } from "./administration";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -33,10 +34,13 @@ export const save = mutation({
     const { project, projectMember } = await requireProject(ctx, args.projectId, true);
     if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can edit project settings.");
     const metadataRevision = checkRevision(project, args.expectedRevision);
-    const name = args.name.trim();
-    if (!name || name.length > 120) throw new ConvexError("Enter a project name of up to 120 characters.");
-    if (args.description.length > 20000) throw new ConvexError("Description must contain at most 20,000 characters.");
-    await ctx.db.patch(project._id, { name, description: args.description, metadataRevision });
+    const fields = await validateProjectMetadata(
+      ctx,
+      project.workspaceId,
+      { ...args, identifier: project.identifier },
+      project._id
+    );
+    await ctx.db.patch(project._id, { ...fields, metadataRevision });
   },
 });
 export const archived = query({

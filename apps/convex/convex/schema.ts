@@ -76,6 +76,7 @@ export default defineSchema({
     features: v.optional(projectFeatures),
     network: v.optional(projectNetwork),
     logoProps: v.optional(projectLogoProps),
+    leadId: v.optional(v.union(v.id("users"), v.null())),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
@@ -83,7 +84,8 @@ export default defineSchema({
     deletedAt: v.optional(v.union(v.number(), v.null())),
   })
     .index("by_workspace", ["workspaceId"])
-    .index("by_workspace_identifier", ["workspaceId", "identifier"]),
+    .index("by_workspace_identifier", ["workspaceId", "identifier"])
+    .index("by_workspace_name", ["workspaceId", "name"]),
   invitations: defineTable({
     delivery: v.optional(
       v.object({

@@ -20,6 +20,8 @@ function revision(project: Doc<"projects">, expected: number) {
 async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof requireNetworkScope>>) {
   const { project, membership, member, user } = access;
   const joined = membership?.active === true;
+  const canAdminister = await canAdministerProject(ctx, project, user._id, member.role);
+  const canArchive = member.role !== "guest" && joined && membership.role === "admin";
   const network = storedNetwork(project);
   const favorite = await ctx.db
     .query("favorites")
@@ -48,7 +50,12 @@ async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof
     externalCoverUrl: appearance.cover ? null : appearance.externalCoverUrl,
     personalOrder: order ? { sortOrder: order.sortOrder, revision: order.revision } : null,
     canJoin: !project.archived && !joined && member.role !== "guest",
-    canManage: !project.archived && (await canAdministerProject(ctx, project, user._id, member.role)),
+    canFavorite: joined && member.role !== "guest" && !project.archived,
+    canRestore: project.archived && canArchive,
+    canArchive: !project.archived && canArchive,
+    canDelete: canAdminister,
+    canOpenSettings: joined && membership?.role !== "guest" && !project.archived,
+    canManage: !project.archived && canAdminister,
   };
 }
 export const get = query({
