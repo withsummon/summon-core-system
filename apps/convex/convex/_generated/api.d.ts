@@ -101,7 +101,6 @@ import type * as savedViews_access from "../savedViews/access.js";
 import type * as savedViews_favorites from "../savedViews/favorites.js";
 import type * as savedViews_filters from "../savedViews/filters.js";
 import type * as savedViews_index from "../savedViews/index.js";
-import type * as savedViews_migrations from "../savedViews/migrations.js";
 import type * as savedViews_result_page from "../savedViews/result_page.js";
 import type * as savedViews_results from "../savedViews/results.js";
 import type * as savedViews_scope from "../savedViews/scope.js";
@@ -225,7 +224,6 @@ declare const fullApi: ApiFromModules<{
   "savedViews/favorites": typeof savedViews_favorites;
   "savedViews/filters": typeof savedViews_filters;
   "savedViews/index": typeof savedViews_index;
-  "savedViews/migrations": typeof savedViews_migrations;
   "savedViews/result_page": typeof savedViews_result_page;
   "savedViews/results": typeof savedViews_results;
   "savedViews/scope": typeof savedViews_scope;
