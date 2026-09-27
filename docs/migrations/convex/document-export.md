@@ -35,3 +35,5 @@ Production source: `d330786578873c78df84e7e63c502a9878bb754f`; `/build-identity.
 - Markdown No images: downloaded 70 bytes, body retained and no embedded image.
 
 Downloads remain in the user's Downloads folder as `delivery-collaboration-verified*`; rendered QA images are `/tmp/summon-migration-control/document-export-{a4,production-a4,letter}.png`. This acceptance samples A4/Letter and the simple image/body fixture; other paper sizes and rich structures are not claimed browser-verified by this receipt.
+
+Root follow-up found that changing export options left the previous download link visible. Format, paper size and content changes now invalidate the prepared download through the existing object-URL cleanup owner. Chrome verified that switching a prepared Everything export to No images removes the old download link. Scoped Oxlint/Oxfmt pass. This follow-up is newer than the fixed 3025 artifact and was checked on development 3010.

@@ -105,7 +105,10 @@ export function DocumentExport({
             disabled={pending}
             className="rounded-md border border-subtle-1 bg-layer-2 p-2"
             onChange={(event) => {
-              if (event.target.value === "pdf" || event.target.value === "markdown") setFormat(event.target.value);
+              if (event.target.value === "pdf" || event.target.value === "markdown") {
+                setFormat(event.target.value);
+                setDownload(null);
+              }
             }}
           >
             <option value="pdf">PDF</option>
@@ -121,7 +124,10 @@ export function DocumentExport({
               className="rounded-md border border-subtle-1 bg-layer-2 p-2"
               onChange={(event) => {
                 const size = sizes.find((value) => value === event.target.value);
-                if (size) setPageSize(size);
+                if (size) {
+                  setPageSize(size);
+                  setDownload(null);
+                }
               }}
             >
               {sizes.map((size) => (
@@ -136,7 +142,10 @@ export function DocumentExport({
             value={noImages ? "no-images" : "everything"}
             disabled={pending}
             className="rounded-md border border-subtle-1 bg-layer-2 p-2"
-            onChange={(event) => setNoImages(event.target.value === "no-images")}
+            onChange={(event) => {
+              setNoImages(event.target.value === "no-images");
+              setDownload(null);
+            }}
           >
             <option value="everything">Everything</option>
             <option value="no-images">No images</option>
