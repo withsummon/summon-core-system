@@ -5,7 +5,7 @@ import { AccountPassword } from "./password/password";
 import { AccountSessions } from "./sessions/sessions";
 import { PreferencesForm } from "./preferences";
 import { ProfileAppearance } from "./appearance";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -81,7 +81,11 @@ export function Profile() {
     </details>
   );
 }
-function ProfileForm({ initial, onClose }: { initial: ProfileData; onClose: () => void }) {
+export function ProfileForm({ initial, onClose }: { initial: ProfileData; onClose: () => void }) {
+  const displayId = useId(),
+    firstId = useId(),
+    lastId = useId(),
+    timezoneId = useId();
   const [snapshot] = useState(initial);
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [firstName, setFirstName] = useState(initial.firstName);
@@ -107,8 +111,9 @@ function ProfileForm({ initial, onClose }: { initial: ProfileData; onClose: () =
         }
       }}
     >
-      <SummonField label="Display name">
+      <SummonField label="Display name" htmlFor={displayId}>
         <Input
+          id={displayId}
           required
           maxLength={255}
           value={displayName}
@@ -116,15 +121,28 @@ function ProfileForm({ initial, onClose }: { initial: ProfileData; onClose: () =
           className="w-full"
         />
       </SummonField>
-      <SummonField label="First name">
-        <Input maxLength={255} value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full" />
+      <SummonField label="First name" htmlFor={firstId}>
+        <Input
+          id={firstId}
+          maxLength={255}
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="w-full"
+        />
       </SummonField>
-      <SummonField label="Last name">
-        <Input maxLength={255} value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full" />
+      <SummonField label="Last name" htmlFor={lastId}>
+        <Input
+          id={lastId}
+          maxLength={255}
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="w-full"
+        />
       </SummonField>
-      <SummonField label="Profile timezone">
+      <SummonField label="Profile timezone" htmlFor={timezoneId}>
         <Input
           required
+          id={timezoneId}
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
           placeholder="Asia/Jakarta"
