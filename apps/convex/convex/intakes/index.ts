@@ -114,6 +114,7 @@ export const submit = mutation({
       createdBy: user._id,
       updatedAt: Date.now(),
       deletedAt: null,
+      removalTaskRevision: null,
     });
     return taskId;
   },
@@ -258,8 +259,14 @@ export const remove = mutation({
     const { task, intake, access, canRemove } = await requireIntakeTask(ctx, args.taskId);
     if (!canRemove) throw new ConvexError("Only the creator or an administrator can remove this submission.");
     requireIntakeRevision(intake, task, args.expectedUpdatedAt, args.expectedTaskUpdatedAt);
-    if (intake.status !== "accepted") await ctx.db.patch(task._id, { deletedAt: Date.now() });
-    await taskChanged(ctx, task, access.user._id);
-    await ctx.db.patch(intake._id, { deletedAt: Date.now(), updatedAt: Math.max(Date.now(), intake.updatedAt + 1) });
+    const deletedAt = Date.now();
+    const deletesTask = intake.status !== "accepted";
+    if (deletesTask) await ctx.db.patch(task._id, { deletedAt });
+    const taskRevision = await taskChanged(ctx, task, access.user._id);
+    await ctx.db.patch(intake._id, {
+      deletedAt,
+      updatedAt: Math.max(Date.now(), intake.updatedAt + 1),
+      removalTaskRevision: deletesTask ? taskRevision : null,
+    });
   },
 });

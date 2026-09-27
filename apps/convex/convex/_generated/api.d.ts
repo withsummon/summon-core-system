@@ -50,6 +50,7 @@ import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
 import type * as intakes_access from "../intakes/access.js";
 import type * as intakes_index from "../intakes/index.js";
+import type * as intakes_lifecycle from "../intakes/lifecycle.js";
 import type * as lib_documentConversion from "../lib/documentConversion.js";
 import type * as mcp_access from "../mcp/access.js";
 import type * as mcp_client from "../mcp/client.js";
@@ -159,6 +160,7 @@ declare const fullApi: ApiFromModules<{
   "identity/index": typeof identity_index;
   "intakes/access": typeof intakes_access;
   "intakes/index": typeof intakes_index;
+  "intakes/lifecycle": typeof intakes_lifecycle;
   "lib/documentConversion": typeof lib_documentConversion;
   "mcp/access": typeof mcp_access;
   "mcp/client": typeof mcp_client;

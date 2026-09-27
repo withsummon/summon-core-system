@@ -14,17 +14,21 @@ export function intakeCapabilities(access: Awaited<ReturnType<typeof requireProj
     canRemove: own || admin,
   };
 }
-export async function requireIntakeTask(ctx: QueryCtx, taskId: Id<"tasks">) {
+export async function requireIntakeTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "active" | "removed" = "active") {
   const task = await ctx.db.get(taskId);
-  if (!task || task.deletedAt != null || task.archivedAt != null) throw new ConvexError("Intake task not found.");
+  if (!task || (mode === "active" && (task.deletedAt != null || task.archivedAt != null)))
+    throw new ConvexError("Intake task not found.");
   const access = await requireProject(ctx, task.projectId);
   const intake = await ctx.db
     .query("intakeTasks")
     .withIndex("by_task", (q) => q.eq("taskId", taskId))
     .unique();
-  if (!intake || intake.deletedAt != null || !intakeCapabilities(access, intake.createdBy).canRead)
-    throw new ConvexError("Intake task not found.");
-  return { task, intake, access, ...intakeCapabilities(access, intake.createdBy) };
+  if (!intake) throw new ConvexError("Intake task not found.");
+  const capabilities = intakeCapabilities(access, intake.createdBy);
+  const removed = mode === "removed";
+  if ((intake.deletedAt != null) !== removed) throw new ConvexError("Intake task not found.");
+  if (!(removed ? capabilities.canRemove : capabilities.canRead)) throw new ConvexError("Intake task not found.");
+  return { task, intake, access, ...capabilities };
 }
 export function requireIntakeRevision(
   intake: Doc<"intakeTasks">,

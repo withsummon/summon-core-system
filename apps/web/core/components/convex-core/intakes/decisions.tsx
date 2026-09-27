@@ -143,7 +143,7 @@ export function RemoveSubmission({ detail, onDone }: { detail: Detail; onDone: (
           <p className="text-14">
             {snapshot.intake.status === "accepted"
               ? "Remove this submission from intake? The accepted project task stays available."
-              : "Remove this submission and hide its task? This intake entry cannot be restored here."}
+              : "Remove this submission and hide its task? You can recover this removal from intake trash."}
           </p>
           <div className="flex gap-2">
             <Button
