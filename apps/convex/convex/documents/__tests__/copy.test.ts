@@ -84,6 +84,15 @@ test("copy atomically publishes fresh content and independent bytes, retains sca
   const result = await f.owner.action(api.documents.copyActions.run, f.args);
   expect(await f.owner.action(api.documents.copyActions.run, f.args)).toBe(result);
   const copy = await f.owner.query(api.documents.index.get, { documentId: result });
+  const copiedSnapshot = await f.owner.query(api.documents.index.snapshot, { documentId: result });
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db
+        .query("documentReferenceJobs")
+        .withIndex("by_snapshot", (q) => q.eq("snapshotId", copiedSnapshot!._id))
+        .unique()
+    )
+  ).toMatchObject({ documentId: result, revision: 1, status: "pending" });
   expect(copy).toMatchObject({
     name: "Source (Copy)",
     projectIds: [f.projectId],
