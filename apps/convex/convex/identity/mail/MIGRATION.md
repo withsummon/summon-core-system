@@ -1,6 +1,6 @@
 # Password reset and email verification
 
-The backend and module-local tests are active in the checkout. No configuration or real email delivery was changed. Public forms remain inactive until matching availability API deployment.
+The backend and module-local tests are active in the checkout. No configuration or real email delivery was changed. Backend and patch checkpoint c3a7b4133e was deployed to both hosts by the primary agent before activating the conditional SignIn form.
 
 ## Canonical owner and patch
 
@@ -14,14 +14,24 @@ Patch registration uses supported pnpm patch/patch-commit with exact version and
 
 Inspected key presence only in repo .env, apps/api/.env and apps/convex/.env.local: none of inspected SMTP/Resend keys were configured. This is not a claim about remote environment configuration. Existing native package dependencies provide no SMTP transport. Optional Resend delivery uses platform fetch, no added SDK. Required AUTH_RESEND_KEY, EMAIL_FROM and SITE_URL must be present and valid; availability publishes booleans/reason only, never configuration values. The sender uses a fixed HTTPS endpoint, rejects redirects, applies15s timeout, and sends plain-text codes with15min expiry rather than accepting caller redirect URLs. Convex Auth retains default32-character random tokens. Deliverability/verified sender domain are unverified.
 
-Auth configuration keeps current Password behavior when mail is unavailable; with configured mail it registers reset and verification providers. Enabling verification intentionally requires unverified account sign-ins to verify email. The prepared SignIn uses the availability contract; no enabled reset form exists when unavailable. Known/unknown reset messages remain identical. Verification requires same email and code, reset verification also requires a new password. Existing auth library rotates the credentials and invalidates prior sessions; shared live-session enforcement makes those revocations immediate at native authorization owners.
+Auth configuration keeps current Password behavior when mail is unavailable; with configured mail it registers reset and verification providers. Enabling verification intentionally requires unverified account sign-ins to verify email. SignIn uses the availability contract; no enabled reset form exists when unavailable. Known/unknown reset messages remain identical. Verification requires same email and code, reset verification also requires a new password. Existing auth library rotates the credentials and invalidates prior sessions; shared live-session enforcement makes those revocations immediate at native authorization owners.
 
 ## Evidence and remaining delivery gates
 
 Six module-local convex-test journeys pass against the actual installed patched distribution with a mocked HTTP sender: accepted-response privacy including sender failure; valid reset changing actual canonical password and revoking old sessions; invalid/replayed/expired codes; signup email verification; missing-provider configuration; and throttle rejection preserving the live code. No real recipients, real API keys or email service were used. The test override composes the public convexAuth/Password APIs and only substitutes its ordinary auth module loader; it does not call private handlers.
 
-The tests live in identity/mail/**tests**. Deployment and frontend activation are coordinated separately with the primary agent. Real delivery, production mail configuration, frontend rendered acceptance, timing resistance and IP-level ingress throttling remain separate gates. Legacy SMTP routes remain available; no claim of full authentication retirement.
+The tests live in identity/mail/**tests**. The conditional SignIn form is active and passes native web TS7 and focused Oxc lint; rendered acceptance is tracked separately by the primary agent. Real delivery, production mail configuration, frontend rendered acceptance, timing resistance and IP-level ingress throttling remain separate gates. Legacy SMTP routes remain available; no claim of full authentication retirement.
 
 ## Ingress throttle boundary
 
 The inherited `apps/api/plane/authentication/rate_limit.py` AuthenticationThrottle is an anonymous-request IP limiter (default 10/minute), distinct from email issuance. Native auth.signIn is a Convex action: its public ActionCtx has no trusted HTTP request/IP. Browser-supplied IP fields would be forgeable and are not accepted. The checked-in Caddy CE proxy forwards /auth/\* to Django, contains no native Convex authentication limiter, and its broad TRUSTED_PROXIES default must not be treated as verified client-IP provenance. A trusted deployment ingress owner covering direct Convex auth action requests must enforce and test the IP rule before that parity gate can close. No remote ingress configuration or protection is claimed from repository inspection.
+
+### Activation receipt, 2026-09-27
+
+Backend `c3a7b4133e` deployed to both self-hosted hosts. Both live availability
+queries returned passwordReset=false and emailVerification=false with the
+unconfigured-delivery reason. Chrome on the inherited native stickies entry at
+port3021 showed the ordinary sign-in fields and explicit reset-unavailable text,
+without a reset form. This verifies the disabled configuration state only.
+Root independently ran all six mocked delivery tests. Global TS7 passed30/30;
+no real mail or credential changes were performed through Chrome.
