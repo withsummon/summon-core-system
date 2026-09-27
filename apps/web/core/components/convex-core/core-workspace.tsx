@@ -19,6 +19,7 @@ const ArchivedProjects = lazy(() =>
 );
 const QuickLinks = lazy(() => import("./quick-links/quick-links").then((module) => ({ default: module.QuickLinks })));
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
+const Intakes = lazy(() => import("./intakes/intakes").then((module) => ({ default: module.Intakes })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
 const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
 const TaskCenter = lazy(() => import("./tasks/task-center").then((module) => ({ default: module.TaskCenter })));
@@ -280,6 +281,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
                 { value: "tasks", label: "Tasks" },
                 { value: "cycles", label: "Cycles" },
                 { value: "modules", label: "Modules" },
+                { value: "intake", label: "Intake" },
                 { value: "settings", label: "Settings" },
               ].map((section) => (
                 <Button
@@ -293,6 +295,8 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
                       next.delete("cycleView");
                       next.delete("projectModule");
                       next.delete("moduleView");
+                      next.delete("intake");
+                      next.delete("intakeStatus");
                       if (section.value !== "tasks") next.set("projectView", section.value);
                       else next.delete("projectView");
                       return next;
@@ -303,7 +307,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
                 </Button>
               ))}
             </nav>
-            {projectView === "settings" ? (
+            {projectView === "intake" ? (
+              <Intakes key={project._id} project={project} />
+            ) : projectView === "settings" ? (
               <ProjectSettings key={project._id} projectId={project._id} onArchived={openArchived} />
             ) : projectView === "modules" ? (
               <Modules key={project._id} project={project} />

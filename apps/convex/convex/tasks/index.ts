@@ -1,8 +1,8 @@
 import { requireTask, taskIsActive, taskDetail } from "./access";
 import { recordTaskEvent } from "../notifications/delivery";
 import { syncPlainDescription } from "./description";
-import { requireParent, checkAncestors } from "./hierarchy";
-import { taskChanged } from "./revision";
+import { requireParent } from "./hierarchy";
+import { createTask } from "./create";
 import { requireTaskRevision } from "./revision";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
@@ -64,40 +64,7 @@ export const create = mutation({
     if (state && args.status && state.status !== args.status)
       throw new ConvexError("Task status must match its custom state.");
     const nextStatus = state?.status ?? args.status ?? "todo";
-    const taskId = await ctx.db.insert("tasks", {
-      archivedAt: null,
-      deletedAt: null,
-      workspaceId: project.workspaceId,
-      projectId: project._id,
-      title,
-      description,
-      ...data,
-      completedAt: nextStatus === "done" ? Date.now() : null,
-      status: nextStatus,
-      sequence: project.nextSequence,
-      createdBy: user._id,
-      updatedAt: Date.now(),
-    });
-    await ctx.db.insert("taskSubscriptions", { taskId, userId: user._id });
-    if (parent) {
-      await checkAncestors(ctx, taskId, parent);
-      await ctx.db.insert("taskParents", {
-        projectId: project._id,
-        childId: taskId,
-        parentId: parent._id,
-      });
-      await taskChanged(ctx, parent, user._id);
-    }
-    await ctx.db.patch(project._id, { nextSequence: project.nextSequence + 1 });
-    await recordTaskEvent(ctx, {
-      workspaceId: project.workspaceId,
-      projectId: project._id,
-      taskId,
-      actorId: user._id,
-      kind: "created",
-      status: nextStatus,
-    });
-    return taskId;
+    return createTask(ctx, project, user._id, { title, description, ...data, status: nextStatus }, parent);
   },
 });
 export const setStatus = mutation({

@@ -6,6 +6,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
+import { IntakeSettings } from "../intakes/settings";
 import { ProjectTimezone } from "../cycles/forms";
 import { mutationMessage } from "../commercial/forms";
 type Settings = FunctionReturnType<typeof api.projects.settings.get>;
@@ -42,6 +43,7 @@ export function ProjectSettings({ projectId, onArchived }: { projectId: Id<"proj
         <h3 className="mb-3 text-16 font-medium">Timezone</h3>
         <ProjectTimezone projectId={projectId} />
       </div>
+      <IntakeSettings projectId={projectId} />
       {settings.canManage && (
         <ArchiveProject projectId={projectId} revision={settings.revision} onArchived={onArchived} />
       )}

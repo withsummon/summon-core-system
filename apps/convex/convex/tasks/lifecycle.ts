@@ -45,11 +45,13 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
     return {
       ...result,
-      page: result.page.filter((task) =>
-        args.view === "deleted"
-          ? task.deletedAt != null && (task.createdBy === user._id || projectMember.role === "admin")
-          : task.deletedAt == null && task.archivedAt != null
-      ),
+      page: result.page
+        .filter((task) => task.status !== "triage")
+        .filter((task) =>
+          args.view === "deleted"
+            ? task.deletedAt != null && (task.createdBy === user._id || projectMember.role === "admin")
+            : task.deletedAt == null && task.archivedAt != null
+        ),
     };
   },
 });

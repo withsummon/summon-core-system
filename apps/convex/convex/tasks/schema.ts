@@ -7,6 +7,7 @@ export const status = v.union(
   v.literal("done"),
   v.literal("cancelled")
 );
+export const taskStatus = v.union(status, v.literal("triage"));
 export const priority = v.union(
   v.literal("urgent"),
   v.literal("high"),
@@ -63,7 +64,7 @@ export const taskTables = {
     projectId: v.id("projects"),
     title: v.string(),
     description: v.string(),
-    status,
+    status: taskStatus,
     sequence: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
@@ -89,9 +90,14 @@ export const taskTables = {
       v.literal("comment_deleted"),
       v.literal("comment_restored")
     ),
-    status,
+    status: taskStatus,
   }).index("by_task", ["taskId"]),
-  taskStates: defineTable({ ...stateFields, workspaceId: v.id("workspaces"), projectId: v.id("projects") })
+  taskStates: defineTable({
+    ...stateFields,
+    status: taskStatus,
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+  })
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"])
     .index("by_project_default", ["projectId", "isDefault"]),

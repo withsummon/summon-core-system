@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
-import { statusOptions } from "../tasks/options";
+import { statusOptions, taskStatusOptions } from "../tasks/options";
 export function ConversationActions({ conversation }: { conversation: Doc<"assistantConversations"> }) {
   const { results, status, loadMore } = usePaginatedQuery(
     api.assistant.actions.list,
@@ -72,7 +73,8 @@ function ActionProposal({
   const { results, status, loadMore } = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   const propose = useMutation(api.assistant.actions.propose);
   const [taskId, setTaskId] = useState<Id<"tasks"> | null>(null);
-  const [nextStatus, setNextStatus] = useState<Doc<"tasks">["status"]>("todo");
+  const [nextStatus, setNextStatus] =
+    useState<FunctionArgs<typeof api.assistant.actions.propose>["nextStatus"]>("todo");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -169,8 +171,7 @@ function ActionCard({ action }: { action: Doc<"assistantActions"> }) {
         <span className="text-xs text-secondary capitalize">{action.status}</span>
       </div>
       <p className="text-sm">
-        {statusOptions.find((option) => option.value === action.previousStatus)?.label} →{" "}
-        {statusOptions.find((option) => option.value === action.nextStatus)?.label}
+        {taskStatusOptions[action.previousStatus].label} → {taskStatusOptions[action.nextStatus].label}
       </p>
       {action.status === "pending" && (
         <>

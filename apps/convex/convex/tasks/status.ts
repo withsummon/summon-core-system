@@ -1,12 +1,11 @@
 import { recordTaskEvent } from "../notifications/delivery";
 import type { MutationCtx } from "../_generated/server";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
+import type { Infer } from "convex/values";
+import { status } from "./schema";
 import { requireTask } from "./access";
-export async function changeTaskStatus(
-  ctx: MutationCtx,
-  args: { taskId: Id<"tasks">; status: Doc<"tasks">["status"] }
-) {
+export async function changeTaskStatus(ctx: MutationCtx, args: { taskId: Id<"tasks">; status: Infer<typeof status> }) {
   const task = await requireTask(ctx, args.taskId);
   const { user } = await requireProject(ctx, task.projectId, true);
   if (task.status === args.status) return;

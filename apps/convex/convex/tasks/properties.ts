@@ -49,6 +49,7 @@ export async function validateProperties(ctx: QueryCtx, project: Doc<"projects">
   const state = data.stateId ? await ctx.db.get(data.stateId) : null;
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
+  if (state?.status === "triage") throw new ConvexError("Use intake to manage triage tasks.");
   return { data: { ...data, startDate, targetDate }, state };
 }
 
