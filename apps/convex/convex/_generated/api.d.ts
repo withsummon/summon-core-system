@@ -160,6 +160,7 @@ import type * as tasks_links from "../tasks/links.js";
 import type * as tasks_properties from "../tasks/properties.js";
 import type * as tasks_reaction_owner from "../tasks/reaction_owner.js";
 import type * as tasks_reactions from "../tasks/reactions.js";
+import type * as tasks_relation_migrations from "../tasks/relation_migrations.js";
 import type * as tasks_relationships from "../tasks/relationships.js";
 import type * as tasks_revision from "../tasks/revision.js";
 import type * as tasks_rich_content from "../tasks/rich_content.js";
@@ -322,6 +323,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/properties": typeof tasks_properties;
   "tasks/reaction_owner": typeof tasks_reaction_owner;
   "tasks/reactions": typeof tasks_reactions;
+  "tasks/relation_migrations": typeof tasks_relation_migrations;
   "tasks/relationships": typeof tasks_relationships;
   "tasks/revision": typeof tasks_revision;
   "tasks/rich_content": typeof tasks_rich_content;
