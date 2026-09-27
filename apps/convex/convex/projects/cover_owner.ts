@@ -21,7 +21,8 @@ export async function replaceProjectCover(
   ctx: MutationCtx,
   projectId: Id<"projects">,
   appearance: Doc<"projectAppearance"> | null,
-  assetId: Id<"assets"> | null
+  assetId: Id<"assets"> | null,
+  clearExternal = false
 ) {
   if (appearance?.coverAssetId && appearance.coverAssetId !== assetId) {
     const previous = await ctx.db.get(appearance.coverAssetId);
@@ -29,7 +30,12 @@ export async function replaceProjectCover(
       throw new ConvexError("Project cover reference is inconsistent.");
     await ctx.db.patch(previous._id, { status: "deleted", expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   }
-  if (appearance) await ctx.db.patch(appearance._id, { coverAssetId: assetId, revision: appearance.revision + 1 });
+  if (appearance)
+    await ctx.db.patch(appearance._id, {
+      coverAssetId: assetId,
+      revision: appearance.revision + 1,
+      ...(clearExternal ? { externalCoverUrl: undefined } : {}),
+    });
   else await ctx.db.insert("projectAppearance", { projectId, coverAssetId: assetId, revision: 1 });
 }
 export async function publishProjectCover(ctx: MutationCtx, asset: Doc<"assets">) {
@@ -40,8 +46,13 @@ export async function publishProjectCover(ctx: MutationCtx, asset: Doc<"assets">
 }
 export async function projectCover(ctx: QueryCtx, projectId: Id<"projects">) {
   const appearance = await projectAppearance(ctx, projectId);
-  const asset = appearance?.coverAssetId ? await ctx.db.get(appearance.coverAssetId) : null;
+  if (!appearance) return { cover: null, externalCoverUrl: null, revision: 0 };
+  const asset = appearance.coverAssetId ? await ctx.db.get(appearance.coverAssetId) : null;
   if (asset && (asset.projectId !== projectId || asset.purpose !== "projectCover" || asset.status !== "ready"))
     throw new ConvexError("Project cover reference is inconsistent.");
-  return { cover: asset ? descriptor(asset) : null, revision: appearance?.revision ?? 0 };
+  return {
+    cover: asset ? descriptor(asset) : null,
+    externalCoverUrl: appearance.externalCoverUrl ?? null,
+    revision: appearance.revision,
+  };
 }

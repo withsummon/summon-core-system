@@ -29,6 +29,7 @@ async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof
     .unique();
   const order = await projectUserProperty(ctx, project._id, user._id);
   const logoProps = project.logoProps ?? {};
+  const appearance = await projectCover(ctx, project._id);
   return {
     projectId: project._id,
     name: project.name,
@@ -43,7 +44,8 @@ async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof
     archived: project.archived,
     memberRole: joined ? membership.role : null,
     isFavorite: joined && (await effectiveFavorite(ctx, favorite)),
-    cover: (await projectCover(ctx, project._id)).cover,
+    cover: appearance.cover,
+    externalCoverUrl: appearance.cover ? null : appearance.externalCoverUrl,
     personalOrder: order ? { sortOrder: order.sortOrder, revision: order.revision } : null,
     canJoin: !project.archived && !joined && member.role !== "guest",
     canManage: !project.archived && (await canAdministerProject(ctx, project, user._id, member.role)),

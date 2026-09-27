@@ -84,3 +84,40 @@ export const restore = mutation({
     await ctx.db.patch(asset._id, { status: "ready" });
   },
 });
+
+function externalUrl(value: string | null) {
+  if (value === null) return undefined;
+  if (!value || value.length > 2048 || value !== value.trim())
+    throw new ConvexError("Enter an external cover URL of at most 2048 characters.");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new ConvexError("Enter a valid external cover URL.");
+  }
+  if (!["https:", "http:"].includes(url.protocol) || !url.hostname || url.username || url.password)
+    throw new ConvexError("Use an http or https cover URL without credentials.");
+  return value;
+}
+export const setExternal = mutation({
+  args: { projectId: v.id("projects"), expectedRevision: v.number(), url: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
+    const externalCoverUrl = externalUrl(args.url);
+    if (appearance) await ctx.db.patch(appearance._id, { externalCoverUrl, revision: appearance.revision + 1 });
+    else
+      await ctx.db.insert("projectAppearance", {
+        projectId: args.projectId,
+        coverAssetId: null,
+        externalCoverUrl,
+        revision: 1,
+      });
+  },
+});
+export const clear = mutation({
+  args: { projectId: v.id("projects"), expectedRevision: v.number() },
+  handler: async (ctx, args) => {
+    const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
+    await replaceProjectCover(ctx, args.projectId, appearance, null, true);
+  },
+});
