@@ -10,6 +10,7 @@ import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 import { ModuleForm } from "./forms";
 import { ModuleTasks } from "./tasks";
+import { ModuleLinks } from "./links";
 import { ModuleMembers } from "./members";
 import { TaskRichEditor } from "../tasks/rich-editor";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
@@ -172,6 +173,7 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
         <>
           <ModuleMembers module={module} />
           <ModuleTasks module={module} />
+          <ModuleLinks module={module} />
         </>
       )}
     </article>
