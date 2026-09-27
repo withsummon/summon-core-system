@@ -218,3 +218,69 @@ test("foreign project points reject and whole-system deletion clears references 
   expect((await f.owner.query(api.estimates.index.list, { projectId: f.projectId })).config?.activeSystemId).toBeNull();
   await expect(f.owner.query(api.estimates.index.get, { systemId: f.system._id })).rejects.toThrow("not found");
 });
+
+test("draft estimate labels remain author-private after system selection changes and membership revocation", async () => {
+  const f = await fixture();
+  const draftId = await f.owner.mutation(api.tasks.drafts.index.create, { workspaceId: f.workspaceId });
+  const draft = await f.owner.query(api.tasks.drafts.index.resolve, { workspaceId: f.workspaceId, draftId });
+  expect(await f.owner.query(api.estimates.selection.forDraft, { draftId })).toBeNull();
+  await f.owner.mutation(api.tasks.drafts.index.save, {
+    draftId,
+    expectedContentRevision: draft.contentRevision,
+    projectId: f.projectId,
+    title: "Draft",
+    html: "<p></p>",
+    status: null,
+    properties: f.props,
+    parent: null,
+    cycle: null,
+    modules: [],
+  });
+  await f.owner.mutation(api.estimates.index.select, { projectId: f.projectId, systemId: null, expectedRevision: 1 });
+  expect((await f.owner.query(api.estimates.selection.forDraft, { draftId }))?.point._id).toBe(f.system.points[0]._id);
+  const other = await f.t.run(async (ctx) => {
+    const userId = await ctx.db.insert("users", {});
+    await ctx.db.insert("workspaceMembers", { workspaceId: f.workspaceId, userId, role: "admin", active: true });
+    return userId;
+  });
+  await expect(
+    f.t.withIdentity({ subject: other }).query(api.estimates.selection.forDraft, { draftId })
+  ).rejects.toThrow("Draft not found");
+  await expect(f.t.query(api.estimates.selection.forDraft, { draftId })).rejects.toThrow("Sign in");
+  await f.t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", f.projectId).eq("userId", f.userId))
+      .unique();
+    if (member) await ctx.db.patch(member._id, { active: false });
+  });
+  await expect(f.owner.query(api.estimates.selection.forDraft, { draftId })).rejects.toThrow("unavailable");
+});
+test("point retirement finalization invalidates a system revision captured during the job", async () => {
+  const f = await fixture();
+  const jobId = await f.owner.mutation(api.estimates.remap.begin, {
+    systemId: f.system._id,
+    pointId: f.system.points[0]._id,
+    expectedSystemRevision: f.system.revision,
+    expectedPointRevision: 0,
+    replacementId: null,
+  });
+  const during = await f.owner.query(api.estimates.index.get, { systemId: f.system._id });
+  const page = await f.owner.mutation(api.estimates.remap.page, { jobId, expectedRevision: 0 });
+  expect(page.phase).toBe("drafts");
+  expect((await f.owner.mutation(api.estimates.remap.page, { jobId, expectedRevision: page.revision })).phase).toBe(
+    "complete"
+  );
+  const complete = await f.owner.query(api.estimates.index.get, { systemId: f.system._id });
+  expect(complete.revision).toBe(during.revision + 1);
+  expect(complete.points[0].key).toBe(0);
+  await expect(
+    f.owner.mutation(api.estimates.index.createPoint, {
+      systemId: f.system._id,
+      expectedSystemRevision: during.revision,
+      key: 2,
+      value: "5",
+      description: "Stale choice",
+    })
+  ).rejects.toThrow("changed");
+});

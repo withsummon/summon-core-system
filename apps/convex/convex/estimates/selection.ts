@@ -1,3 +1,4 @@
+import { requireDraft } from "../tasks/drafts/access";
 import { v, ConvexError } from "convex/values";
 import { query } from "../_generated/server";
 import { requireProject } from "../identity/access";
@@ -33,6 +34,20 @@ export const forTask = query({
     if (!task.estimatePointId) return null;
     const point = await ctx.db.get(task.estimatePointId);
     if (!point || point.projectId !== task.projectId) throw new ConvexError("Task estimate reference is invalid.");
+    const system = await ctx.db.get(point.systemId);
+    return { point, system };
+  },
+});
+
+export const forDraft = query({
+  args: { draftId: v.id("taskDrafts") },
+  handler: async (ctx, args) => {
+    const { draft } = await requireDraft(ctx, args.draftId);
+    if (!draft.properties.estimatePointId) return null;
+    if (!draft.projectId) throw new ConvexError("Draft estimate reference is invalid.");
+    await requireProject(ctx, draft.projectId);
+    const point = await ctx.db.get(draft.properties.estimatePointId);
+    if (!point || point.projectId !== draft.projectId) throw new ConvexError("Draft estimate reference is invalid.");
     const system = await ctx.db.get(point.systemId);
     return { point, system };
   },
