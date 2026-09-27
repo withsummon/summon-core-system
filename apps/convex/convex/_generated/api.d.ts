@@ -63,7 +63,6 @@ import type * as favorites_targets from "../favorites/targets.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
-import type * as identity_migrations from "../identity/migrations.js";
 import type * as identity_preferences from "../identity/preferences.js";
 import type * as identity_profile_owner from "../identity/profile_owner.js";
 import type * as identity_profile from "../identity/profile.js";
@@ -224,7 +223,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;
-  "identity/migrations": typeof identity_migrations;
   "identity/preferences": typeof identity_preferences;
   "identity/profile_owner": typeof identity_profile_owner;
   "identity/profile": typeof identity_profile;
