@@ -1,3 +1,5 @@
+import { PreferencesForm } from "./preferences";
+import { ProfileAppearance } from "./appearance";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -11,17 +13,30 @@ type ProfileData = FunctionReturnType<typeof api.identity.profile.get>;
 export function Profile() {
   const profile = useQuery(api.identity.profile.get);
   const [editing, setEditing] = useState(false);
+  const [preferencesEditing, setPreferencesEditing] = useState(false);
   return (
     <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
       <summary className="cursor-pointer">Account details</summary>
       {profile ? (
         <div className="mt-3 space-y-3">
+          <ProfileAppearance theme={profile.preferences.theme} />
           <p className="font-medium break-words">{profile.displayName || "Your profile"}</p>
           <p className="break-all text-secondary">{profile.email}</p>
           <p className="text-12 text-secondary">Your user ID</p>
           <code className="block text-12 break-all select-all">{profile.id}</code>
+          {preferencesEditing ? (
+            <PreferencesForm
+              key={`preferences:${profile.id}`}
+              initial={profile}
+              onClose={() => setPreferencesEditing(false)}
+            />
+          ) : (
+            <Button variant="secondary" onClick={() => setPreferencesEditing(true)}>
+              Edit preferences
+            </Button>
+          )}
           {editing ? (
-            <ProfileForm key={profile.id} initial={profile} onClose={() => setEditing(false)} />
+            <ProfileForm key={`profile:${profile.id}`} initial={profile} onClose={() => setEditing(false)} />
           ) : (
             <Button variant="secondary" onClick={() => setEditing(true)}>
               Edit profile
