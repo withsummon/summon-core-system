@@ -63,6 +63,7 @@ import type * as resources_index from "../resources/index.js";
 import type * as settings_index from "../settings/index.js";
 import type * as tasks_assignees from "../tasks/assignees.js";
 import type * as tasks_center from "../tasks/center.js";
+import type * as tasks_comments from "../tasks/comments.js";
 import type * as tasks_description from "../tasks/description.js";
 import type * as tasks_hierarchy from "../tasks/hierarchy.js";
 import type * as tasks_index from "../tasks/index.js";
@@ -137,6 +138,7 @@ declare const fullApi: ApiFromModules<{
   "settings/index": typeof settings_index;
   "tasks/assignees": typeof tasks_assignees;
   "tasks/center": typeof tasks_center;
+  "tasks/comments": typeof tasks_comments;
   "tasks/description": typeof tasks_description;
   "tasks/hierarchy": typeof tasks_hierarchy;
   "tasks/index": typeof tasks_index;
