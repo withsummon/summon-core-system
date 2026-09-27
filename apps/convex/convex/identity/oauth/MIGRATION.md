@@ -22,3 +22,10 @@ Configured callbacks are `{CONVEX_SITE_URL}/api/auth/callback/{provider}` (or th
 Five module-local tests exercise missing/unsafe configuration; all four verified-email gates; GitHub organization denial; redirect rejection configuration; canonical verified-to-verified account linking and unverified-account separation; and an installed HTTP OAuth flow with mocked token/profile transport, state tampering rejected before network, and replay denial. State/account tests call the registered internal store through convex-test, never a private handler. No real provider requests or credentials were used.
 
 Native TS7 and scoped Oxc pass. Real provider authorization, registered callback reachability, deployment availability, and rendered provider buttons remain separate gates. No claim is made for provider-specific token-exchange quirks or real Gitea/GitLab server-version compatibility until a configured roundtrip passes. Convex Auth does not persist provider access/refresh tokens for unrelated integrations; this differs from legacy Account token storage and must not be mistaken for migration of third-party integration authorization. Legacy deactivated-account/bot-account policies and ingress IP throttling remain separate identity/infrastructure closure work.
+
+Activation:5879d72f13 deployed on both self-hosted hosts. Root called each live
+availability endpoint; both returned an empty configured-provider list. Root
+independently ran the five mocked OAuth tests and reviewed the verified-email
+and organization gates. Configured-only sign-in buttons use the existing public
+useAuthActions owner. A live provider roundtrip remains unavailable without
+provider configuration; no real authorization was attempted.
