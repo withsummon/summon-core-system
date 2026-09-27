@@ -31,7 +31,7 @@ Detail renders canonical saved filters and live backend task results. Definition
 
 ## Checks
 
-Primary verification: 307 backend tests across 37 files and 21 frontend tests passed. Root native TS7 (30 tasks), lint (21 tasks) and format (21 tasks) passed before the final choice-retention fix; the frontend suite, native web TS7, scoped zero-warning Oxlint and Oxfmt passed again after that fix. Local Convex deployment on port 3210 succeeded. This slice has not yet been deployed to the remote backend or built as a production frontend artifact.
+Primary verification: 307 backend tests across 37 files and 21 frontend tests passed. Root native TS7 (30 tasks), lint (21 tasks) and format (21 tasks) passed before the final choice-retention fix; the frontend suite, native web TS7, scoped zero-warning Oxlint and Oxfmt passed again after that fix. Local Convex deployment on port 3210 succeeded. The exact committed slice was subsequently deployed to the remote backend and built as a production frontend artifact; see `checkpoints/5ed8c4493a-remote.json` for served identity and the narrower remote browser evidence.
 
 Chrome acceptance on local port 3010:
 
