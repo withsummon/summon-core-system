@@ -58,6 +58,9 @@ export function ResourceForm({
   const projects = useQuery(api.projects.index.list, { workspaceId });
   const documents = usePaginatedQuery(api.resources.index.documentOptions, { workspaceId }, { initialNumItems: 50 });
   const clients = usePaginatedQuery(api.commercial.clients.list, { workspaceId }, { initialNumItems: 50 });
+  const credentials = usePaginatedQuery(api.mcp.credentials.list, { workspaceId }, { initialNumItems: 50 });
+  const [preserveCredential, setPreserveCredential] = useState(resource?.credentialUnavailable ?? false);
+  const [credentialId, setCredential] = useState(resource?.credentialId ?? null);
   const [projectId, setProject] = useState(resource?.projectId ?? null);
   const [documentId, setDocument] = useState(resource?.documentId ?? null);
   const [clientId, setClient] = useState(resource?.clientId ?? null);
@@ -79,6 +82,7 @@ export function ResourceForm({
           projectId,
           documentId,
           clientId,
+          credentialId: preserveCredential ? undefined : credentialId,
         };
         setPending(true);
         setError("");
@@ -126,7 +130,7 @@ export function ResourceForm({
             placeholder="Design, repository, reference…"
           />
         </SummonField>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Association
             label="Project"
             value={projectId}
@@ -158,8 +162,36 @@ export function ResourceForm({
               detail?.clientName ?? null
             )}
           />
+          {resource?.credentialUnavailable && (
+            <label className="flex items-center gap-2 text-14">
+              <input
+                type="checkbox"
+                checked={preserveCredential}
+                onChange={(event) => setPreserveCredential(event.target.checked)}
+              />
+              Keep existing inaccessible credential association
+            </label>
+          )}
+          {!preserveCredential && (
+            <Association
+              label="Credential"
+              value={credentialId}
+              onChange={setCredential}
+              disabled={credentials.status === "LoadingFirstPage"}
+              options={associationOptions(
+                credentials.results.map((item) => ({ id: item._id, name: item.name })),
+                resource?.credentialId ?? null,
+                detail?.resource.credentialName ?? null
+              )}
+            />
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {credentials.status === "CanLoadMore" && (
+            <Button type="button" variant="secondary" onClick={() => credentials.loadMore(50)}>
+              Load more credentials
+            </Button>
+          )}
           {documents.status === "CanLoadMore" && (
             <Button type="button" variant="secondary" onClick={() => documents.loadMore(50)}>
               Load more documents
