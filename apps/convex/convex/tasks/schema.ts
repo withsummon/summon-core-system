@@ -33,6 +33,14 @@ export const stateFields = {
 export const labelFields = { name: v.string(), description: v.string(), color: v.string(), sortOrder: v.number() };
 export const relationKind = v.union(v.literal("blocks"), v.literal("relates_to"), v.literal("duplicate"));
 export const taskTables = {
+  taskComments: defineTable({
+    taskId: v.id("tasks"),
+    authorId: v.id("users"),
+    html: v.string(),
+    text: v.string(),
+    updatedAt: v.number(),
+    editedAt: v.union(v.number(), v.null()),
+  }).index("by_task", ["taskId"]),
   taskDescriptions: defineTable({ taskId: v.id("tasks"), html: v.string() }).index("by_task", ["taskId"]),
   taskParents: defineTable({ projectId: v.id("projects"), childId: v.id("tasks"), parentId: v.id("tasks") })
     .index("by_child", ["childId"])
@@ -68,7 +76,15 @@ export const taskTables = {
     projectId: v.id("projects"),
     taskId: v.id("tasks"),
     actorId: v.id("users"),
-    kind: v.union(v.literal("created"), v.literal("status_changed"), v.literal("updated")),
+    commentId: v.optional(v.id("taskComments")),
+    kind: v.union(
+      v.literal("created"),
+      v.literal("status_changed"),
+      v.literal("updated"),
+      v.literal("comment_created"),
+      v.literal("comment_updated"),
+      v.literal("comment_deleted")
+    ),
     status,
   }).index("by_task", ["taskId"]),
   taskStates: defineTable({ ...stateFields, workspaceId: v.id("workspaces"), projectId: v.id("projects") })
