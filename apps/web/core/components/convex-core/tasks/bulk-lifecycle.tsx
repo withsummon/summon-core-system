@@ -1,3 +1,4 @@
+import { BulkProperties } from "./bulk-properties";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
@@ -26,6 +27,7 @@ export function BulkLifecycle({
   const bulk = useMutation(api.tasks.lifecycle.bulk);
   const [selected, setSelected] = useState<Capture[]>([]);
   const [confirmation, setConfirmation] = useState<Operation | null>(null);
+  const [propertiesEditing, setPropertiesEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   if (!access?.canChange) return null;
@@ -38,7 +40,10 @@ export function BulkLifecycle({
         <p className="text-12 text-secondary">
           Select up to {access.maxTasks} loaded tasks. If a task changes, select it again.
         </p>
-        <fieldset disabled={pending || confirmation !== null} className="max-h-64 space-y-2 overflow-y-auto">
+        <fieldset
+          disabled={pending || confirmation !== null || propertiesEditing}
+          className="max-h-64 space-y-2 overflow-y-auto"
+        >
           {rows.map((row) => (
             <label key={row._id} className="flex items-center gap-2 text-14">
               <input
@@ -56,65 +61,82 @@ export function BulkLifecycle({
           ))}
         </fieldset>
         <p className="text-12">{selected.length} selected</p>
-        {confirmation ? (
-          <div className="space-y-2">
-            <p className="text-14">
-              {operationLabels[confirmation]} for {selected.length} tasks? All changes succeed together. Comments and
-              links are retained; restored archived tasks stay archived.
-            </p>
-            <ul className="max-h-48 overflow-y-auto text-14">
-              {selected.map((row) => (
-                <li key={row._id}>
-                  #{row.sequence} · {row.title}
-                </li>
-              ))}
-            </ul>
-            <Button
-              loading={pending}
-              onClick={async () => {
-                setPending(true);
-                setError("");
-                try {
-                  await bulk({
-                    projectId,
-                    operation: confirmation,
-                    tasks: selected.map((row) => ({ taskId: row._id, expectedUpdatedAt: row.updatedAt })),
-                  });
-                  setSelected([]);
-                  setConfirmation(null);
-                } catch (cause) {
-                  setError(mutationMessage(cause));
-                } finally {
-                  setPending(false);
-                }
-              }}
-            >
-              Confirm {operationLabels[confirmation]}
-            </Button>
-            <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {operations.map((operation) => (
+        {view === "active" && !confirmation && !propertiesEditing && (
+          <Button variant="secondary" disabled={!selected.length} onClick={() => setPropertiesEditing(true)}>
+            Edit selected properties
+          </Button>
+        )}
+        {propertiesEditing && (
+          <BulkProperties
+            projectId={projectId}
+            tasks={selected}
+            onClose={() => setPropertiesEditing(false)}
+            onSaved={() => {
+              setPropertiesEditing(false);
+              setSelected([]);
+            }}
+          />
+        )}
+        {!propertiesEditing &&
+          (confirmation ? (
+            <div className="space-y-2">
+              <p className="text-14">
+                {operationLabels[confirmation]} for {selected.length} tasks? All changes succeed together. Comments and
+                links are retained; restored archived tasks stay archived.
+              </p>
+              <ul className="max-h-48 overflow-y-auto text-14">
+                {selected.map((row) => (
+                  <li key={row._id}>
+                    #{row.sequence} · {row.title}
+                  </li>
+                ))}
+              </ul>
               <Button
-                key={operation}
-                variant="secondary"
-                disabled={!selected.length}
-                onClick={() => {
+                loading={pending}
+                onClick={async () => {
+                  setPending(true);
                   setError("");
-                  setConfirmation(operation);
+                  try {
+                    await bulk({
+                      projectId,
+                      operation: confirmation,
+                      tasks: selected.map((row) => ({ taskId: row._id, expectedUpdatedAt: row.updatedAt })),
+                    });
+                    setSelected([]);
+                    setConfirmation(null);
+                  } catch (cause) {
+                    setError(mutationMessage(cause));
+                  } finally {
+                    setPending(false);
+                  }
                 }}
               >
-                {operationLabels[operation]} selected
+                Confirm {operationLabels[confirmation]}
               </Button>
-            ))}
-          </div>
-        )}
+              <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {operations.map((operation) => (
+                <Button
+                  key={operation}
+                  variant="secondary"
+                  disabled={!selected.length}
+                  onClick={() => {
+                    setError("");
+                    setConfirmation(operation);
+                  }}
+                >
+                  {operationLabels[operation]} selected
+                </Button>
+              ))}
+            </div>
+          ))}
         <Button
           variant="secondary"
-          disabled={pending}
+          disabled={pending || propertiesEditing}
           onClick={() => {
             setSelected([]);
             setConfirmation(null);
