@@ -10,7 +10,7 @@ Publishing runs in one transaction. `createPreparedTask` now owns ordinary creat
 
 ## Editor representations and retained scope
 
-JSON and binary are opaque payloads, bounded to 100,000 JSON characters and 512 KiB binary. JSON uses existing stickyJson validation. Their original bytes are preserved through copy and publication by the canonical description owner and exposed by description.get. HTML changes clear stale JSON/binary unless explicit replacements accompany that draft save; ordinary task HTML/plain changes clear them too. No conversion, equivalence validation, JSON/binary editor rendering or historical representation roundtrip is claimed. Existing HTML/plain description history remains unchanged.
+JSON and binary are opaque payloads, bounded to 100,000 JSON characters and 512 KiB binary. JSON uses shared boundedJson validation. Their original bytes are preserved through copy and publication by the canonical description owner and exposed by description.get. HTML changes clear stale JSON/binary unless explicit replacements accompany that draft save; ordinary task HTML/plain changes clear them too. No conversion, equivalence validation, JSON/binary editor rendering or historical representation roundtrip is claimed. Existing HTML/plain description history remains unchanged.
 
 Parent, cycle and modules are included. Draft files use the asset scope and publication transfer described below. Estimates, issue types, external IDs, sort-order customization, import and legacy REST/PAT routes remain inherited. No old route is retired by this slice.
 

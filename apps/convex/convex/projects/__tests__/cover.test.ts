@@ -136,3 +136,60 @@ test("current project readers can fetch cover bytes but cannot manage; cross-pro
     })
   ).rejects.toThrow("no longer");
 });
+test("public directory readers can fetch only the current cover, never other project assets", async () => {
+  const f = await workspaceJourney();
+  const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Directory reader" }));
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "member" });
+  const reader = await signedIn(f.t, userId);
+  const first = await pending(f, 0);
+  await f.owner.action(api.assets.upload.finalize, first);
+  expect((await reader.fetch(`/assets/${first.assetId}`)).status).toBe(200);
+  const taskId = await f.owner.mutation(api.tasks.index.create, { projectId: f.projectId, title: "Private contents" });
+  const taskUpload = await f.owner.mutation(api.assets.taskAttachments.prepare, { taskId, ...file });
+  const storageId = await f.t.run((ctx) => ctx.storage.store(new Blob([bytes], { type: file.contentType })));
+  await f.owner.action(api.assets.upload.finalize, { assetId: taskUpload.assetId, storageId });
+  expect((await reader.fetch(`/assets/${taskUpload.assetId}`)).status).toBe(403);
+  const second = await pending(f, 1);
+  await f.owner.action(api.assets.upload.finalize, second);
+  expect((await reader.fetch(`/assets/${first.assetId}`)).status).toBe(403);
+  // Even inconsistent ready historical rows cannot be fetched by a nonmember.
+  await f.t.run((ctx) => ctx.db.patch(first.assetId, { status: "ready" }));
+  expect((await reader.fetch(`/assets/${first.assetId}`)).status).toBe(403);
+  await f.owner.mutation(api.projects.network.save, { projectId: f.projectId, network: 0, expectedRevision: 0 });
+  expect((await reader.fetch(`/assets/${second.assetId}`)).status).toBe(403);
+  await f.owner.mutation(api.projects.network.save, { projectId: f.projectId, network: 2, expectedRevision: 1 });
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "guest" });
+  expect((await reader.fetch(`/assets/${second.assetId}`)).status).toBe(403);
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "member" });
+  await f.owner.mutation(api.workspaces.index.revokeMember, { workspaceId: f.workspaceId, userId });
+  expect((await reader.fetch(`/assets/${second.assetId}`)).status).toBe(403);
+});
+test("archived project cards retain the current cover but cannot join or publish", async () => {
+  const f = await workspaceJourney();
+  const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Reader" }));
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "member" });
+  const reader = await signedIn(f.t, userId);
+  const ready = await pending(f, 0);
+  await f.owner.action(api.assets.upload.finalize, ready);
+  await f.owner.mutation(api.projects.settings.setArchived, {
+    projectId: f.projectId,
+    archived: true,
+    expectedRevision: 0,
+  });
+  const rows = await reader.query(api.projects.network.list, {
+    workspaceId: f.workspaceId,
+    archived: true,
+    paginationOpts: { cursor: null, numItems: 20 },
+  });
+  expect(rows.page[0]).toMatchObject({
+    archived: true,
+    canJoin: false,
+    canManage: false,
+    cover: { id: ready.assetId },
+  });
+  expect((await reader.fetch(`/assets/${ready.assetId}`)).status).toBe(200);
+  await expect(
+    reader.mutation(api.projects.network.join, { projectId: f.projectId, expectedRevision: 1 })
+  ).rejects.toThrow("not found");
+  await expect(pending(f, 1)).rejects.toThrow("not found");
+});

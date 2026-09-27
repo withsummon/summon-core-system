@@ -1,3 +1,4 @@
+import { projectLogoProps } from "./branding_schema";
 import { projectNetwork } from "./network_schema";
 import { initializeProjectOrder } from "./order_owner";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
@@ -40,6 +41,7 @@ export const create = mutation({
     name: v.string(),
     identifier: v.string(),
     network: v.optional(projectNetwork),
+    logoProps: v.optional(projectLogoProps),
   },
   handler: async (ctx, args) => {
     return createProject(ctx, args);

@@ -138,3 +138,57 @@ test("discovery preserves sparse cursors and network changes retain existing mem
     (await f.actor.query(api.projects.index.list, { workspaceId: f.workspaceId })).map((row) => row._id)
   ).toContain(second);
 });
+test("bulk join validates all scopes and revisions before granting any membership", async () => {
+  const f = await member();
+  const second = await f.owner.mutation(api.projects.index.create, {
+    workspaceId: f.workspaceId,
+    name: "Second",
+    identifier: "SECOND",
+  });
+  const foreignWorkspace = await f.actor.mutation(api.workspaces.index.create, { name: "Foreign", slug: "foreign" });
+  const foreign = await f.actor.mutation(api.projects.index.create, {
+    workspaceId: foreignWorkspace,
+    name: "Foreign",
+    identifier: "OTHER",
+  });
+  const targets = [
+    { projectId: f.projectId, expectedRevision: 0 },
+    { projectId: second, expectedRevision: 0 },
+  ];
+  await expect(
+    f.actor.mutation(api.projects.network.joinMany, {
+      workspaceId: f.workspaceId,
+      projects: [targets[0], { projectId: foreign, expectedRevision: 0 }],
+    })
+  ).rejects.toThrow("selected workspace");
+  await expect(
+    f.actor.mutation(api.projects.network.joinMany, {
+      workspaceId: f.workspaceId,
+      projects: [targets[0], { ...targets[1], expectedRevision: 99 }],
+    })
+  ).rejects.toThrow("changed");
+  expect(await f.actor.query(api.projects.index.list, { workspaceId: f.workspaceId })).toEqual([]);
+  expect(
+    await f.actor.mutation(api.projects.network.joinMany, { workspaceId: f.workspaceId, projects: targets })
+  ).toEqual({ joinedProjectIds: [f.projectId, second] });
+  const rows = (await f.actor.query(api.projects.network.list, { workspaceId: f.workspaceId, paginationOpts })).page;
+  expect(rows.every((row) => row.memberRole === "member")).toBe(true);
+  expect(new Set(rows.map((row) => row.personalOrder?.sortOrder)).size).toBe(2);
+  await expect(
+    f.actor.mutation(api.projects.network.joinMany, { workspaceId: f.workspaceId, projects: [targets[0], targets[0]] })
+  ).rejects.toThrow("once");
+  await expect(
+    f.actor.mutation(api.projects.network.joinMany, {
+      workspaceId: f.workspaceId,
+      projects: Array.from({ length: 21 }, () => targets[0]),
+    })
+  ).rejects.toThrow("20");
+});
+test("directory metadata uses the same canonical detail projection without manufacturing member roles", async () => {
+  const f = await member();
+  const detail = await f.actor.query(api.projects.network.get, { projectId: f.projectId });
+  const row = (await f.actor.query(api.projects.network.list, { workspaceId: f.workspaceId, paginationOpts })).page[0];
+  expect(row).toEqual(detail);
+  expect(row).toMatchObject({ memberRole: null, personalOrder: null, isFavorite: false, description: "" });
+  expect(row.createdAt).toBeGreaterThan(0);
+});

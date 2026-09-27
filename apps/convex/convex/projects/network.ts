@@ -1,3 +1,8 @@
+import { renderedProjectLogo } from "./branding_schema";
+import { projectCover } from "./cover_owner";
+import { storedNetwork, requireNetworkScope, canDiscover } from "./network_access";
+import { effectiveFavorite } from "../favorites/access";
+import { projectUserProperty } from "./order_owner";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalMutation } from "../_generated/server";
@@ -6,51 +11,56 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { canAdministerProject } from "./administration";
 import { grantProjectMembership } from "./index";
-import { projectNetwork, type ProjectNetwork } from "./network_schema";
+import { projectNetwork } from "./network_schema";
 import { pageBudget } from "../commercial/validation";
-// Temporary stored-data transition: existing native projects were membership-only.
-// Backfill preserves that privacy, rather than silently disclosing them as public.
-function storedNetwork(project: Doc<"projects">) {
-  return project.network ?? 0;
-}
-async function scope(ctx: QueryCtx, projectId: Id<"projects">) {
-  const project = await ctx.db.get(projectId);
-  if (!project || project.archived || project.deletedAt != null) throw new ConvexError("Project not found.");
-  const access = await requireWorkspace(ctx, project.workspaceId);
-  const membership = await ctx.db
-    .query("projectMembers")
-    .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", access.user._id))
-    .unique();
-  return { ...access, project, membership };
-}
-function canDiscover(network: ProjectNetwork, role: string, joined: boolean) {
-  return joined || role === "admin" || (role === "member" && network === 2);
-}
 function revision(project: Doc<"projects">, expected: number) {
   if (!Number.isSafeInteger(expected) || project.metadataRevision !== expected)
     throw new ConvexError("Project changed. Reload its current access settings.");
 }
+async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof requireNetworkScope>>) {
+  const { project, membership, member, user } = access;
+  const joined = membership?.active === true;
+  const network = storedNetwork(project);
+  const favorite = await ctx.db
+    .query("favorites")
+    .withIndex("by_owner_target", (q) =>
+      q.eq("workspaceId", project.workspaceId).eq("userId", user._id).eq("targetKey", `project:${project._id}`)
+    )
+    .unique();
+  const order = await projectUserProperty(ctx, project._id, user._id);
+  const logoProps = project.logoProps ?? {};
+  return {
+    projectId: project._id,
+    name: project.name,
+    identifier: project.identifier,
+    description: project.description,
+    logoProps,
+    logo: renderedProjectLogo(logoProps),
+    createdAt: project._creationTime,
+    network,
+    revision: project.metadataRevision,
+    joined,
+    archived: project.archived,
+    memberRole: joined ? membership.role : null,
+    isFavorite: joined && (await effectiveFavorite(ctx, favorite)),
+    cover: (await projectCover(ctx, project._id)).cover,
+    personalOrder: order ? { sortOrder: order.sortOrder, revision: order.revision } : null,
+    canJoin: !project.archived && !joined && member.role !== "guest",
+    canManage: !project.archived && (await canAdministerProject(ctx, project, user._id, member.role)),
+  };
+}
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
-    const access = await scope(ctx, args.projectId);
+    const access = await requireNetworkScope(ctx, args.projectId, true);
     const network = storedNetwork(access.project);
     const joined = access.membership?.active === true;
     if (!canDiscover(network, access.member.role, joined)) throw new ConvexError("Project not found.");
-    return {
-      projectId: access.project._id,
-      name: access.project.name,
-      identifier: access.project.identifier,
-      network,
-      revision: access.project.metadataRevision,
-      joined,
-      canJoin: !joined && access.member.role !== "guest" && (network === 2 || access.member.role === "admin"),
-      canManage: await canAdministerProject(ctx, access.project, access.user._id, access.member.role),
-    };
+    return directoryProject(ctx, access);
   },
 });
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
+  args: { workspaceId: v.id("workspaces"), archived: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const access = await requireWorkspace(ctx, args.workspaceId);
     const result = await ctx.db
@@ -59,7 +69,7 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
     const page = await Promise.all(
       result.page.map(async (project) => {
-        if (project.archived || project.deletedAt != null) return null;
+        if (project.archived !== (args.archived ?? false) || project.deletedAt != null) return null;
         const membership = await ctx.db
           .query("projectMembers")
           .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", access.user._id))
@@ -67,15 +77,7 @@ export const list = query({
         const joined = membership?.active === true;
         const network = storedNetwork(project);
         if (!canDiscover(network, access.member.role, joined)) return null;
-        return {
-          projectId: project._id,
-          name: project.name,
-          identifier: project.identifier,
-          network,
-          revision: project.metadataRevision,
-          joined,
-          canJoin: !joined && access.member.role !== "guest",
-        };
+        return directoryProject(ctx, { ...access, project, membership });
       })
     );
     return { ...result, page: page.filter((row) => row !== null) };
@@ -84,7 +86,7 @@ export const list = query({
 export const save = mutation({
   args: { projectId: v.id("projects"), network: projectNetwork, expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const access = await scope(ctx, args.projectId);
+    const access = await requireNetworkScope(ctx, args.projectId);
     if (!(await canAdministerProject(ctx, access.project, access.user._id, access.member.role)))
       throw new ConvexError("Only workspace or project administrators can change project access.");
     revision(access.project, args.expectedRevision);
@@ -95,19 +97,49 @@ export const save = mutation({
     });
   },
 });
+async function prepareJoin(ctx: QueryCtx, projectId: Id<"projects">, expectedRevision: number) {
+  const access = await requireNetworkScope(ctx, projectId);
+  if (access.member.role === "guest" || (storedNetwork(access.project) === 0 && access.member.role !== "admin"))
+    throw new ConvexError("You cannot join this project.");
+  revision(access.project, expectedRevision);
+  return {
+    workspaceId: access.workspace._id,
+    projectId: access.project._id,
+    userId: access.user._id,
+    role: access.membership?.role ?? access.member.role,
+  };
+}
 export const join = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number() },
+  handler: async (ctx, args) =>
+    grantProjectMembership(ctx, await prepareJoin(ctx, args.projectId, args.expectedRevision)),
+});
+const MAX_JOIN_PROJECTS = 20;
+export const joinMany = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projects: v.array(v.object({ projectId: v.id("projects"), expectedRevision: v.number() })),
+  },
   handler: async (ctx, args) => {
-    const access = await scope(ctx, args.projectId);
-    if (access.member.role === "guest" || (storedNetwork(access.project) === 0 && access.member.role !== "admin"))
-      throw new ConvexError("You cannot join this project.");
-    revision(access.project, args.expectedRevision);
-    return grantProjectMembership(ctx, {
-      workspaceId: access.workspace._id,
-      projectId: access.project._id,
-      userId: access.user._id,
-      role: access.membership?.role ?? access.member.role,
-    });
+    await requireWorkspace(ctx, args.workspaceId, true);
+    if (!args.projects.length || args.projects.length > MAX_JOIN_PROJECTS)
+      throw new ConvexError(`Select between 1 and ${MAX_JOIN_PROJECTS} projects.`);
+    if (new Set(args.projects.map((row) => row.projectId)).size !== args.projects.length)
+      throw new ConvexError("Select each project once.");
+    const changes = await Promise.all(
+      args.projects.map(async (row) => {
+        const change = await prepareJoin(ctx, row.projectId, row.expectedRevision);
+        if (change.workspaceId !== args.workspaceId)
+          throw new ConvexError("Projects must belong to the selected workspace.");
+        return change;
+      })
+    );
+    for (const change of changes) {
+      // Sequential initialization preserves distinct personal order positions in this atomic transaction.
+      // eslint-disable-next-line no-await-in-loop
+      await grantProjectMembership(ctx, change);
+    }
+    return { joinedProjectIds: changes.map((change) => change.projectId) };
   },
 });
 export const backfill = internalMutation({

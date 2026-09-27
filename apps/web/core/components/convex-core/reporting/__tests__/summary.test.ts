@@ -14,7 +14,18 @@ const scope: ReportScope = {
 };
 const loaded: LoadedReport = {
   coverage: "complete",
-  tasks: [{ total: 3, completed: 1, overdue: 1, dueInSevenDays: 1, later: 0, noDueDate: 0, completionTrend: {} }],
+  tasks: [
+    {
+      total: 3,
+      completed: 1,
+      overdue: 1,
+      dueInSevenDays: 1,
+      later: 0,
+      noDueDate: 0,
+      completionTrend: {},
+      projects: {},
+    },
+  ],
   projects: [],
   clients: [{ count: 2 }],
   opportunities: [
