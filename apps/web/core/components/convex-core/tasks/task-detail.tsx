@@ -18,6 +18,8 @@ const RichDescription = lazy(() =>
 const TaskAttachments = lazy(() =>
   import("./attachments/attachments").then((module) => ({ default: module.TaskAttachments }))
 );
+const TaskLinks = lazy(() => import("./links/links").then((module) => ({ default: module.TaskLinks })));
+const TaskReactions = lazy(() => import("./reactions/reactions").then((module) => ({ default: module.TaskReactions })));
 const TaskComments = lazy(() => import("./comments").then((module) => ({ default: module.TaskComments })));
 const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
@@ -112,6 +114,8 @@ function TaskDetailContent({
               <RichDescription taskId={task._id} canWrite={canWrite} />
               <TaskStructure task={task} canWrite={canWrite} />
               <TaskAttachments key={`attachments:${task._id}`} taskId={task._id} />
+              <TaskLinks key={`links:${task._id}`} taskId={task._id} />
+              <TaskReactions key={`reactions:${task._id}`} taskId={task._id} />
               <TaskComments key={task._id} taskId={task._id} />
             </Suspense>
           )}
