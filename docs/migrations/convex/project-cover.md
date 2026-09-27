@@ -17,3 +17,22 @@ The frontend reuses `FileAttachmentUpload` and extracts the existing authenticat
 Four project-cover behavioral tests cover finalize retry, replacement, authenticated bytes, recovery, stale competing uploads, unrelated metadata edits, archive/revocation during upload, guest reads, cross-project and cross-purpose rejection, and expired recovery. Seven existing workspace logo tests also pass. Native backend and web TypeScript checks pass; scoped Oxc reports no warnings/errors. Classic complexity is at most 10 across the new backend owners (restore 9, replacement 8).
 
 After the parent removed the obsolete intake metadata-migration fixture, the full backend suite passes 571 tests across 90 files. Frontend module behavior tests pass 50/50. Exact backend commit `5207aa69cf` passed archive TypeScript validation and deployed locally at `http://127.0.0.1:3210`; log `/tmp/summon-migration-control/project-cover-5207aa69cf-local-deploy.txt`. Remote deployment remains held. The settings and header consumers are mounted; browser acceptance remains parent-owned and unverified at this checkpoint.
+
+## Primary Chrome acceptance
+
+Local3010 with backend5207aa69cf: Northstar Release initially had no cover.
+Uploaded synthetic workspace-logo-qa.png, replaced it with the replacement
+fixture, then restored the original through Removed covers and its explicit
+confirmation. The replacement appeared in recovery after restoration.
+Navigating to Tasks rendered the restored cover in the project header.
+Desktop and390px screenshots were inspected: bounded cover, wrapped navigation,
+no horizontal overflow (document width390). The low-resolution square fixture
+is visibly cropped/enlarged by the cover treatment; this is not image-quality
+evidence for a production banner. Temporary viewport overrides were cleared.
+
+Removed the original through the seven-day recovery flow, returning the project
+to its original no-cover state. No permanent purge was performed. Current
+metadata/timezone remained intact. Guest/revocation behavior is BDD evidence,
+not browser acceptance; external/static URL selection remains a parity gap.
+This acceptance is local dev only, not remote activation or a served production
+build claim.
