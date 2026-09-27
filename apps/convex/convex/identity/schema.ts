@@ -8,6 +8,10 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  userAppearance: defineTable({ userId: v.id("users"), avatarAssetId: v.union(v.id("assets"), v.null()) }).index(
+    "by_user",
+    ["userId"]
+  ),
   instanceAuthority: defineTable({ key: v.literal("instance"), initializedAt: v.number() }).index("by_key", ["key"]),
   instanceAdmins: defineTable({
     instanceId: v.id("instanceAuthority"),

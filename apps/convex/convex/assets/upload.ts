@@ -1,3 +1,4 @@
+import { assetWorkspaceId } from "./access";
 import { ConvexError, v } from "convex/values";
 import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
@@ -29,7 +30,7 @@ export const duplicate = action({
     const blob = source.storageId ? await ctx.storage.get(source.storageId) : null;
     if (!blob) throw new ConvexError("Asset bytes are missing.");
     const ticket = await ctx.runMutation(api.assets.index.prepare, {
-      workspaceId: source.workspaceId,
+      workspaceId: assetWorkspaceId(source),
       projectId: source.projectId,
       documentId,
       name: source.name,

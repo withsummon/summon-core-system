@@ -229,7 +229,16 @@ import type * as projects_cover from "../projects/cover.js";
 
 import type * as projects_cover_owner from "../projects/cover_owner.js";
 
+import type * as identity_avatar from "../identity/avatar.js";
+
+import type * as identity_avatar_access from "../identity/avatar_access.js";
+
+import type * as identity_avatar_owner from "../identity/avatar_owner.js";
+
 declare const fullApi: ApiFromModules<{
+  "identity/avatar_owner": typeof identity_avatar_owner;
+  "identity/avatar_access": typeof identity_avatar_access;
+  "identity/avatar": typeof identity_avatar;
   "projects/cover_owner": typeof projects_cover_owner;
   "projects/cover": typeof projects_cover;
   "projects/appearance_schema": typeof projects_appearance_schema;

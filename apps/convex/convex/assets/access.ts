@@ -1,3 +1,4 @@
+import { requireAvatarScope } from "../identity/avatar_access";
 import { requireDraftAttachmentAccess } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
 import { ConvexError } from "convex/values";
@@ -12,10 +13,23 @@ export async function requireAssetScope(
   ctx: QueryCtx,
   scope: Pick<
     Doc<"assets">,
-    "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId" | "documentCopyId" | "purpose"
+    | "workspaceId"
+    | "projectId"
+    | "documentId"
+    | "conversationId"
+    | "taskId"
+    | "draftId"
+    | "documentCopyId"
+    | "purpose"
+    | "avatarUserId"
   >,
-  write: boolean
+  write: boolean,
+  readWorkspaceId?: Id<"workspaces">
 ) {
+  if (scope.purpose === "userAvatar") return requireAvatarScope(ctx, scope, write, readWorkspaceId);
+  if (scope.workspaceId === null || scope.avatarUserId !== undefined)
+    throw new ConvexError("Workspace asset scope is invalid.");
+  const workspaceScope = { ...scope, workspaceId: scope.workspaceId };
   if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
   if (scope.purpose === "projectCover") {
     if (!scope.projectId || scope.documentId || scope.taskId || scope.draftId || scope.conversationId)
@@ -42,25 +56,30 @@ export async function requireAssetScope(
     return permission;
   }
   if (scope.taskId) {
-    return requireTaskScope(ctx, scope, scope.taskId, write);
+    return requireTaskScope(ctx, workspaceScope, scope.taskId, write);
   }
   const access = await requireWorkspace(ctx, scope.workspaceId, write);
   if (scope.conversationId) {
-    await requireConversationScope(ctx, scope, scope.conversationId, write);
+    await requireConversationScope(ctx, workspaceScope, scope.conversationId, write);
   }
   if (scope.projectId) {
     const { project } = await requireProject(ctx, scope.projectId, write);
     if (project.workspaceId !== scope.workspaceId) throw new ConvexError("Project belongs to another workspace.");
   }
   if (scope.documentId) {
-    await requireDocumentScope(ctx, scope, scope.documentId, write);
+    await requireDocumentScope(ctx, workspaceScope, scope.documentId, write);
   }
   return access;
 }
-export async function requireAsset(ctx: QueryCtx, assetId: Id<"assets">, write = false) {
+export async function requireAsset(
+  ctx: QueryCtx,
+  assetId: Id<"assets">,
+  write = false,
+  readWorkspaceId?: Id<"workspaces">
+) {
   const asset = await ctx.db.get(assetId);
   if (!asset || asset.status !== "ready") throw new ConvexError("Asset not found.");
-  const access = await requireAssetScope(ctx, asset, write);
+  const access = await requireAssetScope(ctx, asset, write, readWorkspaceId);
   return { ...access, asset };
 }
 export function descriptor(asset: Doc<"assets">) {
@@ -116,4 +135,9 @@ async function requireDocumentScope(
   if (scope.projectId && !document.projectIds.includes(scope.projectId))
     throw new ConvexError("Document is not linked to this project.");
   if (write && (document.isLocked || document.archived)) throw new ConvexError("Document is read-only.");
+}
+
+export function assetWorkspaceId(asset: Pick<Doc<"assets">, "workspaceId">) {
+  if (asset.workspaceId === null) throw new ConvexError("This asset requires a workspace.");
+  return asset.workspaceId;
 }
