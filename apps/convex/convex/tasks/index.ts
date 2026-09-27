@@ -1,15 +1,14 @@
 import { requireTask, taskIsActive, taskDetail, readableTasks } from "./access";
-import { recordTaskEvent } from "../notifications/delivery";
+import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
 import { syncPlainDescription } from "./description";
 import { createPreparedTask } from "./create";
-import { requireTaskRevision } from "./revision";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { status, taskProperties } from "./schema";
-import { validateProperties, parseTaskText } from "./properties";
+import { parseTaskText } from "./properties";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
@@ -76,31 +75,10 @@ export const update = mutation({
     ctx,
     { taskId, expectedUpdatedAt, title: rawTitle, description, status: requestedStatus, ...properties }
   ) => {
-    const task = await requireTask(ctx, taskId);
-    const { user, project } = await requireProject(ctx, task.projectId, true);
-    requireTaskRevision(task, expectedUpdatedAt);
+    const prepared = await preparePropertyUpdate(ctx, taskId, expectedUpdatedAt, properties, requestedStatus);
     const { title } = parseTaskText(rawTitle, description);
-    await syncPlainDescription(ctx, task, description, user._id);
-    const { data, state } = await validateProperties(ctx, project, properties, task.estimatePointId);
-    if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
-    const statusChanged = task.status !== requestedStatus || task.stateId !== data.stateId;
-    const completedAt = statusChanged ? (requestedStatus === "done" ? Date.now() : null) : task.completedAt;
-    await ctx.db.patch(taskId, {
-      ...data,
-      title,
-      description,
-      status: requestedStatus,
-      completedAt,
-      updatedAt: Math.max(Date.now(), task.updatedAt + 1),
-    });
-    await recordTaskEvent(ctx, {
-      workspaceId: task.workspaceId,
-      projectId: task.projectId,
-      taskId,
-      actorId: user._id,
-      kind: statusChanged ? "status_changed" : "updated",
-      status: requestedStatus,
-    });
+    await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
+    await applyPropertyUpdate(ctx, prepared, { title, description });
     return taskId;
   },
 });
