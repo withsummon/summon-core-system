@@ -11,7 +11,6 @@ packages:
 catalog:
   "convex": "1.46.0"
   "@convex-dev/auth": "0.0.95"
-  "convex-test": "0.0.60"
   "@atlaskit/pragmatic-drag-and-drop": "1.7.4"
   "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "1.4.0"
   "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0"

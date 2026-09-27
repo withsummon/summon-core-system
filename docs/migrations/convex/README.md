@@ -4,6 +4,10 @@ Control artifact: 05f894b84bbde4e2474b82f17be7f4578bc15f14
 
 Work lane: Implementation. The requested architecture migration is authorized; performance claims require a faithful passing control and comparable repeated candidate measurements. Existing editor/UI dependency additions are outside this task and preserved.
 
+## Current PR verification policy (2026-09-28)
+
+The PR quality pass removed all 150 test files added by this migration. Earlier test counts below are historical results from earlier commits; those suites are no longer runnable from this branch. `pnpm test` now runs only the inherited live service suite. Backend and web acceptance require current native type/lint/build checks and focused Chrome journeys, including authorization and cross-client behavior. New automated coverage should target critical interactions without rebuilding a per-feature assertion suite. Django and PostgreSQL retirement remains gated on every inherited Plane route, external contract, and operational owner.
+
 ## Decision and invariants
 
 Replace Django application ownership with selfhosted Convex, preserving current user journeys. The first slice is sign-in -> authorized workspace/project -> task creation/status change -> second-client update. Active membership, role permissions, tenant isolation, idempotency, and durable writes are mandatory. Protected content must never render before access is established. Sign-out and account switching must discard the former identity's subscriptions.
@@ -18,7 +22,7 @@ Initial synthetic targets (acceptance budgets, not measured results): local feed
 4. Documents/assets/editor, meetings and explicit task linking.
 5. Assistant, automation, MCP, credentials, reports/settings/notifications; inherited route closure and Django retirement.
 
-Each slice requires module-local behavior tests, owner review, authenticated Chrome QA where it changes UI, and an atomic commit. Record completed and pending gates separately. Removing old services is gated on proving no active consumers remain; do not destroy database volumes as part of service retirement.
+Each slice requires owner review, focused integration verification, authenticated Chrome QA where it changes UI, and an atomic commit. Record completed and pending gates separately. Removing old services is gated on proving no active consumers remain; do not destroy database volumes as part of service retirement.
 
 ## Existing owners to replace
 
@@ -55,7 +59,7 @@ Legacy comment deletion is soft by default; native hard deletion was identified 
 
 ## Follow-up checkpoint: `8496aa7bd6`
 
-[Cycles](cycles-frontend.md), [modules](modules-frontend.md), [comment recovery](comments-frontend.md) and [project settings/archive recovery](project-settings-frontend.md) are now committed with local Chrome acceptance. Current integrated evidence: **264 backend tests / 31 files, 19 frontend tests, 30 native typecheck tasks, 21 lint tasks, 21 formatting tasks and 16 production build tasks passed**. The root `pnpm test` command owns both behavior suites; CI wiring is committed but has not run remotely.
+[Cycles](cycles-frontend.md), [modules](modules-frontend.md), [comment recovery](comments-frontend.md) and [project settings/archive recovery](project-settings-frontend.md) were committed with local Chrome acceptance. At this checkpoint, **264 backend tests / 31 files, 19 frontend tests, 30 native typecheck tasks, 21 lint tasks, 21 formatting tasks and 16 production build tasks passed**. The backend and frontend test files were later removed by the PR quality pass above; this paragraph is historical evidence only.
 
 The [build manifest](checkpoints/8496aa7bd6.json) identifies the immutable production copy served on port 3015. HTTP `/core` returned 200 and its SHA-256 matched the recorded index. Authenticated Chrome opened [Release readiness](http://127.0.0.1:3015/core?workspace=northstar-convex-qa&project=NSTAR&projectView=modules&projectModule=rh73gsdw9dpnkn1ew1jy12460d8f7xxc), verified its retained description, lead, roster and task, and reported no error-level console entries. This is a local runtime checkpoint, not remote hosting acceptance or a new benchmark sample. Preexisting editor/UI dependency edits remain preserved.
 

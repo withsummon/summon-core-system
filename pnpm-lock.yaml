@@ -264,9 +264,6 @@ catalogs:
     convex:
       specifier: 1.46.0
       version: 1.46.0
-    convex-test:
-      specifier: 0.0.60
-      version: 0.0.60
     cors:
       specifier: ^2.8.5
       version: 2.8.5
@@ -737,18 +734,9 @@ importers:
       '@types/sanitize-html':
         specifier: 'catalog:'
         version: 2.16.0
-      convex-test:
-        specifier: 'catalog:'
-        version: 0.0.60(convex@1.46.0(react@18.3.1))
       typescript:
         specifier: 7.0.2
         version: 7.0.2
-      vite:
-        specifier: 8.0.16
-        version: 8.0.16(@types/node@22.12.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.3)
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@22.12.0)(@vitest/coverage-v8@4.1.8)(vite@8.0.16(@types/node@22.12.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.3))
 
   apps/live:
     dependencies:
@@ -6149,11 +6137,6 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
-
-  convex-test@0.0.60:
-    resolution: {integrity: sha512-qCAFx+CO6bmpXNc9s1jZvw8NJPS4yM074ib87PUY675FsiaRRW4ALotEB+RbVCYDRMYxh623KMnYZBlrMJIv1Q==}
-    peerDependencies:
-      convex: ^1.43.0
 
   convex@1.46.0:
     resolution: {integrity: sha512-dhBwDQTZDOhi5SUGAX17EWNehCdNq6/UFrSL0eLZuGfMkdsQbCVWVRZCzbZ5CF+/pgvoGxtApbEoTSipqL4JTw==}
@@ -13668,10 +13651,6 @@ snapshots:
   content-type@1.0.5: {}
 
   convert-source-map@2.0.0: {}
-
-  convex-test@0.0.60(convex@1.46.0(react@18.3.1)):
-    dependencies:
-      convex: 1.46.0(react@18.3.1)
 
   convex@1.46.0(react@18.3.1):
     dependencies:

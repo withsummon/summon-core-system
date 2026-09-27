@@ -7,8 +7,8 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "vite/client"],
+    "types": ["node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["convex/**/*.ts", "vitest.config.ts"]
+  "include": ["convex/**/*.ts"]
 }
