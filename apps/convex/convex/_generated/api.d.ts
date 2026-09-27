@@ -131,6 +131,8 @@ import type * as savedViews_results from "../savedViews/results.js";
 import type * as savedViews_scope from "../savedViews/scope.js";
 import type * as savedViews_workspace from "../savedViews/workspace.js";
 import type * as savedViews_workspaceChoices from "../savedViews/workspaceChoices.js";
+import type * as sessions_access from "../sessions/access.js";
+import type * as sessions_index from "../sessions/index.js";
 import type * as settings_index from "../settings/index.js";
 import type * as settings_timezone from "../settings/timezone.js";
 import type * as stickies_content from "../stickies/content.js";
@@ -290,6 +292,8 @@ declare const fullApi: ApiFromModules<{
   "savedViews/scope": typeof savedViews_scope;
   "savedViews/workspace": typeof savedViews_workspace;
   "savedViews/workspaceChoices": typeof savedViews_workspaceChoices;
+  "sessions/access": typeof sessions_access;
+  "sessions/index": typeof sessions_index;
   "settings/index": typeof settings_index;
   "settings/timezone": typeof settings_timezone;
   "stickies/content": typeof stickies_content;
