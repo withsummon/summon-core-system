@@ -1,3 +1,4 @@
+import { projectIdentifier as validateIdentifier } from "../projects/metadata_fields";
 import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
@@ -45,11 +46,15 @@ export const resolveProject = query({
 export const resolveTask = query({
   args: { workspaceSlug: v.string(), workItem: v.string() },
   handler: async (ctx, args) => {
-    const match = /^([a-zA-Z][a-zA-Z0-9]{1,9})-([0-9]+)$/.exec(args.workItem);
-    if (!match) throw new ConvexError("Invalid task address.");
+    const match = /^(.+)-([0-9]+)$/.exec(args.workItem);
+    if (!match || match[1] !== match[1].trim()) throw new ConvexError("Invalid task address.");
     const sequence = Number(match[2]);
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new ConvexError("Invalid task address.");
-    const { workspace, project } = await projectAddress(ctx, args.workspaceSlug, match[1]);
+    const { workspace, project } = await projectAddress(
+      ctx,
+      args.workspaceSlug,
+      validateIdentifier(match[1], "Invalid task address.")
+    );
     const task = await ctx.db
       .query("tasks")
       .withIndex("by_project_sequence", (q) => q.eq("projectId", project._id).eq("sequence", sequence))

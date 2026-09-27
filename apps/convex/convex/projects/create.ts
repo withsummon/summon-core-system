@@ -1,8 +1,10 @@
+import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
+import { grantProjectMembership } from "./index";
 import { renderedProjectLogo, type ProjectLogoProps } from "./branding_schema";
 import type { ProjectNetwork } from "./network_schema";
 import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
-import { workspaceTimezone } from "../settings/timezone";
+import { workspaceTimezone, validateTimezone } from "../settings/timezone";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -16,28 +18,26 @@ export async function createProject(
     identifier: string;
     network?: ProjectNetwork;
     logoProps?: ProjectLogoProps;
+    description?: string;
+    leadId?: Id<"users"> | null;
+    timezone?: string;
   }
-) {
+): Promise<Id<"projects">> {
   const { user, member } = await requireWorkspace(ctx, args.workspaceId, true);
   if (member.role !== "admin") throw new ConvexError("Only workspace administrators can create projects.");
   renderedProjectLogo(args.logoProps ?? {});
-  const name = args.name.trim();
-  const identifier = args.identifier.trim().toUpperCase();
-  if (!name || name.length > 120 || !/^[A-Z][A-Z0-9]{1,9}$/.test(identifier))
-    throw new ConvexError("Enter a project name and a 2–10 character identifier.");
-  if (
-    await ctx.db
-      .query("projects")
-      .withIndex("by_workspace_identifier", (q) => q.eq("workspaceId", args.workspaceId).eq("identifier", identifier))
-      .unique()
-  )
-    throw new ConvexError("This project identifier is already taken.");
+  const metadata = await validateProjectMetadata(ctx, args.workspaceId, {
+    ...args,
+    description: args.description ?? "",
+  });
+  const leadId = args.leadId ?? null;
+  await validateProjectLead(ctx, args.workspaceId, leadId);
   const projectId = await ctx.db.insert("projects", {
     workspaceId: args.workspaceId,
-    name,
-    identifier,
-    timezone: await workspaceTimezone(ctx, args.workspaceId),
-    description: "",
+    ...metadata,
+    leadId,
+    timezone:
+      args.timezone === undefined ? await workspaceTimezone(ctx, args.workspaceId) : validateTimezone(args.timezone),
     metadataRevision: 0,
     features: defaultProjectFeatures,
     network: args.network ?? 2,
@@ -56,5 +56,12 @@ export async function createProject(
     active: true,
   });
   await initializeProjectOrder(ctx, { workspaceId: args.workspaceId, projectId, userId: user._id });
+  if (leadId && leadId !== user._id)
+    await grantProjectMembership(ctx, {
+      workspaceId: args.workspaceId,
+      projectId,
+      userId: leadId,
+      role: "admin",
+    });
   return projectId;
 }

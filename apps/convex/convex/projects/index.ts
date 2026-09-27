@@ -42,6 +42,9 @@ export const create = mutation({
     identifier: v.string(),
     network: v.optional(projectNetwork),
     logoProps: v.optional(projectLogoProps),
+    description: v.optional(v.string()),
+    leadId: v.optional(v.union(v.id("users"), v.null())),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return createProject(ctx, args);
