@@ -3,12 +3,12 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
-import { requireTask } from "../tasks/access";
+import { requireDiscussion } from "../tasks/discussion_access";
 import { selectedTask, selectionFields, validateSelection } from "./selection";
 export const subscribe = mutation({
   args: { taskId: v.id("tasks"), subscribed: v.boolean() },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, args.subscribed ? "active" : "read");
+    const task = await requireDiscussion(ctx, args.taskId, args.subscribed ? "active" : "read");
     const { user } = await requireProject(ctx, task.projectId);
     const previous = await ctx.db
       .query("taskSubscriptions")
@@ -25,7 +25,7 @@ export const subscribe = mutation({
 export const subscription = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, "read");
+    const task = await requireDiscussion(ctx, args.taskId, "read");
     const { user } = await requireProject(ctx, task.projectId);
     return !!(await ctx.db
       .query("taskSubscriptions")
@@ -65,6 +65,7 @@ export const list = query({
           ...row,
           isMention: row.isMention ?? false,
           taskTitle: task.title,
+          destination: task.status === "triage" ? ("intake" as const) : ("task" as const),
           event: await ctx.db.get(row.eventId),
         };
       })
@@ -85,7 +86,7 @@ export const update = mutation({
     const user = await requireUser(ctx);
     const row = await ctx.db.get(notificationId);
     if (!row || row.receiverId !== user._id) throw new ConvexError("Notification not found.");
-    const task = await requireTask(ctx, row.taskId, "read");
+    const task = await requireDiscussion(ctx, row.taskId, "read");
     await requireProject(ctx, task.projectId);
     if (change.kind === "read") await ctx.db.patch(row._id, { readAt: change.value ? Date.now() : null });
     else if (change.kind === "archive") await ctx.db.patch(row._id, { archivedAt: change.value ? Date.now() : null });
@@ -105,7 +106,7 @@ export const update = mutation({
 export const subscriptionAccess = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, "read");
+    const task = await requireDiscussion(ctx, args.taskId, "read");
     const { user } = await requireProject(ctx, task.projectId);
     const membership = await ctx.db
       .query("taskSubscriptions")

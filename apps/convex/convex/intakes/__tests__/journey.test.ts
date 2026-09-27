@@ -204,7 +204,9 @@ test("pending tasks are excluded from workspace/report projections and ordinary 
   });
   expect(report.contribution.total).toBe(0);
   await expect(f.owner.query(api.tasks.description.get, { taskId })).rejects.toThrow("not found");
-  await expect(f.owner.query(api.tasks.comments.list, { taskId, paginationOpts })).rejects.toThrow("not found");
+  expect(
+    (await f.owner.query(api.tasks.comments.list, { taskId, paginationOpts: { cursor: null, numItems: 30 } })).page
+  ).toEqual([]);
   await expect(f.owner.mutation(api.tasks.index.setStatus, { taskId, status: "todo" })).rejects.toThrow("not found");
   await expect(
     f.owner.mutation(api.tasks.lifecycle.change, { taskId, expectedUpdatedAt: row.task.updatedAt, operation: "delete" })

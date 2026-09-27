@@ -6,17 +6,17 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { recordTaskEvent } from "../notifications/delivery";
-import { requireTask, taskIsActive } from "./access";
+import { requireDiscussion, discussionIsActive } from "./discussion_access";
 import { taskRichContent } from "./rich_content";
 
 async function commentAccess(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const task = await requireTask(ctx, taskId, "read");
+  const task = await requireDiscussion(ctx, taskId, "read");
   const permission = await requireProject(ctx, task.projectId);
   const canCreate =
     (permission.member.role !== "guest" && permission.projectMember.role !== "guest") ||
     task.createdBy === permission.user._id ||
     !!permission.project.guestViewAllFeatures;
-  const active = taskIsActive(task);
+  const active = discussionIsActive(task);
   return { ...permission, task, canCreate: active && canCreate };
 }
 export const access = query({
@@ -39,7 +39,7 @@ async function editableComment(
 ) {
   const comment = await ctx.db.get(commentId);
   if (!comment) throw new ConvexError("Comment not found.");
-  const task = await requireTask(ctx, comment.taskId);
+  const task = await requireDiscussion(ctx, comment.taskId);
   const permission = await requireProject(ctx, task.projectId);
   if (comment.authorId !== permission.user._id && permission.projectMember.role !== "admin")
     throw new ConvexError("Only the author or a project administrator can change this comment.");
@@ -83,11 +83,11 @@ export const list = query({
             ...comment,
             authorName: author?.name ?? null,
             canEdit:
-              taskIsActive(task) &&
+              discussionIsActive(task) &&
               comment.deletedAt == null &&
               (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
             canRestore:
-              taskIsActive(task) &&
+              discussionIsActive(task) &&
               comment.deletedAt != null &&
               (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
           };

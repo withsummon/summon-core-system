@@ -2,7 +2,13 @@ import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
-export function intakeCapabilities(access: Awaited<ReturnType<typeof requireProject>>, creator: Id<"users">) {
+type IntakeAccess = {
+  user: Pick<Doc<"users">, "_id">;
+  member: Pick<Doc<"workspaceMembers">, "role">;
+  projectMember: Pick<Doc<"projectMembers">, "role">;
+  project: Pick<Doc<"projects">, "guestViewAllFeatures">;
+};
+export function intakeCapabilities(access: IntakeAccess, creator: Id<"users">) {
   const admin = access.projectMember.role === "admin" || access.member.role === "admin";
   const own = access.user._id === creator;
   const guest = access.projectMember.role === "guest" || access.member.role === "guest";
