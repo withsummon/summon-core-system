@@ -8,20 +8,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { Eye, EyeOff, Info, XCircle } from "lucide-react";
+import { Info, XCircle } from "lucide-react";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
+import { API_BASE_URL, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CloseIcon } from "@plane/propel/icons";
-import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { Input, Spinner } from "@plane/ui";
+import { newPasswordError } from "./password-validation";
 // components
 import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
 // constants
 // helpers
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
 // services
+import { PasswordFields } from "./password-fields";
 import { AuthService } from "@/services/auth.service";
 
 type Props = {
@@ -55,17 +56,8 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   // states
   const [csrfPromise, setCsrfPromise] = useState<Promise<{ csrf_token: string }> | undefined>(undefined);
   const [passwordFormData, setPasswordFormData] = useState<TPasswordFormValues>({ ...defaultValues, email });
-  const [showPassword, setShowPassword] = useState({
-    password: false,
-    retypePassword: false,
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
-  const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
   const [isBannerMessage, setBannerMessage] = useState(false);
-
-  const handleShowPassword = (key: keyof typeof showPassword) =>
-    setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleFormChange = (key: keyof TPasswordFormValues, value: string) =>
     setPasswordFormData((prev) => ({ ...prev, [key]: value }));
@@ -96,12 +88,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           <ForgotPasswordPopover />
         )}
       </div>
-    ) : (
-      passwordFormData.password.length > 0 &&
-      getPasswordStrength(passwordFormData.password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-        <PasswordStrengthIndicator password={passwordFormData.password} isFocused={isPasswordInputFocused} />
-      )
-    );
+    ) : null;
 
   const isButtonDisabled = useMemo(
     () =>
@@ -110,10 +97,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
       (mode === EAuthModes.SIGN_UP && passwordFormData.password !== passwordFormData.confirm_password),
     [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
   );
-
-  const password = passwordFormData?.password ?? "";
-  const confirmPassword = passwordFormData?.confirm_password ?? "";
-  const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   const handleCSRFToken = async () => {
     if (!formRef || !formRef.current) return;
@@ -152,7 +135,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           await handleCSRFToken();
           const isPasswordValid =
             mode === EAuthModes.SIGN_UP
-              ? getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID
+              ? newPasswordError(passwordFormData.password, passwordFormData.confirm_password ?? "") === null
               : true;
           if (isPasswordValid) {
             setIsSubmitting(true);
@@ -196,82 +179,21 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-13 font-medium text-tertiary">
-            {mode === EAuthModes.SIGN_IN ? t("auth.common.password.label") : t("auth.common.password.set_password")}
-          </label>
-          <div className="relative flex items-center rounded-md bg-surface-1">
-            <Input
-              type={showPassword?.password ? "text" : "password"}
-              id="password"
-              name="password"
-              value={passwordFormData.password}
-              onChange={(e) => handleFormChange("password", e.target.value)}
-              placeholder={t("auth.common.password.placeholder")}
-              className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
-              onFocus={() => setIsPasswordInputFocused(true)}
-              onBlur={() => setIsPasswordInputFocused(false)}
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={() => handleShowPassword("password")}
-              className="absolute right-3 grid size-5 place-items-center"
-              aria-label={t(
-                showPassword?.password ? "aria_labels.auth_forms.hide_password" : "aria_labels.auth_forms.show_password"
-              )}
-            >
-              {showPassword?.password ? (
-                <EyeOff className="size-5 stroke-placeholder" />
-              ) : (
-                <Eye className="size-5 stroke-placeholder" />
-              )}
-            </button>
-          </div>
-          {passwordSupport}
-        </div>
-
-        {mode === EAuthModes.SIGN_UP && (
-          <div className="space-y-1">
-            <label htmlFor="confirm-password" className="text-13 font-medium text-tertiary">
-              {t("auth.common.password.confirm_password.label")}
-            </label>
-            <div className="relative flex items-center rounded-md bg-surface-1">
-              <Input
-                type={showPassword?.retypePassword ? "text" : "password"}
-                id="confirm-password"
-                name="confirm_password"
-                value={passwordFormData.confirm_password}
-                onChange={(e) => handleFormChange("confirm_password", e.target.value)}
-                placeholder={t("auth.common.password.confirm_password.placeholder")}
-                className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
-                onFocus={() => setIsRetryPasswordInputFocused(true)}
-                onBlur={() => setIsRetryPasswordInputFocused(false)}
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className="absolute right-3 grid size-5 place-items-center"
-                aria-label={t(
-                  showPassword?.retypePassword
-                    ? "aria_labels.auth_forms.hide_password"
-                    : "aria_labels.auth_forms.show_password"
-                )}
-                onClick={() => handleShowPassword("retypePassword")}
-              >
-                {showPassword?.retypePassword ? (
-                  <EyeOff className="size-5 stroke-placeholder" />
-                ) : (
-                  <Eye className="size-5 stroke-placeholder" />
-                )}
-              </button>
-            </div>
-            {!!passwordFormData.confirm_password &&
-              passwordFormData.password !== passwordFormData.confirm_password &&
-              renderPasswordMatchError && (
-                <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>
-              )}
-          </div>
+        {mode === EAuthModes.SIGN_UP ? (
+          <PasswordFields
+            confirm
+            password={passwordFormData.password}
+            confirmation={passwordFormData.confirm_password ?? ""}
+            onPasswordChange={(value) => handleFormChange("password", value)}
+            onConfirmationChange={(value) => handleFormChange("confirm_password", value)}
+          />
+        ) : (
+          <PasswordFields
+            confirm={false}
+            password={passwordFormData.password}
+            onPasswordChange={(value) => handleFormChange("password", value)}
+            support={passwordSupport}
+          />
         )}
 
         <div className="space-y-2.5">

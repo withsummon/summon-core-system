@@ -1,3 +1,6 @@
+import { TranslationProvider } from "@plane/i18n";
+import { PasswordFields } from "@/components/account/auth-forms/password-fields";
+import { newPasswordError } from "@/components/account/auth-forms/password-validation";
 import { useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
@@ -83,11 +86,21 @@ const presentation: Record<
   },
 };
 export function SignIn() {
+  return (
+    <TranslationProvider>
+      <SignInForm />
+    </TranslationProvider>
+  );
+}
+
+function SignInForm() {
   const { signIn } = useAuthActions();
   const available = useQuery(api.identity.mail.availability.get, {});
   const providers = useQuery(api.identity.oauth.availability.list, {});
   const [flow, setFlow] = useState<Flow>("signIn");
   const [email, setEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const form = presentation[flow];
@@ -101,6 +114,17 @@ export function SignIn() {
         onSubmit={async (event) => {
           event.preventDefault();
           if (!enabled || pending) return;
+          if (flow === "signUp") {
+            const validation = newPasswordError(signupPassword, confirmation);
+            if (validation) {
+              setError(
+                validation === "mismatch"
+                  ? "Passwords do not match."
+                  : "Use at least 8 characters, including uppercase and lowercase letters, a number, and a special character."
+              );
+              return;
+            }
+          }
           setPending(true);
           setError("");
           const data = new FormData(event.currentTarget);
@@ -154,17 +178,27 @@ export function SignIn() {
                 <Input name="code" autoComplete="one-time-code" required maxLength={100} />
               </SummonField>
             )}
-            {form.password && (
-              <SummonField label={form.password.label}>
-                <Input
-                  key={flow}
-                  name={form.password.name}
-                  type="password"
-                  autoComplete={form.password.autoComplete}
-                  minLength={8}
-                  required
-                />
-              </SummonField>
+            {flow === "signUp" ? (
+              <PasswordFields
+                confirm
+                password={signupPassword}
+                confirmation={confirmation}
+                onPasswordChange={setSignupPassword}
+                onConfirmationChange={setConfirmation}
+              />
+            ) : (
+              form.password && (
+                <SummonField label={form.password.label}>
+                  <Input
+                    key={flow}
+                    name={form.password.name}
+                    type="password"
+                    autoComplete={form.password.autoComplete}
+                    minLength={8}
+                    required
+                  />
+                </SummonField>
+              )
             )}
             <input type="hidden" name="flow" value={flow} />
             <Button type="submit" loading={pending} disabled={pending}>
@@ -236,6 +270,8 @@ export function SignIn() {
             disabled={pending}
             onClick={() => {
               setFlow(flow === "signIn" ? "signUp" : "signIn");
+              setSignupPassword("");
+              setConfirmation("");
               setError("");
             }}
           >
