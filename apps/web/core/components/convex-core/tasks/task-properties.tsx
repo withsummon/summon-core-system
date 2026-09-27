@@ -33,7 +33,7 @@ export function TaskProperties<T extends TaskPropertyValues>({
     loadMore,
   } = usePaginatedQuery(api.tasks.assignees.list, projectId ? { projectId } : "skip", { initialNumItems: 100 });
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="grid min-w-0 gap-5 sm:grid-cols-2">
       <SummonField label="State" htmlFor="task-state">
         <select
           id="task-state"
@@ -110,10 +110,10 @@ export function TaskProperties<T extends TaskPropertyValues>({
           onChange={(event) => onChange({ ...draft, targetDate: event.target.value || null })}
         />
       </SummonField>
-      <fieldset className="space-y-2">
+      <fieldset className="min-w-0 space-y-2">
         <legend className="mb-2 text-14 font-medium">Assignees</legend>
         {members.map((member) => (
-          <label key={member.id} className="flex gap-2 text-14">
+          <label key={member.id} className="flex min-w-0 gap-2 text-14 break-words">
             <input
               type="checkbox"
               checked={draft.assigneeIds.includes(member.id)}
@@ -137,7 +137,7 @@ export function TaskProperties<T extends TaskPropertyValues>({
         {draft.assigneeIds
           .filter((id) => !members.some((member) => member.id === id))
           .map((id) => (
-            <label key={id} className="flex gap-2 text-14">
+            <label key={id} className="flex min-w-0 gap-2 text-14 break-words">
               <input
                 type="checkbox"
                 checked
@@ -147,10 +147,10 @@ export function TaskProperties<T extends TaskPropertyValues>({
             </label>
           ))}
       </fieldset>
-      <fieldset className="space-y-2">
+      <fieldset className="min-w-0 space-y-2">
         <legend className="mb-2 text-14 font-medium">Labels</legend>
         {labels?.map((label) => (
-          <label key={label._id} className="flex gap-2 text-14">
+          <label key={label._id} className="flex min-w-0 gap-2 text-14 break-words">
             <input
               type="checkbox"
               checked={draft.labelIds.includes(label._id)}
@@ -172,7 +172,7 @@ export function TaskProperties<T extends TaskPropertyValues>({
         {draft.labelIds
           .filter((id) => !labels?.some((label) => label._id === id))
           .map((id) => (
-            <label key={id} className="flex gap-2 text-14">
+            <label key={id} className="flex min-w-0 gap-2 text-14 break-words">
               <input
                 type="checkbox"
                 checked

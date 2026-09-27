@@ -43,7 +43,7 @@ export function BulkProperties({
   const update = useMutation(api.tasks.bulk_properties.update);
   return (
     <form
-      className="space-y-4 border-t border-subtle-1 pt-4"
+      className="max-w-full min-w-0 space-y-4 border-t border-subtle-1 pt-4"
       onSubmit={async (event) => {
         event.preventDefault();
         setPending(true);
@@ -65,7 +65,9 @@ export function BulkProperties({
         }
       }}
     >
-      <h3 className="text-16 font-medium">Edit {snapshot.length} selected tasks</h3>
+      <h3 className="text-16 font-medium">
+        Edit {snapshot.length} selected {snapshot.length === 1 ? "task" : "tasks"}
+      </h3>
       <ul className="max-h-40 overflow-y-auto text-14">
         {snapshot.map((task) => (
           <li key={task._id}>
@@ -73,7 +75,7 @@ export function BulkProperties({
           </li>
         ))}
       </ul>
-      <fieldset disabled={pending} className="space-y-4">
+      <fieldset disabled={pending} className="max-w-full min-w-0 space-y-4">
         <div className="flex flex-wrap gap-3">
           {fields.map((field) => (
             <label key={field.key} className="flex items-center gap-2 text-14">
@@ -95,7 +97,7 @@ export function BulkProperties({
           No estimate clear those values. Choosing a status group replaces any custom state. All tasks update together.
         </p>
         <TaskProperties projectId={projectId} draft={draft} onChange={setDraft} />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="submit" loading={pending} disabled={!enabled.length}>
             Apply checked properties
           </Button>
