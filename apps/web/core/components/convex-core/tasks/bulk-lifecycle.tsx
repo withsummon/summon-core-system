@@ -1,3 +1,4 @@
+import { BulkMemberships } from "./bulk-memberships";
 import { BulkProperties } from "./bulk-properties";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -27,6 +28,7 @@ export function BulkLifecycle({
   const bulk = useMutation(api.tasks.lifecycle.bulk);
   const [selected, setSelected] = useState<Capture[]>([]);
   const [confirmation, setConfirmation] = useState<Operation | null>(null);
+  const [membershipsEditing, setMembershipsEditing] = useState(false);
   const [propertiesEditing, setPropertiesEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -41,7 +43,7 @@ export function BulkLifecycle({
           Select up to {access.maxTasks} loaded tasks. If a task changes, select it again.
         </p>
         <fieldset
-          disabled={pending || confirmation !== null || propertiesEditing}
+          disabled={pending || confirmation !== null || propertiesEditing || membershipsEditing}
           className="max-h-64 space-y-2 overflow-y-auto"
         >
           {rows.map((row) => (
@@ -61,10 +63,26 @@ export function BulkLifecycle({
           ))}
         </fieldset>
         <p className="text-12">{selected.length} selected</p>
-        {view === "active" && !confirmation && !propertiesEditing && (
+        {view === "active" && !confirmation && !propertiesEditing && !membershipsEditing && (
           <Button variant="secondary" disabled={!selected.length} onClick={() => setPropertiesEditing(true)}>
             Edit selected properties
           </Button>
+        )}
+        {view === "active" && !confirmation && !propertiesEditing && !membershipsEditing && (
+          <Button variant="secondary" disabled={!selected.length} onClick={() => setMembershipsEditing(true)}>
+            Change selected cycle or module
+          </Button>
+        )}
+        {membershipsEditing && (
+          <BulkMemberships
+            projectId={projectId}
+            tasks={selected}
+            onClose={() => setMembershipsEditing(false)}
+            onSaved={() => {
+              setMembershipsEditing(false);
+              setSelected([]);
+            }}
+          />
         )}
         {propertiesEditing && (
           <BulkProperties
@@ -78,6 +96,7 @@ export function BulkLifecycle({
           />
         )}
         {!propertiesEditing &&
+          !membershipsEditing &&
           (confirmation ? (
             <div className="space-y-2">
               <p className="text-14">
@@ -136,7 +155,7 @@ export function BulkLifecycle({
           ))}
         <Button
           variant="secondary"
-          disabled={pending || propertiesEditing}
+          disabled={pending || propertiesEditing || membershipsEditing}
           onClick={() => {
             setSelected([]);
             setConfirmation(null);
