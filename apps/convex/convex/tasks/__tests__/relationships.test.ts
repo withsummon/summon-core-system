@@ -78,7 +78,9 @@ test("cross-project edges preserve directions and detect workspace-wide blocking
   await f.add("blocks");
   await f.add("blocks", f.b, c);
   await expect(f.add("blocks", c, f.a)).rejects.toThrow("cycle");
-  const row = (await f.owner.query(api.tasks.relationships.list, { taskId: f.b })).find((row) => row.task?._id === c);
+  const row = (await f.owner.query(api.tasks.relationships.list, { taskId: f.b })).find(
+    (relation) => relation.task?._id === c
+  );
   expect(row).toMatchObject({ direction: "blocks", project: { identifier: "SEC" }, canRemove: true });
   await expect(f.add("blocked_by", c, f.b)).rejects.toThrow("already");
   await f.add("implements", c, f.a);
@@ -146,6 +148,8 @@ test("workspace blocking graph overflow fails explicitly while unrelated relatio
   const f = await setup();
   await f.t.run(async (ctx) => {
     for (let index = 0; index < 1000; index++)
+      // Fixture insertion intentionally stays within one transaction in sequence.
+      // oxlint-disable-next-line no-await-in-loop
       await ctx.db.insert("taskRelations", {
         workspaceId: f.workspaceId,
         projectId: f.projectId,

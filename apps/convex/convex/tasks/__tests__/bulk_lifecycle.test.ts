@@ -50,6 +50,8 @@ test("bulk rejects stale, duplicated and oversized captures atomically", async (
   ).rejects.toThrow("changed");
   expect((await f.owner.query(api.tasks.index.get, { taskId: f.ids[0] })).deletedAt).toBeNull();
   for (const invalid of [[], [tasks[0], tasks[0]], Array.from({ length: 21 }, () => tasks[0])])
+    // Rejections share the same transactional fixture.
+    // oxlint-disable-next-line no-await-in-loop
     await expect(
       f.owner.mutation(api.tasks.lifecycle.bulk, { projectId: f.projectId, operation: "delete", tasks: invalid })
     ).rejects.toThrow("1–20");
