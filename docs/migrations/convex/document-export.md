@@ -12,7 +12,7 @@ The native editor captures current body and title at preparation time. A fresh a
 
 Authorized bytes become portable data URLs, without bearer tokens, temporary blob URLs, or authenticated source paths in the file. Reads are sequential and bounded to 100 distinct images and 32 MiB before data-URI retention. The shared transfer owner aborts reads and releases download URLs on close/replacement. The prepared download remains available through an explicit link; no arbitrary revocation timer races the browser download.
 
-Native mention-directory rendering is still absent; native export preserves a visible `@Unavailable mention` marker instead of guessing names. Issue embeds follow the inherited omission. This slice adds no dependencies or backend endpoint, and does not retire Django.
+The subsequent document-mentions slice resolves user tokens through current document-authorized workspace membership in bounded batches. Missing/inactive members remain visibly unavailable; unknown entity types remain unsupported. Issue embeds follow the inherited omission. This slice adds no dependencies or backend endpoint, and does not retire Django.
 
 ## Verification
 

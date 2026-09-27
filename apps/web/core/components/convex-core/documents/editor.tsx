@@ -6,6 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { api } from "@summon/convex/api";
 
+import { DocumentMentionsProvider, useDocumentMentions } from "./mentions";
 import { useDocumentAssets } from "./use-document-assets";
 
 const DocumentExport = lazy(() => import("./export").then((module) => ({ default: module.DocumentExport })));
@@ -14,7 +15,6 @@ const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-emb
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
 const extendedEditorProps = {};
 const editorProps = { attributes: { role: "textbox", "aria-label": "Document content", "aria-multiline": "true" } };
-const mentionHandler = { renderComponent: () => null };
 const statusLabels = {
   initial: "Starting editor…",
   connecting: "Connecting to collaboration…",
@@ -35,7 +35,11 @@ export function DocumentEditor({
   if (!token) return <p role="status">Restoring editor session…</p>;
   if (!url)
     return <p role="alert">Collaborative editing is unavailable. Please contact your workspace administrator.</p>;
-  return <AuthenticatedEditor key={context.documentId} context={context} token={token} url={url} />;
+  return (
+    <DocumentMentionsProvider key={context.documentId} documentId={context.documentId}>
+      <AuthenticatedEditor context={context} token={token} url={url} />
+    </DocumentMentionsProvider>
+  );
 }
 function AuthenticatedEditor({
   context,
@@ -46,6 +50,7 @@ function AuthenticatedEditor({
   token: string;
   url: string;
 }) {
+  const mentionHandler = useDocumentMentions(context.documentId);
   const editorRef = useRef<EditorRefApi>(null);
   const titleRef = useRef<EditorTitleRefApi>(null);
   const [exporting, setExporting] = useState(false);

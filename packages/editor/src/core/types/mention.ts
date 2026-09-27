@@ -27,5 +27,9 @@ export type TCallbackMentionComponentProps = Pick<TMentionSuggestion, "entity_id
 export type TMentionHandler = {
   getMentionedEntityDetails?: (entity_identifier: string) => { display_name: string } | undefined;
   renderComponent: (props: TCallbackMentionComponentProps) => React.ReactNode;
+  searchPageCallback?: (
+    query: string,
+    cursor: string | null
+  ) => Promise<{ sections: TMentionSection[]; cursor: string | null }>;
   searchCallback?: (query: string) => Promise<TMentionSection[]>;
 };
