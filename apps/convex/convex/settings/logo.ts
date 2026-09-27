@@ -5,18 +5,15 @@ import { requireWorkspace } from "../identity/access";
 import { descriptor } from "../assets/access";
 import { prepareAsset } from "../assets/index";
 import { supportedAssetTypes, assetSizeLimit } from "../assets/content";
-import { requireLogoWrite, replaceWorkspaceLogo, workspaceAppearance } from "./logo_owner";
+import { requireLogoWrite, replaceWorkspaceLogo, workspaceAppearance, workspaceLogo } from "./logo_owner";
 
 export const get = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
     const { workspace, member } = await requireWorkspace(ctx, workspaceId);
-    const appearance = await workspaceAppearance(ctx, workspaceId);
-    const logo = appearance?.logoAssetId ? await ctx.db.get(appearance.logoAssetId) : null;
-    if (logo && (logo.workspaceId !== workspaceId || logo.purpose !== "workspaceLogo" || logo.status !== "ready"))
-      throw new ConvexError("Workspace logo reference is inconsistent.");
+    const logo = await workspaceLogo(ctx, workspaceId);
     return {
-      logo: logo ? descriptor(logo) : null,
+      logo,
       revision: workspace.metadataRevision,
       canManage: member.role === "admin",
       supportedTypes: [...supportedAssetTypes].filter((type) => type.startsWith("image/")),

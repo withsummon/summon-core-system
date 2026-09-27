@@ -1,3 +1,4 @@
+import { workspaceLogo } from "../settings/logo_owner";
 import { workspaceName, workspaceSlug } from "../settings/metadata";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { v, ConvexError, type Infer } from "convex/values";
@@ -19,7 +20,12 @@ export const list = query({
         .filter((m) => m.active)
         .map(async (membership) => {
           const workspace = await ctx.db.get(membership.workspaceId);
-          return workspace ? Object.assign(workspace, { membershipRole: membership.role }) : null;
+          return workspace
+            ? Object.assign(workspace, {
+                membershipRole: membership.role,
+                logo: await workspaceLogo(ctx, workspace._id),
+              })
+            : null;
         })
     );
     return workspaces.filter((w) => w !== null);
