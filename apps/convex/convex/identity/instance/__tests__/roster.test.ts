@@ -27,7 +27,7 @@ test("roster and safe configuration require initialized current instance admin",
     new Set(["id", "userId", "name", "email", "role", "revision", "createdAt"])
   );
   expect(new Set(Object.keys(await f.owner.query(api.identity.instance.configuration.get, {})))).toEqual(
-    new Set(["initializedAt", "passwordSignIn", "mailConfigured", "oauthProviders"])
+    new Set(["initializedAt", "isWorkspaceCreationDisabled", "passwordSignIn", "mailConfigured", "oauthProviders"])
   );
 });
 test("grant is idempotent, removal uses captured membership and retains final administrator", async () => {
