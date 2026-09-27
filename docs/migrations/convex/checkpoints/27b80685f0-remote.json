@@ -1,0 +1,25 @@
+{
+  "sourceCommit": "27b80685f0aed6d40fc585a436fd0377e2aaedeb",
+  "files": 1241,
+  "treeSha256": "988eeb627478384457ae96dcbe21c3154dd66bf2e432a2832e6d3373a2941605",
+  "indexSha256": "89145c2375f084eb701e4bb5ac8a2cc8f260ace1048a066b2608eb90211bcaa1",
+  "backend": "https://convex-core.withsummon.com",
+  "actions": "https://convex-site.withsummon.com",
+  "frontend": "http://127.0.0.1:3018/core",
+  "dependencyNote": "Pre-existing editor/ui manifests and installed lockfile state included; unrelated edits preserved.",
+  "servedIndexMatches": true,
+  "verifiedDeepLink": "http://127.0.0.1:3018/core?workspace=remote-browser-check-20260927&project=RQA&task=r572p8te862sqs0b0982h5fczn8f6dmh",
+  "browserVerification": [
+    "Existing account sign-in",
+    "Synthetic text upload finalized on remote task",
+    "Authenticated browser download matched original SHA-256",
+    "Remove to recoverable files with deadline",
+    "Restore returned file to active list",
+    "No captured browser errors"
+  ],
+  "limitations": [
+    "Locally served production frontend against remote backend; no public frontend cutover",
+    "Supported native file types only, not full inherited attachment parity",
+    "No new latency benchmark"
+  ]
+}
