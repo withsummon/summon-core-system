@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
@@ -11,9 +11,6 @@ type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
 export function PersonalNavigation({ workspace, onNavigate }: { workspace: Workspace; onNavigate: () => void }) {
   const recent = useQuery(api.navigation.recent.list, { workspaceId: workspace._id });
   const prefs = useQuery(api.navigation.preferences.list, { workspaceId: workspace._id });
-  const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
-  const [params] = useSearchParams();
-  const project = projects?.find((row) => row.identifier === params.get("project"));
   const ensure = useMutation(api.navigation.preferences.ensure);
   const update = useMutation(api.navigation.preferences.update);
   const [error, setError] = useState("");
@@ -51,8 +48,8 @@ export function PersonalNavigation({ workspace, onNavigate }: { workspace: Works
         {prefs?.preferences
           .filter((row) => row.isPinned)
           .map((row) => {
-            const href = preferenceRoute(workspace.slug, row.key, project?.identifier);
-            return href ? (
+            const href = preferenceRoute(workspace.slug, row.key);
+            return (
               <Link
                 key={row.key}
                 to={href}
@@ -61,10 +58,6 @@ export function PersonalNavigation({ workspace, onNavigate }: { workspace: Works
               >
                 {preferenceLabels[row.key]}
               </Link>
-            ) : (
-              <p key={row.key} className="px-2 text-12 text-secondary">
-                Project cycles · select a project
-              </p>
             );
           })}
         <details>

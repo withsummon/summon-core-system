@@ -31,6 +31,9 @@ const WorkspaceViews = lazy(() =>
 const SavedViews = lazy(() => import("./saved-views/saved-views").then((module) => ({ default: module.SavedViews })));
 const Intakes = lazy(() => import("./intakes/intakes").then((module) => ({ default: module.Intakes })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
+const WorkspaceCycles = lazy(() =>
+  import("./cycles/workspace-cycles").then((module) => ({ default: module.WorkspaceCycles }))
+);
 const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
 const TaskCenter = lazy(() => import("./tasks/task-center").then((module) => ({ default: module.TaskCenter })));
 const Notifications = lazy(() =>
@@ -422,7 +425,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
   return (
     <div className="space-y-6">
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "stickies" ? (
+        {module === "cycles" ? (
+          <WorkspaceCycles workspace={workspace} />
+        ) : module === "stickies" ? (
           <Stickies key={workspace._id} workspace={workspace} />
         ) : module === "views" ? (
           <WorkspaceViews key={workspace._id} workspace={workspace} />
