@@ -1,3 +1,4 @@
+import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -47,7 +48,7 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
           <p className="text-sm text-secondary">{workspace.name}</p>
           <h1 className="text-2xl font-semibold">Documents & knowledge</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             aria-pressed={trash}
@@ -138,7 +139,8 @@ function DocumentDetail({
         <Button variant="secondary" onClick={onBack}>
           Back to documents
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <FavoriteToggle workspaceId={document.workspaceId} target={{ type: "page", id: document._id }} />
           {context.canWrite && (
             <Button variant="secondary" onClick={() => setSettings((value) => !value)}>
               Document settings

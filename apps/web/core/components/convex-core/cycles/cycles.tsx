@@ -1,3 +1,4 @@
+import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -177,6 +178,9 @@ function CycleDetail({
           <Button variant="secondary" onClick={onRefresh}>
             Refresh phase
           </Button>
+          {!cycle.deleted && (
+            <FavoriteToggle workspaceId={cycle.workspaceId} target={{ type: "cycle", id: cycle._id }} />
+          )}
           {cycle.canEdit && <Button onClick={() => setEditing(true)}>Edit cycle</Button>}
         </div>
       </header>
