@@ -1,3 +1,4 @@
+import { WorkspaceLogoIdentity } from "./workspace-appearance/logo-image";
 import { LeaveMembership } from "./memberships/leave";
 import { MembershipAccessBoundary } from "./memberships/access-boundary";
 import { Onboarding } from "./identity/onboarding/onboarding";
@@ -121,10 +122,11 @@ function Workspace() {
               <button
                 key={item._id}
                 aria-current={workspace?._id === item._id ? "page" : undefined}
-                className="rounded-md px-3 py-2 text-left text-14 hover:bg-layer-2 aria-[current=page]:bg-layer-2"
+                className="flex min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-14 hover:bg-layer-2 aria-[current=page]:bg-layer-2"
                 onClick={() => setParams({ workspace: item.slug })}
               >
-                {item.name}
+                <WorkspaceLogoIdentity workspace={item} />
+                <span className="min-w-0 break-words">{item.name}</span>
               </button>
             ))}
           </nav>
