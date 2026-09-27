@@ -28,7 +28,11 @@ export const backfill = internalMutation({
         .unique();
       if (sameTarget) {
         // eslint-disable-next-line no-await-in-loop
-        await ctx.db.patch(sameTarget._id, { legacySourceId: source._id, sequence: source._creationTime });
+        await ctx.db.patch(sameTarget._id, {
+          legacySourceId: source._id,
+          sequence: source._creationTime,
+          favoritedAt: source._creationTime,
+        });
         relinked++;
         continue;
       }
@@ -44,6 +48,7 @@ export const backfill = internalMutation({
         name: null,
         sequence: source._creationTime,
         height: 1,
+        favoritedAt: source._creationTime,
         updatedAt: Date.now(),
         deletedAt: null,
         legacySourceId: source._id,

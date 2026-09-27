@@ -29,6 +29,7 @@ export const favoriteTables = {
     parentId: v.union(v.id("favorites"), v.null()),
     sequence: v.number(),
     height: v.number(),
+    favoritedAt: v.number(),
     updatedAt: v.number(),
     deletedAt: v.union(v.number(), v.null()),
     legacySourceId: v.optional(v.id("savedViewFavorites")),
@@ -36,6 +37,6 @@ export const favoriteTables = {
     .index("by_owner_parent_order", ["workspaceId", "userId", "parentId", "sequence"])
     .index("by_parent_height", ["parentId", "height"])
     .index("by_owner_target", ["workspaceId", "userId", "targetKey"])
-    .index("by_owner_type_project", ["workspaceId", "userId", "targetType", "targetProjectId"])
+    .index("by_owner_type_project", ["workspaceId", "userId", "targetType", "targetProjectId", "favoritedAt"])
     .index("by_legacy_source", ["legacySourceId"]),
 };
