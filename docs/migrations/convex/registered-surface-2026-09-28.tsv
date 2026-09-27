@@ -741,15 +741,15 @@ web-route	/:workspaceSlug/profile/:userId/:profileViewId	apps/web/app/routes/cor
 web-route	/:workspaceSlug/profile/:userId/activity	apps/web/app/routes/core.ts:98	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx	OPEN
 web-route	/profile/*	apps/web/app/routes/core.ts:413	Django-backed web	account	routes/redirects/core/profile-settings.tsx	OPEN
 web-route	/settings/profile/:profileTabId	apps/web/app/routes/core.ts:373	Django-backed web	account	./(all)/settings/profile/[profileTabId]/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/assistant	apps/web/app/routes/extended.ts:37	Django-backed web	assistant	${summonRoot}/assistant/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/assistant	apps/web/app/routes/extended.ts:37	Django-backed web	assistant	./(all)/[workspaceSlug]/(projects)/summon/assistant/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/automation	apps/web/app/routes/core.ts:226	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/automations	apps/web/app/routes/core.ts:355	Django-backed web	automation	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/automation	apps/web/app/routes/extended.ts:35	Django-backed web	automation	${summonRoot}/automation/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/automation/:jobId	apps/web/app/routes/extended.ts:36	Django-backed web	automation	${summonRoot}/automation/[jobId]/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/clients	apps/web/app/routes/extended.ts:23	Django-backed web	commercial	${summonRoot}/clients/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/clients/:clientId	apps/web/app/routes/extended.ts:24	Django-backed web	commercial	${summonRoot}/clients/[clientId]/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/opportunities	apps/web/app/routes/extended.ts:25	Django-backed web	commercial	${summonRoot}/opportunities/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/opportunities/:opportunityId	apps/web/app/routes/extended.ts:26	Django-backed web	commercial	${summonRoot}/opportunities/[opportunityId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/automation	apps/web/app/routes/extended.ts:35	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/automation/:jobId	apps/web/app/routes/extended.ts:36	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/[jobId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/clients	apps/web/app/routes/extended.ts:23	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/clients/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/clients/:clientId	apps/web/app/routes/extended.ts:24	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/clients/[clientId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/opportunities	apps/web/app/routes/extended.ts:25	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/opportunities/:opportunityId	apps/web/app/routes/extended.ts:26	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/[opportunityId]/page.tsx	OPEN
 web-route	/:workspaceSlug/active-cycles	apps/web/app/routes/core.ts:68	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/archives/cycles	apps/web/app/routes/core.ts:252	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/cycles	apps/web/app/routes/core.ts:164	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx	OPEN
@@ -758,8 +758,8 @@ web-route	/:workspaceSlug/settings/projects/:projectId/features/cycles	apps/web/
 web-route	/:workspaceSlug/projects/:projectId/pages	apps/web/app/routes/core.ts:212	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/pages/:pageId	apps/web/app/routes/core.ts:204	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/features/pages	apps/web/app/routes/core.ts:330	Django-backed web	documents	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/documents	apps/web/app/routes/extended.ts:21	Django-backed web	documents	${summonRoot}/documents/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/knowledge	apps/web/app/routes/extended.ts:22	Django-backed web	documents	${summonRoot}/knowledge/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/documents	apps/web/app/routes/extended.ts:21	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/documents/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/knowledge	apps/web/app/routes/extended.ts:22	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/api-tokens	apps/web/app/routes/core.ts:395	Django-backed web	external-api	routes/redirects/core/api-tokens.tsx	OPEN
 web-route	/:workspaceSlug/settings/webhooks	apps/web/app/routes/core.ts:289	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/webhooks/:webhookId	apps/web/app/routes/core.ts:293	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx	OPEN
@@ -788,14 +788,14 @@ web-route	/workspace/create	apps/admin/app/routes.ts:15	Django-backed admin	inst
 web-route	/:workspaceSlug/projects/:projectId/inbox	apps/web/app/routes/core.ts:399	Django-backed web	intake	routes/redirects/core/inbox.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/intake	apps/web/app/routes/core.ts:219	Django-backed web	intake	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/features/intake	apps/web/app/routes/core.ts:334	Django-backed web	intake	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/meetings	apps/web/app/routes/extended.ts:33	Django-backed web	meetings	${summonRoot}/meetings/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/meetings/:meetingId	apps/web/app/routes/extended.ts:34	Django-backed web	meetings	${summonRoot}/meetings/[meetingId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/meetings	apps/web/app/routes/extended.ts:33	Django-backed web	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/meetings/:meetingId	apps/web/app/routes/extended.ts:34	Django-backed web	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/archives/modules	apps/web/app/routes/core.ts:260	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/modules	apps/web/app/routes/core.ts:180	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/modules/:moduleId	apps/web/app/routes/core.ts:172	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/features/modules	apps/web/app/routes/core.ts:322	Django-backed web	modules	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx	OPEN
 web-route	/:workspaceSlug/notifications	apps/web/app/routes/core.ts:88	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/notifications/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/notifications	apps/web/app/routes/extended.ts:32	Django-backed web	notifications	${summonRoot}/notifications/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/notifications	apps/web/app/routes/extended.ts:32	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/summon/notifications/page.tsx	OPEN
 web-route	/*	apps/web/app/routes.ts:24	Django-backed web	operations	./not-found.tsx	OPEN
 web-route	/:workspaceSlug/projects	apps/web/app/routes/core.ts:136	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/settings/*	apps/web/app/routes/core.ts:388	Django-backed web	projects	routes/redirects/core/project-settings.tsx	OPEN
@@ -805,22 +805,22 @@ web-route	/:workspaceSlug/settings/projects/:projectId	apps/web/app/routes/core.
 web-route	/:workspaceSlug/settings/projects/:projectId/estimates	apps/web/app/routes/core.ts:349	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/labels	apps/web/app/routes/core.ts:344	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/labels/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/projects/:projectId/states	apps/web/app/routes/core.ts:339	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/projects	apps/web/app/routes/extended.ts:18	Django-backed web	projects	${summonRoot}/projects/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/projects/:projectId	apps/web/app/routes/extended.ts:19	Django-backed web	projects	${summonRoot}/projects/[projectId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/projects	apps/web/app/routes/extended.ts:18	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/projects/:projectId	apps/web/app/routes/extended.ts:19	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/[projectId]/page.tsx	OPEN
 web-route	/*	apps/space/app/routes.ts:15	Django-backed public space	public-sharing	./not-found.tsx	OPEN
 web-route	/:workspaceSlug/:projectId	apps/space/app/routes.ts:12	Django-backed public space	public-sharing	./[workspaceSlug]/[projectId]/page.tsx	OPEN
 web-route	/issues/:anchor	apps/space/app/routes.ts:13	Django-backed public space	public-sharing	./issues/[anchor]/page.tsx	OPEN
 web-route	/:workspaceSlug/analytics	apps/web/app/routes/core.ts:391	Django-backed web	reporting	routes/redirects/core/analytics.tsx	OPEN
 web-route	/:workspaceSlug/analytics/:tabId	apps/web/app/routes/core.ts:73	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/exports	apps/web/app/routes/core.ts:285	Django-backed web	reporting	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx	OPEN
-web-route	/:workspaceSlug/summon	apps/web/app/routes/extended.ts:17	Django-backed web	reporting	${summonRoot}/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/reports	apps/web/app/routes/extended.ts:30	Django-backed web	reporting	${summonRoot}/reports/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/credentials	apps/web/app/routes/extended.ts:38	Django-backed web	resources-mcp	${summonRoot}/credentials/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/resources	apps/web/app/routes/extended.ts:31	Django-backed web	resources-mcp	${summonRoot}/resources/page.tsx	OPEN
+web-route	/:workspaceSlug/summon	apps/web/app/routes/extended.ts:17	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/reports	apps/web/app/routes/extended.ts:30	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/reports/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/credentials	apps/web/app/routes/extended.ts:38	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/resources	apps/web/app/routes/extended.ts:31	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/resources/page.tsx	OPEN
 web-route	/:workspaceSlug/settings	apps/web/app/routes/core.ts:276	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx	OPEN
 web-route	/:workspaceSlug/settings/account/*	apps/web/app/routes/core.ts:416	Django-backed web	shared-shell	routes/redirects/core/workspace-account-settings.tsx	OPEN
 web-route	/:workspaceSlug/settings/billing	apps/web/app/routes/core.ts:281	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/settings	apps/web/app/routes/extended.ts:39	Django-backed web	shared-shell	${summonRoot}/settings/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/settings	apps/web/app/routes/extended.ts:39	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx	OPEN
 web-route	/core	apps/web/app/routes.ts:22	Convex	shared-shell	./core.tsx	OPEN
 web-route	/:workspaceSlug/stickies	apps/web/app/routes.ts:23	Django default; Convex flag	stickies	./native-stickies.tsx	OPEN
 web-route	/:workspaceSlug/stickies	apps/web/app/routes/core.ts:109	Django default; Convex flag	stickies	./(all)/[workspaceSlug]/(projects)/stickies/page.tsx	OPEN
@@ -829,7 +829,7 @@ web-route	/:workspaceSlug/projects/:projectId/archives/issues	apps/web/app/route
 web-route	/:workspaceSlug/projects/:projectId/archives/issues/:archivedIssueId	apps/web/app/routes/core.ts:244	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/issues	apps/web/app/routes/core.ts:143	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/issues/:issueId	apps/web/app/routes/core.ts:149	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx	OPEN
-web-route	/:workspaceSlug/summon/tasks	apps/web/app/routes/extended.ts:20	Django-backed web	tasks	${summonRoot}/tasks/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/tasks	apps/web/app/routes/extended.ts:20	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx	OPEN
 web-route	/:workspaceSlug/browse/:workItem	apps/web/app/routes/core.ts:78	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/views	apps/web/app/routes/core.ts:196	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx	OPEN
 web-route	/:workspaceSlug/projects/:projectId/views/:viewId	apps/web/app/routes/core.ts:188	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx	OPEN
