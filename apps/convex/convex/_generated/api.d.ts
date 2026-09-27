@@ -83,6 +83,7 @@ import type * as modules_index from "../modules/index.js";
 import type * as modules_members from "../modules/members.js";
 import type * as modules_tasks from "../modules/tasks.js";
 import type * as notifications_delivery from "../notifications/delivery.js";
+import type * as navigation_address from "../navigation/address.js";
 import type * as notifications_bulk from "../notifications/bulk.js";
 import type * as notifications_cleanup from "../notifications/cleanup.js";
 import type * as notifications_selection from "../notifications/selection.js";
@@ -218,6 +219,7 @@ declare const fullApi: ApiFromModules<{
   "modules/members": typeof modules_members;
   "modules/tasks": typeof modules_tasks;
   "notifications/delivery": typeof notifications_delivery;
+  "navigation/address": typeof navigation_address;
   "notifications/bulk": typeof notifications_bulk;
   "notifications/cleanup": typeof notifications_cleanup;
   "notifications/selection": typeof notifications_selection;
