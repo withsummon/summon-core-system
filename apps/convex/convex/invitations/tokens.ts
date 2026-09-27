@@ -1,14 +1,11 @@
 "use node";
-import { randomBytes, createHash } from "node:crypto";
-import { v, ConvexError } from "convex/values";
+import { randomBytes } from "node:crypto";
+import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { role } from "../schema";
-function digest(token: string) {
-  if (!/^[a-f0-9]{64}$/.test(token)) throw new ConvexError("Invitation token is invalid.");
-  return createHash("sha256").update(token).digest("hex");
-}
+import { tokenDigest as digest } from "./token_crypto";
 export const create = action({
   args: { workspaceId: v.id("workspaces"), projectId: v.union(v.id("projects"), v.null()), email: v.string(), role },
   handler: async (ctx, args): Promise<{ invitationId: Id<"invitations">; token: string }> => {
