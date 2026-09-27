@@ -48,7 +48,14 @@ export function LeaveMembership({ scope }: { scope: LeaveScope }) {
             <Button loading={pending} onClick={() => void leave()}>
               Confirm leave {confirmation.kind}
             </Button>
-            <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
+            <Button
+              variant="secondary"
+              disabled={pending}
+              onClick={() => {
+                setConfirmation(null);
+                setError("");
+              }}
+            >
               Cancel
             </Button>
           </div>
