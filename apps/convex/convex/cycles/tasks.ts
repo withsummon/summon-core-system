@@ -24,23 +24,7 @@ export const remove = mutation({
     expectedTaskUpdatedAt: v.number(),
     expectedCycleUpdatedAt: v.number(),
   },
-  handler: async (ctx, args) => {
-    const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
-    requireOpenCycle(cycle);
-    requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw new ConvexError("Task not found.");
-    if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
-    const previous = await ctx.db
-      .query("cycleTasks")
-      .withIndex("by_task", (q) => q.eq("taskId", task._id))
-      .unique();
-    if (!previous) return;
-    if (previous.cycleId !== cycle._id) throw new ConvexError("Task has moved to another cycle.");
-    requireTaskRevision(task, args.expectedTaskUpdatedAt);
-    await ctx.db.delete(previous._id);
-    await taskChanged(ctx, task, user._id);
-  },
+  handler: removeCycleTask,
 });
 export const current = query({
   args: { taskId: v.id("tasks") },
@@ -124,5 +108,26 @@ export async function assignCycleTask(
     throw new ConvexError("This cycle has reached its 100 task limit.");
   if (previous) await ctx.db.patch(previous._id, { cycleId: cycle._id });
   else await ctx.db.insert("cycleTasks", { cycleId: cycle._id, taskId: task._id });
+  await taskChanged(ctx, task, user._id);
+}
+
+export async function removeCycleTask(
+  ctx: MutationCtx,
+  args: { cycleId: Id<"cycles">; taskId: Id<"tasks">; expectedTaskUpdatedAt: number; expectedCycleUpdatedAt: number }
+) {
+  const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
+  requireOpenCycle(cycle);
+  requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
+  const task = await ctx.db.get(args.taskId);
+  if (!task) throw new ConvexError("Task not found.");
+  if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
+  const previous = await ctx.db
+    .query("cycleTasks")
+    .withIndex("by_task", (q) => q.eq("taskId", task._id))
+    .unique();
+  if (!previous) return;
+  if (previous.cycleId !== cycle._id) throw new ConvexError("Task has moved to another cycle.");
+  requireTaskRevision(task, args.expectedTaskUpdatedAt);
+  await ctx.db.delete(previous._id);
   await taskChanged(ctx, task, user._id);
 }
