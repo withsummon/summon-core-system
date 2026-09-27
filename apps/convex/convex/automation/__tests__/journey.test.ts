@@ -109,7 +109,9 @@ test("real provider adapter stores preview only; explicit publication atomically
   expect(await t.run((ctx) => ctx.db.query("documents").collect())).toHaveLength(1);
   const snapshot = await owner.query(api.documents.index.snapshot, { documentId });
   if (!snapshot) throw new Error("Missing publication snapshot");
-  const decoded = getAllDocumentFormatsFromDocumentEditorBinaryData(new Uint8Array(snapshot.descriptionBinary), false);
+  const decoded = getAllDocumentFormatsFromDocumentEditorBinaryData(new Uint8Array(snapshot.descriptionBinary), true);
+  expect(decoded.titleHTML).toBe(args.title);
+  expect((await t.run((ctx) => ctx.db.get(documentId)))?.name).toBe(decoded.titleHTML);
   expect(decoded.contentJSON).toEqual(snapshot.descriptionJson);
   expect(decoded.contentHTML).toBe(snapshot.descriptionHtml);
   expect(snapshot.descriptionHtml).not.toContain("<script>");

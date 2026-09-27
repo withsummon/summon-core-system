@@ -22,6 +22,6 @@ export async function requireMeeting(
   const meeting = await ctx.db.get(meetingId);
   if (!meeting || meeting.deleted || meeting.workspaceId !== workspaceId)
     throw new ConvexError("Meeting not found in this workspace.");
-  if (meeting.projectId) await requireProject(ctx, meeting.projectId, write);
-  return { ...access, meeting };
+  const projectAccess = meeting.projectId ? await requireProject(ctx, meeting.projectId, write) : null;
+  return { ...access, meeting, projectMember: projectAccess?.projectMember ?? null };
 }

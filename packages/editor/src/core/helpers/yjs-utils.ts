@@ -8,7 +8,7 @@ import { Buffer } from "buffer";
 import type { Extensions, JSONContent } from "@tiptap/core";
 import { getSchema } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html";
-import { prosemirrorJSONToYDoc, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import { prosemirrorJSONToYDoc, prosemirrorJSONToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
 import * as Y from "yjs";
 // extensions
 import type { TDocumentPayload } from "@plane/types";
@@ -121,6 +121,27 @@ export const getBinaryDataFromDocumentEditorHTMLString = (descriptionHTML: strin
   // convert Y.Doc to Uint8Array format
   const encodedData = Y.encodeStateAsUpdate(transformedData);
   return encodedData;
+};
+
+/** Replace content inside the existing CRDT, retaining deletions for connected editors. */
+export const replaceDocumentEditorHTML = (document: Uint8Array, descriptionHTML: string, title: string): Uint8Array => {
+  const yDoc = new Y.Doc();
+  try {
+    Y.applyUpdate(yDoc, document);
+    const contentJSON = generateJSON(descriptionHTML, DOCUMENT_EDITOR_EXTENSIONS);
+    const titleJSON = generateTitleProsemirrorJson(title);
+    yDoc.transact(() => {
+      const content = yDoc.getXmlFragment("default");
+      const titleFragment = yDoc.getXmlFragment("title");
+      content.delete(0, content.length);
+      titleFragment.delete(0, titleFragment.length);
+      prosemirrorJSONToYXmlFragment(documentEditorSchema, contentJSON, content);
+      prosemirrorJSONToYXmlFragment(documentEditorSchema, titleJSON, titleFragment);
+    });
+    return Y.encodeStateAsUpdate(yDoc);
+  } finally {
+    yDoc.destroy();
+  }
 };
 
 /**

@@ -5,6 +5,7 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
+import { mutationMessage } from "../commercial/forms";
 import { SummonField } from "@/components/summon/forms";
 
 type Meeting = FunctionReturnType<typeof api.meetings.index.get>;
@@ -37,6 +38,7 @@ function Form({
   participants,
 }: Props & { participants: FunctionReturnType<typeof api.meetings.index.participants> }) {
   const save = useMutation(api.meetings.index.save);
+  const [expectedUpdatedAt] = useState(initial?.updatedAt);
   const {
     results: people,
     status: peopleStatus,
@@ -86,11 +88,12 @@ function Form({
         void save({
           workspaceId,
           meetingId: initial?._id,
+          expectedUpdatedAt,
           data: { ...data, startsAt: new Date(start).getTime(), endsAt: end ? new Date(end).getTime() : null },
           participantIds: selected,
         })
           .then(onSaved)
-          .catch(() => setError("Could not save meeting. Check its times, links, and your current access."))
+          .catch((failure) => setError(mutationMessage(failure)))
           .finally(() => setPending(false));
       }}
     >

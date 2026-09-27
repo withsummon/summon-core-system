@@ -28,6 +28,8 @@ result with that project's members before calling `publish.document`.
 
 The browser supplies only the job ID. The Node action derives HTML, JSON and Yjs
 binary using `@plane/editor/lib`; it does not accept browser-produced binary.
+The binary includes the editor title fragment, derived from the immutable job title,
+and its roundtrip title is checked against saved document metadata.
 Publication preserves the legacy escaped, verbatim Markdown in a preformatted
 block. It does not claim to render Markdown as rich document blocks.
 
@@ -51,7 +53,7 @@ model, and citations. Generated content never invokes tools or executes writes.
   JSON. Its first invocation logged a Yjs duplicate-import warning; the immediate
   repeat was clean. The inspected Node bundle contained one Yjs implementation.
   No cross-invocation Y.Doc objects are shared. The temporary probe was removed.
-- Local functions were pushed at 06:53:39; subsequent generation revision-contract changes require the next coordinated push.
+- The revision contract was deployed locally at 07:07:41 on 2026-09-27. Primary Chrome QA verified the current missing-provider persisted failure without preview or publication. Native UI acceptance covers default installation, custom templates, destination selection, reload persistence, and desktop/narrow failure layouts.
 - Live provider generation is unverified: the local Convex backend has no
   configured provider key. Provider tests use synthetic fetch responses at the
   genuine adapter boundary. Remote deployment and browser acceptance are separate.
