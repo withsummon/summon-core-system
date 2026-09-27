@@ -35,12 +35,34 @@ rewrite historical transfer snapshots.
 
 Backend source and module BDD cover >100 memberships across bounded pages,
 sparse guest pages, current updates, revoked access, inactive/foreign records,
-numeric/category estimates, and foreign label name redaction. Focused progress + transfer verification: 9 tests pass, native backend and web
+numeric/category estimates, and foreign label name redaction. Focused progress + transfer verification: 17 tests pass, native backend and web
 TypeScript 7 checks pass, scoped Oxc passes. No deployment or browser acceptance
 is claimed by these source checks.
 
-The frontend will sum loaded page contributions and explicitly mark partial
-coverage until exhaustion. Reactive pages can update independently; this is a
+The frontend sums loaded page contributions and explicitly marks partial
+coverage until exhaustion. The existing transfer distribution presentation is
+shared with current progress. Empty sparse pages still expose Load more. Two
+module-local frontend tests cover bucket merging and reactive replacement without
+mutating source contributions. Backend71517a97e5 was deployed from an immutable
+archive to local3210; exact archive TypeScript7 passed. Remote deployment and
+browser acceptance remain separate. Reactive pages can update independently; this is a
 current live view, not a globally atomic historical report. No fabricated burndown,
 completion chart, REST alias, point-weighted historical series, or legacy snapshot
 selection parity is included. Those inherited routes remain live.
+
+## Numeric closure and frontend gate
+
+Correction `3606a8081d` accepts finite signed/scientific decimal estimate values
+in the same shared calculation, matching the inherited FloatField cast grammar
+without JavaScript hexadecimal coercion. Eight public-query cases cover signed,
+scientific, fractional, whitespace, hexadecimal and non-finite values. Previously
+captured transfer snapshots are unchanged. The immutable archive passed native
+TypeScript7 and deployed locally; raw log is
+`/tmp/summon-migration-control/cycle-progress-3606a8081d-local-deploy.txt`.
+
+The mounted cycle UI passes native web TypeScript7, scoped Oxc, and two aggregation
+behavior tests. Independent frontend source review sampled query pagination,
+partial coverage, cycle-key remount and shared distribution rendering without a
+blocking finding. Browser acceptance is pending the primary agent; neither remote
+deployment nor visual quality is established by these gates. Scoped commits used
+manual gates with hooks disabled under the active migration workflow.

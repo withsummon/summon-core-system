@@ -12,6 +12,7 @@ import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 import { CycleForm, ProjectTimezone } from "./forms";
 import { CycleTasks } from "./tasks";
+import { CycleProgress } from "./progress";
 import { CycleTransfers } from "./transfer";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Cycle = FunctionReturnType<typeof api.cycles.index.get>;
@@ -190,6 +191,7 @@ function CycleDetail({
       </dl>
       {cycle.description && <p className="text-14 break-words whitespace-pre-wrap">{cycle.description}</p>}
       <Lifecycle cycle={cycle} />
+      {!cycle.deleted && <CycleProgress key={cycle._id} cycleId={cycle._id} />}
       {!cycle.deleted && <CycleTasks cycle={cycle} />}
       {!cycle.deleted && cycle.canWrite && <CycleTransfers cycle={cycle} />}
     </article>
