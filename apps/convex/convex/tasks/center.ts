@@ -1,3 +1,4 @@
+import { taskCanRead } from "./access";
 import { taskIsActive } from "./access";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -66,7 +67,7 @@ export const list = query({
     // The cursor covers scanned rows; consumers must continue through empty filtered pages. Never report page size as a global total.
     const visible = await Promise.all(
       result.page.map(async (task) => {
-        if (!taskIsActive(task)) return null;
+        if (!taskIsActive(task) || !(await taskCanRead(ctx, task, user._id))) return null;
         const project = await ctx.db.get(task.projectId);
         if (!project || project.archived) return null;
         const membership = await ctx.db

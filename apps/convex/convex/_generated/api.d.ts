@@ -83,6 +83,8 @@ import type * as modules_members from "../modules/members.js";
 import type * as modules_tasks from "../modules/tasks.js";
 import type * as notifications_delivery from "../notifications/delivery.js";
 import type * as notifications_index from "../notifications/index.js";
+import type * as notifications_mentions from "../notifications/mentions.js";
+import type * as notifications_subscriptions from "../notifications/subscriptions.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
 import type * as projects_settings from "../projects/settings.js";
@@ -206,6 +208,8 @@ declare const fullApi: ApiFromModules<{
   "modules/tasks": typeof modules_tasks;
   "notifications/delivery": typeof notifications_delivery;
   "notifications/index": typeof notifications_index;
+  "notifications/mentions": typeof notifications_mentions;
+  "notifications/subscriptions": typeof notifications_subscriptions;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
   "projects/settings": typeof projects_settings;

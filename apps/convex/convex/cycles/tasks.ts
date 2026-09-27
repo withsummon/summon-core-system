@@ -2,7 +2,7 @@ import { cyclePhase } from "./dates";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import { requireTask, taskIsActive } from "../tasks/access";
+import { requireTask, taskIsActive, taskCanRead } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
@@ -84,7 +84,7 @@ export const current = query({
 export const list = query({
   args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { cycle, member, projectMember } = await requireCycle(ctx, args.cycleId);
+    const { cycle, user, member, projectMember } = await requireCycle(ctx, args.cycleId);
     const canDetach =
       member.role !== "guest" && projectMember.role !== "guest" && !cycle.archived && cyclePhase(cycle) !== "completed";
     if (
@@ -98,15 +98,22 @@ export const list = query({
       .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
       .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
     const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
+    const readable = new Set(
+      (
+        await Promise.all(
+          tasks.map(async (task) => (task && (await taskCanRead(ctx, task, user._id)) ? task._id : null))
+        )
+      ).filter((id) => id !== null)
+    );
     return {
       ...result,
       page: tasks
         .filter((task) => task !== null)
-        .filter((task) => taskIsActive(task) || canDetach)
+        .filter((task) => (taskIsActive(task) && readable.has(task._id)) || canDetach)
         .map((task) => ({
           taskId: task._id,
           updatedAt: task.updatedAt,
-          task: taskIsActive(task) ? task : null,
+          task: taskIsActive(task) && readable.has(task._id) ? task : null,
           unavailable: !taskIsActive(task),
         })),
     };

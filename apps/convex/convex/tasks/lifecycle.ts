@@ -3,7 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query, internalMutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask, taskDetail } from "./access";
+import { requireTask, taskDetail, taskRoleCanRead } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 export const change = mutation({
   args: {
@@ -37,7 +37,7 @@ export const list = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const { user, projectMember } = await requireProject(ctx, args.projectId);
+    const { user, member, projectMember, project } = await requireProject(ctx, args.projectId);
     const result = await ctx.db
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -50,7 +50,9 @@ export const list = query({
         .filter((task) =>
           args.view === "deleted"
             ? task.deletedAt != null && (task.createdBy === user._id || projectMember.role === "admin")
-            : task.deletedAt == null && task.archivedAt != null
+            : task.deletedAt == null &&
+              task.archivedAt != null &&
+              taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures)
         ),
     };
   },

@@ -10,6 +10,15 @@ export function taskIsActive(task: Doc<"tasks">) {
 export function taskIsReadable(task: Doc<"tasks">) {
   return task.status !== "triage" && task.deletedAt == null;
 }
+export function taskRoleCanRead(
+  task: Pick<Doc<"tasks">, "createdBy">,
+  userId: Id<"users">,
+  workspaceRole: string,
+  projectRole: string,
+  guestViewAllFeatures: boolean
+) {
+  return (workspaceRole !== "guest" && projectRole !== "guest") || guestViewAllFeatures || task.createdBy === userId;
+}
 export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "active" | "read" | "recovery" = "active") {
   const task = await ctx.db.get(taskId);
   if (
@@ -19,8 +28,19 @@ export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "act
     (mode === "read" && !taskIsReadable(task))
   )
     throw new ConvexError("Task not found.");
+  const access = await requireProject(ctx, task.projectId);
+  if (
+    mode !== "recovery" &&
+    !taskRoleCanRead(
+      task,
+      access.user._id,
+      access.member.role,
+      access.projectMember.role,
+      !!access.project.guestViewAllFeatures
+    )
+  )
+    throw new ConvexError("Task not found.");
   if (mode === "recovery") {
-    const access = await requireProject(ctx, task.projectId);
     if (task.createdBy !== access.user._id && access.projectMember.role !== "admin")
       throw new ConvexError("Only the creator or a project administrator can recover this task.");
   }
@@ -55,5 +75,14 @@ export async function taskCanRead(ctx: QueryCtx, task: Doc<"tasks">, userId: Id<
     .query("projectMembers")
     .withIndex("by_project_user", (q) => q.eq("projectId", task.projectId).eq("userId", userId))
     .unique();
-  return !!workspace?.active && !!member?.active;
+  return (
+    !!workspace?.active &&
+    !!member?.active &&
+    taskRoleCanRead(task, userId, workspace.role, member.role, !!project.guestViewAllFeatures)
+  );
+}
+
+export async function readableTasks(ctx: QueryCtx, tasks: Doc<"tasks">[], userId: Id<"users">) {
+  const rows = await Promise.all(tasks.map(async (task) => ((await taskCanRead(ctx, task, userId)) ? task : null)));
+  return rows.filter((row) => row !== null);
 }

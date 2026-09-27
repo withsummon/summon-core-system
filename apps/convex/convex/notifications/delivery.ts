@@ -1,12 +1,21 @@
+import { addSubscribers } from "./subscriptions";
+import { canMention } from "./mentions";
+import type { Id } from "../_generated/dataModel";
 import { taskCanRead } from "../tasks/access";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 /** One transaction owns the activity event and its recipient delivery. */
-export async function recordTaskEvent(ctx: MutationCtx, event: Omit<Doc<"taskEvents">, "_id" | "_creationTime">) {
+export async function recordTaskEvent(
+  ctx: MutationCtx,
+  event: Omit<Doc<"taskEvents">, "_id" | "_creationTime">,
+  mentionedUserIds: Id<"users">[] = []
+) {
   const task = await ctx.db.get(event.taskId);
   if (!task || task.workspaceId !== event.workspaceId || task.projectId !== event.projectId)
     throw new ConvexError("Task event scope does not match its task.");
+  await addSubscribers(ctx, task._id, mentionedUserIds);
+  const mentions = new Set(mentionedUserIds);
   const eventId = await ctx.db.insert("taskEvents", event);
   const subscriptions = await ctx.db
     .query("taskSubscriptions")
@@ -17,12 +26,14 @@ export async function recordTaskEvent(ctx: MutationCtx, event: Omit<Doc<"taskEve
   await Promise.all(
     [...recipients].map(async (receiverId) => {
       if (!(await taskCanRead(ctx, task, receiverId))) return;
+      if (mentions.has(receiverId) && !(await canMention(ctx, task, receiverId))) return;
       await ctx.db.insert("notifications", {
         workspaceId: task.workspaceId,
         projectId: task.projectId,
         taskId: task._id,
         eventId,
         receiverId,
+        isMention: mentions.has(receiverId),
         actorId: event.actorId,
         readAt: null,
         archivedAt: null,

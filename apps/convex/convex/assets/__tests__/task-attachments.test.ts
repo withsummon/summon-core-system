@@ -29,6 +29,7 @@ async function upload(f: Awaited<ReturnType<typeof fixture>>, user = f.owner, ta
 }
 test("guest upload finalizes once, authenticates bytes, preserves uploader and allows uploader recovery with CAS", async () => {
   const f = await fixture();
+  await f.t.run((ctx) => ctx.db.patch(f.projectId, { guestViewAllFeatures: true }));
   const guest = await member(f, "guest");
   const ticket = await upload(f, guest.user);
   expect(
@@ -72,6 +73,7 @@ test("guest upload finalizes once, authenticates bytes, preserves uploader and a
 });
 test("asset uploader owns removal, not task creator; generic APIs cannot bypass task ownership", async () => {
   const f = await fixture();
+  await f.t.run((ctx) => ctx.db.patch(f.projectId, { guestViewAllFeatures: true }));
   const author = await member(f, "member");
   const uploader = await member(f, "guest");
   const taskId = await author.user.mutation(api.tasks.index.create, { projectId: f.projectId, title: "Author" });
@@ -223,7 +225,7 @@ test("intake scope blocks noncreator guests, rechecks flag at finalize, and surv
     snoozedUntil: null,
     duplicateTo: null,
   });
-  expect((await other.user.fetch(`/assets/${ticket.assetId}`)).status).toBe(200);
+  expect((await other.user.fetch(`/assets/${ticket.assetId}`)).status).toBe(403);
   expect((await creator.user.query(api.assets.taskAttachments.get, { taskId, assetId: ticket.assetId })).taskId).toBe(
     taskId
   );
