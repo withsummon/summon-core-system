@@ -66,3 +66,19 @@ partial coverage, cycle-key remount and shared distribution rendering without a
 blocking finding. Browser acceptance is pending the primary agent; neither remote
 deployment nor visual quality is established by these gates. Scoped commits used
 manual gates with hooks disabled under the active migration workflow.
+
+## Primary Chrome acceptance
+
+On local3010, cycle `r57b3fws7kabkz3krwmjjvtywn8f6qk3` showed one visible
+task, numeric estimate1, Todo1, Unassigned1 and its Migration QA child label.
+Changing NSTAR7 in the independent production3026 client updated the cycle to
+In progress without reloading. Restoring its exact original Ready for QA state
+returned the cycle to Todo; other task fields were preserved. Desktop hierarchy
+and the 390px layout were inspected; the narrow document width equalled390px
+without horizontal overflow. Browser coverage used one page; larger/sparse page
+behavior remains BDD evidence. Temporary viewport overrides were cleared.
+
+The explanatory copy now states the user-visible overlap rule directly.
+The checkpoint before module-progress work passed571 backend,40 live and50
+frontend tests plus all30 typecheck tasks. These local gates do not establish
+remote deployment, dated analytics or full inherited-feature parity.
