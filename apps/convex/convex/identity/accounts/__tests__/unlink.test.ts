@@ -129,3 +129,22 @@ test("canonical disconnect options leave the sole usable password protected", as
   expect(result.accounts.find((row) => row.id === f.targetId)?.canDisconnect).toBe(true);
   expect(new Set(Object.keys(result.accounts[0]))).toEqual(new Set(["id", "canDisconnect"]));
 });
+
+test("disabled password cannot justify disconnecting the last usable account", async () => {
+  const f = await fixture();
+  vi.stubEnv("ENABLE_EMAIL_PASSWORD", "0");
+  try {
+    await expect(
+      f.actor.mutation(internal.identity.accounts.unlink.commit, {
+        targetId: f.targetId,
+        sessionId: f.sessionId,
+        accountId: f.passwordId,
+        expectedSecret: "verified-hash",
+      })
+    ).rejects.toThrow("Keep another");
+    expect(await f.t.run(async (ctx) => Boolean(await ctx.db.get(f.targetId)))).toBe(true);
+    expect((await f.actor.query(api.identity.session.status, {})).valid).toBe(true);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});

@@ -1,14 +1,18 @@
 import { query } from "../../_generated/server";
-import { mailConfiguration } from "./config";
+import { signInPolicy } from "../signin_policy";
 export const get = query({
   args: {},
   handler: () => {
-    const configured = mailConfiguration(process.env) !== null;
+    const policy = signInPolicy(process.env);
     return {
-      passwordReset: configured,
-      magicCode: configured,
-      emailVerification: configured,
-      unavailableReason: configured ? null : "Account email delivery is not configured.",
+      passwordSignIn: policy.password,
+      passwordReset: policy.passwordReset,
+      magicCode: policy.magic,
+      emailVerification: policy.emailVerification,
+      unavailableReason:
+        policy.passwordReset || policy.magic
+          ? null
+          : "Account email sign-in and recovery are unavailable under the current operator configuration.",
     };
   },
 });

@@ -1,3 +1,4 @@
+import { signInPolicy } from "../signin_policy";
 import { ConvexError } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireInstanceAdmin } from "./access";
@@ -10,7 +11,7 @@ export const get = query({
     return {
       initializedAt: instance.initializedAt,
       ...workspaceCreationPolicy(),
-      passwordSignIn: true,
+      passwordSignIn: signInPolicy(process.env).password,
       mailConfigured: mailConfiguration(process.env) !== null,
       oauthProviders: oauthConfigurations(process.env).map((provider) => provider.id),
     };
