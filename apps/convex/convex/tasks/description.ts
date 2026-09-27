@@ -1,7 +1,8 @@
+import { writeDescription } from "./description_content";
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { requireTask } from "./access";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
@@ -9,13 +10,9 @@ import { requireTaskRevision, taskChanged } from "./revision";
 
 // Existing public text updates keep their meaning and replace rich formatting
 // only when the caller actually changes the plain description.
-export async function syncPlainDescription(ctx: MutationCtx, task: Doc<"tasks">, text: string) {
+export async function syncPlainDescription(ctx: MutationCtx, task: Doc<"tasks">, text: string, actorId: Id<"users">) {
   if (text === task.description) return;
-  const existing = await ctx.db
-    .query("taskDescriptions")
-    .withIndex("by_task", (q) => q.eq("taskId", task._id))
-    .unique();
-  if (existing) await ctx.db.patch(existing._id, { html: plainDescriptionHtml(text) });
+  await writeDescription(ctx, task, actorId, { html: plainDescriptionHtml(text), description: text });
 }
 export const get = query({
   args: { taskId: v.id("tasks") },
@@ -40,13 +37,7 @@ export const save = mutation({
     const { user } = await requireProject(ctx, task.projectId, true);
     requireTaskRevision(task, args.expectedUpdatedAt);
     const content = taskRichContent(args.html);
-    const rich = await ctx.db
-      .query("taskDescriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", task._id))
-      .unique();
-    if (rich) await ctx.db.patch(rich._id, { html: content.html });
-    else await ctx.db.insert("taskDescriptions", { taskId: task._id, html: content.html });
-    await ctx.db.patch(task._id, { description: content.description });
+    await writeDescription(ctx, task, user._id, content);
     await taskChanged(ctx, task, user._id);
     return task._id;
   },

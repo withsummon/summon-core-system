@@ -43,6 +43,14 @@ export const taskTables = {
     editedAt: v.union(v.number(), v.null()),
     deletedAt: v.optional(v.union(v.number(), v.null())),
   }).index("by_task", ["taskId"]),
+  taskDescriptionVersions: defineTable({
+    taskId: v.id("tasks"),
+    actorId: v.id("users"),
+    html: v.string(),
+    description: v.string(),
+    lastSavedAt: v.number(),
+    revision: v.number(),
+  }).index("by_task", ["taskId"]),
   taskDescriptions: defineTable({ taskId: v.id("tasks"), html: v.string() }).index("by_task", ["taskId"]),
   taskParents: defineTable({ projectId: v.id("projects"), childId: v.id("tasks"), parentId: v.id("tasks") })
     .index("by_child", ["childId"])

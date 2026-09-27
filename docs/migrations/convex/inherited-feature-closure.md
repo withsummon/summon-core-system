@@ -20,8 +20,8 @@ Primary source sampling confirmed quick-link collection/detail routes in `app/ur
 
 The web GitHub/Jira/integration services reference importer URLs, but a source search found no corresponding registered importer route in this checkout. Preserve that distinction: the UI contract exists; a working server implementation has not been established. Native report CSV does not replace the separate registered asynchronous exporter.
 
-## Next bounded slice
+## Current closure sequence
 
-Personal workspace quick links have a small canonical owner: `app/views/workspace/quick_link.py`. Active workspace members including guests manage only their own links; administrators do not gain access to other users' private links. Required behavior is create/read/edit/remove, metadata preservation, user isolation, revocation, actual navigation and bounded list retrieval. New Convex functions alone do not retire the legacy REST callers.
+Personal workspace quick links are implemented and locally verified; their receipt records the remaining legacy REST caller boundary. Intake admission now preserves task identity and reserved-triage visibility. Chrome verified same-ID acceptance, duplicate selection, explicit snooze, stale-decision rejection, guest visibility changes and enablement. Recovery and shared description history are the next bounded closure work; their receipts distinguish automated checks from browser proof.
 
-After this slice, intake requires its own atomic submit/triage/accept boundary so pending or rejected submissions never enter ordinary active task lists. Saved-view metadata without executable authorized filters is also insufficient.
+Saved views require executable authorized filters, ordering and pagination together with their access/ownership rules. Metadata-only views will not count as migration. Export jobs, external APIs/webhooks, public sharing, identity and instance administration remain required before retirement.

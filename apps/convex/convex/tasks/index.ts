@@ -98,7 +98,7 @@ export const update = mutation({
     const { user, project } = await requireProject(ctx, task.projectId, true);
     requireTaskRevision(task, expectedUpdatedAt);
     const { title } = parseTaskText(rawTitle, description);
-    await syncPlainDescription(ctx, task, description);
+    await syncPlainDescription(ctx, task, description, user._id);
     const { data, state } = await validateProperties(ctx, project, properties);
     if (state && state.status !== requestedStatus) throw new ConvexError("Task status must match its custom state.");
     const statusChanged = task.status !== requestedStatus || task.stateId !== data.stateId;

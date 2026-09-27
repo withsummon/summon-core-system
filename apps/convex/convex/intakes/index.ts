@@ -1,3 +1,4 @@
+import { writeDescription } from "../tasks/description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -94,15 +95,21 @@ export const submit = mutation({
         sortOrder: 65000,
         isDefault: false,
       }));
-    const taskId = await createTask(ctx, project, user._id, {
-      ...initialProperties,
-      title,
-      description: content.description,
-      status: "triage",
-      priority: args.priority,
-      stateId,
-    });
-    await ctx.db.insert("taskDescriptions", { taskId, html: content.html });
+    const taskId = await createTask(
+      ctx,
+      project,
+      user._id,
+      {
+        ...initialProperties,
+        title,
+        description: content.description,
+        status: "triage",
+        priority: args.priority,
+        stateId,
+      },
+      null,
+      content.html
+    );
     await ctx.db.insert("intakeTasks", {
       projectId: project._id,
       intakeId: intake._id,
@@ -182,17 +189,8 @@ export const edit = mutation({
       throw new ConvexError("Guests can edit only the title and description.");
     const content = taskRichContent(args.html);
     const { title } = parseTaskText(args.title, content.description);
-    const rich = await ctx.db
-      .query("taskDescriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", task._id))
-      .unique();
-    if (rich) await ctx.db.patch(rich._id, { html: content.html });
-    else await ctx.db.insert("taskDescriptions", { taskId: task._id, html: content.html });
-    await ctx.db.patch(task._id, {
-      title,
-      description: content.description,
-      ...(args.priority === undefined ? {} : { priority: args.priority }),
-    });
+    await writeDescription(ctx, task, access.user._id, content);
+    await ctx.db.patch(task._id, { title, ...(args.priority === undefined ? {} : { priority: args.priority }) });
     await taskChanged(ctx, task, access.user._id);
     await ctx.db.patch(intake._id, { updatedAt: Math.max(Date.now(), intake.updatedAt + 1) });
   },
