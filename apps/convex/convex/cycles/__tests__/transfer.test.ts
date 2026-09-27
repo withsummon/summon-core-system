@@ -43,11 +43,40 @@ async function fixture(count = 2) {
 }
 test("snapshot is immutable and completed/cancelled remain while unfinished tasks move in bounded steps", async () => {
   const f = await fixture(23);
+  const pointId = await f.t.run(async (ctx) => {
+    const systemId = await ctx.db.insert("estimateSystems", {
+      projectId: f.projectId,
+      workspaceId: f.workspaceId,
+      name: "Points",
+      description: "",
+      type: "points",
+      revision: 0,
+      deleted: false,
+      retiring: false,
+    });
+    const id = await ctx.db.insert("estimatePoints", {
+      projectId: f.projectId,
+      systemId,
+      key: 0,
+      value: "2",
+      description: "",
+      revision: 0,
+      deleted: false,
+      retiring: false,
+    });
+    await ctx.db.patch(f.taskIds[0], { estimatePointId: id });
+    return id;
+  });
   await f.owner.mutation(api.tasks.index.setStatus, { taskId: f.taskIds[21], status: "done" });
   await f.owner.mutation(api.tasks.index.setStatus, { taskId: f.taskIds[22], status: "cancelled" });
   const transferId = await f.begin();
   const initial = await f.owner.query(api.cycles.transfer.inspect, { transferId });
   expect(initial.job.snapshot.count).toBe(23);
+  const frozen = await f.owner.query(api.cycles.burndown.frozen, { transferId });
+  expect(frozen.status).toBe("available");
+  expect(frozen.curve?.count).toBe(23);
+  expect(frozen.curve?.points).toBe(2);
+  expect(frozen.curve?.completed.reduce((sum, day) => sum + day.count, 0)).toBe(1);
   expect(initial.job.entries).toHaveLength(21);
   await f.owner.mutation(api.cycles.transfer.step, { transferId, expectedRevision: 0 });
   const progress = await f.owner.query(api.cycles.transfer.inspect, { transferId });
@@ -68,6 +97,15 @@ test("snapshot is immutable and completed/cancelled remain while unfinished task
   const final = await f.owner.query(api.cycles.transfer.inspect, { transferId });
   expect(final.job.status).toBe("completed");
   expect(final.job.snapshot).toEqual(initial.job.snapshot);
+  await f.owner.mutation(api.tasks.index.setStatus, { taskId: f.taskIds[0], status: "done" });
+  await f.owner.mutation(api.estimates.index.updatePoint, {
+    pointId,
+    expectedRevision: 0,
+    key: 0,
+    value: "8",
+    description: "",
+  });
+  expect(await f.owner.query(api.cycles.burndown.frozen, { transferId })).toEqual(frozen);
   expect(final.job.entries.filter((row) => row.outcome === "skipped")).toHaveLength(1);
   expect((await f.owner.query(api.cycles.tasks.current, { taskId: f.taskIds[21] }))?._id).toBe(f.sourceId);
   expect((await f.owner.query(api.cycles.tasks.current, { taskId: f.taskIds[22] }))?._id).toBe(f.sourceId);
