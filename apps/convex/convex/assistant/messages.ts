@@ -2,12 +2,14 @@ import { v, ConvexError } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { requireUser } from "../identity/access";
 import { requireConversation } from "./access";
+import { selectedAttachments } from "./attachments";
 import { authorizedContext } from "./context";
 export const begin = internalMutation({
   args: {
     conversationId: v.string(),
     requestId: v.string(),
     content: v.string(),
+    attachmentIds: v.array(v.string()),
     provider: v.string(),
     model: v.string(),
   },
@@ -17,14 +19,53 @@ export const begin = internalMutation({
     const { conversation } = await requireConversation(ctx, conversationId, true);
     if (!args.content.trim() || args.content.length > 20000 || !/^[a-zA-Z0-9_-]{8,100}$/.test(args.requestId))
       throw new ConvexError("Invalid message or request identifier.");
-    const context = await authorizedContext(ctx, conversation.workspaceId, conversation.context);
+    const attachmentIds = args.attachmentIds.map((id) => {
+      const normalized = ctx.db.normalizeId("assistantAttachments", id);
+      if (!normalized) throw new ConvexError("Attachment not found.");
+      return normalized;
+    });
     const previous = await ctx.db
       .query("assistantMessages")
       .withIndex("by_request_role", (q) =>
         q.eq("conversationId", conversationId).eq("requestId", args.requestId).eq("role", "user")
       )
       .unique();
-    if (previous) throw new ConvexError("This request was already accepted. Read the conversation for its result.");
+    if (previous) {
+      await authorizedContext(ctx, conversation.workspaceId, previous.context);
+      const acceptedIds = previous.citations
+        .filter((citation) => citation.kind === "attachment")
+        .map((citation) => citation.id);
+      if (previous.content !== args.content || JSON.stringify(acceptedIds) !== JSON.stringify(attachmentIds))
+        throw new ConvexError("Request identifier was already used for different message inputs.");
+      const reply = await ctx.db
+        .query("assistantMessages")
+        .withIndex("by_request_role", (q) =>
+          q.eq("conversationId", conversationId).eq("requestId", args.requestId).eq("role", "assistant")
+        )
+        .unique();
+      if (!reply) throw new ConvexError("Accepted reply is unavailable.");
+      return { messageId: reply._id, alreadyAccepted: true, context: "", messages: [] };
+    }
+    const selected = await selectedAttachments(ctx, conversationId, attachmentIds);
+    const historyFiles = await ctx.db
+      .query("assistantAttachments")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+      .order("desc")
+      .take(101);
+    const sources = [
+      ...selected,
+      ...historyFiles.slice(0, 100).filter((file) => file.messageId && !file.deleted && file.status === "ready"),
+    ];
+    const context = await authorizedContext(
+      ctx,
+      conversation.workspaceId,
+      conversation.context,
+      sources.map((file) => ({
+        text: `[Attached file: ${file.name}]\n${file.text}`,
+        citation: { kind: "attachment" as const, id: file._id, label: file.name },
+      }))
+    );
+    context.truncated ||= historyFiles.length > 100 || sources.some((file) => file.truncated);
     if (conversation.activeMessageId) throw new ConvexError("A reply is already in progress.");
     const history = await ctx.db
       .query("assistantMessages")
@@ -44,7 +85,14 @@ export const begin = internalMutation({
       outputTokens: null,
       error: null,
     };
-    await ctx.db.insert("assistantMessages", { ...shared, role: "user", status: "completed", content: args.content });
+    const userMessageId = await ctx.db.insert("assistantMessages", {
+      ...shared,
+      role: "user",
+      status: "completed",
+      content: args.content,
+      citations: selected.map((file) => ({ kind: "attachment" as const, id: file._id, label: file.name })),
+    });
+    await Promise.all(selected.map((file) => ctx.db.patch(file._id, { messageId: userMessageId })));
     const messageId = await ctx.db.insert("assistantMessages", {
       ...shared,
       role: "assistant",
@@ -65,6 +113,7 @@ export const begin = internalMutation({
       .map((m) => ({ role: m.role, content: m.content }));
     return {
       messageId,
+      alreadyAccepted: false,
       context: context.text,
       messages: [...messages, { role: "user" as const, content: args.content }],
     };

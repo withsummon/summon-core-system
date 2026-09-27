@@ -40,6 +40,7 @@ test("unconfigured provider leaves the draft unaccepted and returns the endpoint
       let accepted = false;
       await assert.rejects(
         requestAssistantReply({
+          attachmentIds: [],
           ...message,
           siteUrl,
           signal: new AbortController().signal,
@@ -74,6 +75,7 @@ test("authenticated reply sends one unique request and consumes transport withou
     async (siteUrl) => {
       let accepted = 0;
       const result = await requestAssistantReply({
+        attachmentIds: [],
         ...message,
         siteUrl,
         signal: new AbortController().signal,
@@ -87,7 +89,11 @@ test("authenticated reply sends one unique request and consumes transport withou
         received && typeof received === "object" && "requestId" in received && typeof received.requestId === "string"
       );
       assert.match(received.requestId, /^[0-9a-f-]{36}$/);
-      assert.deepEqual(new Set(Object.keys(received)), new Set(["content", "conversationId", "requestId"]));
+      assert.deepEqual("attachmentIds" in received && received.attachmentIds, []);
+      assert.deepEqual(
+        new Set(Object.keys(received)),
+        new Set(["content", "conversationId", "requestId", "attachmentIds"])
+      );
     }
   );
 });
@@ -101,7 +107,13 @@ test("leaving the conversation aborts its live transport", async () => {
     async (siteUrl) => {
       const controller = new AbortController();
       await assert.rejects(
-        requestAssistantReply({ ...message, siteUrl, signal: controller.signal, onAccepted: () => controller.abort() }),
+        requestAssistantReply({
+          attachmentIds: [],
+          ...message,
+          siteUrl,
+          signal: controller.signal,
+          onAccepted: () => controller.abort(),
+        }),
         { name: "AbortError" }
       );
     }

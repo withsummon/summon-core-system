@@ -1,3 +1,5 @@
+import type { Infer } from "convex/values";
+import type { MutationCtx } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { requireUser } from "../identity/access";
@@ -5,19 +7,31 @@ import { assetScope } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
 import { validateIntent, supportedAssetTypes, assetSizeLimit } from "./content";
 
+export const uploadFields = {
+  ...assetScope,
+  name: v.string(),
+  contentType: v.string(),
+  size: v.number(),
+  sha256: v.string(),
+};
+const upload = v.object(uploadFields);
+export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>) {
+  const { user } = await requireAssetScope(ctx, args, true);
+  validateIntent(args.name, args.contentType, args.size, args.sha256);
+  const assetId = await ctx.db.insert("assets", {
+    ...args,
+    createdBy: user._id,
+    storageId: null,
+    status: "pending",
+    expiresAt: Date.now() + 60 * 60 * 1000,
+  });
+  return { assetId, uploadUrl: await ctx.storage.generateUploadUrl() };
+}
 export const prepare = mutation({
-  args: { ...assetScope, name: v.string(), contentType: v.string(), size: v.number(), sha256: v.string() },
+  args: uploadFields,
   handler: async (ctx, args) => {
-    const { user } = await requireAssetScope(ctx, args, true);
-    validateIntent(args.name, args.contentType, args.size, args.sha256);
-    const assetId = await ctx.db.insert("assets", {
-      ...args,
-      createdBy: user._id,
-      storageId: null,
-      status: "pending",
-      expiresAt: Date.now() + 60 * 60 * 1000,
-    });
-    return { assetId, uploadUrl: await ctx.storage.generateUploadUrl() };
+    if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
+    return prepareAsset(ctx, args);
   },
 });
 export const claim = internalMutation({
@@ -90,7 +104,8 @@ export const download = internalQuery({
 export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
-    await requireAsset(ctx, assetId, true);
+    const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");
     await ctx.db.patch(assetId, { status: "deleted", expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   },
 });

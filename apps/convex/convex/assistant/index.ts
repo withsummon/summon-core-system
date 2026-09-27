@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget, text } from "../commercial/validation";
@@ -87,6 +88,10 @@ export const remove = mutation({
     const { conversation } = await requireConversation(ctx, args.conversationId, true);
     if (conversation.activeMessageId) await ctx.db.patch(conversation.activeMessageId, { status: "cancelled" });
     await ctx.db.patch(conversation._id, { deleted: true, activeMessageId: null });
+    await ctx.scheduler.runAfter(0, internal.assistant.attachments.purgeConversation, {
+      conversationId: conversation._id,
+      cursor: null,
+    });
   },
 });
 export const cancelReply = mutation({

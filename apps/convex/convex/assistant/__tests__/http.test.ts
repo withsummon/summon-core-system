@@ -22,7 +22,7 @@ test("HTTP boundary requires authentication and reports unconfigured provider wi
     (
       await owner.fetch("/assistant/reply", {
         method: "POST",
-        body: JSON.stringify({ conversationId, requestId: "request-0001", content: "Hello" }),
+        body: JSON.stringify({ attachmentIds: [], conversationId, requestId: "request-0001", content: "Hello" }),
       })
     ).status
   ).toBe(503);
@@ -50,7 +50,7 @@ test("authenticated HTTP stream persists real mocked provider chunks and complet
   );
   const response = await owner.fetch("/assistant/reply", {
     method: "POST",
-    body: JSON.stringify({ conversationId, requestId: "request-0001", content: "Hello" }),
+    body: JSON.stringify({ attachmentIds: [], conversationId, requestId: "request-0001", content: "Hello" }),
   });
   expect(response.status).toBe(200);
   const body = await response.text();
@@ -60,6 +60,19 @@ test("authenticated HTTP stream persists real mocked provider chunks and complet
     conversationId,
     paginationOpts: { numItems: 20, cursor: null },
   });
+  const retry = await owner.fetch("/assistant/reply", {
+    method: "POST",
+    body: JSON.stringify({ attachmentIds: [], conversationId, requestId: "request-0001", content: "Hello" }),
+  });
+  expect(retry.status).toBe(200);
+  expect(await retry.text()).toContain("event: accepted");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  const changed = await owner.fetch("/assistant/reply", {
+    method: "POST",
+    body: JSON.stringify({ attachmentIds: [], conversationId, requestId: "request-0001", content: "Different" }),
+  });
+  expect(changed.status).toBe(409);
+  expect(fetch).toHaveBeenCalledTimes(1);
   expect(messages.page.find((message) => message.role === "assistant")).toMatchObject({
     status: "completed",
     content: "Hello from provider",

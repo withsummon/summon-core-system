@@ -8,11 +8,33 @@ export const contextFields = {
   documentIds: v.array(v.id("documents")),
 };
 export const citation = v.object({
-  kind: v.union(v.literal("project"), v.literal("client"), v.literal("meeting"), v.literal("document")),
+  kind: v.union(
+    v.literal("project"),
+    v.literal("client"),
+    v.literal("meeting"),
+    v.literal("document"),
+    v.literal("attachment")
+  ),
   id: v.string(),
   label: v.string(),
 });
 export const assistantTables = {
+  assistantAttachments: defineTable({
+    conversationId: v.id("assistantConversations"),
+    assetId: v.id("assets"),
+    messageId: v.union(v.id("assistantMessages"), v.null()),
+    status: v.union(v.literal("uploading"), v.literal("ready"), v.literal("failed")),
+    name: v.string(),
+    contentType: v.string(),
+    size: v.number(),
+    text: v.string(),
+    truncated: v.boolean(),
+    deleted: v.boolean(),
+    error: v.union(v.string(), v.null()),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_pending", ["conversationId", "messageId", "deleted"])
+    .index("by_asset", ["assetId"]),
   assistantConversations: defineTable({
     workspaceId: v.id("workspaces"),
     ownerId: v.id("users"),

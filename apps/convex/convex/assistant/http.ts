@@ -20,12 +20,21 @@ function requestBody(value: unknown) {
     !("conversationId" in value) ||
     !("requestId" in value) ||
     !("content" in value) ||
+    !("attachmentIds" in value) ||
+    !Array.isArray(value.attachmentIds) ||
+    value.attachmentIds.length > 5 ||
+    value.attachmentIds.some((id) => typeof id !== "string") ||
     typeof value.conversationId !== "string" ||
     typeof value.requestId !== "string" ||
     typeof value.content !== "string"
   )
     throw new Error("Invalid request.");
-  return { conversationId: value.conversationId, requestId: value.requestId, content: value.content };
+  return {
+    conversationId: value.conversationId,
+    requestId: value.requestId,
+    content: value.content,
+    attachmentIds: value.attachmentIds,
+  };
 }
 export const reply = httpAction(async (ctx, request) => {
   if (!(await ctx.auth.getUserIdentity())) return new Response("Authentication required.", { status: 401, headers });
@@ -56,6 +65,11 @@ export const reply = httpAction(async (ctx, request) => {
       headers,
     });
   }
+  if (started.alreadyAccepted)
+    return new Response(`event: accepted\ndata: ${JSON.stringify({ messageId: started.messageId })}\n\n`, {
+      status: 200,
+      headers: { ...headers, "Content-Type": "text/event-stream" },
+    });
   const messageId = started.messageId;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), config.timeout * 1000);

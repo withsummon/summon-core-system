@@ -12,7 +12,8 @@ const context = v.object(contextFields);
 export async function authorizedContext(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
-  selection: Infer<typeof context>
+  selection: Infer<typeof context>,
+  extraEntries: { text: string; citation: Infer<typeof citation> }[] = []
 ) {
   const entries: { text: string; citation: Infer<typeof citation> }[] = [];
   if (selection.documentIds.length > 20 || new Set(selection.documentIds).size !== selection.documentIds.length)
@@ -54,7 +55,7 @@ export async function authorizedContext(
       };
     })
   );
-  entries.push(...documents);
+  entries.push(...documents, ...extraEntries);
   let text = "";
   const citations: Infer<typeof citation>[] = [];
   let truncated = false;
