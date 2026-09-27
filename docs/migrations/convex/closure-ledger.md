@@ -1,6 +1,39 @@
 # Full migration closure ledger
 
-Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `df9aa63f3f`; uncommitted drafts are not counted complete.
+Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `4f5b6aff9a`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
+
+## Latest checkpoint reconciliation
+
+Source inspected after `4f5b6aff9a`. These commits close bounded native contracts; they do not retire the registered Django/PAT/public/admin routes in the appendix.
+
+| Committed evidence | Native scope now present | Remaining boundary |
+| --- | --- | --- |
+| `033e104f81` sidebar/favorites; `710b034dd5` recent/preferences backend; `4f5b6aff9a` personal navigation | Ordered recoverable favorites hierarchy; private recent project/task/document visits; seven personal shortcut preferences with CAS ordering and automatic default setup | Inherited sidebar consumers still use their legacy owners outside the explicitly migrated route. Recent items reauthorize targets; this is not full user activity/history or workspace analytics. |
+| `be39abe18f`, `420c7ff0ff`, `40f33cc07c`, `1f96755750` | Estimate systems/points, task and private-draft selections, bounded resumable reference replacement, UI and required migrated reference fields | Inherited task/editor/REST consumers still need contract cutover; native estimates do not imply every inherited analytics/layout field is supported. |
+| `2d1813d15e` | Build-selected ownership for inherited `/:workspaceSlug/stickies`, outside Django bootstrap, reusing native auth/provider and private notes | Default remains legacy unless deployment opts in. Other inherited routes, legacy UUID mapping, auth providers/recovery and complete onboarding remain separate. This is a single route-family cutover, not a global redirect. |
+| `2a32edf4e1` | Private preferences/onboarding metadata sharing profile revision; authenticated last-workspace selection; explicit theme validation | Usable preferences UI and required-field cleanup were under review at this inspection and are not counted as committed here. Stored onboarding flags are not an implemented onboarding journey. Avatar/company/mobile/marketing/account identity operations remain. |
+| `ddcd2f2043` | Owned authentication-session backend | Session UI/browser acceptance and password/reset/OAuth/email/account linking remain distinct. This does not claim Django session endpoint compatibility. |
+
+Parent reports preferences additive deployment on both hosts and convergent backfills (local one changed, second zero; remote zero both scans). Raw receipts: `/tmp/summon-migration-control/preferences-{local,remote}-{1,2}.json`. This document records that supplied evidence; no independent live deployment verification was performed by its editor. Parent also reports Chrome light-theme and metadata-save acceptance; notification-density acceptance was still running.
+
+Next cutover dependencies remain identity bootstrap/provider parity, workspace/project route scope and deep-link ID resolution, then full task-detail/layout consumers. Native address resolution is already implemented (`aa8ef219c1`); older instructions below to add that lookup are historical, while UUID/external-wire compatibility remains open. Prior suggestions to start personal stickies, drafts, reactions, links, or estimates are superseded by their later receipts. Full cycles/modules/page features, richer saved-view filtering/grouping, imports/export integrations, public boards/sharing, admin/instance features, and Summon worker/financial domains remain subject to the detailed rows and registered routes below.
+
+## Root reconciliation through 0f51b14c25
+
+The following supersedes older absence statements in the inventory, while preserving every remaining route/API gate.
+
+| Committed native owner | Verified scope | Remaining scope |
+| --- | --- | --- |
+| `456a8515f2`, `f5b73e4bc9`, `703831033b` | Live-session authorization, profile preferences and session UI; local cross-origin revocation and preference conflict handling exercised | Full account lifecycle, inherited auth bootstrap and provider configuration |
+| `23059ee446`, `d10ef09c2b`, `1ba124f050` | All ten relation directions, cross-project workspace graph and UI; remote inverse and local cross-project navigation exercised | Parent/subtask cross-project parity, all external wire contracts and broader graph capacity |
+| `0b790b96c7`, `969be7e500` | Authorized workspace cycle directory; local desktop/narrow viewport and cycle deep-link acceptance | Full cycle analytics/transfer and inherited route cutover |
+| `c3a7b4133e`, `af588be807`, `5879d72f13`, `720ca8c60c` | Conditional recovery/verification, email-code backend and four OAuth configurations; actual installed auth-library mocked behavior tests | Real provider/mail setup and delivery; password change/set; account linking; exact legacy attempt policy and trusted ingress throttling |
+| `26acc4ba07`, `9e1b1d9b5c`, `e5709ccb89`, `b43f2cc5ea` | Document hierarchy/moves and shared project labels; local move/cycle rejection and label assignment exercised | Whole-workspace tree, historical CRDT versions, inherited route/export/full page contracts |
+| `219399833d`, `9641a4096c`, `d6523a8090`, `0f51b14c25` | Existing event activity reader and atomic bulk lifecycle; local two-task Trash/restore preserves parent/relation/attachment | Complete field-diff activity coverage, bulk property/date/membership edits and inherited layouts |
+
+Global TS7 completed 30/30 tasks after the earlier relation-label union fix. Subsequent focused backend/web checks passed for the scoped changes; later source slices are still in progress. The latest full backend run reported 445 passing tests at the magic-code checkpoint. These counts do not establish public deployment or complete feature parity. Frontend immutable remote acceptance is recorded in checkpoint-ce2efc3150.md; subsequent browser checks are local development checks unless their receipt explicitly says otherwise.
+
+The additive label metadata migration `f943474b1b` is deployed on both hosts. One local label was updated; repeat local scan and both remote scans changed zero rows. The final group/deletion owner is not counted complete until its later commit and runtime acceptance. Django/Postgres and legacy workers remain active, and the public frontend has not been cut over.
 
 ## How to read this ledger
 
@@ -751,3 +784,13 @@ Router registration: `router.register('stickies', StickyViewSet, basename='works
 /robots.txt -> robots_txt
 / -> health_check
 ```
+
+### Cross-project relation UI follow-up (source, not browser evidence)
+
+After root reported d10 backend deployed to both hosts, task-structure now selects an authorized writer project, loads its task candidates in bounded pages, resets the captured target when changing project, and submits unchanged source/target revisions to the canonical relation direction owner. Related-task links use the returned authorized project identifier and clear stale project/task/comment subviews; removal respects per-row canRemove. Native web TS7/scoped Oxc pass and the module-owned route regression passes. Corrected backend structure regression now rejects foreign-workspace relations despite valid writer membership in both workspaces. Parent owns Chrome acceptance and commit.
+
+### Bulk lifecycle UI activation and property trace
+
+After parent confirmed `af588be807` on both hosts (including bulk backend), BulkLifecycle mounts in active, archived and trash lists. Selection is capped by canonical bulkAccess, captures row revisions, requires explicit operation confirmation, and retains captured selection after failed atomic batches. View changes remount selection. Scoped Oxc/format passed; initial web type gate encountered concurrent sign-in edits, not bulk errors, and awaits the shared final gate. Browser acceptance remains parent-owned.
+
+Next property boundary: `core/services/issue/issue.service.ts:bulkOperations` posts `bulk-operation-issues`, but repository search found no corresponding registered Django route/controller in this checkout. The MobX consumer unions collection properties and replaces scalar properties; `TBulkIssueProperties` includes state, priority, labels, assignees, dates, modules, cycle and estimate. The separately registered IssueBulkUpdateDateEndpoint handles admin/member per-task date changes. Native bulk property implementation must reuse validateProperties/task revision/event owners and explicit cycle/module membership owners; a service declaration alone is not evidence that its external endpoint worked.
