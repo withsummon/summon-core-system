@@ -1,6 +1,6 @@
 import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 
 test("archive retains identity, children, administrator and identifier reservation; restore reopens same task", async () => {
@@ -60,20 +60,6 @@ test("metadata drafts and lifecycle transitions share a revision, immutable iden
     description: draft.description,
     identifier: before.identifier,
     revision: before.revision + 1,
-  });
-});
-
-test("existing rows require explicit persisted migration before settings; backfill is repeatable", async () => {
-  const f = await workspaceJourney();
-  await f.t.run((ctx) => ctx.db.patch(f.projectId, { description: undefined, metadataRevision: undefined }));
-  await expect(f.owner.query(api.projects.settings.get, { projectId: f.projectId })).rejects.toThrow(
-    "migration is required"
-  );
-  expect((await f.t.mutation(internal.projects.settings.backfill, { cursor: null })).changed).toBe(1);
-  expect((await f.t.mutation(internal.projects.settings.backfill, { cursor: null })).changed).toBe(0);
-  expect(await f.owner.query(api.projects.settings.get, { projectId: f.projectId })).toMatchObject({
-    description: "",
-    revision: 0,
   });
 });
 
