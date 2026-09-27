@@ -53,8 +53,8 @@ function Workspace() {
   const connection = useConvexConnectionState();
   const [error, setError] = useState("");
   return (
-    <div className="flex h-full flex-col bg-canvas text-primary">
-      <header className="flex items-center justify-between border-b border-subtle-1 px-6 py-4">
+    <div className="flex h-full flex-col overflow-y-auto bg-canvas text-primary md:overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between border-b border-subtle-1 px-6 py-4">
         <Link to="/core" className="font-semibold">
           Summon Core
         </Link>
@@ -77,7 +77,7 @@ function Workspace() {
           {error}
         </p>
       )}
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
         <aside className="w-full shrink-0 border-b border-subtle-1 p-4 md:w-60 md:border-r md:border-b-0">
           <h2 className="mb-3 text-12 font-semibold text-secondary">WORKSPACES</h2>
           <nav className="flex flex-col gap-1">
@@ -106,7 +106,7 @@ function Workspace() {
             )}
           </details>
         </aside>
-        <section className="min-w-0 flex-1 overflow-y-auto p-6">
+        <section className="min-w-0 flex-1 p-6 md:overflow-y-auto">
           {workspaces === undefined ? (
             <p role="status">Loading workspaces…</p>
           ) : workspace ? (
