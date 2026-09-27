@@ -12,6 +12,7 @@ import { Input } from "@plane/propel/input";
 import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
 import { MetadataForm } from "./metadata-form";
 import { DocumentEditor } from "./editor";
+import { DocumentHierarchy } from "./hierarchy";
 import { DocumentTrash } from "./trash";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
@@ -37,6 +38,7 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
       <DocumentAccessBoundary key={selected} onBack={() => setSelected(null)}>
         <DocumentDetail
           documentId={selected}
+          workspaceSlug={workspace.slug}
           workspaceRole={workspace.membershipRole}
           onBack={() => setSelected(null)}
         />
@@ -122,10 +124,12 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
 }
 function DocumentDetail({
   documentId,
+  workspaceSlug,
   workspaceRole,
   onBack,
 }: {
   documentId: string;
+  workspaceSlug: string;
   workspaceRole: Doc<"workspaceMembers">["role"];
   onBack: () => void;
 }) {
@@ -161,6 +165,7 @@ function DocumentDetail({
         />
       )}
       <DocumentEditor context={context} />
+      <DocumentHierarchy document={document} canWrite={context.canWrite} workspaceSlug={workspaceSlug} />
     </article>
   );
 }
