@@ -45,9 +45,9 @@ export function TaskProgressPanel({
             </div>
           </dl>
           <div className="grid min-w-0 gap-4 lg:grid-cols-3">
-            <Distribution kind="statuses" rows={summary.statuses} />
-            <Distribution kind="assignees" rows={summary.assignees} />
-            <Distribution kind="labels" rows={summary.labels} />
+            <Distribution heading="h4" kind="statuses" rows={summary.statuses} />
+            <Distribution heading="h4" kind="assignees" rows={summary.assignees} />
+            <Distribution heading="h4" kind="labels" rows={summary.labels} />
           </div>
         </>
       )}

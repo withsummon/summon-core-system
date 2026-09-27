@@ -11,15 +11,17 @@ function taskCount(count: number) {
 export function Distribution({
   kind,
   rows,
+  heading: Heading,
 }: {
   kind: Kind;
+  heading: "h4" | "h5";
   rows: (TaskProgress["labels"][number] | Doc<"cycleTransfers">["snapshot"]["labels"][number])[];
 }) {
   const title = titles[kind];
   const [visible, setVisible] = useState(50);
   return (
     <div className="min-w-0">
-      <h4 className="text-14 font-medium">{title}</h4>
+      <Heading className="text-14 font-medium">{title}</Heading>
       <ul className="text-14">
         {rows.slice(0, visible).map((row) => (
           <li key={row.id ?? "none"} className="break-words">

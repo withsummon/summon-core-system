@@ -281,9 +281,9 @@ function Snapshot({ snapshot }: { snapshot: Doc<"cycleTransfers">["snapshot"] })
         Numeric estimates: {snapshot.numericEstimates} · Estimates without a numeric value:{" "}
         {snapshot.unquantifiedEstimates}
       </p>
-      <Distribution kind="statuses" rows={snapshot.statuses} />
-      <Distribution kind="assignees" rows={snapshot.assignees} />
-      <Distribution kind="labels" rows={snapshot.labels} />
+      <Distribution heading="h5" kind="statuses" rows={snapshot.statuses} />
+      <Distribution heading="h5" kind="assignees" rows={snapshot.assignees} />
+      <Distribution heading="h5" kind="labels" rows={snapshot.labels} />
       <p className="text-12 text-secondary">
         A task appears under each assigned person and label, so distribution totals may overlap.
       </p>
