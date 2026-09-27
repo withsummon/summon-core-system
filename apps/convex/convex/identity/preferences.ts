@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import type { Infer } from "convex/values";
 import { preferences } from "./preferences_fields";
 import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
@@ -50,5 +50,41 @@ export const selectWorkspace = mutation({
         preferences: { ...profile.preferences, lastWorkspaceId: workspaceId },
       });
     return { workspaceId: workspace._id, slug: workspace.slug };
+  },
+});
+
+export const destination = query({
+  args: {},
+  handler: async (ctx) => {
+    const { user, profile } = await ownProfile(ctx);
+    const currentPreferences = (profile ?? defaultProfile).preferences;
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .take(1001);
+    if (memberships.length > 1000)
+      throw new ConvexError("Workspace destination exceeds the 1000-membership lookup limit.");
+    const candidates = await Promise.all(
+      memberships.filter((member) => member.active).map((member) => ctx.db.get(member.workspaceId))
+    );
+    const workspaces = candidates.filter((workspace) => workspace !== null);
+    const selected = workspaces.find((workspace) => workspace._id === currentPreferences.lastWorkspaceId);
+    const oldest = workspaces.reduce<(typeof workspaces)[number] | null>(
+      (current, workspace) =>
+        !current ||
+        workspace._creationTime < current._creationTime ||
+        (workspace._creationTime === current._creationTime && workspace._id < current._id)
+          ? workspace
+          : current,
+      null
+    );
+    const workspace = selected ?? oldest;
+    const steps = currentPreferences.onboarding;
+    return {
+      onboardingComplete:
+        currentPreferences.isOnboarded ||
+        (steps.profileComplete && steps.workspaceCreate && steps.workspaceInvite && steps.workspaceJoin),
+      workspace: workspace ? { id: workspace._id, slug: workspace.slug } : null,
+    };
   },
 });
