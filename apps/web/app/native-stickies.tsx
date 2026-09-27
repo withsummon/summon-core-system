@@ -1,3 +1,4 @@
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 import { lazy, Suspense, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useConvexAuth, useQuery } from "convex/react";
@@ -26,7 +27,13 @@ function Session() {
     );
   // Sign in in place: the original path, sticky selection and history survive.
   // No cookie/JWT bridging or caller-controlled redirect is involved.
-  return isAuthenticated ? <WorkspaceNotes /> : <SignIn />;
+  return isAuthenticated ? (
+    <SessionBoundary>
+      <WorkspaceNotes />
+    </SessionBoundary>
+  ) : (
+    <SignIn />
+  );
 }
 function WorkspaceNotes() {
   const { workspaceSlug } = useParams();
