@@ -7,8 +7,9 @@ import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-import { mutationMessage, selectClass } from "../commercial/forms";
-import { statusOptions, taskStatusOptions } from "./options";
+import { mutationMessage } from "../commercial/forms";
+import { taskStatusOptions } from "./options";
+import { TaskProperties } from "./task-properties";
 import { TaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
 
@@ -26,7 +27,6 @@ const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Task = FunctionReturnType<typeof api.tasks.index.get>;
 type Draft = FunctionArgs<typeof api.tasks.index.update>;
-const priorities = ["none", "urgent", "high", "medium", "low"] as const satisfies Draft["priority"][];
 
 function TaskDetailContent({
   taskId,
@@ -208,151 +208,6 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
         </p>
       )}
     </form>
-  );
-}
-function TaskProperties({
-  projectId,
-  draft,
-  onChange,
-}: {
-  projectId: Id<"projects">;
-  draft: Draft;
-  onChange: (draft: Draft) => void;
-}) {
-  const states = useQuery(api.tasks.states.list, { projectId });
-  const labels = useQuery(api.tasks.labels.list, { projectId });
-  const {
-    results: members,
-    status,
-    loadMore,
-  } = usePaginatedQuery(api.tasks.assignees.list, { projectId }, { initialNumItems: 100 });
-  return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      <SummonField label="State" htmlFor="task-state">
-        <select
-          id="task-state"
-          className={selectClass}
-          value={draft.stateId ?? draft.status}
-          onChange={(event) => {
-            const state = states?.find((item) => item._id === event.target.value);
-            if (state) onChange({ ...draft, stateId: state._id, status: state.status });
-            else {
-              const group = statusOptions.find((item) => item.value === event.target.value);
-              if (group) onChange({ ...draft, stateId: null, status: group.value });
-            }
-          }}
-        >
-          <optgroup label="Status groups">
-            {statusOptions.map((item) => (
-              <option value={item.value} key={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Project states">
-            {states?.map((state) => (
-              <option value={state._id} key={state._id}>
-                {state.name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-      </SummonField>
-      <SummonField label="Priority" htmlFor="task-priority">
-        <select
-          id="task-priority"
-          className={selectClass}
-          value={draft.priority}
-          onChange={(event) => {
-            const priority = priorities.find((value) => value === event.target.value);
-            if (priority) onChange({ ...draft, priority });
-          }}
-        >
-          {priorities.map((priority) => (
-            <option value={priority} key={priority}>
-              {priority.charAt(0).toUpperCase() + priority.slice(1)}
-            </option>
-          ))}
-        </select>
-      </SummonField>
-      <SummonField label="Start date">
-        <Input
-          type="date"
-          value={draft.startDate ?? ""}
-          max={draft.targetDate ?? undefined}
-          onChange={(event) => onChange({ ...draft, startDate: event.target.value || null })}
-        />
-      </SummonField>
-      <SummonField label="Due date">
-        <Input
-          type="date"
-          value={draft.targetDate ?? ""}
-          min={draft.startDate ?? undefined}
-          onChange={(event) => onChange({ ...draft, targetDate: event.target.value || null })}
-        />
-      </SummonField>
-      <fieldset className="space-y-2">
-        <legend className="mb-2 text-14 font-medium">Assignees</legend>
-        {members.map((member) => (
-          <label key={member.id} className="flex gap-2 text-14">
-            <input
-              type="checkbox"
-              checked={draft.assigneeIds.includes(member.id)}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  assigneeIds: event.target.checked
-                    ? [...draft.assigneeIds, member.id]
-                    : draft.assigneeIds.filter((id) => id !== member.id),
-                })
-              }
-            />
-            {member.name || member.email || member.id}
-          </label>
-        ))}
-        {status === "CanLoadMore" && (
-          <Button variant="secondary" onClick={() => loadMore(100)}>
-            Load more members
-          </Button>
-        )}
-        {draft.assigneeIds
-          .filter((id) => !members.some((member) => member.id === id))
-          .map((id) => (
-            <label key={id} className="flex gap-2 text-14">
-              <input
-                type="checkbox"
-                checked
-                onChange={() => onChange({ ...draft, assigneeIds: draft.assigneeIds.filter((value) => value !== id) })}
-              />
-              Member unavailable or not loaded ({id})
-            </label>
-          ))}
-      </fieldset>
-      <fieldset className="space-y-2">
-        <legend className="mb-2 text-14 font-medium">Labels</legend>
-        {labels?.map((label) => (
-          <label key={label._id} className="flex gap-2 text-14">
-            <input
-              type="checkbox"
-              checked={draft.labelIds.includes(label._id)}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  labelIds: event.target.checked
-                    ? [...draft.labelIds, label._id]
-                    : draft.labelIds.filter((id) => id !== label._id),
-                })
-              }
-            />
-            <span style={{ color: label.color }} aria-hidden>
-              ●
-            </span>
-            {label.name}
-          </label>
-        ))}
-        {labels?.length === 0 && <p className="text-14 text-secondary">No project labels yet.</p>}
-      </fieldset>
-    </div>
   );
 }
 

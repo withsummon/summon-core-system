@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { AssetTransfers, uploadedStorageId } from "../../documents/asset-transfers";
 import { attachmentContentType } from "./upload-file";
 export function AttachmentUpload({ taskId }: { taskId: Id<"tasks"> }) {
+  const prepare = useMutation(api.assets.taskAttachments.prepare);
+  return <FileAttachmentUpload prepare={(file) => prepare({ taskId, ...file })} />;
+}
+export function FileAttachmentUpload({
+  prepare,
+}: {
+  prepare: (
+    file: Omit<FunctionArgs<typeof api.assets.taskAttachments.prepare>, "taskId">
+  ) => Promise<FunctionReturnType<typeof api.assets.taskAttachments.prepare>>;
+}) {
   const policy = useQuery(api.assets.index.policy, {});
-  const prepare = useMutation(api.assets.taskAttachments.prepare),
-    finalize = useAction(api.assets.upload.finalize);
+  const finalize = useAction(api.assets.upload.finalize);
   const [transfers] = useState(() => new AssetTransfers());
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
@@ -37,7 +47,6 @@ export function AttachmentUpload({ taskId }: { taskId: Id<"tasks"> }) {
                 const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
                 signal.throwIfAborted();
                 const ticket = await prepare({
-                  taskId,
                   name: file.name,
                   contentType,
                   size: file.size,
