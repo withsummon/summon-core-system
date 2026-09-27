@@ -55,8 +55,9 @@ class DocumentSession {
       { documentId: this.access.documentId },
       (snapshot) => {
         try {
-          if (snapshot)
-            Y.applyUpdate(connection.document, new Uint8Array(snapshot.descriptionBinary), "convex-snapshot");
+          // A durable server update has no client origin. Hocuspocus must not
+          // schedule a new authenticated save for bytes already committed.
+          if (snapshot) Y.applyUpdate(connection.document, new Uint8Array(snapshot.descriptionBinary));
         } catch {
           connection.close({ code: 4003, reason: "Stored document cannot be decoded." });
         }
@@ -98,7 +99,7 @@ async function persist(document: Document, auth: DocumentSession, attempt = 0): 
   const latest = await auth.http.query(api.documents.index.snapshot, { documentId: access.documentId });
   // Never discard updates committed by another live process. Applying the snapshot
   // is a Yjs merge, not replacement; concurrent local edits remain in this document.
-  if (latest) Y.applyUpdate(document, new Uint8Array(latest.descriptionBinary), "convex-snapshot");
+  if (latest) Y.applyUpdate(document, new Uint8Array(latest.descriptionBinary));
   const bytes = Y.encodeStateAsUpdate(document);
   const { contentHTML, contentJSON, titleHTML } = getAllDocumentFormatsFromDocumentEditorBinaryData(bytes, true);
   try {
@@ -157,7 +158,7 @@ export function convexDocuments(url: string) {
     async onLoadDocument({ context, document }) {
       const auth = session(context);
       const snapshot = await auth.http.query(api.documents.index.snapshot, { documentId: auth.access.documentId });
-      if (snapshot) Y.applyUpdate(document, new Uint8Array(snapshot.descriptionBinary), "convex-snapshot");
+      if (snapshot) Y.applyUpdate(document, new Uint8Array(snapshot.descriptionBinary));
     },
     async connected({ context, connectionInstance }) {
       if (rejectedDocuments.has(connectionInstance.document)) {

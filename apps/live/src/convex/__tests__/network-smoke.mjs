@@ -124,6 +124,40 @@ try {
       (await owner.client.query(api.documents.index.get, { documentId })).name === "Edited collaborative title",
     "editor title persists atomically with snapshot"
   );
+  const versions = await owner.client.query(api.documents.history.list, {
+    documentId,
+    paginationOpts: { cursor: null, numItems: 10 },
+  });
+  const initialVersion = versions.page.find((version) => version.revision === 1);
+  assert.ok(initialVersion);
+  const preview = await owner.client.action(api.documents.historyActions.preview, {
+    documentId,
+    versionId: initialVersion.id,
+  });
+  await owner.client.action(api.documents.historyActions.restore, {
+    documentId,
+    versionId: initialVersion.id,
+    expectedRevision: preview.currentRevision,
+    expectedUpdatedAt: preview.currentUpdatedAt,
+  });
+  await until(
+    () =>
+      !first.document.getXmlFragment("default").toString().includes("Owner concurrent edit") &&
+      !second.document.getXmlFragment("default").toString().includes("Writer concurrent edit"),
+    "historical restore reaches both connected editors"
+  );
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.equal(firstClosed, false, "durable restore must not close the owner room");
+  assert.equal(secondClosed, false, "durable restore must not close the writer room");
+  assert.ok(first.document.getXmlFragment("title").toString().includes("Edited collaborative title"));
+  paragraph(second.document, "Writer edit after restore");
+  await until(
+    async () =>
+      (await owner.client.query(api.documents.index.snapshot, { documentId }))?.descriptionHtml.includes(
+        "Writer edit after restore"
+      ),
+    "authenticated editing remains durable after restore"
+  );
   await owner.client.mutation(api.documents.index.setLifecycle, {
     expectedUpdatedAt: (await owner.client.query(api.documents.index.get, { documentId })).updatedAt,
     documentId,
@@ -191,6 +225,7 @@ try {
       jwtIdentity: "two separately signed-up users",
       bidirectionalYjs: true,
       durableMergedHtml: true,
+      historicalRestoreKeepsRoomAndEditing: true,
       lockedWriteRejected: true,
       revokedConnectionClosed: true,
       titleSeedPreserved: true,
