@@ -20,6 +20,10 @@ export class AssetTransfers {
     return url;
   }
 
+  release(url: string) {
+    if (this.urls.delete(url)) URL.revokeObjectURL(url);
+  }
+
   cancel() {
     for (const controller of this.controllers) controller.abort();
     this.controllers.clear();

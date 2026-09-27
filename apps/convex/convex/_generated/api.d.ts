@@ -13,6 +13,8 @@ import type * as assets_cleanup from "../assets/cleanup.js";
 import type * as assets_content from "../assets/content.js";
 import type * as assets_http from "../assets/http.js";
 import type * as assets_index from "../assets/index.js";
+import type * as assets_taskAttachments from "../assets/taskAttachments.js";
+import type * as assets_task_access from "../assets/task_access.js";
 import type * as assets_upload from "../assets/upload.js";
 import type * as assistant_access from "../assistant/access.js";
 import type * as assistant_actions from "../assistant/actions.js";
@@ -130,6 +132,8 @@ declare const fullApi: ApiFromModules<{
   "assets/content": typeof assets_content;
   "assets/http": typeof assets_http;
   "assets/index": typeof assets_index;
+  "assets/taskAttachments": typeof assets_taskAttachments;
+  "assets/task_access": typeof assets_task_access;
   "assets/upload": typeof assets_upload;
   "assistant/access": typeof assistant_access;
   "assistant/actions": typeof assistant_actions;

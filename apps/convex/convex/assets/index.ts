@@ -1,3 +1,5 @@
+import { requireTaskAttachmentAccess } from "./task_access";
+import { taskChanged } from "../tasks/revision";
 import type { Infer } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
@@ -5,7 +7,7 @@ import { mutation, query, internalMutation, internalQuery } from "../_generated/
 import { requireUser } from "../identity/access";
 import { assetScope } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
-import { validateIntent, supportedAssetTypes, assetSizeLimit } from "./content";
+import { validateIntent, supportedAssetTypes, assetSizeLimit, assetTypesByExtension } from "./content";
 
 export const uploadFields = {
   ...assetScope,
@@ -21,6 +23,7 @@ export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>)
   const assetId = await ctx.db.insert("assets", {
     ...args,
     createdBy: user._id,
+    ...(args.taskId ? { attachmentRevision: 0 } : {}),
     storageId: null,
     status: "pending",
     expiresAt: Date.now() + 60 * 60 * 1000,
@@ -30,6 +33,7 @@ export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>)
 export const prepare = mutation({
   args: uploadFields,
   handler: async (ctx, args) => {
+    if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
     if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
     return prepareAsset(ctx, args);
   },
@@ -76,6 +80,10 @@ export const commit = internalMutation({
       throw new ConvexError("Upload has expired or is closed.");
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
     await ctx.db.patch(assetId, { status: "ready" });
+    if (asset.taskId) {
+      const { task } = await requireTaskAttachmentAccess(ctx, asset.taskId, true);
+      await taskChanged(ctx, task, user._id);
+    }
     return assetId;
   },
 });
@@ -105,6 +113,7 @@ export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");
     await ctx.db.patch(assetId, { status: "deleted", expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   },
@@ -146,6 +155,7 @@ export const policy = query({
     await requireUser(ctx);
     return {
       supportedTypes: [...supportedAssetTypes],
+      typesByExtension: assetTypesByExtension,
       imageMaxBytes: assetSizeLimit("image/png"),
       maxBytes: assetSizeLimit("application/pdf"),
     };

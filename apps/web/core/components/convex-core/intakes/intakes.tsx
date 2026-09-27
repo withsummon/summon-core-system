@@ -8,6 +8,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { taskStatusOptions } from "../tasks/options";
 import { DescriptionHistory } from "../tasks/description-history";
+import { TaskAttachments } from "../tasks/attachments/attachments";
 import { TaskRichEditor } from "../tasks/rich-editor";
 import { IntakeTrash } from "./trash";
 import { SubmissionForm } from "./forms";
@@ -248,6 +249,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
           editable={false}
         />
       )}
+      <TaskAttachments key={detail.task._id} taskId={detail.task._id} />
       {detail.canRemove && <RemoveSubmission detail={detail} onDone={onBack} />}
     </article>
   );

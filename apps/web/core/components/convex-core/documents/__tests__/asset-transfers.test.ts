@@ -45,3 +45,14 @@ test("upload response requires a successful string storage reference before fina
   await assert.rejects(uploadedStorageId(Response.json({ storageId: 42 })));
   await assert.rejects(uploadedStorageId(Response.json({ error: "rejected" }, { status: 403 })));
 });
+
+test("replacing a completed download releases only its prior blob URL", async () => {
+  const transfers = new AssetTransfers();
+  const previous = await transfers.run(async (signal) => transfers.objectUrl(new Blob(["previous download"]), signal));
+  const current = await transfers.run(async (signal) => transfers.objectUrl(new Blob(["current download"]), signal));
+  transfers.release(previous);
+  await assert.rejects(fetch(previous));
+  assert.equal(await (await fetch(current)).text(), "current download");
+  transfers.dispose();
+  await assert.rejects(fetch(current));
+});
