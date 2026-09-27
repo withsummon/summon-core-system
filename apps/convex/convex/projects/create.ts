@@ -1,3 +1,4 @@
+import type { ProjectNetwork } from "./network_schema";
 import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
 import { workspaceTimezone } from "../settings/timezone";
@@ -8,7 +9,7 @@ import { requireWorkspace } from "../identity/access";
 
 export async function createProject(
   ctx: MutationCtx,
-  args: { workspaceId: Id<"workspaces">; name: string; identifier: string }
+  args: { workspaceId: Id<"workspaces">; name: string; identifier: string; network?: ProjectNetwork }
 ) {
   const { user, member } = await requireWorkspace(ctx, args.workspaceId, true);
   if (member.role !== "admin") throw new ConvexError("Only workspace administrators can create projects.");
@@ -31,6 +32,7 @@ export async function createProject(
     description: "",
     metadataRevision: 0,
     features: defaultProjectFeatures,
+    network: args.network ?? 2,
     intakeEnabled: false,
     guestViewAllFeatures: false,
     nextSequence: 1,
