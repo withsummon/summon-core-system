@@ -1,3 +1,4 @@
+import { EstimateSettings } from "../estimates/settings";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -44,6 +45,7 @@ export function ProjectSettings({ projectId, onArchived }: { projectId: Id<"proj
         <ProjectTimezone projectId={projectId} />
       </div>
       <IntakeSettings projectId={projectId} />
+      <EstimateSettings projectId={projectId} />
       {settings.canManage && (
         <ArchiveProject projectId={projectId} revision={settings.revision} onArchived={onArchived} />
       )}

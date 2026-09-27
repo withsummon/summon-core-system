@@ -1,3 +1,4 @@
+import { TaskEstimate } from "../estimates/selection";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, lazy, Suspense, useState } from "react";
 import type { ReactNode } from "react";
@@ -111,6 +112,7 @@ function TaskDetailContent({
               </dd>
             </div>
           </dl>
+          {!recovery && <TaskEstimate taskId={task._id} />}
           {recovery ? (
             <p className="text-14 break-words whitespace-pre-wrap">{task.description}</p>
           ) : (
@@ -167,6 +169,7 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
     startDate: task.startDate,
     targetDate: task.targetDate,
     stateId: task.stateId,
+    estimatePointId: task.estimatePointId,
   });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");

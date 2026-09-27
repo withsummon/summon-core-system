@@ -1,3 +1,4 @@
+import { DraftEstimate } from "../../estimates/selection";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -61,6 +62,7 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
       {initial.publishedTaskId && (
         <p role="status">This draft was published elsewhere. Your unsaved edits are preserved.</p>
       )}
+      <DraftEstimate draftId={initial._id} />
       <fieldset disabled={pending} className="space-y-5">
         <SummonField label="Project" htmlFor="draft-project">
           <select
@@ -91,8 +93,8 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
             aria-label="Confirm draft project change"
           >
             <p className="text-14">
-              Change to {nextProject.name}? This clears the selected state, assignees, labels, parent, cycle, and
-              modules. Content, status group, priority, and dates stay in the draft.
+              Change to {nextProject.name}? This clears the selected state, estimate, assignees, labels, parent, cycle,
+              and modules. Content, status group, priority, and dates stay in the draft.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button

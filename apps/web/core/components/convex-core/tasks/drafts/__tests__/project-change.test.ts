@@ -14,6 +14,7 @@ test("confirmed project change removes scoped references while retaining draft c
     status: "in_progress",
     properties: {
       priority: "high",
+      estimatePointId: "fixture-estimate" as Id<"estimatePoints">,
       stateId: "fixture-state" as Id<"taskStates">,
       assigneeIds: ["fixture-user" as Id<"users">],
       labelIds: ["fixture-label" as Id<"taskLabels">],
@@ -30,11 +31,40 @@ test("confirmed project change removes scoped references while retaining draft c
   assert.deepEqual(changed, {
     ...draft,
     projectId: null,
-    properties: { ...draft.properties, stateId: null, assigneeIds: [], labelIds: [] },
+    properties: { ...draft.properties, stateId: null, estimatePointId: null, assigneeIds: [], labelIds: [] },
     parent: null,
     cycle: null,
     modules: [],
   });
   assert.equal(draft.modules.length, 1);
   assert.equal(draft.properties.assigneeIds.length, 1);
+});
+
+test("an estimate alone requires project-change confirmation and is cleared after confirmation", () => {
+  const draft: FunctionArgs<typeof api.tasks.drafts.index.save> = {
+    draftId: "fixture-draft" as Id<"taskDrafts">,
+    expectedContentRevision: 2,
+    projectId: "fixture-project" as Id<"projects">,
+    title: "Keep title",
+    html: "<p>Keep content</p>",
+    status: null,
+    properties: {
+      priority: "none",
+      stateId: null,
+      estimatePointId: "fixture-estimate" as Id<"estimatePoints">,
+      assigneeIds: [],
+      labelIds: [],
+      startDate: null,
+      targetDate: null,
+    },
+    parent: null,
+    cycle: null,
+    modules: [],
+  };
+  assert.equal(hasScopedDraftSelections(draft), true);
+  const moved = changeDraftProject(draft, null);
+  assert.equal(moved.properties.estimatePointId, null);
+  assert.equal(hasScopedDraftSelections(moved), false);
+  assert.equal(moved.html, draft.html);
+  assert.equal(moved.expectedContentRevision, 2);
 });
