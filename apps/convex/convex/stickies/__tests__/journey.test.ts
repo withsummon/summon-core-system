@@ -248,3 +248,136 @@ test("raw sticky deep links normalize at the private owner and reject malformed 
     admin.user.query(api.stickies.index.resolve, { workspaceId: f.workspaceId, stickyId: String(f.stickyId) })
   ).rejects.toThrow("not found");
 });
+
+test("autosave acknowledgement chains own edits but rejects an intervening peer write", async () => {
+  const f = await fixture();
+  const row = await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: f.stickyId });
+  const first = await f.owner.mutation(api.stickies.index.update, {
+    workspaceId: f.workspaceId,
+    stickyId: f.stickyId,
+    expectedUpdatedAt: row.updatedAt,
+    html: "<p>First edit</p>",
+  });
+  const second = await f.owner.mutation(api.stickies.index.update, {
+    workspaceId: f.workspaceId,
+    stickyId: f.stickyId,
+    expectedUpdatedAt: first.updatedAt,
+    backgroundColor: "yellow",
+  });
+  await f.owner.mutation(api.stickies.index.update, {
+    workspaceId: f.workspaceId,
+    stickyId: f.stickyId,
+    expectedUpdatedAt: second.updatedAt,
+    html: "<p>Peer edit</p>",
+  });
+  await expect(
+    f.owner.mutation(api.stickies.index.update, {
+      workspaceId: f.workspaceId,
+      stickyId: f.stickyId,
+      expectedUpdatedAt: second.updatedAt,
+      html: "<p>Unsaved local draft</p>",
+    })
+  ).rejects.toThrow("changed");
+  expect((await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: f.stickyId })).html).toBe(
+    "<p>Peer edit</p>"
+  );
+});
+
+test("anchored move uses actual unpaged neighbor and both captured revisions", async () => {
+  const f = await fixture();
+  const middle = await f.owner.mutation(api.stickies.index.create, { workspaceId: f.workspaceId });
+  const top = await f.owner.mutation(api.stickies.index.create, { workspaceId: f.workspaceId });
+  const read = (stickyId: typeof top) =>
+    f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId });
+  const [source, target] = await Promise.all([read(top), read(f.stickyId)]);
+  const moved = await f.owner.mutation(api.stickies.index.move, {
+    workspaceId: f.workspaceId,
+    stickyId: top,
+    targetId: f.stickyId,
+    expectedUpdatedAt: source.updatedAt,
+    expectedTargetUpdatedAt: target.updatedAt,
+    placement: "before",
+  });
+  const page = await f.owner.query(api.stickies.index.list, {
+    workspaceId: f.workspaceId,
+    deleted: false,
+    query: "",
+    paginationOpts,
+  });
+  expect(page.page.map((row) => row._id)).toEqual([middle, top, f.stickyId]);
+  expect((await read(top)).updatedAt).toBe(moved.updatedAt);
+  await f.owner.mutation(api.stickies.index.update, {
+    workspaceId: f.workspaceId,
+    stickyId: f.stickyId,
+    expectedUpdatedAt: target.updatedAt,
+    name: "Peer",
+  });
+  await expect(
+    f.owner.mutation(api.stickies.index.move, {
+      workspaceId: f.workspaceId,
+      stickyId: top,
+      targetId: f.stickyId,
+      expectedUpdatedAt: moved.updatedAt,
+      expectedTargetUpdatedAt: target.updatedAt,
+      placement: "after",
+    })
+  ).rejects.toThrow("changed");
+  const guest = await person(f, "guest");
+  const privateId = await guest.user.mutation(api.stickies.index.create, { workspaceId: f.workspaceId });
+  const privateRow = await guest.user.query(api.stickies.index.get, {
+    workspaceId: f.workspaceId,
+    stickyId: privateId,
+  });
+  await expect(
+    f.owner.mutation(api.stickies.index.move, {
+      workspaceId: f.workspaceId,
+      stickyId: top,
+      targetId: privateId,
+      expectedUpdatedAt: moved.updatedAt,
+      expectedTargetUpdatedAt: privateRow.updatedAt,
+      placement: "after",
+    })
+  ).rejects.toThrow("not found");
+});
+
+test("tied target positions reject without changing source and outer-edge reorder can recover", async () => {
+  const f = await fixture();
+  const targetId = await f.owner.mutation(api.stickies.index.create, { workspaceId: f.workspaceId });
+  const tiedId = await f.owner.mutation(api.stickies.index.create, { workspaceId: f.workspaceId });
+  const target = await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: targetId });
+  const source = await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: f.stickyId });
+  const tied = await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: tiedId });
+  const receipt = await f.owner.mutation(api.stickies.index.reorder, {
+    workspaceId: f.workspaceId,
+    stickyId: tiedId,
+    expectedUpdatedAt: tied.updatedAt,
+    sortOrder: target.sortOrder,
+  });
+  await expect(
+    f.owner.mutation(api.stickies.index.move, {
+      workspaceId: f.workspaceId,
+      stickyId: f.stickyId,
+      targetId,
+      expectedUpdatedAt: source.updatedAt,
+      expectedTargetUpdatedAt: target.updatedAt,
+      placement: "before",
+    })
+  ).rejects.toThrow("share an order");
+  expect(
+    (await f.owner.query(api.stickies.index.get, { workspaceId: f.workspaceId, stickyId: f.stickyId })).updatedAt
+  ).toBe(source.updatedAt);
+  await f.owner.mutation(api.stickies.index.reorder, {
+    workspaceId: f.workspaceId,
+    stickyId: tiedId,
+    expectedUpdatedAt: receipt.updatedAt,
+    sortOrder: target.sortOrder + 10000,
+  });
+  await f.owner.mutation(api.stickies.index.move, {
+    workspaceId: f.workspaceId,
+    stickyId: f.stickyId,
+    targetId,
+    expectedUpdatedAt: source.updatedAt,
+    expectedTargetUpdatedAt: target.updatedAt,
+    placement: "before",
+  });
+});

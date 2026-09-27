@@ -95,6 +95,7 @@ export const update = mutation({
       patch.logoProps = args.logoProps;
     }
     await ctx.db.patch(row._id, patch);
+    return { updatedAt };
   },
 });
 export const reorder = mutation({
@@ -106,10 +107,9 @@ export const reorder = mutation({
   },
   handler: async (ctx, args) => {
     const row = await requireSticky(ctx, args.workspaceId, args.stickyId);
-    await ctx.db.patch(row._id, {
-      sortOrder: stickyOrder(args.sortOrder),
-      updatedAt: revision(row, args.expectedUpdatedAt),
-    });
+    const updatedAt = revision(row, args.expectedUpdatedAt);
+    await ctx.db.patch(row._id, { sortOrder: stickyOrder(args.sortOrder), updatedAt });
+    return { updatedAt };
   },
 });
 export const remove = mutation({
@@ -134,5 +134,55 @@ export const resolve = query({
     const id = ctx.db.normalizeId("stickies", args.stickyId);
     if (!id) throw new ConvexError("Sticky not found.");
     return requireSticky(ctx, args.workspaceId, id, true);
+  },
+});
+
+export const move = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    stickyId: v.id("stickies"),
+    targetId: v.id("stickies"),
+    expectedUpdatedAt: v.number(),
+    expectedTargetUpdatedAt: v.number(),
+    placement: v.union(v.literal("before"), v.literal("after")),
+  },
+  handler: async (ctx, args) => {
+    const row = await requireSticky(ctx, args.workspaceId, args.stickyId);
+    const target = await requireSticky(ctx, args.workspaceId, args.targetId);
+    const updatedAt = revision(row, args.expectedUpdatedAt);
+    revision(target, args.expectedTargetUpdatedAt);
+    if (row._id === target._id) return { updatedAt: row.updatedAt };
+    const ties = await ctx.db
+      .query("stickies")
+      .withIndex("by_owner_order", (q) =>
+        q
+          .eq("workspaceId", row.workspaceId)
+          .eq("ownerId", row.ownerId)
+          .eq("deletedAt", null)
+          .eq("sortOrder", target.sortOrder)
+      )
+      .take(3);
+    if (ties.some((other) => other._id !== row._id && other._id !== target._id))
+      throw new ConvexError("These stickies share an order. Resolve their ordering before moving between them.");
+    const candidates = await ctx.db
+      .query("stickies")
+      .withIndex("by_owner_order", (q) => {
+        const owner = q.eq("workspaceId", row.workspaceId).eq("ownerId", row.ownerId).eq("deletedAt", null);
+        return args.placement === "before"
+          ? owner.gt("sortOrder", target.sortOrder)
+          : owner.lt("sortOrder", target.sortOrder);
+      })
+      .order(args.placement === "before" ? "asc" : "desc")
+      .take(2);
+    const neighbor = candidates.find((other) => other._id !== row._id);
+    const sortOrder = stickyOrder(
+      neighbor
+        ? target.sortOrder + (neighbor.sortOrder - target.sortOrder) / 2
+        : target.sortOrder + (args.placement === "before" ? 10000 : -10000)
+    );
+    if (sortOrder === target.sortOrder || sortOrder === neighbor?.sortOrder)
+      throw new ConvexError("There is no numeric space between these stickies. Move to an outer edge first.");
+    await ctx.db.patch(row._id, { sortOrder, updatedAt });
+    return { updatedAt };
   },
 });
