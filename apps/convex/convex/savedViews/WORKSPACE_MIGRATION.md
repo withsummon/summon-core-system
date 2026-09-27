@@ -2,7 +2,7 @@
 
 ## Owner and public contract
 
-The existing `savedViews` and `savedViewFavorites` tables remain the only definition/favorite owners. A non-null `projectId` identifies a project view; null identifies a workspace view. `workspaceId` is canonical for new rows. Existing project endpoint arguments and result shapes remain available for the currently served build.
+The existing `savedViews` table remains the definition owner. After the verified frozen backfill, personal favorite flags and collections use the shared `favorites` owner; `savedViewFavorites` is retained only as read-only rollback data pending retirement. A non-null `projectId` identifies a project view; null identifies a workspace view. `workspaceId` is canonical for new rows. Existing project endpoint arguments and result shapes remain available for the currently served build.
 
 `workspace.ts` provides access/list/create/get/resolve/update/lifecycle/favorite/favorites/results. Definitions use the same `viewFilters` validator, shape/date validation and `matchesFilters` evaluator as project views. `result_page.ts` is the single bounded task producer for both scopes; the project endpoint unwraps its task rows to preserve its public contract. Workspace results return `{task, project:{id,name,identifier}}` and `viewUpdatedAt` alongside the pagination cursor. All results are newest-created, at most 100 candidate rows and 1 MiB per page. Filtered empty pages retain continuation; no global totals are claimed.
 
