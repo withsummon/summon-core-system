@@ -2,7 +2,13 @@
 
 **Current cutover requirement:** the user selected the currently deployed production UI as the visual/interaction baseline. [Production UI preservation contract](production-ui-contract.md) takes precedence over earlier standalone-native-screen proposals. `/core` receipts prove scoped migration behavior, not approved product UI parity. Production presentation/data-owner integration is mandatory before retirement.
 
-## Latest image/intake and production-baseline checkpoint
+## Latest preserved-UI and local backend checkpoint
+
+[Preserved UI local checkpoint](preserved-ui-local-checkpoint.md) records exact backend `2d2374e776` activation on local3210,639 archive tests,65 web behaviors and two complete scans of project lifecycle/features and workspace lifecycle backfills. This supersedes older **local** undeployed wording below for those owners, cycle curves and description-token cleanup. Remote activation/backfills remain open.
+
+The restored deployed Task Center and editor passed scoped Chrome journeys against local Django8000; workspace selection now shares a tested persist-before-navigation owner. These are preserved presentation/behavior prerequisites, not a Convex-backed production-shell cutover. The native auth policy, destination and member-count contracts are implemented. D05 recoverable workspace lifecycle remains different from inherited slug/profile deletion semantics; its registered route/UI parity is still open.
+
+## Earlier image/intake and production-baseline checkpoint
 
 - `checkpoint-inline-intake.md` records the fixed `1313b7fc28` artifact on3030 and primary Chrome image upload/save/undo/Cancel plus intake property/image/acceptance journeys. All synthetic fixtures were restored or recoverably removed. Independent gates passed609 backend,40 live and55 frontend tests.
 - `0a1c9bf453` corrects intake's custom-state label using its canonical state owner; browser verification on a new artifact remains open.
