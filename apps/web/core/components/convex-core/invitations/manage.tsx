@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -126,6 +126,8 @@ function Management({ scope, roles }: { scope: Scope; roles: Roles }) {
 }
 function CreateInvitation({ scope, roles, onToken }: { scope: Scope; roles: Roles; onToken: (token: string) => void }) {
   const create = useAction(api.invitations.tokens.create);
+  const emailId = useId(),
+    roleId = useId();
   const [email, setEmail] = useState(""),
     [role, setRole] = useState<Roles[number]>(roles[0]);
   const [pending, setPending] = useState(false),
@@ -151,8 +153,9 @@ function CreateInvitation({ scope, roles, onToken }: { scope: Scope; roles: Role
         Create a private token for someone with a verified email address. Share it yourself; this does not send an
         email.
       </p>
-      <SummonField label="Recipient email">
+      <SummonField label="Recipient email" htmlFor={emailId}>
         <Input
+          id={emailId}
           type="email"
           required
           value={email}
@@ -161,8 +164,9 @@ function CreateInvitation({ scope, roles, onToken }: { scope: Scope; roles: Role
           disabled={pending}
         />
       </SummonField>
-      <SummonField label="Access role">
+      <SummonField label="Access role" htmlFor={roleId}>
         <select
+          id={roleId}
           className="max-w-full rounded-md border border-subtle-1 bg-layer-2 p-2"
           value={role}
           disabled={pending}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -98,6 +98,7 @@ function ResponseForm({
   onComplete: (accepted: boolean) => void;
 }) {
   const respond = useAction(api.invitations.tokens.respond);
+  const tokenId = useId();
   const [token, setToken] = useState(""),
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
@@ -124,8 +125,9 @@ function ResponseForm({
       <p className="break-words">
         Respond to {invitation.projectName ?? invitation.workspaceName} — {invitation.role} access.
       </p>
-      <SummonField label="Invitation token">
+      <SummonField label="Invitation token" htmlFor={tokenId}>
         <Input
+          id={tokenId}
           type="password"
           autoComplete="off"
           required
