@@ -22,6 +22,9 @@ import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
 import { ProjectBoundary } from "./projects/boundary";
 import { Profile } from "./identity/profile";
+const ProjectCoverHeader = lazy(() =>
+  import("./projects/cover").then((module) => ({ default: module.ProjectCoverHeader }))
+);
 const ProjectSettings = lazy(() =>
   import("./projects/settings").then((module) => ({ default: module.ProjectSettings }))
 );
@@ -272,6 +275,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
         <ProjectBoundary key={project._id} onRecover={openArchived}>
           <div className="space-y-6">
             <RecordVisit workspaceId={workspace._id} target={{ type: "project", id: project._id }} />
+            {!hasSelectedTask && projectView !== "settings" && (
+              <ProjectCoverHeader key={project._id} projectId={project._id} />
+            )}
             <nav aria-label="Project sections" className="flex flex-wrap gap-2">
               {[
                 { value: "tasks", label: "Tasks" },
