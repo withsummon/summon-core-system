@@ -1,3 +1,4 @@
+import { addSubscribers } from "./subscriptions";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
@@ -7,7 +8,7 @@ import { taskCanRead } from "../tasks/access";
 export const subscribe = mutation({
   args: { taskId: v.id("tasks"), subscribed: v.boolean() },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireTask(ctx, args.taskId, args.subscribed ? "active" : "read");
     const { user } = await requireProject(ctx, task.projectId);
     const previous = await ctx.db
       .query("taskSubscriptions")
@@ -18,12 +19,7 @@ export const subscribe = mutation({
       return;
     }
     if (previous) return;
-    const rows = await ctx.db
-      .query("taskSubscriptions")
-      .withIndex("by_task_user", (q) => q.eq("taskId", task._id))
-      .take(100);
-    if (rows.length >= 100) throw new ConvexError("This task has reached its 100 subscriber limit.");
-    await ctx.db.insert("taskSubscriptions", { taskId: task._id, userId: user._id });
+    await addSubscribers(ctx, task._id, [user._id]);
   },
 });
 export const subscription = query({
@@ -42,6 +38,7 @@ export const list = query({
     workspaceId: v.id("workspaces"),
     view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
     unreadOnly: v.boolean(),
+    mentionsOnly: v.optional(v.boolean()),
     now: v.number(),
     paginationOpts: paginationOptsValidator,
   },
@@ -66,10 +63,15 @@ export const list = query({
           args.view === "archived"
             ? row.archivedAt !== null
             : row.archivedAt === null && (args.view === "snoozed" ? snoozed : !snoozed);
-        if (!visible || (args.unreadOnly && row.readAt !== null)) return null;
+        if (!visible || (args.unreadOnly && row.readAt !== null) || (args.mentionsOnly && !row.isMention)) return null;
         const task = await ctx.db.get(row.taskId);
         if (!task || !(await taskCanRead(ctx, task, user._id))) return null;
-        return { ...row, taskTitle: task.title, event: await ctx.db.get(row.eventId) };
+        return {
+          ...row,
+          isMention: row.isMention ?? false,
+          taskTitle: task.title,
+          event: await ctx.db.get(row.eventId),
+        };
       })
     );
     return { ...result, page: rows.filter((row) => row !== null) };
@@ -102,5 +104,22 @@ export const update = mutation({
         throw new ConvexError("Choose a future snooze time within one year.");
       await ctx.db.patch(row._id, { snoozedUntil: change.until });
     }
+  },
+});
+
+export const subscriptionAccess = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const task = await requireTask(ctx, args.taskId, "read");
+    const { user } = await requireProject(ctx, task.projectId);
+    const membership = await ctx.db
+      .query("taskSubscriptions")
+      .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
+      .unique();
+    return {
+      subscribed: membership !== null,
+      canSubscribe: task.archivedAt == null,
+      canUnsubscribe: membership !== null,
+    };
   },
 });

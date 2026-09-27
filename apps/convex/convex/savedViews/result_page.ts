@@ -2,7 +2,7 @@ import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { pageBudget } from "../commercial/validation";
-import { taskIsActive } from "../tasks/access";
+import { taskIsActive, taskRoleCanRead } from "../tasks/access";
 import { matchesFilters } from "./filters";
 import { projectReader, projectSummary } from "./scope";
 export async function resultPage(
@@ -25,8 +25,16 @@ export async function resultPage(
       if (!taskIsActive(task) || !matchesFilters(task, view.filters)) return null;
       const permission = await read(task.projectId);
       if (!permission) return null;
-      const guest = workspaceGuest || permission.member.role === "guest";
-      if (guest && !permission.project.guestViewAllFeatures && task.createdBy !== userId) return null;
+      if (
+        !taskRoleCanRead(
+          task,
+          userId,
+          workspaceGuest ? "guest" : "member",
+          permission.member.role,
+          !!permission.project.guestViewAllFeatures
+        )
+      )
+        return null;
       return { task, project: projectSummary(permission.project) };
     })
   );

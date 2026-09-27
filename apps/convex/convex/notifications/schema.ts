@@ -11,6 +11,7 @@ export const notificationTables = {
     taskId: v.id("tasks"),
     eventId: v.id("taskEvents"),
     receiverId: v.id("users"),
+    isMention: v.optional(v.boolean()),
     actorId: v.id("users"),
     readAt: v.union(v.number(), v.null()),
     archivedAt: v.union(v.number(), v.null()),

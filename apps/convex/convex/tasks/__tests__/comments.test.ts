@@ -102,10 +102,10 @@ test("guest can comment on own task only; empty or oversized content and anonymo
   await f.t.run((ctx) => ctx.db.patch(f.member.memberId, { role: "guest" }));
   await expect(
     f.actor.mutation(api.tasks.comments.create, { taskId: f.taskId, html: "<p>No access</p>" })
-  ).rejects.toThrow("Guests");
+  ).rejects.toThrow("not found");
   await f.actor.mutation(api.tasks.comments.create, { taskId: ownTask, html: "<p>Own guest comment</p>" });
-  expect((await f.actor.query(api.tasks.comments.list, f.page)).canCreate).toBe(false);
-  expect(await f.actor.query(api.tasks.comments.access, { taskId: f.taskId })).toEqual({ canCreate: false });
+  await expect(f.actor.query(api.tasks.comments.list, f.page)).rejects.toThrow("not found");
+  await expect(f.actor.query(api.tasks.comments.access, { taskId: f.taskId })).rejects.toThrow("not found");
   expect(await f.actor.query(api.tasks.comments.access, { taskId: ownTask })).toEqual({ canCreate: true });
   await expect(
     f.owner.mutation(api.tasks.comments.create, { taskId: f.taskId, html: "<p> </p><script>bad</script>" })

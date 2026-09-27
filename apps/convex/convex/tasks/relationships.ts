@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
-import { requireTask, taskIsReadable } from "./access";
+import { requireTask, taskIsReadable, taskCanRead } from "./access";
 import { relationKind } from "./schema";
 import { requireTaskRevision, taskChanged } from "./revision";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -11,7 +11,7 @@ export const list = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await requireTask(ctx, taskId, "read");
-    const { member, projectMember } = await requireProject(ctx, task.projectId);
+    const { user, member, projectMember } = await requireProject(ctx, task.projectId);
     const [outgoing, incoming] = await Promise.all([
       ctx.db
         .query("taskRelations")
@@ -25,6 +25,7 @@ export const list = query({
     const rows = await Promise.all(
       [...outgoing, ...incoming].map(async (relation) => {
         const related = await ctx.db.get(relation.fromId === taskId ? relation.toId : relation.fromId);
+        if (related && taskIsReadable(related) && !(await taskCanRead(ctx, related, user._id))) return null;
         if ((!related || !taskIsReadable(related)) && (member.role === "guest" || projectMember.role === "guest"))
           return null;
         return {

@@ -62,7 +62,7 @@ test("restore validates mutable version and task CAS and does not accept a diffe
     f.owner.query(api.tasks.history.get, { scope: { kind: "task", taskId: other }, versionId: version._id })
   ).rejects.toThrow("not found");
 });
-test("guest history restriction remains narrower than ordinary task read; revocation and deleted history deny", async () => {
+test("guest history and ordinary task reads share creator restriction; revocation and deleted history deny", async () => {
   const f = await fixture();
   const guestId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
   await f.owner.mutation(api.workspaces.index.grantMember, {
@@ -72,8 +72,8 @@ test("guest history restriction remains narrower than ordinary task read; revoca
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: guestId, role: "guest" });
   const guest = f.t.withIdentity({ subject: guestId });
-  await guest.query(api.tasks.index.get, { taskId: f.taskId });
-  await expect(guest.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).rejects.toThrow("history");
+  await expect(guest.query(api.tasks.index.get, { taskId: f.taskId })).rejects.toThrow("not found");
+  await expect(guest.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).rejects.toThrow("not found");
   await f.t.run((ctx) => ctx.db.patch(f.projectId, { guestViewAllFeatures: true }));
   expect((await guest.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).page).toHaveLength(1);
   await f.owner.mutation(api.projects.index.revokeMember, { projectId: f.projectId, userId: guestId });

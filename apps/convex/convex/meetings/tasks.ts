@@ -1,4 +1,4 @@
-import { requireTask, taskIsReadable } from "../tasks/access";
+import { requireTask, taskIsReadable, taskCanRead } from "../tasks/access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -44,6 +44,7 @@ export const list = query({
           if (member.role === "guest" || projectMember?.role === "guest") return null;
           return { linkId: relationship._id, task: null, unavailable: true };
         }
+        if (!(await taskCanRead(ctx, task, user._id))) return null;
         return { linkId: relationship._id, task, unavailable: false };
       })
     );

@@ -35,6 +35,7 @@ export const labelFields = { name: v.string(), description: v.string(), color: v
 export const relationKind = v.union(v.literal("blocks"), v.literal("relates_to"), v.literal("duplicate"));
 export const taskTables = {
   taskComments: defineTable({
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
     taskId: v.id("tasks"),
     authorId: v.id("users"),
     html: v.string(),

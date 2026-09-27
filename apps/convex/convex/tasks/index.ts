@@ -1,4 +1,4 @@
-import { requireTask, taskIsActive, taskDetail } from "./access";
+import { requireTask, taskIsActive, taskDetail, readableTasks } from "./access";
 import { recordTaskEvent } from "../notifications/delivery";
 import { syncPlainDescription } from "./description";
 import { requireParent } from "./hierarchy";
@@ -18,7 +18,7 @@ const MAX_PAGE_BYTES = 1_048_576;
 export const list = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireProject(ctx, args.projectId);
+    const { user } = await requireProject(ctx, args.projectId);
     if (
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
       args.paginationOpts.numItems < 1 ||
@@ -34,7 +34,7 @@ export const list = query({
         maximumRowsRead: MAX_PAGE_TASKS,
         maximumBytesRead: MAX_PAGE_BYTES,
       });
-    return { ...result, page: result.page.filter(taskIsActive) };
+    return { ...result, page: await readableTasks(ctx, result.page.filter(taskIsActive), user._id) };
   },
 });
 export const create = mutation({

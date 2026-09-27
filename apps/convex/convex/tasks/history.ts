@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { requireIntakeTask, requireIntakeRevision } from "../intakes/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask } from "./access";
+import { requireTask, taskRoleCanRead } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 import { writeDescription } from "./description_content";
 const scope = v.union(
@@ -27,12 +27,15 @@ async function access(ctx: QueryCtx, selection: { kind: "task" | "intake"; taskI
   return { task, permission, intake: null };
 }
 function guestCanRead(permission: Awaited<ReturnType<typeof requireProject>>, creator: Id<"users">) {
-  return !(
-    (permission.member.role === "guest" || permission.projectMember.role === "guest") &&
-    !permission.project.guestViewAllFeatures &&
-    permission.user._id !== creator
+  return taskRoleCanRead(
+    { createdBy: creator },
+    permission.user._id,
+    permission.member.role,
+    permission.projectMember.role,
+    !!permission.project.guestViewAllFeatures
   );
 }
+
 function checkGuest(permission: Awaited<ReturnType<typeof requireProject>>, creator: Id<"users">) {
   if (!guestCanRead(permission, creator)) throw new ConvexError("You cannot read this task's description history.");
 }

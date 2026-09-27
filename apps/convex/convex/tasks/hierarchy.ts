@@ -5,7 +5,7 @@ import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask, taskIsReadable } from "./access";
+import { requireTask, taskCanRead, readableTasks } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 
 export async function requireParent(
@@ -24,26 +24,36 @@ export const parent = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await requireTask(ctx, taskId, "read");
-    await requireProject(ctx, task.projectId);
+    const { user } = await requireProject(ctx, task.projectId);
     const link = await ctx.db
       .query("taskParents")
       .withIndex("by_child", (q) => q.eq("childId", taskId))
       .unique();
     const parentTask = link ? await ctx.db.get(link.parentId) : null;
-    return { task: parentTask && taskIsReadable(parentTask) ? parentTask : null, hasParent: link !== null };
+    return {
+      task: parentTask && (await taskCanRead(ctx, parentTask, user._id)) ? parentTask : null,
+      hasParent: link !== null,
+    };
   },
 });
 export const children = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const task = await requireTask(ctx, args.taskId, "read");
-    await requireProject(ctx, task.projectId);
+    const { user } = await requireProject(ctx, task.projectId);
     const result = await ctx.db
       .query("taskParents")
       .withIndex("by_parent", (q) => q.eq("parentId", task._id))
       .paginate(pageBudget(args.paginationOpts));
     const childTasks = await Promise.all(result.page.map((link) => ctx.db.get(link.childId)));
-    return { ...result, page: childTasks.filter((child) => child !== null).filter(taskIsReadable) };
+    return {
+      ...result,
+      page: await readableTasks(
+        ctx,
+        childTasks.filter((child) => child !== null),
+        user._id
+      ),
+    };
   },
 });
 export async function checkAncestors(ctx: MutationCtx, childId: Id<"tasks">, parentTask: Doc<"tasks">) {
