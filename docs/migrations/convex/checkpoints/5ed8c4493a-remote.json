@@ -1,0 +1,25 @@
+{
+  "sourceCommit": "5ed8c4493a6972320ddc471ff830b16afc75546c",
+  "files": 1240,
+  "treeSha256": "b985997fa99d29aaaafa8d31d32a1a37b824c791a0913511ef7b23779d262a74",
+  "indexSha256": "be07d74e4d36ed02a54e01af7f9213b75fd3870092899fa9e4ee62df600188e0",
+  "backend": "https://convex-core.withsummon.com",
+  "frontend": "http://127.0.0.1:3017/core",
+  "dependencyNote": "Pre-existing editor/ui manifests and installed lockfile state included; unrelated edits preserved.",
+  "servedIndexMatches": true,
+  "actions": "https://convex-site.withsummon.com",
+  "verifiedDeepLink": "http://127.0.0.1:3017/core?workspace=remote-browser-check-20260927&project=RQA&projectView=views&savedView=s9717665g7pp1bpa9begrcj1mn8f6q0j",
+  "browserVerification": [
+    "Existing account sign-in",
+    "Create project To do saved view",
+    "Canonical matching task loaded",
+    "Peer task status change caused live exclusion and reinclusion without reload",
+    "Synthetic task restored to original To do status",
+    "No captured browser errors"
+  ],
+  "limitations": [
+    "Frontend served locally against remote self-hosted Convex; no public frontend cutover",
+    "No remote latency delta claimed",
+    "Full inherited saved-view contract remains incomplete"
+  ]
+}
