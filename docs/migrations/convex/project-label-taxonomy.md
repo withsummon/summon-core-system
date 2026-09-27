@@ -16,6 +16,6 @@ No global reference counts are claimed. Progress reports only changed rows and t
 
 ## Verification and remaining acceptance
 
-Behavior tests cover case-insensitive names, group cycles, stale edits, freeze against new assignment, active saved-view readability while retiring, cleanup across all four reference owners, and cancel-before-start. Exact classic complexity: label save 12, group validation 15, retirement step 14. Backend native TypeScript and scoped Oxc pass. UI activation and Chrome acceptance await primary deployment.
+Behavior tests cover case-insensitive names, group cycles, stale edits, freeze against new assignment, active saved-view readability while retiring, cleanup across all four reference owners, and cancel-before-start. Exact classic complexity: label save 12, group validation 15, retirement step 14. Backend native TypeScript and scoped Oxc pass. Backend commit `7603af9f65` passed TypeScript from its immutable archive and was deployed to local `http://127.0.0.1:3210` and `https://convex-core.withsummon.com`; CLI logs are `labels-7603af9f65-{local,remote}-deploy.txt` in the migration-control directory. The replacement label/group management UI is mounted; web TypeScript, scoped Oxc and all 40 frontend tests pass. Primary Chrome runtime and visual acceptance remain pending.
 
 Remaining inherited parity includes drag-and-drop group/order controls, bulk project label creation, and fuller label filtering/navigation. Workspace-global label creation has no verified registered product owner in this checkout and is not claimed.
