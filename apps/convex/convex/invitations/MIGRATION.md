@@ -26,4 +26,8 @@ Projects exposes workspace and selected-project invitation management, using `ac
 
 Account details exposes incoming invitations, guarded by `recipientAccess`; unverified users see a verification recovery message rather than triggering an unauthorized list. Incoming scope names are projected only for the authenticated matching verified email. Acceptance/decline requires pasting the private token and uses the canonical action; existing active membership roles stay unchanged. Lists retain bounded cursor pagination and no total claims. Scope-keyed management panels reset drafts across workspace/project navigation, and query failures stay inside a local invitation boundary.
 
-Frontend native TS7, five-file Oxc (195 rules), and three-file complexity gate pass. Browser visual assessment is pending parent QA; mutation security acceptance remains the backend BDD evidence above. No runtime claim about invitation delivery or real membership changes is made.
+Frontend native TS7, five-file Oxc (195 rules), and three-file complexity gate pass. Parent Chrome visual assessment passed for workspace/project forms and recipient recovery; mutation security acceptance remains the backend BDD evidence above. No runtime claim about invitation delivery or real membership changes is made.
+
+### Chrome visual acceptance, 2026-09-27
+
+Local development UI on port3010 exposes workspace and project invitation forms with recipient email, guest/member/admin choices for the QA administrator, explicit manual-sharing/no-email copy and empty history. Workspace form controls fit at 390×844; override was cleared afterward. Account details → Invitations correctly shows verification recovery for the existing unverified QA email. No token was issued and no membership was granted. Successful incoming acceptance, token rotation/revocation and security boundaries remain BDD evidence; this is not live email or immutable public frontend acceptance.
