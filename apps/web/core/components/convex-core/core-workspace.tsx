@@ -1,3 +1,5 @@
+import { LeaveMembership } from "./memberships/leave";
+import { MembershipAccessBoundary } from "./memberships/access-boundary";
 import { Onboarding } from "./identity/onboarding/onboarding";
 import { CreateWorkspace } from "./create-workspace";
 import { ManagedInvitations } from "./invitations/manage";
@@ -129,17 +131,22 @@ function Workspace() {
           <button className="mt-3 px-3 py-2 text-14 text-accent-primary" onClick={() => setParams({})}>
             Create workspace
           </button>
-          {workspace && <WorkspaceNavigation key={workspace._id} workspace={workspace} />}
           {workspace && (
-            <Suspense
-              fallback={
-                <p role="status" className="mt-4 text-12 text-secondary">
-                  Loading quick links…
-                </p>
-              }
-            >
-              <QuickLinks key={workspace._id} workspaceId={workspace._id} />
-            </Suspense>
+            <MembershipAccessBoundary key={workspace._id} onRecover={() => setParams({})}>
+              <WorkspaceNavigation workspace={workspace} />
+              <Suspense
+                fallback={
+                  <p role="status" className="mt-4 text-12 text-secondary">
+                    Loading quick links…
+                  </p>
+                }
+              >
+                <QuickLinks workspaceId={workspace._id} />
+              </Suspense>
+              <div className="mt-5 border-t border-subtle-1 pt-3">
+                <LeaveMembership scope={{ kind: "workspace", id: workspace._id, name: workspace.name }} />
+              </div>
+            </MembershipAccessBoundary>
           )}
           <Profile />
         </aside>
@@ -147,7 +154,9 @@ function Workspace() {
           {workspaces === undefined ? (
             <p role="status">Loading workspaces…</p>
           ) : workspace ? (
-            <WorkspaceModules key={workspace._id} workspace={workspace} />
+            <MembershipAccessBoundary key={workspace._id} onRecover={() => setParams({})}>
+              <WorkspaceModules workspace={workspace} />
+            </MembershipAccessBoundary>
           ) : (
             <CreateWorkspace onCreated={(slug) => setParams({ workspace: slug })} />
           )}
@@ -212,6 +221,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
           )}
         </div>
       </header>
+      {project && (
+        <LeaveMembership key={project._id} scope={{ kind: "project", id: project._id, name: project.name }} />
+      )}
       <div className="grid min-w-0 gap-3 md:grid-cols-2">
         <ManagedInvitations
           key={workspace._id}
