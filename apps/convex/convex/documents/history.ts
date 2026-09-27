@@ -76,12 +76,12 @@ export const prune = internalMutation({
           .withIndex("by_document_revision", (q) =>
             q.eq("documentId", document._id).lt("revision", document.revision - 19)
           )
-          .take(20)
+          .take(10)
       : [];
     await Promise.all(old.map((revision) => ctx.db.delete(revision._id)));
-    if (old.length === 20 || !documents.isDone)
+    if (old.length === 10 || !documents.isDone)
       await ctx.scheduler.runAfter(0, internal.documents.history.prune, {
-        cursor: old.length === 20 ? cursor : documents.continueCursor,
+        cursor: old.length === 10 ? cursor : documents.continueCursor,
       });
   },
 });
