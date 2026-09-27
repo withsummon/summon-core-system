@@ -5,8 +5,8 @@ export function savedViewTaskLink(params: URLSearchParams, projectIdentifier: st
   next.set("project", projectIdentifier);
   next.delete("comment");
   next.set("task", taskId);
+  next.set("projectView", "tasks");
   for (const key of [
-    "projectView",
     "savedView",
     "savedViewTab",
     "taskView",

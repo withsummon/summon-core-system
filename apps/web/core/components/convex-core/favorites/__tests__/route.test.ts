@@ -10,6 +10,7 @@ test("task favorite uses canonical project identifier and a clean task route", (
   assert.deepEqual(Object.fromEntries(new URL(href, "http://localhost").searchParams), {
     workspace: "northstar",
     module: "projects",
+    projectView: "tasks",
     project: "NATIVE",
     task: "fixture-task",
   });
