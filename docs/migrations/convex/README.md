@@ -41,7 +41,7 @@ Candidates: existing Django owner with bounded query; Convex reactive bounded qu
 - [First-slice browser and backend QA](first-slice-qa.md), [task UI](task-frontend.md), [commercial](commercial-frontend.md), [settings](workspace-settings.md), [documents](documents-frontend.md), [meetings](meetings-frontend.md), and [assistant](assistant-frontend.md).
 - [Expanded checkpoint benchmarks](benchmarks/ba52bcfca9/README.md) record the immutable production build, three API trials, Chrome timings and native task-route transport; [endpoint parity](endpoint-parity.md) names the remaining contracts. At that checkpoint, 206 backend tests, 30 typecheck, 21 lint, 21 format and 16 build tasks passed.
 - [Local restore rehearsal](backup-restore.md) verifies exact records and stored files in an isolated instance.
-- [Retirement gates](retirement-gates.md) record active legacy consumers and the conditions for stopping Django/Postgres. The full migration and remote application deployment are not complete.
+- [Retirement gates](retirement-gates.md) record active legacy consumers and the conditions for stopping Django/Postgres. The full migration is not complete. Remote function and browser checkpoint evidence appears below; public frontend cutover and remote recovery remain pending.
 
 ## Follow-up checkpoint: `10da39c21e`
 
@@ -60,3 +60,11 @@ Legacy comment deletion is soft by default; native hard deletion was identified 
 The [build manifest](checkpoints/8496aa7bd6.json) identifies the immutable production copy served on port 3015. HTTP `/core` returned 200 and its SHA-256 matched the recorded index. Authenticated Chrome opened [Release readiness](http://127.0.0.1:3015/core?workspace=northstar-convex-qa&project=NSTAR&projectView=modules&projectModule=rh73gsdw9dpnkn1ew1jy12460d8f7xxc), verified its retained description, lead, roster and task, and reported no error-level console entries. This is a local runtime checkpoint, not remote hosting acceptance or a new benchmark sample. Preexisting editor/UI dependency edits remain preserved.
 
 Both project timezone and metadata migrations updated 11 local projects, with separate second scans finding zero remaining changes. Backend function deployment was verified locally at 08:33:01. The task lifecycle migration is the next coordinated slice; no task lifecycle completion is claimed here. Full inherited route parity, external API contracts, live providers and remote DNS/TLS still prevent Django/Postgres retirement.
+
+## Follow-up checkpoint: `903cee2124`
+
+Native task lifecycle, personal quick links, intake admission/recovery and shared task/intake description history are committed. Primary gates passed 301 backend tests in 36 files, 19 frontend tests, 30 native TypeScript tasks and 21 lint/format tasks. The production web build passed. Module receipts distinguish browser-verified paths from automated-only coverage.
+
+Owned DNS and validated HTTPS now serve the pinned Convex backend/actions/dashboard. Committed functions `903cee21243acfacb92950ef7615b55513d80a84` deployed successfully. The [remote checkpoint manifest](checkpoints/903cee2124-remote.json) records the production web artifact, exact served index hash and topology: local frontend on port 3016 against remote Convex. Chrome verified sign-up, workspace/project/task creation and a second tab receiving the task without reload. This is not a public frontend rollout or a new performance benchmark.
+
+Saved views and other inherited contracts, public frontend cutover, provider configuration and remote recovery remain open. Django/Postgres stay active.

@@ -20,7 +20,7 @@ The native `/core` route is an independently authenticated Convex workspace. Exi
 | Tasks and CRM           | Authorized CRUD, task properties/CAS, contacts, exact decimal values, atomic delivery handoff               | Remaining inherited issue contracts and route/detail parity                                             |
 | Documents and meetings  | Yjs collaboration, private asset delivery/undo, metadata, meeting participants and task links               | Recording/transcription, summary generation, document lifecycle parity and generated artifacts          |
 | Assistant and reports   | Private conversations, authenticated provider adapter, explicit task approval; bounded report contributions | Live provider configuration, remaining tools/attachments, full reports and export contracts             |
-| Operations              | Local pinned backend, authenticated browser journeys, benchmark harness, record/file restore rehearsal      | Remote owned DNS/TLS, application deployment identity, authenticated remote QA and operational recovery |
+| Operations              | Pinned remote backend with owned HTTPS, authenticated remote browser task journey, local restore rehearsal      | Public frontend cutover, broader remote workflow QA and authenticated remote backup/restore |
 
 Module `MIGRATION.md` files and frontend acceptance records own the detailed omissions. Work in progress is not counted as completed here.
 
@@ -39,3 +39,7 @@ No legacy route redirect, service removal, or data deletion has been performed m
 Native cycles, many-to-many modules, recoverable comment deletion and project settings/archive recovery now have local role/concurrency/recovery Chrome evidence. Project archive retains children and blocks normal project operations; documents retain their independently owned access rules. Workspace role changes protect the final administrator of archived projects so recovery cannot be orphaned.
 
 These additions do not close inherited cycle/module analytics, saved views, task lifecycle, project feature settings, public/PAT APIs or the other exclusions in module receipts. The remote owned domain still had no A record at the last DNS check, and no live provider configuration has been supplied. Existing Django/Postgres services and legacy routes remain necessary.
+
+## Checkpoint `903cee2124` additions
+
+Task lifecycle, quick links, intake admission/recovery and shared description history are now implemented on the native path. DNS/TLS and remote function deployment are verified; the local production frontend received remote realtime updates in Chrome. See the exact artifact and dependency-state caveat in `checkpoints/903cee2124-remote.json`. Remaining inherited behavior stays required. Remote backup/restore, public frontend deployment and full contract closure still block retirement.
