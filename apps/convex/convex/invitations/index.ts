@@ -142,6 +142,7 @@ export const incoming = query({
         .filter((row) => row.expiresAt > Date.now())
         .map(async (row) => {
           const workspace = await ctx.db.get(row.workspaceId);
+          if (!workspace || workspace.deletedAt != null) return null;
           const project = row.projectId ? await ctx.db.get(row.projectId) : null;
           if (row.projectId && (!project || project.deletedAt != null)) return null;
           return Object.assign(publicInvitation(row), {

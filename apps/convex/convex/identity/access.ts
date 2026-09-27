@@ -15,7 +15,7 @@ export async function requireWorkspace(ctx: QueryCtx, workspaceId: Id<"workspace
   if (!member?.active || (write && member.role === "guest"))
     throw new ConvexError("You do not have access to this workspace.");
   const workspace = await ctx.db.get(workspaceId);
-  if (!workspace) throw new ConvexError("Workspace not found.");
+  if (!workspace || workspace.deletedAt != null) throw new ConvexError("Workspace not found.");
   return { user, member, workspace };
 }
 export async function requireProject(ctx: QueryCtx, projectId: Id<"projects">, write = false) {

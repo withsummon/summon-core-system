@@ -5,6 +5,8 @@ import { requireWorkspace, requireUser } from "../identity/access";
 
 export async function canAccessDocument(ctx: QueryCtx, document: Doc<"documents">, userId: Id<"users">, write = false) {
   if (document.deleted) return false;
+  const workspace = await ctx.db.get(document.workspaceId);
+  if (!workspace || workspace.deletedAt != null) return false;
   if (document.ownedBy === userId) return true;
   if (document.access === "private") return false;
   if (document.isGlobal) return true;

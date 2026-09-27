@@ -54,9 +54,12 @@ export default defineSchema({
   ...documentTables,
   ...resourceTables,
   ...intakeTables,
-  workspaces: defineTable({ name: v.string(), slug: v.string(), metadataRevision: v.number() }).index("by_slug", [
-    "slug",
-  ]),
+  workspaces: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    metadataRevision: v.number(),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
+  }).index("by_slug", ["slug"]),
   workspaceMembers: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), role, active: v.boolean() })
     .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_user", ["userId"])

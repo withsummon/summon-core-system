@@ -13,6 +13,8 @@ export async function credentialPermission(ctx: QueryCtx, credential: Doc<"mcpCr
 // Shared nullable metadata ACL for paginated credential/resource projections.
 export async function credentialMetadataAccess(ctx: QueryCtx, credential: Doc<"mcpCredentials">, userId: Id<"users">) {
   if (credential.status === "deleted") return null;
+  const workspace = await ctx.db.get(credential.workspaceId);
+  if (!workspace || workspace.deletedAt != null) return null;
   const workspaceMember = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", credential.workspaceId).eq("userId", userId))
