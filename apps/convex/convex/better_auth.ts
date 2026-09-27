@@ -11,8 +11,7 @@ import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { sendAccountEmail } from "./identity/mail/sender";
 import { requireSignup } from "./identity/signup_policy";
 
-export const siteUrl = process.env.SITE_URL;
-if (!siteUrl) throw new Error("SITE_URL is required for Better Auth.");
+export const siteUrl = process.env.SITE_URL ?? "";
 
 const authFunctions: AuthFunctions = internal.better_auth;
 export const authComponent = createClient<DataModel>(components.betterAuth, {
@@ -101,6 +100,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
         disableSignUp: true,
         expiresIn: 600,
         allowedAttempts: 5,
+        storeOTP: "encrypted",
         async sendVerificationOTP({ email, otp, type }) {
           const purpose =
             type === "sign-in"
