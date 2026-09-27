@@ -35,6 +35,23 @@ Global TS7 completed 30/30 tasks after the earlier relation-label union fix. Sub
 
 The additive label metadata migration `f943474b1b` is deployed on both hosts. One local label was updated; repeat local scan and both remote scans changed zero rows. The final group/deletion owner is not counted complete until its later commit and runtime acceptance. Django/Postgres and legacy workers remain active, and the public frontend has not been cut over.
 
+## Root reconciliation through 2afae7d62b
+
+This checkpoint supersedes older absence statements, without changing the inherited-route retirement gates.
+
+| Committed native owner | Verified scope | Remaining scope |
+| --- | --- | --- |
+| `7603af9f65`, `631c0b9bcc` | Required label taxonomy, groups and bounded reference removal; Chrome hierarchy validation and cancellation restore controls | Final removal browser journey and inherited taxonomy consumers |
+| `f1f4cba4b7`, `f3fb6564cc`, `05dc09dcdf`, `63353097de` | Atomic bulk properties and cycle/module memberships; Chrome additive labels/priority and module assignment | Every inherited bulk wire contract, layouts and analytics |
+| `198840780b`, `9685d7a539` | Module links with canonical URL validation and soft tombstones; Chrome create/edit/archive visibility | Inherited module consumers and full module analytics |
+| `b3725c3e11`, `1839733e63`, `003528005d`, `e54c288c6f` | Atomic password change/set with exact verified-hash CAS, bounded session cleanup and read-only connected accounts | Real credential handoff, unlink, full onboarding and external-provider acceptance |
+| `a1ed5c68a7`, `d644ef8596`, `a956de482d` | Completed-cycle immutable snapshot and resumable unfinished transfer; Chrome one-task movement and narrow layout; required task archive/trash fields after two complete zero-change scans per host | Full cycle analytics, inherited routing and multi-batch browser journey |
+| `a495f8ee3d`, `255773a113`, `842cb35e9c` | Verified-email-bound manual invitations with current issuer reauthorization and canonical atomic membership grants; Chrome forms/recovery visual checks | Email delivery/retries, deep links, bulk issuance, role editing and inherited REST boundary |
+| `349d65390d` | Atomic account deactivation, shared restrictions and internal explicit instance-authority bootstrap; uninitialized authority blocks public deactivation | Bootstrap intentionally not invoked; admin-control-panel parity and UI activation remain open |
+| `be821353cd` | Document revision list/preview and restoration through current CRDT state, preserving title and immutable history; actual-editor/Yjs tests | Frontend activation, Chrome acceptance and inherited page/export contracts at this checkpoint |
+
+Root reran the aggregate test command: 497 backend tests across 77 files and 42 frontend tests passed. Logs: `/tmp/summon-migration-control/checkpoint-history-invitations-tests.txt` and `checkpoint-history-invitations-types.txt`; the root-wide native TypeScript gate also passed all 30 tasks. This was the shared working tree after the above slices; subsequent slices are separate. The identified production frontend remains source `63353097deea3ce2be7d7798c7c256730e4f4708` on local port3023, recorded in `checkpoint-63353097de.md`; local3010 checks exercise later development UI. Neither is a public frontend cutover. Django, Postgres and legacy workers remain active.
+
 ## How to read this ledger
 
 `Partial` means a genuine native owner exists but the stated remaining contract blocks retirement. `Legacy` means no matching native production owner was found in the inspected Convex function tree. Every row also requires route/consumer cutover: existing generated Convex functions are not replacements for the UUID/slug/session/PAT REST wire contracts. The route appendix records exact registered patterns and controller bindings, rather than treating similarly named files as proof of registration.
