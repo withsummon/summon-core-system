@@ -15,10 +15,14 @@ No public API accepts another user or an arbitrary numeric order. `projects/orde
 3. Repeat complete scans on both hosts and retain zero-change receipts. Concurrent new memberships use the new initializer; repeat scans cover existing state. No dual-write order or destructive migration is involved. Old native ordering was not user-customizable, so historical rows get deterministic creation-order prepend initialization rather than invented historical user choices.
 4. Only after both receipts: activate the real ordered project chooser and enforce initialized owner where the consumer requires it. Remove temporary backfill and migration-specific test after proof; retain meaningful uniqueness/privacy/CAS tests. There is no optional row field to tighten, but existence of a corresponding private row becomes the canonical membership invariant at cutover.
 
-No deployment or backfill has been performed for this slice at this receipt stage. Django routes remain registered. User-preference metadata alone is not a route cutover.
+Additive commit `cd4d5f5d85` passed exact-archive TypeScript 7 and deployed locally. Complete local backfill processed 21 memberships and inserted 21 rows; the second complete pass processed 21 and inserted zero. Durable receipt: `docs/migrations/convex/checkpoints/project-order-backfill.json`. Remote backfill remains pending, so current chooser is unchanged. Django routes remain registered. User-preference metadata alone is not a route cutover.
 
 ## Verification and remaining scope
 
 Seven module-owned behavior tests cover new prepend ordering, both revision checks/adjacency, guest-private order and owner isolation, revocation/rejoin retention, archived sparse pages and restored position, repeatable backfill including inactive membership, duplicate/integer exhaustion rollback, concurrent creation, and explicit 200-row neighbor overflow. TypeScript 7, scoped Oxc and new owner complexity checks are separate gates. Actual chooser and browser acceptance await cutover.
 
 The exact inherited owners/routes and consumer evidence are in `PERSONAL_PREFERENCES_PLAN.md`. ProjectMember's separately registered views/default props and member-targeted preferences are not silently aliased. Navigation defaults/hidden tabs, page block layout, task filters/rich expressions, grouping/order/layout/display properties remain further native work. No full project preferences parity is claimed.
+
+## Prepared consumer (not mounted)
+
+`projects/ordered-chooser.tsx` supplies a keyboard-accessible personal project list with up/down buttons and captured moving/neighbor revisions. It keeps the current selected project in the summary even if that row is outside loaded pages. Empty filtered pages retain Load more; moving the last loaded item down requires loading its successor. Reorder mutations never update route parameters. Explicit project selection alone changes identifier and clears stale entity/deep-link parameters through `order-selection`, covered by a module-owned regression. No current consumer imports this component before both-host receipts.
