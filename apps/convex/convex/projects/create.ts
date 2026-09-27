@@ -1,3 +1,4 @@
+import { initializeProjectOrder } from "./order_owner";
 import { workspaceTimezone } from "../settings/timezone";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
@@ -40,5 +41,6 @@ export async function createProject(
     role: "admin",
     active: true,
   });
+  await initializeProjectOrder(ctx, { workspaceId: args.workspaceId, projectId, userId: user._id });
   return projectId;
 }

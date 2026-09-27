@@ -1,3 +1,4 @@
+import { initializeProjectOrder } from "./order_owner";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import type { MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
@@ -121,6 +122,7 @@ export async function grantProjectMembership(
   if (existing?.active && existing.role === "admin" && args.role !== "admin") {
     await requireAnotherProjectAdmin(ctx, args.projectId);
   }
+  await initializeProjectOrder(ctx, { workspaceId, projectId: args.projectId, userId: args.userId });
   if (existing) {
     await ctx.db.patch(existing._id, { role: args.role, active: true });
     return existing._id;
