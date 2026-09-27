@@ -1,7 +1,8 @@
+import { cyclePhase } from "./dates";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import { requireTask } from "../tasks/properties";
+import { requireTask, taskIsActive } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
@@ -53,7 +54,8 @@ export const remove = mutation({
     const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
     requireOpenCycle(cycle);
     requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
-    const task = await requireTask(ctx, args.taskId);
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new ConvexError("Task not found.");
     if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
     const previous = await ctx.db
       .query("cycleTasks")
@@ -69,7 +71,7 @@ export const remove = mutation({
 export const current = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireTask(ctx, args.taskId, "read");
     await requireProject(ctx, task.projectId);
     const membership = await ctx.db
       .query("cycleTasks")
@@ -82,7 +84,9 @@ export const current = query({
 export const list = query({
   args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireCycle(ctx, args.cycleId);
+    const { cycle, member, projectMember } = await requireCycle(ctx, args.cycleId);
+    const canDetach =
+      member.role !== "guest" && projectMember.role !== "guest" && !cycle.archived && cyclePhase(cycle) !== "completed";
     if (
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
       args.paginationOpts.numItems < 1 ||
@@ -94,6 +98,17 @@ export const list = query({
       .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
       .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
     const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
-    return { ...result, page: tasks.filter((task) => task !== null) };
+    return {
+      ...result,
+      page: tasks
+        .filter((task) => task !== null)
+        .filter((task) => taskIsActive(task) || canDetach)
+        .map((task) => ({
+          taskId: task._id,
+          updatedAt: task.updatedAt,
+          task: taskIsActive(task) ? task : null,
+          unavailable: !taskIsActive(task),
+        })),
+    };
   },
 });

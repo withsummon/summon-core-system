@@ -3,7 +3,7 @@ import { mutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
-import { requireTask } from "./properties";
+import { requireTask } from "./access";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
 import { requireTaskRevision, taskChanged } from "./revision";
 
@@ -20,13 +20,17 @@ export async function syncPlainDescription(ctx: MutationCtx, task: Doc<"tasks">,
 export const get = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
-    const task = await requireTask(ctx, taskId);
+    const task = await requireTask(ctx, taskId, "read");
     await requireProject(ctx, task.projectId);
     const rich = await ctx.db
       .query("taskDescriptions")
       .withIndex("by_task", (q) => q.eq("taskId", taskId))
       .unique();
-    return { taskId, html: rich?.html ?? plainDescriptionHtml(task.description), updatedAt: task.updatedAt };
+    return {
+      taskId,
+      html: rich?.html ?? plainDescriptionHtml(task.description),
+      updatedAt: task.updatedAt,
+    };
   },
 });
 export const save = mutation({

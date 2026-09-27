@@ -9,6 +9,7 @@ import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
 import { statusOptions } from "./options";
+import { TaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
 
 const RichDescription = lazy(() =>
@@ -22,12 +23,24 @@ type Task = FunctionReturnType<typeof api.tasks.index.get>;
 type Draft = FunctionArgs<typeof api.tasks.index.update>;
 const priorities = ["none", "urgent", "high", "medium", "low"] as const satisfies Draft["priority"][];
 
-function TaskDetailContent({ taskId, project, onBack }: { taskId: string; project: Project; onBack: () => void }) {
-  const task = useQuery(api.tasks.index.resolve, { taskId });
+function TaskDetailContent({
+  taskId,
+  project,
+  onBack,
+  recovery = false,
+}: {
+  taskId: string;
+  project: Project;
+  onBack: () => void;
+  recovery?: boolean;
+}) {
+  const active = useQuery(api.tasks.index.resolve, recovery ? "skip" : { taskId });
+  const recovered = useQuery(api.tasks.lifecycle.get, recovery ? { taskId, view: "deleted" } : "skip");
+  const task = recovery ? recovered : active;
   const [editing, setEditing] = useState(false);
   const states = useQuery(api.tasks.states.list, { projectId: project._id });
   const labels = useQuery(api.tasks.labels.list, { projectId: project._id });
-  const canWrite = project.membershipRole !== "guest" && project.workspaceRole !== "guest";
+  const canWrite = task?.canEdit === true;
   if (!task || !states || !labels) return <p role="status">Opening task…</p>;
   if (task.projectId !== project._id) return <TaskUnavailable onBack={onBack} />;
   return (
@@ -40,10 +53,17 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
           {project.identifier}-{task.sequence}
         </span>
         <div className="flex flex-wrap gap-2">
-          <TaskSubscription taskId={task._id} />
+          {task.archivedAt === null && task.deletedAt === null && <TaskSubscription taskId={task._id} />}
           {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
         </div>
       </header>
+      {task.deletedAt !== null ? (
+        <p className="text-14 text-secondary">
+          This task is in Trash. Restore it to access its retained comments and links.
+        </p>
+      ) : (
+        task.archivedAt !== null && <p className="text-14 text-secondary">Archived task · read only</p>
+      )}
       {editing && canWrite ? (
         <TaskForm task={task} projectId={project._id} onDone={() => setEditing(false)} />
       ) : (
@@ -83,13 +103,18 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
               </dd>
             </div>
           </dl>
-          <Suspense fallback={<p role="status">Loading task details…</p>}>
-            <RichDescription taskId={task._id} canWrite={canWrite} />
-            <TaskStructure task={task} canWrite={canWrite} />
-            <TaskComments key={task._id} taskId={task._id} />
-          </Suspense>
+          {recovery ? (
+            <p className="text-14 break-words whitespace-pre-wrap">{task.description}</p>
+          ) : (
+            <Suspense fallback={<p role="status">Loading task details…</p>}>
+              <RichDescription taskId={task._id} canWrite={canWrite} />
+              <TaskStructure task={task} canWrite={canWrite} />
+              <TaskComments key={task._id} taskId={task._id} />
+            </Suspense>
+          )}
         </>
       )}
+      <TaskLifecycle task={task} />
     </article>
   );
 }
@@ -324,9 +349,9 @@ function TaskProperties({
   );
 }
 
-export function TaskDetail(props: { taskId: string; project: Project; onBack: () => void }) {
+export function TaskDetail(props: { taskId: string; project: Project; onBack: () => void; recovery?: boolean }) {
   return (
-    <TaskAccessBoundary key={props.taskId} onBack={props.onBack}>
+    <TaskAccessBoundary key={`${props.taskId}:${props.recovery ? "deleted" : "read"}`} onBack={props.onBack}>
       <TaskDetailContent {...props} />
     </TaskAccessBoundary>
   );

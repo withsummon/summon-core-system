@@ -195,6 +195,7 @@ export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof
                     setParams((current) => {
                       const next = new URLSearchParams(current);
                       next.set("task", task._id);
+                      next.delete("taskView");
                       next.set("project", project.identifier);
                       return next;
                     })

@@ -5,7 +5,7 @@ import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask } from "./properties";
+import { requireTask, taskIsReadable } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 
 export async function requireParent(
@@ -23,25 +23,27 @@ export async function requireParent(
 export const parent = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
-    const task = await requireTask(ctx, taskId);
+    const task = await requireTask(ctx, taskId, "read");
     await requireProject(ctx, task.projectId);
     const link = await ctx.db
       .query("taskParents")
       .withIndex("by_child", (q) => q.eq("childId", taskId))
       .unique();
-    return link ? requireTask(ctx, link.parentId) : null;
+    const parentTask = link ? await ctx.db.get(link.parentId) : null;
+    return { task: parentTask && taskIsReadable(parentTask) ? parentTask : null, hasParent: link !== null };
   },
 });
 export const children = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireTask(ctx, args.taskId, "read");
     await requireProject(ctx, task.projectId);
     const result = await ctx.db
       .query("taskParents")
       .withIndex("by_parent", (q) => q.eq("parentId", task._id))
       .paginate(pageBudget(args.paginationOpts));
-    return { ...result, page: await Promise.all(result.page.map((link) => requireTask(ctx, link.childId))) };
+    const childTasks = await Promise.all(result.page.map((link) => ctx.db.get(link.childId)));
+    return { ...result, page: childTasks.filter((child) => child !== null).filter(taskIsReadable) };
   },
 });
 export async function checkAncestors(ctx: MutationCtx, childId: Id<"tasks">, parentTask: Doc<"tasks">) {
@@ -78,11 +80,18 @@ export const setParent = mutation({
       .unique();
     if ((existing?.parentId ?? null) === (next?._id ?? null)) return;
     if (existing) await ctx.db.delete(existing._id);
-    if (next) await ctx.db.insert("taskParents", { projectId: task.projectId, childId: task._id, parentId: next._id });
+    if (next)
+      await ctx.db.insert("taskParents", {
+        projectId: task.projectId,
+        childId: task._id,
+        parentId: next._id,
+      });
     await taskChanged(ctx, task, user._id);
     if (next) await taskChanged(ctx, next, user._id);
     if (existing && existing.parentId !== next?._id) {
-      const previous = await requireTask(ctx, existing.parentId);
+      const previous = await ctx.db.get(existing.parentId);
+      if (!previous || previous.projectId !== task.projectId)
+        throw new ConvexError("Previous parent task not found in this project.");
       await taskChanged(ctx, previous, user._id);
     }
   },

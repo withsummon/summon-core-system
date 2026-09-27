@@ -2,8 +2,8 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
-import { requireTask } from "../tasks/properties";
-import { recipientCanRead } from "./delivery";
+import { requireTask } from "../tasks/access";
+import { taskCanRead } from "../tasks/access";
 export const subscribe = mutation({
   args: { taskId: v.id("tasks"), subscribed: v.boolean() },
   handler: async (ctx, args) => {
@@ -29,7 +29,7 @@ export const subscribe = mutation({
 export const subscription = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireTask(ctx, args.taskId, "read");
     const { user } = await requireProject(ctx, task.projectId);
     return !!(await ctx.db
       .query("taskSubscriptions")
@@ -68,7 +68,7 @@ export const list = query({
             : row.archivedAt === null && (args.view === "snoozed" ? snoozed : !snoozed);
         if (!visible || (args.unreadOnly && row.readAt !== null)) return null;
         const task = await ctx.db.get(row.taskId);
-        if (!task || !(await recipientCanRead(ctx, task, user._id))) return null;
+        if (!task || !(await taskCanRead(ctx, task, user._id))) return null;
         return { ...row, taskTitle: task.title, event: await ctx.db.get(row.eventId) };
       })
     );
@@ -88,7 +88,7 @@ export const update = mutation({
     const user = await requireUser(ctx);
     const row = await ctx.db.get(notificationId);
     if (!row || row.receiverId !== user._id) throw new ConvexError("Notification not found.");
-    const task = await requireTask(ctx, row.taskId);
+    const task = await requireTask(ctx, row.taskId, "read");
     await requireProject(ctx, task.projectId);
     if (change.kind === "read") await ctx.db.patch(row._id, { readAt: change.value ? Date.now() : null });
     else if (change.kind === "archive") await ctx.db.patch(row._id, { archivedAt: change.value ? Date.now() : null });

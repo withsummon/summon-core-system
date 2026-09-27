@@ -15,6 +15,7 @@ function TaskLink({ task }: { task: Task }) {
   const [params] = useSearchParams();
   const next = new URLSearchParams(params);
   next.set("task", task._id);
+  next.delete("taskView");
   return (
     <Link className="min-w-0 text-14 break-words text-accent-primary hover:underline" to={`?${next}`}>
       #{task.sequence} · {task.title}
@@ -45,15 +46,25 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
         <h3 className="text-16 font-medium">Parent & subtasks</h3>
         {canWrite && (
           <Button variant="secondary" onClick={() => setMode("parent")}>
-            {parent ? "Change parent" : "Set parent"}
+            {parent?.hasParent ? "Change parent" : "Set parent"}
           </Button>
         )}
       </header>
       <div className="text-14">
         <span className="mr-2 text-secondary">Parent</span>
-        {parent ? <TaskLink task={parent} /> : parent === null ? "None" : "Loading…"}
+        {parent?.task ? (
+          <TaskLink task={parent.task} />
+        ) : parent ? (
+          parent.hasParent ? (
+            "Parent task unavailable"
+          ) : (
+            "None"
+          )
+        ) : (
+          "Loading…"
+        )}
       </div>
-      {canWrite && parent && (
+      {canWrite && parent?.hasParent && (
         <Button
           variant="secondary"
           onClick={() => {
@@ -69,7 +80,7 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
         {results.map((child) => (
           <li className="flex flex-wrap items-center justify-between gap-2" key={child._id}>
             <TaskLink task={child} />
-            {canWrite && (
+            {canWrite && child.archivedAt == null && (
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -204,7 +215,11 @@ function Relationships({ task, canWrite }: { task: Task; canWrite: boolean }) {
           <li className="space-y-1" key={item.relation._id}>
             <p className="text-12 text-secondary">{relationLabels[item.direction]}</p>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <TaskLink task={item.task} />
+              {item.task ? (
+                <TaskLink task={item.task} />
+              ) : (
+                <span className="text-14 text-secondary">Related task unavailable</span>
+              )}
               {canWrite && (
                 <Button
                   variant="secondary"

@@ -3,12 +3,16 @@ import { pageBudget } from "../commercial/validation";
 import { v, ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { status } from "../tasks/schema";
-import { requireTask } from "../tasks/properties";
+import { requireTask, taskCanRead } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { changeTaskStatus } from "../tasks/status";
 import { requireConversation } from "./access";
 export const propose = mutation({
-  args: { conversationId: v.id("assistantConversations"), taskId: v.id("tasks"), nextStatus: status },
+  args: {
+    conversationId: v.id("assistantConversations"),
+    taskId: v.id("tasks"),
+    nextStatus: status,
+  },
   handler: async (ctx, args) => {
     const { conversation, user } = await requireConversation(ctx, args.conversationId, true);
     const task = await requireTask(ctx, args.taskId);
@@ -37,7 +41,7 @@ export const get = query({
     const action = await ctx.db.get(actionId);
     if (!action) throw new ConvexError("Action not found.");
     await requireConversation(ctx, action.conversationId);
-    const task = await requireTask(ctx, action.taskId);
+    const task = await requireTask(ctx, action.taskId, "read");
     await requireProject(ctx, task.projectId);
     return action;
   },
@@ -76,18 +80,19 @@ export const cancel = mutation({
 export const list = query({
   args: { conversationId: v.id("assistantConversations"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireConversation(ctx, args.conversationId);
+    const { user } = await requireConversation(ctx, args.conversationId);
     const result = await ctx.db
       .query("assistantActions")
       .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
       .order("desc")
       .paginate(pageBudget(args.paginationOpts));
-    await Promise.all(
+    const rows = await Promise.all(
       result.page.map(async (action) => {
-        const task = await requireTask(ctx, action.taskId);
-        await requireProject(ctx, task.projectId);
+        const task = await ctx.db.get(action.taskId);
+        if (!task || !(await taskCanRead(ctx, task, user._id))) return null;
+        return action;
       })
     );
-    return result;
+    return { ...result, page: rows.filter((action) => action !== null) };
   },
 });

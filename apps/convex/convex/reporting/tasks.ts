@@ -1,3 +1,4 @@
+import { taskIsActive } from "../tasks/access";
 import { query } from "../_generated/server";
 import { pageArgs, pageBudget, scopeAccess, inRange, pageResult, matchingRows } from "./scope";
 
@@ -9,12 +10,19 @@ export const page = query({
       ? ctx.db.query("tasks").withIndex("by_project", (q) => q.eq("projectId", scope.projectId!))
       : ctx.db.query("tasks").withIndex("by_workspace", (q) => q.eq("workspaceId", scope.workspaceId));
     const result = await source.paginate(pageBudget(paginationOpts));
-    const counts = { total: 0, completed: 0, overdue: 0, dueInSevenDays: 0, later: 0, noDueDate: 0 };
+    const counts = {
+      total: 0,
+      completed: 0,
+      overdue: 0,
+      dueInSevenDays: 0,
+      later: 0,
+      noDueDate: 0,
+    };
     const completionTrend: Record<string, number> = {};
     const sevenDays = new Date(Date.parse(scope.today) + 7 * 86400000).toISOString().slice(0, 10);
     const rows = await matchingRows(
       result.page,
-      async (task) => inRange(task._creationTime, scope) && (await visibleProject(task.projectId))
+      async (task) => taskIsActive(task) && inRange(task._creationTime, scope) && (await visibleProject(task.projectId))
     );
     for (const task of rows) {
       counts.total++;

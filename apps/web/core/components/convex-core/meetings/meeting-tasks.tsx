@@ -34,8 +34,13 @@ export function MeetingTasks({
         {results.map(({ linkId, task }) => (
           <li key={linkId} className="flex items-center justify-between gap-3 rounded border border-subtle-1 p-3">
             <div>
-              <p>{task.title}</p>
-              <p className="text-sm text-secondary">{task.status.replaceAll("_", " ")}</p>
+              <p>{task ? task.title : "Linked task unavailable"}</p>
+              {task && (
+                <p className="text-14 text-secondary">
+                  {task.status.replaceAll("_", " ")}
+                  {task.archivedAt !== null ? " · archived" : ""}
+                </p>
+              )}
             </div>
             {canWrite && (
               <Button
