@@ -2,16 +2,15 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { currentProgress, progressPageBudget } from "../tasks/progress_totals";
-import { requireCycle } from "./access";
+import { requireModule } from "./access";
 export const page = query({
-  args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
-  handler: async (ctx, { cycleId, paginationOpts }) => {
-    const { project, user } = await requireCycle(ctx, cycleId);
+  args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { moduleId, paginationOpts }) => {
+    const { project, user } = await requireModule(ctx, moduleId, true);
     const result = await ctx.db
-      .query("cycleTasks")
-      .withIndex("by_cycle", (q) => q.eq("cycleId", cycleId))
+      .query("moduleTasks")
+      .withIndex("by_module_task", (q) => q.eq("moduleId", moduleId))
       .paginate(progressPageBudget(paginationOpts));
-    // One contribution even for an empty authorized page preserves sparse cursors.
     return {
       ...result,
       page: [

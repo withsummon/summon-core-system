@@ -1,10 +1,20 @@
-import { statusOptions } from "../tasks/options";
+import { statusOptions } from "../options";
+import type { Doc } from "@summon/convex/data-model";
 import { useState } from "react";
 import { Button } from "@plane/propel/button";
-import type { CycleProgress } from "./progress-summary";
-type Kind = keyof Pick<CycleProgress, "statuses" | "assignees" | "labels">;
+import type { TaskProgress } from "./summary";
+type Kind = keyof Pick<TaskProgress, "statuses" | "assignees" | "labels">;
 const titles: Record<Kind, string> = { statuses: "Status", assignees: "Assignees", labels: "Labels" };
-export function Distribution({ kind, rows }: { kind: Kind; rows: CycleProgress["labels"] }) {
+function taskCount(count: number) {
+  return `${count} task${count === 1 ? "" : "s"}`;
+}
+export function Distribution({
+  kind,
+  rows,
+}: {
+  kind: Kind;
+  rows: (TaskProgress["labels"][number] | Doc<"cycleTransfers">["snapshot"]["labels"][number])[];
+}) {
   const title = titles[kind];
   const [visible, setVisible] = useState(50);
   return (
@@ -16,8 +26,15 @@ export function Distribution({ kind, rows }: { kind: Kind; rows: CycleProgress["
             {kind === "statuses"
               ? (statusOptions.find((option) => option.value === row.id)?.label ?? row.name)
               : row.name}
-            : {row.count} tasks · {row.numericEstimates} numeric estimates
+            : {taskCount(row.count)} · {row.numericEstimates} numeric estimates
             {row.unquantifiedEstimates > 0 ? ` · ${row.unquantifiedEstimates} nonnumeric estimates` : ""}
+            {kind !== "statuses" && "completed" in row && (
+              <div className="mt-1 text-12 text-secondary">
+                Completed: {taskCount(row.completed.count)} · {row.completed.numericEstimates} numeric estimates
+                <br />
+                Pending: {taskCount(row.pending.count)} · {row.pending.numericEstimates} numeric estimates
+              </div>
+            )}
           </li>
         ))}
       </ul>

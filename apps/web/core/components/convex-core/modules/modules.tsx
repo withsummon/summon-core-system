@@ -9,6 +9,7 @@ import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 import { ModuleForm } from "./forms";
+import { ModuleProgress } from "./progress";
 import { ModuleTasks } from "./tasks";
 import { ModuleLinks } from "./links";
 import { ModuleMembers } from "./members";
@@ -172,6 +173,7 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
       {!module.deleted && (
         <>
           <ModuleMembers module={module} />
+          {module.canWrite && <ModuleProgress key={module._id} moduleId={module._id} />}
           <ModuleTasks module={module} />
           <ModuleLinks module={module} />
         </>
