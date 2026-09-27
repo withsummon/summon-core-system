@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -39,7 +40,7 @@ test("anonymous and workspace admin without project membership cannot resolve pr
   const f = await fixture();
   await expect(f.t.query(api.navigation.address.resolveTask, address)).rejects.toThrow("Sign in");
   const userId = await f.t.run((ctx) => ctx.db.insert("users", {}));
-  const outsider = f.t.withIdentity({ subject: userId });
+  const outsider = await signedIn(f.t, userId);
   await expect(outsider.query(api.navigation.address.resolveTask, address)).rejects.toThrow("workspace");
   await f.t.run((ctx) =>
     ctx.db.insert("workspaceMembers", { workspaceId: f.workspaceId, userId, role: "admin", active: true })
@@ -60,7 +61,7 @@ test("guest ownership, guest feature flag and revoked project membership use can
     });
     return userId;
   });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   await expect(guest.query(api.navigation.address.resolveTask, address)).rejects.toThrow("Task not found");
   await f.t.run((ctx) => ctx.db.patch(f.taskId, { createdBy: guestId }));
   expect((await guest.query(api.navigation.address.resolveTask, address)).task.canEdit).toBe(false);

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 import { api, internal } from "../../_generated/api";
@@ -42,9 +43,9 @@ test("draft files stay author-private and publish rebinds verified bytes preserv
     await ctx.db.insert("workspaceMembers", { workspaceId: f.workspaceId, userId: id, role: "admin", active: true });
     return id;
   });
-  await expect(
-    f.t.withIdentity({ subject: other }).query(api.assets.index.get, { assetId: f.ticket.assetId })
-  ).rejects.toThrow("not found");
+  await expect((await signedIn(f.t, other)).query(api.assets.index.get, { assetId: f.ticket.assetId })).rejects.toThrow(
+    "not found"
+  );
   await expect(f.owner.mutation(api.assets.index.remove, { assetId: f.ticket.assetId })).rejects.toThrow("draft");
   const copyId = await f.owner.action(api.tasks.drafts.copy.run, {
     draftId: f.draftId,

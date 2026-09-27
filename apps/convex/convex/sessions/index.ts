@@ -21,8 +21,7 @@ export const list = query({
         expiresAt: row.expirationTime,
         isCurrent: row._id === session._id,
       })),
-      revocationNotice:
-        "Revocation prevents token renewal. An already issued access token may remain valid until it expires.",
+      revocationNotice: "Revocation immediately blocks protected application access and token renewal.",
     };
   },
 });

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -8,7 +9,7 @@ describe("workspace membership administration", () => {
     const userId = await t.run((ctx) =>
       ctx.db.insert("users", { name: "Colleague", email: "colleague@example.test", phone: "private" })
     );
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     expect(await owner.query(api.workspaces.index.resolveMember, { workspaceId, userId })).toEqual({
       id: userId,
       name: "Colleague",
@@ -30,7 +31,7 @@ describe("workspace membership administration", () => {
   test("given an administrator, an explicit user grant is idempotent and grants workspace visibility", async () => {
     const { t, owner, workspaceId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     expect(await colleague.query(api.workspaces.index.list, {})).toEqual([]);
     const membershipId = await owner.mutation(api.workspaces.index.grantMember, {
       workspaceId,
@@ -54,7 +55,7 @@ describe("workspace membership administration", () => {
   test("given another workspace's administrator, member management is denied", async () => {
     const { t, owner, workspaceId, userId } = await workspaceJourney();
     const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Outsider" }));
-    const outsider = t.withIdentity({ subject: otherId });
+    const outsider = await signedIn(t, otherId);
     await outsider.mutation(api.workspaces.index.create, { name: "Other", slug: "other" });
     await expect(
       outsider.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "admin" })
@@ -68,7 +69,7 @@ describe("workspace membership administration", () => {
   test("given workspace revocation, project access does not resurrect when workspace access is later restored", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
     await colleague.mutation(api.tasks.index.create, { projectId, title: "Work" });
@@ -85,7 +86,7 @@ describe("workspace membership administration", () => {
   test("given guest demotion, project write grants become guest grants and cannot silently regain write access", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "admin" });
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "guest" });
@@ -107,7 +108,7 @@ describe("workspace membership administration", () => {
   test("given a sole project administrator, workspace removal requires a project-admin handoff and rolls back earlier changes", async () => {
     const { t, owner, workspaceId, projectId, userId: ownerId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "admin" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
     const ownProjectId = await colleague.mutation(api.projects.index.create, {
@@ -136,7 +137,7 @@ test("given two workspace administrators demoting themselves concurrently, one a
   const { t, owner, workspaceId, userId: ownerId } = await workspaceJourney();
   const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Other admin" }));
   await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "admin" });
-  const other = t.withIdentity({ subject: userId });
+  const other = await signedIn(t, userId);
   const results = await Promise.allSettled([
     owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: ownerId, role: "member" }),
     other.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" }),

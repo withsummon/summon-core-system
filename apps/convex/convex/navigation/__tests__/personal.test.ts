@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 // Sequential visits establish the retention and ordering scenario.
 /* oxlint-disable no-await-in-loop */
 import type { Id } from "../../_generated/dataModel";
@@ -43,7 +44,7 @@ test("guest navigation is personal and rechecks membership, archived projects, a
     });
     return id;
   });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const args = { workspaceId: f.workspaceId, target: { type: "project" as const, id: f.projectId } };
   await guest.mutation(api.navigation.recent.record, args);
   expect(await guest.query(api.navigation.recent.list, { workspaceId: f.workspaceId })).toHaveLength(1);
@@ -156,7 +157,7 @@ test("recent task and document metadata disappear after canonical visibility cha
     await ctx.db.patch(f.projectId, { guestViewAllFeatures: true });
     return id;
   });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const scope = { workspaceId: f.workspaceId };
   await guest.mutation(api.navigation.recent.record, { ...scope, target: { type: "issue", id: taskId } });
   await guest.mutation(api.navigation.recent.record, { ...scope, target: { type: "page", id: documentId } });

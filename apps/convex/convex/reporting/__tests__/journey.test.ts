@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 // Scenarios intentionally preserve mutation and dependent pagination order.
 /* eslint-disable no-await-in-loop */
 import { describe, expect, it } from "vitest";
@@ -80,9 +81,10 @@ describe("Permission-filtered report contributions", () => {
     ).rejects.toThrow("access");
     const strangerId = await t.run((ctx) => ctx.db.insert("users", { name: "Stranger" }));
     await expect(
-      t
-        .withIdentity({ subject: strangerId })
-        .query(api.reporting.tasks.page, { scope: { ...scope, workspaceId }, paginationOpts: page })
+      (await signedIn(t, strangerId)).query(api.reporting.tasks.page, {
+        scope: { ...scope, workspaceId },
+        paginationOpts: page,
+      })
     ).rejects.toThrow("workspace");
   });
   it("applies inclusive UTC creation-date filters and validates pagination/date input", async () => {
@@ -182,7 +184,9 @@ describe("Permission-filtered report contributions", () => {
     const { t, owner, workspaceId, scope } = await reportJourney();
     const peerId = await t.run((ctx) => ctx.db.insert("users", { name: "Peer" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: peerId, role: "member" });
-    await t.withIdentity({ subject: peerId }).mutation(api.documents.index.create, {
+    await (
+      await signedIn(t, peerId)
+    ).mutation(api.documents.index.create, {
       workspaceId,
       projectIds: [],
       name: "Private",
@@ -203,7 +207,7 @@ describe("Permission-filtered report contributions", () => {
       0
     );
     expect(
-      (await t.withIdentity({ subject: peerId }).query(api.reporting.documents.page, { scope, paginationOpts: page }))
+      (await (await signedIn(t, peerId)).query(api.reporting.documents.page, { scope, paginationOpts: page }))
         .contribution.count
     ).toBe(1);
   });

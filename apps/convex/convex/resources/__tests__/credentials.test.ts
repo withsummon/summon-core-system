@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -31,7 +32,7 @@ async function fixture() {
     userId: readerId,
     role: "admin",
   });
-  return { ...base, credentialId, readerId, reader: base.t.withIdentity({ subject: readerId }) };
+  return { ...base, credentialId, readerId, reader: await signedIn(base.t, readerId) };
 }
 test("workspace administration sees the resource but cannot discover or attach an ungranted credential", async () => {
   const f = await fixture();

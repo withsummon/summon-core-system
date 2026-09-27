@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -66,7 +67,7 @@ test("guest creator edits text, other guest visibility follows flag, administrat
     role: "guest",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: guestId, role: "guest" });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const ownId = await guest.mutation(api.intakes.index.submit, {
     projectId: f.projectId,
     title: "Guest",

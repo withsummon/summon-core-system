@@ -1,3 +1,4 @@
+import { signedIn } from "../../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../../_generated/api";
 import { workspaceJourney } from "../../../../test-support/fixtures";
@@ -27,9 +28,10 @@ test("draft stays private, saves blank until publish and CAS conflicts preserve 
     return id;
   });
   await expect(
-    f.t
-      .withIdentity({ subject: other })
-      .query(api.tasks.drafts.index.resolve, { workspaceId: f.workspaceId, draftId: f.draftId })
+    (await signedIn(f.t, other)).query(api.tasks.drafts.index.resolve, {
+      workspaceId: f.workspaceId,
+      draftId: f.draftId,
+    })
   ).rejects.toThrow("not found");
   const d = await f.get();
   await f.owner.mutation(api.tasks.drafts.index.save, {

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -39,7 +40,7 @@ test("guest manages own links; administrator cannot read/change/delete them; rev
     userId: guestId,
     role: "guest",
   });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const linkId = await guest.mutation(api.quickLinks.index.create, {
     workspaceId: f.workspaceId,
     url: "https://example.com",

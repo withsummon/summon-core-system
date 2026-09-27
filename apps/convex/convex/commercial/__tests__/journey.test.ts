@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -156,7 +157,7 @@ describe("commercial records", () => {
   test("given cross-workspace references, rejects owners, clients and nested contact moves", async () => {
     const { t, owner, workspaceId, clientId } = await commercialJourney();
     const otherUserId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
-    const other = t.withIdentity({ subject: otherUserId });
+    const other = await signedIn(t, otherUserId);
     const otherWorkspaceId = await other.mutation(api.workspaces.index.create, { name: "Other", slug: "other" });
     const otherClientId = await other.mutation(api.commercial.clients.save, {
       workspaceId: otherWorkspaceId,
@@ -363,7 +364,7 @@ describe("commercial reference visibility", () => {
       await ctx.db.insert("workspaceMembers", { workspaceId, userId: id, role: "member", active: true });
       return id;
     });
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     expect(await other.query(api.commercial.delivery.getForOpportunity, { workspaceId, opportunityId })).toBeNull();
     const directory = await other.query(api.commercial.directory.members, {
       workspaceId,

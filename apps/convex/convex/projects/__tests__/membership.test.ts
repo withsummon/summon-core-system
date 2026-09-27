@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -6,7 +7,7 @@ describe("project membership administration", () => {
   test("project administrators resolve only active workspace members", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await expect(owner.query(api.projects.index.resolveMember, { projectId, userId })).rejects.toThrow("active member");
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     expect(await owner.query(api.projects.index.resolveMember, { projectId, userId })).toEqual({
@@ -30,7 +31,7 @@ describe("project membership administration", () => {
   test("given a workspace writer, project grant enables collaboration and revocation immediately denies it", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     const membershipId = await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
     expect(await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" })).toBe(
@@ -54,7 +55,7 @@ describe("project membership administration", () => {
   test("given a member of another workspace or an inactive workspace member, a project grant is rejected", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
-    const outsider = t.withIdentity({ subject: userId });
+    const outsider = await signedIn(t, userId);
     await outsider.mutation(api.workspaces.index.create, { name: "Other", slug: "other" });
     await expect(owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" })).rejects.toThrow(
       "active member of this workspace"
@@ -69,7 +70,7 @@ describe("project membership administration", () => {
   test("given a workspace guest, only guest project access can be granted", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
-    const guest = t.withIdentity({ subject: userId });
+    const guest = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "guest" });
     await expect(owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "admin" })).rejects.toThrow(
       "only receive guest"
@@ -84,7 +85,7 @@ describe("project membership administration", () => {
   test("given a project member or a workspace admin without project membership, management is denied", async () => {
     const { t, owner, workspaceId, projectId, userId: ownerId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Member" }));
-    const member = t.withIdentity({ subject: userId });
+    const member = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "admin" });
     await expect(member.mutation(api.projects.index.grantMember, { projectId, userId, role: "admin" })).rejects.toThrow(
       "access"
@@ -110,7 +111,7 @@ describe("project membership administration", () => {
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "admin" });
     await owner.mutation(api.projects.index.revokeMember, { projectId, userId: ownerId });
-    const successor = t.withIdentity({ subject: userId });
+    const successor = await signedIn(t, userId);
     expect(await successor.mutation(api.tasks.index.create, { projectId, title: "Continued delivery" })).toBeTruthy();
   });
 });

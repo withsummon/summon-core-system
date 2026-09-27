@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -29,7 +30,7 @@ describe("authorized task journey", () => {
       await ctx.db.insert("workspaceMembers", { workspaceId, userId, role: "member", active: true });
       return userId;
     });
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     await expect(
       other.query(api.tasks.index.list, { projectId, paginationOpts: { numItems: 20, cursor: null } })
     ).rejects.toThrow("access");

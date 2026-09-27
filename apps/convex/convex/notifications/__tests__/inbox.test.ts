@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { recordTaskEvent } from "../delivery";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
@@ -17,7 +18,7 @@ async function fixture() {
     });
     return { userId, memberId };
   });
-  const reader = base.t.withIdentity({ subject: other.userId });
+  const reader = await signedIn(base.t, other.userId);
   const page = {
     workspaceId: base.workspaceId,
     view: "inbox" as const,

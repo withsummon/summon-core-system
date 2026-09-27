@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import { httpAction } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +9,7 @@ const cors = {
 };
 export const options = httpAction(async () => new Response(null, { status: 204, headers: cors }));
 export const read = httpAction(async (ctx, request) => {
-  if (!(await ctx.auth.getUserIdentity()))
+  if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers: cors });
   try {
     const asset = await ctx.runQuery(internal.assets.index.download, {

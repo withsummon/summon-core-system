@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -16,7 +17,7 @@ async function fixture() {
     });
     return { userId, memberId };
   });
-  const actor = base.t.withIdentity({ subject: member.userId });
+  const actor = await signedIn(base.t, member.userId);
   const page = { taskId, paginationOpts: { numItems: 20, cursor: null } };
   return { ...base, actor, member, taskId, page };
 }

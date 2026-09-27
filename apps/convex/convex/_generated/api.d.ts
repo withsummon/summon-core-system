@@ -65,6 +65,7 @@ import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
 import type * as identity_preferences from "../identity/preferences.js";
 import type * as identity_profile_owner from "../identity/profile_owner.js";
+import type * as identity_session from "../identity/session.js";
 import type * as identity_profile from "../identity/profile.js";
 import type * as intakes_access from "../intakes/access.js";
 import type * as intakes_index from "../intakes/index.js";
@@ -225,6 +226,7 @@ declare const fullApi: ApiFromModules<{
   "identity/index": typeof identity_index;
   "identity/preferences": typeof identity_preferences;
   "identity/profile_owner": typeof identity_profile_owner;
+  "identity/session": typeof identity_session;
   "identity/profile": typeof identity_profile;
   "intakes/access": typeof intakes_access;
   "intakes/index": typeof intakes_index;

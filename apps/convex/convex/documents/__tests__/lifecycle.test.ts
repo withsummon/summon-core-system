@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -69,7 +70,7 @@ test("workspace administrators cannot list or restore another owner's Trash", as
   const { t, owner, workspaceId, documentId, expectedUpdatedAt } = await deletedDocument();
   const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Other admin" }));
   await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "admin" });
-  const other = t.withIdentity({ subject: userId });
+  const other = await signedIn(t, userId);
   expect(
     (await other.query(api.documents.lifecycle.trash, { workspaceId, paginationOpts: { numItems: 10, cursor: null } }))
       .page

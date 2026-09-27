@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -8,7 +9,7 @@ describe("current identity", () => {
     const otherId = await t.run((ctx) =>
       ctx.db.insert("users", { name: "Other", email: "other@example.test", phone: "+620000000" })
     );
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     expect(await owner.query(api.identity.index.current, {})).toEqual({ id: userId, name: "Owner", email: null });
     expect(await other.query(api.identity.index.current, {})).toEqual({
       id: otherId,

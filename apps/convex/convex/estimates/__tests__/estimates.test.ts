@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -227,9 +228,9 @@ test("draft estimate labels remain author-private after system selection changes
     await ctx.db.insert("workspaceMembers", { workspaceId: f.workspaceId, userId, role: "admin", active: true });
     return userId;
   });
-  await expect(
-    f.t.withIdentity({ subject: other }).query(api.estimates.selection.forDraft, { draftId })
-  ).rejects.toThrow("Draft not found");
+  await expect((await signedIn(f.t, other)).query(api.estimates.selection.forDraft, { draftId })).rejects.toThrow(
+    "Draft not found"
+  );
   await expect(f.t.query(api.estimates.selection.forDraft, { draftId })).rejects.toThrow("Sign in");
   await f.t.run(async (ctx) => {
     const member = await ctx.db

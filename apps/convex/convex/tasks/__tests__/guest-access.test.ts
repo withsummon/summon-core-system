@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -11,7 +12,7 @@ test("guest policy gates direct content, subscribed notifications, project/works
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: guestId, role: "member" });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const own = await guest.mutation(api.tasks.index.create, { projectId: f.projectId, title: "Own" });
   const hidden = await f.owner.mutation(api.tasks.index.create, {
     projectId: f.projectId,

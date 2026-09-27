@@ -1,6 +1,6 @@
 import { requireWorkspace } from "../identity/access";
 import { operation } from "./schema";
-import { getAuthSessionId } from "@convex-dev/auth/server";
+import { requireIdentity } from "../identity/session";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
@@ -16,11 +16,7 @@ export async function requireSensitive(
   await requireWorkspace(ctx, access.credential.workspaceId, true);
   if (requested === "reveal" && access.permission === "use")
     throw new ConvexError("Use permission does not allow revealing credentials.");
-  const sessionId = await getAuthSessionId(ctx);
-  if (!sessionId) throw new ConvexError("Sign in again before verifying this operation.");
-  const session = await ctx.db.get(sessionId);
-  if (!session || session.userId !== access.user._id || session.expirationTime <= Date.now())
-    throw new ConvexError("Your session expired. Sign in again.");
+  const { session } = await requireIdentity(ctx);
   return { ...access, session };
 }
 export async function requireProof(ctx: QueryCtx, proofId: Id<"mcpStepUps">, requested: Infer<typeof operation>) {

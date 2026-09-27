@@ -1,5 +1,5 @@
 import { httpAction } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { providerConfig, streamProvider } from "./provider";
 const headers = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
 export const options = httpAction(
@@ -37,7 +37,8 @@ function requestBody(value: unknown) {
   };
 }
 export const reply = httpAction(async (ctx, request) => {
-  if (!(await ctx.auth.getUserIdentity())) return new Response("Authentication required.", { status: 401, headers });
+  if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
+    return new Response("Authentication required.", { status: 401, headers });
   let config: ReturnType<typeof providerConfig>;
   try {
     config = providerConfig(process.env);
