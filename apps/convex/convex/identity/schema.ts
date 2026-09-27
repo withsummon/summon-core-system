@@ -8,6 +8,9 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  betterAuthLinks: defineTable({ authId: v.string(), userId: v.id("users") })
+    .index("by_auth_id", ["authId"])
+    .index("by_user", ["userId"]),
   emailChangeNotices: defineTable({
     userId: v.id("users"),
     recipient: v.string(),
