@@ -68,3 +68,9 @@ Native task lifecycle, personal quick links, intake admission/recovery and share
 Owned DNS and validated HTTPS now serve the pinned Convex backend/actions/dashboard. Committed functions `903cee21243acfacb92950ef7615b55513d80a84` deployed successfully. The [remote checkpoint manifest](checkpoints/903cee2124-remote.json) records the production web artifact, exact served index hash and topology: local frontend on port 3016 against remote Convex. Chrome verified sign-up, workspace/project/task creation and a second tab receiving the task without reload. This is not a public frontend rollout or a new performance benchmark.
 
 Saved views and other inherited contracts, public frontend cutover, provider configuration and remote recovery remain open. Django/Postgres stay active.
+
+## Follow-up checkpoint: `5ed8c4493a`
+
+Project saved views now support typed filters, reactive results, personal favorites and recoverable removal. Local gates passed 307 backend tests and 21 frontend tests; native type checks and Oxc checks passed. The [frontend receipt](saved-views-frontend.md) separates exercised browser flows from remaining coverage and inherited contract gaps. The [remote artifact](checkpoints/5ed8c4493a-remote.json) records the exact served production frontend and peer-tab result inclusion/exclusion against the self-hosted backend.
+
+A [remote-source authenticated restore](checkpoints/903cee2124-remote-restore.json) also passed into a separate local instance with restored code and auth environment. This does not establish Dokploy disaster recovery or remote binary recovery. Workspace/rich saved views, task attachments and other inherited contracts, public frontend cutover, provider configuration and operational recovery gates remain open. Django/Postgres stay active.

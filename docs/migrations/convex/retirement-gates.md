@@ -14,13 +14,13 @@ The native `/core` route is an independently authenticated Convex workspace. Exi
 
 ## What exists on the native path
 
-| Domain                  | Working native owner                                                                                        | Remaining retirement condition                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Identity and membership | Convex password auth, workspace/project roles, revocation                                                   | Account lifecycle, recovery/SSO and all active legacy auth consumers                                    |
-| Tasks and CRM           | Authorized CRUD, task properties/CAS, contacts, exact decimal values, atomic delivery handoff               | Remaining inherited issue contracts and route/detail parity                                             |
-| Documents and meetings  | Yjs collaboration, private asset delivery/undo, metadata, meeting participants and task links               | Recording/transcription, summary generation, document lifecycle parity and generated artifacts          |
-| Assistant and reports   | Private conversations, authenticated provider adapter, explicit task approval; bounded report contributions | Live provider configuration, remaining tools/attachments, full reports and export contracts             |
-| Operations              | Pinned remote backend with owned HTTPS, authenticated remote browser task journey, local restore rehearsal      | Public frontend cutover, broader remote workflow QA and authenticated remote backup/restore |
+| Domain                  | Working native owner                                                                                        | Remaining retirement condition                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Identity and membership | Convex password auth, workspace/project roles, revocation                                                   | Account lifecycle, recovery/SSO and all active legacy auth consumers                           |
+| Tasks and CRM           | Authorized CRUD, task properties/CAS, contacts, exact decimal values, atomic delivery handoff               | Remaining inherited issue contracts and route/detail parity                                    |
+| Documents and meetings  | Yjs collaboration, private asset delivery/undo, metadata, meeting participants and task links               | Recording/transcription, summary generation, document lifecycle parity and generated artifacts |
+| Assistant and reports   | Private conversations, authenticated provider adapter, explicit task approval; bounded report contributions | Live provider configuration, remaining tools/attachments, full reports and export contracts    |
+| Operations              | Pinned remote backend with owned HTTPS, authenticated remote browser task journey, local restore rehearsal  | Public frontend cutover, broader remote workflow QA and authenticated remote backup/restore    |
 
 Module `MIGRATION.md` files and frontend acceptance records own the detailed omissions. Work in progress is not counted as completed here.
 
@@ -43,3 +43,7 @@ These additions do not close inherited cycle/module analytics, saved views, task
 ## Checkpoint `903cee2124` additions
 
 Task lifecycle, quick links, intake admission/recovery and shared description history are now implemented on the native path. DNS/TLS and remote function deployment are verified; the local production frontend received remote realtime updates in Chrome. See the exact artifact and dependency-state caveat in `checkpoints/903cee2124-remote.json`. Remaining inherited behavior stays required. Remote backup/restore, public frontend deployment and full contract closure still block retirement.
+
+## Checkpoint `5ed8c4493a` additions
+
+Bounded project saved views are committed and remotely deployed, with live remote task-result changes verified from a production frontend served locally. Workspace views, the full rich-filter grammar and inherited layouts remain required. A remote-source snapshot was restored into an isolated local instance with code/auth configuration and successful sign-in; scheduled encrypted backups, Dokploy recovery and remote stored-file recovery remain unverified. Task attachments are the next slice and are not counted complete. These checkpoints do not authorize service retirement.
