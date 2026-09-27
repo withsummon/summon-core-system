@@ -7,3 +7,11 @@ Legacy `app/views/issue/base.py:BulkDeleteIssuesEndpoint` requires administrator
 Static fanout accounting, not measured runtime capacity: batch20 bounds the existing100-subscriber event owner to at most2000 recipient insertions,20 events and task lifecycle/revision patches. No change to notification recipient ACL, event visibility or subscription limits. This is a bounded explicit selection, not a whole-project action or silent multi-transaction loop. `bulkAccess` exposes canonical canChange/canDelete/maxTasks for UI.
 
 Three new BDD plus six existing lifecycle tests pass: invalid-state and stale mixed batches do not write task/event changes; archive/unarchive success; duplicate/empty/oversized rejection; creator cannot bypass admin-only bulk deletion; private recovery remains usable. Backend and web TS7/scoped Oxc pass. UI component is prepared but unmounted until deployment. Browser acceptance and REST aliases remain parent-owned follow-up; bulk dates/properties/labels are separate parity work.
+
+Root activation/acceptance: d6523a8090 backend deployed to both hosts in
+af588be807. Chrome local3010 selected synthetic NSTAR6 and NSTAR7, inspected the
+captured-name confirmation, and moved both to Trash. Both disappeared from active
+rows and appeared in Trash. Selecting both there and confirming Restore emptied
+Trash. Reopening NSTAR7 showed its parent NSTAR6, cross-project QADEL1 relation,
+estimate and retained attachment. No permanent deletion occurred. Root independently
+ran all nine bulk/lifecycle tests. UI now mounts active/archive/Trash lists.

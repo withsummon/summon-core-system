@@ -1,3 +1,4 @@
+import { BulkLifecycle } from "./bulk-lifecycle";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery } from "convex/react";
@@ -113,6 +114,7 @@ export function TaskRecoveryList({
   return (
     <section className="space-y-3">
       <h2 className="text-20 font-semibold">{view === "archived" ? "Archived tasks" : "Task trash"}</h2>
+      <BulkLifecycle key={view} projectId={project._id} rows={tasks.results} view={view} />
       <ul className="divide-y divide-subtle-1">
         {tasks.results.map((task) => (
           <li key={task._id}>

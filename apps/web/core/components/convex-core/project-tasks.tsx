@@ -1,3 +1,4 @@
+import { BulkLifecycle } from "./tasks/bulk-lifecycle";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -72,7 +73,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
         ))}
       </nav>
       {view !== "active" ? (
-        <TaskRecoveryList project={project} view={view} onSelect={setSelected} />
+        <TaskRecoveryList key={view} project={project} view={view} onSelect={setSelected} />
       ) : (
         <>
           {canWrite && project.membershipRole === "admin" && <ProjectTaxonomy projectId={project._id} />}
@@ -122,6 +123,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
               {error}
             </p>
           )}
+          <BulkLifecycle key="active" projectId={project._id} rows={results} view="active" />
           {status === "LoadingFirstPage" ? (
             <p role="status">Loading tasks…</p>
           ) : (
