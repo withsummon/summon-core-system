@@ -64,7 +64,13 @@ export function inRange(timestamp: number, scope: ReportScope) {
   return (!scope.dateFrom || day >= scope.dateFrom) && (!scope.dateTo || day <= scope.dateTo);
 }
 export function pageResult<T>(result: { continueCursor: string; isDone: boolean }, contribution: T) {
-  return { contribution, continueCursor: result.continueCursor, isDone: result.isDone, coverage: "page" as const };
+  return {
+    page: [contribution],
+    contribution,
+    continueCursor: result.continueCursor,
+    isDone: result.isDone,
+    coverage: "page" as const,
+  };
 }
 
 export async function matchingRows<T>(rows: T[], matches: (row: T) => Promise<boolean>) {
