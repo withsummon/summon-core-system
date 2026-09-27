@@ -7,6 +7,7 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { taskStatusOptions } from "../tasks/options";
+import { DescriptionHistory } from "../tasks/description-history";
 import { TaskRichEditor } from "../tasks/rich-editor";
 import { IntakeTrash } from "./trash";
 import { SubmissionForm } from "./forms";
@@ -197,6 +198,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
           Back to intake
         </Button>
         <div className="flex flex-wrap gap-2">
+          <DescriptionHistory scope={{ kind: "intake", taskId: detail.task._id }} />
           {detail.canEdit && (
             <Button variant="secondary" onClick={() => setEditing(true)}>
               Edit submission

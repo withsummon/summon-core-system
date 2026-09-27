@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
+import { DescriptionHistory } from "./description-history";
 import { TaskRichEditor } from "./rich-editor";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
@@ -12,8 +13,9 @@ export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; can
   if (!description) return <p role="status">Loading description…</p>;
   return (
     <section className="space-y-3">
-      <header className="flex items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-16 font-medium">Description</h3>
+        <DescriptionHistory scope={{ kind: "task", taskId }} />
         {canWrite && !editing && (
           <Button variant="secondary" onClick={() => setEditing(true)}>
             Edit description

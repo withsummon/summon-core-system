@@ -1,3 +1,5 @@
+import { writeDescription } from "./description_content";
+import { plainDescriptionHtml } from "./rich_content";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { recordTaskEvent } from "../notifications/delivery";
@@ -20,7 +22,8 @@ export async function createTask(
     | "targetDate"
     | "stateId"
   >,
-  parent: Doc<"tasks"> | null = null
+  parent: Doc<"tasks"> | null = null,
+  html?: string
 ) {
   const { title, description, status: nextStatus, ...data } = fields;
   const taskId = await ctx.db.insert("tasks", {
@@ -37,6 +40,9 @@ export async function createTask(
     createdBy: userId,
     updatedAt: Date.now(),
   });
+  const created = await ctx.db.get(taskId);
+  if (!created) throw new Error("Created task missing from transaction.");
+  await writeDescription(ctx, created, userId, { html: html ?? plainDescriptionHtml(description), description }, true);
   await ctx.db.insert("taskSubscriptions", { taskId, userId: userId });
   if (parent) {
     await checkAncestors(ctx, taskId, parent);
