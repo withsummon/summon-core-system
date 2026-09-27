@@ -13,6 +13,7 @@ import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
 import { MetadataForm } from "./metadata-form";
 import { DocumentEditor } from "./editor";
 import { DocumentHierarchy } from "./hierarchy";
+import { DocumentLabels } from "./labels";
 import { DocumentTrash } from "./trash";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
@@ -166,6 +167,7 @@ function DocumentDetail({
       )}
       <DocumentEditor context={context} />
       <DocumentHierarchy document={document} canWrite={context.canWrite} workspaceSlug={workspaceSlug} />
+      <DocumentLabels document={document} canWrite={context.canWrite} />
     </article>
   );
 }
