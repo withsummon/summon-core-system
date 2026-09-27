@@ -1,3 +1,4 @@
+import { DEFAULT_WORKSPACE_TIMEZONE, validateTimezone } from "./timezone";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
@@ -16,7 +17,7 @@ export const get = query({
       name: workspace.name,
       slug: workspace.slug,
       organizationSize: stored?.organizationSize ?? null,
-      timezone: stored?.timezone ?? "UTC",
+      timezone: stored?.timezone ?? DEFAULT_WORKSPACE_TIMEZONE,
       industry: stored?.industry ?? "",
       description: stored?.description ?? "",
       currency: stored?.currency ?? "IDR",
@@ -37,11 +38,7 @@ export const save = mutation({
     const description = text(args.description, "Description", 100000);
     if (!/^[A-Z]{3}$/.test(args.currency)) throw new ConvexError("Enter a three-letter uppercase currency code.");
     if (new Set(args.workweek).size !== args.workweek.length) throw new ConvexError("Workweek days must be unique.");
-    try {
-      new Intl.DateTimeFormat("en", { timeZone: args.timezone }).format(0);
-    } catch {
-      throw new ConvexError("Enter a supported IANA timezone.");
-    }
+    validateTimezone(args.timezone);
     const data = {
       organizationSize,
       industry,

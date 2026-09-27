@@ -11,6 +11,7 @@ import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
+const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
 const TaskCenter = lazy(() => import("./tasks/task-center").then((module) => ({ default: module.TaskCenter })));
 const Notifications = lazy(() =>
   import("./notifications/notifications").then((module) => ({ default: module.Notifications }))
@@ -174,6 +175,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
   const [params, setParams] = useSearchParams();
   const project = projects?.find((item) => item.identifier === params.get("project"));
   const hasSelectedTask = Boolean(params.get("task"));
+  const cyclesView = params.get("projectView") === "cycles";
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -230,8 +232,38 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
         <p role="status">Loading projects…</p>
       ) : project ? (
         <div className="space-y-6">
-          {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
-          <ProjectTasks key={project._id} project={project} />
+          <nav aria-label="Project sections" className="flex gap-2">
+            {[
+              { value: "tasks", label: "Tasks" },
+              { value: "cycles", label: "Cycles" },
+            ].map((section) => (
+              <Button
+                key={section.value}
+                variant={(cyclesView ? "cycles" : "tasks") === section.value ? "primary" : "secondary"}
+                onClick={() =>
+                  setParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.delete("task");
+                    next.delete("cycle");
+                    next.delete("cycleView");
+                    if (section.value === "cycles") next.set("projectView", "cycles");
+                    else next.delete("projectView");
+                    return next;
+                  })
+                }
+              >
+                {section.label}
+              </Button>
+            ))}
+          </nav>
+          {cyclesView ? (
+            <Cycles key={project._id} project={project} />
+          ) : (
+            <>
+              {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
+              <ProjectTasks key={project._id} project={project} />
+            </>
+          )}
         </div>
       ) : workspace.membershipRole !== "admin" ? (
         <p className="text-14 text-secondary">
