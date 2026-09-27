@@ -333,12 +333,12 @@ declare const fullApi: ApiFromModules<{
   "tasks/access": typeof tasks_access;
   "tasks/activity": typeof tasks_activity;
   "tasks/assignees": typeof tasks_assignees;
+  "tasks/bulk_memberships": typeof tasks_bulk_memberships;
+  "tasks/bulk_properties": typeof tasks_bulk_properties;
   "tasks/center": typeof tasks_center;
   "tasks/commentReactions": typeof tasks_commentReactions;
   "tasks/comments": typeof tasks_comments;
   "tasks/create": typeof tasks_create;
-  "tasks/bulk_memberships": typeof tasks_bulk_memberships;
-  "tasks/bulk_properties": typeof tasks_bulk_properties;
   "tasks/description": typeof tasks_description;
   "tasks/description_content": typeof tasks_description_content;
   "tasks/drafts/access": typeof tasks_drafts_access;
@@ -355,11 +355,11 @@ declare const fullApi: ApiFromModules<{
   "tasks/lifecycle": typeof tasks_lifecycle;
   "tasks/links": typeof tasks_links;
   "tasks/properties": typeof tasks_properties;
+  "tasks/property_updates": typeof tasks_property_updates;
   "tasks/reaction_owner": typeof tasks_reaction_owner;
   "tasks/reactions": typeof tasks_reactions;
   "tasks/relationships": typeof tasks_relationships;
   "tasks/revision": typeof tasks_revision;
-  "tasks/property_updates": typeof tasks_property_updates;
   "tasks/rich_content": typeof tasks_rich_content;
   "tasks/states": typeof tasks_states;
   "tasks/status": typeof tasks_status;

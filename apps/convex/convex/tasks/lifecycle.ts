@@ -67,13 +67,13 @@ export const bulk = mutation({
       throw new ConvexError(`Choose 1–${MAX_BULK_TASKS} distinct tasks.`);
     const changes = await Promise.all(
       args.tasks.map(async (row) => {
-        const change = await prepareChange(ctx, { ...row, operation: args.operation });
-        if (change.task.projectId !== args.projectId)
+        const prepared = await prepareChange(ctx, { ...row, operation: args.operation });
+        if (prepared.task.projectId !== args.projectId)
           throw new ConvexError("All selected tasks must belong to this project.");
-        return change;
+        return prepared;
       })
     );
-    const results = await Promise.all(changes.map((change) => applyChange(ctx, change)));
+    const results = await Promise.all(changes.map((prepared) => applyChange(ctx, prepared)));
     return { selected: changes.length, changed: results.filter(Boolean).length };
   },
 });

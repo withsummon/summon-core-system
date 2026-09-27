@@ -19,3 +19,8 @@ No global reference counts are claimed. Progress reports only changed rows and t
 Behavior tests cover case-insensitive names, group cycles, stale edits, freeze against new assignment, active saved-view readability while retiring, cleanup across all four reference owners, and cancel-before-start. Exact classic complexity: label save 12, group validation 15, retirement step 14. Backend native TypeScript and scoped Oxc pass. Backend commit `7603af9f65` passed TypeScript from its immutable archive and was deployed to local `http://127.0.0.1:3210` and `https://convex-core.withsummon.com`; CLI logs are `labels-7603af9f65-{local,remote}-deploy.txt` in the migration-control directory. The replacement label/group management UI is mounted; web TypeScript, scoped Oxc and all 40 frontend tests pass. Primary Chrome runtime and visual acceptance remain pending.
 
 Remaining inherited parity includes drag-and-drop group/order controls, bulk project label creation, and fuller label filtering/navigation. Workspace-global label creation has no verified registered product owner in this checkout and is not claimed.
+
+## Primary Chrome acceptance
+
+Local `http://127.0.0.1:3010/core?workspace=northstar-convex-qa&module=projects&project=NSTAR`, September 27:
+created `Migration QA group` and nested `Migration QA child`; hierarchy rendered with indentation. Moving the group under its child rejected with the ancestry error and retained the chosen parent. Cancel kept the valid tree. Preparing deletion marked both rows Removing and disabled editing; cancelling before cleanup restored editing. No irreversible browser deletion was executed; reference cleanup remains backend BDD evidence. Both labels remain as QA fixtures.
