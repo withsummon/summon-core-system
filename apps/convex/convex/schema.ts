@@ -1,3 +1,4 @@
+import { projectLogoProps } from "./projects/branding_schema";
 import { projectNetwork } from "./projects/network_schema";
 import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
@@ -74,6 +75,7 @@ export default defineSchema({
     metadataRevision: v.number(),
     features: v.optional(projectFeatures),
     network: v.optional(projectNetwork),
+    logoProps: v.optional(projectLogoProps),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),

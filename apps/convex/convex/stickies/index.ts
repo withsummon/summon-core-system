@@ -1,3 +1,4 @@
+import { boundedJson } from "../../shared/json";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -6,7 +7,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { stickyInput } from "./schema";
-import { stickyContent, stickyJson, stickyString, stickyBinary, stickyOrder } from "./content";
+import { stickyContent, stickyString, stickyBinary, stickyOrder } from "./content";
 async function requireSticky(ctx: QueryCtx, workspaceId: Id<"workspaces">, stickyId: Id<"stickies">, deleted = false) {
   const { user } = await requireWorkspace(ctx, workspaceId);
   const row = await ctx.db.get(stickyId);
@@ -52,7 +53,7 @@ export const create = mutation({
   args: { workspaceId: v.id("workspaces"), ...stickyInput },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
-    stickyJson(args.logoProps ?? {}, "Logo properties", 10000);
+    boundedJson(args.logoProps ?? {}, "Logo properties", 10000);
     const latest = await ctx.db
       .query("stickies")
       .withIndex("by_owner_order", (q) =>
@@ -65,7 +66,7 @@ export const create = mutation({
       ownerId: user._id,
       name: stickyString(args.name ?? null, "Name", 10000),
       ...stickyContent(args.html ?? "<p></p>"),
-      editorJson: stickyJson(args.editorJson === undefined ? {} : args.editorJson, "Editor JSON", 100000),
+      editorJson: boundedJson(args.editorJson === undefined ? {} : args.editorJson, "Editor JSON", 100000),
       editorBinary: stickyBinary(args.editorBinary ?? null),
       color: stickyString(args.color ?? null, "Color", 255),
       backgroundColor: stickyString(args.backgroundColor ?? null, "Background color", 255),
@@ -84,13 +85,13 @@ export const update = mutation({
     const patch: Partial<Doc<"stickies">> = { updatedAt };
     if (args.name !== undefined) patch.name = stickyString(args.name, "Name", 10000);
     if (args.html !== undefined) Object.assign(patch, stickyContent(args.html));
-    if (args.editorJson !== undefined) patch.editorJson = stickyJson(args.editorJson, "Editor JSON", 100000);
+    if (args.editorJson !== undefined) patch.editorJson = boundedJson(args.editorJson, "Editor JSON", 100000);
     if (args.editorBinary !== undefined) patch.editorBinary = stickyBinary(args.editorBinary);
     if (args.color !== undefined) patch.color = stickyString(args.color, "Color", 255);
     if (args.backgroundColor !== undefined)
       patch.backgroundColor = stickyString(args.backgroundColor, "Background color", 255);
     if (args.logoProps !== undefined) {
-      stickyJson(args.logoProps, "Logo properties", 10000);
+      boundedJson(args.logoProps, "Logo properties", 10000);
       patch.logoProps = args.logoProps;
     }
     await ctx.db.patch(row._id, patch);

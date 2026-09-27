@@ -1,3 +1,4 @@
+import { renderedProjectLogo, type ProjectLogoProps } from "./branding_schema";
 import type { ProjectNetwork } from "./network_schema";
 import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
@@ -9,10 +10,17 @@ import { requireWorkspace } from "../identity/access";
 
 export async function createProject(
   ctx: MutationCtx,
-  args: { workspaceId: Id<"workspaces">; name: string; identifier: string; network?: ProjectNetwork }
+  args: {
+    workspaceId: Id<"workspaces">;
+    name: string;
+    identifier: string;
+    network?: ProjectNetwork;
+    logoProps?: ProjectLogoProps;
+  }
 ) {
   const { user, member } = await requireWorkspace(ctx, args.workspaceId, true);
   if (member.role !== "admin") throw new ConvexError("Only workspace administrators can create projects.");
+  renderedProjectLogo(args.logoProps ?? {});
   const name = args.name.trim();
   const identifier = args.identifier.trim().toUpperCase();
   if (!name || name.length > 120 || !/^[A-Z][A-Z0-9]{1,9}$/.test(identifier))
@@ -33,6 +41,7 @@ export async function createProject(
     metadataRevision: 0,
     features: defaultProjectFeatures,
     network: args.network ?? 2,
+    logoProps: args.logoProps ?? {},
     intakeEnabled: false,
     guestViewAllFeatures: false,
     nextSequence: 1,

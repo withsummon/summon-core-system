@@ -1,3 +1,4 @@
+import { requireProjectDiscovery } from "../projects/network_access";
 import { requireAvatarScope } from "../identity/avatar_access";
 import { requireDraftAttachmentAccess } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
@@ -8,6 +9,24 @@ import { requireWorkspace, requireProject } from "../identity/access";
 import { requireConversation } from "../assistant/access";
 import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
+
+async function requirePublishedCover(
+  ctx: QueryCtx,
+  scope: { workspaceId: Id<"workspaces"> | null; _id?: Id<"assets"> },
+  projectId: Id<"projects">
+) {
+  const access = await requireProjectDiscovery(ctx, projectId);
+  if (access.project.workspaceId !== scope.workspaceId) throw new ConvexError("Project cover scope mismatch.");
+  if (!access.membership?.active) {
+    const appearance = await ctx.db
+      .query("projectAppearance")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .unique();
+    if (!scope._id || appearance?.coverAssetId !== scope._id)
+      throw new ConvexError("Project cover is not currently published.");
+  }
+  return access;
+}
 
 export async function requireAssetScope(
   ctx: QueryCtx,
@@ -22,7 +41,7 @@ export async function requireAssetScope(
     | "documentCopyId"
     | "purpose"
     | "avatarUserId"
-  >,
+  > & { _id?: Id<"assets"> },
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
@@ -34,9 +53,10 @@ export async function requireAssetScope(
   if (scope.purpose === "projectCover") {
     if (!scope.projectId || scope.documentId || scope.taskId || scope.draftId || scope.conversationId)
       throw new ConvexError("Project covers require only their project scope.");
-    const access = await requireProject(ctx, scope.projectId, write);
+    if (!write) return requirePublishedCover(ctx, scope, scope.projectId);
+    const access = await requireProject(ctx, scope.projectId, true);
     if (access.project.workspaceId !== scope.workspaceId) throw new ConvexError("Project cover scope mismatch.");
-    if (write && access.projectMember.role !== "admin")
+    if (access.projectMember.role !== "admin")
       throw new ConvexError("Only project administrators can change the cover.");
     return access;
   }

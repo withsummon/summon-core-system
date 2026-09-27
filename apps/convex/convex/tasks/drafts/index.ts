@@ -5,7 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../../_generated/server";
 import { requireWorkspace, requireProject } from "../../identity/access";
 import { pageBudget } from "../../commercial/validation";
-import { stickyJson } from "../../stickies/content";
+import { boundedJson } from "../../../shared/json";
 import { initialProperties } from "../properties";
 import { taskRichContent } from "../rich_content";
 import { createPreparedTask } from "../create";
@@ -106,7 +106,7 @@ export const save = mutation({
         ? htmlChanged
           ? null
           : draft.descriptionJson
-        : stickyJson(args.descriptionJson, "Description JSON", 100000);
+        : boundedJson(args.descriptionJson, "Description JSON", 100000);
     const binary =
       args.descriptionBinary === undefined ? (htmlChanged ? null : draft.descriptionBinary) : args.descriptionBinary;
     if (binary && binary.byteLength > 524288) throw new ConvexError("Description binary must be at most 512 KiB.");
