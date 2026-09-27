@@ -190,3 +190,46 @@ test("current distributions share numeric estimate semantics without exposing fo
   expect(summary.labels.find((row) => row.id === labelId)?.name).toBe("Unavailable label");
   expect(JSON.stringify(summary)).not.toContain("Private foreign label");
 });
+test.each([
+  ["-2.5", -2.5],
+  ["+3e2", 300],
+  [".5", 0.5],
+  ["2.", 2],
+  [" 3 ", 3],
+  ["0xff", null],
+  ["1e309", null],
+  ["Infinity", null],
+])("point estimate %s has decimal-only finite numeric semantics", async (value, expected) => {
+  const f = await fixture();
+  await f.t.run(async (ctx) => {
+    const systemId = await ctx.db.insert("estimateSystems", {
+      projectId: f.projectId,
+      workspaceId: f.workspaceId,
+      name: "Points",
+      description: "",
+      type: "points",
+      revision: 0,
+      deleted: false,
+      retiring: false,
+    });
+    const pointId = await ctx.db.insert("estimatePoints", {
+      projectId: f.projectId,
+      systemId,
+      key: 1,
+      value,
+      description: "",
+      revision: 0,
+      deleted: false,
+      retiring: false,
+    });
+    await ctx.db.patch(f.taskIds[0], { estimatePointId: pointId });
+  });
+  const {
+    page: [summary],
+  } = await f.owner.query(api.cycles.progress.page, {
+    cycleId: f.cycleId,
+    paginationOpts: { numItems: 20, cursor: null },
+  });
+  expect(summary.numericEstimates).toBe(expected ?? 0);
+  expect(summary.unquantifiedEstimates).toBe(expected === null ? 1 : 0);
+});
