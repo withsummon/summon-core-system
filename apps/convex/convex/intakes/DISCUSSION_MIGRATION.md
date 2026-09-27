@@ -46,3 +46,14 @@ or migration of broader intake configuration is claimed. Browser acceptance and
 backend deployment remain pending at this source checkpoint. The standalone
 activity timeline still requires ordinary task access and is not mounted for
 triage; historical/intake activity timeline parity remains explicit work.
+
+## Local activation and consumer
+
+Backend2d382d8682 passed exact-archive TypeScript 7 and deployed locally atop
+coupled hierarchy718ece2004 with compatible OIDC unchanged. Log:
+intake-discussion-2d382d8682-local-deploy.txt. Native intake detail now mounts the
+existing TaskComments, TaskReactions and TaskSubscription components; notifications
+select the current generated intake/task destination and retain focused comments.
+Changing intake selection clears the previous focused-comment selector. No parallel
+comment UI or reaction state machine was added. Browser acceptance and remote
+activation remain separate gates.

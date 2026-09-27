@@ -8,6 +8,9 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { taskStatusOptions } from "../tasks/options";
 import { DescriptionHistory } from "../tasks/description-history";
+import { TaskComments } from "../tasks/comments";
+import { TaskReactions } from "../tasks/reactions/reactions";
+import { TaskSubscription } from "../notifications/task-subscription";
 import { TaskAttachments } from "../tasks/attachments/attachments";
 import { TaskRichEditor } from "../tasks/rich-editor";
 import { IntakeTrash } from "./trash";
@@ -30,6 +33,7 @@ export function Intakes({ project }: { project: Project }) {
     setCreating(false);
     setParams((current) => {
       const next = new URLSearchParams(current);
+      next.delete("comment");
       if (created) next.set("intakeStatus", "pending");
       if (id) next.set("intake", id);
       else next.delete("intake");
@@ -200,6 +204,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
           Back to intake
         </Button>
         <div className="flex flex-wrap gap-2">
+          <TaskSubscription taskId={detail.task._id} />
           <DescriptionHistory scope={{ kind: "intake", taskId: detail.task._id }} />
           {detail.canEdit && (
             <Button variant="secondary" onClick={() => setEditing(true)}>
@@ -250,7 +255,9 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
           editable={false}
         />
       )}
-      <TaskAttachments key={detail.task._id} taskId={detail.task._id} />
+      <TaskAttachments key={`attachments:${detail.task._id}`} taskId={detail.task._id} />
+      <TaskReactions key={`reactions:${detail.task._id}`} taskId={detail.task._id} />
+      <TaskComments key={`comments:${detail.task._id}`} taskId={detail.task._id} />
       {detail.canRemove && <RemoveSubmission detail={detail} onDone={onBack} />}
     </article>
   );

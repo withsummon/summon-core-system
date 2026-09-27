@@ -15,3 +15,11 @@ test("a comment notification opens its task with a canonical comment selector", 
 test("ordinary task activity has no stale comment selector", () => {
   assert.equal(notificationTarget("northstar", "DELIVERY", "task-1").has("comment"), false);
 });
+
+test("intake discussion notification reaches the same submission and focused comment", () => {
+  const params = notificationTarget("northstar", "NSTAR", "submission", "comment", "intake");
+  assert.equal(params.get("projectView"), "intake");
+  assert.equal(params.get("intake"), "submission");
+  assert.equal(params.get("comment"), "comment");
+  assert.equal(params.has("task"), false);
+});

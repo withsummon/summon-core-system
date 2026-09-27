@@ -179,7 +179,8 @@ export function Notifications({
                     workspace.slug,
                     project.identifier,
                     notification.taskId,
-                    notification.event?.commentId
+                    notification.event?.commentId,
+                    notification.destination
                   )
                 );
             }}
