@@ -20,6 +20,7 @@ const ArchivedProjects = lazy(() =>
 );
 const QuickLinks = lazy(() => import("./quick-links/quick-links").then((module) => ({ default: module.QuickLinks })));
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
+const Stickies = lazy(() => import("./stickies/stickies").then((module) => ({ default: module.Stickies })));
 const WorkspaceViews = lazy(() =>
   import("./saved-views/workspace-views").then((module) => ({ default: module.WorkspaceViews }))
 );
@@ -412,6 +413,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "projects", label: "Projects" },
           { id: "tasks", label: "Tasks" },
           { id: "views", label: "Views" },
+          { id: "stickies", label: "Stickies" },
           { id: "clients", label: "Clients" },
           { id: "opportunities", label: "Opportunities" },
           { id: "documents", label: "Documents" },
@@ -434,7 +436,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "views" ? (
+        {module === "stickies" ? (
+          <Stickies key={workspace._id} workspace={workspace} />
+        ) : module === "views" ? (
           <WorkspaceViews key={workspace._id} workspace={workspace} />
         ) : module === "tasks" ? (
           <TaskCenter workspace={workspace} />
