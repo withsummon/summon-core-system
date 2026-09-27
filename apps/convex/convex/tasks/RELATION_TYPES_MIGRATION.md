@@ -23,3 +23,11 @@ Parent verified additive `30c80109e6` deployed on both hosts. Local backfill pro
 Relations now permit distinct projects in the same workspace. Both endpoint task access and both project write roles are checked on creation; removal also requires both current project writers, including cleanup of retained deleted endpoints. Related-project revocation hides the entire row, including unavailable placeholders. List includes an authorized project summary and canRemove projection for cross-project navigation. Same-workspace consistency is checked on removal. Exact by_pair probes in both directions replace scanning project edges for uniqueness. Blocking DAG checks now read the workspace's blocking-only index, so paths spanning projects cannot evade cycle detection.
 
 Explicit capacity: at most1000 blocking edges per workspace for graph validation; other edge kinds do not consume that graph cap. Endpoint reads detect more than1000 rows in either direction and fail explicitly rather than returning a truncated graph. This bounded API is not a claim of unbounded legacy list parity. Ten relation behavior tests plus six lifecycle tests pass, including multi-project cycles/direction/dedup, cross-workspace rejection, revocation privacy, deleted endpoint cleanup, capacity failure and stale CAS. TS7 and scoped Oxc pass. Frontend consumer activation and deployment remain owned by root; REST bulk/activity wire parity remains staged.
+
+Root Chrome acceptance after d10ef09c2b deployment: local3010 NSTAR7 selected
+QADEL as Related project and created Implemented by to QADEL1. The persisted
+row linked using project=QADEL, and following it showed Implements back to
+NSTAR7. The synthetic edge remains. This is cross-project creation/navigation
+and inverse proof; revoked-project picker recovery is source-reviewed and
+backend-authorized, not newly exercised in Chrome. Root independently reran
+16 relation/lifecycle tests before deployment.

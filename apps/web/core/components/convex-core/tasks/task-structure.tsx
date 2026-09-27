@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { relatedTaskRoute } from "./structure-route";
+import { Component, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import type { Doc } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionArgs } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
@@ -35,15 +37,19 @@ const relationDirections = [
   "implements",
 ] as const satisfies readonly RelationDirection[];
 
-function TaskLink({ task }: { task: Task }) {
+function TaskLink({ task, projectIdentifier }: { task: Task; projectIdentifier?: string }) {
   const [params] = useSearchParams();
   const next = new URLSearchParams(params);
   next.delete("comment");
   next.set("task", task._id);
   next.delete("taskView");
   return (
-    <Link className="min-w-0 text-14 break-words text-accent-primary hover:underline" to={`?${next}`}>
-      #{task.sequence} · {task.title}
+    <Link
+      className="min-w-0 text-14 break-words text-accent-primary hover:underline"
+      to={projectIdentifier ? relatedTaskRoute(params, task._id, projectIdentifier) : `?${next}`}
+    >
+      {projectIdentifier ? `${projectIdentifier}-` : "#"}
+      {task.sequence} · {task.title}
     </Link>
   );
 }
@@ -241,11 +247,11 @@ function Relationships({ task, canWrite }: { task: Task; canWrite: boolean }) {
             <p className="text-12 text-secondary">{relationLabels[item.direction]}</p>
             <div className="flex flex-wrap items-center justify-between gap-2">
               {item.task ? (
-                <TaskLink task={item.task} />
+                <TaskLink task={item.task} projectIdentifier={item.project.identifier} />
               ) : (
                 <span className="text-14 text-secondary">Related task unavailable</span>
               )}
-              {canWrite && (
+              {canWrite && item.canRemove && (
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -277,6 +283,8 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
   const add = useMutation(api.tasks.relationships.add);
   const [snapshot] = useState(task);
   const [selected, setSelected] = useState<Task | null>(null);
+  const projects = useQuery(api.projects.index.list, { workspaceId: task.workspaceId });
+  const [projectId, setProjectId] = useState<Id<"projects"> | null>(task.projectId);
   const [kind, setKind] = useState<RelationDirection>("blocks");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -322,7 +330,47 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
             ))}
           </select>
         </SummonField>
-        <TaskChoice task={task} value={selected} onChange={setSelected} label="Related task" />
+        <SummonField label="Related project" htmlFor="relation-project">
+          <select
+            id="relation-project"
+            className={selectClass}
+            value={projectId ?? ""}
+            onChange={(event) => {
+              const project = projects?.find((item) => item._id === event.target.value);
+              if (project) {
+                setProjectId(project._id);
+                setSelected(null);
+              }
+            }}
+          >
+            <option value="">Choose a project</option>
+            {projects
+              ?.filter((item) => item.membershipRole !== "guest" && item.workspaceRole !== "guest")
+              .map((project) => (
+                <option key={project._id} value={project._id}>
+                  {project.identifier} · {project.name}
+                </option>
+              ))}
+          </select>
+        </SummonField>
+        {projectId && (
+          <RelationCandidatesBoundary
+            key={projectId}
+            onFailure={() => setSelected(null)}
+            onReset={() => {
+              setSelected(null);
+              setProjectId(null);
+            }}
+          >
+            <TaskChoice
+              task={task}
+              projectId={projectId}
+              value={selected}
+              onChange={setSelected}
+              label="Related task"
+            />
+          </RelationCandidatesBoundary>
+        )}
         <div className="flex gap-2">
           <Button type="submit" loading={pending} disabled={!selected}>
             Add relationship
@@ -345,17 +393,15 @@ function TaskChoice({
   value,
   onChange,
   label,
+  projectId = task.projectId,
 }: {
   task: Task;
+  projectId?: Id<"projects">;
   value: Task | null;
   onChange: (task: Task | null) => void;
   label: string;
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.tasks.index.list,
-    { projectId: task.projectId },
-    { initialNumItems: 50 }
-  );
+  const { results, status, loadMore } = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   const fieldId = `choice-${label.replaceAll(" ", "-")}`;
   return (
     <div className="space-y-2">
@@ -384,4 +430,31 @@ function TaskChoice({
       )}
     </div>
   );
+}
+
+class RelationCandidatesBoundary extends Component<
+  { children: ReactNode; onFailure: () => void; onReset: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {
+    this.props.onFailure();
+  }
+  render() {
+    return this.state.failed ? (
+      <div className="space-y-2">
+        <p role="alert" className="text-14">
+          Related tasks are unavailable. Your relationship choice is kept.
+        </p>
+        <Button variant="secondary" onClick={this.props.onReset}>
+          Choose another project
+        </Button>
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
 }

@@ -56,8 +56,9 @@ describe("task hierarchy and dependency journeys", () => {
     await expect(link(a, a)).rejects.toThrow("ancestor");
     expect(await owner.query(api.tasks.hierarchy.parent, { taskId: a })).toEqual({ task: null, hasParent: false });
   });
-  test("reject cross-project parents and related tasks even for a writer in both projects", async () => {
-    const { owner, projectId, workspaceId } = await workspaceJourney();
+  test("reject cross-workspace parents and relations even for a writer in both workspaces", async () => {
+    const { owner, projectId } = await workspaceJourney();
+    const workspaceId = await owner.mutation(api.workspaces.index.create, { name: "Foreign", slug: "foreign" });
     const otherProject = await owner.mutation(api.projects.index.create, {
       workspaceId,
       name: "Other",
@@ -84,7 +85,7 @@ describe("task hierarchy and dependency journeys", () => {
         expectedRelatedUpdatedAt: related.updatedAt,
         kind: "blocks",
       })
-    ).rejects.toThrow("same project");
+    ).rejects.toThrow("same workspace");
   });
   test("display inverse blocking and reject transitive dependency cycles and duplicate pair types", async () => {
     const { owner, projectId } = await workspaceJourney();
