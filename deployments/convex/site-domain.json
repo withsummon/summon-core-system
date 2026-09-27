@@ -1,0 +1,10 @@
+{
+  "host": "convex-site.withsummon.com",
+  "serviceName": "backend",
+  "path": "/",
+  "internalPath": "/http",
+  "stripPath": false,
+  "port": 3210,
+  "https": true,
+  "certificateType": "letsencrypt"
+}
