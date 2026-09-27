@@ -1,3 +1,5 @@
+import { Onboarding } from "./identity/onboarding/onboarding";
+import { CreateWorkspace } from "./create-workspace";
 import { ManagedInvitations } from "./invitations/manage";
 import { SessionBoundary } from "./identity/session-boundary";
 import { RecordVisit } from "./navigation/record-visit";
@@ -68,7 +70,9 @@ export function CoreWorkspace() {
     );
   return isAuthenticated ? (
     <SessionBoundary>
-      <Workspace />
+      <Onboarding>
+        <Workspace />
+      </Onboarding>
     </SessionBoundary>
   ) : (
     <SignIn />
@@ -150,55 +154,6 @@ function Workspace() {
         </section>
       </div>
     </div>
-  );
-}
-
-function CreateWorkspace({ onCreated }: { onCreated: (slug: string) => void }) {
-  const create = useMutation(api.workspaces.index.create);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  return (
-    <form
-      className="flex max-w-md flex-col gap-4"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setPending(true);
-        setError("");
-        try {
-          await create({ name, slug });
-          onCreated(slug);
-        } catch {
-          setError("Could not create workspace. Check the name and choose a unique slug.");
-        } finally {
-          setPending(false);
-        }
-      }}
-    >
-      <h1 className="text-24 font-semibold">Create a workspace</h1>
-      <SummonField label="Workspace name">
-        <Input value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} />
-      </SummonField>
-      <SummonField label="Workspace slug">
-        <Input
-          value={slug}
-          onChange={(event) => setSlug(event.target.value)}
-          required
-          maxLength={80}
-          pattern="[a-z0-9]+(-[a-z0-9]+)*"
-          placeholder="my-team"
-        />
-      </SummonField>
-      {error && (
-        <p role="alert" className="text-danger-primary">
-          {error}
-        </p>
-      )}
-      <Button type="submit" loading={pending}>
-        Create workspace
-      </Button>
-    </form>
   );
 }
 
