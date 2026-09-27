@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import { signedIn } from "../../../test-support/session";
 const settings = {
@@ -107,27 +107,3 @@ test.each(["___", "https://example.test", "example.com", "127.0.0.1", "a".repeat
     ).rejects.toThrow();
   }
 );
-test("bounded metadata backfill preserves existing revisions and second complete scan makes no changes", async () => {
-  const f = await workspaceJourney();
-  await f.t.run(async (ctx) => {
-    await ctx.db.patch(f.workspaceId, { metadataRevision: undefined });
-    await ctx.db.insert("workspaces", { name: "Existing", slug: "existing", metadataRevision: 7 });
-  });
-  const first = await f.t.mutation(internal.settings.index.backfillMetadata, { cursor: null });
-  expect(first).toMatchObject({ processed: 2, changed: 1, isDone: true });
-  expect(await f.t.mutation(internal.settings.index.backfillMetadata, { cursor: null })).toMatchObject({
-    processed: 2,
-    changed: 0,
-    isDone: true,
-  });
-  expect(
-    (
-      await f.t.run((ctx) =>
-        ctx.db
-          .query("workspaces")
-          .withIndex("by_slug", (q) => q.eq("slug", "existing"))
-          .unique()
-      )
-    )?.metadataRevision
-  ).toBe(7);
-});

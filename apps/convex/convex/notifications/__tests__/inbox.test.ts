@@ -148,7 +148,7 @@ test("event owner rejects mismatched or missing tasks without orphan events", as
   const f = await fixture();
   const before = await f.t.run((ctx) => ctx.db.query("taskEvents").collect());
   const wrongWorkspace = await f.t.run((ctx) =>
-    ctx.db.insert("workspaces", { name: "Other", slug: "other-event-scope" })
+    ctx.db.insert("workspaces", { name: "Other", slug: "other-event-scope", metadataRevision: 0 })
   );
   const event = {
     taskId: f.taskId,

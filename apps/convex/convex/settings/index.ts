@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { DEFAULT_WORKSPACE_TIMEZONE, validateTimezone } from "./timezone";
 import { ConvexError, v } from "convex/values";
-import { mutation, query, internalMutation } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
 import { text } from "../commercial/validation";
 import { settingsFields } from "./schema";
@@ -50,8 +50,7 @@ async function saveSettings(
 ) {
   const { member, workspace } = await requireWorkspace(ctx, args.workspaceId, true);
   if (member.role !== "admin") throw new ConvexError("Only workspace administrators can change settings.");
-  // Temporary stored-row migration compatibility: remove after both-host backfill receipt.
-  const revision = workspace.metadataRevision ?? 0;
+  const revision = workspace.metadataRevision;
   if (
     args.expectedRevision !== undefined &&
     (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== revision)
@@ -113,7 +112,7 @@ export const metadata = query({
     const { workspace, member } = await requireWorkspace(ctx, args.workspaceId);
     return {
       ...(await readSettings(ctx, workspace)),
-      revision: workspace.metadataRevision ?? 0,
+      revision: workspace.metadataRevision,
       canManage: member.role === "admin",
     };
   },
@@ -129,21 +128,5 @@ export const slugAvailability = query({
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     return { available: !found || found._id === args.workspaceId };
-  },
-});
-export const backfillMetadata = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, args) => {
-    const page = await ctx.db
-      .query("workspaces")
-      .paginate({ cursor: args.cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
-    const missing = page.page.filter((row) => row.metadataRevision === undefined);
-    await Promise.all(missing.map((row) => ctx.db.patch(row._id, { metadataRevision: 0 })));
-    return {
-      processed: page.page.length,
-      changed: missing.length,
-      continueCursor: page.continueCursor,
-      isDone: page.isDone,
-    };
   },
 });
