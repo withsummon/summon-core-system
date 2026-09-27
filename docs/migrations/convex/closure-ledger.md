@@ -1,6 +1,26 @@
 # Full migration closure ledger
 
-Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `ae84433f63`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
+Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `edc8b31c28` and `e0b0eebe16`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
+
+## Current reconciliation through edc8b31c28 / e0b0eebe16
+
+This table supersedes the older packet absence statements. Source, recorded
+primary Chrome acceptance and remote rollout are separate evidence. No inherited
+route is retired. Historical sections below remain checkpoint records.
+
+| Packet      | Current committed owner and acceptance                                                                                                                                                  | Remaining boundary                                                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D02         | Private project navigation b20b92537f/UI5442616bbe; Chrome4d461b740f verified default Cycles, hidden Modules via More, explicit Tasks, independent project default, Reset and390px form | Unsupported project pages/epics destinations; remote project-user initialization/backfill and activation                                             |
+| D03 partial | Avatar f4d10b339d/1178393b69/UI243f37cc14; Chrome e0b0eebe16 decoded192px images, recovery/replacement and removal using temporary gateway3218                                          | Directory-wide avatar consumers and user cover remain; durable ingress/remote runtime acceptance is not established                                  |
+| D11 partial | Property deltas c2d602a82f/UI71311a1d5b; Chrome e0b0eebe16 verified NSTAR7 High→Medium→High immutable activity                                                                          | Description, relationship, attachment and lifecycle events remain coarse; no historical reconstruction or full activity parity                       |
+| D17         | Shared module progress a382f3edef; primary receipt ba195cc17f verifies one visible Done task, completed/pending assignee/label breakdown, desktop/390px                                 | Guest/sparse/multipage behavior is BDD evidence only; remote activation and dated analytics remain                                                   |
+| D18 partial | Workspace directory5b7555e1d1/UIedc8b31c28; exact5656b1cf2b local backend; primary Chrome two rows and canonical Release readiness detail/progress, desktop/390px                       | Legacy aggregate counts and embedded roster/link directory projections; one-page browser proof only; remote activation and REST compatibility remain |
+
+Generated binding normalization accompanying this reconciliation preserves all217
+committed module references. The native offline apiCodegen template verified the
+same import set; existing component-aware generated output was retained and
+formatted. dataModel drift was formatting-only and disappeared after Oxfmt.
+No codegen upload or deployment was invoked for this normalization.
 
 ## Progress reconciliation through a382f3edef
 
@@ -9,8 +29,8 @@ coverage and recorded one-page Chrome realtime/narrow-width acceptance in
 `9019e17173`; >100 memberships and sparse pages have BDD evidence. Current module
 progress (D17) is implemented in `a382f3edef`, with shared task aggregation and UI,
 completed/pending distributions, writer-only module analytics and local exact
-archive activation. Module browser acceptance and remote activation remain
-separate gates. `docs/migrations/convex/{cycle-progress,module-progress}.md` record
+archive activation. Module browser read acceptance is recorded in ba195cc17f; remote activation remains
+a separate gate. `docs/migrations/convex/{cycle-progress,module-progress}.md` record
 the evidence and exclusions. These two rows below are no longer instructions to
 reimplement missing source. D16 historical burndown remains unimplemented; current
 counts and transfer snapshots are not substitutes. No inherited route is retired.
@@ -36,12 +56,12 @@ The following supersedes absence wording in the earlier reconciliation and packe
 rows. These are local native slices; remote activation and inherited route cutover
 remain separate gates. No count of remaining features is inferred from this table.
 
-| Packet | Committed owner and acceptance | Remaining boundary |
-| --- | --- | --- |
-| D04 | Project cover backend5207aa69cf/UIa7663633d6; primary Chrome upload, replacement, recovery, header and390px acceptance3178c9838d | Remote activation and inherited external/static cover selection |
-| D15 | Current cycle progress71517a97e5/3606a8081d/UI2cdb8b425a; primary two-client live/390px acceptance9019e17173 | Remote activation; dated burndown stays D16 |
-| D17 | Shared module/cycle progressa382f3edef; bounded membership pages, completed/pending distributions, unchanged transfer snapshot schema | Remote activation and dated completion analytics |
-| D20 partial | Reference indexe67d59dc42, local verification16cb0db4f9; durable snapshot jobs and authorized current issue reference projection | No backlinks UI or new notification producer is claimed |
+| Packet      | Committed owner and acceptance                                                                                                        | Remaining boundary                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| D04         | Project cover backend5207aa69cf/UIa7663633d6; primary Chrome upload, replacement, recovery, header and390px acceptance3178c9838d      | Remote activation and inherited external/static cover selection |
+| D15         | Current cycle progress71517a97e5/3606a8081d/UI2cdb8b425a; primary two-client live/390px acceptance9019e17173                          | Remote activation; dated burndown stays D16                     |
+| D17         | Shared module/cycle progressa382f3edef; bounded membership pages, completed/pending distributions, unchanged transfer snapshot schema | Remote activation and dated completion analytics                |
+| D20 partial | Reference indexe67d59dc42, local verification16cb0db4f9; durable snapshot jobs and authorized current issue reference projection      | No backlinks UI or new notification producer is claimed         |
 
 Project metadata is now required in2a624b562c after both-host zero-change backfill
 and full missing-field scans. Local exact deployment and browser acceptance are

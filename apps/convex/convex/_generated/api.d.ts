@@ -40,6 +40,7 @@ import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
 import type * as commercial_delivery from "../commercial/delivery.js";
 import type * as commercial_directory from "../commercial/directory.js";
+import type * as commercial_member_directory from "../commercial/member_directory.js";
 import type * as commercial_opportunities from "../commercial/opportunities.js";
 import type * as commercial_validation from "../commercial/validation.js";
 import type * as crons from "../crons.js";
@@ -51,15 +52,18 @@ import type * as cycles_tasks from "../cycles/tasks.js";
 import type * as cycles_transfer from "../cycles/transfer.js";
 import type * as cycles_transfer_snapshot from "../cycles/transfer_snapshot.js";
 import type * as cycles_workspace from "../cycles/workspace.js";
+import type * as documents_access from "../documents/access.js";
 import type * as documents_copy from "../documents/copy.js";
 import type * as documents_copyActions from "../documents/copyActions.js";
-import type * as documents_access from "../documents/access.js";
 import type * as documents_hierarchy from "../documents/hierarchy.js";
 import type * as documents_history from "../documents/history.js";
 import type * as documents_historyActions from "../documents/historyActions.js";
 import type * as documents_index from "../documents/index.js";
 import type * as documents_labels from "../documents/labels.js";
 import type * as documents_lifecycle from "../documents/lifecycle.js";
+import type * as documents_mentions from "../documents/mentions.js";
+import type * as documents_reference_tokens from "../documents/reference_tokens.js";
+import type * as documents_references from "../documents/references.js";
 import type * as estimates_access from "../estimates/access.js";
 import type * as estimates_index from "../estimates/index.js";
 import type * as estimates_remap from "../estimates/remap.js";
@@ -76,6 +80,9 @@ import type * as identity_accounts_index from "../identity/accounts/index.js";
 import type * as identity_accounts_proof from "../identity/accounts/proof.js";
 import type * as identity_accounts_sessions from "../identity/accounts/sessions.js";
 import type * as identity_accounts_unlink from "../identity/accounts/unlink.js";
+import type * as identity_avatar from "../identity/avatar.js";
+import type * as identity_avatar_access from "../identity/avatar_access.js";
+import type * as identity_avatar_owner from "../identity/avatar_owner.js";
 import type * as identity_deactivation_access from "../identity/deactivation/access.js";
 import type * as identity_deactivation_index from "../identity/deactivation/index.js";
 import type * as identity_index from "../identity/index.js";
@@ -130,8 +137,8 @@ import type * as meetings_tasks from "../meetings/tasks.js";
 import type * as modules_access from "../modules/access.js";
 import type * as modules_index from "../modules/index.js";
 import type * as modules_links from "../modules/links.js";
-import type * as modules_progress from "../modules/progress.js";
 import type * as modules_members from "../modules/members.js";
+import type * as modules_progress from "../modules/progress.js";
 import type * as modules_tasks from "../modules/tasks.js";
 import type * as modules_workspace from "../modules/workspace.js";
 import type * as navigation_address from "../navigation/address.js";
@@ -144,6 +151,9 @@ import type * as notifications_index from "../notifications/index.js";
 import type * as notifications_mentions from "../notifications/mentions.js";
 import type * as notifications_selection from "../notifications/selection.js";
 import type * as notifications_subscriptions from "../notifications/subscriptions.js";
+import type * as projects_appearance_schema from "../projects/appearance_schema.js";
+import type * as projects_cover from "../projects/cover.js";
+import type * as projects_cover_owner from "../projects/cover_owner.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
 import type * as projects_navigation from "../projects/navigation.js";
@@ -216,39 +226,9 @@ import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
 
-import type * as commercial_member_directory from "../commercial/member_directory.js";
-
-import type * as documents_mentions from "../documents/mentions.js";
-
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
-import type * as documents_reference_tokens from "../documents/reference_tokens.js";
-
-import type * as documents_references from "../documents/references.js";
-
-import type * as projects_appearance_schema from "../projects/appearance_schema.js";
-
-import type * as projects_cover from "../projects/cover.js";
-
-import type * as projects_cover_owner from "../projects/cover_owner.js";
-
-import type * as identity_avatar from "../identity/avatar.js";
-
-import type * as identity_avatar_access from "../identity/avatar_access.js";
-
-import type * as identity_avatar_owner from "../identity/avatar_owner.js";
-
 declare const fullApi: ApiFromModules<{
-  "identity/avatar_owner": typeof identity_avatar_owner;
-  "identity/avatar_access": typeof identity_avatar_access;
-  "identity/avatar": typeof identity_avatar;
-  "projects/cover_owner": typeof projects_cover_owner;
-  "projects/cover": typeof projects_cover;
-  "projects/appearance_schema": typeof projects_appearance_schema;
-  "documents/references": typeof documents_references;
-  "documents/reference_tokens": typeof documents_reference_tokens;
-  "documents/mentions": typeof documents_mentions;
-  "commercial/member_directory": typeof commercial_member_directory;
   "assets/access": typeof assets_access;
   "assets/attachment_lifecycle": typeof assets_attachment_lifecycle;
   "assets/cleanup": typeof assets_cleanup;
@@ -281,6 +261,7 @@ declare const fullApi: ApiFromModules<{
   "commercial/contacts": typeof commercial_contacts;
   "commercial/delivery": typeof commercial_delivery;
   "commercial/directory": typeof commercial_directory;
+  "commercial/member_directory": typeof commercial_member_directory;
   "commercial/opportunities": typeof commercial_opportunities;
   "commercial/validation": typeof commercial_validation;
   crons: typeof crons;
@@ -292,15 +273,18 @@ declare const fullApi: ApiFromModules<{
   "cycles/transfer": typeof cycles_transfer;
   "cycles/transfer_snapshot": typeof cycles_transfer_snapshot;
   "cycles/workspace": typeof cycles_workspace;
+  "documents/access": typeof documents_access;
   "documents/copy": typeof documents_copy;
   "documents/copyActions": typeof documents_copyActions;
-  "documents/access": typeof documents_access;
   "documents/hierarchy": typeof documents_hierarchy;
   "documents/history": typeof documents_history;
   "documents/historyActions": typeof documents_historyActions;
   "documents/index": typeof documents_index;
   "documents/labels": typeof documents_labels;
   "documents/lifecycle": typeof documents_lifecycle;
+  "documents/mentions": typeof documents_mentions;
+  "documents/reference_tokens": typeof documents_reference_tokens;
+  "documents/references": typeof documents_references;
   "estimates/access": typeof estimates_access;
   "estimates/index": typeof estimates_index;
   "estimates/remap": typeof estimates_remap;
@@ -317,6 +301,9 @@ declare const fullApi: ApiFromModules<{
   "identity/accounts/proof": typeof identity_accounts_proof;
   "identity/accounts/sessions": typeof identity_accounts_sessions;
   "identity/accounts/unlink": typeof identity_accounts_unlink;
+  "identity/avatar": typeof identity_avatar;
+  "identity/avatar_access": typeof identity_avatar_access;
+  "identity/avatar_owner": typeof identity_avatar_owner;
   "identity/deactivation/access": typeof identity_deactivation_access;
   "identity/deactivation/index": typeof identity_deactivation_index;
   "identity/index": typeof identity_index;
@@ -371,8 +358,8 @@ declare const fullApi: ApiFromModules<{
   "modules/access": typeof modules_access;
   "modules/index": typeof modules_index;
   "modules/links": typeof modules_links;
-  "modules/progress": typeof modules_progress;
   "modules/members": typeof modules_members;
+  "modules/progress": typeof modules_progress;
   "modules/tasks": typeof modules_tasks;
   "modules/workspace": typeof modules_workspace;
   "navigation/address": typeof navigation_address;
@@ -385,6 +372,9 @@ declare const fullApi: ApiFromModules<{
   "notifications/mentions": typeof notifications_mentions;
   "notifications/selection": typeof notifications_selection;
   "notifications/subscriptions": typeof notifications_subscriptions;
+  "projects/appearance_schema": typeof projects_appearance_schema;
+  "projects/cover": typeof projects_cover;
+  "projects/cover_owner": typeof projects_cover_owner;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
   "projects/navigation": typeof projects_navigation;
