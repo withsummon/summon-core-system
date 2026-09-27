@@ -1,3 +1,4 @@
+import { requireWorkspaceCreation } from "../identity/instance/configuration";
 import { workspaceLogo } from "../settings/logo_owner";
 import { workspaceName, workspaceSlug } from "../settings/metadata";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
@@ -35,6 +36,7 @@ export const create = mutation({
   args: { name: v.string(), slug: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    requireWorkspaceCreation();
     const name = workspaceName(args.name);
     const slug = workspaceSlug(args.slug);
     if (
