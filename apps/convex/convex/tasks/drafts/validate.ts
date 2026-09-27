@@ -20,6 +20,7 @@ export async function validateDraft(ctx: MutationCtx, workspaceId: Id<"workspace
       args.cycle ||
       args.modules.length ||
       args.properties.stateId ||
+      args.properties.estimatePointId ||
       args.properties.labelIds.length ||
       args.properties.assigneeIds.length
     )

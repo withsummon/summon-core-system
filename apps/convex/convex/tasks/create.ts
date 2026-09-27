@@ -19,6 +19,7 @@ export async function createTask(
   userId: Id<"users">,
   fields: Pick<
     Doc<"tasks">,
+    | "estimatePointId"
     | "title"
     | "description"
     | "status"

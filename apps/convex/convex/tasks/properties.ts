@@ -1,6 +1,7 @@
+import { validateEstimatePoint } from "../estimates/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import { date } from "../commercial/validation";
@@ -8,6 +9,7 @@ import { taskProperties } from "./schema";
 
 export const initialProperties = {
   priority: "none",
+  estimatePointId: null,
   assigneeIds: [],
   labelIds: [],
   startDate: null,
@@ -16,7 +18,14 @@ export const initialProperties = {
   completedAt: null,
 } satisfies Infer<typeof properties> & { completedAt: null };
 const properties = v.object(taskProperties);
-export async function validateProperties(ctx: QueryCtx, project: Doc<"projects">, data: Infer<typeof properties>) {
+export async function validateProperties(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  data: Infer<typeof properties>,
+  retainedEstimatePointId?: Id<"estimatePoints"> | null
+) {
+  const estimatePointId = data.estimatePointId === undefined ? (retainedEstimatePointId ?? null) : data.estimatePointId;
+  await validateEstimatePoint(ctx, project._id, estimatePointId, retainedEstimatePointId);
   const startDate = date(data.startDate);
   const targetDate = date(data.targetDate);
   if (startDate && targetDate && startDate > targetDate) throw new ConvexError("Start date cannot exceed target date.");
@@ -50,7 +59,7 @@ export async function validateProperties(ctx: QueryCtx, project: Doc<"projects">
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
   if (state?.status === "triage") throw new ConvexError("Use intake to manage triage tasks.");
-  return { data: { ...data, startDate, targetDate }, state };
+  return { data: { ...data, estimatePointId, startDate, targetDate }, state };
 }
 
 export function parseTaskText(rawTitle: string, description: string) {

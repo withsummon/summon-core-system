@@ -13,5 +13,7 @@ export const draftTables = {
     contentRevision: v.number(),
     deletedAt: v.union(v.number(), v.null()),
     publishedTaskId: v.union(v.id("tasks"), v.null()),
-  }).index("by_author_workspace", ["authorId", "workspaceId"]),
+  })
+    .index("by_author_workspace", ["authorId", "workspaceId"])
+    .index("by_project", ["projectId"]),
 };

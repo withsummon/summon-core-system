@@ -1,0 +1,44 @@
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
+export const systemFields = {
+  name: v.string(),
+  description: v.string(),
+  type: v.union(v.literal("categories"), v.literal("points")),
+};
+export const pointFields = { key: v.number(), value: v.string(), description: v.string() };
+export const estimateTables = {
+  estimateSystems: defineTable({
+    ...systemFields,
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    revision: v.number(),
+    deleted: v.boolean(),
+    retiring: v.boolean(),
+  }).index("by_project", ["projectId", "deleted"]),
+  estimatePoints: defineTable({
+    ...pointFields,
+    systemId: v.id("estimateSystems"),
+    projectId: v.id("projects"),
+    revision: v.number(),
+    deleted: v.boolean(),
+    retiring: v.boolean(),
+  }).index("by_system", ["systemId", "deleted"]),
+  projectEstimates: defineTable({
+    projectId: v.id("projects"),
+    activeSystemId: v.union(v.id("estimateSystems"), v.null()),
+    revision: v.number(),
+    jobId: v.union(v.id("estimateRemaps"), v.null()),
+  }).index("by_project", ["projectId"]),
+  estimateRemaps: defineTable({
+    projectId: v.id("projects"),
+    actorId: v.id("users"),
+    systemId: v.id("estimateSystems"),
+    pointIds: v.array(v.id("estimatePoints")),
+    replacementId: v.union(v.id("estimatePoints"), v.null()),
+    deleteSystem: v.boolean(),
+    phase: v.union(v.literal("tasks"), v.literal("drafts"), v.literal("complete")),
+    cursor: v.union(v.string(), v.null()),
+    changed: v.number(),
+    revision: v.number(),
+  }).index("by_project", ["projectId"]),
+};
