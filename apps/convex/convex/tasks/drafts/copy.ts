@@ -1,3 +1,4 @@
+import { validateEstimatePoint } from "../../estimates/access";
 import { liveDraftAssets } from "../../assets/draft_access";
 import { ConvexError, v } from "convex/values";
 import { action, internalQuery, internalMutation } from "../../_generated/server";
@@ -10,6 +11,7 @@ async function source(ctx: QueryCtx, draftId: Id<"taskDrafts">, expectedUpdatedA
   const { draft } = await requireDraft(ctx, draftId);
   draftRevision(draft.updatedAt, expectedUpdatedAt);
   if (draft.deletedAt !== null || draft.publishedTaskId) throw new ConvexError("Only an active draft can be copied.");
+  if (draft.projectId) await validateEstimatePoint(ctx, draft.projectId, draft.properties.estimatePointId ?? null);
   const assets = await liveDraftAssets(ctx, draftId);
   if (assets.length > 100) throw new ConvexError("Draft attachment limit exceeded.");
   if (assets.some((asset) => asset.status === "pending" && asset.expiresAt > Date.now()))
