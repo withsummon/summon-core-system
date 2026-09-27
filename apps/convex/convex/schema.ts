@@ -1,3 +1,4 @@
+import { projectAppearanceTables } from "./projects/appearance_schema";
 import { projectPersonalTables } from "./projects/schema";
 import { navigationTables } from "./navigation/schema";
 import { estimateTables } from "./estimates/schema";
@@ -28,6 +29,7 @@ import { resourceTables } from "./resources/schema";
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
   ...projectPersonalTables,
+  ...projectAppearanceTables,
   ...navigationTables,
   ...estimateTables,
   ...favoriteTables,

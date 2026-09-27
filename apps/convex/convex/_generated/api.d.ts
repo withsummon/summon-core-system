@@ -221,7 +221,16 @@ import type * as documents_reference_tokens from "../documents/reference_tokens.
 
 import type * as documents_references from "../documents/references.js";
 
+import type * as projects_appearance_schema from "../projects/appearance_schema.js";
+
+import type * as projects_cover from "../projects/cover.js";
+
+import type * as projects_cover_owner from "../projects/cover_owner.js";
+
 declare const fullApi: ApiFromModules<{
+  "projects/cover_owner": typeof projects_cover_owner;
+  "projects/cover": typeof projects_cover;
+  "projects/appearance_schema": typeof projects_appearance_schema;
   "documents/references": typeof documents_references;
   "documents/reference_tokens": typeof documents_reference_tokens;
   "documents/mentions": typeof documents_mentions;
