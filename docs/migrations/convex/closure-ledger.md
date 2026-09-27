@@ -2,6 +2,22 @@
 
 Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `4f5b6aff9a`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
 
+## Root reconciliation through a87b66bf11
+
+This later checkpoint supersedes older absence statements. It does not retire any Django/PAT/public route.
+
+| Native owner | Verified scope | Remaining gate |
+| --- | --- | --- |
+| Workspace metadata 994443acdb; QA 58c2447651 | Required revision, rename navigation, slug collision recovery, two-tab stale-save rejection with retained draft | Obsolete endpoint removal is in progress; appearance, deletion, inherited consumers remain |
+| Document history be821353cd/f81d2a0621; live fix ec5f30028a; QA 762e171ec4 | Restored immutable versions, current-revision conflict protection, canonical image preview and repaired live-room snapshot origin | Remote live service activation, broader inherited document contracts |
+| Document duplicate e207a8429b/27a169bfbd; QA e28e22001d | Durable independent image copies, atomic publication and resumable request; Chrome copy title/image/body and independent edit | Remote activation and inherited routing remain |
+| Onboarding 939aaf3e73/82f2f63e03; artifact 9d7658bba8 | Existing remote account profile/setup, workspace selection and preserved task deep link; narrow viewport accepted | Real provider/mail configuration, intended administrator's verified account and public cutover |
+| Leave f0f352d6a8/c805eb16cc/a52b04362a; recovery a87b66bf11; unlink e0a9f7c817 | Local membership leave backend/UI, final-admin browser rejection and Cancel recovery; unlink backend last-method/proof/session cleanup tests | Remote pushes failed 499/504; current retry also failed 499. Actual successful leave and credential disconnection were not browser exercised |
+
+User explicitly selected **Resend only**, recorded in d85765257d. SMTP transport is therefore excluded by user direction; other inherited features remain in scope. Current Resend configuration and the intended first administrator account are still missing. No administrator grant was made to a QA account.
+
+Root `pnpm test` passed 535 backend tests in 84 files, 40 live tests in 3 files and 44 frontend tests; global TS7 passed 30/30 tasks. Logs are `/tmp/summon-migration-control/checkpoint-copy-unlink-{tests,types}.txt`. These gates precede the next uncommitted settings cleanup. The staged backend recovered normal queries after a targeted container restart; root hard-reloaded the identified 3024 artifact and verified existing RQA2 data. Deployment evaluate-push remains a distinct unresolved issue. Django, PostgreSQL and legacy workers remain active; no public frontend cutover or overall migration completion is claimed.
+
 ## Latest checkpoint reconciliation
 
 Source inspected after `4f5b6aff9a`. These commits close bounded native contracts; they do not retire the registered Django/PAT/public/admin routes in the appendix.
