@@ -1,11 +1,11 @@
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { mailConfiguration } from "./identity/mail/config";
+import { signInPolicy } from "./identity/signin_policy";
 import { verificationEmail } from "./identity/mail/provider";
 import { oauthProviders } from "./identity/oauth/providers";
 import { validatePassword } from "./identity/password/policy";
-const configured = mailConfiguration(process.env) !== null;
+const policy = signInPolicy(process.env);
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   callbacks: {
     beforeSessionCreation: async (ctx, { userId }) => {
@@ -13,11 +13,15 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     },
   },
   providers: [
-    Password({
-      validatePasswordRequirements: validatePassword,
-      ...(configured ? { reset: verificationEmail("reset"), verify: verificationEmail("verify") } : {}),
-    }),
-    ...(configured ? [verificationEmail("magic")] : []),
+    ...(policy.password
+      ? [
+          Password({
+            validatePasswordRequirements: validatePassword,
+            ...(policy.passwordReset ? { reset: verificationEmail("reset"), verify: verificationEmail("verify") } : {}),
+          }),
+        ]
+      : []),
+    ...(policy.magic ? [verificationEmail("magic")] : []),
     ...oauthProviders(process.env),
   ],
 });

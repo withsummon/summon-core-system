@@ -5,13 +5,13 @@ import type { Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { requireIdentity } from "../session";
 import { collectAccountProof, verifyAccountProof } from "./proof";
-import { mailConfiguration } from "../mail/config";
+import { signInPolicy } from "../signin_policy";
 import { oauthConfigurations } from "../oauth/config";
 function usable(account: Doc<"authAccounts">, user: Doc<"users">) {
-  if (account.provider === "password") return Boolean(account.secret);
+  if (account.provider === "password") return Boolean(account.secret) && signInPolicy(process.env).password;
   if (!user.email || user.emailVerificationTime === undefined || account.emailVerified !== user.email) return false;
   if (account.provider === "summon-magic")
-    return account.providerAccountId === user.email && mailConfiguration(process.env) !== null;
+    return account.providerAccountId === user.email && signInPolicy(process.env).magic;
   return oauthConfigurations(process.env).some((config) => config.id === account.provider);
 }
 export const commit = internalMutation({
