@@ -193,3 +193,79 @@ test("archived project cards retain the current cover but cannot join or publish
   ).rejects.toThrow("not found");
   await expect(pending(f, 1)).rejects.toThrow("not found");
 });
+
+test("external fallback preserves uploaded precedence, shares CAS, and clear removes both without fetching", async () => {
+  const f = await workspaceJourney();
+  const staleUpload = await pending(f, 0);
+  const url = "https://images.unsplash.com/photo-example?fit=crop";
+  await f.owner.mutation(api.projects.cover.setExternal, { projectId: f.projectId, expectedRevision: 0, url });
+  expect(await f.owner.query(api.projects.network.get, { projectId: f.projectId })).toMatchObject({
+    cover: null,
+    externalCoverUrl: url,
+  });
+  await expect(f.owner.action(api.assets.upload.finalize, staleUpload)).rejects.toThrow("changed");
+  const upload = await pending(f, 1);
+  await f.owner.action(api.assets.upload.finalize, upload);
+  expect(await f.owner.query(api.projects.network.get, { projectId: f.projectId })).toMatchObject({
+    externalCoverUrl: null,
+  });
+  expect(await f.owner.query(api.projects.cover.get, { projectId: f.projectId })).toMatchObject({
+    externalCoverUrl: url,
+    revision: 2,
+  });
+  await expect(
+    f.owner.mutation(api.projects.cover.clear, { projectId: f.projectId, expectedRevision: 1 })
+  ).rejects.toThrow("changed");
+  await f.owner.mutation(api.projects.cover.remove, {
+    projectId: f.projectId,
+    assetId: upload.assetId,
+    expectedRevision: 2,
+  });
+  expect(await f.owner.query(api.projects.network.get, { projectId: f.projectId })).toMatchObject({
+    cover: null,
+    externalCoverUrl: url,
+  });
+  await f.owner.mutation(api.projects.cover.restore, {
+    projectId: f.projectId,
+    assetId: upload.assetId,
+    expectedRevision: 3,
+  });
+  await f.owner.mutation(api.projects.cover.clear, { projectId: f.projectId, expectedRevision: 4 });
+  expect(await f.owner.query(api.projects.cover.get, { projectId: f.projectId })).toMatchObject({
+    cover: null,
+    externalCoverUrl: null,
+    revision: 5,
+  });
+  expect((await f.t.run((ctx) => ctx.db.get(upload.assetId)))?.status).toBe("deleted");
+});
+
+test("external covers reject unsafe values and unauthorized writes without advancing appearance", async () => {
+  const f = await workspaceJourney();
+  for (const url of [
+    "javascript:alert(1)",
+    "data:image/png;base64,abcd",
+    "//example.com/a.png",
+    "https://user:password@example.com/a",
+    " https://example.com/a",
+    "https://example.com/" + "a".repeat(2048),
+  ]) {
+    await expect(
+      f.owner.mutation(api.projects.cover.setExternal, { projectId: f.projectId, expectedRevision: 0, url })
+    ).rejects.toThrow();
+  }
+  const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Member" }));
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "member" });
+  await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId, role: "member" });
+  const member = await signedIn(f.t, userId);
+  await expect(
+    member.mutation(api.projects.cover.setExternal, {
+      projectId: f.projectId,
+      expectedRevision: 0,
+      url: "https://example.com/a.png",
+    })
+  ).rejects.toThrow("administrators");
+  expect(await f.owner.query(api.projects.cover.get, { projectId: f.projectId })).toMatchObject({
+    revision: 0,
+    externalCoverUrl: null,
+  });
+});
