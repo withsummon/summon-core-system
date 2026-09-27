@@ -69,7 +69,7 @@ export const list = query({
       result.page.map(async (task) => {
         if (!taskIsActive(task) || !(await taskCanRead(ctx, task, user._id))) return null;
         const project = await ctx.db.get(task.projectId);
-        if (!project || project.archived) return null;
+        if (!project || project.archived || project.deletedAt != null) return null;
         const membership = await ctx.db
           .query("projectMembers")
           .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", user._id))

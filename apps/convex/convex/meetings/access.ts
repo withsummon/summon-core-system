@@ -5,7 +5,7 @@ import { requireProject, requireWorkspace } from "../identity/access";
 export async function canReadMeetingProject(ctx: QueryCtx, projectId: Id<"projects"> | null, userId: Id<"users">) {
   if (!projectId) return true;
   const project = await ctx.db.get(projectId);
-  if (!project || project.archived) return false;
+  if (!project || project.archived || project.deletedAt != null) return false;
   const member = await ctx.db
     .query("projectMembers")
     .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))

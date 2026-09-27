@@ -11,7 +11,7 @@ export async function canAccessDocument(ctx: QueryCtx, document: Doc<"documents"
   const memberships = await Promise.all(
     document.projectIds.map(async (projectId) => {
       const project = await ctx.db.get(projectId);
-      if (!project || project.archived) return false;
+      if (!project || project.archived || project.deletedAt != null) return false;
       const member = await ctx.db
         .query("projectMembers")
         .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))

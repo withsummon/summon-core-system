@@ -39,7 +39,8 @@ export async function scopeAccess(ctx: QueryCtx, scope: ReportScope) {
       pending = (async () => {
         if (scope.projectId && scope.projectId !== projectId) return false;
         const project = await ctx.db.get(projectId);
-        if (!project || project.archived || project.workspaceId !== scope.workspaceId) return false;
+        if (!project || project.archived || project.deletedAt != null || project.workspaceId !== scope.workspaceId)
+          return false;
         const membership = await ctx.db
           .query("projectMembers")
           .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", access.user._id))

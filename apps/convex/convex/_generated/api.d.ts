@@ -159,6 +159,7 @@ import type * as projects_cover from "../projects/cover.js";
 import type * as projects_cover_owner from "../projects/cover_owner.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
+import type * as projects_lifecycle from "../projects/lifecycle.js";
 import type * as projects_navigation from "../projects/navigation.js";
 import type * as projects_order from "../projects/order.js";
 import type * as projects_order_owner from "../projects/order_owner.js";
@@ -385,6 +386,7 @@ declare const fullApi: ApiFromModules<{
   "projects/cover_owner": typeof projects_cover_owner;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
+  "projects/lifecycle": typeof projects_lifecycle;
   "projects/navigation": typeof projects_navigation;
   "projects/order": typeof projects_order;
   "projects/order_owner": typeof projects_order_owner;

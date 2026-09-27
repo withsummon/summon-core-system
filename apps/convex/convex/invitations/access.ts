@@ -71,6 +71,7 @@ async function projectIssuer(
     !project ||
     project.workspaceId !== workspaceId ||
     project.archived ||
+    project.deletedAt != null ||
     !membership?.active ||
     membership.role !== "admin"
   )

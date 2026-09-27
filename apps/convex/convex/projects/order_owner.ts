@@ -33,7 +33,7 @@ export async function visibleOrderedProject(ctx: QueryCtx, row: Doc<"projectUser
     .unique();
   if (!member?.active || member.workspaceId !== row.workspaceId) return null;
   const project = await ctx.db.get(row.projectId);
-  if (!project || project.archived || project.workspaceId !== row.workspaceId) return null;
+  if (!project || project.archived || project.deletedAt != null || project.workspaceId !== row.workspaceId) return null;
   return { project, member };
 }
 

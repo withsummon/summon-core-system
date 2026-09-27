@@ -30,7 +30,7 @@ export const list = query({
             : null;
         })
     );
-    return projects.filter((p) => p !== null).filter((p) => !p.archived);
+    return projects.filter((p) => p !== null).filter((p) => !p.archived && p.deletedAt == null);
   },
 });
 export const create = mutation({

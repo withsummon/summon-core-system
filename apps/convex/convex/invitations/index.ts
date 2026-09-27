@@ -143,13 +143,14 @@ export const incoming = query({
         .map(async (row) => {
           const workspace = await ctx.db.get(row.workspaceId);
           const project = row.projectId ? await ctx.db.get(row.projectId) : null;
+          if (row.projectId && (!project || project.deletedAt != null)) return null;
           return Object.assign(publicInvitation(row), {
             workspaceName: workspace?.name ?? null,
             projectName: project?.name ?? null,
           });
         })
     );
-    return { ...result, page };
+    return { ...result, page: page.filter((row) => row !== null) };
   },
 });
 export const availability = query({

@@ -158,7 +158,7 @@ export const list = query({
             .query("projectMembers")
             .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", user._id))
             .unique();
-          if (!project || project.archived || !member?.active) return null;
+          if (!project || project.archived || project.deletedAt != null || !member?.active) return null;
         }
         if (resource.documentId) {
           const document = await ctx.db.get(resource.documentId);
