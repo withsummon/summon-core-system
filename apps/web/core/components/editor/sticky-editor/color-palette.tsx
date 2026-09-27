@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { TSticky } from "@plane/types";
-
 export const STICKY_COLORS_LIST: {
   key: string;
   label: string;
@@ -54,7 +52,7 @@ export const STICKY_COLORS_LIST: {
 ];
 
 type TProps = {
-  handleUpdate: (data: Partial<TSticky>) => Promise<void>;
+  handleUpdate: (data: { background_color?: string }) => Promise<void>;
 };
 
 export function ColorPalette(props: TProps) {

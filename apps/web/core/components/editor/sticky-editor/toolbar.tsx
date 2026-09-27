@@ -12,7 +12,6 @@ import type { EditorRefApi } from "@plane/editor";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { TrashIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TSticky } from "@plane/types";
 // constants
 import { cn } from "@plane/utils";
 import type { ToolbarMenuItem } from "@plane/editor";
@@ -23,7 +22,7 @@ import { ColorPalette } from "./color-palette";
 type Props = {
   executeCommand: (item: ToolbarMenuItem) => void;
   editorRef: EditorRefApi | null;
-  handleColorChange: (data: Partial<TSticky>) => Promise<void>;
+  handleColorChange: (data: { background_color?: string }) => Promise<void>;
   handleDelete: () => void;
 };
 
