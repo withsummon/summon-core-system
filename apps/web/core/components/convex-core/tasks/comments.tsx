@@ -8,6 +8,7 @@ import { mutationMessage } from "../commercial/forms";
 import { TaskRichEditor } from "./rich-editor";
 type Comment = FunctionReturnType<typeof api.tasks.comments.list>["page"][number];
 export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
+  const [deleted, setDeleted] = useState(false);
   const access = useQuery(api.tasks.comments.access, { taskId });
   const { results, status, loadMore } = usePaginatedQuery(api.tasks.comments.list, { taskId }, { initialNumItems: 10 });
   const [composing, setComposing] = useState(false);
@@ -34,11 +35,45 @@ export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
           Load older comments
         </Button>
       )}
+      <Button variant="secondary" aria-expanded={deleted} onClick={() => setDeleted(!deleted)}>
+        {deleted ? "Hide deleted comments" : "Show deleted comments"}
+      </Button>
+      {deleted && <DeletedComments taskId={taskId} />}
+    </section>
+  );
+}
+function DeletedComments({ taskId }: { taskId: Id<"tasks"> }) {
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.tasks.comments.list,
+    { taskId, deleted: true },
+    { initialNumItems: 10 }
+  );
+  return (
+    <section aria-label="Deleted comments" className="space-y-4 border-t border-subtle-1 pt-4">
+      <h4 className="text-14 font-medium">Deleted comments</h4>
+      <p className="text-12 text-secondary">
+        You can restore comments you wrote or moderate as a project administrator.
+      </p>
+      <ul className="space-y-4">
+        {results.map((comment) => (
+          <CommentRow key={comment._id} comment={comment} />
+        ))}
+      </ul>
+      {(status === "LoadingFirstPage" || status === "LoadingMore") && <p role="status">Loading deleted comments…</p>}
+      {status === "Exhausted" && !results.length && (
+        <p className="text-14 text-secondary">No deleted comments available to restore.</p>
+      )}
+      {status === "CanLoadMore" && (
+        <Button variant="secondary" onClick={() => loadMore(10)}>
+          Load more deleted comments
+        </Button>
+      )}
     </section>
   );
 }
 function CommentRow({ comment }: { comment: Comment }) {
   const remove = useMutation(api.tasks.comments.remove);
+  const restore = useMutation(api.tasks.comments.restore);
   const [editing, setEditing] = useState(false);
   const [deleteRevision, setDeleteRevision] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
@@ -51,6 +86,25 @@ function CommentRow({ comment }: { comment: Comment }) {
           {new Date(comment._creationTime).toLocaleString()}
           {comment.editedAt ? " · Edited" : ""}
         </p>
+        {comment.canRestore && (
+          <Button
+            variant="secondary"
+            loading={pending}
+            onClick={async () => {
+              setPending(true);
+              setError("");
+              try {
+                await restore({ commentId: comment._id, expectedUpdatedAt: comment.updatedAt });
+              } catch (failure) {
+                setError(mutationMessage(failure));
+              } finally {
+                setPending(false);
+              }
+            }}
+          >
+            Restore comment
+          </Button>
+        )}
         {comment.canEdit && !editing && deleteRevision === null && (
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setEditing(true)}>
@@ -82,7 +136,9 @@ function CommentRow({ comment }: { comment: Comment }) {
       )}
       {deleteRevision !== null && comment.canEdit && (
         <div className="space-y-2" role="group" aria-label="Confirm comment deletion">
-          <p className="text-14">Permanently delete this comment? This cannot be undone.</p>
+          <p className="text-14">
+            Move this comment to deleted comments? You or a project administrator can restore it.
+          </p>
           <div className="flex gap-2">
             <Button
               variant="primary"
@@ -99,7 +155,7 @@ function CommentRow({ comment }: { comment: Comment }) {
                 }
               }}
             >
-              Permanently delete
+              Move to deleted comments
             </Button>
             <Button
               variant="secondary"

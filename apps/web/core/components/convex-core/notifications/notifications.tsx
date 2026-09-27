@@ -16,6 +16,7 @@ const eventLabels = {
   comment_created: "Comment added",
   comment_updated: "Comment edited",
   comment_deleted: "Comment deleted",
+  comment_restored: "Comment restored",
 } satisfies Record<NonNullable<Notification["event"]>["kind"], string>;
 export function Notifications({
   workspace,
