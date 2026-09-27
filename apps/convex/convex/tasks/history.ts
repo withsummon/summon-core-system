@@ -129,19 +129,17 @@ export const restore = mutation({
 export const prune = internalMutation({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, { cursor }) => {
-    const tasks = await ctx.db.query("tasks").paginate({ numItems: 10, cursor });
-    const pending = await Promise.all(
-      tasks.page.map(async (task) => {
-        const versions = await ctx.db
+    const tasks = await ctx.db.query("tasks").paginate({ numItems: 1, cursor });
+    const task = tasks.page[0];
+    const versions = task
+      ? await ctx.db
           .query("taskDescriptionVersions")
           .withIndex("by_task", (q) => q.eq("taskId", task._id))
           .order("desc")
-          .take(41);
-        await Promise.all(versions.slice(20, 40).map((version) => ctx.db.delete(version._id)));
-        return versions.length > 40;
-      })
-    );
-    const needsAnotherPass = pending.some(Boolean);
+          .take(41)
+      : [];
+    await Promise.all(versions.slice(20, 40).map((version) => ctx.db.delete(version._id)));
+    const needsAnotherPass = versions.length > 40;
     if (needsAnotherPass || !tasks.isDone)
       await ctx.scheduler.runAfter(0, internal.tasks.history.prune, {
         cursor: needsAnotherPass ? cursor : tasks.continueCursor,

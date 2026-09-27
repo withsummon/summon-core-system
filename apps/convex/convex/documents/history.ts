@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, internalQuery, internalMutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { pageBudget } from "../commercial/validation";
 import { requireDocument, requireMetadataVersion } from "./access";
 import { snapshotFields } from "./schema";
@@ -60,5 +61,27 @@ export const commit = internalMutation({
       descriptionHtml: args.descriptionHtml,
       descriptionJson: args.descriptionJson,
     });
+  },
+});
+
+// Match the inherited 20 versions per page without reading current snapshots.
+export const prune = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const documents = await ctx.db.query("documents").paginate({ numItems: 1, cursor });
+    const document = documents.page[0];
+    const old = document
+      ? await ctx.db
+          .query("documentRevisions")
+          .withIndex("by_document_revision", (q) =>
+            q.eq("documentId", document._id).lt("revision", document.revision - 19)
+          )
+          .take(20)
+      : [];
+    await Promise.all(old.map((revision) => ctx.db.delete(revision._id)));
+    if (old.length === 20 || !documents.isDone)
+      await ctx.scheduler.runAfter(0, internal.documents.history.prune, {
+        cursor: old.length === 20 ? cursor : documents.continueCursor,
+      });
   },
 });
