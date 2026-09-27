@@ -13,3 +13,10 @@ values. There is no duplicate event storage or inferred history. Tests exercise
 creation/status continuation, minimal identity projection, page bounds and current
 access changes. This is a native activity reader, not full inherited activity
 parity: field diffs and complete producer coverage still require migration.
+
+Root acceptance: backend219399833d deployed as part of d10ef09c2b on both hosts.
+Chrome local3010 opened NSTAR7 activity and showed its retained creation and
+update events. After cross-project relation creation, QADEL1's activity showed
+the new update plus its original creation. Show/Hide activity worked; rendered
+rows and timestamps were visually inspected. Backend two behavior tests,
+backend/web TS7 and scoped Oxc passed. No before/after diff coverage is claimed.
