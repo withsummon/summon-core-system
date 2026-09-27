@@ -28,7 +28,14 @@ export async function credentialMetadataAccess(ctx: QueryCtx, credential: Doc<"m
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))
       .unique();
-    if (!project || project.archived || project.workspaceId !== credential.workspaceId || !member?.active) return null;
+    if (
+      !project ||
+      project.archived ||
+      project.deletedAt != null ||
+      project.workspaceId !== credential.workspaceId ||
+      !member?.active
+    )
+      return null;
     projectRole = member.role;
   }
   return {

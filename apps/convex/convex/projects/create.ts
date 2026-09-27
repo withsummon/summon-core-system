@@ -33,6 +33,7 @@ export async function createProject(
     guestViewAllFeatures: false,
     nextSequence: 1,
     archived: false,
+    deletedAt: null,
   });
   await ctx.db.insert("projectMembers", {
     workspaceId: args.workspaceId,

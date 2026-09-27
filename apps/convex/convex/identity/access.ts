@@ -20,12 +20,13 @@ export async function requireWorkspace(ctx: QueryCtx, workspaceId: Id<"workspace
 }
 export async function requireProject(ctx: QueryCtx, projectId: Id<"projects">, write = false) {
   const project = await ctx.db.get(projectId);
-  if (!project || project.archived) throw new ConvexError("Project not found.");
+  if (!project || project.archived || project.deletedAt != null) throw new ConvexError("Project not found.");
   return requireProjectMembership(ctx, project, write);
 }
 
 // Shared membership owner; only lifecycle recovery may call this for an archived project.
 export async function requireProjectMembership(ctx: QueryCtx, project: Doc<"projects">, write = false) {
+  if (project.deletedAt != null) throw new ConvexError("Project not found.");
   const projectId = project._id;
   const access = await requireWorkspace(ctx, project.workspaceId, write);
   const member = await ctx.db

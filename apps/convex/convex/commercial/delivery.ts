@@ -139,7 +139,8 @@ export const getForOpportunity = query({
       .unique();
     if (!membership?.active) return null;
     const project = await ctx.db.get(profile.projectId);
-    if (!project || project.archived || project.workspaceId !== args.workspaceId) return null;
+    if (!project || project.archived || project.deletedAt != null || project.workspaceId !== args.workspaceId)
+      return null;
     return { profile, project };
   },
 });

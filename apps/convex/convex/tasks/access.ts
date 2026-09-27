@@ -64,7 +64,8 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
 export async function taskCanRead(ctx: QueryCtx, task: Doc<"tasks">, userId: Id<"users">) {
   if (!taskIsReadable(task)) return false;
   const project = await ctx.db.get(task.projectId);
-  if (!project || project.archived || project.workspaceId !== task.workspaceId) return false;
+  if (!project || project.archived || project.deletedAt != null || project.workspaceId !== task.workspaceId)
+    return false;
   const workspace = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", task.workspaceId).eq("userId", userId))

@@ -21,7 +21,8 @@ export async function draftProjectReadable(ctx: QueryCtx, draft: Doc<"taskDrafts
   const projectId = draft.projectId;
   if (!projectId) return true;
   const project = await ctx.db.get(projectId);
-  if (!project || project.archived || project.workspaceId !== draft.workspaceId) return false;
+  if (!project || project.archived || project.deletedAt != null || project.workspaceId !== draft.workspaceId)
+    return false;
   const member = await ctx.db
     .query("projectMembers")
     .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))

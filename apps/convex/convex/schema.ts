@@ -71,6 +71,7 @@ export default defineSchema({
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
     archived: v.boolean(),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_identifier", ["workspaceId", "identifier"]),
