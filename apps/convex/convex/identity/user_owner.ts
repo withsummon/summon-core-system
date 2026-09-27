@@ -1,3 +1,4 @@
+import { requireSignup } from "./signup_policy";
 import type { ConvexAuthConfig } from "@convex-dev/auth/server";
 import type { MutationCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
@@ -31,6 +32,7 @@ export async function createOrUpdateUser(ctx: MutationCtx, args: Input) {
       return matches[0]._id;
     }
   }
+  await requireSignup(ctx, email);
   return ctx.db.insert("users", {
     email,
     ...(args.profile.emailVerified === true ? { emailVerificationTime: Date.now() } : {}),

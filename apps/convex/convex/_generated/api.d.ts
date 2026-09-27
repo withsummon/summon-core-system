@@ -90,6 +90,7 @@ import type * as identity_deactivation_index from "../identity/deactivation/inde
 import type * as identity_emailChange_actions from "../identity/emailChange/actions.js";
 import type * as identity_emailChange_index from "../identity/emailChange/index.js";
 import type * as identity_emailChange_notifications from "../identity/emailChange/notifications.js";
+import type * as identity_entry from "../identity/entry.js";
 import type * as identity_index from "../identity/index.js";
 import type * as identity_instance_access from "../identity/instance/access.js";
 import type * as identity_instance_configuration from "../identity/instance/configuration.js";
@@ -111,6 +112,7 @@ import type * as identity_profile from "../identity/profile.js";
 import type * as identity_profile_owner from "../identity/profile_owner.js";
 import type * as identity_session from "../identity/session.js";
 import type * as identity_signin_policy from "../identity/signin_policy.js";
+import type * as identity_signup_policy from "../identity/signup_policy.js";
 import type * as identity_user_owner from "../identity/user_owner.js";
 import type * as intakes_access from "../intakes/access.js";
 import type * as intakes_configuration_owner from "../intakes/configuration_owner.js";
@@ -331,6 +333,7 @@ declare const fullApi: ApiFromModules<{
   "identity/emailChange/actions": typeof identity_emailChange_actions;
   "identity/emailChange/index": typeof identity_emailChange_index;
   "identity/emailChange/notifications": typeof identity_emailChange_notifications;
+  "identity/entry": typeof identity_entry;
   "identity/index": typeof identity_index;
   "identity/instance/access": typeof identity_instance_access;
   "identity/instance/configuration": typeof identity_instance_configuration;
@@ -352,6 +355,7 @@ declare const fullApi: ApiFromModules<{
   "identity/profile_owner": typeof identity_profile_owner;
   "identity/session": typeof identity_session;
   "identity/signin_policy": typeof identity_signin_policy;
+  "identity/signup_policy": typeof identity_signup_policy;
   "identity/user_owner": typeof identity_user_owner;
   "intakes/access": typeof intakes_access;
   "intakes/configuration_owner": typeof intakes_configuration_owner;

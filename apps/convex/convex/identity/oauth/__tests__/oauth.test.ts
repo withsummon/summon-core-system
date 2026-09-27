@@ -204,3 +204,22 @@ test("existing OAuth subject cannot undo a locally verified address change or at
     expect(await ctx.db.get(ids.other)).toMatchObject({ email: "old@example.test" });
   });
 });
+
+test("disabled signup blocks new OAuth identities at the same canonical user owner", async () => {
+  const t = fixture();
+  vi.stubEnv("ENABLE_SIGNUP", "0");
+  await t.run((ctx) => ctx.db.insert("authVerifiers", { signature: "disabled-state" }));
+  await expect(
+    t.mutation(internal.auth.store, {
+      args: {
+        type: "userOAuth",
+        provider: "google",
+        providerAccountId: "new-subject",
+        profile: { email: "blocked@example.test", emailVerified: true },
+        signature: "disabled-state",
+      },
+    })
+  ).rejects.toThrow("Sign up is disabled");
+  expect(await t.run((ctx) => ctx.db.query("users").collect())).toHaveLength(0);
+  expect(await t.run((ctx) => ctx.db.query("authAccounts").collect())).toHaveLength(0);
+});
