@@ -6,7 +6,7 @@ import type { TMentionHandler } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
-import { memberLabel } from "../commercial/member-label";
+import { memberLabel } from "@summon/convex/member-label";
 
 const MentionContext = createContext({
   register:

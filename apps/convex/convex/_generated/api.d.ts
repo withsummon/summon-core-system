@@ -46,6 +46,7 @@ import type * as crons from "../crons.js";
 import type * as cycles_access from "../cycles/access.js";
 import type * as cycles_dates from "../cycles/dates.js";
 import type * as cycles_index from "../cycles/index.js";
+import type * as cycles_progress from "../cycles/progress.js";
 import type * as cycles_tasks from "../cycles/tasks.js";
 import type * as cycles_transfer from "../cycles/transfer.js";
 import type * as cycles_transfer_snapshot from "../cycles/transfer_snapshot.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   "cycles/access": typeof cycles_access;
   "cycles/dates": typeof cycles_dates;
   "cycles/index": typeof cycles_index;
+  "cycles/progress": typeof cycles_progress;
   "cycles/tasks": typeof cycles_tasks;
   "cycles/transfer": typeof cycles_transfer;
   "cycles/transfer_snapshot": typeof cycles_transfer_snapshot;

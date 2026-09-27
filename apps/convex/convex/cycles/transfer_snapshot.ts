@@ -1,3 +1,4 @@
+import { memberLabel } from "../../shared/member-label";
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
@@ -25,7 +26,7 @@ function add(
   else if (hasEstimate) value.unquantifiedEstimates++;
   map.set(id, value);
 }
-export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
+export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
   const statuses = new Map<string | null, Bucket>(),
     assignees = new Map<string | null, Bucket>(),
     labels = new Map<string | null, Bucket>();
@@ -36,7 +37,14 @@ export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
       const point = task.estimatePointId ? await ctx.db.get(task.estimatePointId) : null;
       const system = point ? await ctx.db.get(point.systemId) : null;
       const numeric =
-        point && system?.type === "points" && /^\d+(?:\.\d+)?$/.test(point.value.trim()) ? Number(point.value) : null;
+        point &&
+        point.projectId === task.projectId &&
+        system?.projectId === task.projectId &&
+        system.workspaceId === task.workspaceId &&
+        system.type === "points" &&
+        /^\d+(?:\.\d+)?$/.test(point.value.trim())
+          ? Number(point.value)
+          : null;
       const estimate = numeric !== null && Number.isFinite(numeric) ? numeric : null;
       if (estimate !== null) numericEstimates += estimate;
       else if (task.estimatePointId) unquantifiedEstimates++;
@@ -45,14 +53,24 @@ export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
       await Promise.all(
         task.assigneeIds.map(async (id) => {
           const user = await ctx.db.get(id);
-          add(assignees, id, user?.name ?? "Unnamed member", estimate, task.estimatePointId !== null);
+          add(
+            assignees,
+            id,
+            memberLabel(user ? { id: user._id, name: user.name ?? null, email: user.email ?? null } : null),
+            estimate,
+            task.estimatePointId !== null
+          );
         })
       );
       if (!task.labelIds.length) add(labels, null, "No label", estimate, task.estimatePointId !== null);
       await Promise.all(
         task.labelIds.map(async (id) => {
           const label = await ctx.db.get(id);
-          add(labels, id, label?.name ?? "Unavailable label", estimate, task.estimatePointId !== null);
+          const name =
+            label?.projectId === task.projectId && label.workspaceId === task.workspaceId
+              ? label.name
+              : "Unavailable label";
+          add(labels, id, name, estimate, task.estimatePointId !== null);
         })
       );
     })
@@ -64,6 +82,9 @@ export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
     statuses: [...statuses.values()],
     assignees: [...assignees.values()],
     labels: [...labels.values()],
-    capturedAt: Date.now(),
   };
+}
+
+export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
+  return { ...(await progressTotals(ctx, tasks)), capturedAt: Date.now() };
 }
