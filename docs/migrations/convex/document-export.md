@@ -25,13 +25,13 @@ Native mention-directory rendering is still absent; native export preserves a vi
 
 ## Root download and rendered acceptance — 2026-09-27
 
-Chrome exported the image-bearing Delivery collaboration verified document on local development 3010 and the fixed production artifact at3025. First lazy PDF imports caused development panel resets, correlated with Vite optimized dependency timestamps; the warmed retry succeeded. Production first-load preparation succeeded without a reset.
+Chrome exported the image-bearing Delivery collaboration verified document on local development 3010 and the fixed production artifact at 3025. First lazy PDF imports caused development panel resets, correlated with Vite optimized dependency timestamps; the warmed retry succeeded. Production first-load preparation succeeded without a reset.
 
-Production source: `d330786578873c78df84e7e63c502a9878bb754f`; `/build-identity.json` independently read back this source and local backend3210/site3211/live1235. Index SHA256 `624050914134b9141b6e6c7f174ec6017be507707de38a33eeba9339ad0460ad`; tree SHA256 `9833d2f01dd4769fff993339b88b6c47452b425aabcdcacffeba0611745f07eb`. Existing unrelated dependency edits were preserved and recorded with hash `2dff1c4d17cdd96cedae19ddcb4713b1cbb6759b42407c7a83bbd466d35067fd`; this is not a clean-dependency or public deployment claim.
+Production source: `d330786578873c78df84e7e63c502a9878bb754f`; `/build-identity.json` independently read back this source and local backend 3210/site 3211/live 1235. Index SHA256 `624050914134b9141b6e6c7f174ec6017be507707de38a33eeba9339ad0460ad`; tree SHA256 `9833d2f01dd4769fff993339b88b6c47452b425aabcdcacffeba0611745f07eb`. Existing unrelated dependency edits were preserved and recorded with hash `2dff1c4d17cdd96cedae19ddcb4713b1cbb6759b42407c7a83bbd466d35067fd`; this is not a clean-dependency or public deployment claim.
 
-- PDF Everything: downloaded10,816bytes, one A4 page (595.28×841.89pt). Poppler render showed title, original low-resolution image and body without clipping/overlap. Production and development rendered PNG bytes matched, SHA256 `15b1e358983aeaba6278e3bf88cc87bdca541be275518f26573b9cdfe6984325`.
-- PDF No images: downloaded7,976bytes, one Letter page (612×792pt). Render showed title/body and no image.
-- Markdown Everything: downloaded4,200bytes with one embedded PNG and body text, no credential marker, temporary blob URL or remote URL. Decoded image SHA256 `a6a26aec88756d439d42cab920919430e40e4e165ab5ab7adc843b9a4d93126f`.
-- Markdown No images: downloaded70bytes, body retained and no embedded image.
+- PDF Everything: downloaded 10,816 bytes, one A4 page (595.28×841.89 pt). Poppler render showed title, original low-resolution image and body without clipping/overlap. Production and development rendered PNG bytes matched, SHA256 `15b1e358983aeaba6278e3bf88cc87bdca541be275518f26573b9cdfe6984325`.
+- PDF No images: downloaded 7,976 bytes, one Letter page (612×792 pt). Render showed title/body and no image.
+- Markdown Everything: downloaded 4,200 bytes with one embedded PNG and body text, no credential marker, temporary blob URL or remote URL. Decoded image SHA256 `a6a26aec88756d439d42cab920919430e40e4e165ab5ab7adc843b9a4d93126f`.
+- Markdown No images: downloaded 70 bytes, body retained and no embedded image.
 
 Downloads remain in the user's Downloads folder as `delivery-collaboration-verified*`; rendered QA images are `/tmp/summon-migration-control/document-export-{a4,production-a4,letter}.png`. This acceptance samples A4/Letter and the simple image/body fixture; other paper sizes and rich structures are not claimed browser-verified by this receipt.
