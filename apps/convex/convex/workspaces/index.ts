@@ -1,3 +1,4 @@
+import { recordWorkspaceCreation } from "../identity/onboarding";
 import { defaultSettings, validateSettings } from "../settings/values";
 import { requireWorkspaceCreation } from "../identity/instance/configuration";
 import { workspaceLogo } from "../settings/logo_owner";
@@ -34,7 +35,12 @@ export const list = query({
   },
 });
 export const create = mutation({
-  args: { name: v.string(), slug: v.string(), organizationSize: v.optional(v.string()) },
+  args: {
+    name: v.string(),
+    slug: v.string(),
+    organizationSize: v.optional(v.string()),
+    onboardingRevision: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
     requireWorkspaceCreation();
@@ -51,6 +57,8 @@ export const create = mutation({
     const workspaceId = await ctx.db.insert("workspaces", { name, slug, metadataRevision: 0, deletedAt: null });
     if (args.organizationSize !== undefined) await ctx.db.insert("workspaceSettings", { workspaceId, ...settings });
     await ctx.db.insert("workspaceMembers", { workspaceId, userId: user._id, role: "admin", active: true });
+    if (args.onboardingRevision !== undefined)
+      await recordWorkspaceCreation(ctx, workspaceId, args.onboardingRevision, settings.organizationSize);
     return workspaceId;
   },
 });
