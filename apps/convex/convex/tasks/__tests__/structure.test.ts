@@ -30,6 +30,8 @@ describe("task hierarchy and dependency journeys", () => {
     });
     expect(await owner.query(api.tasks.hierarchy.parent, { taskId: childId })).toEqual({
       task: null,
+      project: null,
+      canUnlink: false,
       hasParent: false,
     });
     expect((await owner.query(api.tasks.index.get, { taskId: childId })).title).toBe("Review");
@@ -54,7 +56,12 @@ describe("task hierarchy and dependency journeys", () => {
     await link(c, b);
     await expect(link(a, c)).rejects.toThrow("ancestor");
     await expect(link(a, a)).rejects.toThrow("ancestor");
-    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: a })).toEqual({ task: null, hasParent: false });
+    expect(await owner.query(api.tasks.hierarchy.parent, { taskId: a })).toEqual({
+      task: null,
+      project: null,
+      canUnlink: false,
+      hasParent: false,
+    });
   });
   test("reject cross-workspace parents and relations even for a writer in both workspaces", async () => {
     const { owner, projectId } = await workspaceJourney();
@@ -76,7 +83,7 @@ describe("task hierarchy and dependency journeys", () => {
         expectedUpdatedAt: task.updatedAt,
         parent: { taskId: b, expectedUpdatedAt: related.updatedAt },
       })
-    ).rejects.toThrow("same project");
+    ).rejects.toThrow("same workspace");
     await expect(
       owner.mutation(api.tasks.relationships.add, {
         taskId: a,

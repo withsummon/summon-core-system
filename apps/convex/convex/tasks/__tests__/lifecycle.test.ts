@@ -124,6 +124,8 @@ test("deleted parent/relation is a title-free cleanup placeholder, and removing 
   });
   expect(await f.owner.query(api.tasks.hierarchy.parent, { taskId: childId })).toEqual({
     task: null,
+    project: null,
+    canUnlink: true,
     hasParent: true,
   });
   const relationships = await f.owner.query(api.tasks.relationships.list, { taskId: otherId });
@@ -149,6 +151,8 @@ test("deleted parent/relation is a title-free cleanup placeholder, and removing 
   });
   expect(await f.owner.query(api.tasks.hierarchy.parent, { taskId: childId })).toEqual({
     task: null,
+    project: null,
+    canUnlink: false,
     hasParent: false,
   });
   expect(await f.owner.query(api.tasks.relationships.list, { taskId: otherId })).toEqual([]);
