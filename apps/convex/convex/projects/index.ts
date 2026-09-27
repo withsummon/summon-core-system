@@ -86,8 +86,9 @@ export const leave = mutation({
     const project = await ctx.db.get(args.projectId);
     if (!project) throw new ConvexError("Project not found.");
     // Archived projects remain leaveable; this does not permit editing archived content.
-    const { projectMember } = await requireProjectMembership(ctx, project);
+    const { projectMember, workspace } = await requireProjectMembership(ctx, project);
     await revokeProjectMembership(ctx, projectMember);
+    return { workspaceSlug: workspace.slug };
   },
 });
 async function revokeProjectMembership(ctx: MutationCtx, member: Doc<"projectMembers">) {
