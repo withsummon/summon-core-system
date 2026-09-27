@@ -24,7 +24,11 @@ export const members = query({
           .unique();
         const user = await ctx.db.get(row.userId);
         if (!membership?.active || !user) return null;
-        return { userId: user._id, name: memberLabel({ id: user._id, name: user.name, email: user.email }), avatar: await avatarDescriptor(ctx, user._id) };
+        return {
+          userId: user._id,
+          name: memberLabel({ id: user._id, name: user.name, email: user.email }),
+          avatar: await avatarDescriptor(ctx, user._id),
+        };
       })
     );
     return { ...result, page: page.filter((row) => row !== null) };
