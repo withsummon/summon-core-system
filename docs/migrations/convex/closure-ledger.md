@@ -1,5 +1,15 @@
 # Full migration closure ledger
 
+**Current cutover requirement:** the user selected the currently deployed production UI as the visual/interaction baseline. [Production UI preservation contract](production-ui-contract.md) takes precedence over earlier standalone-native-screen proposals. `/core` receipts prove scoped migration behavior, not approved product UI parity. Production presentation/data-owner integration is mandatory before retirement.
+
+## Latest image/intake and production-baseline checkpoint
+
+- `checkpoint-inline-intake.md` records the fixed `1313b7fc28` artifact on3030 and primary Chrome image upload/save/undo/Cancel plus intake property/image/acceptance journeys. All synthetic fixtures were restored or recoverably removed. Independent gates passed609 backend,40 live and55 frontend tests.
+- `0a1c9bf453` corrects intake's custom-state label using its canonical state owner; browser verification on a new artifact remains open.
+- `b186d28c0f` removes the additive old description CAS after verified old local previews3025–3029 were stopped. Their artifacts remain;3030, dev3010, remote-backed3024 and the temporary gateway remain. This cleanup is committed but not locally or remotely activated at this checkpoint.
+- Project Trash `b38773c855` and cycle completion curves `6f5ac234fd`/public-transfer proof `150fced400` are committed backend work, not deployed or integrated into preserved production UI. The inherited chart is a current-membership completion curve, not historical scope replay.
+- D19 ownership transfer and reverse-backlink D20 are not verified inherited contracts; later source receipts distinguish those extensions from real forward-reference/remote/wire gaps. The production frontend bootstrap, consumed projections and visual acceptance remain open across migrated domains.
+
 Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `edc8b31c28` and `e0b0eebe16`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
 
 ## Later closure evidence through 80c4b8a6e0
