@@ -6,7 +6,8 @@
     "./cycle-calendar": "./convex/cycles/dates.ts",
     "./api": "./convex/_generated/api.js",
     "./data-model": "./convex/_generated/dataModel.d.ts",
-    "./member-label": "./shared/member-label.ts"
+    "./member-label": "./shared/member-label.ts",
+    "./project-navigation": "./shared/project-navigation.ts"
   },
   "scripts": {
     "dev": "convex dev --typecheck disable",
