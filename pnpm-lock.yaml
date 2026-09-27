@@ -570,6 +570,9 @@ overrides:
   '@opentelemetry/sdk-trace-base': 2.8.0
   morgan: 1.11.0
 
+patchedDependencies:
+  '@convex-dev/auth@0.0.95': 202e83334b951e582dc0bc59a6f709b23934d8b233d09e50600a39417b722f99
+
 importers:
 
   .:
@@ -717,7 +720,7 @@ importers:
     dependencies:
       '@convex-dev/auth':
         specifier: 'catalog:'
-        version: 0.0.95(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
+        version: 0.0.95(patch_hash=202e83334b951e582dc0bc59a6f709b23934d8b233d09e50600a39417b722f99)(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
       '@plane/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -1053,7 +1056,7 @@ importers:
         version: 1.3.4
       '@convex-dev/auth':
         specifier: 'catalog:'
-        version: 0.0.95(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
+        version: 0.0.95(patch_hash=202e83334b951e582dc0bc59a6f709b23934d8b233d09e50600a39417b722f99)(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
       '@fontsource-variable/inter':
         specifier: 'catalog:'
         version: 5.2.8
@@ -10321,7 +10324,7 @@ snapshots:
 
   '@colors/colors@1.6.0': {}
 
-  '@convex-dev/auth@0.0.95(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)':
+  '@convex-dev/auth@0.0.95(patch_hash=202e83334b951e582dc0bc59a6f709b23934d8b233d09e50600a39417b722f99)(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@auth/core': 0.41.3
       '@oslojs/crypto': 1.0.1
