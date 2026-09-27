@@ -1,3 +1,4 @@
+import { requireCredential, credentialMetadataAccess } from "../mcp/access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -26,6 +27,28 @@ async function requireLinks(
     if (!client || client.deleted || client.workspaceId !== workspaceId)
       throw new ConvexError("Client belongs to another workspace.");
   }
+}
+async function validateCredentialLink(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  credentialId: Id<"mcpCredentials"> | null | undefined
+) {
+  if (!credentialId) return;
+  const { credential } = await requireCredential(ctx, credentialId);
+  if (credential.workspaceId !== workspaceId) throw new ConvexError("Credential belongs to another workspace.");
+}
+async function resourceProjection(ctx: QueryCtx, resource: Doc<"resources">, userId: Id<"users">) {
+  const credential = resource.credentialId ? await ctx.db.get(resource.credentialId) : null;
+  const available =
+    credential &&
+    credential.workspaceId === resource.workspaceId &&
+    (await credentialMetadataAccess(ctx, credential, userId));
+  return {
+    ...resource,
+    credentialId: available ? credential._id : null,
+    credentialName: available ? credential.name : null,
+    credentialUnavailable: Boolean(resource.credentialId && !available),
+  };
 }
 function validate(fields: Pick<Doc<"resources">, keyof typeof resourceFields>) {
   if (
@@ -58,10 +81,12 @@ export const create = mutation({
   args: { workspaceId: v.id("workspaces"), ...resourceFields },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId, true);
+    await validateCredentialLink(ctx, args.workspaceId, args.credentialId);
     const fields = validate(args);
     await requireLinks(ctx, args.workspaceId, args, true);
     return ctx.db.insert("resources", {
       ...fields,
+      credentialId: fields.credentialId ?? null,
       workspaceId: args.workspaceId,
       createdBy: user._id,
       updatedBy: user._id,
@@ -72,7 +97,10 @@ export const create = mutation({
 });
 export const get = query({
   args: { resourceId: v.id("resources") },
-  handler: async (ctx, args) => (await requireResource(ctx, args.resourceId)).resource,
+  handler: async (ctx, args) => {
+    const { resource, user } = await requireResource(ctx, args.resourceId);
+    return resourceProjection(ctx, resource, user._id);
+  },
 });
 export const update = mutation({
   args: { resourceId: v.id("resources"), expectedUpdatedAt: v.number(), ...resourceFields },
@@ -80,8 +108,14 @@ export const update = mutation({
     const { resource, user } = await requireResource(ctx, resourceId, true);
     if (resource.updatedAt !== expectedUpdatedAt)
       throw new ConvexError("This resource changed. Reopen the editor before saving.");
-    const validated = validate(fields);
-    await requireLinks(ctx, resource.workspaceId, fields, true);
+    const nextFields = {
+      ...fields,
+      credentialId: fields.credentialId === undefined ? (resource.credentialId ?? null) : fields.credentialId,
+    };
+    if (nextFields.credentialId !== resource.credentialId)
+      await validateCredentialLink(ctx, resource.workspaceId, nextFields.credentialId);
+    const validated = validate(nextFields);
+    await requireLinks(ctx, resource.workspaceId, nextFields, true);
     await ctx.db.patch(resourceId, {
       ...validated,
       updatedBy: user._id,
@@ -92,8 +126,12 @@ export const update = mutation({
 export const remove = mutation({
   args: { resourceId: v.id("resources") },
   handler: async (ctx, args) => {
-    const { user } = await requireResource(ctx, args.resourceId, true);
-    await ctx.db.patch(args.resourceId, { deleted: true, updatedBy: user._id, updatedAt: Date.now() });
+    const { user, resource } = await requireResource(ctx, args.resourceId, true);
+    await ctx.db.patch(args.resourceId, {
+      deleted: true,
+      updatedBy: user._id,
+      updatedAt: Math.max(Date.now(), resource.updatedAt + 1),
+    });
   },
 });
 export const list = query({
@@ -130,7 +168,7 @@ export const list = query({
           const client = await ctx.db.get(resource.clientId);
           if (!client || client.deleted) return null;
         }
-        return resource;
+        return resourceProjection(ctx, resource, user._id);
       })
     );
     return { ...result, page: visible.filter((resource) => resource !== null) };
@@ -153,7 +191,7 @@ export const detail = query({
       (!project || project.projectMember.role !== "guest") &&
       (!document || (await canAccessDocument(ctx, document, user._id, true)));
     return {
-      resource,
+      resource: await resourceProjection(ctx, resource, user._id),
       canWrite,
       projectName: project?.project.name ?? null,
       documentName: document?.name ?? null,

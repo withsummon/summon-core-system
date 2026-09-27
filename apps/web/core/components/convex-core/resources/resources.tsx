@@ -102,11 +102,13 @@ function ResourceDetail({
   resourceId: string;
   onBack: () => void;
 }) {
+  const [, setParams] = useSearchParams();
   const detail = useQuery(api.resources.index.detail, { workspaceId, resourceId });
   const remove = useMutation(api.resources.index.remove);
   const [editing, setEditing] = useState(false);
   if (!detail) return <p role="status">Opening resource…</p>;
   const { resource } = detail;
+  const credentialId = resource.credentialId;
   if (editing && detail.canWrite)
     return (
       <ResourceForm
@@ -152,6 +154,33 @@ function ResourceDetail({
             <dd className="mt-1 text-14 break-words">{value ?? "None"}</dd>
           </div>
         ))}
+        {resource.credentialUnavailable && (
+          <div>
+            <dt className="text-12 text-secondary">Credential</dt>
+            <dd className="mt-1 text-14 text-secondary">Not accessible</dd>
+          </div>
+        )}
+        {credentialId && resource.credentialName && (
+          <div>
+            <dt className="text-12 text-secondary">Credential</dt>
+            <dd className="mt-1">
+              <button
+                className="text-14 break-words text-accent-primary underline"
+                onClick={() =>
+                  setParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.set("module", "credentials");
+                    next.set("credential", credentialId);
+                    next.delete("resource");
+                    return next;
+                  })
+                }
+              >
+                {resource.credentialName}
+              </button>
+            </dd>
+          </div>
+        )}
       </dl>
       {detail.canWrite && (
         <DeleteRecord

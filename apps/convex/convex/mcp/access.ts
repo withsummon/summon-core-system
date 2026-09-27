@@ -10,6 +10,32 @@ export async function credentialPermission(ctx: QueryCtx, credential: Doc<"mcpCr
     .unique();
   return grant && (grant.expiresAt === null || grant.expiresAt > Date.now()) ? grant.permission : null;
 }
+// Shared nullable metadata ACL for paginated credential/resource projections.
+export async function credentialMetadataAccess(ctx: QueryCtx, credential: Doc<"mcpCredentials">, userId: Id<"users">) {
+  if (credential.status === "deleted") return null;
+  const workspaceMember = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", credential.workspaceId).eq("userId", userId))
+    .unique();
+  if (!workspaceMember?.active) return null;
+  const granted = await credentialPermission(ctx, credential, userId);
+  if (!granted) return null;
+  let projectRole: Doc<"projectMembers">["role"] | null = null;
+  if (credential.projectId) {
+    const projectId = credential.projectId;
+    const project = await ctx.db.get(projectId);
+    const member = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))
+      .unique();
+    if (!project || project.archived || project.workspaceId !== credential.workspaceId || !member?.active) return null;
+    projectRole = member.role;
+  }
+  return {
+    permission: granted,
+    ...credentialCapabilities(workspaceMember.role, projectRole, granted, credential.status),
+  };
+}
 export async function requireCredential(
   ctx: QueryCtx,
   credentialId: Id<"mcpCredentials">,

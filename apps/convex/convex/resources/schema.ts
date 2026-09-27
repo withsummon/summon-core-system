@@ -7,6 +7,7 @@ export const resourceFields = {
   category: v.string(),
   projectId: v.union(v.id("projects"), v.null()),
   documentId: v.union(v.id("documents"), v.null()),
+  credentialId: v.optional(v.union(v.id("mcpCredentials"), v.null())),
   clientId: v.union(v.id("clients"), v.null()),
 };
 export const resourceTables = {
