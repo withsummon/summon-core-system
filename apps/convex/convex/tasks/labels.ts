@@ -45,6 +45,13 @@ export const save = mutation({
       ).length >= 1000
     )
       throw new ConvexError("A project supports up to 1000 labels.");
-    return ctx.db.insert("taskLabels", { ...data, workspaceId: project.workspaceId, projectId: project._id });
+    return ctx.db.insert("taskLabels", {
+      ...data,
+      workspaceId: project.workspaceId,
+      projectId: project._id,
+      parentId: null,
+      revision: 0,
+      retiring: false,
+    });
   },
 });

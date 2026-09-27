@@ -170,6 +170,7 @@ import type * as tasks_drafts_validate from "../tasks/drafts/validate.js";
 import type * as tasks_hierarchy from "../tasks/hierarchy.js";
 import type * as tasks_history from "../tasks/history.js";
 import type * as tasks_index from "../tasks/index.js";
+import type * as tasks_label_migrations from "../tasks/label_migrations.js";
 import type * as tasks_labels from "../tasks/labels.js";
 import type * as tasks_lifecycle from "../tasks/lifecycle.js";
 import type * as tasks_links from "../tasks/links.js";
@@ -342,6 +343,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/hierarchy": typeof tasks_hierarchy;
   "tasks/history": typeof tasks_history;
   "tasks/index": typeof tasks_index;
+  "tasks/label_migrations": typeof tasks_label_migrations;
   "tasks/labels": typeof tasks_labels;
   "tasks/lifecycle": typeof tasks_lifecycle;
   "tasks/links": typeof tasks_links;
