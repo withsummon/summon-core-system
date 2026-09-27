@@ -2,7 +2,15 @@
 
 Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `edc8b31c28` and `e0b0eebe16`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
 
-## Current reconciliation through edc8b31c28 / e0b0eebe16
+## Later closure evidence through 80c4b8a6e0
+
+- D12 cross-project hierarchy: backend54412181ec, UIffe74c4109 and coupled projection718ece2004; Chrome receipt efb2f36607 proves parent/child navigation and reversible link removal across two projects. Revocation/cycle/recovery cases remain BDD evidence. Remote activation and external route parity remain open.
+- D14 intake discussion: backend2d382d8682 and UI51212cc90b reuse comment/reaction/subscription owners. Chrome31007cd926 proves pending-to-accepted discussion continuity and recoverable fixture cleanup. Recipient/guest boundaries are BDD evidence; intake activity timeline and remote/wire parity remain open.
+- D10 backend54eb3e8f31 and editor export fixea300d2271 add bound inline-image validation and canonical description-version CAS. Exact80c4b8a6e0 was activated locally. Frontend image activation is still in progress, so this is not image journey acceptance.
+- Remote ingress b908ada2e4/42c77cc381 now uses the existing site domain's AddPrefix `/http` and backend3210. Running container labels/image, discovery/JWKS, CORS, denied reads and same-owner Chrome attachment GET200 are recorded in the deployment receipt. This removes the prepared-only ingress status; it does not establish latest backend activation or remote avatar acceptance. Eight different-account403 responses are authorization denials, not a successful concurrency benchmark.
+- Fixed frontend31007cd926 is identified and served locally on3029 with the temporary3218 gateway. Its source excludes D10. Exact artifact and Chrome directory evidence are in `checkpoint-31007cd926.md`. Full inherited feature parity and Django retirement remain open.
+
+## Earlier reconciliation through edc8b31c28 / e0b0eebe16
 
 This table supersedes the older packet absence statements. Source, recorded
 primary Chrome acceptance and remote rollout are separate evidence. No inherited
