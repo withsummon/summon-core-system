@@ -3,35 +3,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
-import { RichTextEditorWithRef } from "@plane/editor";
-import type { IEditorProps, TFileHandler } from "@plane/editor";
+import { TaskRichEditor } from "./rich-editor";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
-const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "image", "issue-embed"];
-const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
-const extendedEditorProps = {};
-const mentionHandler = { renderComponent: () => null };
-const getEditorMetaData = () => ({ file_assets: [], user_mentions: [] });
-const readEditorProps = {
-  attributes: { role: "textbox", "aria-label": "Task description", "aria-multiline": "true", "aria-readonly": "true" },
-};
-const writeEditorProps = { attributes: { ...readEditorProps.attributes, "aria-readonly": "false" } };
-async function unavailable(): Promise<never> {
-  throw new Error("Task attachments are not available in this editor yet.");
-}
-const fileHandler: TFileHandler = {
-  assetsUploadStatus: {},
-  cancel: () => {},
-  checkIfAssetExists: unavailable,
-  delete: unavailable,
-  getAssetDownloadSrc: unavailable,
-  getAssetSrc: unavailable,
-  restore: unavailable,
-  upload: unavailable,
-  duplicate: unavailable,
-  validation: { maxFileSize: 0 },
-};
-
 export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; canWrite: boolean }) {
   const description = useQuery(api.tasks.description.get, { taskId });
   const [editing, setEditing] = useState(false);
@@ -49,39 +23,16 @@ export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; can
       {editing && canWrite ? (
         <DescriptionForm key={taskId} description={description} onDone={() => setEditing(false)} />
       ) : (
-        <DescriptionEditor key={description.updatedAt} taskId={taskId} html={description.html} editable={false} />
+        <TaskRichEditor
+          key={description.updatedAt}
+          id={`task-description-${taskId}`}
+          label="Task description"
+          placeholder="Describe the work…"
+          html={description.html}
+          editable={false}
+        />
       )}
     </section>
-  );
-}
-function DescriptionEditor({
-  taskId,
-  html,
-  editable,
-  onChange,
-}: {
-  taskId: Id<"tasks">;
-  html: string;
-  editable: boolean;
-  onChange?: (html: string) => void;
-}) {
-  return (
-    <div className="min-h-36 rounded-xl border border-subtle-1 p-3">
-      <RichTextEditorWithRef
-        id={`task-description-${taskId}`}
-        initialValue={html}
-        editable={editable}
-        disabledExtensions={disabledExtensions}
-        flaggedExtensions={flaggedExtensions}
-        fileHandler={fileHandler}
-        mentionHandler={mentionHandler}
-        extendedEditorProps={extendedEditorProps}
-        getEditorMetaData={getEditorMetaData}
-        editorProps={editable ? writeEditorProps : readEditorProps}
-        onChange={(_json, nextHtml) => onChange?.(nextHtml)}
-        placeholder="Describe the work…"
-      />
-    </div>
   );
 }
 function DescriptionForm({
@@ -112,8 +63,10 @@ function DescriptionForm({
         }
       }}
     >
-      <DescriptionEditor
-        taskId={description.taskId}
+      <TaskRichEditor
+        id={`task-description-${description.taskId}`}
+        label="Task description"
+        placeholder="Describe the work…"
         html={description.html}
         editable={!pending}
         onChange={(html) => setDraft((current) => ({ ...current, html }))}
