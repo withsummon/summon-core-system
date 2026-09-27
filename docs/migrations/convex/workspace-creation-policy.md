@@ -1,0 +1,9 @@
+# Workspace creation policy bootstrap prerequisite
+
+Inherited `license/api/views/instance.py` exposes `is_workspace_creation_disabled` from the literal `DISABLE_WORKSPACE_CREATION == "1"`. `app/views/workspace/base.py:85–98` denies creation when set, with no instance-admin exception. `license/utils/instance_value.py` reads database InstanceConfiguration when SKIP_ENV_VAR is enabled, otherwise environment; missing values fall back to `0`.
+
+Native instance configuration already uses operator-managed environment for mail/OAuth. Its existing configuration owner now exposes an anonymous `availability` query containing only `isWorkspaceCreationDisabled`. The same policy function enforces workspace creation after live unrestricted authentication and before name/slug validation or database writes. Instance administrators have no bypass. The authenticated admin configuration projection includes the same field. No secret values, synthetic instance DTO, new policy table, or UI redesign is introduced.
+
+This implements the environment-backed policy, not the inherited database configuration management panel. Deployments migrating a stored InstanceConfiguration override must explicitly set the matching Convex environment value; this change neither reads Django nor silently imports configuration. No remote configuration or deployment was changed. Existing user/session restrictions, slug uniqueness and atomic creator-admin membership creation remain their current owners.
+
+Two module behavior cases verify anonymous safe projection, ordinary and instance-admin denial, no workspace/member writes on denial, enabled creation with its admin membership, duplicate slug rejection and restricted-account denial. Backend TypeScript and scoped Oxc pass. Product shell wiring and browser acceptance remain pending; no instance bootstrap was invoked outside test fixtures.
