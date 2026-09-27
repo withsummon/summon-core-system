@@ -2,6 +2,10 @@
 
 Status: **not ready to retire Django or its Postgres service**.
 
+## Confirmed product scope
+
+The user confirmed on 2026-09-27 that **every inherited Plane feature must be retained**. Retirement therefore requires parity for inherited cycles, modules, inbox, imports, administration, public sharing and all other registered product flows, as well as Summon modules. Native slice receipts that explicitly omit inherited behavior are progress records, not permission to remove that behavior. Empty production data does not remove this feature-parity requirement.
+
 The native `/core` route is an independently authenticated Convex workspace. Existing Summon and inherited Plane routes remain registered and continue to use Django. A working native slice does not establish full route or feature parity.
 
 ## Current route ownership
