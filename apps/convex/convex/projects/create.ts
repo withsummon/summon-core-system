@@ -1,3 +1,4 @@
+import { workspaceTimezone } from "../settings/timezone";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -24,6 +25,7 @@ export async function createProject(
     workspaceId: args.workspaceId,
     name,
     identifier,
+    timezone: await workspaceTimezone(ctx, args.workspaceId),
     nextSequence: 1,
     archived: false,
   });

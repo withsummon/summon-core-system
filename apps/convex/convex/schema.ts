@@ -1,3 +1,4 @@
+import { cycleTables } from "./cycles/schema";
 import { notificationTables } from "./notifications/schema";
 import { automationTables } from "./automation/schema";
 import { mcpTables } from "./mcp/schema";
@@ -16,6 +17,7 @@ import { resourceTables } from "./resources/schema";
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
   ...authTables,
+  ...cycleTables,
   ...notificationTables,
   ...automationTables,
   ...mcpTables,
@@ -36,6 +38,7 @@ export default defineSchema({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     identifier: v.string(),
+    timezone: v.optional(v.string()),
     nextSequence: v.number(),
     archived: v.boolean(),
   })

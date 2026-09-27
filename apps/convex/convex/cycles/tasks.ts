@@ -1,0 +1,99 @@
+import { v, ConvexError } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
+import { mutation, query } from "../_generated/server";
+import { requireTask } from "../tasks/properties";
+import { requireProject } from "../identity/access";
+import { requireTaskRevision, taskChanged } from "../tasks/revision";
+import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
+export const assign = mutation({
+  args: {
+    cycleId: v.id("cycles"),
+    taskId: v.id("tasks"),
+    expectedTaskUpdatedAt: v.number(),
+    expectedCycleUpdatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
+    requireOpenCycle(cycle);
+    requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
+    const task = await requireTask(ctx, args.taskId);
+    if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
+    const previous = await ctx.db
+      .query("cycleTasks")
+      .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .unique();
+    if (previous?.cycleId === cycle._id) return;
+    requireTaskRevision(task, args.expectedTaskUpdatedAt);
+    if (previous) {
+      const source = await ctx.db.get(previous.cycleId);
+      if (source && !source.deleted) requireOpenCycle(source);
+    }
+    if (
+      (
+        await ctx.db
+          .query("cycleTasks")
+          .withIndex("by_cycle", (q) => q.eq("cycleId", cycle._id))
+          .take(100)
+      ).length >= 100
+    )
+      throw new ConvexError("This cycle has reached its 100 task limit.");
+    if (previous) await ctx.db.patch(previous._id, { cycleId: cycle._id });
+    else await ctx.db.insert("cycleTasks", { cycleId: cycle._id, taskId: task._id });
+    await taskChanged(ctx, task, user._id);
+  },
+});
+export const remove = mutation({
+  args: {
+    cycleId: v.id("cycles"),
+    taskId: v.id("tasks"),
+    expectedTaskUpdatedAt: v.number(),
+    expectedCycleUpdatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
+    requireOpenCycle(cycle);
+    requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
+    const task = await requireTask(ctx, args.taskId);
+    if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
+    const previous = await ctx.db
+      .query("cycleTasks")
+      .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .unique();
+    if (!previous) return;
+    if (previous.cycleId !== cycle._id) throw new ConvexError("Task has moved to another cycle.");
+    requireTaskRevision(task, args.expectedTaskUpdatedAt);
+    await ctx.db.delete(previous._id);
+    await taskChanged(ctx, task, user._id);
+  },
+});
+export const current = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const task = await requireTask(ctx, args.taskId);
+    await requireProject(ctx, task.projectId);
+    const membership = await ctx.db
+      .query("cycleTasks")
+      .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .unique();
+    const cycle = membership ? await ctx.db.get(membership.cycleId) : null;
+    return cycle && !cycle.deleted ? cycle : null;
+  },
+});
+export const list = query({
+  args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    await requireCycle(ctx, args.cycleId);
+    if (
+      !Number.isSafeInteger(args.paginationOpts.numItems) ||
+      args.paginationOpts.numItems < 1 ||
+      args.paginationOpts.numItems > 100
+    )
+      throw new ConvexError("Choose 1–100 tasks per page.");
+    const result = await ctx.db
+      .query("cycleTasks")
+      .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
+    const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
+    return { ...result, page: tasks.filter((task) => task !== null) };
+  },
+});
