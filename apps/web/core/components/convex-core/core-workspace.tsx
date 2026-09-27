@@ -10,8 +10,11 @@ import { SummonField } from "@/components/summon/forms";
 import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
+const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
 const TaskCenter = lazy(() => import("./tasks/task-center").then((module) => ({ default: module.TaskCenter })));
-const Notifications = lazy(() => import("./notifications/notifications").then((module) => ({ default: module.Notifications })));
+const Notifications = lazy(() =>
+  import("./notifications/notifications").then((module) => ({ default: module.Notifications }))
+);
 const Credentials = lazy(() => import("./credentials/credentials").then((module) => ({ default: module.Credentials })));
 const Resources = lazy(() => import("./resources/resources").then((module) => ({ default: module.Resources })));
 const Reports = lazy(() => import("./reporting/reports").then((module) => ({ default: module.Reports })));
@@ -315,6 +318,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "notifications", label: "Notifications" },
           { id: "meetings", label: "Meetings" },
           { id: "assistant", label: "Assistant" },
+          { id: "automation", label: "Automation" },
           { id: "reports", label: "Reports" },
           { id: "settings", label: "Settings" },
         ].map((item) => (
@@ -330,6 +334,8 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
       <Suspense fallback={<p role="status">Loading module…</p>}>
         {module === "tasks" ? (
           <TaskCenter workspace={workspace} />
+        ) : module === "automation" ? (
+          <Automation workspace={workspace} />
         ) : module === "notifications" ? (
           <Notifications workspace={workspace} />
         ) : module === "credentials" ? (

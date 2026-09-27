@@ -85,36 +85,40 @@ export function ConversationForm({
     </form>
   );
 }
-function ContextFields({
+export function ContextFields({
   workspaceId,
   value,
   onChange,
+  showProject = true,
 }: {
   workspaceId: Id<"workspaces">;
   value: Context;
   onChange: (value: Context) => void;
+  showProject?: boolean;
 }) {
   const projects = useQuery(api.projects.index.list, { workspaceId });
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <SummonField label="Project" htmlFor="assistant-project">
-        <select
-          id="assistant-project"
-          className={selectClass}
-          value={value.projectId ?? ""}
-          onChange={(event) => {
-            const project = projects?.find((item) => item._id === event.target.value);
-            onChange({ ...value, projectId: project?._id ?? null });
-          }}
-        >
-          <option value="">No project</option>
-          {projects?.map((project) => (
-            <option key={project._id} value={project._id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
-      </SummonField>
+      {showProject && (
+        <SummonField label="Project" htmlFor="assistant-project">
+          <select
+            id="assistant-project"
+            className={selectClass}
+            value={value.projectId ?? ""}
+            onChange={(event) => {
+              const project = projects?.find((item) => item._id === event.target.value);
+              onChange({ ...value, projectId: project?._id ?? null });
+            }}
+          >
+            <option value="">No project</option>
+            {projects?.map((project) => (
+              <option key={project._id} value={project._id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        </SummonField>
+      )}
       <ClientField
         workspaceId={workspaceId}
         value={value.clientId}
