@@ -235,6 +235,7 @@ import type * as tasks_rich_content from "../tasks/rich_content.js";
 import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
 import type * as workspaces_index from "../workspaces/index.js";
+import type * as workspaces_member_count from "../workspaces/member_count.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
@@ -466,6 +467,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/states": typeof tasks_states;
   "tasks/status": typeof tasks_status;
   "workspaces/index": typeof workspaces_index;
+  "workspaces/member_count": typeof workspaces_member_count;
 }>;
 
 /**
