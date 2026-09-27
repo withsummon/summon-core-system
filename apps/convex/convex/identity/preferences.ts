@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import type { Infer } from "convex/values";
 import { preferences } from "./preferences_fields";
-import { ownProfile, profileRevision, writeProfile } from "./profile_owner";
+import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
 import { requireWorkspace } from "./access";
 function validatePreferences(value: Infer<typeof preferences>) {
   if (!Number.isInteger(value.startOfWeek) || value.startOfWeek < 0 || value.startOfWeek > 6)
@@ -34,5 +34,21 @@ export const save = mutation({
     validatePreferences(args.preferences);
     if (args.preferences.lastWorkspaceId) await requireWorkspace(ctx, args.preferences.lastWorkspaceId);
     await writeProfile(ctx, owner, { preferences: args.preferences, revision });
+  },
+});
+
+// Workspace selection is a field-level action, not a full preference form save.
+export const selectWorkspace = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    const owner = await ownProfile(ctx);
+    const { workspace } = await requireWorkspace(ctx, workspaceId);
+    const profile = owner.profile ?? defaultProfile;
+    if (profile.preferences.lastWorkspaceId !== workspaceId)
+      await writeProfile(ctx, owner, {
+        revision: profile.revision + 1,
+        preferences: { ...profile.preferences, lastWorkspaceId: workspaceId },
+      });
+    return { workspaceId: workspace._id, slug: workspace.slug };
   },
 });
