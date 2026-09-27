@@ -12,7 +12,7 @@ import { TaskComments } from "../tasks/comments";
 import { TaskReactions } from "../tasks/reactions/reactions";
 import { TaskSubscription } from "../notifications/task-subscription";
 import { TaskAttachments } from "../tasks/attachments/attachments";
-import { TaskRichEditor } from "../tasks/rich-editor";
+import { IntakeDescription } from "./description";
 import { IntakeTrash } from "./trash";
 import { SubmissionForm } from "./forms";
 import { DecisionForm, RemoveSubmission, intakeOptions } from "./decisions";
@@ -245,16 +245,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
           )}
         </div>
       )}
-      {detail.task.description.trim() && (
-        <TaskRichEditor
-          key={detail.task.updatedAt}
-          id={`intake-description-${detail.task._id}`}
-          label="Submission description"
-          placeholder="Describe the submission…"
-          html={detail.html}
-          editable={false}
-        />
-      )}
+      <IntakeDescription key={`description:${detail.task._id}`} taskId={detail.task._id} />
       <TaskAttachments key={`attachments:${detail.task._id}`} taskId={detail.task._id} />
       <TaskReactions key={`reactions:${detail.task._id}`} taskId={detail.task._id} />
       <TaskComments key={`comments:${detail.task._id}`} taskId={detail.task._id} />

@@ -38,6 +38,17 @@ image upload/save, stale content and metadata conflicts, admission followed by
 metadata-only edit preserving the image, and guest creator description access.
 The full backend suite passed 609 tests, including ordinary task creation,
 property updates and draft validation; native TypeScript 7 passed.
-Browser acceptance and deployment of this slice are not yet verified.
+Backend commit `1003b4a5d9` passed an immutable archive TypeScript check and
+was deployed locally to `http://127.0.0.1:3210`; deployment log:
+`/tmp/summon-migration-control/intake-properties-1003b4a5d9-local-deploy.txt`.
+No remote deployment or browser acceptance is claimed.
+
+The native create/edit forms reuse `TaskNonStateProperties`, extracted from the
+ordinary task control owner without duplicating field logic. State remains absent
+from intake controls. Existing submission description is a separate image-capable
+editor using the shared task asset handler; metadata edits never send HTML. Draft
+HTML survives failed saves/editor recreation; pending uploads and saves also gate
+the submit handler, including keyboard submission. Captured metadata revisions
+remain unchanged while the form is open.
 No opaque intake JSON settings, parent/cycle/module assignment, metadata/default
 intake lifecycle, source integration or REST compatibility is implemented here.
