@@ -31,7 +31,15 @@ describe("Permission-filtered report contributions", () => {
         projectId,
         title: status,
         status,
-        properties: { targetDate, startDate: null, stateId: null, assigneeIds: [], labelIds: [], priority: "none" },
+        properties: {
+          estimatePointId: null,
+          targetDate,
+          startDate: null,
+          stateId: null,
+          assigneeIds: [],
+          labelIds: [],
+          priority: "none",
+        },
       });
     }
     const first = await owner.query(api.reporting.tasks.page, { scope, paginationOpts: page });

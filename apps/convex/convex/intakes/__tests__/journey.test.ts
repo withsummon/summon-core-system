@@ -113,6 +113,7 @@ test("reserved triage cannot be chosen through normal task/state APIs; configura
         startDate: null,
         targetDate: null,
         stateId: row.task.stateId,
+        estimatePointId: row.task.estimatePointId,
       },
     })
   ).rejects.toThrow("intake");

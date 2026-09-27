@@ -16,7 +16,7 @@ export const priority = v.union(
   v.literal("none")
 );
 export const taskProperties = {
-  estimatePointId: v.optional(v.union(v.id("estimatePoints"), v.null())),
+  estimatePointId: v.union(v.id("estimatePoints"), v.null()),
   priority,
   assigneeIds: v.array(v.id("users")),
   labelIds: v.array(v.id("taskLabels")),

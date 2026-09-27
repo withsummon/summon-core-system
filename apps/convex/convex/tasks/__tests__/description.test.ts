@@ -68,6 +68,7 @@ describe("canonical task rich description", () => {
       description: "Changed plain",
       status: task.status,
       priority: task.priority,
+      estimatePointId: task.estimatePointId,
       assigneeIds: task.assigneeIds,
       labelIds: task.labelIds,
       startDate: task.startDate,

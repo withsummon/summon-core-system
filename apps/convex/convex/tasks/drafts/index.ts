@@ -98,8 +98,6 @@ export const save = mutation({
     if (draft.contentRevision !== args.expectedContentRevision)
       throw new ConvexError("Draft content changed. Reopen it before saving.");
     const updatedAt = Math.max(Date.now(), draft.updatedAt + 1);
-    if (args.properties.estimatePointId === undefined)
-      args.properties.estimatePointId = draft.properties.estimatePointId ?? null;
     await validateDraft(ctx, draft.workspaceId, args);
     const content = taskRichContent(args.html);
     const htmlChanged = content.html !== draft.html;

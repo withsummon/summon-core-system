@@ -131,6 +131,7 @@ test("subscriber cap rejects excess instead of silently dropping delivery, faile
       description: task.description,
       status: "done",
       priority: task.priority,
+      estimatePointId: task.estimatePointId,
       assigneeIds: task.assigneeIds,
       labelIds: task.labelIds,
       startDate: task.startDate,
