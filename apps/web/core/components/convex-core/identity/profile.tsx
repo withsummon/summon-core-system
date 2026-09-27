@@ -1,3 +1,4 @@
+import { IncomingInvitations } from "../invitations/incoming";
 import { ConnectedAccounts } from "./accounts/accounts";
 import { AccountPassword } from "./password/password";
 import { AccountSessions } from "./sessions/sessions";
@@ -26,6 +27,7 @@ export function Profile() {
       {profile ? (
         <div className="mt-3 space-y-3">
           <ProfileAppearance theme={profile.preferences.theme} />
+          <IncomingInvitations />
           <p className="font-medium break-words">{profile.displayName || "Your profile"}</p>
           <p className="break-all text-secondary">{profile.email}</p>
           <Button variant="secondary" aria-expanded={sessionsOpen} onClick={() => setSessionsOpen(!sessionsOpen)}>
