@@ -4,7 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
 import { requireTask } from "../tasks/access";
-import { taskCanRead } from "../tasks/access";
+import { selectedTask, selectionFields, validateSelection } from "./selection";
 export const subscribe = mutation({
   args: { taskId: v.id("tasks"), subscribed: v.boolean() },
   handler: async (ctx, args) => {
@@ -36,14 +36,14 @@ export const subscription = query({
 export const list = query({
   args: {
     workspaceId: v.id("workspaces"),
-    view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
+    ...selectionFields,
     unreadOnly: v.boolean(),
-    mentionsOnly: v.optional(v.boolean()),
     now: v.number(),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const { user, member } = await requireWorkspace(ctx, args.workspaceId);
+    validateSelection(args);
     if (
       !Number.isSafeInteger(args.now) ||
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
@@ -58,14 +58,9 @@ export const list = query({
       .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
     const rows = await Promise.all(
       result.page.map(async (row) => {
-        const snoozed = row.snoozedUntil !== null && row.snoozedUntil > args.now;
-        const visible =
-          args.view === "archived"
-            ? row.archivedAt !== null
-            : row.archivedAt === null && (args.view === "snoozed" ? snoozed : !snoozed);
-        if (!visible || (args.unreadOnly && row.readAt !== null) || (args.mentionsOnly && !row.isMention)) return null;
-        const task = await ctx.db.get(row.taskId);
-        if (!task || !(await taskCanRead(ctx, task, user._id))) return null;
+        if (args.unreadOnly && row.readAt !== null) return null;
+        const task = await selectedTask(ctx, row, user._id, member.role, args);
+        if (!task) return null;
         return {
           ...row,
           isMention: row.isMention ?? false,

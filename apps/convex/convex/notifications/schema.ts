@@ -1,6 +1,16 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { selectionFields } from "./selection";
 export const notificationTables = {
+  notificationReadBatches: defineTable({
+    workspaceId: v.id("workspaces"),
+    receiverId: v.id("users"),
+    ...selectionFields,
+    cutoff: v.number(),
+    now: v.number(),
+    completed: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }).index("by_now", ["now"]),
   taskSubscriptions: defineTable({ taskId: v.id("tasks"), userId: v.id("users") }).index("by_task_user", [
     "taskId",
     "userId",

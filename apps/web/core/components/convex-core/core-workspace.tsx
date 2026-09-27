@@ -445,7 +445,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ) : module === "automation" ? (
           <Automation workspace={workspace} />
         ) : module === "notifications" ? (
-          <Notifications workspace={workspace} />
+          <Notifications key={workspace._id} workspace={workspace} />
         ) : module === "credentials" ? (
           <Credentials workspace={workspace} />
         ) : module === "resources" ? (
