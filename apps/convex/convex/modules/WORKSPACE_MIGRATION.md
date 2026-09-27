@@ -41,3 +41,12 @@ No browser acceptance or remote deployment is claimed.
 Legacy aggregate counts and embedded roster/link projections remain a directory
 wire-parity gap. Native scoped detail is the current supported route for those
 features; no inherited route or service is retired by this slice.
+
+## Primary Chrome acceptance
+
+The primary inspected two workspace module rows on the local native frontend,
+then followed Release readiness to its canonical project module detail with
+progress, members and links. Desktop was readable. At390px, measured innerWidth
+and scrollWidth were both390; rows, status and dates fit. The viewport override
+was cleared. This is one-page read/navigation proof only. Sparse continuation
+and ACL denial remain BDD evidence, not browser-tested claims.
