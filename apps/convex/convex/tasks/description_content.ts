@@ -1,6 +1,33 @@
+import { ConvexError, v } from "convex/values";
+import type { QueryCtx } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { plainDescriptionHtml } from "./rich_content";
+
+export const contentVersion = v.union(
+  v.null(),
+  v.object({ versionId: v.id("taskDescriptionVersions"), revision: v.number() })
+);
+export async function latestDescriptionVersion(ctx: QueryCtx, taskId: Id<"tasks">) {
+  return ctx.db
+    .query("taskDescriptionVersions")
+    .withIndex("by_task", (q) => q.eq("taskId", taskId))
+    .order("desc")
+    .first();
+}
+export async function descriptionVersion(ctx: QueryCtx, taskId: Id<"tasks">) {
+  const version = await latestDescriptionVersion(ctx, taskId);
+  return version ? { versionId: version._id, revision: version.revision } : null;
+}
+export async function requireDescriptionVersion(
+  ctx: QueryCtx,
+  taskId: Id<"tasks">,
+  expected: Awaited<ReturnType<typeof descriptionVersion>>
+) {
+  const current = await descriptionVersion(ctx, taskId);
+  if (current?.versionId !== expected?.versionId || current?.revision !== expected?.revision)
+    throw new ConvexError("Description changed. Reopen the latest description before saving.");
+}
 
 // Caller owns authorization and task CAS; content and history commit in that same transaction.
 export async function writeDescription(
@@ -20,11 +47,7 @@ export async function writeDescription(
     await ctx.db.patch(rich._id, { html: content.html, descriptionJson: undefined, descriptionBinary: undefined });
   else await ctx.db.insert("taskDescriptions", { taskId: task._id, html: content.html });
   await ctx.db.patch(task._id, { description: content.description });
-  const latest = await ctx.db
-    .query("taskDescriptionVersions")
-    .withIndex("by_task", (q) => q.eq("taskId", task._id))
-    .order("desc")
-    .first();
+  const latest = await latestDescriptionVersion(ctx, task._id);
   const now = Date.now();
   const data = { html: content.html, description: content.description, lastSavedAt: now };
   if (latest && latest.actorId === actorId && now - latest.lastSavedAt <= 600000) {

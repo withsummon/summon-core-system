@@ -201,6 +201,7 @@ import type * as tasks_comments from "../tasks/comments.js";
 import type * as tasks_create from "../tasks/create.js";
 import type * as tasks_description from "../tasks/description.js";
 import type * as tasks_description_content from "../tasks/description_content.js";
+import type * as tasks_description_images from "../tasks/description_images.js";
 import type * as tasks_discussion_access from "../tasks/discussion_access.js";
 import type * as tasks_drafts_access from "../tasks/drafts/access.js";
 import type * as tasks_drafts_copy from "../tasks/drafts/copy.js";
@@ -423,6 +424,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/create": typeof tasks_create;
   "tasks/description": typeof tasks_description;
   "tasks/description_content": typeof tasks_description_content;
+  "tasks/description_images": typeof tasks_description_images;
   "tasks/discussion_access": typeof tasks_discussion_access;
   "tasks/drafts/access": typeof tasks_drafts_access;
   "tasks/drafts/copy": typeof tasks_drafts_copy;

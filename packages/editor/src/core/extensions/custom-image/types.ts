@@ -7,16 +7,8 @@
 import type { Node } from "@tiptap/core";
 // types
 import type { TFileHandler } from "@/types";
-
-export enum ECustomImageAttributeNames {
-  ID = "id",
-  WIDTH = "width",
-  HEIGHT = "height",
-  ASPECT_RATIO = "aspectRatio",
-  SOURCE = "src",
-  ALIGNMENT = "alignment",
-  STATUS = "status",
-}
+import { ECustomImageAttributeNames, ECustomImageStatus } from "./contract";
+export { ECustomImageAttributeNames, ECustomImageStatus } from "./contract";
 
 export type Pixel = `${number}px`;
 
@@ -29,14 +21,6 @@ export type TCustomImageSize = {
 };
 
 export type TCustomImageAlignment = "left" | "center" | "right";
-
-export enum ECustomImageStatus {
-  PENDING = "pending",
-  UPLOADING = "uploading",
-  UPLOADED = "uploaded",
-  DUPLICATING = "duplicating",
-  DUPLICATION_FAILED = "duplication-failed",
-}
 
 export type TCustomImageAttributes = {
   [ECustomImageAttributeNames.ID]: string | null;
