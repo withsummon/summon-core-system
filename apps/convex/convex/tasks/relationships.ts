@@ -6,12 +6,44 @@ import { relationKind } from "./schema";
 import { requireTaskRevision, taskChanged } from "./revision";
 import type { Doc, Id } from "../_generated/dataModel";
 
+const relationDirection = v.union(
+  relationKind,
+  v.literal("blocked_by"),
+  v.literal("start_after"),
+  v.literal("finish_after"),
+  v.literal("implements")
+);
+const inverse = {
+  blocks: "blocked_by",
+  start_before: "start_after",
+  finish_before: "finish_after",
+  implemented_by: "implements",
+  relates_to: "relates_to",
+  duplicate: "duplicate",
+} as const;
+function canonicalRelation(kind: typeof relationDirection.type, taskId: Id<"tasks">, relatedId: Id<"tasks">) {
+  const reversed = {
+    blocked_by: "blocks",
+    start_after: "start_before",
+    finish_after: "finish_before",
+    implements: "implemented_by",
+  } as const;
+  if (kind === "blocked_by" || kind === "start_after" || kind === "finish_after" || kind === "implements")
+    return { kind: reversed[kind], fromId: relatedId, toId: taskId };
+  const symmetric = kind === "relates_to" || kind === "duplicate";
+  return {
+    kind,
+    fromId: symmetric && taskId > relatedId ? relatedId : taskId,
+    toId: symmetric && taskId > relatedId ? taskId : relatedId,
+  };
+}
 const MAX_PROJECT_RELATIONS = 1000;
 export const list = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await requireTask(ctx, taskId, "read");
     const { user, member, projectMember } = await requireProject(ctx, task.projectId);
+    const canCleanUnavailable = member.role !== "guest" && projectMember.role !== "guest";
     const [outgoing, incoming] = await Promise.all([
       ctx.db
         .query("taskRelations")
@@ -25,14 +57,14 @@ export const list = query({
     const rows = await Promise.all(
       [...outgoing, ...incoming].map(async (relation) => {
         const related = await ctx.db.get(relation.fromId === taskId ? relation.toId : relation.fromId);
-        if (related && taskIsReadable(related) && !(await taskCanRead(ctx, related, user._id))) return null;
-        if ((!related || !taskIsReadable(related)) && (member.role === "guest" || projectMember.role === "guest"))
-          return null;
+        const readable = related !== null && taskIsReadable(related);
+        if (readable && !(await taskCanRead(ctx, related, user._id))) return null;
+        if (!readable && !canCleanUnavailable) return null;
         return {
           relation,
-          task: related && taskIsReadable(related) ? related : null,
-          unavailable: !related || !taskIsReadable(related),
-          direction: relation.kind === "blocks" && relation.toId === taskId ? ("blocked_by" as const) : relation.kind,
+          task: readable ? related : null,
+          unavailable: !readable,
+          direction: relation.toId === taskId ? inverse[relation.kind] : relation.kind,
         };
       })
     );
@@ -58,7 +90,7 @@ export const add = mutation({
     expectedUpdatedAt: v.number(),
     relatedTaskId: v.id("tasks"),
     expectedRelatedUpdatedAt: v.number(),
-    kind: relationKind,
+    kind: relationDirection,
   },
   handler: async (ctx, args) => {
     const task = await requireTask(ctx, args.taskId);
@@ -69,8 +101,7 @@ export const add = mutation({
     if (task.projectId !== related.projectId) throw new ConvexError("Related tasks must belong to the same project.");
     requireTaskRevision(task, args.expectedUpdatedAt);
     requireTaskRevision(related, args.expectedRelatedUpdatedAt);
-    const [fromId, toId] =
-      args.kind !== "blocks" && task._id > related._id ? [related._id, task._id] : [task._id, related._id];
+    const { fromId, toId, kind } = canonicalRelation(args.kind, task._id, related._id);
     const edges = await ctx.db
       .query("taskRelations")
       .withIndex("by_project", (q) => q.eq("projectId", task.projectId))
@@ -83,12 +114,12 @@ export const add = mutation({
       throw new ConvexError("These tasks already have a relationship.");
     if (edges.length >= MAX_PROJECT_RELATIONS)
       throw new ConvexError("A project supports up to 1000 task relationships.");
-    if (args.kind === "blocks") assertAcyclic(edges, fromId, toId);
+    if (kind === "blocks") assertAcyclic(edges, fromId, toId);
     const id = await ctx.db.insert("taskRelations", {
       projectId: task.projectId,
       fromId,
       toId,
-      kind: args.kind,
+      kind,
     });
     await taskChanged(ctx, task, user._id);
     await taskChanged(ctx, related, user._id);

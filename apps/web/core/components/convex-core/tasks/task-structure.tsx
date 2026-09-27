@@ -3,13 +3,37 @@ import { Link, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Doc } from "@summon/convex/data-model";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
 type Task = Doc<"tasks">;
-const relationLabels = { blocks: "Blocks", blocked_by: "Blocked by", relates_to: "Relates to", duplicate: "Duplicate" };
+type RelationDirection = FunctionArgs<typeof api.tasks.relationships.add>["kind"];
+const relationLabels = {
+  blocks: "Blocks",
+  blocked_by: "Blocked by",
+  relates_to: "Relates to",
+  duplicate: "Duplicate",
+  start_before: "Start before",
+  start_after: "Start after",
+  finish_before: "Finish before",
+  finish_after: "Finish after",
+  implemented_by: "Implemented by",
+  implements: "Implements",
+} satisfies Record<RelationDirection, string>;
+const relationDirections = [
+  "blocks",
+  "blocked_by",
+  "relates_to",
+  "duplicate",
+  "start_before",
+  "start_after",
+  "finish_before",
+  "finish_after",
+  "implemented_by",
+  "implements",
+] as const satisfies readonly RelationDirection[];
 
 function TaskLink({ task }: { task: Task }) {
   const [params] = useSearchParams();
@@ -253,8 +277,7 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
   const add = useMutation(api.tasks.relationships.add);
   const [snapshot] = useState(task);
   const [selected, setSelected] = useState<Task | null>(null);
-  const [kind, setKind] =
-    useState<FunctionReturnType<typeof api.tasks.relationships.list>[number]["direction"]>("blocks");
+  const [kind, setKind] = useState<RelationDirection>("blocks");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -267,11 +290,11 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
         setError("");
         try {
           await add({
-            taskId: kind === "blocked_by" ? selected._id : snapshot._id,
-            expectedUpdatedAt: kind === "blocked_by" ? selected.updatedAt : snapshot.updatedAt,
-            relatedTaskId: kind === "blocked_by" ? snapshot._id : selected._id,
-            expectedRelatedUpdatedAt: kind === "blocked_by" ? snapshot.updatedAt : selected.updatedAt,
-            kind: kind === "blocked_by" ? "blocks" : kind,
+            taskId: snapshot._id,
+            expectedUpdatedAt: snapshot.updatedAt,
+            relatedTaskId: selected._id,
+            expectedRelatedUpdatedAt: selected.updatedAt,
+            kind,
           });
           onDone();
         } catch (failure) {
@@ -288,16 +311,15 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
             className={selectClass}
             value={kind}
             onChange={(event) => {
-              const option = (["blocks", "blocked_by", "relates_to", "duplicate"] as const).find(
-                (value) => value === event.target.value
-              );
+              const option = relationDirections.find((value) => value === event.target.value);
               if (option) setKind(option);
             }}
           >
-            <option value="blocks">Blocks</option>
-            <option value="blocked_by">Blocked by</option>
-            <option value="relates_to">Relates to</option>
-            <option value="duplicate">Duplicate</option>
+            {relationDirections.map((direction) => (
+              <option key={direction} value={direction}>
+                {relationLabels[direction]}
+              </option>
+            ))}
           </select>
         </SummonField>
         <TaskChoice task={task} value={selected} onChange={setSelected} label="Related task" />

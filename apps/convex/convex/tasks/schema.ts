@@ -33,7 +33,14 @@ export const stateFields = {
   isDefault: v.boolean(),
 };
 export const labelFields = { name: v.string(), description: v.string(), color: v.string(), sortOrder: v.number() };
-export const relationKind = v.union(v.literal("blocks"), v.literal("relates_to"), v.literal("duplicate"));
+export const relationKind = v.union(
+  v.literal("blocks"),
+  v.literal("relates_to"),
+  v.literal("duplicate"),
+  v.literal("start_before"),
+  v.literal("finish_before"),
+  v.literal("implemented_by")
+);
 export const taskTables = {
   taskCommentReactions: defineTable({
     commentId: v.id("taskComments"),
