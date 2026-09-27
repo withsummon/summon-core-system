@@ -133,6 +133,7 @@ import type * as modules_links from "../modules/links.js";
 import type * as modules_progress from "../modules/progress.js";
 import type * as modules_members from "../modules/members.js";
 import type * as modules_tasks from "../modules/tasks.js";
+import type * as modules_workspace from "../modules/workspace.js";
 import type * as navigation_address from "../navigation/address.js";
 import type * as navigation_preferences from "../navigation/preferences.js";
 import type * as navigation_recent from "../navigation/recent.js";
@@ -373,6 +374,7 @@ declare const fullApi: ApiFromModules<{
   "modules/progress": typeof modules_progress;
   "modules/members": typeof modules_members;
   "modules/tasks": typeof modules_tasks;
+  "modules/workspace": typeof modules_workspace;
   "navigation/address": typeof navigation_address;
   "navigation/preferences": typeof navigation_preferences;
   "navigation/recent": typeof navigation_recent;

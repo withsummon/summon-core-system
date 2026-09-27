@@ -39,6 +39,7 @@ export const moduleTables = {
     archived: v.boolean(),
     deleted: v.boolean(),
   })
+    .index("by_workspace", ["workspaceId", "deleted", "archived"])
     .index("by_project", ["projectId", "deleted"])
     .index("by_project_name", ["projectId", "deleted", "name"]),
   moduleMembers: defineTable({ moduleId: v.id("modules"), userId: v.id("users") }).index("by_module_user", [
