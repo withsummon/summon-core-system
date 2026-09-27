@@ -25,6 +25,11 @@ export const snapshotFields = {
   descriptionJson: jsonObject,
 };
 export const documentTables = {
+  // One edge per child is enforced transactionally by the unique indexed lookup.
+  // Existing document rows need no hierarchy field or backfill.
+  documentParents: defineTable({ documentId: v.id("documents"), parentId: v.id("documents") })
+    .index("by_document", ["documentId"])
+    .index("by_parent", ["parentId"]),
   documents: defineTable({
     ...documentFields,
     workspaceId: v.id("workspaces"),

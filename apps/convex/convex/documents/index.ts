@@ -4,7 +4,7 @@ import { query, mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
-import { canAccessDocument, requireDocument } from "./access";
+import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
 import { documentFields, snapshotFields } from "./schema";
 
 async function validateMetadata(
@@ -96,10 +96,6 @@ export const list = query({
     return { ...result, page: visible.filter((document) => document !== null) };
   },
 });
-function requireMetadataVersion(document: Doc<"documents">, expectedUpdatedAt: number) {
-  if (expectedUpdatedAt !== document.updatedAt)
-    throw new ConvexError("This document changed while you were editing. Reopen its latest settings before saving.");
-}
 
 export const update = mutation({
   args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...documentFields },

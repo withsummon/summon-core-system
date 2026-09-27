@@ -31,3 +31,8 @@ export async function requireDocument(ctx: QueryCtx, documentId: Id<"documents">
     throw new ConvexError("Document access denied.");
   return { ...access, document };
 }
+
+export function requireMetadataVersion(document: Doc<"documents">, expectedUpdatedAt: number) {
+  if (expectedUpdatedAt !== document.updatedAt)
+    throw new ConvexError("This document changed while you were editing. Reopen its latest settings before saving.");
+}
