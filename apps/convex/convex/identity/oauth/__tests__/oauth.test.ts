@@ -1,3 +1,4 @@
+import { createOrUpdateUser } from "../../user_owner";
 import { afterEach, expect, test, vi } from "vitest";
 import { convexTest } from "convex-test";
 import { httpRouter } from "convex/server";
@@ -25,10 +26,14 @@ afterEach(() => {
 function fixture() {
   return convexTest(schema, {
     "./_generated/server.ts": () => import("../../../_generated/server"),
-    "./auth.ts": async () => convexAuth({ providers: [Password(), ...oauthProviders(env)] }),
+    "./auth.ts": async () =>
+      convexAuth({ callbacks: { createOrUpdateUser }, providers: [Password(), ...oauthProviders(env)] }),
     "./http.ts": async () => {
       const http = httpRouter();
-      convexAuth({ providers: [Password(), ...oauthProviders(env)] }).auth.addHttpRoutes(http);
+      convexAuth({
+        callbacks: { createOrUpdateUser },
+        providers: [Password(), ...oauthProviders(env)],
+      }).auth.addHttpRoutes(http);
       return { default: http };
     },
   });
@@ -164,4 +169,38 @@ test("installed HTTP OAuth owner exchanges mock code, verifies profile, rejects 
   const replay = await t.fetch(path, { headers: { Cookie: cookies } });
   expect(new URL(replay.headers.get("Location")!).searchParams.has("code")).toBe(false);
   expect(await t.run((ctx) => ctx.db.query("authAccounts").collect())).toHaveLength(1);
+});
+
+test("existing OAuth subject cannot undo a locally verified address change or attach to a new old-address owner", async () => {
+  const t = fixture();
+  const ids = await t.run(async (ctx) => {
+    const owner = await ctx.db.insert("users", { email: "new@example.test", emailVerificationTime: 1 });
+    const other = await ctx.db.insert("users", { email: "old@example.test", emailVerificationTime: 1 });
+    const account = await ctx.db.insert("authAccounts", {
+      userId: owner,
+      provider: "google",
+      providerAccountId: "immutable",
+      emailVerified: "old@example.test",
+    });
+    await ctx.db.insert("authVerifiers", { signature: "stable-state" });
+    return { owner, other, account };
+  });
+  await t.mutation(internal.auth.store, {
+    args: {
+      type: "userOAuth",
+      provider: "google",
+      providerAccountId: "immutable",
+      profile: { email: "old@example.test", emailVerified: true },
+      signature: "stable-state",
+    },
+  });
+  await t.run(async (ctx) => {
+    expect(await ctx.db.get(ids.owner)).toMatchObject({ email: "new@example.test" });
+    expect(await ctx.db.get(ids.account)).toMatchObject({
+      userId: ids.owner,
+      providerAccountId: "immutable",
+      emailVerified: "old@example.test",
+    });
+    expect(await ctx.db.get(ids.other)).toMatchObject({ email: "old@example.test" });
+  });
 });

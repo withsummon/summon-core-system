@@ -8,6 +8,26 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  emailChangeNotices: defineTable({
+    userId: v.id("users"),
+    recipient: v.string(),
+    attempts: v.number(),
+    status: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
+  }),
+  emailChangeChallenges: defineTable({
+    userId: v.id("users"),
+    sessionId: v.id("authSessions"),
+    oldEmail: v.string(),
+    newEmail: v.string(),
+    nonce: v.string(),
+    digest: v.string(),
+    expiresAt: v.number(),
+    attempts: v.number(),
+    issuedAt: v.number(),
+    windowStart: v.number(),
+    issuedCount: v.number(),
+    active: v.boolean(),
+  }).index("by_user", ["userId"]),
   userAppearance: defineTable({ userId: v.id("users"), avatarAssetId: v.union(v.id("assets"), v.null()) }).index(
     "by_user",
     ["userId"]
