@@ -46,6 +46,19 @@ export const sessionUser = internalQuery({
   },
 });
 
+export const sessionExpiry = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<number | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (typeof identity?.sessionId !== "string") return null;
+    const session = await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "session",
+      where: [{ field: "_id", value: identity.sessionId }],
+    });
+    return typeof session?.expiresAt === "number" ? session.expiresAt : null;
+  },
+});
+
 async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string, name: string) {
   const link = await ctx.db
     .query("betterAuthLinks")
