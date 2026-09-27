@@ -30,6 +30,7 @@ export async function replaceAvatar(
   if (appearance) await ctx.db.patch(appearance._id, { avatarAssetId: assetId });
   else await ctx.db.insert("userAppearance", { userId: owner.user._id, avatarAssetId: assetId });
   await writeProfile(ctx, owner, { revision });
+  return { revision };
 }
 export async function publishAvatar(ctx: MutationCtx, asset: Doc<"assets">) {
   if (asset.avatarRevision === undefined) throw new ConvexError("Avatar intent is missing.");
