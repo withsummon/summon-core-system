@@ -119,7 +119,8 @@ export const begin = mutation({
     if (!entries.length) throw new ConvexError("No unfinished tasks to transfer.");
     const stats = await snapshot(
       ctx,
-      active.map((row) => row.task)
+      active.map((row) => row.task),
+      source
     );
     if (new TextEncoder().encode(JSON.stringify(stats)).length > SNAPSHOT_BYTES_LIMIT)
       throw new ConvexError("Transfer snapshot exceeds its 512 KiB limit.");

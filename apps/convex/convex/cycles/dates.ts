@@ -20,15 +20,19 @@ export function validateCycleClock(now: number) {
 export function cyclePhase(cycle: Pick<Doc<"cycles">, "startDate" | "endDate" | "timezone">, now = Date.now()) {
   validateCycleClock(now);
   if (!cycle.startDate || !cycle.endDate) return "draft" as const;
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en", { timeZone: cycle.timezone, year: "numeric", month: "2-digit", day: "2-digit" })
-      .formatToParts(now)
-      .map((part) => [part.type, part.value])
-  );
-  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  const today = cycleDay(cycle.timezone, now);
   return today < cycle.startDate
     ? ("upcoming" as const)
     : today > cycle.endDate
       ? ("completed" as const)
       : ("current" as const);
+}
+
+export function cycleDay(timezone: string, now: number) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" })
+      .formatToParts(now)
+      .map((part) => [part.type, part.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
