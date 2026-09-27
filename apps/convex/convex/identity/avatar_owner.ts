@@ -36,6 +36,7 @@ export async function publishAvatar(ctx: MutationCtx, asset: Doc<"assets">) {
   const access = await requireAvatarWrite(ctx, asset.avatarRevision);
   if (asset.avatarUserId !== access.owner.user._id) throw new ConvexError("Avatar owner mismatch.");
   await replaceAvatar(ctx, access, asset._id);
+  await ctx.db.patch(asset._id, { avatarPublishedRevision: access.revision });
 }
 export async function avatarDescriptor(ctx: QueryCtx, userId: Id<"users">) {
   const appearance = await userAppearance(ctx, userId);

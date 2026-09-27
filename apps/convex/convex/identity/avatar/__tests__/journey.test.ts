@@ -94,3 +94,42 @@ test("purpose isolation rejects non-avatar null workspace and expired avatar rec
     f.owner.mutation(api.identity.avatar.restore, { assetId: ticket.assetId, expectedRevision: 2 })
   ).rejects.toThrow("no longer");
 });
+
+test("avatar publication acknowledges its exact profile revision without absorbing later writes", async () => {
+  const f = await workspaceJourney();
+  const first = await upload(f, 0);
+  const receipt = await f.owner.action(api.identity.avatar_upload.finalize, first);
+  expect(receipt).toEqual({ assetId: first.assetId, startingRevision: 0, profileRevision: 1 });
+  expect(await f.owner.action(api.identity.avatar_upload.finalize, first)).toEqual(receipt);
+  await f.owner.mutation(api.identity.profile.completeProfile, {
+    firstName: "Owner",
+    lastName: "",
+    displayName: "Owner",
+    timezone: "UTC",
+    expectedRevision: receipt.profileRevision,
+  });
+  expect((await f.owner.query(api.identity.profile.get, {})).preferences.onboarding.profileComplete).toBe(true);
+  const next = await upload(f, 2);
+  const nextReceipt = await f.owner.action(api.identity.avatar_upload.finalize, next);
+  await f.owner.mutation(api.identity.profile.save, {
+    firstName: "Concurrent",
+    lastName: "",
+    displayName: "Concurrent",
+    timezone: "UTC",
+    expectedRevision: 3,
+  });
+  expect(await f.owner.action(api.identity.avatar_upload.finalize, next)).toEqual(nextReceipt);
+  await expect(
+    f.owner.mutation(api.identity.profile.completeProfile, {
+      firstName: "Stale",
+      lastName: "",
+      displayName: "Stale",
+      timezone: "UTC",
+      expectedRevision: nextReceipt.profileRevision,
+    })
+  ).rejects.toThrow("profile changed");
+  expect((await f.owner.query(api.identity.profile.get, {})).firstName).toBe("Concurrent");
+  const otherId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
+  const other = await signedIn(f.t, otherId);
+  await expect(other.action(api.identity.avatar_upload.finalize, next)).rejects.toThrow("not found");
+});
