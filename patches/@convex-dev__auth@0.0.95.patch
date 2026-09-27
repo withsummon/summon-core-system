@@ -32,6 +32,418 @@ index 9bd8d9119ffd7f1faadf68d8b238193cd4f7686d..b80c054b88c84b9793b0890cc4559c58
              }
              else if (flow === "reset-verification") {
                  if (!config.reset) {
+diff --git a/dist/server/implementation/index.d.ts b/dist/server/implementation/index.d.ts
+index c2fb265fc32cc8c83591cb758193e7e34a5b0c6f..9408eee5f68021ebe19e62231a134488b4644574 100644
+--- a/dist/server/implementation/index.d.ts
++++ b/dist/server/implementation/index.d.ts
+@@ -105,11 +105,11 @@ export declare function convexAuth(config_: ConvexAuthConfig): {
+      * Also used for refreshing the session.
+      */
+     signIn: import("convex/server").RegisteredAction<"public", {
++        calledBy?: string | undefined;
++        params?: any;
+         provider?: string | undefined;
+-        verifier?: string | undefined;
+         refreshToken?: string | undefined;
+-        params?: any;
+-        calledBy?: string | undefined;
++        verifier?: string | undefined;
+     }, Promise<{
+         redirect?: string;
+         verifier?: string;
+@@ -126,81 +126,91 @@ export declare function convexAuth(config_: ConvexAuthConfig): {
+      */
+     store: import("convex/server").RegisteredMutation<"internal", {
+         args: {
++            generateTokens: boolean;
+             sessionId?: GenericId<"authSessions"> | undefined;
+             type: "signIn";
+             userId: GenericId<"users">;
+-            generateTokens: boolean;
+         } | {
+             type: "signOut";
+         } | {
+-            type: "refreshSession";
+             refreshToken: string;
++            type: "refreshSession";
+         } | {
+-            provider?: string | undefined;
+-            verifier?: string | undefined;
+-            type: "verifyCodeAndSignIn";
++            allowExtraProviders: boolean;
+             generateTokens: boolean;
+             params: any;
+-            allowExtraProviders: boolean;
++            provider?: string | undefined;
++            type: "verifyCodeAndSignIn";
++            verifier?: string | undefined;
+         } | {
+             type: "verifier";
+         } | {
++            signature: string;
+             type: "verifierSignature";
+             verifier: string;
+-            signature: string;
+         } | {
+-            type: "userOAuth";
+             profile: any;
+             provider: string;
+             providerAccountId: string;
+             signature: string;
++            type: "userOAuth";
+         } | {
+-            email?: string | undefined;
+-            phone?: string | undefined;
+             accountId?: GenericId<"authAccounts"> | undefined;
+-            type: "createVerificationCode";
++            allowExtraProviders: boolean;
++            code: string;
++            email?: string | undefined;
+             expirationTime: number;
++            phone?: string | undefined;
+             provider: string;
+-            code: string;
+-            allowExtraProviders: boolean;
++            type: "createVerificationCode";
+         } | {
+-            shouldLinkViaEmail?: boolean | undefined;
+-            shouldLinkViaPhone?: boolean | undefined;
+-            type: "createAccountFromCredentials";
+-            profile: any;
+             account: {
+-                secret?: string | undefined;
+                 id: string;
++                secret?: string | undefined;
+             };
++            profile: any;
+             provider: string;
++            sessionGuard?: {
++                sessionId: GenericId<"authSessions">;
++                userId: GenericId<"users">;
++            } | undefined;
++            shouldLinkViaEmail?: boolean | undefined;
++            shouldLinkViaPhone?: boolean | undefined;
++            type: "createAccountFromCredentials";
+         } | {
+-            type: "retrieveAccountWithCredentials";
+             account: {
+-                secret?: string | undefined;
+                 id: string;
++                secret?: string | undefined;
+             };
+             provider: string;
++            type: "retrieveAccountWithCredentials";
+         } | {
+-            type: "modifyAccount";
+             account: {
+                 id: string;
+                 secret: string;
+             };
+             provider: string;
++            sessionGuard?: {
++                accountId: GenericId<"authAccounts">;
++                expectedSecret: string;
++                sessionId: GenericId<"authSessions">;
++                userId: GenericId<"users">;
++            } | undefined;
++            type: "modifyAccount";
+         } | {
+             except?: GenericId<"authSessions">[] | undefined;
+             type: "invalidateSessions";
+             userId: GenericId<"users">;
+         };
+-    }, Promise<string | void | {
++    }, Promise<void | string | {
++        account: import("./types.js").Doc<"authAccounts">;
++        user: import("./types.js").Doc<"users">;
++    } | {
+         userId: GenericId<"users">;
+         sessionId: GenericId<"authSessions">;
+     } | {
+         token: string;
+         refreshToken: string;
+-    } | {
+-        account: import("./types.js").Doc<"authAccounts">;
+-        user: import("./types.js").Doc<"users">;
+     } | null>>;
+     /**
+      * Utility function for frameworks to use to get the current auth state
+@@ -244,6 +254,10 @@ export declare function getAuthUserId(ctx: {
+  * or throws an error.
+  */
+ export declare function createAccount<DataModel extends GenericDataModel = GenericDataModel>(ctx: GenericActionCtx<DataModel>, args: {
++    sessionGuard?: {
++        userId: GenericId<"users">;
++        sessionId: GenericId<"authSessions">;
++    };
+     /**
+      * The provider ID (like "password"), used to disambiguate accounts.
+      *
+@@ -322,6 +336,12 @@ export declare function retrieveAccount<DataModel extends GenericDataModel = Gen
+  * provider.
+  */
+ export declare function modifyAccountCredentials<DataModel extends GenericDataModel = GenericDataModel>(ctx: GenericActionCtx<DataModel>, args: {
++    sessionGuard?: {
++        userId: GenericId<"users">;
++        sessionId: GenericId<"authSessions">;
++        accountId: GenericId<"authAccounts">;
++        expectedSecret: string;
++    };
+     /**
+      * The provider ID (like "password"), used to disambiguate accounts.
+      *
+@@ -362,4 +382,3 @@ export declare function signInViaProvider<DataModel extends GenericDataModel = G
+     userId: GenericId<"users">;
+     sessionId: GenericId<"authSessions">;
+ } | null>;
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+diff --git a/dist/server/implementation/mutations/accountSession.d.ts b/dist/server/implementation/mutations/accountSession.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce9539cf1a820e01d46b1c561423623643d904aa
+--- /dev/null
++++ b/dist/server/implementation/mutations/accountSession.d.ts
+@@ -0,0 +1,42 @@
++import type { Infer } from "convex/values";
++import type { MutationCtx } from "../types.js";
++export declare const accountSession: import("convex/values").VObject<{
++    sessionId: import("convex/values").GenericId<"authSessions">;
++    userId: import("convex/values").GenericId<"users">;
++}, {
++    userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
++    sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">;
++}, "required", "sessionId" | "userId">;
++export declare function prepareAccountSession(ctx: MutationCtx, binding: Infer<typeof accountSession>): Promise<{
++    user: {
++        _creationTime: number;
++        _id: import("convex/values").GenericId<"users">;
++        email?: string | undefined;
++        emailVerificationTime?: number | undefined;
++        image?: string | undefined;
++        isAnonymous?: boolean | undefined;
++        name?: string | undefined;
++        phone?: string | undefined;
++        phoneVerificationTime?: number | undefined;
++    };
++    revokeOthers(): Promise<void>;
++}>;
++export declare function preparePasswordSetup(ctx: MutationCtx, binding: Infer<typeof accountSession>, providerId: string, account: {
++    id: string;
++    secret?: string;
++}, profile: {
++    email?: unknown;
++}, shouldLinkViaEmail?: boolean): Promise<{
++    user: {
++        _creationTime: number;
++        _id: import("convex/values").GenericId<"users">;
++        email?: string | undefined;
++        emailVerificationTime?: number | undefined;
++        image?: string | undefined;
++        isAnonymous?: boolean | undefined;
++        name?: string | undefined;
++        phone?: string | undefined;
++        phoneVerificationTime?: number | undefined;
++    };
++    revokeOthers(): Promise<void>;
++}>;
+diff --git a/dist/server/implementation/mutations/accountSession.js b/dist/server/implementation/mutations/accountSession.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..47cb24b2bb271e169df9641593d3d74efd0fe3ba
+--- /dev/null
++++ b/dist/server/implementation/mutations/accountSession.js
+@@ -0,0 +1,37 @@
++import { v } from "convex/values";
++import { deleteSession } from "../sessions.js";
++import { TOKEN_SUB_CLAIM_DIVIDER } from "../utils.js";
++export const accountSession = v.object({
++    userId: v.id("users"),
++    sessionId: v.id("authSessions")
++});
++export async function prepareAccountSession(ctx, binding) {
++    const identity = await ctx.auth.getUserIdentity();
++    if (identity?.subject !== `${binding.userId}${TOKEN_SUB_CLAIM_DIVIDER}${binding.sessionId}`) throw new Error("Credential session changed.");
++    const session = await ctx.db.get(binding.sessionId);
++    const user = await ctx.db.get(binding.userId);
++    if (!session || session.userId !== binding.userId || session.expirationTime <= Date.now() || !user) throw new Error("Credential session expired or revoked.");
++    const sessions = await ctx.db.query("authSessions").withIndex("userId", (q)=>q.eq("userId", binding.userId)).take(101);
++    if (sessions.length > 100) throw new Error("Session cleanup limit exceeded. No credentials changed.");
++    const others = sessions.filter((row)=>row._id !== binding.sessionId);
++    let remaining = 1000;
++    for (const other of others){
++        const tokens = await ctx.db.query("authRefreshTokens").withIndex("sessionIdAndParentRefreshTokenId", (q)=>q.eq("sessionId", other._id)).take(remaining + 1);
++        if (tokens.length > remaining) throw new Error("Token cleanup limit exceeded. No credentials changed.");
++        remaining -= tokens.length;
++    }
++    return {
++        user,
++        async revokeOthers () {
++            for (const other of others)await deleteSession(ctx, other);
++        }
++    };
++}
++export async function preparePasswordSetup(ctx, binding, providerId, account, profile, shouldLinkViaEmail) {
++    const guarded = await prepareAccountSession(ctx, binding);
++    if (providerId !== "password" || !account.secret || guarded.user.emailVerificationTime === undefined || guarded.user.email !== account.id || profile.email !== account.id || !shouldLinkViaEmail) throw new Error("Verified current email is required to set a password.");
++    const ownAccounts = await ctx.db.query("authAccounts").withIndex("userIdAndProvider", (q)=>q.eq("userId", guarded.user._id).eq("provider", providerId)).take(1);
++    const sameEmail = await ctx.db.query("users").withIndex("email", (q)=>q.eq("email", account.id)).filter((q)=>q.neq(q.field("emailVerificationTime"), undefined)).take(2);
++    if (ownAccounts.length || sameEmail.length !== 1 || sameEmail[0]._id !== guarded.user._id) throw new Error("Password is already set or account email is ambiguous.");
++    return guarded;
++}
+diff --git a/dist/server/implementation/mutations/createAccountFromCredentials.d.ts b/dist/server/implementation/mutations/createAccountFromCredentials.d.ts
+index c246bb31da3e83a0ba880ca2438fc74763409d00..aa81c874a8d80f41ee6c72e7b0dc5f8149eef952 100644
+--- a/dist/server/implementation/mutations/createAccountFromCredentials.d.ts
++++ b/dist/server/implementation/mutations/createAccountFromCredentials.d.ts
+@@ -2,19 +2,30 @@ import { Infer } from "convex/values";
+ import { ActionCtx, Doc, MutationCtx } from "../types.js";
+ import * as Provider from "../provider.js";
+ export declare const createAccountFromCredentialsArgs: import("convex/values").VObject<{
+-    shouldLinkViaEmail?: boolean | undefined;
+-    shouldLinkViaPhone?: boolean | undefined;
+-    profile: any;
+     account: {
+-        secret?: string | undefined;
+         id: string;
++        secret?: string | undefined;
+     };
++    profile: any;
+     provider: string;
++    sessionGuard?: {
++        sessionId: import("convex/values").GenericId<"authSessions">;
++        userId: import("convex/values").GenericId<"users">;
++    } | undefined;
++    shouldLinkViaEmail?: boolean | undefined;
++    shouldLinkViaPhone?: boolean | undefined;
+ }, {
++    sessionGuard: import("convex/values").VObject<{
++        sessionId: import("convex/values").GenericId<"authSessions">;
++        userId: import("convex/values").GenericId<"users">;
++    } | undefined, {
++        userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
++        sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">;
++    }, "optional", "sessionId" | "userId">;
+     provider: import("convex/values").VString<string, "required">;
+     account: import("convex/values").VObject<{
+-        secret?: string | undefined;
+         id: string;
++        secret?: string | undefined;
+     }, {
+         id: import("convex/values").VString<string, "required">;
+         secret: import("convex/values").VString<string | undefined, "optional">;
+@@ -22,7 +33,7 @@ export declare const createAccountFromCredentialsArgs: import("convex/values").V
+     profile: import("convex/values").VAny<any, "required", string>;
+     shouldLinkViaEmail: import("convex/values").VBoolean<boolean | undefined, "optional">;
+     shouldLinkViaPhone: import("convex/values").VBoolean<boolean | undefined, "optional">;
+-}, "required", "profile" | "account" | "provider" | `profile.${string}` | "shouldLinkViaEmail" | "shouldLinkViaPhone" | "account.id" | "account.secret">;
++}, "required", "account" | "account.id" | "account.secret" | "profile" | "provider" | "sessionGuard" | "sessionGuard.sessionId" | "sessionGuard.userId" | "shouldLinkViaEmail" | "shouldLinkViaPhone" | `profile.${string}`>;
+ type ReturnType = {
+     account: Doc<"authAccounts">;
+     user: Doc<"users">;
+@@ -30,4 +41,3 @@ type ReturnType = {
+ export declare function createAccountFromCredentialsImpl(ctx: MutationCtx, args: Infer<typeof createAccountFromCredentialsArgs>, getProviderOrThrow: Provider.GetProviderOrThrowFunc, config: Provider.Config): Promise<ReturnType>;
+ export declare const callCreateAccountFromCredentials: (ctx: ActionCtx, args: Infer<typeof createAccountFromCredentialsArgs>) => Promise<ReturnType>;
+ export {};
+-//# sourceMappingURL=createAccountFromCredentials.d.ts.map
+\ No newline at end of file
+diff --git a/dist/server/implementation/mutations/createAccountFromCredentials.js b/dist/server/implementation/mutations/createAccountFromCredentials.js
+index e4551df358ce36d86680ee33ca3f5307a41c7790..48ca7c7380f43430c838b5cd08886e5e1d63f5b0 100644
+--- a/dist/server/implementation/mutations/createAccountFromCredentials.js
++++ b/dist/server/implementation/mutations/createAccountFromCredentials.js
+@@ -1,61 +1,70 @@
++import { accountSession, preparePasswordSetup } from "./accountSession.js";
+ import { v } from "convex/values";
+ import * as Provider from "../provider.js";
+ import { upsertUserAndAccount } from "../users.js";
+ import { getAuthSessionId } from "../sessions.js";
+ import { LOG_LEVELS, logWithLevel, maybeRedact } from "../utils.js";
+ export const createAccountFromCredentialsArgs = v.object({
++    sessionGuard: v.optional(accountSession),
+     provider: v.string(),
+-    account: v.object({ id: v.string(), secret: v.optional(v.string()) }),
++    account: v.object({
++        id: v.string(),
++        secret: v.optional(v.string())
++    }),
+     profile: v.any(),
+     shouldLinkViaEmail: v.optional(v.boolean()),
+-    shouldLinkViaPhone: v.optional(v.boolean()),
++    shouldLinkViaPhone: v.optional(v.boolean())
+ });
+ export async function createAccountFromCredentialsImpl(ctx, args, getProviderOrThrow, config) {
+     logWithLevel(LOG_LEVELS.DEBUG, "createAccountFromCredentialsImpl args:", {
+         provider: args.provider,
+         account: {
+             id: args.account.id,
+-            secret: maybeRedact(args.account.secret ?? ""),
+-        },
++            secret: maybeRedact(args.account.secret ?? "")
++        }
+     });
+-    const { provider: providerId, account, profile, shouldLinkViaEmail, shouldLinkViaPhone, } = args;
++    const { provider: providerId, account, profile, shouldLinkViaEmail, shouldLinkViaPhone } = args;
+     const provider = getProviderOrThrow(providerId);
+-    const existingAccount = await ctx.db
+-        .query("authAccounts")
+-        .withIndex("providerAndAccountId", (q) => q.eq("provider", provider.id).eq("providerAccountId", account.id))
+-        .unique();
++    const guarded = args.sessionGuard ? await preparePasswordSetup(ctx, args.sessionGuard, providerId, account, profile, shouldLinkViaEmail) : null;
++    const existingAccount = await ctx.db.query("authAccounts").withIndex("providerAndAccountId", (q)=>q.eq("provider", provider.id).eq("providerAccountId", account.id)).unique();
++    if (guarded && existingAccount !== null) throw new Error("Password account already exists.");
+     if (existingAccount !== null) {
+-        if (account.secret !== undefined &&
+-            !(await Provider.verify(provider, account.secret, existingAccount.secret ?? ""))) {
++        if (account.secret !== undefined && !await Provider.verify(provider, account.secret, existingAccount.secret ?? "")) {
+             throw new Error(`Account ${account.id} already exists`);
+         }
+         return {
+             account: existingAccount,
+-            // TODO: Ian removed this,
+-            user: (await ctx.db.get(existingAccount.userId)),
++            user: await ctx.db.get(existingAccount.userId)
+         };
+     }
+-    const secret = account.secret !== undefined
+-        ? await Provider.hash(provider, account.secret)
+-        : undefined;
+-    const { userId, accountId } = await upsertUserAndAccount(ctx, await getAuthSessionId(ctx), { providerAccountId: account.id, secret }, {
++    const secret = account.secret !== undefined ? await Provider.hash(provider, account.secret) : undefined;
++    const { userId, accountId } = await upsertUserAndAccount(ctx, await getAuthSessionId(ctx), {
++        providerAccountId: account.id,
++        secret
++    }, {
+         type: "credentials",
+         provider,
+         profile,
+         shouldLinkViaEmail,
+-        shouldLinkViaPhone,
++        shouldLinkViaPhone
+     }, config);
++    if (guarded) {
++        if (userId !== guarded.user._id) throw new Error("Credential owner changed.");
++        await ctx.db.patch(accountId, {
++            emailVerified: account.id
++        });
++        await guarded.revokeOthers();
++    }
+     return {
+-        account: (await ctx.db.get(accountId)),
+-        user: (await ctx.db.get(userId)),
++        account: await ctx.db.get(accountId),
++        user: await ctx.db.get(userId)
+     };
+ }
+-export const callCreateAccountFromCredentials = async (ctx, args) => {
++export const callCreateAccountFromCredentials = async (ctx, args)=>{
+     return ctx.runMutation("auth:store", {
+         args: {
+             type: "createAccountFromCredentials",
+-            ...args,
+-        },
++            ...args
++        }
+     });
+ };
+-//# sourceMappingURL=createAccountFromCredentials.js.map
+\ No newline at end of file
 diff --git a/dist/server/implementation/mutations/createVerificationCode.js b/dist/server/implementation/mutations/createVerificationCode.js
 index 71bf576deeebb2f597710a623e06212314f3d917..835ce7aae089bc6adb9be7cccbd6c7844b4acffa 100644
 --- a/dist/server/implementation/mutations/createVerificationCode.js
@@ -56,6 +468,528 @@ index 71bf576deeebb2f597710a623e06212314f3d917..835ce7aae089bc6adb9be7cccbd6c784
      const { accountId } = await upsertUserAndAccount(ctx, await getAuthSessionId(ctx), existingAccount !== null
          ? { existingAccount }
          : { providerAccountId: email ?? phone }, provider.type === "email"
+diff --git a/dist/server/implementation/mutations/index.d.ts b/dist/server/implementation/mutations/index.d.ts
+index 7aa2173393b521d42f52d3f12eac102b999b08e0..7b6b76857fa3dcc249f4f5d8cc6d2d34fbe1388d 100644
+--- a/dist/server/implementation/mutations/index.d.ts
++++ b/dist/server/implementation/mutations/index.d.ts
+@@ -15,67 +15,77 @@ export { callSignOut } from "./signOut.js";
+ export { callSignIn } from "./signIn.js";
+ export declare const storeArgs: import("convex/values").VObject<{
+     args: {
++        generateTokens: boolean;
+         sessionId?: import("convex/values").GenericId<"authSessions"> | undefined;
+         type: "signIn";
+         userId: import("convex/values").GenericId<"users">;
+-        generateTokens: boolean;
+     } | {
+         type: "signOut";
+     } | {
+-        type: "refreshSession";
+         refreshToken: string;
++        type: "refreshSession";
+     } | {
+-        provider?: string | undefined;
+-        verifier?: string | undefined;
+-        type: "verifyCodeAndSignIn";
++        allowExtraProviders: boolean;
+         generateTokens: boolean;
+         params: any;
+-        allowExtraProviders: boolean;
++        provider?: string | undefined;
++        type: "verifyCodeAndSignIn";
++        verifier?: string | undefined;
+     } | {
+         type: "verifier";
+     } | {
++        signature: string;
+         type: "verifierSignature";
+         verifier: string;
+-        signature: string;
+     } | {
+-        type: "userOAuth";
+         profile: any;
+         provider: string;
+         providerAccountId: string;
+         signature: string;
++        type: "userOAuth";
+     } | {
+-        email?: string | undefined;
+-        phone?: string | undefined;
+         accountId?: import("convex/values").GenericId<"authAccounts"> | undefined;
+-        type: "createVerificationCode";
++        allowExtraProviders: boolean;
++        code: string;
++        email?: string | undefined;
+         expirationTime: number;
++        phone?: string | undefined;
+         provider: string;
+-        code: string;
+-        allowExtraProviders: boolean;
++        type: "createVerificationCode";
+     } | {
+-        shouldLinkViaEmail?: boolean | undefined;
+-        shouldLinkViaPhone?: boolean | undefined;
+-        type: "createAccountFromCredentials";
+-        profile: any;
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
++        profile: any;
+         provider: string;
++        sessionGuard?: {
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        shouldLinkViaEmail?: boolean | undefined;
++        shouldLinkViaPhone?: boolean | undefined;
++        type: "createAccountFromCredentials";
+     } | {
+-        type: "retrieveAccountWithCredentials";
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
+         provider: string;
++        type: "retrieveAccountWithCredentials";
+     } | {
+-        type: "modifyAccount";
+         account: {
+             id: string;
+             secret: string;
+         };
+         provider: string;
++        sessionGuard?: {
++            accountId: import("convex/values").GenericId<"authAccounts">;
++            expectedSecret: string;
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        type: "modifyAccount";
+     } | {
+         except?: import("convex/values").GenericId<"authSessions">[] | undefined;
+         type: "invalidateSessions";
+@@ -83,98 +93,108 @@ export declare const storeArgs: import("convex/values").VObject<{
+     };
+ }, {
+     args: import("convex/values").VUnion<{
++        generateTokens: boolean;
+         sessionId?: import("convex/values").GenericId<"authSessions"> | undefined;
+         type: "signIn";
+         userId: import("convex/values").GenericId<"users">;
+-        generateTokens: boolean;
+     } | {
+         type: "signOut";
+     } | {
+-        type: "refreshSession";
+         refreshToken: string;
++        type: "refreshSession";
+     } | {
+-        provider?: string | undefined;
+-        verifier?: string | undefined;
+-        type: "verifyCodeAndSignIn";
++        allowExtraProviders: boolean;
+         generateTokens: boolean;
+         params: any;
+-        allowExtraProviders: boolean;
++        provider?: string | undefined;
++        type: "verifyCodeAndSignIn";
++        verifier?: string | undefined;
+     } | {
+         type: "verifier";
+     } | {
++        signature: string;
+         type: "verifierSignature";
+         verifier: string;
+-        signature: string;
+     } | {
+-        type: "userOAuth";
+         profile: any;
+         provider: string;
+         providerAccountId: string;
+         signature: string;
++        type: "userOAuth";
+     } | {
+-        email?: string | undefined;
+-        phone?: string | undefined;
+         accountId?: import("convex/values").GenericId<"authAccounts"> | undefined;
+-        type: "createVerificationCode";
++        allowExtraProviders: boolean;
++        code: string;
++        email?: string | undefined;
+         expirationTime: number;
++        phone?: string | undefined;
+         provider: string;
+-        code: string;
+-        allowExtraProviders: boolean;
++        type: "createVerificationCode";
+     } | {
+-        shouldLinkViaEmail?: boolean | undefined;
+-        shouldLinkViaPhone?: boolean | undefined;
+-        type: "createAccountFromCredentials";
+-        profile: any;
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
++        profile: any;
+         provider: string;
++        sessionGuard?: {
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        shouldLinkViaEmail?: boolean | undefined;
++        shouldLinkViaPhone?: boolean | undefined;
++        type: "createAccountFromCredentials";
+     } | {
+-        type: "retrieveAccountWithCredentials";
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
+         provider: string;
++        type: "retrieveAccountWithCredentials";
+     } | {
+-        type: "modifyAccount";
+         account: {
+             id: string;
+             secret: string;
+         };
+         provider: string;
++        sessionGuard?: {
++            accountId: import("convex/values").GenericId<"authAccounts">;
++            expectedSecret: string;
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        type: "modifyAccount";
+     } | {
+         except?: import("convex/values").GenericId<"authSessions">[] | undefined;
+         type: "invalidateSessions";
+         userId: import("convex/values").GenericId<"users">;
+     }, [import("convex/values").VObject<{
++        generateTokens: boolean;
+         sessionId?: import("convex/values").GenericId<"authSessions"> | undefined;
+         type: "signIn";
+         userId: import("convex/values").GenericId<"users">;
+-        generateTokens: boolean;
+     }, {
+         userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
+         sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions"> | undefined, "optional">;
+         generateTokens: import("convex/values").VBoolean<boolean, "required">;
+         type: import("convex/values").VLiteral<"signIn", "required">;
+-    }, "required", "type" | "userId" | "sessionId" | "generateTokens">, import("convex/values").VObject<{
++    }, "required", "generateTokens" | "sessionId" | "type" | "userId">, import("convex/values").VObject<{
+         type: "signOut";
+     }, {
+         type: import("convex/values").VLiteral<"signOut", "required">;
+     }, "required", "type">, import("convex/values").VObject<{
+-        type: "refreshSession";
+         refreshToken: string;
++        type: "refreshSession";
+     }, {
+         refreshToken: import("convex/values").VString<string, "required">;
+         type: import("convex/values").VLiteral<"refreshSession", "required">;
+-    }, "required", "type" | "refreshToken">, import("convex/values").VObject<{
+-        provider?: string | undefined;
+-        verifier?: string | undefined;
+-        type: "verifyCodeAndSignIn";
++    }, "required", "refreshToken" | "type">, import("convex/values").VObject<{
++        allowExtraProviders: boolean;
+         generateTokens: boolean;
+         params: any;
+-        allowExtraProviders: boolean;
++        provider?: string | undefined;
++        type: "verifyCodeAndSignIn";
++        verifier?: string | undefined;
+     }, {
+         params: import("convex/values").VAny<any, "required", string>;
+         provider: import("convex/values").VString<string | undefined, "optional">;
+@@ -182,39 +202,39 @@ export declare const storeArgs: import("convex/values").VObject<{
+         generateTokens: import("convex/values").VBoolean<boolean, "required">;
+         allowExtraProviders: import("convex/values").VBoolean<boolean, "required">;
+         type: import("convex/values").VLiteral<"verifyCodeAndSignIn", "required">;
+-    }, "required", "type" | "provider" | "verifier" | "generateTokens" | "params" | "allowExtraProviders" | `params.${string}`>, import("convex/values").VObject<{
++    }, "required", "allowExtraProviders" | "generateTokens" | "params" | "provider" | "type" | "verifier" | `params.${string}`>, import("convex/values").VObject<{
+         type: "verifier";
+     }, {
+         type: import("convex/values").VLiteral<"verifier", "required">;
+     }, "required", "type">, import("convex/values").VObject<{
++        signature: string;
+         type: "verifierSignature";
+         verifier: string;
+-        signature: string;
+     }, {
+         verifier: import("convex/values").VString<string, "required">;
+         signature: import("convex/values").VString<string, "required">;
+         type: import("convex/values").VLiteral<"verifierSignature", "required">;
+-    }, "required", "type" | "verifier" | "signature">, import("convex/values").VObject<{
+-        type: "userOAuth";
++    }, "required", "signature" | "type" | "verifier">, import("convex/values").VObject<{
+         profile: any;
+         provider: string;
+         providerAccountId: string;
+         signature: string;
++        type: "userOAuth";
+     }, {
+         provider: import("convex/values").VString<string, "required">;
+         providerAccountId: import("convex/values").VString<string, "required">;
+         profile: import("convex/values").VAny<any, "required", string>;
+         signature: import("convex/values").VString<string, "required">;
+         type: import("convex/values").VLiteral<"userOAuth", "required">;
+-    }, "required", "type" | "profile" | "provider" | "providerAccountId" | "signature" | `profile.${string}`>, import("convex/values").VObject<{
+-        email?: string | undefined;
+-        phone?: string | undefined;
++    }, "required", "profile" | "provider" | "providerAccountId" | "signature" | "type" | `profile.${string}`>, import("convex/values").VObject<{
+         accountId?: import("convex/values").GenericId<"authAccounts"> | undefined;
+-        type: "createVerificationCode";
++        allowExtraProviders: boolean;
++        code: string;
++        email?: string | undefined;
+         expirationTime: number;
++        phone?: string | undefined;
+         provider: string;
+-        code: string;
+-        allowExtraProviders: boolean;
++        type: "createVerificationCode";
+     }, {
+         accountId: import("convex/values").VId<import("convex/values").GenericId<"authAccounts"> | undefined, "optional">;
+         provider: import("convex/values").VString<string, "required">;
+@@ -224,21 +244,32 @@ export declare const storeArgs: import("convex/values").VObject<{
+         expirationTime: import("convex/values").VFloat64<number, "required">;
+         allowExtraProviders: import("convex/values").VBoolean<boolean, "required">;
+         type: import("convex/values").VLiteral<"createVerificationCode", "required">;
+-    }, "required", "type" | "email" | "phone" | "expirationTime" | "provider" | "accountId" | "code" | "allowExtraProviders">, import("convex/values").VObject<{
+-        shouldLinkViaEmail?: boolean | undefined;
+-        shouldLinkViaPhone?: boolean | undefined;
+-        type: "createAccountFromCredentials";
+-        profile: any;
++    }, "required", "accountId" | "allowExtraProviders" | "code" | "email" | "expirationTime" | "phone" | "provider" | "type">, import("convex/values").VObject<{
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
++        profile: any;
+         provider: string;
++        sessionGuard?: {
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        shouldLinkViaEmail?: boolean | undefined;
++        shouldLinkViaPhone?: boolean | undefined;
++        type: "createAccountFromCredentials";
+     }, {
++        sessionGuard: import("convex/values").VObject<{
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined, {
++            userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
++            sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">;
++        }, "optional", "sessionId" | "userId">;
+         provider: import("convex/values").VString<string, "required">;
+         account: import("convex/values").VObject<{
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         }, {
+             id: import("convex/values").VString<string, "required">;
+             secret: import("convex/values").VString<string | undefined, "optional">;
+@@ -247,31 +278,48 @@ export declare const storeArgs: import("convex/values").VObject<{
+         shouldLinkViaEmail: import("convex/values").VBoolean<boolean | undefined, "optional">;
+         shouldLinkViaPhone: import("convex/values").VBoolean<boolean | undefined, "optional">;
+         type: import("convex/values").VLiteral<"createAccountFromCredentials", "required">;
+-    }, "required", "type" | "profile" | "account" | "provider" | `profile.${string}` | "shouldLinkViaEmail" | "shouldLinkViaPhone" | "account.id" | "account.secret">, import("convex/values").VObject<{
+-        type: "retrieveAccountWithCredentials";
++    }, "required", "account" | "account.id" | "account.secret" | "profile" | "provider" | "sessionGuard" | "sessionGuard.sessionId" | "sessionGuard.userId" | "shouldLinkViaEmail" | "shouldLinkViaPhone" | "type" | `profile.${string}`>, import("convex/values").VObject<{
+         account: {
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         };
+         provider: string;
++        type: "retrieveAccountWithCredentials";
+     }, {
+         provider: import("convex/values").VString<string, "required">;
+         account: import("convex/values").VObject<{
+-            secret?: string | undefined;
+             id: string;
++            secret?: string | undefined;
+         }, {
+             id: import("convex/values").VString<string, "required">;
+             secret: import("convex/values").VString<string | undefined, "optional">;
+         }, "required", "id" | "secret">;
+         type: import("convex/values").VLiteral<"retrieveAccountWithCredentials", "required">;
+-    }, "required", "type" | "account" | "provider" | "account.id" | "account.secret">, import("convex/values").VObject<{
+-        type: "modifyAccount";
++    }, "required", "account" | "account.id" | "account.secret" | "provider" | "type">, import("convex/values").VObject<{
+         account: {
+             id: string;
+             secret: string;
+         };
+         provider: string;
++        sessionGuard?: {
++            accountId: import("convex/values").GenericId<"authAccounts">;
++            expectedSecret: string;
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined;
++        type: "modifyAccount";
+     }, {
++        sessionGuard: import("convex/values").VObject<{
++            accountId: import("convex/values").GenericId<"authAccounts">;
++            expectedSecret: string;
++            sessionId: import("convex/values").GenericId<"authSessions">;
++            userId: import("convex/values").GenericId<"users">;
++        } | undefined, {
++            userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
++            sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">;
++            accountId: import("convex/values").VId<import("convex/values").GenericId<"authAccounts">, "required">;
++            expectedSecret: import("convex/values").VString<string, "required">;
++        }, "optional", "accountId" | "expectedSecret" | "sessionId" | "userId">;
+         provider: import("convex/values").VString<string, "required">;
+         account: import("convex/values").VObject<{
+             id: string;
+@@ -281,7 +329,7 @@ export declare const storeArgs: import("convex/values").VObject<{
+             secret: import("convex/values").VString<string, "required">;
+         }, "required", "id" | "secret">;
+         type: import("convex/values").VLiteral<"modifyAccount", "required">;
+-    }, "required", "type" | "account" | "provider" | "account.id" | "account.secret">, import("convex/values").VObject<{
++    }, "required", "account" | "account.id" | "account.secret" | "provider" | "sessionGuard" | "sessionGuard.accountId" | "sessionGuard.expectedSecret" | "sessionGuard.sessionId" | "sessionGuard.userId" | "type">, import("convex/values").VObject<{
+         except?: import("convex/values").GenericId<"authSessions">[] | undefined;
+         type: "invalidateSessions";
+         userId: import("convex/values").GenericId<"users">;
+@@ -289,16 +337,15 @@ export declare const storeArgs: import("convex/values").VObject<{
+         userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
+         except: import("convex/values").VArray<import("convex/values").GenericId<"authSessions">[] | undefined, import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">, "optional">;
+         type: import("convex/values").VLiteral<"invalidateSessions", "required">;
+-    }, "required", "type" | "userId" | "except">], "required", "type" | "profile" | "account" | "email" | "phone" | "userId" | "expirationTime" | "provider" | "providerAccountId" | "sessionId" | "accountId" | "code" | "verifier" | "signature" | "generateTokens" | "refreshToken" | "params" | "allowExtraProviders" | `params.${string}` | `profile.${string}` | "shouldLinkViaEmail" | "shouldLinkViaPhone" | "account.id" | "account.secret" | "except">;
+-}, "required", "args" | "args.type" | "args.profile" | "args.account" | "args.email" | "args.phone" | "args.userId" | "args.expirationTime" | "args.provider" | "args.providerAccountId" | "args.sessionId" | "args.accountId" | "args.code" | "args.verifier" | "args.signature" | "args.generateTokens" | "args.refreshToken" | "args.params" | "args.allowExtraProviders" | `args.params.${string}` | `args.profile.${string}` | "args.shouldLinkViaEmail" | "args.shouldLinkViaPhone" | "args.account.id" | "args.account.secret" | "args.except">;
+-export declare const storeImpl: (ctx: MutationCtx, fnArgs: Infer<typeof storeArgs>, getProviderOrThrow: Provider.GetProviderOrThrowFunc, config: Provider.Config) => Promise<string | void | {
++    }, "required", "except" | "type" | "userId">], "required", "account" | "account.id" | "account.secret" | "accountId" | "allowExtraProviders" | "code" | "email" | "except" | "expirationTime" | "generateTokens" | "params" | "phone" | "profile" | "provider" | "providerAccountId" | "refreshToken" | "sessionGuard" | "sessionGuard.accountId" | "sessionGuard.expectedSecret" | "sessionGuard.sessionId" | "sessionGuard.userId" | "sessionId" | "shouldLinkViaEmail" | "shouldLinkViaPhone" | "signature" | "type" | "userId" | "verifier" | `params.${string}` | `profile.${string}`>;
++}, "required", "args" | "args.account" | "args.account.id" | "args.account.secret" | "args.accountId" | "args.allowExtraProviders" | "args.code" | "args.email" | "args.except" | "args.expirationTime" | "args.generateTokens" | "args.params" | "args.phone" | "args.profile" | "args.provider" | "args.providerAccountId" | "args.refreshToken" | "args.sessionGuard" | "args.sessionGuard.accountId" | "args.sessionGuard.expectedSecret" | "args.sessionGuard.sessionId" | "args.sessionGuard.userId" | "args.sessionId" | "args.shouldLinkViaEmail" | "args.shouldLinkViaPhone" | "args.signature" | "args.type" | "args.userId" | "args.verifier" | `args.params.${string}` | `args.profile.${string}`>;
++export declare const storeImpl: (ctx: MutationCtx, fnArgs: Infer<typeof storeArgs>, getProviderOrThrow: Provider.GetProviderOrThrowFunc, config: Provider.Config) => Promise<void | string | {
++    account: import("../types.js").Doc<"authAccounts">;
++    user: import("../types.js").Doc<"users">;
++} | {
+     userId: import("convex/values").GenericId<"users">;
+     sessionId: import("convex/values").GenericId<"authSessions">;
+ } | {
+     token: string;
+     refreshToken: string;
+-} | {
+-    account: import("../types.js").Doc<"authAccounts">;
+-    user: import("../types.js").Doc<"users">;
+ } | null>;
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+diff --git a/dist/server/implementation/mutations/modifyAccount.d.ts b/dist/server/implementation/mutations/modifyAccount.d.ts
+index 7150165414c0c116a773e9dfdefe18a8f96e4c56..1ec0e1be80eafae1a88c1bd0cd81502374eb5d65 100644
+--- a/dist/server/implementation/mutations/modifyAccount.d.ts
++++ b/dist/server/implementation/mutations/modifyAccount.d.ts
+@@ -7,7 +7,24 @@ export declare const modifyAccountArgs: import("convex/values").VObject<{
+         secret: string;
+     };
+     provider: string;
++    sessionGuard?: {
++        accountId: import("convex/values").GenericId<"authAccounts">;
++        expectedSecret: string;
++        sessionId: import("convex/values").GenericId<"authSessions">;
++        userId: import("convex/values").GenericId<"users">;
++    } | undefined;
+ }, {
++    sessionGuard: import("convex/values").VObject<{
++        accountId: import("convex/values").GenericId<"authAccounts">;
++        expectedSecret: string;
++        sessionId: import("convex/values").GenericId<"authSessions">;
++        userId: import("convex/values").GenericId<"users">;
++    } | undefined, {
++        userId: import("convex/values").VId<import("convex/values").GenericId<"users">, "required">;
++        sessionId: import("convex/values").VId<import("convex/values").GenericId<"authSessions">, "required">;
++        accountId: import("convex/values").VId<import("convex/values").GenericId<"authAccounts">, "required">;
++        expectedSecret: import("convex/values").VString<string, "required">;
++    }, "optional", "accountId" | "expectedSecret" | "sessionId" | "userId">;
+     provider: import("convex/values").VString<string, "required">;
+     account: import("convex/values").VObject<{
+         id: string;
+@@ -16,7 +33,6 @@ export declare const modifyAccountArgs: import("convex/values").VObject<{
+         id: import("convex/values").VString<string, "required">;
+         secret: import("convex/values").VString<string, "required">;
+     }, "required", "id" | "secret">;
+-}, "required", "account" | "provider" | "account.id" | "account.secret">;
++}, "required", "account" | "account.id" | "account.secret" | "provider" | "sessionGuard" | "sessionGuard.accountId" | "sessionGuard.expectedSecret" | "sessionGuard.sessionId" | "sessionGuard.userId">;
+ export declare function modifyAccountImpl(ctx: MutationCtx, args: Infer<typeof modifyAccountArgs>, getProviderOrThrow: GetProviderOrThrowFunc): Promise<void>;
+ export declare const callModifyAccount: (ctx: ActionCtx, args: Infer<typeof modifyAccountArgs>) => Promise<void>;
+-//# sourceMappingURL=modifyAccount.d.ts.map
+\ No newline at end of file
+diff --git a/dist/server/implementation/mutations/modifyAccount.js b/dist/server/implementation/mutations/modifyAccount.js
+index b64af9b3e10c0140c83aa1ce14200adec7f35eb8..ad4644f2e33a69edefe25faf5a2d61e3ec9e2440 100644
+--- a/dist/server/implementation/mutations/modifyAccount.js
++++ b/dist/server/implementation/mutations/modifyAccount.js
+@@ -1,37 +1,46 @@
++import { accountSession, prepareAccountSession } from "./accountSession.js";
+ import { v } from "convex/values";
+ import { hash } from "../provider.js";
+ import { LOG_LEVELS, logWithLevel, maybeRedact } from "../utils.js";
+ export const modifyAccountArgs = v.object({
++    sessionGuard: v.optional(v.object({
++        ...accountSession.fields,
++        accountId: v.id("authAccounts"),
++        expectedSecret: v.string()
++    })),
+     provider: v.string(),
+-    account: v.object({ id: v.string(), secret: v.string() }),
++    account: v.object({
++        id: v.string(),
++        secret: v.string()
++    })
+ });
+ export async function modifyAccountImpl(ctx, args, getProviderOrThrow) {
+     const { provider, account } = args;
++    if (args.sessionGuard && provider !== "password") throw new Error("Only Password credentials support session-guarded changes.");
++    const guarded = args.sessionGuard ? await prepareAccountSession(ctx, args.sessionGuard) : null;
+     logWithLevel(LOG_LEVELS.DEBUG, "retrieveAccountWithCredentialsImpl args:", {
+         provider: provider,
+         account: {
+             id: account.id,
+-            secret: maybeRedact(account.secret ?? ""),
+-        },
++            secret: maybeRedact(account.secret ?? "")
++        }
+     });
+-    const existingAccount = await ctx.db
+-        .query("authAccounts")
+-        .withIndex("providerAndAccountId", (q) => q.eq("provider", provider).eq("providerAccountId", account.id))
+-        .unique();
++    const existingAccount = await ctx.db.query("authAccounts").withIndex("providerAndAccountId", (q)=>q.eq("provider", provider).eq("providerAccountId", account.id)).unique();
+     if (existingAccount === null) {
+         throw new Error(`Cannot modify account with ID ${account.id} because it does not exist`);
+     }
++    if (args.sessionGuard && (existingAccount._id !== args.sessionGuard.accountId || existingAccount.userId !== args.sessionGuard.userId || existingAccount.secret !== args.sessionGuard.expectedSecret)) throw new Error("Credentials changed. Verify your current password again.");
+     await ctx.db.patch(existingAccount._id, {
+-        secret: await hash(getProviderOrThrow(provider), account.secret),
++        secret: await hash(getProviderOrThrow(provider), account.secret)
+     });
++    if (guarded) await guarded.revokeOthers();
+     return;
+ }
+-export const callModifyAccount = async (ctx, args) => {
++export const callModifyAccount = async (ctx, args)=>{
+     return ctx.runMutation("auth:store", {
+         args: {
+             type: "modifyAccount",
+-            ...args,
+-        },
++            ...args
++        }
+     });
+ };
+-//# sourceMappingURL=modifyAccount.js.map
+\ No newline at end of file
 diff --git a/src/providers/Password.ts b/src/providers/Password.ts
 index a08f2f1a280c9ccfe38fbb126caea26132a26992..e0c2f27d20b18d540c98ec71ba8af16ebbe33828 100644
 --- a/src/providers/Password.ts
@@ -90,6 +1024,118 @@ index a08f2f1a280c9ccfe38fbb126caea26132a26992..e0c2f27d20b18d540c98ec71ba8af16e
        } else if (flow === "reset-verification") {
          if (!config.reset) {
            throw new Error(`Password reset is not enabled for ${provider}`);
+diff --git a/src/server/implementation/index.ts b/src/server/implementation/index.ts
+index 3cb4bfcb4b6b7c02ced3159e53975df35a001ef6..90cc79cb50692e1fa804e6de3a2c89ae89ca4e60 100644
+--- a/src/server/implementation/index.ts
++++ b/src/server/implementation/index.ts
+@@ -513,6 +513,7 @@ export async function createAccount<
+ >(
+   ctx: GenericActionCtx<DataModel>,
+   args: {
++    sessionGuard?: {userId: GenericId<"users">; sessionId: GenericId<"authSessions">};
+     /**
+      * The provider ID (like "password"), used to disambiguate accounts.
+      *
+@@ -613,6 +614,7 @@ export async function modifyAccountCredentials<
+ >(
+   ctx: GenericActionCtx<DataModel>,
+   args: {
++    sessionGuard?: {userId: GenericId<"users">; sessionId: GenericId<"authSessions">; accountId: GenericId<"authAccounts">; expectedSecret: string};
+     /**
+      * The provider ID (like "password"), used to disambiguate accounts.
+      *
+diff --git a/src/server/implementation/mutations/accountSession.ts b/src/server/implementation/mutations/accountSession.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..77c837a25ab621138dbf81b1c9f215352ce4be27
+--- /dev/null
++++ b/src/server/implementation/mutations/accountSession.ts
+@@ -0,0 +1,36 @@
++import { v } from "convex/values";
++import type { Infer } from "convex/values";
++import type { MutationCtx } from "../types.js";
++import { deleteSession } from "../sessions.js";
++import { TOKEN_SUB_CLAIM_DIVIDER } from "../utils.js";
++export const accountSession = v.object({ userId: v.id("users"), sessionId: v.id("authSessions") });
++export async function prepareAccountSession(ctx: MutationCtx, binding: Infer<typeof accountSession>) {
++  const identity = await ctx.auth.getUserIdentity();
++  if (identity?.subject !== `${binding.userId}${TOKEN_SUB_CLAIM_DIVIDER}${binding.sessionId}`)
++    throw new Error("Credential session changed.");
++  const session = await ctx.db.get(binding.sessionId);
++  const user = await ctx.db.get(binding.userId);
++  if (!session || session.userId !== binding.userId || session.expirationTime <= Date.now() || !user)
++    throw new Error("Credential session expired or revoked.");
++  const sessions = await ctx.db.query("authSessions").withIndex("userId", q => q.eq("userId", binding.userId)).take(101);
++  if (sessions.length > 100) throw new Error("Session cleanup limit exceeded. No credentials changed.");
++  const others = sessions.filter(row => row._id !== binding.sessionId);
++  let remaining = 1000;
++  for (const other of others) {
++    const tokens = await ctx.db.query("authRefreshTokens").withIndex("sessionIdAndParentRefreshTokenId", q => q.eq("sessionId", other._id)).take(remaining + 1);
++    if (tokens.length > remaining) throw new Error("Token cleanup limit exceeded. No credentials changed.");
++    remaining -= tokens.length;
++  }
++  return { user, async revokeOthers() { for (const other of others) await deleteSession(ctx, other); } };
++}
++
++export async function preparePasswordSetup(ctx: MutationCtx, binding: Infer<typeof accountSession>, providerId: string, account: {id: string; secret?: string}, profile: {email?: unknown}, shouldLinkViaEmail?: boolean) {
++  const guarded = await prepareAccountSession(ctx, binding);
++  if (providerId !== "password" || !account.secret || guarded.user.emailVerificationTime === undefined || guarded.user.email !== account.id || profile.email !== account.id || !shouldLinkViaEmail)
++    throw new Error("Verified current email is required to set a password.");
++  const ownAccounts = await ctx.db.query("authAccounts").withIndex("userIdAndProvider", q => q.eq("userId", guarded.user._id).eq("provider", providerId)).take(1);
++  const sameEmail = await ctx.db.query("users").withIndex("email", q => q.eq("email", account.id)).filter(q => q.neq(q.field("emailVerificationTime"), undefined)).take(2);
++  if (ownAccounts.length || sameEmail.length !== 1 || sameEmail[0]._id !== guarded.user._id)
++    throw new Error("Password is already set or account email is ambiguous.");
++  return guarded;
++}
+diff --git a/src/server/implementation/mutations/createAccountFromCredentials.ts b/src/server/implementation/mutations/createAccountFromCredentials.ts
+index 3d93a2774c69e84543bcc63aafa06da916bba7d9..61628df483899b9ae565a4e1bd71e55e60472f41 100644
+--- a/src/server/implementation/mutations/createAccountFromCredentials.ts
++++ b/src/server/implementation/mutations/createAccountFromCredentials.ts
+@@ -1,12 +1,15 @@
+-import { Infer, v } from "convex/values";
+-import { ActionCtx, Doc, MutationCtx } from "../types.js";
++import { accountSession, preparePasswordSetup } from "./accountSession.js";
++import { v } from "convex/values";
++import type { Infer } from "convex/values";
++import type { ActionCtx, Doc, MutationCtx } from "../types.js";
+ import * as Provider from "../provider.js";
+-import { ConvexCredentialsConfig } from "../../types.js";
++import type { ConvexCredentialsConfig } from "../../types.js";
+ import { upsertUserAndAccount } from "../users.js";
+ import { getAuthSessionId } from "../sessions.js";
+ import { LOG_LEVELS, logWithLevel, maybeRedact } from "../utils.js";
+ 
+ export const createAccountFromCredentialsArgs = v.object({
++  sessionGuard: v.optional(accountSession),
+   provider: v.string(),
+   account: v.object({ id: v.string(), secret: v.optional(v.string()) }),
+   profile: v.any(),
+@@ -37,12 +40,14 @@ export async function createAccountFromCredentialsImpl(
+     shouldLinkViaPhone,
+   } = args;
+   const provider = getProviderOrThrow(providerId) as ConvexCredentialsConfig;
++  const guarded = args.sessionGuard ? await preparePasswordSetup(ctx, args.sessionGuard, providerId, account, profile, shouldLinkViaEmail) : null;
+   const existingAccount = await ctx.db
+     .query("authAccounts")
+     .withIndex("providerAndAccountId", (q) =>
+       q.eq("provider", provider.id).eq("providerAccountId", account.id),
+     )
+     .unique();
++  if (guarded && existingAccount !== null) throw new Error("Password account already exists.");
+   if (existingAccount !== null) {
+     if (
+       account.secret !== undefined &&
+@@ -79,6 +84,11 @@ export async function createAccountFromCredentialsImpl(
+     config,
+   );
+ 
++  if (guarded) {
++    if (userId !== guarded.user._id) throw new Error("Credential owner changed.");
++    await ctx.db.patch(accountId, { emailVerified: account.id });
++    await guarded.revokeOthers();
++  }
+   return {
+     account: (await ctx.db.get(accountId))!,
+     user: (await ctx.db.get(userId))!,
 diff --git a/src/server/implementation/mutations/createVerificationCode.ts b/src/server/implementation/mutations/createVerificationCode.ts
 index 24d5e1303c0f3b7d79c49a3f31001f1ee38f8d55..099745b5e0566790a7663fda553316368047172a 100644
 --- a/src/server/implementation/mutations/createVerificationCode.ts
@@ -114,3 +1160,45 @@ index 24d5e1303c0f3b7d79c49a3f31001f1ee38f8d55..099745b5e0566790a7663fda55331636
    const { accountId } = await upsertUserAndAccount(
      ctx,
      await getAuthSessionId(ctx),
+diff --git a/src/server/implementation/mutations/modifyAccount.ts b/src/server/implementation/mutations/modifyAccount.ts
+index 9262d9548a32119ed99a87825c416ea2da8478bc..07c2a836b513a3005357b5957c37fa70de308d92 100644
+--- a/src/server/implementation/mutations/modifyAccount.ts
++++ b/src/server/implementation/mutations/modifyAccount.ts
+@@ -1,9 +1,13 @@
+-import { Infer, v } from "convex/values";
+-import { ActionCtx, MutationCtx } from "../types.js";
+-import { GetProviderOrThrowFunc, hash } from "../provider.js";
++import { accountSession, prepareAccountSession } from "./accountSession.js";
++import { v } from "convex/values";
++import type { Infer } from "convex/values";
++import type { ActionCtx, MutationCtx } from "../types.js";
++import { hash } from "../provider.js";
++import type { GetProviderOrThrowFunc } from "../provider.js";
+ import { LOG_LEVELS, logWithLevel, maybeRedact } from "../utils.js";
+ 
+ export const modifyAccountArgs = v.object({
++  sessionGuard: v.optional(v.object({ ...accountSession.fields, accountId: v.id("authAccounts"), expectedSecret: v.string() })),
+   provider: v.string(),
+   account: v.object({ id: v.string(), secret: v.string() }),
+ });
+@@ -14,6 +18,8 @@ export async function modifyAccountImpl(
+   getProviderOrThrow: GetProviderOrThrowFunc,
+ ): Promise<void> {
+   const { provider, account } = args;
++  if (args.sessionGuard && provider !== "password") throw new Error("Only Password credentials support session-guarded changes.");
++  const guarded = args.sessionGuard ? await prepareAccountSession(ctx, args.sessionGuard) : null;
+   logWithLevel(LOG_LEVELS.DEBUG, "retrieveAccountWithCredentialsImpl args:", {
+     provider: provider,
+     account: {
+@@ -32,9 +38,11 @@ export async function modifyAccountImpl(
+       `Cannot modify account with ID ${account.id} because it does not exist`,
+     );
+   }
++  if (args.sessionGuard && (existingAccount._id !== args.sessionGuard.accountId || existingAccount.userId !== args.sessionGuard.userId || existingAccount.secret !== args.sessionGuard.expectedSecret)) throw new Error("Credentials changed. Verify your current password again.");
+   await ctx.db.patch(existingAccount._id, {
+     secret: await hash(getProviderOrThrow(provider), account.secret),
+   });
++  if (guarded) await guarded.revokeOthers();
+   return;
+ }
+ 
