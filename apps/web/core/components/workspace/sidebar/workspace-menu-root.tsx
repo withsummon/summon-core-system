@@ -15,7 +15,6 @@ import { MenuPrimitive as Menu } from "@plane/propel/menu";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
 import { Loader } from "@plane/ui";
 import { orderWorkspacesList, cn } from "@plane/utils";
 // helpers
@@ -23,8 +22,9 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUser, useUserProfile } from "@/hooks/store/user";
+import { useUser } from "@/hooks/store/user";
 import { useInstance } from "@/hooks/store/use-instance";
+import { useWorkspaceNavigation } from "@/hooks/workspace-navigation/use-workspace-navigation";
 // components
 import { WorkspaceLogo } from "../logo";
 import SidebarDropdownItem from "./dropdown-item";
@@ -42,13 +42,12 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const { config } = useInstance();
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
-  const { updateUserProfile } = useUserProfile();
+  const handleWorkspaceNavigation = useWorkspaceNavigation();
   const { currentWorkspace: activeWorkspace, workspaces } = useWorkspace();
   // derived values
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
   // translation
   const { t } = useTranslation();
-  const handleWorkspaceNavigation = (workspace: IWorkspace) => updateUserProfile({ last_workspace_id: workspace?.id });
 
   const handleSignOut = async () => {
     await signOut().catch(() =>

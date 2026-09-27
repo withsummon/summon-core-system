@@ -15,7 +15,7 @@
     "check:format": "oxfmt --check .",
     "fix:lint": "oxlint --fix .",
     "fix:format": "oxfmt .",
-    "test": "node --test \"core/components/convex-core/**/__tests__/*.test.ts\""
+    "test": "node --test \"core/components/convex-core/**/__tests__/*.test.ts\" \"core/components/editor/rich-text/description-input/__tests__/*.test.ts\" \"core/hooks/workspace-navigation/__tests__/*.test.ts\""
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "catalog:",
