@@ -155,7 +155,14 @@ export const taskTables = {
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"])
     .index("by_project_default", ["projectId", "isDefault"]),
-  taskLabels: defineTable({ ...labelFields, workspaceId: v.id("workspaces"), projectId: v.id("projects") })
+  taskLabels: defineTable({
+    ...labelFields,
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    parentId: v.optional(v.union(v.id("taskLabels"), v.null())),
+    revision: v.optional(v.number()),
+    retiring: v.optional(v.boolean()),
+  })
     .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"]),
