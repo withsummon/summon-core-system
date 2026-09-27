@@ -71,7 +71,7 @@ test("publish atomically reuses task identity/default/subscription/content owner
   expect(content.descriptionBinary).toEqual(new Uint8Array([1, 2]).buffer);
   await f.owner.mutation(api.tasks.description.save, {
     taskId: task._id,
-    expectedUpdatedAt: task.updatedAt,
+    expectedContentVersion: content.contentVersion,
     html: "<p>Edited</p>",
   });
   const changed = await f.owner.query(api.tasks.description.get, { taskId: task._id });
