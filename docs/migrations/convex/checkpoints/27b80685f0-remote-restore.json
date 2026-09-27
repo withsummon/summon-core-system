@@ -1,0 +1,22 @@
+{
+  "tableCount": 59,
+  "documentCount": 38,
+  "canonicalRowsEqual": true,
+  "storedFileCount": 1,
+  "storedFileBytesEqual": true,
+  "sourceSnapshotSha256": "5504fd5639dd3d1cd2bb6c23453cc0382230e2ab6283337ff888201a394587b0",
+  "freshPasswordSignIn": true,
+  "authenticatedIdentity": true,
+  "restoredWorkspaceVisible": true,
+  "source": "https://convex-core.withsummon.com",
+  "destination": "http://127.0.0.1:3216",
+  "destinationActions": "http://host.docker.internal:3217",
+  "sourceCommit": "27b80685f0aed6d40fc585a436fd0377e2aaedeb",
+  "backendImage": "ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8",
+  "isolatedVolume": "summon-remote-file-restore-20260927",
+  "limitations": [
+    "Remote-source-to-local recovery, not Dokploy disaster recovery",
+    "No scheduled encrypted retention or recovery-time objective established",
+    "Binary equality verified through re-export; authenticated restored browser file download not separately exercised"
+  ]
+}
