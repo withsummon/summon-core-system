@@ -33,6 +33,7 @@ export const assistantTables = {
     error: v.union(v.string(), v.null()),
   })
     .index("by_conversation", ["conversationId"])
+    .index("by_conversation_deleted", ["conversationId", "deleted"])
     .index("by_pending", ["conversationId", "messageId", "deleted"])
     .index("by_asset", ["assetId"]),
   assistantConversations: defineTable({

@@ -10,12 +10,13 @@ export const trash = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return ctx.db
       .query("documents")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", true))
+      .withIndex("by_workspace_owner_deleted", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("ownedBy", user._id).eq("deleted", true)
+      )
       .order("desc")
       .paginate(pageBudget(args.paginationOpts));
-    return { ...result, page: result.page.filter((document) => document.ownedBy === user._id) };
   },
 });
 

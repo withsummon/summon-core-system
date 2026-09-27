@@ -57,12 +57,11 @@ export const list = query({
   args: { credentialId: v.id("mcpCredentials"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireCredential(ctx, args.credentialId, "use");
-    const result = await ctx.db
+    return ctx.db
       .query("mcpInvocations")
-      .withIndex("by_credential", (q) => q.eq("credentialId", args.credentialId))
+      .withIndex("by_credential_requester", (q) => q.eq("credentialId", args.credentialId).eq("requesterId", user._id))
       .order("desc")
       .paginate(pageBudget(args.paginationOpts));
-    return { ...result, page: result.page.filter((row) => row.requesterId === user._id) };
   },
 });
 export const cancel = mutation({
