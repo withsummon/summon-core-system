@@ -1,3 +1,4 @@
+import { WorkspaceLogo } from "./workspace-appearance/logo";
 import { useSearchParams } from "react-router";
 import { mutationMessage } from "./commercial/forms";
 import { useId, useState } from "react";
@@ -26,6 +27,7 @@ export function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
           </Button>
         )}
       </header>
+      <WorkspaceLogo key={workspace._id} workspaceId={workspace._id} />
       {editing && settings.canManage ? (
         <SettingsForm workspace={workspace} initial={settings} onClose={() => setEditing(false)} />
       ) : (
