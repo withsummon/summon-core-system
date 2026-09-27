@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
@@ -26,14 +27,8 @@ export function TaskProperties<T extends TaskPropertyValues>({
   onChange: (draft: T) => void;
 }) {
   const states = useQuery(api.tasks.states.list, projectId ? { projectId } : "skip");
-  const labels = useQuery(api.tasks.labels.list, projectId ? { projectId } : "skip");
-  const {
-    results: members,
-    status,
-    loadMore,
-  } = usePaginatedQuery(api.tasks.assignees.list, projectId ? { projectId } : "skip", { initialNumItems: 100 });
   return (
-    <div className="grid min-w-0 gap-5 sm:grid-cols-2">
+    <TaskNonStateProperties projectId={projectId} draft={draft} onChange={onChange}>
       <SummonField label="State" htmlFor="task-state">
         <select
           id="task-state"
@@ -72,6 +67,30 @@ export function TaskProperties<T extends TaskPropertyValues>({
           </optgroup>
         </select>
       </SummonField>
+    </TaskNonStateProperties>
+  );
+}
+export type NonStatePropertyValues = Omit<TaskPropertyValues, "status" | "stateId">;
+export function TaskNonStateProperties<T extends NonStatePropertyValues>({
+  projectId,
+  draft,
+  onChange,
+  children,
+}: {
+  projectId: Id<"projects"> | null;
+  draft: T;
+  onChange: (draft: T) => void;
+  children?: ReactNode;
+}) {
+  const labels = useQuery(api.tasks.labels.list, projectId ? { projectId } : "skip");
+  const {
+    results: members,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.tasks.assignees.list, projectId ? { projectId } : "skip", { initialNumItems: 100 });
+  return (
+    <div className="grid min-w-0 gap-5 sm:grid-cols-2">
+      {children}
       <SummonField label="Priority" htmlFor="task-priority">
         <select
           id="task-priority"
@@ -94,16 +113,18 @@ export function TaskProperties<T extends TaskPropertyValues>({
         value={draft.estimatePointId}
         onChange={(estimatePointId) => onChange({ ...draft, estimatePointId })}
       />
-      <SummonField label="Start date">
+      <SummonField label="Start date" htmlFor="task-start-date">
         <Input
+          id="task-start-date"
           type="date"
           value={draft.startDate ?? ""}
           max={draft.targetDate ?? undefined}
           onChange={(event) => onChange({ ...draft, startDate: event.target.value || null })}
         />
       </SummonField>
-      <SummonField label="Due date">
+      <SummonField label="Due date" htmlFor="task-due-date">
         <Input
+          id="task-due-date"
           type="date"
           value={draft.targetDate ?? ""}
           min={draft.startDate ?? undefined}
