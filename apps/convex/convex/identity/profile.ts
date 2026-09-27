@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { requireUser } from "./access";
+import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
+import { defaultPreferences } from "./preferences_fields";
 import { profileFields } from "./schema";
 import { text } from "../commercial/validation";
 import { validateTimezone } from "../settings/timezone";
@@ -14,41 +15,34 @@ function personalName(value: string, label: string) {
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
-    const profile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .unique();
+    const { user, profile } = await ownProfile(ctx);
+    const stored = profile ?? defaultProfile;
     return {
       id: user._id,
       email: user.email ?? null,
       displayName: user.name ?? "",
-      firstName: profile?.firstName ?? "",
-      lastName: profile?.lastName ?? "",
-      timezone: profile?.timezone ?? "UTC",
-      revision: profile?.revision ?? 0,
+      firstName: stored.firstName,
+      lastName: stored.lastName,
+      timezone: stored.timezone,
+      revision: stored.revision,
+      preferences: stored.preferences ?? defaultPreferences,
     };
   },
 });
 export const save = mutation({
   args: { ...profileFields, displayName: v.string(), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
-    const profile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .unique();
-    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== (profile?.revision ?? 0))
-      throw new ConvexError("Your profile changed. Reopen it before saving.");
+    const owner = await ownProfile(ctx);
+    const { user, profile } = owner;
+    const revision = profileRevision(profile, args.expectedRevision);
     const displayName = text(args.displayName, "Display name", 255, true);
     const fields = {
       firstName: personalName(args.firstName, "First name"),
       lastName: personalName(args.lastName, "Last name"),
       timezone: validateTimezone(args.timezone),
-      revision: args.expectedRevision + 1,
+      revision,
     };
     await ctx.db.patch(user._id, { name: displayName });
-    if (profile) await ctx.db.patch(profile._id, fields);
-    else await ctx.db.insert("userProfiles", { userId: user._id, ...fields });
+    await writeProfile(ctx, owner, fields);
   },
 });
