@@ -1,3 +1,4 @@
+import { AccountPassword } from "./password/password";
 import { AccountSessions } from "./sessions/sessions";
 import { PreferencesForm } from "./preferences";
 import { ProfileAppearance } from "./appearance";
@@ -16,6 +17,7 @@ export function Profile() {
   const [editing, setEditing] = useState(false);
   const [preferencesEditing, setPreferencesEditing] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   return (
     <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
       <summary className="cursor-pointer">Account details</summary>
@@ -28,6 +30,15 @@ export function Profile() {
             {sessionsOpen ? "Hide sessions" : "Manage sessions"}
           </Button>
           {sessionsOpen && <AccountSessions />}
+          <Button
+            type="button"
+            variant="secondary"
+            aria-expanded={passwordOpen}
+            onClick={() => setPasswordOpen(!passwordOpen)}
+          >
+            {passwordOpen ? "Hide password settings" : "Manage password"}
+          </Button>
+          {passwordOpen && <AccountPassword />}
           <p className="text-12 text-secondary">Your user ID</p>
           <code className="block text-12 break-all select-all">{profile.id}</code>
           {preferencesEditing ? (
