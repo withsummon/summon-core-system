@@ -1,3 +1,4 @@
+import { AccountSessions } from "./sessions/sessions";
 import { PreferencesForm } from "./preferences";
 import { ProfileAppearance } from "./appearance";
 import { useState } from "react";
@@ -14,6 +15,7 @@ export function Profile() {
   const profile = useQuery(api.identity.profile.get);
   const [editing, setEditing] = useState(false);
   const [preferencesEditing, setPreferencesEditing] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   return (
     <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
       <summary className="cursor-pointer">Account details</summary>
@@ -22,6 +24,10 @@ export function Profile() {
           <ProfileAppearance theme={profile.preferences.theme} />
           <p className="font-medium break-words">{profile.displayName || "Your profile"}</p>
           <p className="break-all text-secondary">{profile.email}</p>
+          <Button variant="secondary" aria-expanded={sessionsOpen} onClick={() => setSessionsOpen(!sessionsOpen)}>
+            {sessionsOpen ? "Hide sessions" : "Manage sessions"}
+          </Button>
+          {sessionsOpen && <AccountSessions />}
           <p className="text-12 text-secondary">Your user ID</p>
           <code className="block text-12 break-all select-all">{profile.id}</code>
           {preferencesEditing ? (

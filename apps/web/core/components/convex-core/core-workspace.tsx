@@ -1,3 +1,4 @@
+import { SessionBoundary } from "./identity/session-boundary";
 import { RecordVisit } from "./navigation/record-visit";
 import { WorkspaceNavigation } from "./favorites/workspace-navigation";
 import { FavoriteToggle } from "./favorites/toggle";
@@ -61,7 +62,13 @@ export function CoreWorkspace() {
         Restoring your session…
       </p>
     );
-  return isAuthenticated ? <Workspace /> : <SignIn />;
+  return isAuthenticated ? (
+    <SessionBoundary>
+      <Workspace />
+    </SessionBoundary>
+  ) : (
+    <SignIn />
+  );
 }
 
 function Workspace() {
