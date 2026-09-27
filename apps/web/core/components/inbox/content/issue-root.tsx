@@ -55,14 +55,14 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
   const { loader } = useProjectInbox();
   const { removeIssue, archiveIssue } = useIssueDetail();
   // reload confirmation
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
+  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (isSubmitting === "submitted") {
       setShowAlert(false);
       timer = setTimeout(() => setIsSubmitting("saved"), 3000);
-    } else if (isSubmitting === "submitting") {
+    } else if (isSubmitting === "submitting" || isSubmitting === "failed") {
       setShowAlert(true);
     }
     return () => clearTimeout(timer);
@@ -104,6 +104,7 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
             type: TOAST_TYPE.ERROR,
             message: "Work item update failed",
           });
+          throw _error;
         }
       },
       // oxlint-disable-next-line no-shadow

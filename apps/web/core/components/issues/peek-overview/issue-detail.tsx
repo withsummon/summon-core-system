@@ -55,14 +55,14 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
 
   const { getUserDetails } = useMember();
   // reload confirmation
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
+  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (isSubmitting === "submitted") {
       setShowAlert(false);
       timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting") {
+    } else if (isSubmitting === "submitting" || isSubmitting === "failed") {
       setShowAlert(true);
     }
     return () => clearTimeout(timer);

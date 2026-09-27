@@ -101,6 +101,7 @@ export const IssueDetailRoot = observer(function IssueDetailRoot(props: TIssueDe
             type: TOAST_TYPE.ERROR,
             message: t("entity.update.failed", { entity: t("issue.label") }),
           });
+          throw error;
         }
       },
       remove: async (workspaceSlug: string, projectId: string, issueId: string) => {
