@@ -66,3 +66,95 @@ test("new relation types keep current ACL, self relation and captured revision b
   await f.owner.mutation(api.tasks.index.setStatus, { taskId: f.a, status: "done" });
   await expect(f.owner.mutation(api.tasks.relationships.add, args)).rejects.toThrow("changed");
 });
+
+test("cross-project edges preserve directions and detect workspace-wide blocking cycles", async () => {
+  const f = await setup();
+  const project = await f.owner.mutation(api.projects.index.create, {
+    workspaceId: f.workspaceId,
+    name: "Second",
+    identifier: "SEC",
+  });
+  const c = await f.owner.mutation(api.tasks.index.create, { projectId: project, title: "C" });
+  await f.add("blocks");
+  await f.add("blocks", f.b, c);
+  await expect(f.add("blocks", c, f.a)).rejects.toThrow("cycle");
+  const row = (await f.owner.query(api.tasks.relationships.list, { taskId: f.b })).find((row) => row.task?._id === c);
+  expect(row).toMatchObject({ direction: "blocks", project: { identifier: "SEC" }, canRemove: true });
+  await expect(f.add("blocked_by", c, f.b)).rejects.toThrow("already");
+  await f.add("implements", c, f.a);
+});
+test("cross-workspace edges and revoked cross-project access cannot leak or mutate related tasks", async () => {
+  const f = await setup();
+  const ws = await f.owner.mutation(api.workspaces.index.create, { name: "Foreign", slug: "foreign" });
+  const foreignProject = await f.owner.mutation(api.projects.index.create, {
+    workspaceId: ws,
+    name: "Foreign",
+    identifier: "FOR",
+  });
+  const foreign = await f.owner.mutation(api.tasks.index.create, { projectId: foreignProject, title: "Foreign" });
+  await expect(f.add("start_before", f.a, foreign)).rejects.toThrow("same workspace");
+  const project = await f.owner.mutation(api.projects.index.create, {
+    workspaceId: f.workspaceId,
+    name: "Second",
+    identifier: "SEC",
+  });
+  const c = await f.owner.mutation(api.tasks.index.create, { projectId: project, title: "Secret" });
+  const relationId = await f.add("start_before", f.a, c);
+  await f.t.run(async (ctx) => {
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", project).eq("userId", f.userId))
+      .unique();
+    await ctx.db.patch(membership!._id, { active: false });
+  });
+  expect(await f.owner.query(api.tasks.relationships.list, { taskId: f.a })).toEqual([]);
+  const task = await f.owner.query(api.tasks.index.get, { taskId: f.a });
+  await expect(
+    f.owner.mutation(api.tasks.relationships.remove, { relationId, taskId: f.a, expectedUpdatedAt: task.updatedAt })
+  ).rejects.toThrow();
+  expect(await f.t.run((ctx) => ctx.db.get(relationId))).not.toBeNull();
+});
+test("authorized writers can detach deleted cross-project endpoints without deleted content disclosure", async () => {
+  const f = await setup();
+  const project = await f.owner.mutation(api.projects.index.create, {
+    workspaceId: f.workspaceId,
+    name: "Second",
+    identifier: "SEC",
+  });
+  const c = await f.owner.mutation(api.tasks.index.create, { projectId: project, title: "Hidden" });
+  const relationId = await f.add("finish_before", f.a, c);
+  const related = await f.owner.query(api.tasks.index.get, { taskId: c });
+  await f.owner.mutation(api.tasks.lifecycle.change, {
+    taskId: c,
+    expectedUpdatedAt: related.updatedAt,
+    operation: "delete",
+  });
+  expect((await f.owner.query(api.tasks.relationships.list, { taskId: f.a }))[0]).toMatchObject({
+    task: null,
+    unavailable: true,
+    canRemove: true,
+  });
+  const task = await f.owner.query(api.tasks.index.get, { taskId: f.a });
+  await f.owner.mutation(api.tasks.relationships.remove, {
+    taskId: f.a,
+    relationId,
+    expectedUpdatedAt: task.updatedAt,
+  });
+  expect(await f.t.run((ctx) => ctx.db.get(relationId))).toBeNull();
+});
+test("workspace blocking graph overflow fails explicitly while unrelated relation kinds remain available", async () => {
+  const f = await setup();
+  await f.t.run(async (ctx) => {
+    for (let index = 0; index < 1000; index++)
+      await ctx.db.insert("taskRelations", {
+        workspaceId: f.workspaceId,
+        projectId: f.projectId,
+        fromId: f.b,
+        toId: f.b,
+        kind: "blocks",
+      });
+  });
+  await expect(f.add("blocks")).rejects.toThrow("1000 blocking");
+  await f.add("start_before");
+  await expect(f.owner.query(api.tasks.relationships.list, { taskId: f.b })).rejects.toThrow("read limit");
+});

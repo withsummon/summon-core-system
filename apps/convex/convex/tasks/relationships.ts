@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { requireTask, taskIsReadable, taskCanRead } from "./access";
+import { projectReader, projectSummary } from "../savedViews/scope";
 import { relationKind } from "./schema";
 import { requireTaskRevision, taskChanged } from "./revision";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -37,40 +38,59 @@ function canonicalRelation(kind: typeof relationDirection.type, taskId: Id<"task
     toId: symmetric && taskId > relatedId ? taskId : relatedId,
   };
 }
-const MAX_PROJECT_RELATIONS = 1000;
+const MAX_GRAPH_EDGES = 1000;
 export const list = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await requireTask(ctx, taskId, "read");
     const { user, member, projectMember } = await requireProject(ctx, task.projectId);
+    const readProject = projectReader(ctx, task.workspaceId, user._id);
     const canCleanUnavailable = member.role !== "guest" && projectMember.role !== "guest";
     const [outgoing, incoming] = await Promise.all([
       ctx.db
         .query("taskRelations")
         .withIndex("by_from", (q) => q.eq("fromId", taskId))
-        .take(MAX_PROJECT_RELATIONS),
+        .take(MAX_GRAPH_EDGES + 1),
       ctx.db
         .query("taskRelations")
         .withIndex("by_to", (q) => q.eq("toId", taskId))
-        .take(MAX_PROJECT_RELATIONS),
+        .take(MAX_GRAPH_EDGES + 1),
     ]);
+    if (outgoing.length > MAX_GRAPH_EDGES || incoming.length > MAX_GRAPH_EDGES)
+      throw new ConvexError("This task exceeds the 1000 relationships per direction read limit.");
     const rows = await Promise.all(
       [...outgoing, ...incoming].map(async (relation) => {
         const related = await ctx.db.get(relation.fromId === taskId ? relation.toId : relation.fromId);
-        const readable = related !== null && taskIsReadable(related);
+        if (!related || relation.workspaceId !== task.workspaceId) return null;
+        const access = await readProject(related.projectId);
+        if (!access) return null;
+        const readable = taskIsReadable(related);
         if (readable && !(await taskCanRead(ctx, related, user._id))) return null;
-        if (!readable && !canCleanUnavailable) return null;
-        return {
-          relation,
-          task: readable ? related : null,
-          unavailable: !readable,
-          direction: relation.toId === taskId ? inverse[relation.kind] : relation.kind,
-        };
+        const canRemove = canCleanUnavailable && access.member.role !== "guest";
+        if (!readable && !canRemove) return null;
+        return relationResult(relation, taskId, related, access.project, canRemove);
       })
     );
     return rows.filter((row) => row !== null);
   },
 });
+function relationResult(
+  relation: Doc<"taskRelations">,
+  taskId: Id<"tasks">,
+  related: Doc<"tasks">,
+  project: Doc<"projects">,
+  canRemove: boolean
+) {
+  const task = taskIsReadable(related) ? related : null;
+  return {
+    relation,
+    task,
+    project: projectSummary(project),
+    canRemove,
+    unavailable: task === null,
+    direction: relation.toId === taskId ? inverse[relation.kind] : relation.kind,
+  };
+}
 function assertAcyclic(edges: Doc<"taskRelations">[], fromId: Id<"tasks">, toId: Id<"tasks">) {
   const pending = [toId];
   const visited = new Set<Id<"tasks">>();
@@ -98,23 +118,29 @@ export const add = mutation({
     const { user } = await requireProject(ctx, task.projectId, true);
     await requireProject(ctx, related.projectId, true);
     if (task._id === related._id) throw new ConvexError("A task cannot relate to itself.");
-    if (task.projectId !== related.projectId) throw new ConvexError("Related tasks must belong to the same project.");
+    if (task.workspaceId !== related.workspaceId)
+      throw new ConvexError("Related tasks must belong to the same workspace.");
     requireTaskRevision(task, args.expectedUpdatedAt);
     requireTaskRevision(related, args.expectedRelatedUpdatedAt);
     const { fromId, toId, kind } = canonicalRelation(args.kind, task._id, related._id);
-    const edges = await ctx.db
+    const pair = await ctx.db
       .query("taskRelations")
-      .withIndex("by_project", (q) => q.eq("projectId", task.projectId))
-      .take(MAX_PROJECT_RELATIONS + 1);
-    if (
-      edges.some(
-        (edge) => (edge.fromId === fromId && edge.toId === toId) || (edge.fromId === toId && edge.toId === fromId)
-      )
-    )
-      throw new ConvexError("These tasks already have a relationship.");
-    if (edges.length >= MAX_PROJECT_RELATIONS)
-      throw new ConvexError("A project supports up to 1000 task relationships.");
-    if (kind === "blocks") assertAcyclic(edges, fromId, toId);
+      .withIndex("by_pair", (q) => q.eq("fromId", fromId).eq("toId", toId))
+      .first();
+    const reversePair = await ctx.db
+      .query("taskRelations")
+      .withIndex("by_pair", (q) => q.eq("fromId", toId).eq("toId", fromId))
+      .first();
+    if (pair || reversePair) throw new ConvexError("These tasks already have a relationship.");
+    if (kind === "blocks") {
+      const edges = await ctx.db
+        .query("taskRelations")
+        .withIndex("by_workspace_kind", (q) => q.eq("workspaceId", task.workspaceId).eq("kind", "blocks"))
+        .take(MAX_GRAPH_EDGES + 1);
+      if (edges.length >= MAX_GRAPH_EDGES)
+        throw new ConvexError("A workspace supports up to 1000 blocking relationships.");
+      assertAcyclic(edges, fromId, toId);
+    }
     const id = await ctx.db.insert("taskRelations", {
       workspaceId: task.workspaceId,
       projectId: task.projectId,
@@ -136,8 +162,8 @@ export const remove = mutation({
       throw new ConvexError("Relationship does not belong to this task.");
     const task = await requireTask(ctx, args.taskId);
     const related = await ctx.db.get(relation.fromId === task._id ? relation.toId : relation.fromId);
-    if (!related || related.projectId !== task.projectId)
-      throw new ConvexError("Related task not found in this project.");
+    if (!related || related.workspaceId !== task.workspaceId || relation.workspaceId !== task.workspaceId)
+      throw new ConvexError("Related task not found in this workspace.");
     const { user } = await requireProject(ctx, task.projectId, true);
     await requireProject(ctx, related.projectId, true);
     requireTaskRevision(task, args.expectedUpdatedAt);

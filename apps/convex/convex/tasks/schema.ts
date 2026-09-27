@@ -98,7 +98,7 @@ export const taskTables = {
     .index("by_child", ["childId"])
     .index("by_parent", ["parentId"]),
   taskRelations: defineTable({
-    workspaceId: v.optional(v.id("workspaces")),
+    workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
     fromId: v.id("tasks"),
     toId: v.id("tasks"),
