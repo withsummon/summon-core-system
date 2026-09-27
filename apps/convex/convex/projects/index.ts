@@ -1,11 +1,16 @@
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
 import { createProject } from "./create";
 import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
-import { requireWorkspace, requireProject, requireAnotherProjectAdmin } from "../identity/access";
+import {
+  requireWorkspace,
+  requireProject,
+  requireProjectMembership,
+  requireAnotherProjectAdmin,
+} from "../identity/access";
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
@@ -71,10 +76,24 @@ export const revokeMember = mutation({
       .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))
       .unique();
     if (!existing?.active) return;
-    if (existing.role === "admin") await requireAnotherProjectAdmin(ctx, args.projectId);
-    await ctx.db.patch(existing._id, { active: false });
+    await revokeProjectMembership(ctx, existing);
   },
 });
+
+export const leave = mutation({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new ConvexError("Project not found.");
+    // Archived projects remain leaveable; this does not permit editing archived content.
+    const { projectMember } = await requireProjectMembership(ctx, project);
+    await revokeProjectMembership(ctx, projectMember);
+  },
+});
+async function revokeProjectMembership(ctx: MutationCtx, member: Doc<"projectMembers">) {
+  if (member.role === "admin") await requireAnotherProjectAdmin(ctx, member.projectId);
+  await ctx.db.patch(member._id, { active: false });
+}
 
 export async function grantProjectMembership(
   ctx: MutationCtx,

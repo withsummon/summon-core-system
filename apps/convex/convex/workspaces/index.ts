@@ -4,7 +4,7 @@ import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
 import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
 import { requireUser, requireWorkspace, requireAnotherProjectAdmin } from "../identity/access";
 export const list = query({
   args: {},
@@ -85,11 +85,23 @@ export const revokeMember = mutation({
       .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
       .unique();
     if (!existing?.active) return;
-    if (existing.role === "admin") await requireAnotherAdmin(ctx, args.workspaceId);
-    await restrictProjectMemberships(ctx, args.workspaceId, args.userId, "revoke");
-    await ctx.db.patch(existing._id, { active: false });
+    await revokeWorkspaceMembership(ctx, existing);
   },
 });
+
+export const leave = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { member } = await requireWorkspace(ctx, args.workspaceId);
+    await revokeWorkspaceMembership(ctx, member);
+  },
+});
+async function revokeWorkspaceMembership(ctx: MutationCtx, member: Doc<"workspaceMembers">) {
+  if (member.role === "admin") await requireAnotherAdmin(ctx, member.workspaceId);
+  await restrictProjectMemberships(ctx, member.workspaceId, member.userId, "revoke");
+  await ctx.db.patch(member._id, { active: false });
+}
+export const MAX_ATOMIC_PROJECT_MEMBERSHIPS = 100;
 
 async function restrictProjectMemberships(
   ctx: MutationCtx,
@@ -97,11 +109,16 @@ async function restrictProjectMemberships(
   userId: Id<"users">,
   restriction: "revoke" | "guest"
 ) {
-  const memberships = await ctx.db
+  const activeMemberships = await ctx.db
     .query("projectMembers")
-    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", userId))
-    .collect();
-  const activeMemberships = memberships.filter((member) => member.active);
+    .withIndex("by_workspace_user_active", (q) =>
+      q.eq("workspaceId", workspaceId).eq("userId", userId).eq("active", true)
+    )
+    .take(MAX_ATOMIC_PROJECT_MEMBERSHIPS + 1);
+  if (activeMemberships.length > MAX_ATOMIC_PROJECT_MEMBERSHIPS)
+    throw new ConvexError(
+      `Membership change exceeds the atomic budget of ${MAX_ATOMIC_PROJECT_MEMBERSHIPS} active projects. No access changed.`
+    );
   await Promise.all(
     activeMemberships
       .filter((member) => member.role === "admin")
