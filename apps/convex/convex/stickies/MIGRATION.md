@@ -25,3 +25,13 @@ Legacy app ordering is `-sort_order`; PAT `api/views/sticky.py` deliberately lis
 ## Verification
 
 Six module BDD scenarios cover guest owner CRUD, admin isolation, revoked membership, sanitized HTML/derived search, JSON/binary/appearance roundtrip and omission preservation, persisted ordering/ties/sparse cursors, stale same-clock writes, Trash recovery, cross-workspace denial and payload/page bounds. Native scoped lint/complexity and formatting pass. Shared full type/test gates and actual browser/deployment evidence are reported separately by the coordinating owner because concurrent task ACL work is in flight. This receipt does not claim live deployment.
+
+## Preserved production route contract audit
+
+The preserved sticky editor writes HTML and palette background keys; nullable name, foreground color, opaque content formats and logo properties already have native owners. The inherited model has no x/y coordinate field: position is descending `sort_order`. Creating on the empty editor uses the existing create mutation and receives its typed ID; the UI then obtains that canonical row before further writes. Search remains description-only, including sparse continuation, rather than inventing title search.
+
+Update and numeric reorder now return `{ updatedAt }`, the exact committed version. Serialized autosave can advance from its own acknowledgement without replacing the draft's version with an unrelated reactive update. A peer write still causes a conflict and the consumer must retain the unsaved draft.
+
+The preserved drag consumer uses `move` with source/target IDs, both captured versions, and `before`/`after`. The mutation authorizes both private notes and resolves the actual adjacent owner-index row, including neighbors outside the loaded UI page. It does not reuse legacy's incorrect below-target subtraction or a partial-page midpoint. Existing equal target orders and exhausted floating-point gaps produce explicit errors; the existing numeric reorder owner can move a tied note to an outer edge before retry. No automatic rebalancing or extra schema was introduced.
+
+Nine sticky behavior tests cover the previous six scenarios plus exact acknowledgement chaining/peer conflict, unpaged neighbor placement/source-target CAS/private target denial, and tied-position rejection with recovery. This is source/test evidence, not browser acceptance or deployment proof. Legacy REST/PAT retirement and opaque format equivalence remain outside this route prerequisite.
