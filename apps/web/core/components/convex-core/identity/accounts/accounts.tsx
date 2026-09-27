@@ -1,7 +1,16 @@
+import { DisconnectAccount } from "./disconnect";
+import { SessionBoundary } from "../session-boundary";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 export function ConnectedAccounts() {
+  return (
+    <SessionBoundary>
+      <AccountsList />
+    </SessionBoundary>
+  );
+}
+function AccountsList() {
   const { results, status, loadMore } = usePaginatedQuery(
     api.identity.accounts.index.list,
     {},
@@ -23,6 +32,7 @@ export function ConnectedAccounts() {
               {account.configuredForSignIn ? "Sign-in method configured" : "Sign-in method unavailable"}
             </p>
             <p className="text-12 text-secondary">Connected {new Date(account.connectedAt).toLocaleDateString()}</p>
+            <DisconnectAccount accountId={account.id} name={account.name} />
           </li>
         ))}
       </ul>
