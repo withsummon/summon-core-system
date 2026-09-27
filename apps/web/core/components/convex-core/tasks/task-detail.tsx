@@ -15,6 +15,9 @@ import { TaskSubscription } from "../notifications/task-subscription";
 const RichDescription = lazy(() =>
   import("./rich-description").then((module) => ({ default: module.RichDescription }))
 );
+const TaskAttachments = lazy(() =>
+  import("./attachments/attachments").then((module) => ({ default: module.TaskAttachments }))
+);
 const TaskComments = lazy(() => import("./comments").then((module) => ({ default: module.TaskComments })));
 const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
@@ -108,6 +111,7 @@ function TaskDetailContent({
             <Suspense fallback={<p role="status">Loading task details…</p>}>
               <RichDescription taskId={task._id} canWrite={canWrite} />
               <TaskStructure task={task} canWrite={canWrite} />
+              <TaskAttachments key={`attachments:${task._id}`} taskId={task._id} />
               <TaskComments key={task._id} taskId={task._id} />
             </Suspense>
           )}

@@ -1,15 +1,17 @@
 import { ConvexError } from "convex/values";
 
-export const supportedAssetTypes = [
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-] as const;
+export const assetTypesByExtension = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".csv": "text/csv",
+} as const;
+export const supportedAssetTypes = [...new Set(Object.values(assetTypesByExtension))];
 export const assetSizeLimit = (contentType: string) =>
   contentType.startsWith("image/") ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
 export function validateIntent(name: string, contentType: string, size: number, sha256: string) {
