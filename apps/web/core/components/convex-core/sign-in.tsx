@@ -16,6 +16,7 @@ const titles: Record<Flow, string> = {
 export function SignIn() {
   const { signIn } = useAuthActions();
   const available = useQuery(api.identity.mail.availability.get, {});
+  const providers = useQuery(api.identity.oauth.availability.list, {});
   const [flow, setFlow] = useState<Flow>("signIn");
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false),
@@ -114,6 +115,28 @@ export function SignIn() {
             {error}
           </p>
         )}
+        {(flow === "signIn" || flow === "signUp") &&
+          providers?.map((provider) => (
+            <Button
+              key={provider.id}
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={async () => {
+                setPending(true);
+                setError("");
+                try {
+                  await signIn(provider.id);
+                } catch {
+                  setError(`Could not connect to ${provider.name}. Try again.`);
+                } finally {
+                  setPending(false);
+                }
+              }}
+            >
+              Continue with {provider.name}
+            </Button>
+          ))}
         {flow === "signIn" && available?.passwordReset && (
           <Button
             variant="secondary"
