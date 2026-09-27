@@ -5,24 +5,29 @@ import { requireProject } from "../identity/access";
 // Missing values are exclusively the pre-lifecycle stored-row migration contract.
 // Remove optional fields and this nullish interpretation after backfill verification.
 export function taskIsActive(task: Doc<"tasks">) {
-  return task.deletedAt == null && task.archivedAt == null;
+  return task.status !== "triage" && task.deletedAt == null && task.archivedAt == null;
 }
 export function taskIsReadable(task: Doc<"tasks">) {
-  return task.deletedAt == null;
+  return task.status !== "triage" && task.deletedAt == null;
 }
 export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "active" | "read" | "recovery" = "active") {
   const task = await ctx.db.get(taskId);
-  if (!task || (mode === "active" && !taskIsActive(task)) || (mode === "read" && !taskIsReadable(task)))
+  if (
+    !task ||
+    task.status === "triage" ||
+    (mode === "active" && !taskIsActive(task)) ||
+    (mode === "read" && !taskIsReadable(task))
+  )
     throw new ConvexError("Task not found.");
   if (mode === "recovery") {
     const access = await requireProject(ctx, task.projectId);
     if (task.createdBy !== access.user._id && access.projectMember.role !== "admin")
       throw new ConvexError("Only the creator or a project administrator can recover this task.");
   }
-  return task;
+  return { ...task, status: task.status };
 }
 
-export async function taskDetail(ctx: QueryCtx, task: Doc<"tasks">) {
+export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof requireTask>>) {
   const { user, member, projectMember } = await requireProject(ctx, task.projectId);
   const writer = member.role !== "guest" && projectMember.role !== "guest";
   const recovery = task.createdBy === user._id || projectMember.role === "admin";

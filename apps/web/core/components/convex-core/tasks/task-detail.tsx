@@ -8,7 +8,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
-import { statusOptions } from "./options";
+import { statusOptions, taskStatusOptions } from "./options";
 import { TaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
 
@@ -73,8 +73,7 @@ function TaskDetailContent({
             <div>
               <dt className="text-secondary">State</dt>
               <dd>
-                {states.find((state) => state._id === task.stateId)?.name ??
-                  statusOptions.find((state) => state.value === task.status)?.label}
+                {states.find((state) => state._id === task.stateId)?.name ?? taskStatusOptions[task.status].label}
               </dd>
             </div>
             <div>

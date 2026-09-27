@@ -7,7 +7,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { TaskDetail } from "./task-detail";
-import { statusOptions } from "./options";
+import { taskStatusOptions } from "./options";
 type Filters = FunctionArgs<typeof api.tasks.center.list>;
 const scopes = [
   { value: "mine", label: "My tasks" },
@@ -211,7 +211,7 @@ export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof
                     </span>
                   </span>
                   <span className="text-right text-12 sm:text-left">
-                    {state?.name ?? statusOptions.find((item) => item.value === task.status)?.label}
+                    {state?.name ?? taskStatusOptions[task.status].label}
                   </span>
                   <span className="col-span-2 text-12 text-secondary sm:col-span-1">
                     {task.targetDate ?? "No due date"}

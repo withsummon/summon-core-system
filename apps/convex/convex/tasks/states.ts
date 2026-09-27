@@ -7,10 +7,11 @@ export const list = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     await requireProject(ctx, args.projectId);
-    return ctx.db
+    const states = await ctx.db
       .query("taskStates")
       .withIndex("by_project_order", (q) => q.eq("projectId", args.projectId))
       .collect();
+    return states.flatMap((state) => (state.status === "triage" ? [] : [{ ...state, status: state.status }]));
   },
 });
 export const save = mutation({
@@ -23,6 +24,7 @@ export const save = mutation({
     const color = text(args.data.color, "State color", 255);
     if (!Number.isFinite(args.data.sortOrder)) throw new ConvexError("State order must be finite.");
     const existing = args.stateId ? await ctx.db.get(args.stateId) : null;
+    if (existing?.status === "triage") throw new ConvexError("The intake state is managed by intake.");
     if (args.stateId && (!existing || existing.projectId !== project._id))
       throw new ConvexError("State not found in this project.");
     const duplicate = await ctx.db
@@ -66,7 +68,7 @@ export const remove = mutation({
   args: { stateId: v.id("taskStates") },
   handler: async (ctx, args) => {
     const state = await ctx.db.get(args.stateId);
-    if (!state) throw new ConvexError("State not found.");
+    if (!state || state.status === "triage") throw new ConvexError("State not found.");
     const { projectMember } = await requireProject(ctx, state.projectId, true);
     if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can manage task states.");
     if (state.isDefault) throw new ConvexError("Choose another default state first.");

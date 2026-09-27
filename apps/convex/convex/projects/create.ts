@@ -28,6 +28,8 @@ export async function createProject(
     timezone: await workspaceTimezone(ctx, args.workspaceId),
     description: "",
     metadataRevision: 0,
+    intakeEnabled: false,
+    guestViewAllFeatures: false,
     nextSequence: 1,
     archived: false,
   });

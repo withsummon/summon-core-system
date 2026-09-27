@@ -6,7 +6,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { field, mutationMessage, selectClass } from "../commercial/forms";
-import { statusOptions } from "./options";
+import { statusOptions, taskStatusOptions } from "./options";
 
 export function ProjectTaxonomy({ projectId }: { projectId: Id<"projects"> }) {
   const states = useQuery(api.tasks.states.list, { projectId });
@@ -21,7 +21,7 @@ export function ProjectTaxonomy({ projectId }: { projectId: Id<"projects"> }) {
           <h3 className="text-14 font-medium">Workflow states</h3>
           {states?.map((item) => (
             <button className="block text-14" key={item._id} onClick={() => setState(item)}>
-              {item.name} · {statusOptions.find((group) => group.value === item.status)?.label}
+              {item.name} · {taskStatusOptions[item.status].label}
               {item.isDefault ? " · Default" : ""}
             </button>
           ))}

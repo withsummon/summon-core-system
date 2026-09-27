@@ -1,3 +1,4 @@
+import { intakeTables } from "./intakes/schema";
 import { quickLinkTables } from "./quickLinks/schema";
 import { moduleTables } from "./modules/schema";
 import { cycleTables } from "./cycles/schema";
@@ -33,6 +34,7 @@ export default defineSchema({
   ...commercialTables,
   ...documentTables,
   ...resourceTables,
+  ...intakeTables,
   workspaces: defineTable({ name: v.string(), slug: v.string() }).index("by_slug", ["slug"]),
   workspaceMembers: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), role, active: v.boolean() })
     .index("by_workspace_user", ["workspaceId", "userId"])
@@ -45,6 +47,8 @@ export default defineSchema({
     timezone: v.optional(v.string()),
     description: v.optional(v.string()),
     metadataRevision: v.optional(v.number()),
+    intakeEnabled: v.optional(v.boolean()),
+    guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
     archived: v.boolean(),
   })
