@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import { create } from "axios";
+import { authReturnUrl } from "@/helpers/auth-return";
 
 export abstract class APIService {
   protected baseURL: string;
@@ -27,8 +28,8 @@ export abstract class APIService {
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
-          const currentPath = window.location.pathname;
-          window.location.replace(`/${currentPath ? `?next_path=${currentPath}` : ``}`);
+          const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.replace(authReturnUrl("/", currentPath));
         }
         return Promise.reject(error);
       }
