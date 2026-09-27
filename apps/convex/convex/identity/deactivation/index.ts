@@ -1,4 +1,4 @@
-import { requireNotInstanceAdmin } from "./instance";
+import { requireNotInstanceAdmin } from "../instance/index";
 import { ConvexError, v } from "convex/values";
 import { retrieveAccount } from "@convex-dev/auth/server";
 import type { MutationCtx } from "../../_generated/server";
