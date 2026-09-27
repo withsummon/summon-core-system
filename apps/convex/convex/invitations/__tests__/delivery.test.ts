@@ -74,13 +74,20 @@ test("delivery failure is persisted; resend rotates the old token and does not r
     role: "member",
   });
   expect(result.delivery).toBe("failed");
-  expect(new Set(Object.keys(result))).toEqual(new Set(["invitationId", "delivery"]));
+  expect(new Set(Object.keys(result))).toEqual(new Set(["invitationId", "delivery", "revision"]));
   expect(await f.t.run((ctx) => ctx.db.get(result.invitationId))).toMatchObject({
     delivery: { status: "failed", revision: 0 },
   });
-  await f.owner.action(api.invitations.email.resend, { invitationId: result.invitationId, expectedRevision: 0 });
+  const retry = await f.owner.action(api.invitations.email.resend, {
+    invitationId: result.invitationId,
+    expectedRevision: result.revision,
+  });
+  expect(retry.revision).toBe(result.revision + 1);
   const first = link.searchParams.get("token")!;
-  await f.owner.action(api.invitations.email.resend, { invitationId: result.invitationId, expectedRevision: 1 });
+  await f.owner.action(api.invitations.email.resend, {
+    invitationId: result.invitationId,
+    expectedRevision: retry.revision,
+  });
   await expect(
     f.t.action(api.invitations.email.preview, { invitationId: result.invitationId, token: first })
   ).rejects.toThrow("unavailable");

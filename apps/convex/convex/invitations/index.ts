@@ -132,12 +132,13 @@ export const respondIncoming = mutation({
   args: { invitationId: v.id("invitations"), expectedRevision: v.number(), accepted: v.boolean() },
   handler: respondToInvitation,
 });
+const maxAcceptInvitations = 20;
 export const acceptIncoming = mutation({
   args: { invitations: v.array(v.object({ invitationId: v.id("invitations"), expectedRevision: v.number() })) },
   handler: async (ctx, args) => {
     if (
       args.invitations.length < 1 ||
-      args.invitations.length > 20 ||
+      args.invitations.length > maxAcceptInvitations ||
       new Set(args.invitations.map((row) => row.invitationId)).size !== args.invitations.length
     )
       throw new ConvexError("Select between one and twenty distinct invitations.");
@@ -196,7 +197,12 @@ export const incoming = query({
 });
 export const availability = query({
   args: {},
-  handler: () => ({ emailDelivery: mailConfiguration(process.env) !== null, manualSharing: true, expiresAfterDays: 7 }),
+  handler: () => ({
+    emailDelivery: mailConfiguration(process.env) !== null,
+    manualSharing: true,
+    expiresAfterDays: 7,
+    maxAcceptInvitations,
+  }),
 });
 
 async function acceptProjectMembership(

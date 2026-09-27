@@ -36,11 +36,14 @@ async function deliver(ctx: ActionCtx, invitationId: Id<"invitations">, token: s
     /* Delivery is reported explicitly; provider error details are not persisted. */
   }
   await ctx.runMutation(internal.invitations.delivery.record, { invitationId, tokenHash, status });
-  return { invitationId, delivery: status };
+  return { invitationId, delivery: status, revision: context.revision };
 }
 export const send = action({
   args: { workspaceId: v.id("workspaces"), projectId: v.union(v.id("projects"), v.null()), email: v.string(), role },
-  handler: async (ctx, args): Promise<{ invitationId: Id<"invitations">; delivery: "sent" | "failed" }> => {
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ invitationId: Id<"invitations">; delivery: "sent" | "failed"; revision: number }> => {
     configuration();
     const token = randomBytes(32).toString("hex");
     const invitationId = await ctx.runMutation(internal.invitations.index.issue, {
@@ -52,7 +55,10 @@ export const send = action({
 });
 export const resend = action({
   args: { invitationId: v.id("invitations"), expectedRevision: v.number() },
-  handler: async (ctx, args): Promise<{ invitationId: Id<"invitations">; delivery: "sent" | "failed" }> => {
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ invitationId: Id<"invitations">; delivery: "sent" | "failed"; revision: number }> => {
     configuration();
     const token = randomBytes(32).toString("hex");
     await ctx.runMutation(internal.invitations.index.rotate, { ...args, tokenHash: tokenDigest(token) });
