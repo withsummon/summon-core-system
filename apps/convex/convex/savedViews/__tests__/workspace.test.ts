@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import type { FunctionArgs } from "convex/server";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 const paginationOpts = { cursor: null, numItems: 100 };
 const filters: FunctionArgs<typeof api.savedViews.workspace.create>["filters"] = {
@@ -193,42 +193,29 @@ test("workspace owner edit and admin recovery preserve personal favorites with m
     vi.useRealTimers();
   }
 });
-test("old project rows remain readable before bounded backfill; IDs, revisions and favorites remain unchanged", async () => {
+test("all view and favorite writers preserve canonical workspace ownership and immutable scope", async () => {
   const f = await fixture();
   const projectView = await f.owner.mutation(api.savedViews.index.create, {
     projectId: f.projectId,
-    name: "Legacy",
+    name: "Project",
     description: "",
     filters,
   });
   await f.owner.mutation(api.savedViews.favorites.set, { viewId: projectView, favorite: true });
-  await f.t.run(async (ctx) => {
-    await ctx.db.patch(projectView, { workspaceId: undefined });
-    const favorite = await ctx.db
-      .query("savedViewFavorites")
-      .withIndex("by_view_user", (q) => q.eq("viewId", projectView).eq("userId", f.userId))
-      .unique();
-    if (favorite) await ctx.db.patch(favorite._id, { workspaceId: undefined });
-  });
-  const before = await f.owner.query(api.savedViews.index.get, { viewId: projectView });
-  expect(before.isFavorite).toBe(true);
+  await f.owner.mutation(api.savedViews.workspace.favorite, { viewId: f.viewId, favorite: true });
+  const project = await f.owner.query(api.savedViews.index.get, { viewId: projectView });
+  const workspace = await f.owner.query(api.savedViews.workspace.get, { viewId: f.viewId });
+  expect(project.view.workspaceId).toBe(f.workspaceId);
+  expect(project.view.projectId).toBe(f.projectId);
+  expect(workspace.view.workspaceId).toBe(f.workspaceId);
+  expect(workspace.view.projectId).toBeNull();
   await expect(f.owner.query(api.savedViews.workspace.get, { viewId: projectView })).rejects.toThrow("not found");
   await expect(f.owner.query(api.savedViews.index.get, { viewId: f.viewId })).rejects.toThrow("not found");
-  await Promise.all(
-    (["views", "favorites"] as const).map(async (table) => {
-      const first = await f.t.mutation(internal.savedViews.migrations.workspaceScopes, { table, cursor: null });
-      expect(first.changed).toBe(1);
-      expect(first.isDone).toBe(true);
-      expect(
-        (await f.t.mutation(internal.savedViews.migrations.workspaceScopes, { table, cursor: null })).changed
-      ).toBe(0);
-    })
-  );
-  const after = await f.owner.query(api.savedViews.index.get, { viewId: projectView });
-  expect(after.view._id).toBe(before.view._id);
-  expect(after.view.updatedAt).toBe(before.view.updatedAt);
-  expect(after.isFavorite).toBe(true);
-  expect(after.view.workspaceId).toBe(f.workspaceId);
+  const favorites = await f.t.run((ctx) => ctx.db.query("savedViewFavorites").collect());
+  expect(favorites).toHaveLength(2);
+  expect(favorites.map((row) => row.workspaceId)).toEqual([f.workspaceId, f.workspaceId]);
+  expect(favorites.find((row) => row.viewId === projectView)?.projectId).toBe(f.projectId);
+  expect(favorites.find((row) => row.viewId === f.viewId)?.projectId).toBeNull();
 });
 test("workspace definitions reject cross-workspace taxonomy and reuse canonical date/filter validation", async () => {
   const f = await fixture();

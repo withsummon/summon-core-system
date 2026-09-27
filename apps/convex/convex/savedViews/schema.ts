@@ -18,7 +18,7 @@ export const viewFilters = v.object({
 });
 export const savedViewTables = {
   savedViews: defineTable({
-    workspaceId: v.optional(v.id("workspaces")),
+    workspaceId: v.id("workspaces"),
     projectId: v.union(v.id("projects"), v.null()),
     ownerId: v.id("users"),
     name: v.string(),
@@ -31,7 +31,7 @@ export const savedViewTables = {
     .index("by_project_deleted", ["projectId", "deletedAt"])
     .index("by_workspace_project_deleted", ["workspaceId", "projectId", "deletedAt"]),
   savedViewFavorites: defineTable({
-    workspaceId: v.optional(v.id("workspaces")),
+    workspaceId: v.id("workspaces"),
     projectId: v.union(v.id("projects"), v.null()),
     viewId: v.id("savedViews"),
     userId: v.id("users"),

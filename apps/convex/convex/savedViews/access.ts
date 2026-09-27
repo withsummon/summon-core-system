@@ -1,7 +1,6 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { workspaceScope } from "./scope";
 import { requireProject, requireWorkspace } from "../identity/access";
 export function capabilities(view: Doc<"savedViews">, access: Awaited<ReturnType<typeof requireProject>>) {
   return viewCapabilities(
@@ -65,9 +64,8 @@ export function workspaceCapabilities(view: Doc<"savedViews">, access: Awaited<R
 export async function requireWorkspaceView(ctx: QueryCtx, viewId: Id<"savedViews">, allowDeleted = false) {
   const row = await ctx.db.get(viewId);
   if (!row || row.projectId !== null) throw new ConvexError("Saved view not found.");
-  const workspaceId = workspaceScope(row);
-  const view = { ...row, projectId: null, workspaceId };
-  const access = await requireWorkspace(ctx, workspaceId);
+  const view = { ...row, projectId: null };
+  const access = await requireWorkspace(ctx, row.workspaceId);
   const flags = workspaceCapabilities(view, access);
   if (!flags.canRead || (!allowDeleted && view.deletedAt !== null)) throw new ConvexError("Saved view not found.");
   return { view, access, ...flags };

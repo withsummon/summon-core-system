@@ -14,13 +14,15 @@ Every endpoint requires current active workspace membership. Each result candida
 
 Workspace state/label directories use bounded workspace indices and filter each candidate through current project membership. Saved selected IDs remain present, but their names become null after project access is revoked. Updating a definition that still references an inaccessible taxonomy value fails explicitly; the user can remove that clause. Users are workspace-directory identities: selection/directory names require current active workspace membership of that selected user, not visibility inferred from an inaccessible project's roster. Stored inactive workspace user IDs remain removable with null names. User filter validation accepts recorded workspace membership, including inactive historical members, matching historical creator filtering; that never grants access to a task.
 
-## Additive deployment and backfill
+## Completed owner migration
 
-1. Deploy this additive schema with optional workspaceId on both tables. New project and workspace writes initialize it. **Temporary project-read migration contract:** existing project APIs authorize and derive workspace ownership through the stored projectId and `requireProject`, so old project rows remain readable before backfill. Workspace-only rows must have a stored workspace owner and fail explicitly if missing; no guessed owner is used.
-2. For each deployment, run `internal.savedViews.migrations.workspaceScopes({table:"views",cursor:null})`, then continue each returned cursor until isDone. Repeat for `table:"favorites"`. Each transaction handles at most 50 rows/1 MiB. Missing source projects or ownerless workspace rows fail for explicit repair. Record changed totals, then repeat each complete traversal and require zero changes.
-3. Only after local and remote backfill receipts both prove completion, make workspaceId required on both schema owners and remove the temporary optional/read transition. This cleanup belongs to the deployment owner; this patch does not claim that either deployment has been backfilled.
+The additive transition is preserved in commit `970a09f52d`. Its temporary project-read contract derived ownership from the required projectId while workspaceId was optional. The bounded migration changed only workspaceId, leaving IDs, revisions, deletion state and favorites intact.
 
-The backfill changes only workspaceId. IDs, view revision timestamps, definitions, deletion state and personal favorite records remain unchanged. Tests cover pre-backfill project reads and idempotence for both tables. No hard deletion or conversion of existing project views occurs.
+Both deployments completed the two-table backfill. The receipt is `docs/migrations/convex/checkpoints/workspace-scope-backfill.json`: local changed 1 view and 1 favorite; remote changed 1 view and 0 favorites. A second complete scan of each table on both deployments changed zero rows. The receipt also records ID/revision/favorite preservation verification and the local Chrome readback of the original project view.
+
+The final schema now requires workspaceId on both tables. The obsolete migration entrypoint and missing-workspace guard were removed. Existing project APIs still retain their public project scope; they no longer support ownerless stored rows because the schema excludes them. This is an invariant cleanup after verified migration, not a replacement of existing project views.
+
+The temporary backfill test is preserved in the transition commit. It was replaced with a current contract test that checks both view writers and both favorite writers initialize the canonical workspace and retain immutable project/workspace scope, including cross-scope endpoint rejection. The test count remains 318; no permission or lifecycle scenario was removed.
 
 ## Legacy trace and remaining parity
 
@@ -30,7 +32,7 @@ Still staged: legacy REST/PAT compatibility and IDs; nested rich filter grammar;
 
 ## Verification
 
-- 12 saved-view BDD scenarios: 6 existing project scenarios plus 6 workspace scenarios, including sparse pages, workspace-admin isolation, guest visibility, revocation redaction, cross-workspace taxonomy rejection, favorites/lifecycle CAS and migration preservation.
+- 12 saved-view BDD scenarios: 6 existing project scenarios plus 6 workspace scenarios, including sparse pages, workspace-admin isolation, guest visibility, revocation redaction, cross-workspace taxonomy rejection, favorites/lifecycle CAS and canonical owner initialization.
 - Native TypeScript 7 passed; scoped Oxlint and complexity <=10 passed. Complete backend suite passed 318 tests across 39 files after the final foreign-scope regression.
 - Independent read-only owner review sampled access, projection, pagination, favorites and migration ownership; no blocking finding reported.
 - Backend source verification only. Browser acceptance and deployment/backfill evidence are separate parent-owned gates.
