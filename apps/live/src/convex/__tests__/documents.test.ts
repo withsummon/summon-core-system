@@ -145,6 +145,46 @@ describe("Convex document Hocuspocus hooks with real Yjs", () => {
     expect(remote.html).toMatch(/<p[^>]*>Original<\/p>/);
     expect(remote.html).toMatch(/<p[^>]*>Second writer<\/p>/);
   });
+  test("merging an already durable snapshot does not schedule an unauthenticated save", async () => {
+    const extension = convexDocuments("http://localhost:3210");
+    const payload = room();
+    const context = await extension.onAuthenticate(payload);
+    const instance = new ConvexHocuspocus({ quiet: true, extensions: [extension] });
+    servers.push(instance);
+    const document = await instance.createDocument(
+      payload.documentName,
+      payload.request,
+      payload.socketId,
+      payload.connection,
+      context
+    );
+    const scheduling = vi.spyOn(instance, "storeDocumentHooks");
+    const restored = new Y.Doc();
+    Y.applyUpdate(restored, new Uint8Array(remote.bytes));
+    appendParagraph(restored, "Already durable restored content");
+    remote.bytes = new Uint8Array(Y.encodeStateAsUpdate(restored)).buffer;
+    remote.revision++;
+    restored.destroy();
+    await extension.onStoreDocument({ ...payload, document, instance, context });
+    expect(document.getXmlFragment("default").toString()).toContain("Already durable restored content");
+    expect(scheduling).not.toHaveBeenCalled();
+    document.transact(() => appendParagraph(document, "Pending client edit"), {
+      context,
+      request: payload.request,
+      socketId: payload.socketId,
+    });
+    const nextSnapshot = new Y.Doc();
+    Y.applyUpdate(nextSnapshot, new Uint8Array(remote.bytes));
+    appendParagraph(nextSnapshot, "Second durable update");
+    remote.bytes = new Uint8Array(Y.encodeStateAsUpdate(nextSnapshot)).buffer;
+    remote.revision++;
+    nextSnapshot.destroy();
+    await instance.debouncer.executeNow(`onStoreDocument-${document.name}`);
+    expect(scheduling).toHaveBeenCalledTimes(1);
+    expect(decodedSnapshot()).toContain("Pending client edit");
+    expect(decodedSnapshot()).toContain("Second durable update");
+    expect(instance.documents.get(payload.documentName)).toBe(document);
+  });
   test("a CAS conflict reloads and merges the competing update before retrying", async () => {
     const extension = convexDocuments("http://localhost:3210");
     const payload = room();
