@@ -1,3 +1,4 @@
+import { descriptor } from "../assets/access";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -36,4 +37,12 @@ export async function publishWorkspaceLogo(ctx: MutationCtx, asset: Doc<"assets"
   if (asset.workspaceLogoRevision === undefined) throw new ConvexError("Workspace logo revision is missing.");
   const { workspace } = await requireLogoWrite(ctx, asset.workspaceId, asset.workspaceLogoRevision);
   await replaceWorkspaceLogo(ctx, workspace, asset._id);
+}
+
+export async function workspaceLogo(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  const appearance = await workspaceAppearance(ctx, workspaceId);
+  const logo = appearance?.logoAssetId ? await ctx.db.get(appearance.logoAssetId) : null;
+  if (logo && (logo.workspaceId !== workspaceId || logo.purpose !== "workspaceLogo" || logo.status !== "ready"))
+    throw new ConvexError("Workspace logo reference is inconsistent.");
+  return logo ? descriptor(logo) : null;
 }

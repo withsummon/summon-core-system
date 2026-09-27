@@ -218,3 +218,31 @@ test("an intervening metadata save invalidates the upload without overwriting se
     revision: 1,
   });
 });
+
+test("workspace chooser projects only current member logos and follows removal without exposing storage IDs", async () => {
+  const f = await workspaceJourney();
+  const ticket = await pending(f, 0);
+  await f.owner.action(api.assets.upload.finalize, ticket);
+  const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
+  const guest = await signedIn(f.t, userId);
+  expect(await guest.query(api.workspaces.index.list, {})).toEqual([]);
+  await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "guest" });
+  const list = await guest.query(api.workspaces.index.list, {});
+  expect(list[0].logo).toMatchObject({ id: ticket.assetId, downloadPath: `/assets/${ticket.assetId}` });
+  expect(list[0].logo).not.toHaveProperty("storageId");
+  expect((await guest.fetch(`/assets/${ticket.assetId}`)).status).toBe(200);
+  await f.owner.mutation(api.settings.logo.remove, {
+    workspaceId: f.workspaceId,
+    assetId: ticket.assetId,
+    expectedRevision: 1,
+  });
+  expect((await guest.query(api.workspaces.index.list, {}))[0].logo).toBeNull();
+  await f.owner.mutation(api.settings.logo.restore, {
+    workspaceId: f.workspaceId,
+    assetId: ticket.assetId,
+    expectedRevision: 2,
+  });
+  await f.owner.mutation(api.workspaces.index.revokeMember, { workspaceId: f.workspaceId, userId });
+  expect(await guest.query(api.workspaces.index.list, {})).toEqual([]);
+  expect((await guest.fetch(`/assets/${ticket.assetId}`)).status).toBe(403);
+});
