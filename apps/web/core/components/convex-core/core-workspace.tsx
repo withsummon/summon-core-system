@@ -10,6 +10,13 @@ import { SummonField } from "@/components/summon/forms";
 import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
+import { ProjectBoundary } from "./projects/boundary";
+const ProjectSettings = lazy(() =>
+  import("./projects/settings").then((module) => ({ default: module.ProjectSettings }))
+);
+const ArchivedProjects = lazy(() =>
+  import("./projects/archived").then((module) => ({ default: module.ArchivedProjects }))
+);
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
 const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
@@ -177,6 +184,13 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
   const project = projects?.find((item) => item.identifier === params.get("project"));
   const hasSelectedTask = Boolean(params.get("task"));
   const projectView = params.get("projectView") ?? "tasks";
+  const openArchived = () =>
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      for (const key of ["project", "task", "cycle", "cycleView", "projectModule", "moduleView"]) next.delete(key);
+      next.set("projectView", "archived");
+      return next;
+    });
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -208,6 +222,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
               ))}
             </select>
           </label>
+          <Button variant="secondary" onClick={openArchived}>
+            Archived projects
+          </Button>
           {workspace.membershipRole === "admin" && (
             <Button variant="secondary" onClick={() => setParams({ workspace: workspace.slug })}>
               New project
@@ -231,46 +248,71 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
       )}
       {projects === undefined ? (
         <p role="status">Loading projects…</p>
+      ) : projectView === "archived" ? (
+        <ArchivedProjects
+          workspaceId={workspace._id}
+          onRestored={(identifier) =>
+            setParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set("project", identifier);
+              next.set("projectView", "settings");
+              return next;
+            })
+          }
+        />
       ) : project ? (
-        <div className="space-y-6">
-          <nav aria-label="Project sections" className="flex gap-2">
-            {[
-              { value: "tasks", label: "Tasks" },
-              { value: "cycles", label: "Cycles" },
-              { value: "modules", label: "Modules" },
-            ].map((section) => (
-              <Button
-                key={section.value}
-                variant={projectView === section.value ? "primary" : "secondary"}
-                onClick={() =>
-                  setParams((current) => {
-                    const next = new URLSearchParams(current);
-                    next.delete("task");
-                    next.delete("cycle");
-                    next.delete("cycleView");
-                    next.delete("projectModule");
-                    next.delete("moduleView");
-                    if (section.value !== "tasks") next.set("projectView", section.value);
-                    else next.delete("projectView");
-                    return next;
-                  })
-                }
-              >
-                {section.label}
-              </Button>
-            ))}
-          </nav>
-          {projectView === "modules" ? (
-            <Modules key={project._id} project={project} />
-          ) : projectView === "cycles" ? (
-            <Cycles key={project._id} project={project} />
-          ) : (
-            <>
-              {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
-              <ProjectTasks key={project._id} project={project} />
-            </>
-          )}
-        </div>
+        <ProjectBoundary key={project._id} onRecover={openArchived}>
+          <div className="space-y-6">
+            <nav aria-label="Project sections" className="flex flex-wrap gap-2">
+              {[
+                { value: "tasks", label: "Tasks" },
+                { value: "cycles", label: "Cycles" },
+                { value: "modules", label: "Modules" },
+                { value: "settings", label: "Settings" },
+              ].map((section) => (
+                <Button
+                  key={section.value}
+                  variant={projectView === section.value ? "primary" : "secondary"}
+                  onClick={() =>
+                    setParams((current) => {
+                      const next = new URLSearchParams(current);
+                      next.delete("task");
+                      next.delete("cycle");
+                      next.delete("cycleView");
+                      next.delete("projectModule");
+                      next.delete("moduleView");
+                      if (section.value !== "tasks") next.set("projectView", section.value);
+                      else next.delete("projectView");
+                      return next;
+                    })
+                  }
+                >
+                  {section.label}
+                </Button>
+              ))}
+            </nav>
+            {projectView === "settings" ? (
+              <ProjectSettings key={project._id} projectId={project._id} onArchived={openArchived} />
+            ) : projectView === "modules" ? (
+              <Modules key={project._id} project={project} />
+            ) : projectView === "cycles" ? (
+              <Cycles key={project._id} project={project} />
+            ) : (
+              <>
+                {!hasSelectedTask && <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />}
+                <ProjectTasks key={project._id} project={project} />
+              </>
+            )}
+          </div>
+        </ProjectBoundary>
+      ) : params.get("project") ? (
+        <section className="space-y-3">
+          <h2 className="text-20 font-semibold">This project is unavailable</h2>
+          <p className="text-14 text-secondary">Choose another project or check archived projects.</p>
+          <Button variant="secondary" onClick={openArchived}>
+            View archived projects
+          </Button>
+        </section>
       ) : workspace.membershipRole !== "admin" ? (
         <p className="text-14 text-secondary">
           Choose a project. Your workspace administrator can create projects and grant access.

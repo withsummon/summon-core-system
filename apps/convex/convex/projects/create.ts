@@ -26,6 +26,8 @@ export async function createProject(
     name,
     identifier,
     timezone: await workspaceTimezone(ctx, args.workspaceId),
+    description: "",
+    metadataRevision: 0,
     nextSequence: 1,
     archived: false,
   });

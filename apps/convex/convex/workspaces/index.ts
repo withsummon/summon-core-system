@@ -120,7 +120,7 @@ async function restrictProjectMemberships(
       .filter((member) => member.role === "admin")
       .map(async (member) => {
         const project = await ctx.db.get(member.projectId);
-        if (project && !project.archived) await requireAnotherProjectAdmin(ctx, member.projectId);
+        if (project) await requireAnotherProjectAdmin(ctx, member.projectId);
       })
   );
   await Promise.all(

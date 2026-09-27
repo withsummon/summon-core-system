@@ -80,6 +80,7 @@ import type * as notifications_delivery from "../notifications/delivery.js";
 import type * as notifications_index from "../notifications/index.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
+import type * as projects_settings from "../projects/settings.js";
 import type * as projects_timezone from "../projects/timezone.js";
 import type * as reporting_commercial from "../reporting/commercial.js";
 import type * as reporting_documents from "../reporting/documents.js";
@@ -181,6 +182,7 @@ declare const fullApi: ApiFromModules<{
   "notifications/index": typeof notifications_index;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
+  "projects/settings": typeof projects_settings;
   "projects/timezone": typeof projects_timezone;
   "reporting/commercial": typeof reporting_commercial;
   "reporting/documents": typeof reporting_documents;
