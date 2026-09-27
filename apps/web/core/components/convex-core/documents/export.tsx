@@ -6,7 +6,7 @@ import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
 import { useDocumentAssetReader } from "./use-document-asset-reader";
-import { memberLabel } from "../commercial/member-label";
+import { memberLabel } from "@summon/convex/member-label";
 import { embeddedImage } from "./export-images";
 import { exportContent } from "./export-content";
 const sizes = ["A4", "A3", "A2", "LETTER", "LEGAL", "TABLOID"] as const;

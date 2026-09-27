@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import type { api } from "@summon/convex/api";
+import type { api } from "../convex/_generated/api";
 export function memberLabel(
   member: FunctionReturnType<typeof api.commercial.directory.members>["page"][number] | null
 ) {
