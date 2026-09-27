@@ -12,11 +12,19 @@ export async function requireAssetScope(
   ctx: QueryCtx,
   scope: Pick<
     Doc<"assets">,
-    "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId" | "documentCopyId"
+    "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId" | "documentCopyId" | "purpose"
   >,
   write: boolean
 ) {
   if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
+  if (scope.purpose === "workspaceLogo") {
+    if (scope.projectId || scope.documentId || scope.taskId || scope.draftId || scope.conversationId)
+      throw new ConvexError("Workspace logos cannot have another scope.");
+    const access = await requireWorkspace(ctx, scope.workspaceId);
+    if (write && access.member.role !== "admin")
+      throw new ConvexError("Only workspace administrators can change the logo.");
+    return access;
+  }
   if (scope.draftId) {
     if (scope.taskId || scope.projectId || scope.documentId || scope.conversationId)
       throw new ConvexError("Draft assets cannot have another scope.");

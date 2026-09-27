@@ -1,3 +1,4 @@
+import { publishWorkspaceLogo } from "../settings/logo_owner";
 import { draftAttachmentChanged } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
 import { taskChanged } from "../tasks/revision";
@@ -18,11 +19,16 @@ export const uploadFields = {
   sha256: v.string(),
 };
 const upload = v.object(uploadFields);
-export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>) {
-  const { user } = await requireAssetScope(ctx, args, true);
+export async function prepareAsset(
+  ctx: MutationCtx,
+  args: Infer<typeof upload>,
+  logo?: { purpose: "workspaceLogo"; workspaceLogoRevision: number }
+) {
+  const { user } = await requireAssetScope(ctx, { ...args, ...logo }, true);
   validateIntent(args.name, args.contentType, args.size, args.sha256);
   const assetId = await ctx.db.insert("assets", {
     ...args,
+    ...logo,
     createdBy: user._id,
     ...(args.taskId || args.draftId ? { attachmentRevision: 0 } : {}),
     storageId: null,
@@ -81,6 +87,7 @@ export const commit = internalMutation({
     if (asset.status !== "pending" || asset.expiresAt <= Date.now())
       throw new ConvexError("Upload has expired or is closed.");
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
+    if (asset.purpose === "workspaceLogo") await publishWorkspaceLogo(ctx, asset);
     await ctx.db.patch(assetId, { status: "ready" });
     if (asset.draftId) await draftAttachmentChanged(ctx, asset.draftId);
     if (asset.taskId) {
@@ -116,6 +123,8 @@ export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.purpose === "workspaceLogo")
+      throw new ConvexError("Remove workspace logos through workspace appearance.");
     if (asset.draftId) throw new ConvexError("Remove draft files through draft attachments.");
     if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");

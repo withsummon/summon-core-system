@@ -19,6 +19,10 @@ export const settingsFields = {
   workweek: v.array(weekday),
 };
 export const settingsTables = {
+  workspaceAppearance: defineTable({
+    workspaceId: v.id("workspaces"),
+    logoAssetId: v.union(v.id("assets"), v.null()),
+  }).index("by_workspace", ["workspaceId"]),
   workspaceSettings: defineTable({ workspaceId: v.id("workspaces"), ...settingsFields }).index("by_workspace", [
     "workspaceId",
   ]),
