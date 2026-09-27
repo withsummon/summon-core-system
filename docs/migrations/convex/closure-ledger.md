@@ -1,6 +1,6 @@
 # Full migration closure ledger
 
-Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `4f5b6aff9a`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
+Source checkpoint: `62d2e2aa20`, inspected 2026-09-27. This is a source inventory, not a new runtime/deployment assertion. User scope requires every inherited Plane feature. No legacy route is authorized for retirement by this document. Subsequent committed coverage is reconciled below through `a87b66bf11`; uncommitted drafts are not counted complete. The dated checkpoint reconciliation takes precedence over older remaining-work wording below.
 
 ## Root reconciliation through a87b66bf11
 
@@ -18,7 +18,7 @@ User explicitly selected **Resend only**, recorded in d85765257d. SMTP transport
 
 Root `pnpm test` passed 535 backend tests in 84 files, 40 live tests in 3 files and 44 frontend tests; global TS7 passed 30/30 tasks. Logs are `/tmp/summon-migration-control/checkpoint-copy-unlink-{tests,types}.txt`. These gates precede the next uncommitted settings cleanup. The staged backend recovered normal queries after a targeted container restart; root hard-reloaded the identified 3024 artifact and verified existing RQA2 data. Deployment evaluate-push remains a distinct unresolved issue. Django, PostgreSQL and legacy workers remain active; no public frontend cutover or overall migration completion is claimed.
 
-## Latest checkpoint reconciliation
+## Earlier checkpoint reconciliation through 4f5b6aff9a
 
 Source inspected after `4f5b6aff9a`. These commits close bounded native contracts; they do not retire the registered Django/PAT/public/admin routes in the appendix.
 
