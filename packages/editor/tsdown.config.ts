@@ -8,6 +8,7 @@ export default defineConfig({
   exports: {
     customExports: (exports) => ({
       ...exports,
+      "./image-contract": "./src/core/extensions/custom-image/contract.ts",
       "./styles.css": "./dist/styles/index.css",
       "./styles": "./dist/styles/index.css",
     }),
