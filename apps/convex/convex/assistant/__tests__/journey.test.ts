@@ -29,6 +29,7 @@ describe("assistant ownership and reply lifecycle", () => {
   test("accepted request persists once, overlapping or duplicate requests never generate twice, cancellation rejects late output", async () => {
     const { owner, conversationId } = await journey();
     const args = {
+      attachmentIds: [],
       conversationId,
       requestId: "request-0001",
       content: "What is this project?",
@@ -36,7 +37,10 @@ describe("assistant ownership and reply lifecycle", () => {
       model: "test-model",
     };
     const { messageId } = await owner.mutation(internal.assistant.messages.begin, args);
-    await expect(owner.mutation(internal.assistant.messages.begin, args)).rejects.toThrow("already accepted");
+    expect(await owner.mutation(internal.assistant.messages.begin, args)).toMatchObject({
+      messageId,
+      alreadyAccepted: true,
+    });
     await expect(
       owner.mutation(internal.assistant.messages.begin, { ...args, requestId: "request-0002" })
     ).rejects.toThrow("already in progress");
@@ -55,6 +59,7 @@ describe("assistant ownership and reply lifecycle", () => {
   test("post-provider authorization rejects both streamed and final output after project membership revocation", async () => {
     const { t, owner, userId, projectId, conversationId } = await journey();
     const { messageId } = await owner.mutation(internal.assistant.messages.begin, {
+      attachmentIds: [],
       conversationId,
       requestId: "request-0001",
       content: "Summarize",
@@ -137,6 +142,7 @@ test("changing conversation project invalidates an earlier action preview", asyn
 test("message history retains its source context and cannot be reprompted under another context", async () => {
   const { owner, workspaceId, conversationId } = await journey();
   const { messageId } = await owner.mutation(internal.assistant.messages.begin, {
+    attachmentIds: [],
     conversationId,
     requestId: "request-0001",
     content: "Summarize",
@@ -179,6 +185,7 @@ test("document deletion after provider start blocks publication and historical m
     context: { projectId, clientId: null, meetingId: null, documentIds: [documentId] },
   });
   const { messageId } = await owner.mutation(internal.assistant.messages.begin, {
+    attachmentIds: [],
     conversationId,
     requestId: "request-0001",
     content: "Read source",

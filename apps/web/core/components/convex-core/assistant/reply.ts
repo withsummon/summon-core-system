@@ -4,6 +4,7 @@ export async function requestAssistantReply({
   token,
   conversationId,
   content,
+  attachmentIds,
   signal,
   onAccepted,
 }: {
@@ -11,6 +12,7 @@ export async function requestAssistantReply({
   token: string;
   conversationId: string;
   content: string;
+  attachmentIds: string[];
   signal: AbortSignal;
   onAccepted: () => void;
 }) {
@@ -19,7 +21,7 @@ export async function requestAssistantReply({
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     credentials: "omit",
     cache: "no-store",
-    body: JSON.stringify({ conversationId, content, requestId: crypto.randomUUID() }),
+    body: JSON.stringify({ conversationId, content, attachmentIds, requestId: crypto.randomUUID() }),
     signal,
   });
   if (!response.ok) throw new Error((await response.text()).slice(0, 1000) || "The message could not be accepted.");

@@ -8,6 +8,7 @@ import { shouldSubmitAssistantComposer } from "@/app/(all)/[workspaceSlug]/(proj
 import { DeleteRecord, mutationMessage } from "../commercial/forms";
 import { ConversationForm } from "./conversation-form";
 import { ConversationActions } from "./actions";
+import { Attachments, AttachmentDownload } from "./attachments";
 import { requestAssistantReply } from "./reply";
 export function Conversation({
   conversationId,
@@ -125,6 +126,17 @@ function Message({ message }: { message: Doc<"assistantMessages"> }) {
           {message.error}
         </p>
       )}
+      {message.role === "user" &&
+        message.citations
+          .filter((source) => source.kind === "attachment")
+          .map((source) => (
+            <AttachmentDownload
+              key={source.id}
+              conversationId={message.conversationId}
+              attachmentId={source.id}
+              name={source.label}
+            />
+          ))}
       {message.role === "assistant" && message.citations.length > 0 && (
         <details className="text-xs mt-3 text-secondary">
           <summary className="cursor-pointer">Sources · {message.citations.length}</summary>
@@ -144,10 +156,13 @@ function Message({ message }: { message: Doc<"assistantMessages"> }) {
   );
 }
 function Composer({ conversation }: { conversation: Doc<"assistantConversations"> }) {
+  const attachments = useQuery(api.assistant.attachments.pending, { conversationId: conversation._id });
+  const filesReady = attachments !== undefined && attachments.every((file) => file.status === "ready");
   const token = useAuthToken();
   const cancel = useMutation(api.assistant.index.cancelReply);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
@@ -157,7 +172,7 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
       className="rounded-xl border border-subtle-1 bg-surface-1 p-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (!token || !siteUrl || sending || conversation.activeMessageId) return;
+        if (!token || !siteUrl || sending || conversation.activeMessageId || !filesReady || uploading) return;
         const controller = new AbortController();
         request.current = controller;
         setSending(true);
@@ -168,6 +183,7 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
             token,
             conversationId: conversation._id,
             content,
+            attachmentIds: attachments?.map((file) => file._id) ?? [],
             signal: controller.signal,
             onAccepted: () => setContent(""),
           });
@@ -179,6 +195,15 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
         }
       }}
     >
+      {attachments && (
+        <Attachments
+          conversationId={conversation._id}
+          files={attachments}
+          uploading={uploading}
+          setUploading={setUploading}
+          disabled={sending || Boolean(conversation.activeMessageId)}
+        />
+      )}
       <label htmlFor="assistant-message" className="sr-only">
         Message Summon Assistant
       </label>
@@ -208,7 +233,9 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
         <Button
           type="submit"
           loading={sending}
-          disabled={!siteUrl || !token || Boolean(conversation.activeMessageId) || !content.trim()}
+          disabled={
+            !siteUrl || !token || Boolean(conversation.activeMessageId) || !content.trim() || !filesReady || uploading
+          }
         >
           Send
         </Button>

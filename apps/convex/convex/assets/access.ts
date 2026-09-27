@@ -2,14 +2,23 @@ import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
+import { requireConversation } from "../assistant/access";
+import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
 
 export async function requireAssetScope(
   ctx: QueryCtx,
-  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId">,
+  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId" | "conversationId">,
   write: boolean
 ) {
   const access = await requireWorkspace(ctx, scope.workspaceId, write);
+  if (scope.conversationId) {
+    if (scope.projectId || scope.documentId) throw new ConvexError("Conversation assets cannot have another scope.");
+    const { conversation } = await requireConversation(ctx, scope.conversationId, write);
+    if (conversation.workspaceId !== scope.workspaceId)
+      throw new ConvexError("Conversation belongs to another workspace.");
+    await authorizedContext(ctx, conversation.workspaceId, conversation.context);
+  }
   if (scope.projectId) {
     const { project } = await requireProject(ctx, scope.projectId, write);
     if (project.workspaceId !== scope.workspaceId) throw new ConvexError("Project belongs to another workspace.");

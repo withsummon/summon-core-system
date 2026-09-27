@@ -2,6 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const assetScope = {
+  conversationId: v.optional(v.id("assistantConversations")),
   workspaceId: v.id("workspaces"),
   projectId: v.union(v.id("projects"), v.null()),
   documentId: v.union(v.id("documents"), v.null()),

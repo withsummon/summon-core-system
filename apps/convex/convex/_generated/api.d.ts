@@ -16,6 +16,8 @@ import type * as assets_index from "../assets/index.js";
 import type * as assets_upload from "../assets/upload.js";
 import type * as assistant_access from "../assistant/access.js";
 import type * as assistant_actions from "../assistant/actions.js";
+import type * as assistant_attachment_upload from "../assistant/attachment_upload.js";
+import type * as assistant_attachments from "../assistant/attachments.js";
 import type * as assistant_context from "../assistant/context.js";
 import type * as assistant_http from "../assistant/http.js";
 import type * as assistant_index from "../assistant/index.js";
@@ -95,6 +97,8 @@ declare const fullApi: ApiFromModules<{
   "assets/upload": typeof assets_upload;
   "assistant/access": typeof assistant_access;
   "assistant/actions": typeof assistant_actions;
+  "assistant/attachment_upload": typeof assistant_attachment_upload;
+  "assistant/attachments": typeof assistant_attachments;
   "assistant/context": typeof assistant_context;
   "assistant/http": typeof assistant_http;
   "assistant/index": typeof assistant_index;
