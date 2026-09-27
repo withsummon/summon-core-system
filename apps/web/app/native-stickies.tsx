@@ -1,19 +1,38 @@
-import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
-import { lazy, Suspense, useState } from "react";
+import { Suspense } from "react";
 import { Link, useParams } from "react-router";
+import { useTheme } from "next-themes";
 import { useConvexAuth, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@summon/convex/api";
-import { Button } from "@plane/propel/button";
+import { TranslationProvider } from "@plane/i18n";
+import { Toast } from "@plane/propel/toast";
+import { resolveGeneralTheme } from "@plane/utils";
 import { CoreProvider } from "@/components/convex-core/provider";
 import { SignIn } from "@/components/convex-core/sign-in";
-const Stickies = lazy(() =>
-  import("@/components/convex-core/stickies/stickies").then((module) => ({ default: module.Stickies }))
-);
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
+import { NativeStickiesProvider, useStickiesCommands } from "@/components/stickies/native/provider";
+import { NativeStickiesPage, NativeStickiesModal } from "@/components/stickies/native/surfaces";
+import { PreservedStickiesShell } from "@/components/workspace/native-shell/stickies-shell";
+import type { FunctionReturnType } from "convex/server";
+
+type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
+type Profile = FunctionReturnType<typeof api.identity.profile.get>;
+
 export default function NativeStickiesRoute() {
+  const { resolvedTheme } = useTheme();
   return (
     <CoreProvider>
-      <Session />
+      <TranslationProvider>
+        <Toast theme={resolveGeneralTheme(resolvedTheme)} />
+        <Suspense
+          fallback={
+            <p role="status" className="p-6">
+              Loading stickies…
+            </p>
+          }
+        >
+          <Session />
+        </Suspense>
+      </TranslationProvider>
     </CoreProvider>
   );
 }
@@ -25,8 +44,7 @@ function Session() {
         Loading your account…
       </p>
     );
-  // Sign in in place: the original path, sticky selection and history survive.
-  // No cookie/JWT bridging or caller-controlled redirect is involved.
+  // This route owns its session in place; Django authentication never selects its transport.
   return isAuthenticated ? (
     <SessionBoundary>
       <WorkspaceNotes />
@@ -37,43 +55,61 @@ function Session() {
 }
 function WorkspaceNotes() {
   const { workspaceSlug } = useParams();
-  if (!workspaceSlug) throw new Error("Workspace route parameter is missing.");
-  const user = useQuery(api.identity.index.current, {});
-  const result = useQuery(api.navigation.address.resolveWorkspace, { workspaceSlug });
-  const { signOut } = useAuthActions();
-  const [error, setError] = useState("");
-  if (!result || !user)
+  const user = useQuery(api.identity.profile.get, {});
+  // The actual switcher consumes this directory too; no second workspace-resolution request.
+  const workspaces = useQuery(api.workspaces.index.list, {});
+  if (!user || !workspaces)
     return (
       <p role="status" className="p-6">
         Loading workspace…
       </p>
     );
+  const workspace = workspaces.find((row) => row.slug === workspaceSlug);
+  if (!workspace)
+    return (
+      <section className="space-y-4 p-8">
+        <h1 className="text-24 font-semibold">This workspace is unavailable</h1>
+        <p>Your membership may have changed. Choose an available workspace.</p>
+        <nav aria-label="Available workspaces" className="flex flex-col gap-2">
+          {workspaces.map((row) => (
+            <Link key={row._id} className="text-accent-primary" to={`/${row.slug}/stickies/`}>
+              {row.name}
+            </Link>
+          ))}
+        </nav>
+      </section>
+    );
   return (
-    <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle-1 pb-4">
-        <Link
-          to={`/core?${new URLSearchParams({ workspace: result.workspace.slug })}`}
-          className="text-14 font-medium text-accent-primary"
-        >
-          {result.workspace.name}
-        </Link>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void signOut().catch(() => setError("Could not sign out. Please try again."));
-          }}
-        >
-          Sign out
-        </Button>
-      </header>
-      {error && (
-        <p role="alert" className="text-danger-primary">
-          {error}
-        </p>
-      )}
-      <Suspense fallback={<p role="status">Loading stickies…</p>}>
-        <Stickies key={`${user.id}:${result.workspace._id}`} workspace={result.workspace} />
-      </Suspense>
-    </main>
+    <NativeStickiesProvider
+      key={`${user.id}:${workspace._id}`}
+      workspaceId={workspace._id}
+      workspaceSlug={workspace.slug}
+    >
+      <WorkspaceShell user={user} workspace={workspace} workspaces={workspaces} />
+    </NativeStickiesProvider>
+  );
+}
+function WorkspaceShell({
+  user,
+  workspace,
+  workspaces,
+}: {
+  user: Profile;
+  workspace: Workspace;
+  workspaces: Workspace[];
+}) {
+  const commands = useStickiesCommands();
+  return (
+    <PreservedStickiesShell
+      user={user}
+      workspace={workspace}
+      workspaces={workspaces}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <NativeStickiesPage />
+      <NativeStickiesModal />
+    </PreservedStickiesShell>
   );
 }
