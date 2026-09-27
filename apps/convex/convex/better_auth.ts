@@ -19,7 +19,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, user) => {
-        await requireSignup(ctx, user.email);
+        if (!(await existingAppUser(ctx, user.email))) await requireSignup(ctx, user.email);
         if (user.emailVerified) await linkVerifiedUser(ctx, user._id, user.email, user.name);
       },
       onUpdate: async (ctx, user) => {
@@ -59,6 +59,19 @@ export const sessionExpiry = internalQuery({
   },
 });
 
+async function existingAppUser(ctx: MutationCtx, email: string) {
+  const matches = await ctx.db
+    .query("users")
+    .withIndex("email", (q) => q.eq("email", email))
+    .take(2);
+  if (matches.length > 1) throw new ConvexError("Email identity is ambiguous.");
+  const existing = matches[0];
+  if (existing && existing.emailVerificationTime === undefined)
+    throw new ConvexError("This account must be verified before migration.");
+  if (existing) await requireUnrestrictedAccount(ctx, existing._id);
+  return existing ?? null;
+}
+
 async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string, name: string) {
   const link = await ctx.db
     .query("betterAuthLinks")
@@ -69,15 +82,8 @@ async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string,
     if (!owner || owner.email !== email) throw new ConvexError("Account email changes are unavailable.");
     return;
   }
-  const matches = await ctx.db
-    .query("users")
-    .withIndex("email", (q) => q.eq("email", email))
-    .filter((q) => q.neq(q.field("emailVerificationTime"), undefined))
-    .take(2);
-  if (matches.length > 1) throw new ConvexError("Email identity is ambiguous.");
-  let userId = matches[0]?._id;
-  if (userId) await requireUnrestrictedAccount(ctx, userId);
-  else
+  let userId = (await existingAppUser(ctx, email))?._id;
+  if (!userId)
     userId = await ctx.db.insert("users", {
       email,
       name,
