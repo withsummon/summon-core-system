@@ -6,7 +6,7 @@ The user explicitly chose **the currently deployed UI**, rather than the newer g
 
 Primary refreshed `https://core.withsummon.com/summon-core/summon/tasks/` in authenticated Chrome. The live Task Center has the workspace header and Summon sidebar, ownership tabs, date-filter counts, task table, pagination, summary/deadline/calendar panels and production create-task controls. Desktop rendering was inspected at 1728px; a 390×844 constrained viewport was also inspected and then reset. The narrow view exposed the existing sidebar overlay and horizontal table behavior; this observation does not certify mobile quality or authorize removing functionality.
 
-The existing Dokploy product service `yDkrsj9EEzFMdEPsiRsPV` lists its latest completed deployment at `afe708b92370542e09dd065454337e3c83c08604`. This is deployment-control-plane source evidence alongside a live rendering observation. Exact running web image/served build identity remains to be established. An unauthenticated command-line fetch returned403; it was not treated as product downtime or bypassed.
+The existing Dokploy product service `yDkrsj9EEzFMdEPsiRsPV` lists its latest completed deployment at `afe708b92370542e09dd065454337e3c83c08604`. Its runtime web container `13e9104a97cc` was healthy; the read-only container configuration reported image `sha256:9373d9b20cb64f89ce3cc7a005785aed59816f1779c59669896ec65f447cf5b8`. These are control-plane source, runtime image and live rendering observations. A source-revision label or served build marker has not yet proved the commit-to-image association. An unauthenticated command-line fetch returned403; it was not treated as product downtime or bypassed.
 
 ## Cutover gates
 
