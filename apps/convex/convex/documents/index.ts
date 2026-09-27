@@ -6,6 +6,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
+import { scheduleDocumentReferences } from "./references";
 import { documentFields, snapshotFields } from "./schema";
 
 export async function validateDocumentMetadata(
@@ -166,7 +167,13 @@ export async function saveDocumentSnapshot(
   )
     throw new ConvexError("Document snapshot exceeds the supported size.");
   const revision = expectedRevision + 1;
-  await ctx.db.insert("documentRevisions", { ...snapshot, documentId, revision, createdBy: user._id });
+  const snapshotId = await ctx.db.insert("documentRevisions", {
+    ...snapshot,
+    documentId,
+    revision,
+    createdBy: user._id,
+  });
+  await scheduleDocumentReferences(ctx, { _id: snapshotId, documentId, revision });
   await ctx.db.patch(documentId, {
     revision,
     updatedAt: Math.max(Date.now(), document.updatedAt + 1),

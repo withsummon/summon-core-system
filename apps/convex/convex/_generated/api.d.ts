@@ -216,7 +216,13 @@ import type * as documents_mentions from "../documents/mentions.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
+import type * as documents_reference_tokens from "../documents/reference_tokens.js";
+
+import type * as documents_references from "../documents/references.js";
+
 declare const fullApi: ApiFromModules<{
+  "documents/references": typeof documents_references;
+  "documents/reference_tokens": typeof documents_reference_tokens;
   "documents/mentions": typeof documents_mentions;
   "commercial/member_directory": typeof commercial_member_directory;
   "assets/access": typeof assets_access;

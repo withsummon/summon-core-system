@@ -25,6 +25,26 @@ export const snapshotFields = {
   descriptionJson: jsonObject,
 };
 export const documentTables = {
+  documentReferenceJobs: defineTable({
+    documentId: v.id("documents"),
+    snapshotId: v.id("documentRevisions"),
+    revision: v.number(),
+    cursor: v.number(),
+    status: v.union(v.literal("pending"), v.literal("published"), v.literal("obsolete")),
+  }).index("by_snapshot", ["snapshotId"]),
+  documentReferencePublications: defineTable({
+    documentId: v.id("documents"),
+    revision: v.number(),
+    jobId: v.id("documentReferenceJobs"),
+  }).index("by_document", ["documentId"]),
+  documentReferences: defineTable({
+    jobId: v.id("documentReferenceJobs"),
+    transactionId: v.string(),
+    entityName: v.string(),
+    entityIdentifier: v.string(),
+  })
+    .index("by_job", ["jobId"])
+    .index("by_job_entity", ["jobId", "entityName"]),
   documentCopies: defineTable({
     actorId: v.id("users"),
     requestId: v.string(),

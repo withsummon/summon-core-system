@@ -75,6 +75,14 @@ test("restore decodes historical binary into current CRDT, preserves current tit
   });
   const restored = await f.owner.query(api.documents.index.snapshot, { documentId: f.documentId });
   if (!restored) throw new Error("No restore");
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db
+        .query("documentReferenceJobs")
+        .withIndex("by_snapshot", (q) => q.eq("snapshotId", restored._id))
+        .unique()
+    )
+  ).toMatchObject({ documentId: f.documentId, revision: restored.revision, status: "pending" });
   const merged = getAllDocumentFormatsFromDocumentEditorBinaryData(
     applyUpdates(f.currentBinary, new Uint8Array(restored.descriptionBinary)),
     true
