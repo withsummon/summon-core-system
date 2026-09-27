@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 export type StickyPatch = { html?: string; backgroundColor?: string };
 export type StickyDraft = {
   html: string;
@@ -59,7 +60,15 @@ export class StickyDrafts {
       entry.value = { ...entry.value, updatedAt: result.updatedAt, pending: Object.keys(entry.changes).length > 0 };
     } catch (error) {
       entry.changes = { ...changes, ...entry.changes };
-      entry.value = { ...entry.value, error: error instanceof Error ? error.message : "Unable to save sticky." };
+      entry.value = {
+        ...entry.value,
+        error:
+          error instanceof ConvexError && typeof error.data === "string"
+            ? error.data
+            : error instanceof Error
+              ? error.message
+              : "Unable to save sticky.",
+      };
     } finally {
       entry.running = false;
       this.changed();
