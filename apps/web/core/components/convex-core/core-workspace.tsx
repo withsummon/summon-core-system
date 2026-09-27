@@ -11,6 +11,7 @@ import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
 import { ProjectBoundary } from "./projects/boundary";
+import { Profile } from "./identity/profile";
 const ProjectSettings = lazy(() =>
   import("./projects/settings").then((module) => ({ default: module.ProjectSettings }))
 );
@@ -61,7 +62,6 @@ export function CoreWorkspace() {
 
 function Workspace() {
   const workspaces = useQuery(api.workspaces.index.list);
-  const identity = useQuery(api.identity.index.current);
   const [params, setParams] = useSearchParams();
   const workspace = workspaces?.find((item) => item.slug === params.get("workspace"));
   const { signOut } = useAuthActions();
@@ -121,16 +121,7 @@ function Workspace() {
               <QuickLinks key={workspace._id} workspaceId={workspace._id} />
             </Suspense>
           )}
-          <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
-            <summary className="cursor-pointer">Account details</summary>
-            {identity && (
-              <div className="mt-3 space-y-2">
-                <p className="break-all text-secondary">{identity.email}</p>
-                <p className="text-12 text-secondary">Your user ID</p>
-                <code className="block text-12 break-all select-all">{identity.id}</code>
-              </div>
-            )}
-          </details>
+          <Profile />
         </aside>
         <section className="min-w-0 flex-1 p-6 md:overflow-y-auto">
           {workspaces === undefined ? (
