@@ -105,20 +105,9 @@ export const access = query({
 export const favorite = mutation({
   args: { viewId: v.id("savedViews"), favorite: v.boolean() },
   handler: async (ctx, args) => {
-    const { view, access: permission, canFavorite } = await requireWorkspaceView(ctx, args.viewId);
+    const { canFavorite } = await requireWorkspaceView(ctx, args.viewId);
     if (!canFavorite) throw new ConvexError("Guests cannot change favorites.");
-    const existing = await ctx.db
-      .query("savedViewFavorites")
-      .withIndex("by_view_user", (q) => q.eq("viewId", view._id).eq("userId", permission.user._id))
-      .unique();
-    if (args.favorite && !existing)
-      await ctx.db.insert("savedViewFavorites", {
-        viewId: view._id,
-        projectId: null,
-        workspaceId: view.workspaceId,
-        userId: permission.user._id,
-      });
-    if (!args.favorite && existing) await ctx.db.delete(existing._id);
+    throw new ConvexError("Favorite migration is in progress. Try again shortly.");
   },
 });
 export const favorites = query({

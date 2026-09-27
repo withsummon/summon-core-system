@@ -99,6 +99,7 @@ export const create = mutation({
       targetKey: key,
       sequence,
       height: 1,
+      favoritedAt: Date.now(),
       updatedAt: Date.now(),
       deletedAt: null,
     });
@@ -145,7 +146,11 @@ export const lifecycle = mutation({
     if (chain.some((item) => item.deletedAt !== null)) throw new ConvexError("Restore the parent folder first.");
     if (!args.deleted && !(await visibleTarget(ctx, row.target, member))?.canFavorite)
       throw new ConvexError("Favorite target is unavailable.");
-    await ctx.db.patch(row._id, { deletedAt: args.deleted ? Date.now() : null, updatedAt });
+    await ctx.db.patch(row._id, {
+      deletedAt: args.deleted ? Date.now() : null,
+      favoritedAt: args.deleted ? row.favoritedAt : Date.now(),
+      updatedAt,
+    });
   },
 });
 
