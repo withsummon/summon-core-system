@@ -1,3 +1,4 @@
+import { stickyTables } from "./stickies/schema";
 import { savedViewTables } from "./savedViews/schema";
 import { identityTables } from "./identity/schema";
 import { intakeTables } from "./intakes/schema";
@@ -23,6 +24,7 @@ export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("
 export default defineSchema({
   ...authTables,
   ...identityTables,
+  ...stickyTables,
   ...savedViewTables,
   ...quickLinkTables,
   ...cycleTables,
