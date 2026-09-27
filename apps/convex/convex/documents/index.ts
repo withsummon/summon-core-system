@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
@@ -139,40 +140,43 @@ export const setLifecycle = mutation({
 });
 // CAS transport preserves the exact Yjs bytes. The editor/Hocuspocus owner must merge
 // concurrent changes and regenerate HTML/JSON before retrying a revision conflict.
-export const saveSnapshot = mutation({
-  args: {
-    documentId: v.id("documents"),
-    expectedRevision: v.number(),
-    name: v.optional(v.string()),
-    ...snapshotFields,
-  },
-  handler: async (ctx, { documentId, expectedRevision, name, ...snapshot }) => {
-    const { document, user } = await requireDocument(ctx, documentId, true);
-    if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
-    if (name !== undefined && name.length > 255) throw new ConvexError("Document name must be at most 255 characters.");
-    if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== document.revision)
-      throw new ConvexError({
-        code: "DOCUMENT_REVISION_CONFLICT",
-        message: "Document revision conflict. Reload and merge before retrying.",
-      });
-    if (
-      snapshot.descriptionBinary.byteLength === 0 ||
-      snapshot.descriptionBinary.byteLength > 524288 ||
-      snapshot.descriptionHtml.length > 100000 ||
-      JSON.stringify(snapshot.descriptionJson).length > 100000
-    )
-      throw new ConvexError("Document snapshot exceeds the supported size.");
-    const revision = expectedRevision + 1;
-    await ctx.db.insert("documentRevisions", { ...snapshot, documentId, revision, createdBy: user._id });
-    await ctx.db.patch(documentId, {
-      revision,
-      updatedAt: Math.max(Date.now(), document.updatedAt + 1),
-      updatedBy: user._id,
-      ...(name === undefined ? {} : { name }),
-    });
-    return revision;
-  },
+const snapshotWrite = v.object({
+  documentId: v.id("documents"),
+  expectedRevision: v.number(),
+  name: v.optional(v.string()),
+  ...snapshotFields,
 });
+export async function saveDocumentSnapshot(
+  ctx: MutationCtx,
+  { documentId, expectedRevision, name, ...snapshot }: Infer<typeof snapshotWrite>
+) {
+  const { document, user } = await requireDocument(ctx, documentId, true);
+  if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
+  if (name !== undefined && name.length > 255) throw new ConvexError("Document name must be at most 255 characters.");
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== document.revision)
+    throw new ConvexError({
+      code: "DOCUMENT_REVISION_CONFLICT",
+      message: "Document revision conflict. Reload and merge before retrying.",
+    });
+  if (
+    snapshot.descriptionBinary.byteLength === 0 ||
+    snapshot.descriptionBinary.byteLength > 524288 ||
+    snapshot.descriptionHtml.length > 100000 ||
+    JSON.stringify(snapshot.descriptionJson).length > 100000
+  )
+    throw new ConvexError("Document snapshot exceeds the supported size.");
+  const revision = expectedRevision + 1;
+  await ctx.db.insert("documentRevisions", { ...snapshot, documentId, revision, createdBy: user._id });
+  await ctx.db.patch(documentId, {
+    revision,
+    updatedAt: Math.max(Date.now(), document.updatedAt + 1),
+    updatedBy: user._id,
+    ...(name === undefined ? {} : { name }),
+  });
+  return revision;
+}
+export const saveSnapshot = mutation({ args: snapshotWrite, handler: saveDocumentSnapshot });
+
 export const snapshot = query({
   args: { documentId: v.id("documents"), revision: v.optional(v.number()) },
   handler: async (ctx, args) => {

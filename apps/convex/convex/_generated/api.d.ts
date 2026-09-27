@@ -52,6 +52,8 @@ import type * as cycles_transfer_snapshot from "../cycles/transfer_snapshot.js";
 import type * as cycles_workspace from "../cycles/workspace.js";
 import type * as documents_access from "../documents/access.js";
 import type * as documents_hierarchy from "../documents/hierarchy.js";
+import type * as documents_history from "../documents/history.js";
+import type * as documents_historyActions from "../documents/historyActions.js";
 import type * as documents_index from "../documents/index.js";
 import type * as documents_labels from "../documents/labels.js";
 import type * as documents_lifecycle from "../documents/lifecycle.js";
@@ -241,6 +243,8 @@ declare const fullApi: ApiFromModules<{
   "cycles/workspace": typeof cycles_workspace;
   "documents/access": typeof documents_access;
   "documents/hierarchy": typeof documents_hierarchy;
+  "documents/history": typeof documents_history;
+  "documents/historyActions": typeof documents_historyActions;
   "documents/index": typeof documents_index;
   "documents/labels": typeof documents_labels;
   "documents/lifecycle": typeof documents_lifecycle;
