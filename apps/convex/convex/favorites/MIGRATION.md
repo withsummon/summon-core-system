@@ -31,3 +31,7 @@ Chronological saved-view collections use indexed `favoritedAt`, preserved from o
 `favorites.reorder.move` performs captured-revision swaps with the nearest currently visible sibling, skipping hidden targets without disclosing names. It inspects at most100 candidates; unexhausted hidden pages return an explicit search-limit error, never a false end-of-list claim. Equal order values return an explicit correction error; the existing numeric update permits repair. Folder and target ACL are rechecked. Reordering never changes chronological favoritedAt.
 
 Current focused verification:10 favorite BDD cases plus12 existing saved-view tests pass; native TS7 and scoped Oxc complexity<=10 pass. Added cases prove shared flags/list membership under folder trash/recovery, one-row restarring, guest generic-mutation denial, distinct chronological order and canonical reorder across hidden siblings. Production deployment and browser acceptance remain primary-owned.
+
+## Obsolete entrypoint removal
+
+After primary committed cutover `4e9cbf94f1` and activated it locally (remote activation was still in progress when this cleanup was prepared), removed `favorites/migrations.ts` and its generated API references. Removed one migration-only idempotence/reconciliation test because its production entrypoints no longer exist; historical evidence remains in earlier commits and primary receipts. The nine active favorite behavior cases remain. Old savedViewFavorites schema and legacySourceId fields are unchanged readonly rollback data. No source-table deletion was performed.
