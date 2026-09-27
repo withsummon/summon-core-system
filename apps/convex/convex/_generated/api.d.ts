@@ -83,6 +83,7 @@ import type * as identity_mail_provider from "../identity/mail/provider.js";
 import type * as identity_oauth_availability from "../identity/oauth/availability.js";
 import type * as identity_oauth_config from "../identity/oauth/config.js";
 import type * as identity_oauth_providers from "../identity/oauth/providers.js";
+import type * as identity_onboarding from "../identity/onboarding.js";
 import type * as identity_password_index from "../identity/password/index.js";
 import type * as identity_password_policy from "../identity/password/policy.js";
 import type * as identity_preferences from "../identity/preferences.js";
@@ -278,6 +279,7 @@ declare const fullApi: ApiFromModules<{
   "identity/oauth/availability": typeof identity_oauth_availability;
   "identity/oauth/config": typeof identity_oauth_config;
   "identity/oauth/providers": typeof identity_oauth_providers;
+  "identity/onboarding": typeof identity_onboarding;
   "identity/password/index": typeof identity_password_index;
   "identity/password/policy": typeof identity_password_policy;
   "identity/preferences": typeof identity_preferences;

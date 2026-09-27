@@ -7,3 +7,5 @@ Legacy license InstanceAdmin model only defines role20 Admin; InstanceAdminPermi
 Bootstrap remains internal operator-only, atomic and irreversible setup lock; no public first-user route, auto role inference, bootstrap invocation or credentials changes. Read-only configuration exposes initialized timestamp and existing provider availability only, never raw configuration, hashes, keys or provider account IDs. Availability is configuration state, not proven delivery/provider health.
 
 Broader instance configuration writes, workspace management, telemetry, licensing/version status, SMTP migration and instance setup UI remain separate inherited features. No real roster/bootstrap/deactivation changes were executed. Account deactivation UI remains unmounted pending verified operator initialization on each host.
+
+Primary Chrome acceptance: current uninitialized QA account Account details showed Invitations, Sessions, Password, Connected accounts and Preferences/Profile, with no Instance administration entry or error. This verifies denied/no-navigation state only; authorized administration and real role mutations were not exercised.
