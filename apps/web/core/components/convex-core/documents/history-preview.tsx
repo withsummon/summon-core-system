@@ -3,12 +3,12 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { DocumentEditorWithRef } from "@plane/editor";
 import type { IEditorProps, TFileHandler } from "@plane/editor";
 import type { Id } from "@summon/convex/data-model";
+import { DocumentMentionsProvider, useDocumentMentions } from "./mentions";
 import { useDocumentAssetReader } from "./use-document-asset-reader";
 
 const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
 const extendedEditorProps = {};
-const mentionHandler = { renderComponent: () => null };
 const metadata = () => ({ file_assets: [], user_mentions: [] });
 const editorProps = {
   attributes: {
@@ -30,6 +30,7 @@ export function DocumentHistoryPreview({
   html: string;
   versionId: Id<"documentRevisions">;
 }) {
+  const mentionHandler = useDocumentMentions(documentId);
   const token = useAuthToken();
   const tokenRef = useRef(token);
   tokenRef.current = token;
@@ -55,18 +56,20 @@ export function DocumentHistoryPreview({
     [resolve, source, transfers]
   );
   return (
-    <DocumentEditorWithRef
-      id={`document-history-${versionId}`}
-      value={html}
-      editable={false}
-      disabledExtensions={disabledExtensions}
-      flaggedExtensions={flaggedExtensions}
-      fileHandler={fileHandler}
-      mentionHandler={mentionHandler}
-      getEditorMetaData={metadata}
-      extendedEditorProps={extendedEditorProps}
-      editorProps={editorProps}
-      containerClassName="min-h-36 rounded-md border border-subtle-1 p-3"
-    />
+    <DocumentMentionsProvider documentId={documentId}>
+      <DocumentEditorWithRef
+        id={`document-history-${versionId}`}
+        value={html}
+        editable={false}
+        disabledExtensions={disabledExtensions}
+        flaggedExtensions={flaggedExtensions}
+        fileHandler={fileHandler}
+        mentionHandler={mentionHandler}
+        getEditorMetaData={metadata}
+        extendedEditorProps={extendedEditorProps}
+        editorProps={editorProps}
+        containerClassName="min-h-36 rounded-md border border-subtle-1 p-3"
+      />
+    </DocumentMentionsProvider>
   );
 }

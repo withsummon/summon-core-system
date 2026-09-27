@@ -13,3 +13,5 @@ Task comment notifications use task-specific recipients and events, so this slic
 ## Verification
 
 Three backend behavior tests cover document authorization before directory access, inactive/foreign/malformed redaction, batch limits, sparse search continuation, and read-only lifecycle behavior without changing document revision. Backend and editor TypeScript 7 pass. Browser insertion, history, export, and member revocation acceptance will be recorded after activation.
+
+Backend checkpoint `5c2a967caf` passed all 545 tests across 86 files and the immutable archive TypeScript gate, then deployed locally to 3210. Remote activation remains held. Native web/editor TS7, editor distribution build, and all 47 frontend tests pass. New native files have zero Oxc findings; four inherited warnings remain in shared mention extension/dropdown code. Exact classic complexity peaks at 14 in export adaptation and 9 in asynchronous dropdown loading. Primary Chrome acceptance remains pending.

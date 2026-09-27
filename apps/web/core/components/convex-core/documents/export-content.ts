@@ -7,19 +7,38 @@ export async function exportContent({
   noImages,
   format,
   resolveImage,
+  resolveMentions,
 }: {
   html: string;
   title: string;
   noImages: boolean;
   format: "pdf" | "markdown";
   resolveImage: (source: string) => Promise<string>;
+  resolveMentions: (ids: string[]) => Promise<Map<string, string>>;
 }) {
   const parsed = new DOMParser().parseFromString(html, "text/html");
-  // Native document mentions do not yet have a directory owner. Preserve their
-  // presence explicitly instead of fabricating names or silently dropping them.
-  parsed.querySelectorAll("mention-component").forEach((node) => {
-    node.replaceWith(parsed.createTextNode("@Unavailable mention"));
-  });
+  const mentions = Array.from(parsed.querySelectorAll("mention-component"));
+  const ids = [
+    ...new Set(
+      mentions
+        .filter((node) => node.getAttribute("entity_name") === "user_mention")
+        .map((node) => node.getAttribute("entity_identifier") ?? "")
+    ),
+  ];
+  const labels = new Map<string, string>();
+  for (let start = 0; start < ids.length; start += 100) {
+    // Explicit bounded batches retain every stored mention without truncation.
+    // oxlint-disable-next-line no-await-in-loop
+    const batch = await resolveMentions(ids.slice(start, start + 100));
+    for (const [id, label] of batch) labels.set(id, label);
+  }
+  for (const node of mentions) {
+    const label =
+      node.getAttribute("entity_name") === "user_mention"
+        ? (labels.get(node.getAttribute("entity_identifier") ?? "") ?? "Unavailable member")
+        : "Unsupported mention";
+    node.replaceWith(parsed.createTextNode(`@${label}`));
+  }
   if (
     !noImages &&
     Array.from(parsed.querySelectorAll("image-component, img")).some((image) => !image.getAttribute("src"))

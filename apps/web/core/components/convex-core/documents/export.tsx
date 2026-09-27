@@ -6,6 +6,7 @@ import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
 import { useDocumentAssetReader } from "./use-document-asset-reader";
+import { memberLabel } from "../commercial/member-label";
 import { embeddedImage } from "./export-images";
 import { exportContent } from "./export-content";
 const sizes = ["A4", "A3", "A2", "LETTER", "LEGAL", "TABLOID"] as const;
@@ -48,6 +49,10 @@ export function DocumentExport({
           ...captured,
           noImages,
           format,
+          resolveMentions: async (userIds) => {
+            const rows = await client.query(api.documents.mentions.resolve, { documentId, userIds });
+            return new Map(rows.map((row) => [row.id, memberLabel(row.member)]));
+          },
           resolveImage: async (source) => {
             const existing = loaded.get(source);
             if (existing) return existing;
