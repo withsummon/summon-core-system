@@ -29,7 +29,5 @@
     "@plane/typescript-config": "workspace:*",
     "tsdown": "catalog:",
     "typescript": "catalog:"
-  },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js"
+  }
 }
