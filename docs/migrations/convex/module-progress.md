@@ -55,3 +55,14 @@ Dated burndown/completion charts, legacy avatar/color decoration, exact REST fie
 aliases, and inherited route cutover remain separate contracts. The existing
 Django module route is not retired. No deployment or browser acceptance is
 claimed by this receipt until recorded below.
+
+## Local activation
+
+Atomic source/UI commit `a382f3edef` was deployed from an immutable archive to
+`http://127.0.0.1:3210` after the archive passed native TypeScript7. Deployment
+log: `/tmp/summon-migration-control/module-progress-a382f3edef-local-deploy.txt`.
+The primary agent was notified that the coordinated cutover was complete before
+resuming module/cycle Chrome acceptance. No remote push was made. Browser proof
+for this new module slice remains pending; cycle proof recorded in `9019e17173`
+precedes the completion-breakdown extension. Scoped manual gates were used with
+commit hooks disabled under the active migration workflow.
