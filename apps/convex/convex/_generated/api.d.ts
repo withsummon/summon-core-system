@@ -85,6 +85,7 @@ import type * as identity_accounts_unlink from "../identity/accounts/unlink.js";
 import type * as identity_avatar from "../identity/avatar.js";
 import type * as identity_avatar_access from "../identity/avatar_access.js";
 import type * as identity_avatar_owner from "../identity/avatar_owner.js";
+import type * as identity_avatar_upload from "../identity/avatar_upload.js";
 import type * as identity_deactivation_access from "../identity/deactivation/access.js";
 import type * as identity_deactivation_index from "../identity/deactivation/index.js";
 import type * as identity_emailChange_actions from "../identity/emailChange/actions.js";
@@ -332,6 +333,7 @@ declare const fullApi: ApiFromModules<{
   "identity/avatar": typeof identity_avatar;
   "identity/avatar_access": typeof identity_avatar_access;
   "identity/avatar_owner": typeof identity_avatar_owner;
+  "identity/avatar_upload": typeof identity_avatar_upload;
   "identity/deactivation/access": typeof identity_deactivation_access;
   "identity/deactivation/index": typeof identity_deactivation_index;
   "identity/emailChange/actions": typeof identity_emailChange_actions;

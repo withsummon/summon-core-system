@@ -15,6 +15,7 @@ export const assetTables = {
     workspaceId: v.union(v.id("workspaces"), v.null()),
     avatarUserId: v.optional(v.id("users")),
     avatarRevision: v.optional(v.number()),
+    avatarPublishedRevision: v.optional(v.number()),
     projectCoverRevision: v.optional(v.number()),
     workspaceLogoRevision: v.optional(v.number()),
     purpose: v.optional(v.union(v.literal("workspaceLogo"), v.literal("projectCover"), v.literal("userAvatar"))),
