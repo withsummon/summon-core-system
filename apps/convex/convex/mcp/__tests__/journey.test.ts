@@ -200,3 +200,33 @@ test("native project scope binds the remote project and excludes workspace-wide 
   });
   expect((await owner.query(api.mcp.invocations.get, { invocationId })).write).toBe(false);
 });
+
+test("project guest credential owner sees read-only management capabilities and workspace guest cannot reveal", async () => {
+  const { t, owner, credentialId, projectId, userId, workspaceId } = await setup();
+  await t.run(async (ctx) => {
+    await ctx.db.patch(credentialId, { projectId, remoteProjectId: "remote-project" });
+    const member = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", userId))
+      .unique();
+    if (!member) throw new Error("Missing fixture membership");
+    await ctx.db.patch(member._id, { role: "guest" });
+  });
+  expect(await owner.query(api.mcp.credentials.get, { credentialId })).toMatchObject({
+    permission: "manage",
+    canWrite: false,
+    canManage: false,
+    canUse: false,
+    canReveal: true,
+  });
+  await expect(owner.query(api.mcp.invocations.capabilities, { credentialId })).rejects.toThrow("access");
+  await t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", userId))
+      .unique();
+    if (!member) throw new Error("Missing fixture membership");
+    await ctx.db.patch(member._id, { role: "guest" });
+  });
+  expect(await owner.query(api.mcp.credentials.get, { credentialId })).toMatchObject({ canReveal: false });
+});
