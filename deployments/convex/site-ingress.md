@@ -1,6 +1,6 @@
 # Convex actions ingress
 
-Status: prepared configuration; **not applied remotely**. `site-domain.json` records the intended fields of the existing Dokploy domain, not a complete API update payload and not a second router.
+Status: applied to the existing remote domain on 2026-09-27 at 13:37 UTC; routing/HTTP checks passed, authenticated browser acceptance remains a separate gate. `site-domain.json` records the intended fields of the existing Dokploy domain, not a complete API update payload and not a second router.
 
 ## Owner and invariant
 
@@ -36,3 +36,11 @@ The local proof uses a temporary loopback-only Node gateway on3218 forwarding to
 The gateway is `/tmp/summon-migration-control/site-gateway-probe.mjs`, started in agent exec session33522. It has no credentials or persistent service registration. Keep it running while the3028 acceptance artifact depends on it. Do not silently turn it into the production ingress or kill it while that artifact is in use. After acceptance users are moved to a durable approved ingress, stop that owned session with SIGINT, verify the3218 listener is gone, and retire the artifact's advertised URL or rebuild it for the durable actions origin. Do not use a broad process kill.
 
 A durable local environment can use the same existing Traefik domain mechanism when a local Traefik owner is configured; the current local compose has none. Installing a new proxy service or changing the local issuer is outside this prepared change. Until an approved local ingress is configured,3218 remains an explicitly temporary diagnostic dependency, and direct3211 asset load can reproduce the original issue.
+
+## Remote activation receipt
+
+Configuration commit `b908ada2e4` was applied through the existing Dokploy domain editor, changing only Internal Path and Port. Normal Deploy completed in six seconds. Logs show the backend recreated and healthy; the existing dashboard remained running. No Fresh Volumes/Rebuild action, terminal, credential change or origin change was used.
+
+Running container `6fb2a9197156a920239a881ce6f2e5f3cfbf0553cac30b149b0fe6597cd94470` started at `2026-09-27T13:37:21.985760587Z`. Its read-only Container Config image field is `ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8`. Running labels—not only Preview Compose—confirm site router129 uses AddPrefix `/http`, both site services target3210, HTTPS retains `letsencrypt`, and HTTP retains `redirect-to-https@file`. API router128 remains3210.
+
+Ordinary HTTPS verification after deployment: discovery200 with unchanged issuer `https://convex-site.withsummon.com` and same-host JWKS URI; JWKS200 with one public key; `/assets/invalid` OPTIONS204 with existing `Authorization`, `GET, OPTIONS`, `*` CORS headers; anonymous GET401 and invalid-Bearer GET401, both `Authentication required.`. Certificate verification remained enabled. Sanitized raw receipt: `/tmp/summon-migration-control/site-ingress-remote-http.json`. Authenticated asset byte/ACL and browser acceptance are not claimed by these negative checks. This deployment changes container ingress only; it does not establish a new Convex function checkpoint or resolve the independent remote function-upload issue.

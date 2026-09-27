@@ -16,7 +16,7 @@ Convex Auth additionally requires `JWT_PRIVATE_KEY`, `JWKS`, and `SITE_URL` in t
 
 ## Dokploy
 
-Use `dokploy.yml` as a raw compose service and set its two HTTPS origins. Configure three HTTPS domains in Dokploy: API to backend port 3210; actions to backend port 3210 with Internal Path `/http`; dashboard to port 6791. Keep the actions public Path `/` and Strip Path disabled. See [site ingress](site-ingress.md) before changing an existing deployment: the recorded remote site still uses port 3211 and has not been cut over. No host port is exposed. Dokploy supplies Traefik routing. The backend securely generates and persists its instance credentials on first startup when the two optional instance variables are omitted.
+Use `dokploy.yml` as a raw compose service and set its two HTTPS origins. Configure three HTTPS domains in Dokploy: API to backend port 3210; actions to backend port 3210 with Internal Path `/http`; dashboard to port 6791. Keep the actions public Path `/` and Strip Path disabled. See [site ingress](site-ingress.md) before changing an existing deployment: the site cutover and its separate runtime/browser acceptance gates are recorded there. No host port is exposed. Dokploy supplies Traefik routing. The backend securely generates and persists its instance credentials on first startup when the two optional instance variables are omitted.
 
 The explicit `10.77.2.0/28` default network addresses this host's exhausted automatic Docker address pools. It must be checked against the target host's network inventory before deployment elsewhere.
 
