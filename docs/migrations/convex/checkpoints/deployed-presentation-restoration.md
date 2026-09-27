@@ -38,3 +38,13 @@ allow-origin header for127.0.0.1:3010. Production must not be mutated for this Q
 Private session/credential files remain under `/tmp/summon-migration-control` and
 are not copied into this receipt. Port3000 belongs to a different Futurity checkout
 and must not be repurposed.
+
+## Local legacy QA origin activation
+
+On 2026-09-27, the existing dev frontend at `http://localhost:3010` was retained. Ports 3100 (live collaboration), 3002 (space), 3001 (admin), and 3000 (unrelated Futurity) were occupied and left untouched.
+
+The local API8000 owner was verified as one-off container `99946b935327`, Python `manage.py runserver 0.0.0.0:8000 --settings=plane.settings.local`, image `sha256:025f9c48a908cb638c379c99cfe1a3e0832077467c128a4f41af8a003234b232`, with the existing `apps/api` bind mount. Its configuration/environment were saved privately with mode600 under `/tmp/summon-migration-control/django8000-runtime-original.json` and `django8000-runtime-original.env`.
+
+Only that container was stopped, retained for rollback, and replaced by `8cccdace5fbb` (`summon-api-legacy-qa-3010`) using the same image, command, network, mount and environment, with only `http://localhost:3010` appended to CORS. No repository environment file changed. API8000 `/api/instances/` returned HTTP200, the exact allowed origin and `Access-Control-Allow-Credentials: true`. API8002 remained HTTP200 without the new origin allowance. The synthetic workspace Task Center deep link on localhost3010 returned HTTP200. These are reachability/CORS checks, not browser visual acceptance.
+
+Source at activation was `94bcc46686`, containing restoration `206a6952f3` and the separately committed production description autosave fix. This is a working-tree development server with preserved dependency overlay, not an immutable production artifact. Parent owns UI login and comparison; no production data was changed.
