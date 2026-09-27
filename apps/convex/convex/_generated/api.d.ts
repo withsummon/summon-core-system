@@ -82,6 +82,8 @@ import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
 import type * as projects_settings from "../projects/settings.js";
 import type * as projects_timezone from "../projects/timezone.js";
+import type * as quickLinks_index from "../quickLinks/index.js";
+import type * as quickLinks_validation from "../quickLinks/validation.js";
 import type * as reporting_commercial from "../reporting/commercial.js";
 import type * as reporting_documents from "../reporting/documents.js";
 import type * as reporting_meetings from "../reporting/meetings.js";
@@ -186,6 +188,8 @@ declare const fullApi: ApiFromModules<{
   "projects/index": typeof projects_index;
   "projects/settings": typeof projects_settings;
   "projects/timezone": typeof projects_timezone;
+  "quickLinks/index": typeof quickLinks_index;
+  "quickLinks/validation": typeof quickLinks_validation;
   "reporting/commercial": typeof reporting_commercial;
   "reporting/documents": typeof reporting_documents;
   "reporting/meetings": typeof reporting_meetings;

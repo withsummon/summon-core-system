@@ -17,6 +17,7 @@ const ProjectSettings = lazy(() =>
 const ArchivedProjects = lazy(() =>
   import("./projects/archived").then((module) => ({ default: module.ArchivedProjects }))
 );
+const QuickLinks = lazy(() => import("./quick-links/quick-links").then((module) => ({ default: module.QuickLinks })));
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
 const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
@@ -87,7 +88,7 @@ function Workspace() {
         </p>
       )}
       <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
-        <aside className="w-full shrink-0 border-b border-subtle-1 p-4 md:w-60 md:border-r md:border-b-0">
+        <aside className="w-full shrink-0 border-b border-subtle-1 p-4 md:w-60 md:overflow-y-auto md:border-r md:border-b-0">
           <h2 className="mb-3 text-12 font-semibold text-secondary">WORKSPACES</h2>
           <nav className="flex flex-col gap-1">
             {workspaces?.map((item) => (
@@ -104,6 +105,17 @@ function Workspace() {
           <button className="mt-3 px-3 py-2 text-14 text-accent-primary" onClick={() => setParams({})}>
             Create workspace
           </button>
+          {workspace && (
+            <Suspense
+              fallback={
+                <p role="status" className="mt-4 text-12 text-secondary">
+                  Loading quick links…
+                </p>
+              }
+            >
+              <QuickLinks key={workspace._id} workspaceId={workspace._id} />
+            </Suspense>
+          )}
           <details className="mt-6 border-t border-subtle-1 pt-4 text-14">
             <summary className="cursor-pointer">Account details</summary>
             {identity && (

@@ -1,3 +1,4 @@
+import { quickLinkTables } from "./quickLinks/schema";
 import { moduleTables } from "./modules/schema";
 import { cycleTables } from "./cycles/schema";
 import { notificationTables } from "./notifications/schema";
@@ -18,6 +19,7 @@ import { resourceTables } from "./resources/schema";
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
   ...authTables,
+  ...quickLinkTables,
   ...cycleTables,
   ...moduleTables,
   ...notificationTables,
