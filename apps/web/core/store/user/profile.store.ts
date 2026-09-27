@@ -30,6 +30,7 @@ export interface IUserProfileStore {
   // actions
   fetchUserProfile: () => Promise<TUserProfile | undefined>;
   updateUserProfile: (data: Partial<TUserProfile>) => Promise<TUserProfile | undefined>;
+  selectWorkspace: (workspaceId: string) => Promise<void>;
   finishUserOnboarding: () => Promise<void>;
   updateTourCompleted: () => Promise<TUserProfile | undefined>;
   updateUserTheme: (data: Partial<IUserTheme>) => Promise<TUserProfile | undefined>;
@@ -80,6 +81,7 @@ export class ProfileStore implements IUserProfileStore {
       // actions
       fetchUserProfile: action,
       updateUserProfile: action,
+      selectWorkspace: action,
       updateTourCompleted: action,
       updateUserTheme: action,
     });
@@ -125,6 +127,11 @@ export class ProfileStore implements IUserProfileStore {
       });
       throw error;
     }
+  };
+
+  selectWorkspace = async (workspaceId: string): Promise<void> => {
+    await this.userService.updateCurrentUserProfile({ last_workspace_id: workspaceId });
+    runInAction(() => this.mutateUserProfile({ last_workspace_id: workspaceId }));
   };
 
   /**
