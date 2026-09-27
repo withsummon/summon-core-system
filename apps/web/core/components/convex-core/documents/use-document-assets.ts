@@ -4,7 +4,7 @@ import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { TFileHandler } from "@plane/editor";
 import { useDocumentAssetReader } from "./use-document-asset-reader";
-import { uploadedStorageId } from "./asset-transfers";
+import { uploadFileAsset } from "../assets/upload-file";
 
 export function useDocumentAssets(documentId: Id<"documents">, getToken: () => string) {
   const client = useConvex();
@@ -36,36 +36,21 @@ export function useDocumentAssets(documentId: Id<"documents">, getToken: () => s
       getAssetDownloadSrc: (assetId) => source(assetId, true),
       upload: (blockId, file) =>
         transfers.run(async (signal) => {
-          if (!policy.supportedTypes.some((type) => type === file.type))
-            throw new Error("This file type is not supported.");
-          const limit = file.type.startsWith("image/") ? policy.imageMaxBytes : policy.maxBytes;
-          if (file.size < 1 || file.size > limit) throw new Error(`Choose a file up to ${limit / 1024 / 1024} MB.`);
           setStatus((current) => ({ ...current, [blockId]: 0 }));
           try {
-            const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
-            const sha256 = btoa(String.fromCharCode(...digest));
-            signal.throwIfAborted();
-            const ticket = await client.mutation(api.assets.index.prepare, {
-              workspaceId,
-              projectId: null,
-              documentId,
-              name: file.name,
-              contentType: file.type,
-              size: file.size,
-              sha256,
-            });
-            signal.throwIfAborted();
-            const response = await fetch(ticket.uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-              signal,
-              credentials: "omit",
-            });
-            const storageId = await uploadedStorageId(response);
-            signal.throwIfAborted();
-            const assetId = await client.action(api.assets.upload.finalize, { assetId: ticket.assetId, storageId });
-            signal.throwIfAborted();
+            const assetId = await uploadFileAsset(
+              file,
+              policy,
+              (metadata) =>
+                client.mutation(api.assets.index.prepare, {
+                  ...metadata,
+                  workspaceId,
+                  projectId: null,
+                  documentId,
+                }),
+              (args) => client.action(api.assets.upload.finalize, args),
+              signal
+            );
             setStatus((current) => ({ ...current, [blockId]: 100 }));
             return assetId;
           } finally {

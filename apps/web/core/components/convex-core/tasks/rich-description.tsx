@@ -4,7 +4,7 @@ import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
 import { DescriptionHistory } from "./description-history";
-import { TaskRichEditor } from "./rich-editor";
+import { TaskDescriptionEditor } from "./description-editor";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; canWrite: boolean }) {
@@ -25,8 +25,13 @@ export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; can
       {editing && canWrite ? (
         <DescriptionForm key={taskId} description={description} onDone={() => setEditing(false)} />
       ) : (
-        <TaskRichEditor
-          key={description.updatedAt}
+        <TaskDescriptionEditor
+          key={
+            description.contentVersion
+              ? `${description.contentVersion.versionId}:${description.contentVersion.revision}`
+              : "initial"
+          }
+          taskId={taskId}
           id={`task-description-${taskId}`}
           label="Task description"
           placeholder="Describe the work…"
@@ -45,7 +50,8 @@ function DescriptionForm({
   onDone: () => void;
 }) {
   const save = useMutation(api.tasks.description.save);
-  const [draft, setDraft] = useState({ html: description.html, expectedUpdatedAt: description.updatedAt });
+  const [draft, setDraft] = useState({ html: description.html, expectedContentVersion: description.contentVersion });
+  const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -65,16 +71,18 @@ function DescriptionForm({
         }
       }}
     >
-      <TaskRichEditor
+      <TaskDescriptionEditor
+        taskId={description.taskId}
+        onUploadingChange={setUploading}
         id={`task-description-${description.taskId}`}
         label="Task description"
         placeholder="Describe the work…"
-        html={description.html}
+        html={draft.html}
         editable={!pending}
         onChange={(html) => setDraft((current) => ({ ...current, html }))}
       />
       <div className="flex gap-2">
-        <Button type="submit" loading={pending}>
+        <Button type="submit" loading={pending} disabled={uploading}>
           Save description
         </Button>
         <Button variant="secondary" disabled={pending} onClick={onDone}>
