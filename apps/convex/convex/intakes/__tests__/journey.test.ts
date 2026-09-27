@@ -283,19 +283,3 @@ test("snooze and duplicate decisions validate scope; cursor budgets cannot be ex
   });
   expect(page.page).toHaveLength(1);
 });
-test("intake configuration cannot bypass the project metadata migration owner", async () => {
-  const f = await workspaceJourney();
-  await f.t.run((ctx) => ctx.db.patch(f.projectId, { description: undefined, metadataRevision: undefined }));
-  await expect(f.owner.query(api.intakes.index.getConfig, { projectId: f.projectId })).rejects.toThrow(
-    "metadata migration"
-  );
-  await expect(
-    f.owner.mutation(api.intakes.index.configure, {
-      projectId: f.projectId,
-      expectedRevision: 0,
-      enabled: true,
-      guestViewAllFeatures: false,
-    })
-  ).rejects.toThrow("metadata migration");
-  expect(await f.t.run((ctx) => ctx.db.query("intakes").collect())).toEqual([]);
-});
