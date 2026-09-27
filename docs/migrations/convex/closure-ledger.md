@@ -30,6 +30,28 @@ counts and transfer snapshots are not substitutes. No inherited route is retired
 | Only password login / no instance authority       | recovery/email-code/OAuth/password/accounts/unlink/session/deactivation/onboarding and `identity/instance/*` owners                                             | Native source exists. Actual Resend/OAuth credentials, intended first administrator, provider success and full admin app are still gates. SMTP excluded explicitly by user.              |
 | Project ordering not started                      | cd4d5f5d85 private owner +ae84433f63 prepared chooser                                                                                                           | Local backfill21 inserted, repeat0; remote receipt is null in durable checkpoint. No active ordered-chooser cutover yet.                                                                 |
 
+### Later committed local closure checkpoints
+
+The following supersedes absence wording in the earlier reconciliation and packet
+rows. These are local native slices; remote activation and inherited route cutover
+remain separate gates. No count of remaining features is inferred from this table.
+
+| Packet | Committed owner and acceptance | Remaining boundary |
+| --- | --- | --- |
+| D04 | Project cover backend5207aa69cf/UIa7663633d6; primary Chrome upload, replacement, recovery, header and390px acceptance3178c9838d | Remote activation and inherited external/static cover selection |
+| D15 | Current cycle progress71517a97e5/3606a8081d/UI2cdb8b425a; primary two-client live/390px acceptance9019e17173 | Remote activation; dated burndown stays D16 |
+| D17 | Shared module/cycle progressa382f3edef; bounded membership pages, completed/pending distributions, unchanged transfer snapshot schema | Remote activation and dated completion analytics |
+| D20 partial | Reference indexe67d59dc42, local verification16cb0db4f9; durable snapshot jobs and authorized current issue reference projection | No backlinks UI or new notification producer is claimed |
+
+Project metadata is now required in2a624b562c after both-host zero-change backfill
+and full missing-field scans. Local exact deployment and browser acceptance are
+recorded in40ee7c274a; the stricter schema has not yet activated remotely.
+The approved Traefik300-second read timeout is applied, but both ordinary and
+byte-equivalent q11 Mac upload attempts failed before activation. Runner candidate
+466fdf7617 passed local clean container/offline bundle checks; external push and
+new Dokploy runner approval are pending. Neither offline bundling nor a successful
+control-plane reload establishes a deployed backend checkpoint.
+
 ### Counted next work packets
 
 There are **20 identified bounded domain packets** below, plus **9 broader unresolved programs** in the next table. These are reviewable implementation scopes, **not a claim that only20 features or29 commits remain**. Some programs need further decomposition and precise legacy-field acceptance. Every inherited route still requires its own consumer/wire decision. Packets marked in progress are not counted delivered.
