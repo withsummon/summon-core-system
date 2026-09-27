@@ -1,3 +1,4 @@
+import { ManagedInvitations } from "./invitations/manage";
 import { SessionBoundary } from "./identity/session-boundary";
 import { RecordVisit } from "./navigation/record-visit";
 import { WorkspaceNavigation } from "./favorites/workspace-navigation";
@@ -256,6 +257,20 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
           )}
         </div>
       </header>
+      <div className="grid min-w-0 gap-3 md:grid-cols-2">
+        <ManagedInvitations
+          key={workspace._id}
+          name={workspace.name}
+          scope={{ workspaceId: workspace._id, projectId: null }}
+        />
+        {project && (
+          <ManagedInvitations
+            key={project._id}
+            name={project.name}
+            scope={{ workspaceId: workspace._id, projectId: project._id }}
+          />
+        )}
+      </div>
       {(workspace.membershipRole === "admin" ||
         (project?.membershipRole === "admin" && project.workspaceRole !== "guest")) && (
         <details className="rounded-lg border border-subtle-1 px-3 py-2">
