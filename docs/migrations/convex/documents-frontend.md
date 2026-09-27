@@ -41,7 +41,7 @@ complexity checks pass. Main-run Chrome acceptance owns rendered editor, two-use
 collaboration, lock/unlock and refresh verification. Backend/live tests separately
 verify ACLs, CAS conflicts, title seeding and rejection recovery.
 
-AI editor actions and issue embeds remain disabled. Mentions, hierarchy, page restore,
+AI editor actions and issue embeds remain disabled. Mentions, hierarchy, historical-version restore,
 version UI, sharing dialogs and all legacy page navigation are not migrated.
 No Django/live-service retirement or full document parity is claimed here.
 
@@ -61,9 +61,9 @@ Deleting an editor image uses the backend's seven-day reversible deletion; undo 
 
 Four module-local behavior tests cover URL teardown, late-response cancellation, a fresh transfer after cancellation, and malformed upload responses. Native web types and focused lint pass. Real browser image upload/render/undo/download acceptance is a separate primary-agent gate, not implied by these checks.
 
-Image undo review found a shared editor assumption: private image IDs skipped the restoration tracker and relied on a DOM image error. Authenticated ID resolution can reject before any image URL exists. The tracker now restores explicitly deleted assets regardless of URL format. Native handlers order each asset’s deletion, undo, and subsequent source resolution. Three additional behavior tests cover immediate undo ordering, failed deletion followed by explicit restoration, and independent assets. This shared-owner change still requires the primary browser undo check after rebuilding the editor.
+Image undo review found a shared editor assumption: private image IDs skipped the restoration tracker and relied on a DOM image error. Authenticated ID resolution can reject before any image URL exists. The tracker now restores explicitly deleted assets regardless of URL format. Native handlers order each asset’s deletion, undo, and subsequent source resolution. Three additional behavior tests cover immediate undo ordering, failed deletion followed by explicit restoration, and independent assets. The primary browser undo and reload checks after rebuilding the editor are recorded below.
 
-Primary Chrome repeated the exact undo journey after the fix: a fresh image upload followed immediately by Backspace and Command+Z restored a rendered blob image (192-pixel image readback). The older image deleted before the fix remained unavailable, consistent with its previously soft-deleted asset. Post-fix reload acceptance was still underway at this receipt; it is not inferred from the undo result. The primary run executed all ten document-asset and assistant transport tests successfully.
+Primary Chrome repeated the exact undo journey after the fix: a fresh image upload followed immediately by Backspace and Command+Z restored a rendered blob image (192-pixel image readback). The older image deleted before the fix remained unavailable, consistent with its previously soft-deleted asset. Subsequent primary Chrome reload also retained the restored image; this is a separate persisted readback from the immediate undo result. The primary run executed all ten document-asset and assistant transport tests successfully.
 
 ### Settings concurrency correction
 
