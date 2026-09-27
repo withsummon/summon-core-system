@@ -12,6 +12,7 @@ export const assetScope = {
 export const assetTables = {
   assets: defineTable({
     ...assetScope,
+    documentCopyId: v.optional(v.id("documentCopies")),
     // Required by the task attachment owner; absent on older, non-task assets.
     attachmentRevision: v.optional(v.number()),
     name: v.string(),

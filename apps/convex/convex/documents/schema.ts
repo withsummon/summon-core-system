@@ -25,6 +25,28 @@ export const snapshotFields = {
   descriptionJson: jsonObject,
 };
 export const documentTables = {
+  documentCopies: defineTable({
+    actorId: v.id("users"),
+    requestId: v.string(),
+    documentId: v.id("documents"),
+    expectedRevision: v.number(),
+    expectedUpdatedAt: v.number(),
+    parentId: v.union(v.id("documents"), v.null()),
+    parentUpdatedAt: v.union(v.number(), v.null()),
+    files: v.array(
+      v.object({
+        sourceId: v.id("assets"),
+        targetId: v.id("assets"),
+        sourceStorageId: v.id("_storage"),
+        sha256: v.string(),
+        size: v.number(),
+      })
+    ),
+    cursor: v.number(),
+    expiresAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("published"), v.literal("expired")),
+    resultId: v.union(v.id("documents"), v.null()),
+  }).index("by_actor_request", ["actorId", "requestId"]),
   documentLabels: defineTable({ documentId: v.id("documents"), labelId: v.id("taskLabels") })
     .index("by_document", ["documentId"])
     .index("by_document_label", ["documentId", "labelId"])

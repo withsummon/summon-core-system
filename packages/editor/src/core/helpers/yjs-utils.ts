@@ -5,6 +5,7 @@
  */
 
 import { Buffer } from "buffer";
+import { CORE_EXTENSIONS } from "@/constants/extension";
 import type { Extensions, JSONContent } from "@tiptap/core";
 import { getSchema } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html";
@@ -273,3 +274,39 @@ export const extractTextFromHTML = (html: string): string => {
   const sanitizedText = sanitizeHTML(html); // sanitize the string to remove all HTML tags
   return sanitizedText.trim() || ""; // trim the string to remove leading and trailing whitespaces
 };
+
+/** Document copies get fresh CRDT identities and independently owned image sources. */
+export function documentEditorAssetSources(binary: Uint8Array): string[] {
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, false);
+  const document = documentEditorSchema.nodeFromJSON(contentJSON);
+  const sources = new Set<string>();
+  document.descendants((node) => {
+    if (node.type.name === CORE_EXTENSIONS.CUSTOM_IMAGE) {
+      if (typeof node.attrs.src !== "string" || !node.attrs.src)
+        throw new Error("Finish uploading document images before copying.");
+      sources.add(node.attrs.src);
+    }
+  });
+  return [...sources];
+}
+export function duplicateDocumentEditorBinary(
+  binary: Uint8Array,
+  title: string,
+  sources: Record<string, string>
+): Uint8Array {
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, false);
+  const document = documentEditorSchema.nodeFromJSON(contentJSON);
+  function remap(node: JSONContent): JSONContent {
+    const result = { ...node, ...(node.content ? { content: node.content.map(remap) } : {}) };
+    if (node.type === CORE_EXTENSIONS.CUSTOM_IMAGE && typeof node.attrs?.src === "string") {
+      const source = sources[node.attrs.src];
+      if (!source) throw new Error("Document image source was not copied.");
+      result.attrs = { ...node.attrs, src: source };
+    }
+    return result;
+  }
+  return getBinaryDataFromDocumentEditorHTMLString(
+    generateHTML(remap(document.toJSON()), DOCUMENT_EDITOR_EXTENSIONS),
+    title
+  );
+}
