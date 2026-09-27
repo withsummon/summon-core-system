@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -131,7 +132,7 @@ describe("document metadata and immutable binary revisions", () => {
   test("private documents and their revisions remain owner-only, while project guests may read public documents", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Reader" }));
-    const reader = t.withIdentity({ subject: userId });
+    const reader = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "guest" });
     const documentId = await owner.mutation(api.documents.index.create, {

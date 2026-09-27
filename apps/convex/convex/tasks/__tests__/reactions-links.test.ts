@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -11,7 +12,7 @@ async function person(f: Awaited<ReturnType<typeof fixture>>, role: "guest" | "m
   const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: role }));
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId, role });
-  return { userId, user: f.t.withIdentity({ subject: userId }) };
+  return { userId, user: await signedIn(f.t, userId) };
 }
 test("reaction identity is caller-owned, unique and idempotent; another actor cannot remove it", async () => {
   const f = await fixture();

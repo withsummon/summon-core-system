@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -41,7 +42,7 @@ describe("Authorized asset lifecycle", () => {
   it("rejects a different uploader and outsiders at every public boundary", async () => {
     const { t, owner, assetId, storageId, intent } = await uploadJourney();
     const strangerId = await t.run((ctx) => ctx.db.insert("users", { name: "Stranger" }));
-    const stranger = t.withIdentity({ subject: strangerId });
+    const stranger = await signedIn(t, strangerId);
     await expect(stranger.mutation(api.assets.index.prepare, intent)).rejects.toThrow();
     await expect(stranger.action(api.assets.upload.finalize, { assetId, storageId })).rejects.toThrow();
     await owner.action(api.assets.upload.finalize, { assetId, storageId });

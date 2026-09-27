@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -187,7 +188,7 @@ test("other workspace members cannot publish a requester's private preview", asy
     await ctx.db.insert("workspaceMembers", { workspaceId, userId: strangerId, role: "admin", active: true });
     await ctx.db.insert("projectMembers", { workspaceId, projectId, userId: strangerId, role: "admin", active: true });
   });
-  const stranger = t.withIdentity({ subject: strangerId });
+  const stranger = await signedIn(t, strangerId);
   await expect(stranger.query(api.automation.jobs.get, { jobId })).rejects.toThrow("access denied");
   await expect(stranger.action(api.automation.publish.document, { jobId })).rejects.toThrow("access denied");
 });

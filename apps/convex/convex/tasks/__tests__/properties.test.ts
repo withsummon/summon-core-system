@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -236,7 +237,7 @@ describe("project task taxonomy", () => {
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Member" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
-    const member = t.withIdentity({ subject: userId });
+    const member = await signedIn(t, userId);
     expect(await member.query(api.tasks.states.list, { projectId })).toHaveLength(1);
     await expect(
       member.mutation(api.tasks.states.save, { projectId, data: { ...stateData, name: "New" } })
@@ -263,7 +264,7 @@ describe("workspace task center", () => {
     });
     const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "admin" });
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     const secretProject = await other.mutation(api.projects.index.create, {
       workspaceId,
       name: "Private",
@@ -343,7 +344,7 @@ test("task URL resolution parses IDs at the owner and does not bypass project ac
   await expect(owner.query(api.tasks.index.resolve, { taskId: "untrusted-route-value" })).rejects.toThrow("not found");
   const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Workspace admin only" }));
   await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "admin" });
-  const other = t.withIdentity({ subject: otherId });
+  const other = await signedIn(t, otherId);
   await expect(other.query(api.tasks.index.resolve, { taskId })).rejects.toThrow("access");
   await expect(
     other.mutation(api.tasks.index.update, {

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -13,7 +14,7 @@ test("profile edits update the public name atomically while personal fields rema
     email: null,
   });
   const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
-  const other = t.withIdentity({ subject: otherId });
+  const other = await signedIn(t, otherId);
   expect(await other.query(api.identity.profile.get, {})).toMatchObject({
     displayName: "Other",
     firstName: "",

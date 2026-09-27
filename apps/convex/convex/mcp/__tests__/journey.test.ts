@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -25,7 +26,7 @@ async function setup() {
   await base.t.run((ctx) =>
     ctx.db.insert("workspaceMembers", { workspaceId: base.workspaceId, userId, role: "member", active: true })
   );
-  return { ...base, credentialId, memberId: userId, member: base.t.withIdentity({ subject: userId }) };
+  return { ...base, credentialId, memberId: userId, member: await signedIn(base.t, userId) };
 }
 test("vault encrypts secrets at rest and public reads never expose ciphertext or cleartext", async () => {
   const { t, owner, workspaceId, credentialId } = await setup();

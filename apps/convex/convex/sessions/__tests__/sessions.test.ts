@@ -23,7 +23,7 @@ test("session list is owner-private, paginated and exposes no refresh identifier
     expiresAt: expect.any(Number),
     isCurrent: true,
   });
-  expect(result.revocationNotice).toContain("until it expires");
+  expect(result.revocationNotice).toContain("immediately blocks");
   await expect(f.current.mutation(api.sessions.index.revoke, { sessionId: other })).rejects.toThrow("not found");
   expect(await f.t.run((ctx) => ctx.db.get(other))).not.toBeNull();
 });

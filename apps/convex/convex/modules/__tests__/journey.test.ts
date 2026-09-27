@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -152,7 +153,7 @@ test("archive restrictions, frozen-clock CAS, reversible trash and name conflict
 test("lead and roster require current project membership, roster does not confer write access", async () => {
   const f = await fixture();
   const guestId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   await f.owner.mutation(api.workspaces.index.grantMember, {
     workspaceId: f.workspaceId,
     userId: guestId,
@@ -256,7 +257,7 @@ test("current ACL governs metadata, roster and tasks; noncreator members cannot 
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: memberId, role: "member" });
-  const member = f.t.withIdentity({ subject: memberId });
+  const member = await signedIn(f.t, memberId);
   const row = await member.query(api.modules.index.get, { moduleId: f.moduleId });
   expect(row.canEdit).toBe(true);
   expect(row.canDelete).toBe(false);

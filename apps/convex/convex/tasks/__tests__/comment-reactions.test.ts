@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -12,7 +13,7 @@ async function guest(f: Awaited<ReturnType<typeof fixture>>) {
   const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "guest" });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId, role: "guest" });
-  return { userId, user: f.t.withIdentity({ subject: userId }) };
+  return { userId, user: await signedIn(f.t, userId) };
 }
 test("comment reactions preserve actor uniqueness, independent task target and idempotent event revision", async () => {
   const f = await fixture();

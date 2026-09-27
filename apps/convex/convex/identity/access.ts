@@ -1,14 +1,10 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireIdentity } from "./session";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
 export async function requireUser(ctx: QueryCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) throw new ConvexError("Sign in to continue.");
-  const user = await ctx.db.get(userId);
-  if (!user) throw new ConvexError("Sign in to continue.");
-  return user;
+  return (await requireIdentity(ctx)).user;
 }
 export async function requireWorkspace(ctx: QueryCtx, workspaceId: Id<"workspaces">, write = false) {
   const user = await requireUser(ctx);

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi, afterEach } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -71,7 +72,7 @@ test("guest history and ordinary task reads share creator restriction; revocatio
     role: "guest",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: guestId, role: "guest" });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   await expect(guest.query(api.tasks.index.get, { taskId: f.taskId })).rejects.toThrow("not found");
   await expect(guest.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).rejects.toThrow("not found");
   await f.t.run((ctx) => ctx.db.patch(f.projectId, { guestViewAllFeatures: true }));
@@ -93,7 +94,7 @@ test("different actor appends; restoring older HTML creates current content atom
   const id = await f.t.run((ctx) => ctx.db.insert("users", { name: "Editor" }));
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId: id, role: "member" });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: id, role: "member" });
-  const editor = f.t.withIdentity({ subject: id });
+  const editor = await signedIn(f.t, id);
   let task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
   await editor.mutation(api.tasks.description.save, {
     taskId: f.taskId,

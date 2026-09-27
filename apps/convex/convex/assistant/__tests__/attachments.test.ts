@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 import { api, internal } from "../../_generated/api";
@@ -46,7 +47,7 @@ test("text attachment extraction and authenticated download remain private to it
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: peerId, role: "member" });
-  const peer = f.t.withIdentity({ subject: peerId });
+  const peer = await signedIn(f.t, peerId);
   await expect(peer.query(api.assistant.attachments.pending, { conversationId: f.conversationId })).rejects.toThrow(
     "access"
   );

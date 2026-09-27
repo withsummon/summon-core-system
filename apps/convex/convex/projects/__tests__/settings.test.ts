@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -90,7 +91,7 @@ test("ordinary project member cannot manage lifecycle and revoked administrator 
     });
     return id;
   });
-  const member = f.t.withIdentity({ subject: userId });
+  const member = await signedIn(f.t, userId);
   const before = await f.owner.query(api.projects.settings.get, { projectId: f.projectId });
   expect((await member.query(api.projects.settings.get, { projectId: f.projectId })).canManage).toBe(false);
   await expect(
@@ -180,7 +181,7 @@ for (const restriction of ["revoke", "guest"] as const) {
       userId: managerId,
       role: "admin",
     });
-    const manager = f.t.withIdentity({ subject: managerId });
+    const manager = await signedIn(f.t, managerId);
     await f.owner.mutation(api.projects.settings.setArchived, {
       projectId: f.projectId,
       archived: true,

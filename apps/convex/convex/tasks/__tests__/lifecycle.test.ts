@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -197,7 +198,7 @@ test("stale revisions fail, guest creators recover under current access, and bou
     role: "guest",
   });
   await f.t.run((ctx) => ctx.db.patch(f.taskId, { createdBy: guestId }));
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   const row = await guest.query(api.tasks.lifecycle.get, { taskId: f.taskId, view: "deleted" });
   await guest.mutation(api.tasks.lifecycle.change, {
     taskId: f.taskId,
@@ -230,7 +231,7 @@ test("deletion suppresses recipient notification content and stale assistant act
     userId: recipientId,
     role: "member",
   });
-  const recipient = f.t.withIdentity({ subject: recipientId });
+  const recipient = await signedIn(f.t, recipientId);
   await recipient.mutation(api.notifications.index.subscribe, {
     taskId: f.taskId,
     subscribed: true,
@@ -411,7 +412,7 @@ test("a noncreator project writer can detach a trashed cycle task without access
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: writerId, role: "member" });
-  const writer = f.t.withIdentity({ subject: writerId });
+  const writer = await signedIn(f.t, writerId);
   await expect(writer.query(api.tasks.lifecycle.get, { taskId: f.taskId, view: "deleted" })).rejects.toThrow("creator");
   const hidden = (await writer.query(api.cycles.tasks.list, { cycleId, paginationOpts: page })).page[0];
   expect(hidden.task).toBeNull();

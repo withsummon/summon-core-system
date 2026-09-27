@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -35,7 +36,7 @@ test("private preferences initialize defaults and share profile revision without
     "changed"
   );
   const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
-  expect((await t.withIdentity({ subject: otherId }).query(api.identity.profile.get, {})).preferences).toEqual(
+  expect((await (await signedIn(t, otherId)).query(api.identity.profile.get, {})).preferences).toEqual(
     defaultPreferences
   );
   await expect(t.mutation(api.identity.preferences.save, { expectedRevision: 0, preferences })).rejects.toThrow(
@@ -46,7 +47,7 @@ test("private preferences initialize defaults and share profile revision without
 test("onboarding declarations do not grant workspace access and revoked membership blocks last workspace selection", async () => {
   const { t, owner, workspaceId, userId } = await workspaceJourney();
   const otherId = await t.run((ctx) => ctx.db.insert("users", {}));
-  const other = t.withIdentity({ subject: otherId });
+  const other = await signedIn(t, otherId);
   const preferences = { ...defaultPreferences, isOnboarded: true, tourCompleted: true };
   await other.mutation(api.identity.preferences.save, { expectedRevision: 0, preferences });
   await expect(
@@ -88,4 +89,3 @@ test.each([
   ).rejects.toThrow();
   expect((await owner.query(api.identity.profile.get, {})).revision).toBe(0);
 });
-

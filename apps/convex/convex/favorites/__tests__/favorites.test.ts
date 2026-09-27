@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -41,7 +42,7 @@ test("favorites are private, guests denied, idempotent target additions preserve
     await ctx.db.insert("workspaceMembers", { workspaceId: f.workspaceId, userId, role: "admin", active: true });
     return userId;
   });
-  const other = f.t.withIdentity({ subject: otherId });
+  const other = await signedIn(f.t, otherId);
   expect(
     (
       await other.query(api.favorites.index.list, {

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -45,7 +46,7 @@ test("given an administrator, saves update workspace name and settings atomicall
 test("given a member or guest, settings remain readable but only administrators write", async () => {
   const { t, owner, workspaceId } = await workspaceJourney();
   const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Reader" }));
-  const reader = t.withIdentity({ subject: userId });
+  const reader = await signedIn(t, userId);
   await expect(reader.query(api.settings.index.get, { workspaceId })).rejects.toThrow();
   await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
   expect(await reader.query(api.settings.index.get, { workspaceId })).toMatchObject({ currency: "IDR" });

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -8,7 +9,7 @@ async function fixture() {
   const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: "Recipient" }));
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role: "member" });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId, role: "member" });
-  return { ...f, taskId, recipientId: userId, recipient: f.t.withIdentity({ subject: userId }) };
+  return { ...f, taskId, recipientId: userId, recipient: await signedIn(f.t, userId) };
 }
 test("new mention sends one notification and subscribes recipient, later edit remains ordinary notification, remention notifies once", async () => {
   const f = await fixture();

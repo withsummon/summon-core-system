@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import type { FunctionArgs } from "convex/server";
 import { api } from "../../_generated/api";
@@ -248,7 +249,7 @@ describe("explicit meeting task links", () => {
     await owner.mutation(api.meetings.tasks.link, { workspaceId, meetingId, taskId });
     const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "member" });
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     await expect(other.mutation(api.meetings.tasks.link, { workspaceId, meetingId, taskId })).rejects.toThrow("access");
     expect(
       (
@@ -325,7 +326,7 @@ describe("meeting document references", () => {
     const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId: otherId, role: "member" });
-    const other = t.withIdentity({ subject: otherId });
+    const other = await signedIn(t, otherId);
     await expect(
       other.mutation(api.meetings.index.save, {
         workspaceId,
@@ -395,7 +396,7 @@ test("meeting visibility does not grant access to a summary document after its A
   const otherId = await t.run((ctx) => ctx.db.insert("users", { name: "Other" }));
   await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: otherId, role: "member" });
   await owner.mutation(api.projects.index.grantMember, { projectId, userId: otherId, role: "member" });
-  const other = t.withIdentity({ subject: otherId });
+  const other = await signedIn(t, otherId);
   expect(await other.query(api.documents.index.get, { documentId })).toMatchObject({ name: "Minutes" });
   await owner.mutation(api.documents.index.update, {
     expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,

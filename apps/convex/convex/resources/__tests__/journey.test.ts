@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -14,7 +15,7 @@ describe("external resource links", () => {
   test("a private document link remains hidden from another project member", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Reader" }));
-    const reader = t.withIdentity({ subject: userId });
+    const reader = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
     const documentId = await owner.mutation(api.documents.index.create, {
@@ -86,7 +87,7 @@ describe("external resource links", () => {
   test("workspace membership alone cannot read project links or reassign a link to another workspace", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Colleague" }));
-    const colleague = t.withIdentity({ subject: userId });
+    const colleague = await signedIn(t, userId);
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     const resourceId = await owner.mutation(api.resources.index.create, { workspaceId, projectId, ...details });
     await expect(colleague.query(api.resources.index.get, { resourceId })).rejects.toThrow("access");
@@ -141,7 +142,7 @@ describe("external resource links", () => {
     const guestId = await t.run((ctx) => ctx.db.insert("users", { name: "Guest" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId: guestId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId: guestId, role: "guest" });
-    const guest = t.withIdentity({ subject: guestId });
+    const guest = await signedIn(t, guestId);
     expect((await guest.query(api.resources.index.detail, { workspaceId, resourceId })).canWrite).toBe(false);
     await owner.mutation(api.projects.index.revokeMember, { projectId, userId: guestId });
     await expect(guest.query(api.resources.index.detail, { workspaceId, resourceId })).rejects.toThrow("access");

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -153,7 +154,7 @@ test("trash does not inherit guest view-all; creator revocation and missing lega
     role: "guest",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: guestId, role: "guest" });
-  const guest = f.t.withIdentity({ subject: guestId });
+  const guest = await signedIn(f.t, guestId);
   expect((await guest.query(api.intakes.lifecycle.list, { projectId: f.projectId, paginationOpts })).page).toEqual([]);
   await expect(guest.query(api.intakes.lifecycle.get, { taskId: f.taskId })).rejects.toThrow("not found");
   await expect(

@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -192,7 +193,7 @@ test("completed/archive writes reject, guests read only and revoked members cann
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: readerId, role: "guest" });
-  const guest = f.t.withIdentity({ subject: readerId });
+  const guest = await signedIn(f.t, readerId);
   expect((await guest.query(api.cycles.index.get, { now: Date.now(), cycleId: f.cycleId })).canWrite).toBe(false);
   await expect(guest.mutation(api.cycles.index.create, { projectId: f.projectId, ...draft })).rejects.toThrow("access");
   await f.owner.mutation(api.projects.index.revokeMember, { projectId: f.projectId, userId: readerId });
@@ -349,7 +350,7 @@ test("same-revision concurrent lifecycle calls cannot both alter state, deletion
     role: "member",
   });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: memberId, role: "member" });
-  const member = f.t.withIdentity({ subject: memberId });
+  const member = await signedIn(f.t, memberId);
   const cycle = await f.owner.query(api.cycles.index.get, { cycleId: f.cycleId, now: Date.now() });
   await expect(
     member.mutation(api.cycles.index.lifecycle, {

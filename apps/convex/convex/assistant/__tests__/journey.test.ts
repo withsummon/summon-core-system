@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
@@ -18,7 +19,7 @@ describe("assistant ownership and reply lifecycle", () => {
     await t.run((ctx) =>
       ctx.db.insert("workspaceMembers", { workspaceId, userId: strangerId, role: "member", active: true })
     );
-    const stranger = t.withIdentity({ subject: strangerId });
+    const stranger = await signedIn(t, strangerId);
     await expect(stranger.query(api.assistant.index.get, { conversationId })).rejects.toThrow("access denied");
     await expect(
       stranger.query(api.assistant.index.messages, { conversationId, paginationOpts: page })

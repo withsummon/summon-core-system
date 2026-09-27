@@ -1,3 +1,4 @@
+import { signedIn } from "../../../../test-support/session";
 import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "../../../_generated/api";
 import { workspaceJourney } from "../../../../test-support/fixtures";
@@ -188,7 +189,7 @@ test("another project administrator cannot read or summarize an owner's private 
     await ctx.db.insert("projectMembers", { workspaceId, projectId, userId: id, role: "admin", active: true });
     return id;
   });
-  const stranger = t.withIdentity({ subject: strangerId });
+  const stranger = await signedIn(t, strangerId);
   await expect(stranger.query(api.meetings.summary.transcripts.get, { workspaceId, meetingId })).rejects.toThrow(
     "access denied"
   );
@@ -357,7 +358,7 @@ test("a project collaborator can edit agenda while preserving a private transcri
     await ctx.db.insert("projectMembers", { workspaceId, projectId, userId: id, role: "member", active: true });
     return id;
   });
-  const collaborator = t.withIdentity({ subject: collaboratorId });
+  const collaborator = await signedIn(t, collaboratorId);
   const meeting = await collaborator.query(api.meetings.index.get, { workspaceId, meetingId });
   await collaborator.mutation(api.meetings.index.save, {
     workspaceId,

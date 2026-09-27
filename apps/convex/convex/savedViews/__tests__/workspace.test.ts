@@ -1,3 +1,4 @@
+import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
 import type { FunctionArgs } from "convex/server";
 import { api } from "../../_generated/api";
@@ -27,7 +28,7 @@ async function fixture() {
 async function person(f: Awaited<ReturnType<typeof fixture>>, role: "admin" | "member" | "guest") {
   const userId = await f.t.run((ctx) => ctx.db.insert("users", { name: role }));
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role });
-  return { userId, user: f.t.withIdentity({ subject: userId }) };
+  return { userId, user: await signedIn(f.t, userId) };
 }
 test("workspace admin has no implicit project visibility; sparse pages preserve cursor and authorized project identity", async () => {
   const f = await fixture();
