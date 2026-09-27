@@ -7,6 +7,7 @@ const configured = mailConfiguration(process.env) !== null;
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password(configured ? { reset: verificationEmail("reset"), verify: verificationEmail("verify") } : {}),
+    ...(configured ? [verificationEmail("magic")] : []),
     ...oauthProviders(process.env),
   ],
 });

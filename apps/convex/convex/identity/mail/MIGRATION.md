@@ -35,3 +35,9 @@ port3021 showed the ordinary sign-in fields and explicit reset-unavailable text,
 without a reset form. This verifies the disabled configuration state only.
 Root independently ran all six mocked delivery tests. Global TS7 passed30/30;
 no real mail or credential changes were performed through Chrome.
+
+## Magic-code sign-in and signup
+
+The inherited owner is app/magic.py → MagicCodeProvider → Redis ten-minute token → shared account adapter. Native `summon-magic` registers the existing Email provider only when the same delivery configuration is available. It shares the sender and hashed recipient issuance budget with reset/verification; ten-minute expiry, random 32-character token, same entered email plus code, canonical verification and session creation remain Convex Auth owners. Known and new requests have the same public started response. A new user can sign up by proving email ownership; an existing verified account links through the existing canonical email owner. This does not automatically take over an unverified Password identity.
+
+Two additional mocked BDD cover existing verified user reuse, new verified identity creation, identical request outcomes, wrong-email denial, replay/expiry and shared cross-purpose issuance throttling. No real email was sent. Canonical incorrect-code throttling uses the existing email-keyed default ten failures/hour token bucket, not the inherited five attempts per issued Redis code. Exact per-code-five invalidation/reset and IP ingress throttling remain explicit parity gaps; neither is described as implemented. Frontend magic forms remain inactive until the matching availability contract is deployed.

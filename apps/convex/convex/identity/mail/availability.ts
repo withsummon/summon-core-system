@@ -6,6 +6,7 @@ export const get = query({
     const configured = mailConfiguration(process.env) !== null;
     return {
       passwordReset: configured,
+      magicCode: configured,
       emailVerification: configured,
       unavailableReason: configured ? null : "Account email delivery is not configured.",
     };

@@ -17,7 +17,12 @@ function fixture() {
   return convexTest(schema, {
     ...modules,
     [`${prefix}auth.ts`]: async () =>
-      convexAuth({ providers: [Password({ reset: verificationEmail("reset"), verify: verificationEmail("verify") })] }),
+      convexAuth({
+        providers: [
+          Password({ reset: verificationEmail("reset"), verify: verificationEmail("verify") }),
+          verificationEmail("magic"),
+        ],
+      }),
   });
 }
 beforeEach(() => {
@@ -165,4 +170,66 @@ test("issuance limit is atomic, separate from sign-in failures, and leaves last 
       })
     ).tokens
   ).not.toBeNull();
+});
+test("magic request has the same public outcome for new and verified existing accounts and signs into canonical user", async () => {
+  const t = fixture();
+  const existing = await t.run((ctx) => ctx.db.insert("users", { email, emailVerificationTime: 1 }));
+  const known = await t.action(api.auth.signIn, { provider: "summon-magic", params: { email } });
+  const token = code();
+  const unknown = await t.action(api.auth.signIn, { provider: "summon-magic", params: { email: "new@example.test" } });
+  expect(known).toEqual({ started: true });
+  expect(unknown).toEqual(known);
+  expect(sent.at(-1)!.text).toContain("10 minutes");
+  const newToken = code();
+  expect(
+    (await t.action(api.auth.signIn, { provider: "summon-magic", params: { email, code: token } })).tokens
+  ).not.toBeNull();
+  const sessions = await t.run((ctx) => ctx.db.query("authSessions").collect());
+  expect(sessions[0]!.userId).toBe(existing);
+  expect(
+    (
+      await t.action(api.auth.signIn, {
+        provider: "summon-magic",
+        params: { email: "new@example.test", code: newToken },
+      })
+    ).tokens
+  ).not.toBeNull();
+  const created = await t.run((ctx) =>
+    ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), "new@example.test"))
+      .first()
+  );
+  expect(created?.emailVerificationTime).toBeTypeOf("number");
+  await expect(
+    t.action(api.auth.signIn, { provider: "summon-magic", params: { email, code: token } })
+  ).rejects.toThrow();
+});
+test("magic codes reject wrong email and expiry and share issuance budget with password reset", async () => {
+  const t = fixture();
+  await t.action((ctx) =>
+    createAccount(ctx, {
+      provider: "password",
+      account: { id: email, secret: "fixture-password" },
+      profile: { email, emailVerificationTime: 1 },
+    })
+  );
+  await t.action(api.auth.signIn, { provider: "summon-magic", params: { email } });
+  const token = code();
+  await expect(
+    t.action(api.auth.signIn, { provider: "summon-magic", params: { email: "wrong@example.test", code: token } })
+  ).rejects.toThrow();
+  await t.action(api.auth.signIn, { provider: "password", params: { flow: "reset", email } });
+  await t.action(api.auth.signIn, { provider: "summon-magic", params: { email } });
+  await expect(t.action(api.auth.signIn, { provider: "summon-magic", params: { email } })).rejects.toThrow("limit");
+  expect(sent).toHaveLength(3);
+  const last = code();
+  await t.run(async (ctx) => {
+    const rows = await ctx.db.query("authVerificationCodes").collect();
+    await Promise.all(rows.map((row) => ctx.db.patch(row._id, { expirationTime: Date.now() - 1 })));
+  });
+  await expect(
+    t.action(api.auth.signIn, { provider: "summon-magic", params: { email, code: last } })
+  ).rejects.toThrow();
+  expect(await t.run((ctx) => ctx.db.query("authSessions").collect())).toHaveLength(0);
 });
