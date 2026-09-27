@@ -1,3 +1,5 @@
+import { WorkspaceNavigation } from "./favorites/workspace-navigation";
+import { FavoriteToggle } from "./favorites/toggle";
 import { lazy, Suspense, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -111,6 +113,7 @@ function Workspace() {
           <button className="mt-3 px-3 py-2 text-14 text-accent-primary" onClick={() => setParams({})}>
             Create workspace
           </button>
+          {workspace && <WorkspaceNavigation key={workspace._id} workspace={workspace} />}
           {workspace && (
             <Suspense
               fallback={
@@ -231,6 +234,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
               ))}
             </select>
           </label>
+          {project && <FavoriteToggle workspaceId={workspace._id} target={{ type: "project", id: project._id }} />}
           <Button variant="secondary" onClick={openArchived}>
             Archived projects
           </Button>
@@ -404,37 +408,10 @@ function CreateProject({
 }
 
 function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const module = params.get("module") ?? "projects";
   return (
     <div className="space-y-6">
-      <nav aria-label="Workspace modules" className="flex flex-wrap gap-2 border-b border-subtle-1 pb-4">
-        {[
-          { id: "projects", label: "Projects" },
-          { id: "tasks", label: "Tasks" },
-          { id: "views", label: "Views" },
-          { id: "stickies", label: "Stickies" },
-          { id: "clients", label: "Clients" },
-          { id: "opportunities", label: "Opportunities" },
-          { id: "documents", label: "Documents" },
-          { id: "resources", label: "Resources" },
-          { id: "credentials", label: "Credentials" },
-          { id: "notifications", label: "Notifications" },
-          { id: "meetings", label: "Meetings" },
-          { id: "assistant", label: "Assistant" },
-          { id: "automation", label: "Automation" },
-          { id: "reports", label: "Reports" },
-          { id: "settings", label: "Settings" },
-        ].map((item) => (
-          <Button
-            key={item.id}
-            variant={module === item.id ? "primary" : "secondary"}
-            onClick={() => setParams({ workspace: workspace.slug, module: item.id })}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
         {module === "stickies" ? (
           <Stickies key={workspace._id} workspace={workspace} />

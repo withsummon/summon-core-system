@@ -1,3 +1,4 @@
+import { FavoriteToggle } from "../favorites/toggle";
 import { Component, lazy, Suspense, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -58,6 +59,9 @@ function TaskDetailContent({
           {project.identifier}-{task.sequence}
         </span>
         <div className="flex flex-wrap gap-2">
+          {task.deletedAt === null && (
+            <FavoriteToggle workspaceId={task.workspaceId} target={{ type: "issue", id: task._id }} />
+          )}
           {task.deletedAt === null && <TaskSubscription taskId={task._id} />}
           {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
         </div>

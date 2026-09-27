@@ -1,3 +1,4 @@
+import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -128,6 +129,9 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
           Back to modules
         </Button>
         <div className="flex flex-wrap gap-2">
+          {!module.deleted && (
+            <FavoriteToggle workspaceId={module.workspaceId} target={{ type: "module", id: module._id }} />
+          )}
           {module.canEdit && <Button onClick={() => setEditing(true)}>Edit module</Button>}
         </div>
       </header>
