@@ -1,25 +1,9 @@
-import { requireIdentity } from "./session";
-import { internal } from "../_generated/api";
-import { requireUnrestrictedAccount } from "./deactivation/access";
+import { requireUser } from "./session";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
-export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
-  if (process.env.SUMMON_AUTH_ENGINE !== "better-auth") return (await requireIdentity(ctx)).user;
-  const authUser = await ctx.runQuery(internal.better_auth.sessionUser, {});
-  if (!authUser?.emailVerified)
-    throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
-  const link = await ctx.db
-    .query("betterAuthLinks")
-    .withIndex("by_auth_id", (q) => q.eq("authId", authUser.id))
-    .unique();
-  const user = link && (await ctx.db.get(link.userId));
-  if (!user || user.email !== authUser.email || user.emailVerificationTime === undefined)
-    throw new ConvexError("Your account is unavailable.");
-  await requireUnrestrictedAccount(ctx, user._id);
-  return user;
-}
+export { requireUser } from "./session";
 export async function requireWorkspace(ctx: QueryCtx, workspaceId: Id<"workspaces">, write = false) {
   const user = await requireUser(ctx);
   const member = await ctx.db
