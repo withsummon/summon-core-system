@@ -3,7 +3,7 @@ import { internalMutation, query } from "../../_generated/server";
 import type { QueryCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireIdentity } from "../session";
-import { requireUnrestrictedAccount } from "./access";
+import { requireUnrestrictedAccount } from "../deactivation/access";
 export async function requireNotInstanceAdmin(ctx: QueryCtx, userId: Id<"users">) {
   const setup = await ctx.db
     .query("instanceAuthority")
