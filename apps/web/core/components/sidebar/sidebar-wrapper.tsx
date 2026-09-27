@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
 import { PreferencesIcon } from "@plane/propel/icons";
-import { ScrollArea } from "@plane/propel/scrollarea";
+import { SidebarContent } from "./sidebar-content";
 // components
 import { CustomizeNavigationDialog } from "@/components/navigation/customize-navigation-dialog";
 // hooks
@@ -44,49 +44,33 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
   return (
     <>
       <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
-      <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
-        <div className="flex flex-col gap-3 px-3">
-          {/* Workspace switcher and settings */}
-
-          <div className="flex items-center justify-between gap-2 px-2">
-            <span className="pt-1 text-16 font-medium text-primary">{title}</span>
-            <div className="flex items-center gap-2">
-              {title === "Projects" && (
-                <IconButton
-                  size="base"
-                  variant="ghost"
-                  icon={PreferencesIcon}
-                  onClick={() => setIsCustomizeNavDialogOpen(true)}
-                />
-              )}
-              <AppSidebarToggleButton />
+      <SidebarContent
+        title={title}
+        quickActions={quickActions}
+        containerRef={ref}
+        actions={
+          <>
+            {title === "Projects" && (
+              <IconButton
+                size="base"
+                variant="ghost"
+                icon={PreferencesIcon}
+                onClick={() => setIsCustomizeNavDialogOpen(true)}
+              />
+            )}
+            <AppSidebarToggleButton />
+          </>
+        }
+        footer={
+          showEditionBadge && (
+            <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
+              <WorkspaceEditionBadge />
             </div>
-          </div>
-          {/* Quick actions */}
-          {quickActions}
-        </div>
-
-        <ScrollArea
-          orientation="vertical"
-          scrollType="hover"
-          size="sm"
-          rootClassName="size-full overflow-x-hidden overflow-y-auto"
-          viewportClassName="flex flex-col gap-3 overflow-x-hidden h-full w-full overflow-y-auto px-3 pt-3 pb-0.5"
-        >
-          {children}
-        </ScrollArea>
-        {/* Help Section */}
-        {showEditionBadge && (
-          <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
-            <WorkspaceEditionBadge />
-            {/* TODO: To be checked if we need this */}
-            {/* <div className="flex items-center gap-2">
-          {!shouldRenderAppRail && <HelpMenu />}
-          {!isAppRailEnabled && <AppSidebarToggleButton />}
-        </div> */}
-          </div>
-        )}
-      </div>
+          )
+        }
+      >
+        {children}
+      </SidebarContent>
     </>
   );
 });
