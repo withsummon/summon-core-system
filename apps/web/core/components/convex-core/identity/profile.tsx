@@ -1,3 +1,4 @@
+import { UserAvatar } from "./avatar";
 import { InstanceAdministration } from "./instance/instance";
 import { IncomingInvitations } from "../invitations/incoming";
 import { ConnectedAccounts } from "./accounts/accounts";
@@ -28,6 +29,7 @@ export function Profile() {
       {profile ? (
         <div className="mt-3 space-y-3">
           <ProfileAppearance theme={profile.preferences.theme} />
+          <UserAvatar key={profile.id} />
           <IncomingInvitations />
           <InstanceAdministration />
           <p className="font-medium break-words">{profile.displayName || "Your profile"}</p>
