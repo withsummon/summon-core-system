@@ -1,3 +1,7 @@
+# Parallel build/check tasks must never mutate dependencies or Git hooks.
+# Run pnpm install explicitly when dependency verification fails.
+verifyDepsBeforeRun: error
+
 packages:
   - apps/*
   - packages/*

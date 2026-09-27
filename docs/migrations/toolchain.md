@@ -48,3 +48,11 @@ Complexity: the edited AI menu's highest function remains 7; its setup effect ch
 Performance claim: none. Compiler/build wall times were collected during concurrent migration work without equivalent repeated controls; they must not be presented as a TypeScript speedup or a Django-versus-Convex result.
 
 Sources: [TypeScript native command transition](https://github.com/microsoft/typescript-go), [native declaration generator selection](https://github.com/sxzz/rolldown-plugin-dts/blob/main/src/options.ts), [Oxfmt ignore rules](https://oxc.rs/docs/guide/usage/formatter/ignore-files.html). Installed package exports/types and complete production builds were used to verify compatibility.
+
+## Parallel check dependency ownership
+
+A later integrated run exposed pnpm 11's default `verifyDepsBeforeRun: install`: parallel workspace checks launched concurrent installs and hook preparation, producing an executable-permission error and Git-config lock collisions. The workspace now uses `verifyDepsBeforeRun: error`. Dependency changes require one explicit install before checks; check tasks never repair dependencies or run install hooks themselves. An explicit offline frozen-lockfile install reported already up to date; subsequent unfiltered lint passed 21/21 tasks. This is an orchestration correction, not a lint suppression.
+
+The tsdown 0.23 ESM-only export generator owns package manifests. Its generated export maps remain intact; obsolete top-level main/module fields were removed to match its output. No legacy-bundler consumer requiring those fields is known in this workspace. Existing editor/UI dependency additions remain unstaged. Native compiler enforcement still passes for all 22 manifests.
+
+References: [pnpm dependency verification](https://github.com/pnpm/pnpm.io/blob/main/docs/settings/build.md), [tsdown export generation](https://github.com/rolldown/tsdown/blob/main/docs/options/package-exports.md). Installed implementations were inspected alongside documentation.
