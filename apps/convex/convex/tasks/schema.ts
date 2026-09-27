@@ -40,6 +40,7 @@ export const taskTables = {
     text: v.string(),
     updatedAt: v.number(),
     editedAt: v.union(v.number(), v.null()),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
   }).index("by_task", ["taskId"]),
   taskDescriptions: defineTable({ taskId: v.id("tasks"), html: v.string() }).index("by_task", ["taskId"]),
   taskParents: defineTable({ projectId: v.id("projects"), childId: v.id("tasks"), parentId: v.id("tasks") })
@@ -83,7 +84,8 @@ export const taskTables = {
       v.literal("updated"),
       v.literal("comment_created"),
       v.literal("comment_updated"),
-      v.literal("comment_deleted")
+      v.literal("comment_deleted"),
+      v.literal("comment_restored")
     ),
     status,
   }).index("by_task", ["taskId"]),

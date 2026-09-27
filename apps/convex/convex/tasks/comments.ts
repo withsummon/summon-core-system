@@ -28,19 +28,26 @@ function commentContent(html: string) {
   if (!content.description.trim()) throw new ConvexError("Write a comment before posting.");
   return { html: content.html, text: content.description };
 }
-async function editableComment(ctx: MutationCtx, commentId: Id<"taskComments">, expectedUpdatedAt: number) {
+async function editableComment(
+  ctx: MutationCtx,
+  commentId: Id<"taskComments">,
+  expectedUpdatedAt: number,
+  deleted = false
+) {
   const comment = await ctx.db.get(commentId);
   if (!comment) throw new ConvexError("Comment not found.");
   const task = await requireTask(ctx, comment.taskId);
   const permission = await requireProject(ctx, task.projectId);
   if (comment.authorId !== permission.user._id && permission.projectMember.role !== "admin")
     throw new ConvexError("Only the author or a project administrator can change this comment.");
+  if ((comment.deletedAt != null) !== deleted)
+    throw new ConvexError(deleted ? "Comment is not deleted." : "This comment is deleted. Restore it before editing.");
   if (!Number.isSafeInteger(expectedUpdatedAt) || comment.updatedAt !== expectedUpdatedAt)
     throw new ConvexError("This comment changed. Reload before editing.");
   return { comment, task, ...permission };
 }
 export const list = query({
-  args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
+  args: { taskId: v.id("tasks"), deleted: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const permission = await commentAccess(ctx, args.taskId);
     const { task } = permission;
@@ -56,14 +63,26 @@ export const list = query({
       .order("desc")
       .paginate({ ...args.paginationOpts, maximumRowsRead: 50, maximumBytesRead: 1_048_576 });
     const page = await Promise.all(
-      result.page.map(async (comment) => {
-        const author = await ctx.db.get(comment.authorId);
-        return {
-          ...comment,
-          authorName: author?.name ?? null,
-          canEdit: comment.authorId === permission.user._id || permission.projectMember.role === "admin",
-        };
-      })
+      result.page
+        .filter(
+          (comment) =>
+            (comment.deletedAt != null) === (args.deleted ?? false) &&
+            (!args.deleted || comment.authorId === permission.user._id || permission.projectMember.role === "admin")
+        )
+        // oxlint-disable-next-line no-map-spread -- Enrich immutable database rows without mutating the stored record.
+        .map(async (comment) => {
+          const author = await ctx.db.get(comment.authorId);
+          return {
+            ...comment,
+            authorName: author?.name ?? null,
+            canEdit:
+              comment.deletedAt == null &&
+              (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
+            canRestore:
+              comment.deletedAt != null &&
+              (comment.authorId === permission.user._id || permission.projectMember.role === "admin"),
+          };
+        })
     );
     return {
       ...result,
@@ -84,6 +103,7 @@ export const create = mutation({
       ...content,
       updatedAt: Date.now(),
       editedAt: null,
+      deletedAt: null,
     });
     await recordTaskEvent(ctx, {
       workspaceId: task.workspaceId,
@@ -121,7 +141,8 @@ export const remove = mutation({
   args: { commentId: v.id("taskComments"), expectedUpdatedAt: v.number() },
   handler: async (ctx, args) => {
     const { comment, task, user } = await editableComment(ctx, args.commentId, args.expectedUpdatedAt);
-    await ctx.db.delete(comment._id);
+    const updatedAt = Math.max(Date.now(), comment.updatedAt + 1);
+    await ctx.db.patch(comment._id, { deletedAt: updatedAt, updatedAt });
     await recordTaskEvent(ctx, {
       workspaceId: task.workspaceId,
       projectId: task.projectId,
@@ -131,5 +152,23 @@ export const remove = mutation({
       status: task.status,
       commentId: comment._id,
     });
+  },
+});
+
+export const restore = mutation({
+  args: { commentId: v.id("taskComments"), expectedUpdatedAt: v.number() },
+  handler: async (ctx, args) => {
+    const { comment, task, user } = await editableComment(ctx, args.commentId, args.expectedUpdatedAt, true);
+    await ctx.db.patch(comment._id, { deletedAt: null, updatedAt: Math.max(Date.now(), comment.updatedAt + 1) });
+    await recordTaskEvent(ctx, {
+      workspaceId: task.workspaceId,
+      projectId: task.projectId,
+      taskId: task._id,
+      actorId: user._id,
+      kind: "comment_restored",
+      status: task.status,
+      commentId: comment._id,
+    });
+    return comment._id;
   },
 });
