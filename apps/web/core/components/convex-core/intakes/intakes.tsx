@@ -173,10 +173,11 @@ export function Intakes({ project }: { project: Project }) {
 }
 function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Project; onBack: () => void }) {
   const detail = useQuery(api.intakes.index.resolve, { taskId });
+  const states = useQuery(api.tasks.states.list, { projectId: project._id });
   const [editing, setEditing] = useState(false),
     [reviewing, setReviewing] = useState(false);
   const [params] = useSearchParams();
-  if (!detail) return <p role="status">Opening submission…</p>;
+  if (!detail || !states) return <p role="status">Opening submission…</p>;
   if (detail.task.projectId !== project._id) return <Unavailable onBack={onBack} />;
   const taskRoute = (id: Id<"tasks">) => {
     const next = new URLSearchParams(params);
@@ -221,7 +222,9 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
         </p>
         <h2 className="text-24 font-semibold break-words">{detail.task.title}</h2>
         <p className="mt-2 text-14 text-secondary capitalize">
-          {detail.task.priority} priority · {taskStatusOptions[detail.task.status].label}
+          {detail.task.priority} priority ·{" "}
+          {states.find((state) => state._id === detail.task.stateId)?.name ??
+            taskStatusOptions[detail.task.status].label}
         </p>
       </div>
       {reviewing && detail.canDecide && <DecisionForm detail={detail} onClose={() => setReviewing(false)} />}
