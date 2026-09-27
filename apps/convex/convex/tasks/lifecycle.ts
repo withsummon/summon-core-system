@@ -3,7 +3,7 @@ import type { Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { mutation, query, internalMutation } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { requireTask, taskDetail, taskRoleCanRead } from "./access";
@@ -113,28 +113,5 @@ export const get = query({
     if (args.view === "deleted" ? task.deletedAt == null : task.deletedAt != null || task.archivedAt == null)
       throw new ConvexError("Task not found.");
     return taskDetail(ctx, task);
-  },
-});
-export const backfill = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, args) => {
-    const result = await ctx.db.query("tasks").paginate({
-      cursor: args.cursor,
-      numItems: 50,
-      maximumRowsRead: 50,
-      maximumBytesRead: 1_000_000,
-    });
-    let changed = 0;
-    await Promise.all(
-      result.page.map(async (task) => {
-        if (task.archivedAt !== undefined && task.deletedAt !== undefined) return;
-        await ctx.db.patch(task._id, {
-          archivedAt: task.archivedAt ?? null,
-          deletedAt: task.deletedAt ?? null,
-        });
-        changed++;
-      })
-    );
-    return { changed, continueCursor: result.continueCursor, isDone: result.isDone };
   },
 });

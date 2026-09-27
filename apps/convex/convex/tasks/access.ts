@@ -2,13 +2,11 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
-// Missing values are exclusively the pre-lifecycle stored-row migration contract.
-// Remove optional fields and this nullish interpretation after backfill verification.
 export function taskIsActive(task: Doc<"tasks">) {
-  return task.status !== "triage" && task.deletedAt == null && task.archivedAt == null;
+  return task.status !== "triage" && task.deletedAt === null && task.archivedAt === null;
 }
 export function taskIsReadable(task: Doc<"tasks">) {
-  return task.status !== "triage" && task.deletedAt == null;
+  return task.status !== "triage" && task.deletedAt === null;
 }
 export function taskRoleCanRead(
   task: Pick<Doc<"tasks">, "createdBy">,
@@ -57,9 +55,9 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
     deletedAt: task.deletedAt ?? null,
     canEdit: writer && taskIsActive(task),
     canArchive: writer && taskIsActive(task) && (task.status === "done" || task.status === "cancelled"),
-    canDelete: recovery && task.deletedAt == null,
+    canDelete: recovery && task.deletedAt === null,
     canRestore: recovery && task.deletedAt != null,
-    canUnarchive: writer && task.deletedAt == null && task.archivedAt != null,
+    canUnarchive: writer && task.deletedAt === null && task.archivedAt != null,
   };
 }
 

@@ -1,6 +1,6 @@
 import { signedIn } from "../../../test-support/session";
 import { expect, test, vi } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 const page = { cursor: null, numItems: 100 };
 async function fixture() {
@@ -153,7 +153,7 @@ test("deleted parent/relation is a title-free cleanup placeholder, and removing 
   });
   expect(await f.owner.query(api.tasks.relationships.list, { taskId: otherId })).toEqual([]);
 });
-test("stale revisions fail, guest creators recover under current access, and bounded migration does not overwrite lifecycle", async () => {
+test("stale revisions fail and guest creators recover under current access", async () => {
   const f = await fixture();
   const original = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
   vi.useFakeTimers();
@@ -176,13 +176,6 @@ test("stale revisions fail, guest creators recover under current access, and bou
       view: "deleted",
     });
     expect(deleted.updatedAt).toBe(original.updatedAt + 1);
-    await f.t.run((ctx) => ctx.db.patch(f.taskId, { archivedAt: undefined }));
-    const migration = await f.owner.mutation(internal.tasks.lifecycle.backfill, { cursor: null });
-    expect(migration.changed).toBe(1);
-    expect((await f.owner.mutation(internal.tasks.lifecycle.backfill, { cursor: null })).changed).toBe(0);
-    expect((await f.owner.query(api.tasks.lifecycle.get, { taskId: f.taskId, view: "deleted" })).deletedAt).toBe(
-      deleted.deletedAt
-    );
   } finally {
     vi.useRealTimers();
   }
