@@ -32,6 +32,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
   const setSelected = (id: string | null) =>
     setParams((current) => {
       const next = new URLSearchParams(current);
+      next.delete("comment");
       if (id) next.set("task", id);
       else next.delete("task");
       return next;

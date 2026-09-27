@@ -1,3 +1,6 @@
+import { useSearchParams } from "react-router";
+import { CommentMentions } from "./comment-mentions";
+import { FocusedComment } from "./focused-comment";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -8,6 +11,8 @@ import { mutationMessage } from "../commercial/forms";
 import { TaskRichEditor } from "./rich-editor";
 type Comment = FunctionReturnType<typeof api.tasks.comments.list>["page"][number];
 export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
+  const [params, setParams] = useSearchParams();
+  const focused = params.get("comment");
   const [deleted, setDeleted] = useState(false);
   const access = useQuery(api.tasks.comments.access, { taskId });
   const { results, status, loadMore } = usePaginatedQuery(api.tasks.comments.list, { taskId }, { initialNumItems: 10 });
@@ -22,6 +27,19 @@ export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
           </Button>
         )}
       </header>
+      {focused && (
+        <FocusedComment
+          taskId={taskId}
+          commentId={focused}
+          onClose={() =>
+            setParams((current) => {
+              const next = new URLSearchParams(current);
+              next.delete("comment");
+              return next;
+            })
+          }
+        />
+      )}
       {composing && access?.canCreate && <CommentForm taskId={taskId} onDone={() => setComposing(false)} />}
       <ul className="space-y-4">
         {results.map((comment) => (
@@ -184,6 +202,7 @@ function CommentForm({ taskId, comment, onDone }: { taskId: Id<"tasks">; comment
   // Capture the revision with the draft. Reactive remote edits must not bless a stale draft.
   const [initial] = useState(comment);
   const [html, setHtml] = useState(comment?.html ?? "<p></p>");
+  const [mentionedUserIds, setMentionedUserIds] = useState(comment?.mentionedUserIds ?? []);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const changed = initial !== undefined && comment?.updatedAt !== initial.updatedAt;
@@ -195,8 +214,9 @@ function CommentForm({ taskId, comment, onDone }: { taskId: Id<"tasks">; comment
         setPending(true);
         setError("");
         try {
-          if (initial) await update({ commentId: initial._id, expectedUpdatedAt: initial.updatedAt, html });
-          else await create({ taskId, html });
+          if (initial)
+            await update({ commentId: initial._id, expectedUpdatedAt: initial.updatedAt, html, mentionedUserIds });
+          else await create({ taskId, html, mentionedUserIds });
           onDone();
         } catch (failure) {
           setError(mutationMessage(failure));
@@ -219,6 +239,7 @@ function CommentForm({ taskId, comment, onDone }: { taskId: Id<"tasks">; comment
         editable={!pending}
         onChange={setHtml}
       />
+      <CommentMentions taskId={taskId} selected={mentionedUserIds} onChange={setMentionedUserIds} disabled={pending} />
       <div className="flex gap-2">
         <Button type="submit" loading={pending}>
           {initial ? "Save comment" : "Post comment"}

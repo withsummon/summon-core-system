@@ -41,6 +41,7 @@ export function TaskLifecycle({ task }: { task: Task }) {
                   await change({ taskId: task._id, ...confirmation });
                   setParams((current) => {
                     const next = new URLSearchParams(current);
+                    next.delete("comment");
                     next.delete("task");
                     next.delete("projectView");
                     next.set("module", "projects");

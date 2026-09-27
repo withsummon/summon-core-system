@@ -6,6 +6,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
+import { notificationTarget } from "./comment-target";
 import { mutationMessage } from "../commercial/forms";
 type View = FunctionArgs<typeof api.notifications.index.list>["view"];
 type Notification = FunctionReturnType<typeof api.notifications.index.list>["page"][number];
@@ -27,6 +28,7 @@ export function Notifications({
   const requestedView = params.get("inbox");
   const view: View = requestedView === "archived" || requestedView === "snoozed" ? requestedView : "inbox";
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const mentionsOnly = params.get("mentions") === "true";
   const [now, setNow] = useState(Date.now);
   const [browsingHistory, setBrowsingHistory] = useState(false);
   const rows = useRef<HTMLUListElement>(null);
@@ -46,7 +48,7 @@ export function Notifications({
   }, [browsingHistory]);
   const notifications = usePaginatedQuery(
     api.notifications.index.list,
-    { workspaceId: workspace._id, view, unreadOnly, now },
+    { workspaceId: workspace._id, view, unreadOnly, mentionsOnly, now },
     { initialNumItems: 30 }
   );
   const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
@@ -76,6 +78,24 @@ export function Notifications({
             </Button>
           ))}
         </nav>
+        <label className="flex items-center gap-2 text-14">
+          <input
+            type="checkbox"
+            checked={mentionsOnly}
+            onChange={(event) => {
+              const checked = event.target.checked;
+              setBrowsingHistory(false);
+              setNow(Date.now());
+              setParams((current) => {
+                const next = new URLSearchParams(current);
+                if (checked) next.set("mentions", "true");
+                else next.delete("mentions");
+                return next;
+              });
+            }}
+          />
+          Mentions only
+        </label>
         <label className="flex items-center gap-2 text-14">
           <input
             type="checkbox"
@@ -113,7 +133,14 @@ export function Notifications({
             onOpen={() => {
               const project = projects?.find((p) => p._id === notification.projectId);
               if (project)
-                setParams({ workspace: workspace.slug, project: project.identifier, task: notification.taskId });
+                setParams(
+                  notificationTarget(
+                    workspace.slug,
+                    project.identifier,
+                    notification.taskId,
+                    notification.event?.commentId
+                  )
+                );
             }}
             canOpen={Boolean(projects?.some((p) => p._id === notification.projectId))}
           />
@@ -198,6 +225,7 @@ function NotificationRow({
                 : "Task activity unavailable"}{" "}
             · {new Date(notification._creationTime).toLocaleString()}
             {notification.readAt === null ? " · Unread" : ""}
+            {notification.isMention ? " · Mentioned you" : ""}
           </p>
           {notification.snoozedUntil !== null && (
             <p className="font-normal mt-1 text-12 text-secondary">

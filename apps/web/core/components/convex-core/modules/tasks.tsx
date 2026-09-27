@@ -31,6 +31,7 @@ export function ModuleTasks({ module }: { module: Module }) {
                     next.delete("projectView");
                     next.delete("taskView");
                     next.delete("projectModule");
+                    next.delete("comment");
                     next.set("task", row.taskId);
                     return next;
                   })

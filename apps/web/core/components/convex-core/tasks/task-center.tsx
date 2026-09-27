@@ -66,6 +66,7 @@ export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof
   const back = () =>
     setParams((current) => {
       const next = new URLSearchParams(current);
+      next.delete("comment");
       next.delete("task");
       next.delete("project");
       return next;
@@ -194,6 +195,7 @@ export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof
                   onClick={() =>
                     setParams((current) => {
                       const next = new URLSearchParams(current);
+                      next.delete("comment");
                       next.set("task", task._id);
                       next.delete("taskView");
                       next.set("project", project.identifier);

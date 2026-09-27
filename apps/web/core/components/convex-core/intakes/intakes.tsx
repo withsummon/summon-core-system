@@ -180,6 +180,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
     next.delete("intake");
     next.delete("intakeStatus");
     next.delete("taskView");
+    next.delete("comment");
     next.set("task", id);
     return `?${next}`;
   };

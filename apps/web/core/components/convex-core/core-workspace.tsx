@@ -295,6 +295,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
                   onClick={() =>
                     setParams((current) => {
                       const next = new URLSearchParams(current);
+                      next.delete("comment");
                       next.delete("task");
                       next.delete("cycle");
                       next.delete("cycleView");

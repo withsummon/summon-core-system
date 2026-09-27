@@ -5,16 +5,18 @@ import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 export function TaskSubscription({ taskId }: { taskId: Id<"tasks"> }) {
-  const subscribed = useQuery(api.notifications.index.subscription, { taskId });
+  const access = useQuery(api.notifications.index.subscriptionAccess, { taskId });
+  const subscribed = access?.subscribed;
   const subscribe = useMutation(api.notifications.index.subscribe);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  if (access && !access.canSubscribe && !access.canUnsubscribe) return null;
   return (
     <div className="space-y-1">
       <Button
         variant="secondary"
         loading={pending}
-        disabled={subscribed === undefined}
+        disabled={!access || (subscribed ? !access.canUnsubscribe : !access.canSubscribe)}
         aria-pressed={subscribed ?? false}
         onClick={async () => {
           setPending(true);
