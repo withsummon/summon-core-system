@@ -68,6 +68,22 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_identifier", ["workspaceId", "identifier"]),
+  invitations: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.union(v.id("projects"), v.null()),
+    email: v.string(),
+    role,
+    inviterId: v.id("users"),
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+    revision: v.number(),
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("revoked")),
+    respondedAt: v.union(v.number(), v.null()),
+    respondedBy: v.union(v.id("users"), v.null()),
+  })
+    .index("by_scope_email", ["workspaceId", "projectId", "email", "status"])
+    .index("by_scope", ["workspaceId", "projectId"])
+    .index("by_email", ["email", "status"]),
   projectMembers: defineTable({
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),

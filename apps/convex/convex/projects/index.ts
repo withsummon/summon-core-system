@@ -1,5 +1,7 @@
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { createProject } from "./create";
-import { v, ConvexError } from "convex/values";
+import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
 import { requireWorkspace, requireProject, requireAnotherProjectAdmin } from "../identity/access";
@@ -54,25 +56,7 @@ export const grantMember = mutation({
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId, true);
     if (access.projectMember.role !== "admin") throw new ConvexError("Only project administrators can manage members.");
-    const workspaceMember = await ctx.db
-      .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", access.project.workspaceId).eq("userId", args.userId))
-      .unique();
-    if (!workspaceMember?.active) throw new ConvexError("An active member of this workspace is required.");
-    if (workspaceMember.role === "guest" && args.role !== "guest")
-      throw new ConvexError("Workspace guests can only receive guest project access.");
-    const existing = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))
-      .unique();
-    if (existing?.active && existing.role === "admin" && args.role !== "admin") {
-      await requireAnotherProjectAdmin(ctx, args.projectId);
-    }
-    if (existing) {
-      await ctx.db.patch(existing._id, { role: args.role, active: true });
-      return existing._id;
-    }
-    return ctx.db.insert("projectMembers", { ...args, workspaceId: access.project.workspaceId, active: true });
+    return grantProjectMembership(ctx, { ...args, workspaceId: access.project.workspaceId });
   },
 });
 
@@ -90,3 +74,34 @@ export const revokeMember = mutation({
     await ctx.db.patch(existing._id, { active: false });
   },
 });
+
+export async function grantProjectMembership(
+  ctx: MutationCtx,
+  args: {
+    workspaceId: Id<"workspaces">;
+    projectId: Id<"projects">;
+    userId: Id<"users">;
+    role: Infer<typeof role>;
+  }
+) {
+  const { workspaceId, ...membership } = args;
+  const workspaceMember = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", args.userId))
+    .unique();
+  if (!workspaceMember?.active) throw new ConvexError("An active member of this workspace is required.");
+  if (workspaceMember.role === "guest" && args.role !== "guest")
+    throw new ConvexError("Workspace guests can only receive guest project access.");
+  const existing = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))
+    .unique();
+  if (existing?.active && existing.role === "admin" && args.role !== "admin") {
+    await requireAnotherProjectAdmin(ctx, args.projectId);
+  }
+  if (existing) {
+    await ctx.db.patch(existing._id, { role: args.role, active: true });
+    return existing._id;
+  }
+  return ctx.db.insert("projectMembers", { ...membership, workspaceId, active: true });
+}
