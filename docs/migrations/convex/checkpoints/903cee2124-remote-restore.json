@@ -1,0 +1,20 @@
+{
+  "tableCount": 57,
+  "documentCount": 21,
+  "canonicalRowsEqual": true,
+  "storedFileCount": 0,
+  "storedFileBytesEqual": true,
+  "sourceSnapshotSha256": "794761097244a223867e938fd3f9c498cac3a56590a5db313ffea709a0412ff7",
+  "restoredSignIn": true,
+  "restoredWorkspaceVisible": true,
+  "codeCommit": "903cee21243acfacb92950ef7615b55513d80a84",
+  "destination": "http://127.0.0.1:3214",
+  "source": "https://convex-core.withsummon.com",
+  "image": "ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8",
+  "container": "2ef42e6112fdadc07e191fa8a909757def02e804afbf846bde53f732380ebbdc",
+  "limits": [
+    "Remote source to isolated local target; not Dokploy disaster recovery",
+    "No remote stored files existed in this snapshot",
+    "No scheduled encrypted off-host retention or recovery time objective tested"
+  ]
+}
