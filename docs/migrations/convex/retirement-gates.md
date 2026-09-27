@@ -12,7 +12,7 @@ The native `/core` route is an independently authenticated Convex workspace. Exi
 
 ## Current route ownership
 
-`apps/web/app/routes/extended.ts` still registers the legacy Summon home, projects, tasks, documents, knowledge, CRM, reports, resources, notifications, meetings, automation, assistant, credentials and settings routes. A source search on 2026-09-27 found 28 web files importing `summon.service` or `summon-plane.service`. The native `core/components/convex-core` directory has no such imports. This count is an inventory signal, not proof of network independence: inherited identity, issue, page and asset services also need tracing.
+`apps/web/app/routes/extended.ts` still registers the legacy Summon home, projects, tasks, documents, knowledge, CRM, reports, resources, notifications, meetings, automation, assistant, credentials and settings routes. The [registered-surface ledger](registered-surface-2026-09-28.tsv) supersedes older import counts; inherited identity, issue, page and asset services still require network acceptance.
 
 ## What exists on the native path
 
@@ -34,22 +34,4 @@ Module `MIGRATION.md` files and frontend acceptance records own the detailed omi
 4. Verify remote backup, restored code/environment, authenticated restored journeys and file delivery. Local record equality alone does not establish remote recovery.
 5. Stop obsolete Django workers/API and Postgres only after proving no active consumer remains. Preserve their data volumes and a documented rollback path; volume deletion is not part of this migration.
 
-No legacy route redirect, service removal, or data deletion has been performed merely to make these checks pass.
-
-## Checkpoint `8496aa7bd6` additions
-
-Native cycles, many-to-many modules, recoverable comment deletion and project settings/archive recovery now have local role/concurrency/recovery Chrome evidence. Project archive retains children and blocks normal project operations; documents retain their independently owned access rules. Workspace role changes protect the final administrator of archived projects so recovery cannot be orphaned.
-
-These additions do not close inherited cycle/module analytics, saved views, task lifecycle, project feature settings, public/PAT APIs or the other exclusions in module receipts. The remote owned domain still had no A record at the last DNS check, and no live provider configuration has been supplied. Existing Django/Postgres services and legacy routes remain necessary.
-
-## Checkpoint `903cee2124` additions
-
-Task lifecycle, quick links, intake admission/recovery and shared description history are now implemented on the native path. DNS/TLS and remote function deployment are verified; the local production frontend received remote realtime updates in Chrome. See the exact artifact and dependency-state caveat in `checkpoints/903cee2124-remote.json`. Remaining inherited behavior stays required. Remote backup/restore, public frontend deployment and full contract closure still block retirement.
-
-## Checkpoint `5ed8c4493a` additions
-
-Bounded project saved views are committed and remotely deployed, with live remote task-result changes verified from a production frontend served locally. Workspace views, the full rich-filter grammar and inherited layouts remain required. A remote-source snapshot was restored into an isolated local instance with code/auth configuration and successful sign-in; scheduled encrypted backups, Dokploy recovery and remote stored-file recovery remain unverified. Task attachments are the next slice and are not counted complete. These checkpoints do not authorize service retirement.
-
-## Checkpoint `2d22f081b8` additions
-
-Workspace saved views and supported task attachments now have local and remote runtime evidence. View ownership backfills completed on both deployments and temporary migration code was removed. Remote-source restoration now includes stored-file equality and authenticated restored identity/workspace checks. These close bounded slices; inherited rich filters/layouts, full file-format/activity/API contracts and the remaining route/identity/integration/admin/import/export gaps still prevent Django/Postgres retirement.
+No legacy route redirect, service removal, or data deletion has been performed merely to make these checks pass. Dated slice receipts and [backup rehearsals](backup-restore.md) remain historical evidence; only the current checklist can close a retirement gate.
