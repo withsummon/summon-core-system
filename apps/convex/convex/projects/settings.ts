@@ -1,12 +1,10 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { query, mutation, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { requireProject, requireProjectMembership, requireWorkspace } from "../identity/access";
 
 export function projectMetadata(project: Doc<"projects">) {
-  if (project.description === undefined || project.metadataRevision === undefined)
-    throw new ConvexError("Project metadata migration is required.");
   return { description: project.description, revision: project.metadataRevision };
 }
 function checkRevision(project: Doc<"projects">, expectedRevision: number) {
@@ -86,27 +84,5 @@ export const setArchived = mutation({
     const metadataRevision = checkRevision(project, args.expectedRevision);
     if (project.archived === args.archived) return;
     await ctx.db.patch(project._id, { archived: args.archived, metadataRevision });
-  },
-});
-// Temporary: finish every cursor page and verify completion before requiring schema fields and removing this owner.
-export const backfill = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, args) => {
-    const result = await ctx.db
-      .query("projects")
-      .paginate({ cursor: args.cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
-    const pending = result.page.filter(
-      (project) => project.description === undefined || project.metadataRevision === undefined
-    );
-    await Promise.all(
-      pending.map((project) =>
-        ctx.db.patch(project._id, {
-          description: project.description ?? "",
-          metadataRevision: project.metadataRevision ?? 0,
-        })
-      )
-    );
-    const changed = pending.length;
-    return { changed, continueCursor: result.continueCursor, isDone: result.isDone };
   },
 });

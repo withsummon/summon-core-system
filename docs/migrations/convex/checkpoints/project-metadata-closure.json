@@ -1,0 +1,29 @@
+{
+  "project-metadata-local-close-1": {
+    "changed": 0,
+    "continueCursor": "07ff87799320b41d6e3bf7e21c61eef372cc82977b064ea4a202a50d2d41ce7612d8a0da7f632cb81092085e87479aad2c9fda848703aed7741d28ef79a24ffda797be7be13ad180162373cb11",
+    "isDone": true
+  },
+  "project-metadata-local-verified": {
+    "continueCursor": "07ff87799320b41d6e3bf7e21c61eef372cc82977b064ea4a202a50d2d41ce7612d8a0da7f632cb81092085e87479aad2c9fda848703aed7741d28ef79a24ffda797be7be13ad180162373cb11",
+    "isDone": true,
+    "missing": 0,
+    "processed": 12
+  },
+  "project-metadata-remote-close-1": {
+    "changed": 0,
+    "continueCursor": "077eb661a06554aac41206cbd03c30795e634d9be580897f48e2b0c5f894862079a8573ea32685dd9a195f17d6badc096d9903b6fa3402d6c835df669b8ccd441d0cb390d7c7717a2b",
+    "isDone": true
+  },
+  "project-metadata-remote-close-2": {
+    "changed": 0,
+    "continueCursor": "077eb661a06554aac41206cbd03c30795e634d9be580897f48e2b0c5f894862079a8573ea32685dd9a195f17d6badc096d9903b6fa3402d6c835df669b8ccd441d0cb390d7c7717a2b",
+    "isDone": true
+  },
+  "project-metadata-remote-verified": {
+    "continueCursor": "077eb661a06554aac41206cbd03c30795e634d9be580897f48e2b0c5f894862079a8573ea32685dd9a195f17d6badc096d9903b6fa3402d6c835df669b8ccd441d0cb390d7c7717a2b",
+    "isDone": true,
+    "missing": 0,
+    "processed": 1
+  }
+}

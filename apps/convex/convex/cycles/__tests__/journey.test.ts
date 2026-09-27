@@ -404,6 +404,8 @@ test("read clocks and page budgets validate before Intl; bounded backfill preser
         ctx.db.insert("projects", {
           workspaceId: f.workspaceId,
           name: `Old ${index}`,
+          description: "",
+          metadataRevision: 0,
           identifier: `OLD${index}`,
           nextSequence: 1,
           archived: false,
