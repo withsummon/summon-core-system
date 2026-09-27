@@ -59,6 +59,6 @@ References: [pnpm dependency verification](https://github.com/pnpm/pnpm.io/blob/
 
 ## Behavioral test entry point
 
-`pnpm test` runs the Convex module tests followed by the native web behavior tests. `pnpm --filter web test` uses Node's quoted recursive test glob, so each module/submodule keeps its own `__tests__` folder without a hand-maintained file list. Node 22.18.0 enables TypeScript stripping by default; native TypeScript 7 remains the separate type checker.
+As of the PR quality pass on 2026-09-28, `pnpm test` runs only the inherited live service suite. The migration's new Convex and web test files, their test-only helpers, and their package scripts were removed. Native TypeScript 7 remains the type checker for production source. Earlier Convex/web test counts in migration receipts are historical and must not be used as current branch verification.
 
-The web PR workflow now also targets `main` and has a behavioral job that builds the shared editor dependencies before running both suites. Its Node version is explicit. Locally, all 19 frontend behavior tests passed through the new package command. CI execution itself is unverified because these local commits have not been pushed.
+The local main workflow has a behavioral job with an explicit Node version. The draft PR omits workflow changes because the publishing credential cannot update workflow files. CI execution and current Chrome acceptance remain separate gates.

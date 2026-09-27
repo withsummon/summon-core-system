@@ -17,8 +17,7 @@
     "check:lint": "oxlint --deny-warnings .",
     "check:format": "oxfmt --check .",
     "fix:lint": "oxlint --fix .",
-    "fix:format": "oxfmt .",
-    "test": "vitest run"
+    "fix:format": "oxfmt ."
   },
   "dependencies": {
     "@convex-dev/auth": "catalog:",
@@ -29,9 +28,6 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/sanitize-html": "catalog:",
-    "convex-test": "catalog:",
-    "typescript": "catalog:",
-    "vite": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

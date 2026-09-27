@@ -1,6 +1,6 @@
 # Endpoint and route retirement inventory
 
-Source inspection: 2026-09-27, checkout `ba52bcfca9` at inspection. This is a read-only contract inventory, not a cutover, deployment or benchmark receipt. No legacy route/service was removed. The user decision about retaining inherited Plane scope remains pending.
+Source inspection: 2026-09-27, checkout `ba52bcfca9` at inspection. This is a read-only contract inventory, not a cutover, deployment or benchmark receipt. No legacy route/service was removed. The user subsequently confirmed that every inherited Plane feature must be retained.
 
 ## Current ownership
 
@@ -63,7 +63,7 @@ Public `/api/public/` routes and `apps/space`, `/api/v1/` PAT integrations, auth
 
 ## Evidence boundaries
 
-Native module BDD lives beside each owner in `__tests__`; legacy comparison baselines live in `apps/api/plane/tests/contract/summon/` (`test_commercial_api`, `test_delivery_handoff_api`, `test_collaboration_api`, `test_overview_api`, `test_operations_api`, `test_assistant_api`, `test_credential_api`, `test_generated_document_api`, `test_meeting_summary_api`, `test_meeting_transcription`, `test_workspace_settings_api`). Source inspection does not mean those legacy suites were run in this pass.
+At this inspection checkpoint, native module BDD lived beside each owner in `__tests__`; the PR quality pass on 2026-09-28 removed those newly added files. Legacy comparison baselines remain in `apps/api/plane/tests/contract/summon/` (`test_commercial_api`, `test_delivery_handoff_api`, `test_collaboration_api`, `test_overview_api`, `test_operations_api`, `test_assistant_api`, `test_credential_api`, `test_generated_document_api`, `test_meeting_summary_api`, `test_meeting_transcription`, `test_workspace_settings_api`). Source inspection does not mean those legacy suites were run in this pass.
 
 Frontend receipts in this directory separately record browser journeys and omissions. Parent reports local deployment at 07:07:41 and comment create/edit/guest-readonly/subscribed-recipient acceptance; this inventory did not independently rerun those interactions. Older module receipts can predate subsequent implemented slices; current source and newer focused receipts take precedence. Production Dokploy/DNS/authenticated remote acceptance and external consumer audit remain separate gates.
 
