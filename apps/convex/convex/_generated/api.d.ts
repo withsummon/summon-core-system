@@ -72,6 +72,10 @@ import type * as meetings_summary_transcriptActions from "../meetings/summary/tr
 import type * as meetings_summary_transcripts from "../meetings/summary/transcripts.js";
 import type * as meetings_summary_validation from "../meetings/summary/validation.js";
 import type * as meetings_tasks from "../meetings/tasks.js";
+import type * as modules_access from "../modules/access.js";
+import type * as modules_index from "../modules/index.js";
+import type * as modules_members from "../modules/members.js";
+import type * as modules_tasks from "../modules/tasks.js";
 import type * as notifications_delivery from "../notifications/delivery.js";
 import type * as notifications_index from "../notifications/index.js";
 import type * as projects_create from "../projects/create.js";
@@ -169,6 +173,10 @@ declare const fullApi: ApiFromModules<{
   "meetings/summary/transcripts": typeof meetings_summary_transcripts;
   "meetings/summary/validation": typeof meetings_summary_validation;
   "meetings/tasks": typeof meetings_tasks;
+  "modules/access": typeof modules_access;
+  "modules/index": typeof modules_index;
+  "modules/members": typeof modules_members;
+  "modules/tasks": typeof modules_tasks;
   "notifications/delivery": typeof notifications_delivery;
   "notifications/index": typeof notifications_index;
   "projects/create": typeof projects_create;
