@@ -42,7 +42,7 @@ export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
         system?.projectId === task.projectId &&
         system.workspaceId === task.workspaceId &&
         system.type === "points" &&
-        /^\d+(?:\.\d+)?$/.test(point.value.trim())
+        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(point.value.trim())
           ? Number(point.value)
           : null;
       const estimate = numeric !== null && Number.isFinite(numeric) ? numeric : null;
