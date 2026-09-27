@@ -1,5 +1,5 @@
 import { relatedTaskRoute } from "./structure-route";
-import { Component, useState } from "react";
+import { Component, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -76,7 +76,7 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
     <section className="space-y-4 rounded-xl border border-subtle-1 p-4">
       <header className="flex flex-wrap justify-between gap-3">
         <h3 className="text-16 font-medium">Parent & subtasks</h3>
-        {canWrite && (
+        {canWrite && parent && (!parent.hasParent || parent.canUnlink) && (
           <Button variant="secondary" onClick={() => setMode("parent")}>
             {parent?.hasParent ? "Change parent" : "Set parent"}
           </Button>
@@ -85,7 +85,7 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
       <div className="text-14">
         <span className="mr-2 text-secondary">Parent</span>
         {parent?.task ? (
-          <TaskLink task={parent.task} />
+          <TaskLink task={parent.task} projectIdentifier={parent.project?.identifier} />
         ) : parent ? (
           parent.hasParent ? (
             "Parent task unavailable"
@@ -96,7 +96,7 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
           "Loading…"
         )}
       </div>
-      {canWrite && parent?.hasParent && (
+      {canWrite && parent?.hasParent && parent.canUnlink && (
         <Button
           variant="secondary"
           onClick={() => {
@@ -111,8 +111,8 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
       <ul className="space-y-3">
         {results.map((child) => (
           <li className="flex flex-wrap items-center justify-between gap-2" key={child._id}>
-            <TaskLink task={child} />
-            {canWrite && child.archivedAt == null && (
+            <TaskLink task={child} projectIdentifier={child.project.identifier} />
+            {canWrite && child.canUnlink && (
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -157,6 +157,7 @@ function HierarchyForm({ task, mode, onDone }: { task: Task; mode: "parent" | "c
   const setParent = useMutation(api.tasks.hierarchy.setParent);
   const [snapshot] = useState(task);
   const [selected, setSelected] = useState<Task | null>(null);
+  const [projectId, setProjectId] = useState<Id<"projects"> | null>(task.projectId);
   const [title, setTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -168,9 +169,9 @@ function HierarchyForm({ task, mode, onDone }: { task: Task; mode: "parent" | "c
         setPending(true);
         setError("");
         try {
-          if (mode === "create")
+          if (mode === "create" && projectId)
             await create({
-              projectId: task.projectId,
+              projectId,
               title,
               parent: { taskId: snapshot._id, expectedUpdatedAt: snapshot.updatedAt },
             });
@@ -198,20 +199,39 @@ function HierarchyForm({ task, mode, onDone }: { task: Task; mode: "parent" | "c
       }}
     >
       <fieldset disabled={pending} className="space-y-3">
+        <ProjectChoice
+          workspaceId={task.workspaceId}
+          value={projectId}
+          label={mode === "parent" ? "Parent project" : "Subtask project"}
+          onChange={(id) => {
+            setProjectId(id);
+            setSelected(null);
+          }}
+        />
         {mode === "create" ? (
           <SummonField label="Subtask title">
             <Input required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} />
           </SummonField>
-        ) : (
-          <TaskChoice
-            task={task}
-            value={selected}
-            onChange={setSelected}
-            label={mode === "parent" ? "Parent task" : "Existing subtask"}
-          />
-        )}
+        ) : projectId ? (
+          <RelationCandidatesBoundary
+            key={projectId}
+            onFailure={() => setSelected(null)}
+            onReset={() => {
+              setSelected(null);
+              setProjectId(null);
+            }}
+          >
+            <TaskChoice
+              task={task}
+              projectId={projectId}
+              value={selected}
+              onChange={setSelected}
+              label={mode === "parent" ? "Parent task" : "Existing subtask"}
+            />
+          </RelationCandidatesBoundary>
+        ) : null}
         <div className="flex gap-2">
-          <Button type="submit" loading={pending} disabled={mode !== "create" && !selected}>
+          <Button type="submit" loading={pending} disabled={!projectId || (mode !== "create" && !selected)}>
             {mode === "create" ? "Create subtask" : "Save link"}
           </Button>
           <Button variant="secondary" onClick={onDone}>
@@ -284,7 +304,6 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
   const add = useMutation(api.tasks.relationships.add);
   const [snapshot] = useState(task);
   const [selected, setSelected] = useState<Task | null>(null);
-  const projects = useQuery(api.projects.index.list, { workspaceId: task.workspaceId });
   const [projectId, setProjectId] = useState<Id<"projects"> | null>(task.projectId);
   const [kind, setKind] = useState<RelationDirection>("blocks");
   const [pending, setPending] = useState(false);
@@ -331,29 +350,15 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
             ))}
           </select>
         </SummonField>
-        <SummonField label="Related project" htmlFor="relation-project">
-          <select
-            id="relation-project"
-            className={selectClass}
-            value={projectId ?? ""}
-            onChange={(event) => {
-              const project = projects?.find((item) => item._id === event.target.value);
-              if (project) {
-                setProjectId(project._id);
-                setSelected(null);
-              }
-            }}
-          >
-            <option value="">Choose a project</option>
-            {projects
-              ?.filter((item) => item.membershipRole !== "guest" && item.workspaceRole !== "guest")
-              .map((project) => (
-                <option key={project._id} value={project._id}>
-                  {project.identifier} · {project.name}
-                </option>
-              ))}
-          </select>
-        </SummonField>
+        <ProjectChoice
+          workspaceId={task.workspaceId}
+          value={projectId}
+          label="Related project"
+          onChange={(id) => {
+            setProjectId(id);
+            setSelected(null);
+          }}
+        />
         {projectId && (
           <RelationCandidatesBoundary
             key={projectId}
@@ -387,6 +392,40 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
         </p>
       )}
     </form>
+  );
+}
+function ProjectChoice({
+  workspaceId,
+  value,
+  label,
+  onChange,
+}: {
+  workspaceId: Id<"workspaces">;
+  value: Id<"projects"> | null;
+  label: string;
+  onChange: (id: Id<"projects"> | null) => void;
+}) {
+  const projects = useQuery(api.projects.index.list, { workspaceId });
+  const id = useId();
+  return (
+    <SummonField label={label} htmlFor={id}>
+      <select
+        id={id}
+        required
+        className={selectClass}
+        value={value ?? ""}
+        onChange={(event) => onChange(projects?.find((project) => project._id === event.target.value)?._id ?? null)}
+      >
+        <option value="">Choose a project</option>
+        {projects
+          ?.filter((project) => project.membershipRole !== "guest" && project.workspaceRole !== "guest")
+          .map((project) => (
+            <option key={project._id} value={project._id}>
+              {project.identifier} · {project.name}
+            </option>
+          ))}
+      </select>
+    </SummonField>
   );
 }
 function TaskChoice({
