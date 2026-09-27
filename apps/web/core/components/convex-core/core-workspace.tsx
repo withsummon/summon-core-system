@@ -1,3 +1,4 @@
+import { RecordVisit } from "./navigation/record-visit";
 import { WorkspaceNavigation } from "./favorites/workspace-navigation";
 import { FavoriteToggle } from "./favorites/toggle";
 import { lazy, Suspense, useState } from "react";
@@ -276,6 +277,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
       ) : project ? (
         <ProjectBoundary key={project._id} onRecover={openArchived}>
           <div className="space-y-6">
+            <RecordVisit workspaceId={workspace._id} target={{ type: "project", id: project._id }} />
             <nav aria-label="Project sections" className="flex flex-wrap gap-2">
               {[
                 { value: "tasks", label: "Tasks" },

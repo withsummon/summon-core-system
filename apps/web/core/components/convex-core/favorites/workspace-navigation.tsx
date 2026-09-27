@@ -1,3 +1,4 @@
+import { PersonalNavigation } from "../navigation/personal-navigation";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import type { FunctionReturnType } from "convex/server";
@@ -79,6 +80,7 @@ export function WorkspaceNavigation({
             </Link>
           ))}
         </nav>
+        <PersonalNavigation workspace={workspace} onNavigate={() => setOpen(false)} />
         <Favorites workspace={workspace} onNavigate={() => setOpen(false)} />
       </div>
     </section>

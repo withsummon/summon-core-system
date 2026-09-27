@@ -1,3 +1,4 @@
+import { RecordVisit } from "../navigation/record-visit";
 import { TaskEstimate } from "../estimates/selection";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, lazy, Suspense, useState } from "react";
@@ -52,6 +53,9 @@ function TaskDetailContent({
   if (task.projectId !== project._id) return <TaskUnavailable onBack={onBack} />;
   return (
     <article className="space-y-5">
+      {task.deletedAt === null && (
+        <RecordVisit workspaceId={task.workspaceId} target={{ type: "issue", id: task._id }} />
+      )}
       <header className="flex flex-wrap justify-between gap-3">
         <Button variant="secondary" onClick={onBack}>
           Back to tasks

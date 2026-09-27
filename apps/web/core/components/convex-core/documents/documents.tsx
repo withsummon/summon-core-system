@@ -1,3 +1,4 @@
+import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
@@ -135,6 +136,7 @@ function DocumentDetail({
   const owner = document.ownedBy === context.userId && workspaceRole !== "guest";
   return (
     <article className="space-y-5">
+      <RecordVisit workspaceId={document.workspaceId} target={{ type: "page", id: document._id }} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="secondary" onClick={onBack}>
           Back to documents
