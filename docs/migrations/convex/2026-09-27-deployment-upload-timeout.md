@@ -41,7 +41,7 @@ The single authorized restart affected only staged Convex backend container849de
 
 Local running backend image digest was `sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8`. Remote Docker UI showed the backend repository but did not expose a verified running digest in the inspected surface. Image equivalence remains unverified.
 
-## Proposed change — NOT applied
+## Original proposal — application recorded below
 
 The rendered `/etc/dokploy/traefik/traefik.yml` has web:80 and websecure:443, with no timeout overrides. Traefik documents a default60s incoming request-body read timeout. The proposed minimal addition is:
 
@@ -64,3 +64,13 @@ References: [Traefik entrypoints and timeout defaults](https://doc.traefik.io/tr
 ## Separate mail configuration gate
 
 The user selected Resend only. The supplied key was verified by the primary agent without exposing it; its domain list was empty. Sender/domain selection and domain verification remain pending. Mail availability must not be enabled until the sender is established and verified. No key or private payload belongs in this repository.
+
+## Approved application and recovery attempt
+
+The user subsequently explicitly approved: “Apply 300 seconds and reload.” The operator re-read the rendered configuration and confirmed it matched the reviewed original, inserted only the proposed websecure timeout block, saved through Dokploy, and invoked Web Server → Traefik → Reload. The UI reported “Traefik config Updated” and “Traefik Reloaded.” Reopening the complete editor after reload confirmed its trimmed contents exactly matched the original plus the approved block; certificate storage/challenge, HTTP3 and TLS fields were preserved.
+
+Post-reload reachability checks returned HTTP200 for Dokploy/dashboard/home (5.567s), Convex core/version (4.443s), site/.well-known/openid-configuration (2.954s), and convex-dashboard.withsummon.com (2.999s). These checks prove endpoint reachability, not the subsequent deployment result.
+
+The immutable `8cad0b32a2` backend archive passed native TypeScript before one serialized remote push. Its get_config_hashes request returned200 in19.330s, then evaluate_schema began at2026-09-27T11:58:37.253Z. Evaluation succeeded with HTTP200 after290.165s at12:03:27.418Z, and the CLI confirmed no indexes would be deleted. The subsequent start_push encountered four network TypeErrors after284.515s,10.107s,180.257s and67.374s. The CLI performed its built-in bounded retries; no new deployment process was launched. The fifth start_push returnedHTTP504 after304.695s at12:17:42.457Z, without the inspected origin headers. The process exited1 and finish_push was never reached. Remote8cad activation remains unverified. No additional push or broader timeout/security/network change was made.
+
+Read-only transport inspection confirmed evaluate_schema and start_push use the same request object and Brotli quality4 encoding, not a raw-JSON upload for start_push. RuntimeNode22.18.0/bundledUndici6.21.2 defaults to300-second header/body deadlines, but observed varying TypeError durations do not establish their cause. No HTTP(S)/ALL/NO proxy or NODE_USE_ENV_PROXY/NODE_OPTIONS setting was present in the process or deployment file. CLI installs its explicit proxy agent only when HTTP_PROXY/HTTPS_PROXY is present. Identical offline compression took50ms. During retries, core/version returned200 in0.529s and siteOIDC200 in3.324s. Small-request health does not prove large-upload health. Error cause codes were not captured by the active logger; a separate cause-code-only logger was prepared but not executed. Further transport strategy requires review; no further timeout increase or push is authorized by this receipt.
