@@ -14,6 +14,7 @@ import { TaskSubscription } from "../notifications/task-subscription";
 const RichDescription = lazy(() =>
   import("./rich-description").then((module) => ({ default: module.RichDescription }))
 );
+const TaskComments = lazy(() => import("./comments").then((module) => ({ default: module.TaskComments })));
 const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
@@ -85,6 +86,7 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
           <Suspense fallback={<p role="status">Loading task details…</p>}>
             <RichDescription taskId={task._id} canWrite={canWrite} />
             <TaskStructure task={task} canWrite={canWrite} />
+            <TaskComments key={task._id} taskId={task._id} />
           </Suspense>
         </>
       )}
