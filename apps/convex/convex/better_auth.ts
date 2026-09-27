@@ -22,8 +22,8 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         if (!(await existingAppUser(ctx, user.email))) await requireSignup(ctx, user.email);
         if (user.emailVerified) await linkVerifiedUser(ctx, user._id, user.email, user.name);
       },
-      onUpdate: async (ctx, user) => {
-        if (user.emailVerified) await linkVerifiedUser(ctx, user._id, user.email, user.name);
+      onUpdate: async (ctx, user, previous) => {
+        if (user.emailVerified) await linkVerifiedUser(ctx, user._id, user.email, user.name, previous.email);
       },
       onDelete: async (ctx, user) => {
         const link = await ctx.db
@@ -72,14 +72,20 @@ async function existingAppUser(ctx: MutationCtx, email: string) {
   return existing ?? null;
 }
 
-async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string, name: string) {
+async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string, name: string, previousEmail?: string) {
   const link = await ctx.db
     .query("betterAuthLinks")
     .withIndex("by_auth_id", (q) => q.eq("authId", authId))
     .unique();
   if (link) {
     const owner = await ctx.db.get(link.userId);
-    if (!owner || owner.email !== email) throw new ConvexError("Account email changes are unavailable.");
+    if (!owner) throw new ConvexError("Account is unavailable.");
+    if (owner.email !== email) {
+      if (owner.email !== previousEmail) throw new ConvexError("Account email changed. Sign in again.");
+      const collision = await existingAppUser(ctx, email);
+      if (collision && collision._id !== owner._id) throw new ConvexError("Email address is unavailable.");
+      await ctx.db.patch(owner._id, { email, emailVerificationTime: Date.now() });
+    }
     return;
   }
   let userId = (await existingAppUser(ctx, email))?._id;
