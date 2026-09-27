@@ -8,6 +8,7 @@ import { requireIntakeTask, requireIntakeRevision } from "../intakes/access";
 import { pageBudget } from "../commercial/validation";
 import { requireTask, taskRoleCanRead } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
+import { boundDescriptionContent } from "./description_images";
 import { writeDescription } from "./description_content";
 const scope = v.union(
   v.object({ kind: v.literal("task"), taskId: v.id("tasks") }),
@@ -116,7 +117,8 @@ export const restore = mutation({
     if (!version || version.taskId !== task._id) throw new ConvexError("Description version not found.");
     if (version.revision !== args.expectedVersionRevision)
       throw new ConvexError("Description version changed. Preview it again before restoring.");
-    await writeDescription(ctx, task, permission.user._id, version);
+    const content = await boundDescriptionContent(ctx, task._id, version.html);
+    await writeDescription(ctx, task, permission.user._id, content);
     await taskChanged(ctx, task, permission.user._id);
     if (intake) await ctx.db.patch(intake._id, { updatedAt: Math.max(Date.now(), intake.updatedAt + 1) });
   },

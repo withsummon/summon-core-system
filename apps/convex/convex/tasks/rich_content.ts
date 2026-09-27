@@ -1,3 +1,4 @@
+import { ECustomImageAttributeNames } from "@plane/editor/image-contract";
 import sanitizeHtml from "sanitize-html";
 import { ConvexError } from "convex/values";
 
@@ -15,11 +16,29 @@ export function plainDescriptionHtml(text: string) {
     .join("");
 }
 export function taskRichContent(input: string) {
+  return sanitizeRichContent(input, false);
+}
+
+/** Only the task-bound description owner may enable image nodes, then validate their asset bindings. */
+export function taskDescriptionImageContent(input: string) {
+  return sanitizeRichContent(input, true);
+}
+
+function sanitizeRichContent(input: string, images: boolean) {
   if (input.length > 100000) throw new ConvexError("Task description must be at most 100,000 characters.");
   const html = sanitizeHtml(input, {
-    allowedTags: sanitizeHtml.defaults.allowedTags,
+    allowedTags: images ? [...sanitizeHtml.defaults.allowedTags, "image-component"] : sanitizeHtml.defaults.allowedTags,
     allowedAttributes: {
       "*": ["style"],
+      ...(images
+        ? {
+            "image-component": [
+              ...Object.values(ECustomImageAttributeNames).map((name) => name.toLowerCase()),
+              "alt",
+              "title",
+            ],
+          }
+        : {}),
       span: ["data-text-color", "data-background-color"],
       a: ["href", "title"],
       ol: ["start", "data-type"],
