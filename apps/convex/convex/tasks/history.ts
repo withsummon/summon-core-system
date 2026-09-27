@@ -1,8 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { requireProject } from "../identity/access";
 import { requireIntakeTask, requireIntakeRevision } from "../intakes/access";
 import { pageBudget } from "../commercial/validation";
@@ -121,5 +122,29 @@ export const restore = mutation({
     await writeDescription(ctx, task, permission.user._id, content);
     await taskChanged(ctx, task, permission.user._id);
     if (intake) await ctx.db.patch(intake._id, { updatedAt: Math.max(Date.now(), intake.updatedAt + 1) });
+  },
+});
+
+// Match the inherited per-task history limit without loading all tasks or versions at once.
+export const prune = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const tasks = await ctx.db.query("tasks").paginate({ numItems: 10, cursor });
+    const pending = await Promise.all(
+      tasks.page.map(async (task) => {
+        const versions = await ctx.db
+          .query("taskDescriptionVersions")
+          .withIndex("by_task", (q) => q.eq("taskId", task._id))
+          .order("desc")
+          .take(41);
+        await Promise.all(versions.slice(20, 40).map((version) => ctx.db.delete(version._id)));
+        return versions.length > 40;
+      })
+    );
+    const needsAnotherPass = pending.some(Boolean);
+    if (needsAnotherPass || !tasks.isDone)
+      await ctx.scheduler.runAfter(0, internal.tasks.history.prune, {
+        cursor: needsAnotherPass ? cursor : tasks.continueCursor,
+      });
   },
 });

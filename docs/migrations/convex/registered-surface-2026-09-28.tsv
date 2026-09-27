@@ -732,6 +732,7 @@ scheduled-job	check-every-day-to-delete-hard-delete	apps/api/plane/celery.py:55	
 scheduled-job	check-every-day-to-delete-exporter-history	apps/api/plane/celery.py:91	Celery/Django	reporting	plane.bgtasks.exporter_expired_task.delete_old_s3_link	OPEN
 scheduled-job	check-every-day-to-delete_exporter_history	apps/api/plane/celery.py:63	Celery/Django	reporting	plane.bgtasks.exporter_expired_task.delete_old_s3_link	OPEN
 scheduled-job	check-every-day-to-archive-and-close	apps/api/plane/celery.py:59	Celery/Django	tasks	plane.bgtasks.issue_automation_task.archive_and_close_old_issues	OPEN
+scheduled-job	Prune task description history	apps/convex/convex/crons.ts:7	Convex	tasks	internal.tasks.history.prune	OPEN
 scheduled-job	check-every-day-to-delete-issue-description-versions	apps/api/plane/celery.py:83	Celery/Django	tasks	plane.bgtasks.cleanup_task.delete_issue_description_versions	OPEN
 web-index	/	apps/admin/app/routes.ts:11	Django-backed admin	instance	./(all)/(home)/page.tsx	OPEN
 web-index	/	apps/web/app/routes/core.ts:17	Django-backed web	operations	./(home)/page.tsx	OPEN
