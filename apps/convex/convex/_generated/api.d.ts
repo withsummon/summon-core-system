@@ -51,6 +51,7 @@ import type * as cycles_workspace from "../cycles/workspace.js";
 import type * as documents_access from "../documents/access.js";
 import type * as documents_hierarchy from "../documents/hierarchy.js";
 import type * as documents_index from "../documents/index.js";
+import type * as documents_labels from "../documents/labels.js";
 import type * as documents_lifecycle from "../documents/lifecycle.js";
 import type * as estimates_access from "../estimates/access.js";
 import type * as estimates_index from "../estimates/index.js";
@@ -228,6 +229,7 @@ declare const fullApi: ApiFromModules<{
   "documents/access": typeof documents_access;
   "documents/hierarchy": typeof documents_hierarchy;
   "documents/index": typeof documents_index;
+  "documents/labels": typeof documents_labels;
   "documents/lifecycle": typeof documents_lifecycle;
   "estimates/access": typeof estimates_access;
   "estimates/index": typeof estimates_index;
