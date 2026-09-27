@@ -10,7 +10,7 @@ Chrome acceptance: administrator saved Asia/Jakarta timezone, Technology industr
 
 ## Metadata revision and Chrome acceptance — 2026-09-27
 
-Backend commits 36f7406b6d and 609594eaf8 introduce one metadata snapshot and a required revision; 994443acdb mounts the captured-edit UI. Name, mutable slug and settings commit atomically. The mutation validates the current revision and returns the canonical address. The previous save endpoint remains temporarily for older served clients; its retirement is a separate gate.
+Backend commits 36f7406b6d and 609594eaf8 introduce one metadata snapshot and a required revision; 994443acdb mounts the captured-edit UI. Name, mutable slug and settings commit atomically. The mutation validates the current revision and returns the canonical address. The previous no-CAS save and redundant get endpoints are now removed after current-consumer verification: the served port-3024 artifact and current development source use metadata/update, and obsolete static QA servers were retired. The remaining read/write owner requires a coherent settings snapshot and captured revision. Exact audit evidence is in `apps/convex/convex/settings/METADATA_MIGRATION.md`. Cleanup passed backend/web native TS7, 16 settings tests and scoped Oxc.
 
 Root Chrome verification on local port 3010:
 

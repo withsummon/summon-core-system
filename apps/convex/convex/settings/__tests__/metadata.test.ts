@@ -27,14 +27,16 @@ test("rename preserves workspace identity and domain links, updates canonical ad
     f.owner.query(api.navigation.address.resolveWorkspace, { workspaceSlug: "workspace" })
   ).rejects.toThrow();
   expect((await f.owner.query(api.projects.index.list, { workspaceId: f.workspaceId }))[0]._id).toBe(f.projectId);
-  expect((await f.owner.query(api.settings.index.get, { workspaceId: f.workspaceId })).timezone).toBe("Asia/Jakarta");
+  expect((await f.owner.query(api.settings.index.metadata, { workspaceId: f.workspaceId })).timezone).toBe(
+    "Asia/Jakarta"
+  );
   expect(await f.owner.query(api.settings.index.metadata, { workspaceId: f.workspaceId })).toEqual({
     ...settings,
     revision: 1,
     canManage: true,
   });
 });
-test("stale settings, slug collisions and invalid data fail atomically while legacy writes advance the same revision", async () => {
+test("stale settings, slug collisions and invalid data fail atomically while successful updates advance the revision", async () => {
   const f = await workspaceJourney();
   await f.owner.mutation(api.workspaces.index.create, { name: "Occupied", slug: "occupied" });
   await expect(
@@ -46,7 +48,12 @@ test("stale settings, slug collisions and invalid data fail atomically while leg
     })
   ).rejects.toThrow("taken");
   const { slug, ...fields } = settings;
-  await f.owner.mutation(api.settings.index.save, { workspaceId: f.workspaceId, ...fields });
+  await f.owner.mutation(api.settings.index.update, {
+    workspaceId: f.workspaceId,
+    ...fields,
+    slug: "workspace",
+    expectedRevision: 0,
+  });
   await expect(
     f.owner.mutation(api.settings.index.update, { workspaceId: f.workspaceId, ...settings, expectedRevision: 0 })
   ).rejects.toThrow("changed");
@@ -58,7 +65,7 @@ test("stale settings, slug collisions and invalid data fail atomically while leg
       expectedRevision: 1,
     })
   ).rejects.toThrow("timezone");
-  expect(await f.owner.query(api.settings.index.get, { workspaceId: f.workspaceId })).toMatchObject({
+  expect(await f.owner.query(api.settings.index.metadata, { workspaceId: f.workspaceId })).toMatchObject({
     slug: "workspace",
     timezone: settings.timezone,
   });
