@@ -1,3 +1,4 @@
+import { canAdministerProject } from "./administration";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalMutation } from "../_generated/server";
@@ -6,25 +7,11 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 
-export async function canManageProjectLifecycle(
-  ctx: QueryCtx,
-  project: Doc<"projects">,
-  userId: Id<"users">,
-  workspaceRole: string
-) {
-  if (workspaceRole === "admin") return true;
-  if (workspaceRole === "guest") return false;
-  const member = await ctx.db
-    .query("projectMembers")
-    .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
-    .unique();
-  return member?.active === true && member.role === "admin";
-}
 async function requireLifecycle(ctx: QueryCtx, projectId: Id<"projects">) {
   const project = await ctx.db.get(projectId);
   if (!project) throw new ConvexError("Project not found.");
   const access = await requireWorkspace(ctx, project.workspaceId);
-  if (!(await canManageProjectLifecycle(ctx, project, access.user._id, access.member.role)))
+  if (!(await canAdministerProject(ctx, project, access.user._id, access.member.role)))
     throw new ConvexError("Only workspace or project administrators can manage project Trash.");
   return project;
 }
@@ -53,8 +40,7 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
     const rows = await Promise.all(
       result.page.map(async (project) =>
-        project.deletedAt != null &&
-        (await canManageProjectLifecycle(ctx, project, access.user._id, access.member.role))
+        project.deletedAt != null && (await canAdministerProject(ctx, project, access.user._id, access.member.role))
           ? projection(project)
           : null
       )
