@@ -17,6 +17,15 @@ export async function requireAssetScope(
   write: boolean
 ) {
   if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
+  if (scope.purpose === "projectCover") {
+    if (!scope.projectId || scope.documentId || scope.taskId || scope.draftId || scope.conversationId)
+      throw new ConvexError("Project covers require only their project scope.");
+    const access = await requireProject(ctx, scope.projectId, write);
+    if (access.project.workspaceId !== scope.workspaceId) throw new ConvexError("Project cover scope mismatch.");
+    if (write && access.projectMember.role !== "admin")
+      throw new ConvexError("Only project administrators can change the cover.");
+    return access;
+  }
   if (scope.purpose === "workspaceLogo") {
     if (scope.projectId || scope.documentId || scope.taskId || scope.draftId || scope.conversationId)
       throw new ConvexError("Workspace logos cannot have another scope.");
