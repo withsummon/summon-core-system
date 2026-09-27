@@ -1,3 +1,4 @@
+import { workspaceName, workspaceSlug } from "../settings/metadata";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
@@ -28,9 +29,8 @@ export const create = mutation({
   args: { name: v.string(), slug: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const name = args.name.trim();
-    if (!name || name.length > 120 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(args.slug) || args.slug.length > 80)
-      throw new ConvexError("Enter a workspace name and a valid slug.");
+    const name = workspaceName(args.name);
+    const slug = workspaceSlug(args.slug);
     if (
       await ctx.db
         .query("workspaces")
@@ -38,7 +38,7 @@ export const create = mutation({
         .unique()
     )
       throw new ConvexError("This workspace slug is already taken.");
-    const workspaceId = await ctx.db.insert("workspaces", { name, slug: args.slug });
+    const workspaceId = await ctx.db.insert("workspaces", { name, slug, metadataRevision: 0 });
     await ctx.db.insert("workspaceMembers", { workspaceId, userId: user._id, role: "admin", active: true });
     return workspaceId;
   },

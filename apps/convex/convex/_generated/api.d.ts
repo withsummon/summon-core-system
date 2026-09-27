@@ -161,6 +161,7 @@ import type * as savedViews_workspaceChoices from "../savedViews/workspaceChoice
 import type * as sessions_access from "../sessions/access.js";
 import type * as sessions_index from "../sessions/index.js";
 import type * as settings_index from "../settings/index.js";
+import type * as settings_metadata from "../settings/metadata.js";
 import type * as settings_timezone from "../settings/timezone.js";
 import type * as stickies_content from "../stickies/content.js";
 import type * as stickies_index from "../stickies/index.js";
@@ -355,6 +356,7 @@ declare const fullApi: ApiFromModules<{
   "sessions/access": typeof sessions_access;
   "sessions/index": typeof sessions_index;
   "settings/index": typeof settings_index;
+  "settings/metadata": typeof settings_metadata;
   "settings/timezone": typeof settings_timezone;
   "stickies/content": typeof stickies_content;
   "stickies/index": typeof stickies_index;
