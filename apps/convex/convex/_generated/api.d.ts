@@ -65,6 +65,7 @@ import type * as favorites_views from "../favorites/views.js";
 import type * as favorites_write from "../favorites/write.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
+import type * as identity_accounts_index from "../identity/accounts/index.js";
 import type * as identity_index from "../identity/index.js";
 import type * as identity_mail_availability from "../identity/mail/availability.js";
 import type * as identity_mail_config from "../identity/mail/config.js";
@@ -245,6 +246,7 @@ declare const fullApi: ApiFromModules<{
   "favorites/write": typeof favorites_write;
   http: typeof http;
   "identity/access": typeof identity_access;
+  "identity/accounts/index": typeof identity_accounts_index;
   "identity/index": typeof identity_index;
   "identity/mail/availability": typeof identity_mail_availability;
   "identity/mail/config": typeof identity_mail_config;
