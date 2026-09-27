@@ -120,6 +120,8 @@ import type * as tasks_description from "../tasks/description.js";
 import type * as tasks_description_content from "../tasks/description_content.js";
 import type * as tasks_hierarchy from "../tasks/hierarchy.js";
 import type * as tasks_history from "../tasks/history.js";
+import type * as tasks_links from "../tasks/links.js";
+import type * as tasks_reactions from "../tasks/reactions.js";
 import type * as tasks_index from "../tasks/index.js";
 import type * as tasks_labels from "../tasks/labels.js";
 import type * as tasks_lifecycle from "../tasks/lifecycle.js";
@@ -246,6 +248,8 @@ declare const fullApi: ApiFromModules<{
   "tasks/description_content": typeof tasks_description_content;
   "tasks/hierarchy": typeof tasks_hierarchy;
   "tasks/history": typeof tasks_history;
+  "tasks/links": typeof tasks_links;
+  "tasks/reactions": typeof tasks_reactions;
   "tasks/index": typeof tasks_index;
   "tasks/labels": typeof tasks_labels;
   "tasks/lifecycle": typeof tasks_lifecycle;
