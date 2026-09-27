@@ -1,4 +1,4 @@
-import { Distribution } from "./distribution";
+import { Distribution } from "../tasks/progress/distribution";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";

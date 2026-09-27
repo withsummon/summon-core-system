@@ -1,4 +1,4 @@
-import { memberLabel } from "../../shared/member-label";
+import { progressTotals } from "../tasks/progress_totals";
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
@@ -11,80 +11,22 @@ export const transferSnapshot = v.object({
   labels: v.array(distribution),
   capturedAt: v.number(),
 });
-type Totals = { count: number; numericEstimates: number; unquantifiedEstimates: number };
-type Bucket = Totals & { id: string | null; name: string };
-function add(
-  map: Map<string | null, Bucket>,
-  id: string | null,
-  name: string,
-  estimate: number | null,
-  hasEstimate: boolean
-) {
-  const value = map.get(id) ?? { id, name, count: 0, numericEstimates: 0, unquantifiedEstimates: 0 };
-  value.count++;
-  if (estimate !== null) value.numericEstimates += estimate;
-  else if (hasEstimate) value.unquantifiedEstimates++;
-  map.set(id, value);
-}
-export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
-  const statuses = new Map<string | null, Bucket>(),
-    assignees = new Map<string | null, Bucket>(),
-    labels = new Map<string | null, Bucket>();
-  let numericEstimates = 0,
-    unquantifiedEstimates = 0;
-  await Promise.all(
-    tasks.map(async (task) => {
-      const point = task.estimatePointId ? await ctx.db.get(task.estimatePointId) : null;
-      const system = point ? await ctx.db.get(point.systemId) : null;
-      const numeric =
-        point &&
-        point.projectId === task.projectId &&
-        system?.projectId === task.projectId &&
-        system.workspaceId === task.workspaceId &&
-        system.type === "points" &&
-        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(point.value.trim())
-          ? Number(point.value)
-          : null;
-      const estimate = numeric !== null && Number.isFinite(numeric) ? numeric : null;
-      if (estimate !== null) numericEstimates += estimate;
-      else if (task.estimatePointId) unquantifiedEstimates++;
-      add(statuses, task.status, task.status, estimate, task.estimatePointId !== null);
-      if (!task.assigneeIds.length) add(assignees, null, "Unassigned", estimate, task.estimatePointId !== null);
-      await Promise.all(
-        task.assigneeIds.map(async (id) => {
-          const user = await ctx.db.get(id);
-          add(
-            assignees,
-            id,
-            memberLabel(user ? { id: user._id, name: user.name ?? null, email: user.email ?? null } : null),
-            estimate,
-            task.estimatePointId !== null
-          );
-        })
-      );
-      if (!task.labelIds.length) add(labels, null, "No label", estimate, task.estimatePointId !== null);
-      await Promise.all(
-        task.labelIds.map(async (id) => {
-          const label = await ctx.db.get(id);
-          const name =
-            label?.projectId === task.projectId && label.workspaceId === task.workspaceId
-              ? label.name
-              : "Unavailable label";
-          add(labels, id, name, estimate, task.estimatePointId !== null);
-        })
-      );
-    })
-  );
-  return {
-    count: tasks.length,
-    numericEstimates,
-    unquantifiedEstimates,
-    statuses: [...statuses.values()],
-    assignees: [...assignees.values()],
-    labels: [...labels.values()],
-  };
-}
 
+type CurrentProgress = Awaited<ReturnType<typeof progressTotals>>;
+function capturedTotals(row: Pick<CurrentProgress, "count" | "numericEstimates" | "unquantifiedEstimates">) {
+  return { count: row.count, numericEstimates: row.numericEstimates, unquantifiedEstimates: row.unquantifiedEstimates };
+}
+function capturedRows(rows: CurrentProgress["labels"]) {
+  return rows.map((row) => ({ id: row.id, name: row.name, ...capturedTotals(row) }));
+}
 export async function snapshot(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
-  return { ...(await progressTotals(ctx, tasks)), capturedAt: Date.now() };
+  const progress = await progressTotals(ctx, tasks);
+  // The persisted transfer snapshot intentionally retains its original schema.
+  return {
+    ...capturedTotals(progress),
+    statuses: capturedRows(progress.statuses),
+    assignees: capturedRows(progress.assignees),
+    labels: capturedRows(progress.labels),
+    capturedAt: Date.now(),
+  };
 }
