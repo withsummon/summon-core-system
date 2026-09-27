@@ -25,6 +25,7 @@ const TaskAttachments = lazy(() =>
 const TaskLinks = lazy(() => import("./links/links").then((module) => ({ default: module.TaskLinks })));
 const TaskReactions = lazy(() => import("./reactions/reactions").then((module) => ({ default: module.TaskReactions })));
 const TaskComments = lazy(() => import("./comments").then((module) => ({ default: module.TaskComments })));
+const TaskActivity = lazy(() => import("./activity/activity").then((module) => ({ default: module.TaskActivity })));
 const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
@@ -127,6 +128,7 @@ function TaskDetailContent({
               <TaskLinks key={`links:${task._id}`} taskId={task._id} />
               <TaskReactions key={`reactions:${task._id}`} taskId={task._id} />
               <TaskComments key={task._id} taskId={task._id} />
+              <TaskActivity key={`activity:${task._id}`} taskId={task._id} />
             </Suspense>
           )}
         </>
