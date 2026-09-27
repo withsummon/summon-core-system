@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { transferSnapshot } from "./transfer_snapshot";
 export const cycleFields = {
   name: v.string(),
   description: v.string(),
@@ -7,6 +8,26 @@ export const cycleFields = {
   endDate: v.union(v.string(), v.null()),
 };
 export const cycleTables = {
+  cycleTransfers: defineTable({
+    projectId: v.id("projects"),
+    sourceId: v.id("cycles"),
+    destinationId: v.id("cycles"),
+    actorId: v.id("users"),
+    snapshot: transferSnapshot,
+    entries: v.array(
+      v.object({
+        taskId: v.id("tasks"),
+        membershipId: v.id("cycleTasks"),
+        expectedUpdatedAt: v.number(),
+        outcome: v.union(v.literal("pending"), v.literal("moved"), v.literal("skipped")),
+        skipReason: v.union(v.string(), v.null()),
+      })
+    ),
+    status: v.union(v.literal("running"), v.literal("completed"), v.literal("cancelled")),
+    revision: v.number(),
+  })
+    .index("by_source", ["sourceId"])
+    .index("by_source_status", ["sourceId", "status"]),
   cycles: defineTable({
     ...cycleFields,
     workspaceId: v.id("workspaces"),

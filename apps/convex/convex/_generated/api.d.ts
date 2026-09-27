@@ -47,6 +47,8 @@ import type * as cycles_access from "../cycles/access.js";
 import type * as cycles_dates from "../cycles/dates.js";
 import type * as cycles_index from "../cycles/index.js";
 import type * as cycles_tasks from "../cycles/tasks.js";
+import type * as cycles_transfer from "../cycles/transfer.js";
+import type * as cycles_transfer_snapshot from "../cycles/transfer_snapshot.js";
 import type * as cycles_workspace from "../cycles/workspace.js";
 import type * as documents_access from "../documents/access.js";
 import type * as documents_hierarchy from "../documents/hierarchy.js";
@@ -228,6 +230,8 @@ declare const fullApi: ApiFromModules<{
   "cycles/dates": typeof cycles_dates;
   "cycles/index": typeof cycles_index;
   "cycles/tasks": typeof cycles_tasks;
+  "cycles/transfer": typeof cycles_transfer;
+  "cycles/transfer_snapshot": typeof cycles_transfer_snapshot;
   "cycles/workspace": typeof cycles_workspace;
   "documents/access": typeof documents_access;
   "documents/hierarchy": typeof documents_hierarchy;
