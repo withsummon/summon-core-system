@@ -10,6 +10,7 @@ import { SummonField } from "@/components/summon/forms";
 import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
+const Notifications = lazy(() => import("./notifications/notifications").then((module) => ({ default: module.Notifications })));
 const Credentials = lazy(() => import("./credentials/credentials").then((module) => ({ default: module.Credentials })));
 const Resources = lazy(() => import("./resources/resources").then((module) => ({ default: module.Resources })));
 const Reports = lazy(() => import("./reporting/reports").then((module) => ({ default: module.Reports })));
@@ -309,6 +310,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           { id: "documents", label: "Documents" },
           { id: "resources", label: "Resources" },
           { id: "credentials", label: "Credentials" },
+          { id: "notifications", label: "Notifications" },
           { id: "meetings", label: "Meetings" },
           { id: "assistant", label: "Assistant" },
           { id: "reports", label: "Reports" },
@@ -324,7 +326,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "credentials" ? (
+        {module === "notifications" ? (
+          <Notifications workspace={workspace} />
+        ) : module === "credentials" ? (
           <Credentials workspace={workspace} />
         ) : module === "resources" ? (
           <Resources workspace={workspace} />

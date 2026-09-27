@@ -9,6 +9,7 @@ import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
 import { statusOptions } from "./options";
+import { TaskSubscription } from "../notifications/task-subscription";
 
 const RichDescription = lazy(() =>
   import("./rich-description").then((module) => ({ default: module.RichDescription }))
@@ -37,7 +38,10 @@ function TaskDetailContent({ taskId, project, onBack }: { taskId: string; projec
         <span className="text-14 text-secondary">
           {project.identifier}-{task.sequence}
         </span>
-        {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
+        <div className="flex flex-wrap gap-2">
+          <TaskSubscription taskId={task._id} />
+          {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
+        </div>
       </header>
       {editing && canWrite ? (
         <TaskForm task={task} projectId={project._id} onDone={() => setEditing(false)} />
