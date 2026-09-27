@@ -40,8 +40,8 @@ model, and citations. Generated content never invokes tools or executes writes.
 
 ## Verification
 
-- Eight module behavior tests cover default preservation, duplicate names/stale
-  revisions, missing provider, mock transport generation, explicit/idempotent
+- Nine module behavior tests cover default preservation, duplicate names/stale
+  revisions and stale generation instructions, missing provider, mock transport generation, explicit/idempotent
   publication, canonical binary/JSON/HTML roundtrip, transactional rollback,
   post-provider revocation, requester isolation, and revoked-page continuation.
 - Actual local selfhost Node probe on 2026-09-27 returned Node v22.22.2.
@@ -51,8 +51,7 @@ model, and citations. Generated content never invokes tools or executes writes.
   JSON. Its first invocation logged a Yjs duplicate-import warning; the immediate
   repeat was clean. The inspected Node bundle contained one Yjs implementation.
   No cross-invocation Y.Doc objects are shared. The temporary probe was removed.
-- Local functions were pushed at 06:53:39; subsequent authorization/metadata
-  review changes still require the next coordinated push.
+- Local functions were pushed at 06:53:39; subsequent generation revision-contract changes require the next coordinated push.
 - Live provider generation is unverified: the local Convex backend has no
   configured provider key. Provider tests use synthetic fetch responses at the
   genuine adapter boundary. Remote deployment and browser acceptance are separate.

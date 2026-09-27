@@ -23,6 +23,7 @@ async function setup() {
   });
   const args = {
     templateId,
+    expectedTemplateRevision: 0,
     projectId: base.projectId,
     requestId: "request-0001",
     title: "Delivery brief",
@@ -230,4 +231,23 @@ test("revoked source candidates leave a usable cursor to later authorized jobs",
     paginationOpts: { numItems: 1, cursor: first.continueCursor },
   });
   expect(next.page.map((job) => job._id)).toEqual([accessible]);
+});
+
+test("a changed template rejects unseen instructions while a completed request remains idempotent", async () => {
+  const { owner, args, templateId, workspaceId } = await setup();
+  const { jobId } = await owner.mutation(internal.automation.jobs.begin, args);
+  await owner.mutation(api.automation.templates.save, {
+    workspaceId,
+    templateId,
+    expectedRevision: 0,
+    ...template,
+    contentTemplate: "New instructions",
+  });
+  expect((await owner.mutation(internal.automation.jobs.begin, args)).jobId).toBe(jobId);
+  await expect(
+    owner.mutation(internal.automation.jobs.begin, { ...args, requestId: "request-changed" })
+  ).rejects.toThrow("Template changed");
+  expect((await owner.query(api.automation.jobs.get, { jobId })).template.contentTemplate).toBe(
+    template.contentTemplate
+  );
 });

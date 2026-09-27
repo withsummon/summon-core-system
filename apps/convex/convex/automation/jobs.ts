@@ -8,6 +8,7 @@ import { text, pageBudget } from "../commercial/validation";
 import { canReadJob, requireJob } from "./access";
 export const runFields = {
   templateId: v.id("automationTemplates"),
+  expectedTemplateRevision: v.number(),
   projectId: v.id("projects"),
   requestId: v.string(),
   title: v.string(),
@@ -43,9 +44,12 @@ export const begin = internalMutation({
         throw new ConvexError("Request identifier was used for different generation inputs.");
       return { jobId: previous._id, generate: false, context: "", instructions: "" };
     }
+    const { expectedTemplateRevision, ...jobArgs } = args;
+    if (expectedTemplateRevision !== template.revision)
+      throw new ConvexError("Template changed. Reopen it before generating a preview.");
     const { name, type, description, contentTemplate, variables, isActive } = template;
     const jobId = await ctx.db.insert("automationJobs", {
-      ...args,
+      ...jobArgs,
       title,
       context: selection,
       workspaceId: project.workspaceId,
