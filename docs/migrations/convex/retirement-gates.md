@@ -2,6 +2,8 @@
 
 Status: **not ready to retire Django or its Postgres service**.
 
+The [current parity checklist](current-parity-checklist.md) and its [registered-surface ledger](registered-surface-2026-09-28.tsv) supersede older source inventories for route coverage. They keep every registered family open until served-browser, external API and job acceptance is recorded.
+
 ## Confirmed product scope
 
 The user confirmed on 2026-09-27 that **every inherited Plane feature must be retained**. Retirement therefore requires parity for inherited cycles, modules, inbox, imports, administration, public sharing and all other registered product flows, as well as Summon modules. Native slice receipts that explicitly omit inherited behavior are progress records, not permission to remove that behavior. Empty production data does not remove this feature-parity requirement.
