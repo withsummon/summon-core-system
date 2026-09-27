@@ -58,7 +58,7 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
     issue: { getIssueById },
     peekIssue,
   } = useIssueDetail();
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
+  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
   // derived values
   const issue = issueId ? getIssueById(issueId) : undefined;
 
@@ -67,7 +67,7 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
     if (isSubmitting === "submitted") {
       setShowAlert(false);
       timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting") setShowAlert(true);
+    } else if (isSubmitting === "submitting" || isSubmitting === "failed") setShowAlert(true);
     return () => clearTimeout(timer);
   }, [isSubmitting, setShowAlert, setIsSubmitting]);
 

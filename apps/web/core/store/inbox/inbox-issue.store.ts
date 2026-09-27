@@ -227,11 +227,12 @@ export class InboxIssueStore implements IInboxIssueStore {
       await this.inboxIssueService.updateIssue(this.workspaceSlug, this.projectId, this.issue.id, issue);
       // fetching activity
       this.fetchIssueActivity();
-    } catch {
+    } catch (error) {
       Object.keys(issue).forEach((key) => {
         const issueKey = key as keyof TIssue;
         set(this.issue, issueKey, inboxIssue[issueKey]);
       });
+      throw error;
     }
   };
 
