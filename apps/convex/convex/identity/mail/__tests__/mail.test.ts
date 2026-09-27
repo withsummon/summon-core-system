@@ -1,3 +1,4 @@
+import { createOrUpdateUser } from "../../user_owner";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
 import { convexTest } from "convex-test";
@@ -18,6 +19,7 @@ function fixture() {
     ...modules,
     [`${prefix}auth.ts`]: async () =>
       convexAuth({
+        callbacks: { createOrUpdateUser },
         providers: [
           Password({ reset: verificationEmail("reset"), verify: verificationEmail("verify") }),
           verificationEmail("magic"),
@@ -133,8 +135,11 @@ test("signup requires email code and canonical verification is single use", asyn
       })
     ).tokens
   ).toBeNull();
+  expect(await t.run((ctx) => ctx.db.query("users").first())).toMatchObject({ email });
+  expect((await t.run((ctx) => ctx.db.query("users").first()))?.emailVerificationTime).toBeUndefined();
   const args = { provider: "password", params: { flow: "email-verification", email, code: code() } };
   expect((await t.action(api.auth.signIn, args)).tokens).not.toBeNull();
+  expect((await t.run((ctx) => ctx.db.query("users").first()))?.emailVerificationTime).toBeTypeOf("number");
   await expect(t.action(api.auth.signIn, args)).rejects.toThrow();
 });
 test("unconfigured mail is unavailable and never calls transport", () => {
