@@ -37,8 +37,8 @@ test("personal avatar survives zero memberships, shares profile CAS, replaces an
   await f.owner.mutation(api.identity.avatar.restore, { assetId: first.assetId, expectedRevision: 2 });
   await f.owner.mutation(api.identity.avatar.remove, { assetId: first.assetId, expectedRevision: 3 });
   expect((await f.owner.query(api.identity.avatar.get, {})).avatar).toBeNull();
-  // @ts-expect-error Deliberately malformed public input exercises runtime validation.
   await expect(
+    // @ts-expect-error Deliberately malformed public input exercises runtime validation.
     f.owner.mutation(api.assets.index.prepare, { ...file, workspaceId: null, projectId: null, documentId: null })
   ).rejects.toThrow();
 });
