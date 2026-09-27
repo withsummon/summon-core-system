@@ -42,3 +42,13 @@ Candidates: existing Django owner with bounded query; Convex reactive bounded qu
 - [Expanded checkpoint benchmarks](benchmarks/ba52bcfca9/README.md) record the immutable production build, three API trials, Chrome timings and native task-route transport; [endpoint parity](endpoint-parity.md) names the remaining contracts. At that checkpoint, 206 backend tests, 30 typecheck, 21 lint, 21 format and 16 build tasks passed.
 - [Local restore rehearsal](backup-restore.md) verifies exact records and stored files in an isolated instance.
 - [Retirement gates](retirement-gates.md) record active legacy consumers and the conditions for stopping Django/Postgres. The full migration and remote application deployment are not complete.
+
+## Follow-up checkpoint: `10da39c21e`
+
+This checkpoint adds resource-to-credential association with redacted inaccessible metadata, private assistant text attachments, supplied meeting transcripts and canonical summary execution, and the shared editor replacement fix. Receipts: [resource credentials](resource-credentials.md), [assistant attachments](assistant-attachments.md), [meeting summary](../../../apps/convex/convex/meetings/summary/MIGRATION.md), and [compact workspace layout](frontend-slice.md). Actual provider generation remains unverified because no LLM provider is configured.
+
+Verification: 236 backend behavior tests in 28 files passed; 21 formatting, 21 lint and 16 production build tasks passed. The full 30-task type gate passed before the final shared document converter fix; focused backend/editor/web native checks passed after it. These are local checks, not remote deployment evidence.
+
+The immutable local web build at `http://127.0.0.1:3014/core` was built with `VITE_APP_VERSION=10da39c21e`. It contains 1,231 files; its served index SHA-256 is `c746e95023dcbe813eb8feb3f3036ceafca31c2689791e6d4346570c0aa7a632` (HTTP 200, exact match to the copied build). Chrome authenticated with the synthetic QA account and loaded the canonical transcript document with its correct title and replacement-only content; no error-level console entries were observed. This build preserves the preexisting editor/UI dependency additions. It is not the earlier `ba52bcfca9` benchmark artifact, and no new performance delta is claimed.
+
+Legacy comment deletion is soft by default; native hard deletion was identified as an unresolved recovery gap. Cycles, full inherited Plane scope, public API consumers, identity parity and remote DNS/TLS remain retirement gates. Django/Postgres remain available.

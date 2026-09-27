@@ -121,3 +121,14 @@ The following 48 patterns are read from `plane/summon/urls.py`; append them to `
 | `workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/`                                         | `CredentialGrantView.as_view()`           |
 | `workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/<uuid:pk>/`                               | `CredentialGrantDetailView.as_view()`     |
 | `workspaces/<str:slug>/credentials/<uuid:credential_id>/audit/`                                          | `CredentialAuditView.as_view()`           |
+
+## Addendum after inventory: `10da39c21e`
+
+The tables above describe `ba52bcfca9`. Subsequent slices close these bounded gaps:
+
+- Resources can associate an existing authorized credential; inaccessible credential metadata is redacted while the resource remains independently editable. Explicit detachment is supported.
+- Assistant conversations accept private TXT/MD/CSV attachments with validated upload/extraction, bounded context, recovery and idempotent message acceptance. PDF/Office/image extraction and real provider execution remain open.
+- Meetings accept supplied transcript text, preserve it in the canonical private document, and execute a structured summary adapter with provenance, authorization and revision checks. Live provider output and recording transcription remain unverified/unimplemented respectively; no automatic task creation is introduced.
+- Existing canonical editor content is replaced with Yjs deletion history preserved, preventing old/new content union in connected editors; generated document titles agree with server metadata.
+
+These changes do not remove the legacy route registrations or establish external REST compatibility. See the current [acceptance record](README.md) for verification boundaries.
