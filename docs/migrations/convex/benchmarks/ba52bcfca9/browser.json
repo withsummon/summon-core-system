@@ -1,0 +1,34 @@
+{
+  "candidateArtifact": "ba52bcfca92f025bc2f6acbb901ff72813cbbf2c",
+  "origin": "http://127.0.0.1:3013",
+  "fixture": "migration-bench-1790460237 / BENCH, existing 500 synthetic tasks; different isolated fixture from API trials",
+  "warmMethod": "Capture project select change, then two requestAnimationFrame callbacks after 50 task status controls exist. Ten runs after one unmeasured initial load. Not identical to the earlier click-based first-slice timing.",
+  "warmSamplesMs": [31.8, 40.9, 45.7, 49.5, 39.5, 42.4, 38.7, 45, 43.3, 40],
+  "coldMethod": "Three HTTP-cache-disabled reloads of authenticated project route. Browser session and backend caches remain warm. Paint is not task readiness; each completed page separately verified to contain 50 rows.",
+  "coldSamples": [
+    {
+      "fcpMs": 136,
+      "resources": 43,
+      "transferBytes": 377725,
+      "taskRows": 50
+    },
+    {
+      "fcpMs": 124,
+      "resources": 43,
+      "transferBytes": 377725,
+      "taskRows": 50
+    },
+    {
+      "fcpMs": 140,
+      "resources": 46,
+      "transferBytes": 383872,
+      "taskRows": 50
+    }
+  ],
+  "limitations": [
+    "Local synthetic candidate only; not full legacy UI comparison, RUM, production capacity or SLO.",
+    "An invalid selector probe was discarded before samples; page reloaded to remove it.",
+    "Preload readiness instrumentation was unsupported; no protected-content readiness timing is claimed.",
+    "HTTP cache override reset and temporary listener removed by reload."
+  ]
+}
