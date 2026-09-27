@@ -1,3 +1,4 @@
+import { changeAttachmentState } from "./attachment_lifecycle";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
@@ -84,22 +85,8 @@ export const change = mutation({
     if (!asset || asset.taskId !== args.taskId) throw new ConvexError("Task attachment not found.");
     if (!canManageAttachment(asset, permission))
       throw new ConvexError("Only the uploader or an administrator can change this attachment.");
-    const revision = attachmentRevision(asset);
-    if (args.expectedRevision !== revision) throw new ConvexError("Attachment changed. Refresh before trying again.");
-    const expectedStatus = args.deleted ? "ready" : "deleted";
-    if (asset.status !== expectedStatus) throw new ConvexError("Attachment is not in the expected state.");
-    if (!args.deleted) await requireRestorable(ctx, asset);
-    await ctx.db.patch(asset._id, {
-      status: args.deleted ? "deleted" : "ready",
-      expiresAt: args.deleted ? Date.now() + 7 * 24 * 60 * 60 * 1000 : asset.expiresAt,
-      attachmentRevision: revision + 1,
-    });
+    await changeAttachmentState(ctx, asset, args.expectedRevision, args.deleted);
     await taskChanged(ctx, permission.task, permission.user._id);
     return asset._id;
   },
 });
-async function requireRestorable(ctx: QueryCtx, asset: Doc<"assets">) {
-  if (asset.expiresAt <= Date.now()) throw new ConvexError("The attachment restore period has expired.");
-  if (!asset.storageId || !(await ctx.db.system.get(asset.storageId)))
-    throw new ConvexError("Attachment bytes are missing.");
-}

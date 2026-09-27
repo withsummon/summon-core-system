@@ -2,6 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const assetScope = {
+  draftId: v.optional(v.id("taskDrafts")),
   taskId: v.optional(v.id("tasks")),
   conversationId: v.optional(v.id("assistantConversations")),
   workspaceId: v.id("workspaces"),
@@ -28,6 +29,8 @@ export const assetTables = {
     ),
     expiresAt: v.number(),
   })
+    .index("by_draft", ["draftId"])
+    .index("by_draft_status_expiry", ["draftId", "status", "expiresAt"])
     .index("by_storage", ["storageId"])
     .index("by_task_status", ["taskId", "status"])
     .index("by_status_expiry", ["status", "expiresAt"]),

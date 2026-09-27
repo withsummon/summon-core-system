@@ -1,3 +1,5 @@
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { cyclePhase } from "./dates";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -13,35 +15,7 @@ export const assign = mutation({
     expectedTaskUpdatedAt: v.number(),
     expectedCycleUpdatedAt: v.number(),
   },
-  handler: async (ctx, args) => {
-    const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
-    requireOpenCycle(cycle);
-    requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
-    const task = await requireTask(ctx, args.taskId);
-    if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
-    const previous = await ctx.db
-      .query("cycleTasks")
-      .withIndex("by_task", (q) => q.eq("taskId", task._id))
-      .unique();
-    if (previous?.cycleId === cycle._id) return;
-    requireTaskRevision(task, args.expectedTaskUpdatedAt);
-    if (previous) {
-      const source = await ctx.db.get(previous.cycleId);
-      if (source && !source.deleted) requireOpenCycle(source);
-    }
-    if (
-      (
-        await ctx.db
-          .query("cycleTasks")
-          .withIndex("by_cycle", (q) => q.eq("cycleId", cycle._id))
-          .take(100)
-      ).length >= 100
-    )
-      throw new ConvexError("This cycle has reached its 100 task limit.");
-    if (previous) await ctx.db.patch(previous._id, { cycleId: cycle._id });
-    else await ctx.db.insert("cycleTasks", { cycleId: cycle._id, taskId: task._id });
-    await taskChanged(ctx, task, user._id);
-  },
+  handler: assignCycleTask,
 });
 export const remove = mutation({
   args: {
@@ -119,3 +93,36 @@ export const list = query({
     };
   },
 });
+
+export async function assignCycleTask(
+  ctx: MutationCtx,
+  args: { cycleId: Id<"cycles">; taskId: Id<"tasks">; expectedTaskUpdatedAt: number; expectedCycleUpdatedAt: number }
+) {
+  const { cycle, user } = await requireCycle(ctx, args.cycleId, true);
+  requireOpenCycle(cycle);
+  requireCycleRevision(cycle, args.expectedCycleUpdatedAt);
+  const task = await requireTask(ctx, args.taskId);
+  if (task.projectId !== cycle.projectId) throw new ConvexError("Task belongs to another project.");
+  const previous = await ctx.db
+    .query("cycleTasks")
+    .withIndex("by_task", (q) => q.eq("taskId", task._id))
+    .unique();
+  if (previous?.cycleId === cycle._id) return;
+  requireTaskRevision(task, args.expectedTaskUpdatedAt);
+  if (previous) {
+    const source = await ctx.db.get(previous.cycleId);
+    if (source && !source.deleted) requireOpenCycle(source);
+  }
+  if (
+    (
+      await ctx.db
+        .query("cycleTasks")
+        .withIndex("by_cycle", (q) => q.eq("cycleId", cycle._id))
+        .take(100)
+    ).length >= 100
+  )
+    throw new ConvexError("This cycle has reached its 100 task limit.");
+  if (previous) await ctx.db.patch(previous._id, { cycleId: cycle._id });
+  else await ctx.db.insert("cycleTasks", { cycleId: cycle._id, taskId: task._id });
+  await taskChanged(ctx, task, user._id);
+}

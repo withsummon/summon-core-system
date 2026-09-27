@@ -80,7 +80,12 @@ export const taskTables = {
     lastSavedAt: v.number(),
     revision: v.number(),
   }).index("by_task", ["taskId"]),
-  taskDescriptions: defineTable({ taskId: v.id("tasks"), html: v.string() }).index("by_task", ["taskId"]),
+  taskDescriptions: defineTable({
+    taskId: v.id("tasks"),
+    html: v.string(),
+    descriptionJson: v.optional(v.any()),
+    descriptionBinary: v.optional(v.bytes()),
+  }).index("by_task", ["taskId"]),
   taskParents: defineTable({ projectId: v.id("projects"), childId: v.id("tasks"), parentId: v.id("tasks") })
     .index("by_child", ["childId"])
     .index("by_parent", ["parentId"]),

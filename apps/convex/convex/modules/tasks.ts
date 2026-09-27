@@ -1,3 +1,5 @@
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
@@ -14,23 +16,7 @@ export const set = mutation({
     expectedTaskUpdatedAt: v.number(),
     expectedModuleUpdatedAt: v.number(),
   },
-  handler: async (ctx, args) => {
-    const { module, user } = await requireModule(ctx, args.moduleId, true);
-    requireEditableModule(module);
-    requireModuleRevision(module, args.expectedModuleUpdatedAt);
-    const task = args.assigned ? await requireTask(ctx, args.taskId) : await ctx.db.get(args.taskId);
-    if (!task) throw new ConvexError("Task not found.");
-    if (task.projectId !== module.projectId) throw new ConvexError("Task belongs to another project.");
-    const previous = await ctx.db
-      .query("moduleTasks")
-      .withIndex("by_module_task", (q) => q.eq("moduleId", module._id).eq("taskId", task._id))
-      .unique();
-    if (Boolean(previous) === args.assigned) return;
-    requireTaskRevision(task, args.expectedTaskUpdatedAt);
-    if (args.assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
-    else if (previous) await ctx.db.delete(previous._id);
-    await taskChanged(ctx, task, user._id);
-  },
+  handler: setModuleTask,
 });
 export const list = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
@@ -79,3 +65,30 @@ export const forTask = query({
     };
   },
 });
+
+export async function setModuleTask(
+  ctx: MutationCtx,
+  args: {
+    moduleId: Id<"modules">;
+    taskId: Id<"tasks">;
+    assigned: boolean;
+    expectedTaskUpdatedAt: number;
+    expectedModuleUpdatedAt: number;
+  }
+) {
+  const { module, user } = await requireModule(ctx, args.moduleId, true);
+  requireEditableModule(module);
+  requireModuleRevision(module, args.expectedModuleUpdatedAt);
+  const task = args.assigned ? await requireTask(ctx, args.taskId) : await ctx.db.get(args.taskId);
+  if (!task) throw new ConvexError("Task not found.");
+  if (task.projectId !== module.projectId) throw new ConvexError("Task belongs to another project.");
+  const previous = await ctx.db
+    .query("moduleTasks")
+    .withIndex("by_module_task", (q) => q.eq("moduleId", module._id).eq("taskId", task._id))
+    .unique();
+  if (Boolean(previous) === args.assigned) return;
+  requireTaskRevision(task, args.expectedTaskUpdatedAt);
+  if (args.assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
+  else if (previous) await ctx.db.delete(previous._id);
+  await taskChanged(ctx, task, user._id);
+}

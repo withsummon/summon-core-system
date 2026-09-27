@@ -16,7 +16,8 @@ export async function writeDescription(
     .unique();
   const unchanged = (rich?.html ?? plainDescriptionHtml(task.description)) === content.html;
   if (!creating && unchanged) return;
-  if (rich) await ctx.db.patch(rich._id, { html: content.html });
+  if (rich)
+    await ctx.db.patch(rich._id, { html: content.html, descriptionJson: undefined, descriptionBinary: undefined });
   else await ctx.db.insert("taskDescriptions", { taskId: task._id, html: content.html });
   await ctx.db.patch(task._id, { description: content.description });
   const latest = await ctx.db
@@ -29,4 +30,23 @@ export async function writeDescription(
   if (latest && latest.actorId === actorId && now - latest.lastSavedAt <= 600000) {
     await ctx.db.patch(latest._id, { ...data, revision: latest.revision + 1 });
   } else await ctx.db.insert("taskDescriptionVersions", { taskId: task._id, actorId, ...data, revision: 0 });
+}
+
+// Opaque imported editor payloads are preserved only alongside their original HTML.
+// Normal HTML/plain writes above clear them, since no native roundtrip converter owns these formats.
+export async function preserveDescriptionRepresentations(
+  ctx: MutationCtx,
+  taskId: Id<"tasks">,
+  descriptionJson: unknown,
+  descriptionBinary: ArrayBuffer | null
+) {
+  const rich = await ctx.db
+    .query("taskDescriptions")
+    .withIndex("by_task", (q) => q.eq("taskId", taskId))
+    .unique();
+  if (!rich) throw new Error("Task description must exist before preserving editor representations.");
+  await ctx.db.patch(rich._id, {
+    descriptionJson: descriptionJson ?? undefined,
+    descriptionBinary: descriptionBinary ?? undefined,
+  });
 }

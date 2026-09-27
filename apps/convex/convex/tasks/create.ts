@@ -1,3 +1,10 @@
+import { ConvexError } from "convex/values";
+import type { Infer } from "convex/values";
+import { v } from "convex/values";
+import { status, taskProperties } from "./schema";
+import { requireProject } from "../identity/access";
+import { requireParent } from "./hierarchy";
+import { initialProperties, validateProperties, parseTaskText } from "./properties";
 import { writeDescription } from "./description_content";
 import { plainDescriptionHtml } from "./rich_content";
 import type { MutationCtx } from "../_generated/server";
@@ -63,4 +70,40 @@ export async function createTask(
     status: nextStatus,
   });
   return taskId;
+}
+
+const propertiesValidator = v.object(taskProperties);
+export async function createPreparedTask(
+  ctx: MutationCtx,
+  args: {
+    projectId: Id<"projects">;
+    title: string;
+    description?: string;
+    useDefaultState?: boolean;
+    status?: Infer<typeof status>;
+    properties?: Infer<typeof propertiesValidator>;
+    parent?: { taskId: Id<"tasks">; expectedUpdatedAt: number };
+  },
+  html?: string
+) {
+  const { user, project } = await requireProject(ctx, args.projectId, true);
+  const { title, description } = parseTaskText(args.title, args.description ?? "");
+  const parent = args.parent
+    ? await requireParent(ctx, project._id, args.parent.taskId, args.parent.expectedUpdatedAt)
+    : null;
+  const defaultState = await ctx.db
+    .query("taskStates")
+    .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
+    .unique();
+  const { data, state } = await validateProperties(
+    ctx,
+    project,
+    args.properties
+      ? { ...args.properties, stateId: args.useDefaultState ? (defaultState?._id ?? null) : args.properties.stateId }
+      : { ...initialProperties, stateId: defaultState?._id ?? null }
+  );
+  if (state && args.status && state.status !== args.status)
+    throw new ConvexError("Task status must match its custom state.");
+  const nextStatus = state?.status ?? args.status ?? "todo";
+  return createTask(ctx, project, user._id, { title, description, ...data, status: nextStatus }, parent, html);
 }
