@@ -59,6 +59,7 @@ function DescriptionForm({
       className="space-y-3"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (uploading || pending) return;
         setPending(true);
         setError("");
         try {
