@@ -380,7 +380,12 @@ test("meeting visibility does not grant access to a summary document after its A
   await owner.mutation(api.projects.index.grantMember, { projectId, userId: otherId, role: "member" });
   const other = t.withIdentity({ subject: otherId });
   expect(await other.query(api.documents.index.get, { documentId })).toMatchObject({ name: "Minutes" });
-  await owner.mutation(api.documents.index.update, { documentId, ...metadata, access: "private" });
+  await owner.mutation(api.documents.index.update, {
+    expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
+    documentId,
+    ...metadata,
+    access: "private",
+  });
   const meeting = await other.query(api.meetings.index.get, { workspaceId, meetingId });
   expect(meeting).toMatchObject({ summaryDocumentId: documentId });
   expect(meeting).not.toHaveProperty("summaryDocument");

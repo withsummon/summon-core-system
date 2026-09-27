@@ -40,7 +40,8 @@ export function MetadataForm({
   const create = useMutation(api.documents.index.create);
   const update = useMutation(api.documents.index.update);
   const projects = useQuery(api.projects.index.list, { workspaceId });
-  const initial = document ?? newDocument;
+  const [initialDocument] = useState(document);
+  const initial = initialDocument ?? newDocument;
   const [visibility, setVisibility] = useState(
     initial.access === "private" ? "private" : initial.isGlobal ? "workspace" : "projects"
   );
@@ -76,9 +77,13 @@ export function MetadataForm({
             externalId: initial.externalId,
             externalSource: initial.externalSource,
           };
-          if (document) {
-            await update({ documentId: document._id, ...metadata });
-            onDone(document._id);
+          if (initialDocument) {
+            await update({
+              documentId: initialDocument._id,
+              expectedUpdatedAt: initialDocument.updatedAt,
+              ...metadata,
+            });
+            onDone(initialDocument._id);
           } else {
             const id = await create({ workspaceId, ...metadata });
             onDone(id);

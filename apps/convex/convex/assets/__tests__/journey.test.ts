@@ -125,6 +125,7 @@ describe("Authorized asset lifecycle", () => {
     ).toMatchObject({ id: ticket.assetId });
     await owner.mutation(api.assets.index.remove, { assetId: ticket.assetId });
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: true,
       archived: false,
@@ -136,6 +137,7 @@ describe("Authorized asset lifecycle", () => {
     );
     await expect(owner.action(api.assets.upload.duplicate, { documentId, assetId: copy })).rejects.toThrow("read-only");
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: false,
       archived: false,

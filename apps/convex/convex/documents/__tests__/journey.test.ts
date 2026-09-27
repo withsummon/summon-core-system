@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 
@@ -66,6 +66,7 @@ describe("document metadata and immutable binary revisions", () => {
       canWrite: true,
     });
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: true,
       archived: false,
@@ -143,6 +144,7 @@ describe("document metadata and immutable binary revisions", () => {
       reader.mutation(api.documents.index.saveSnapshot, { documentId, expectedRevision: 0, ...snapshot })
     ).rejects.toThrow("access");
     await owner.mutation(api.documents.index.update, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       projectIds: [projectId],
       ...metadata,
@@ -162,6 +164,7 @@ describe("document metadata and immutable binary revisions", () => {
       ...metadata,
     });
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: true,
       archived: false,
@@ -171,15 +174,22 @@ describe("document metadata and immutable binary revisions", () => {
       owner.mutation(api.documents.index.saveSnapshot, { documentId, expectedRevision: 0, ...snapshot })
     ).rejects.toThrow("locked");
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: false,
       archived: true,
       deleted: false,
     });
     await expect(
-      owner.mutation(api.documents.index.update, { documentId, projectIds: [projectId], ...metadata })
+      owner.mutation(api.documents.index.update, {
+        expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
+        documentId,
+        projectIds: [projectId],
+        ...metadata,
+      })
     ).rejects.toThrow("archived");
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: false,
       archived: false,
@@ -187,6 +197,7 @@ describe("document metadata and immutable binary revisions", () => {
     });
     await owner.mutation(api.documents.index.saveSnapshot, { documentId, expectedRevision: 0, ...snapshot });
     await owner.mutation(api.documents.index.setLifecycle, {
+      expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
       documentId,
       isLocked: false,
       archived: false,
@@ -215,5 +226,144 @@ describe("document metadata and immutable binary revisions", () => {
     ).rejects.toThrow("size");
     expect(await owner.query(api.documents.index.get, { documentId })).toMatchObject({ revision: 0 });
     expect(await owner.query(api.documents.index.snapshot, { documentId })).toBeNull();
+  });
+});
+
+describe("document settings preserve concurrent changes", () => {
+  test("a stale metadata form cannot overwrite newer visibility or editor title", async () => {
+    const { owner, workspaceId, projectId } = await workspaceJourney();
+    const documentId = await owner.mutation(api.documents.index.create, {
+      workspaceId,
+      projectIds: [projectId],
+      ...metadata,
+    });
+    const opening = await owner.query(api.documents.index.get, { documentId });
+    await owner.mutation(api.documents.index.update, {
+      documentId,
+      expectedUpdatedAt: opening.updatedAt,
+      projectIds: [projectId],
+      ...metadata,
+      access: "private",
+    });
+    await expect(
+      owner.mutation(api.documents.index.update, {
+        documentId,
+        expectedUpdatedAt: opening.updatedAt,
+        projectIds: [projectId],
+        ...metadata,
+        category: "stale draft",
+      })
+    ).rejects.toThrow("changed while you were editing");
+    const afterVisibility = await owner.query(api.documents.index.get, { documentId });
+    await owner.mutation(api.documents.index.saveSnapshot, {
+      documentId,
+      expectedRevision: 0,
+      name: "Live editor title",
+      ...snapshot,
+    });
+    await expect(
+      owner.mutation(api.documents.index.update, {
+        documentId,
+        expectedUpdatedAt: afterVisibility.updatedAt,
+        projectIds: [projectId],
+        ...metadata,
+        access: "private",
+      })
+    ).rejects.toThrow("changed while you were editing");
+    expect(await owner.query(api.documents.index.get, { documentId })).toMatchObject({
+      access: "private",
+      name: "Live editor title",
+      category: metadata.category,
+      revision: 1,
+    });
+  });
+  test("a stale lifecycle action cannot undo a newer lock or archive", async () => {
+    const { owner, workspaceId, projectId } = await workspaceJourney();
+    const documentId = await owner.mutation(api.documents.index.create, {
+      workspaceId,
+      projectIds: [projectId],
+      ...metadata,
+    });
+    const opening = await owner.query(api.documents.index.get, { documentId });
+    await owner.mutation(api.documents.index.setLifecycle, {
+      documentId,
+      expectedUpdatedAt: opening.updatedAt,
+      isLocked: true,
+      archived: false,
+      deleted: false,
+    });
+    await expect(
+      owner.mutation(api.documents.index.setLifecycle, {
+        documentId,
+        expectedUpdatedAt: opening.updatedAt,
+        isLocked: false,
+        archived: true,
+        deleted: false,
+      })
+    ).rejects.toThrow("changed while you were editing");
+    const locked = await owner.query(api.documents.index.get, { documentId });
+    await owner.mutation(api.documents.index.setLifecycle, {
+      documentId,
+      expectedUpdatedAt: locked.updatedAt,
+      isLocked: true,
+      archived: true,
+      deleted: false,
+    });
+    await expect(
+      owner.mutation(api.documents.index.setLifecycle, {
+        documentId,
+        expectedUpdatedAt: locked.updatedAt,
+        isLocked: false,
+        archived: false,
+        deleted: true,
+      })
+    ).rejects.toThrow("changed while you were editing");
+    expect(await owner.query(api.documents.index.get, { documentId })).toMatchObject({
+      isLocked: true,
+      archived: true,
+      deleted: false,
+    });
+  });
+  test("every document writer advances the settings version even within one millisecond", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
+    try {
+      const { owner, workspaceId, projectId } = await workspaceJourney();
+      const documentId = await owner.mutation(api.documents.index.create, {
+        workspaceId,
+        projectIds: [projectId],
+        ...metadata,
+      });
+      const opening = await owner.query(api.documents.index.get, { documentId });
+      await owner.mutation(api.documents.index.update, {
+        documentId,
+        expectedUpdatedAt: opening.updatedAt,
+        projectIds: [projectId],
+        ...metadata,
+        category: "updated",
+      });
+      const updated = await owner.query(api.documents.index.get, { documentId });
+      expect(updated.updatedAt).toBe(opening.updatedAt + 1);
+      await owner.mutation(api.documents.index.saveSnapshot, { documentId, expectedRevision: 0, ...snapshot });
+      const saved = await owner.query(api.documents.index.get, { documentId });
+      expect(saved.updatedAt).toBe(updated.updatedAt + 1);
+      await owner.mutation(api.documents.index.setLifecycle, {
+        documentId,
+        expectedUpdatedAt: saved.updatedAt,
+        isLocked: true,
+        archived: false,
+        deleted: false,
+      });
+      expect((await owner.query(api.documents.index.get, { documentId })).updatedAt).toBe(saved.updatedAt + 1);
+      await expect(
+        owner.mutation(api.documents.index.update, {
+          documentId,
+          expectedUpdatedAt: opening.updatedAt,
+          projectIds: [projectId],
+          ...metadata,
+        })
+      ).rejects.toThrow("changed while you were editing");
+    } finally {
+      clock.mockRestore();
+    }
   });
 });

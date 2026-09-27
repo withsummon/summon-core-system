@@ -10,6 +10,7 @@ import { Input } from "@plane/propel/input";
 import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
 import { MetadataForm } from "./metadata-form";
 import { DocumentEditor } from "./editor";
+import { DocumentTrash } from "./trash";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
   const { results, status, loadMore } = usePaginatedQuery(
@@ -27,6 +28,7 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
       return next;
     });
   const [creating, setCreating] = useState(false);
+  const [trash, setTrash] = useState(false);
   const [search, setSearch] = useState("");
   if (selected)
     return (
@@ -45,53 +47,73 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
           <p className="text-sm text-secondary">{workspace.name}</p>
           <h1 className="text-2xl font-semibold">Documents & knowledge</h1>
         </div>
-        {workspace.membershipRole !== "guest" && <Button onClick={() => setCreating(true)}>New document</Button>}
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            aria-pressed={trash}
+            onClick={() => {
+              setTrash(!trash);
+              setCreating(false);
+            }}
+          >
+            {trash ? "Back to documents" : "Trash"}
+          </Button>
+          {!trash && workspace.membershipRole !== "guest" && (
+            <Button onClick={() => setCreating(true)}>New document</Button>
+          )}
+        </div>
       </header>
-      {creating && workspace.membershipRole !== "guest" && (
-        <MetadataForm
-          workspaceId={workspace._id}
-          document={null}
-          canManage
-          onDone={(id) => {
-            setCreating(false);
-            setSelected(id);
-          }}
-          onCancel={() => setCreating(false)}
-        />
-      )}
-      <Input
-        aria-label="Filter loaded documents"
-        placeholder="Filter loaded documents"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-      />
-      {status === "LoadingFirstPage" && <p role="status">Loading documents…</p>}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {results
-          .filter((document) => document.name.toLowerCase().includes(search.toLowerCase()))
-          .map((document) => (
-            <button
-              className={`${cardClass} hover:border-accent-primary min-w-0 text-left`}
-              key={document._id}
-              onClick={() => setSelected(document._id)}
-            >
-              <p className="text-xs text-secondary capitalize">{document.category}</p>
-              <h2 className="mt-2 font-semibold break-words">{document.name || "Untitled"}</h2>
-              <p className="text-xs mt-3 text-secondary">
-                {document.access === "private" ? "Private" : document.isGlobal ? "Workspace" : "Project document"}
-              </p>
-              {document.isLocked && <p className="text-xs mt-2 text-secondary">Locked</p>}
-              {document.archived && <p className="text-xs mt-2 text-secondary">Archived</p>}
-            </button>
-          ))}
-      </div>
-      {status === "Exhausted" && !results.length && (
-        <p className="text-sm text-secondary">No documents are visible to you yet.</p>
-      )}
-      {status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => loadMore(50)}>
-          Load more documents
-        </Button>
+      {trash ? (
+        <DocumentTrash workspaceId={workspace._id} canRestore={workspace.membershipRole !== "guest"} />
+      ) : (
+        <>
+          {creating && workspace.membershipRole !== "guest" && (
+            <MetadataForm
+              workspaceId={workspace._id}
+              document={null}
+              canManage
+              onDone={(id) => {
+                setCreating(false);
+                setSelected(id);
+              }}
+              onCancel={() => setCreating(false)}
+            />
+          )}
+          <Input
+            aria-label="Filter loaded documents"
+            placeholder="Filter loaded documents"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          {status === "LoadingFirstPage" && <p role="status">Loading documents…</p>}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {results
+              .filter((document) => document.name.toLowerCase().includes(search.toLowerCase()))
+              .map((document) => (
+                <button
+                  className={`${cardClass} hover:border-accent-primary min-w-0 text-left`}
+                  key={document._id}
+                  onClick={() => setSelected(document._id)}
+                >
+                  <p className="text-xs text-secondary capitalize">{document.category}</p>
+                  <h2 className="mt-2 font-semibold break-words">{document.name || "Untitled"}</h2>
+                  <p className="text-xs mt-3 text-secondary">
+                    {document.access === "private" ? "Private" : document.isGlobal ? "Workspace" : "Project document"}
+                  </p>
+                  {document.isLocked && <p className="text-xs mt-2 text-secondary">Locked</p>}
+                  {document.archived && <p className="text-xs mt-2 text-secondary">Archived</p>}
+                </button>
+              ))}
+          </div>
+          {status === "Exhausted" && !results.length && (
+            <p className="text-sm text-secondary">No documents are visible to you yet.</p>
+          )}
+          {status === "CanLoadMore" && (
+            <Button variant="secondary" onClick={() => loadMore(50)}>
+              Load more documents
+            </Button>
+          )}
+        </>
       )}
     </section>
   );
@@ -148,6 +170,7 @@ function Lifecycle({ document, onDeleted }: { document: Doc<"documents">; onDele
     try {
       await lifecycle({
         documentId: document._id,
+        expectedUpdatedAt: document.updatedAt,
         isLocked: document.isLocked,
         archived: document.archived,
         deleted: false,
@@ -174,6 +197,7 @@ function Lifecycle({ document, onDeleted }: { document: Doc<"documents">; onDele
           onDelete={async () => {
             await lifecycle({
               documentId: document._id,
+              expectedUpdatedAt: document.updatedAt,
               isLocked: document.isLocked,
               archived: document.archived,
               deleted: true,

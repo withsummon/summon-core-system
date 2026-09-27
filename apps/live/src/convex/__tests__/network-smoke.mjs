@@ -125,6 +125,7 @@ try {
     "editor title persists atomically with snapshot"
   );
   await owner.client.mutation(api.documents.index.setLifecycle, {
+    expectedUpdatedAt: (await owner.client.query(api.documents.index.get, { documentId })).updatedAt,
     documentId,
     isLocked: true,
     archived: false,
@@ -136,6 +137,7 @@ try {
   const locked = await owner.client.query(api.documents.index.snapshot, { documentId });
   assert.ok(!locked.descriptionHtml.includes("Rejected locked edit"));
   await owner.client.mutation(api.documents.index.setLifecycle, {
+    expectedUpdatedAt: (await owner.client.query(api.documents.index.get, { documentId })).updatedAt,
     documentId,
     isLocked: false,
     archived: false,
