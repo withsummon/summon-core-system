@@ -22,7 +22,7 @@ Project Settings renders `IntakeSettings`: enable submissions and configure gues
 
 Detail uses canonical `canEdit`, `canDecide` and `canRemove`; no second role policy is added. Edit, review and removal capture both intake and task revisions. Peer updates do not replace the saved draft or silently refresh expected versions. Review offers pending, accepted, rejected, snoozed and duplicate. Snooze converts an explicit local date/time to epoch milliseconds; it does not claim automatic status changes after expiry. Duplicate choices come from bounded ordinary project-task pages. Acceptance exposes the same task through an actual project-task link, clearing intake/lifecycle route parameters.
 
-Removal states its consequence before confirmation: an accepted task remains ordinary project work; a nonaccepted task is hidden together with its intake entry. There is no public intake restore UI. This distinction follows the captured submission status and its protected revision.
+Removal states its consequence before confirmation: an accepted task remains ordinary project work; a nonaccepted task is hidden together with its intake entry. Intake Trash now provides creator/admin recovery using canonical restoration capabilities and captured intake/task revisions. This distinction follows the captured submission status and its protected revision.
 
 `tasks/options.ts` separates generated writable status choices from exhaustive read labels. Triage has a read label but is absent from ordinary status selectors. The backend excludes the managed triage state from the state-list producer. Assistant proposal state also derives from its generated writable mutation argument rather than the broader stored task status union.
 
@@ -34,7 +34,7 @@ Scoped lint passed with zero warnings/errors across eleven files. Native intake 
 
 ## Explicit remaining parity
 
-History, attachments, public/PAT submission, import sources, bulk review, automatic snooze wake-up, richer submit-time assignee/label/date controls, full filter/search parity and intake restore remain outside this slice. Legacy routes remain registered. The inspected visual references and passing code checks do not establish rendered visual quality; the primary owns Chrome acceptance and deployment/backfill verification.
+History, attachments, public/PAT submission, import sources, bulk review, automatic snooze wake-up, richer submit-time assignee/label/date controls, full filter/search parity remain outside this slice. Legacy routes remain registered. The inspected visual references and passing code checks do not establish rendered visual quality; the primary owns Chrome acceptance and deployment/backfill verification.
 
 ## Primary checkpoint, 2026-09-27
 
@@ -43,3 +43,11 @@ Primary checks passed: 292 backend tests across 34 files, 19 frontend tests, 30 
 Chrome verified project enablement, title/description submission, acceptance with the same task ID and NSTAR-4 sequence, and the actual ordinary-task deep link with preserved description and default project state. A separate guest session could not see the owner submission in Accepted, could submit its own NSTAR-5, and saw title/description-only edit controls with no review action. Desktop and 390px detail were visually inspected; text and controls fit and document width matched 390px. The temporary viewport override was removed.
 
 Remaining browser checks: peer CAS conflict, snooze/duplicate controls, guest visibility toggle, disablement, and removal consequences. Backend behavioral tests cover these contracts but do not establish their browser acceptance. Remote deployment remains at the earlier committed snapshot; this intake checkpoint was deployed locally only.
+
+## Intake recovery follow-up
+
+The Trash view uses bounded lifecycle pages and normalized detail resolution. Confirmation captures both revisions. The backend owns whether the removal can restore the underlying task; separately changed/deleted tasks surface its blocked reason. Accepted entry recovery explicitly leaves the task archive/deletion state unchanged. Successful recovery returns to the captured intake status list. Native web TS7 and scoped five-file lint pass; rendered recovery acceptance remains pending.
+
+Snooze investigation traced Propel Input through Base UI Field.Control: native onChange is forwarded and merged, with no datetime-specific branch. Primary Chrome verified native ArrowUp after ISO entry emits the date change and persists 2026-09-29 09:30. Tool-only fill did not update React state. No application fix was required. Duplicate review and two-tab decision conflicts passed; guest view-all and intake disablement propagated live.
+
+Primary Chrome follow-through verified duplicate selection to NSTAR-4, snooze at 2026-09-29 09:30 local, and two-tab stale decision rejection while retaining the Accepted draft. Guest view-all exposed the owner submission live; switching it off hid that row, and disabling intake removed Submit work. Settings were restored to enabled with private guest scope. Nonaccepted NSTAR-5 removal appeared in Intake Trash with its original description; restoration returned to Snoozed with the same identifier and deadline. Accepted independently archived/deleted task preservation remains backend-test evidence rather than browser evidence.

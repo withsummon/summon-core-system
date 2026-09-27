@@ -26,6 +26,8 @@ export const intakeTables = {
     createdBy: v.id("users"),
     updatedAt: v.number(),
     deletedAt: v.union(v.number(), v.null()),
+    // Pre-recovery rows have no trustworthy task-deletion receipt. Never infer one.
+    removalTaskRevision: v.optional(v.union(v.number(), v.null())),
   })
     .index("by_task", ["taskId"])
     .index("by_project_status", ["projectId", "status"])

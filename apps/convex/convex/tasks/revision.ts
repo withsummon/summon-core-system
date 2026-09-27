@@ -7,7 +7,8 @@ export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: numbe
     throw new ConvexError("This task changed while you were editing. Reopen the latest task before saving.");
 }
 export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId: Id<"users">) {
-  await ctx.db.patch(task._id, { updatedAt: Math.max(Date.now(), task.updatedAt + 1) });
+  const updatedAt = Math.max(Date.now(), task.updatedAt + 1);
+  await ctx.db.patch(task._id, { updatedAt });
   await recordTaskEvent(ctx, {
     workspaceId: task.workspaceId,
     projectId: task.projectId,
@@ -16,4 +17,5 @@ export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId:
     kind: "updated",
     status: task.status,
   });
+  return updatedAt;
 }

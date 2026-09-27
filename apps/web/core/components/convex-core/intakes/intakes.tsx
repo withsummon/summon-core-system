@@ -8,17 +8,19 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { taskStatusOptions } from "../tasks/options";
 import { TaskRichEditor } from "../tasks/rich-editor";
+import { IntakeTrash } from "./trash";
 import { SubmissionForm } from "./forms";
 import { DecisionForm, RemoveSubmission, intakeOptions } from "./decisions";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 export function Intakes({ project }: { project: Project }) {
   const [params, setParams] = useSearchParams();
   const selected = params.get("intake");
+  const trash = params.get("intakeStatus") === "trash";
   const status = intakeOptions.find((option) => option.value === params.get("intakeStatus"))?.value ?? "pending";
   const config = useQuery(api.intakes.index.getConfig, { projectId: project._id });
   const submissions = usePaginatedQuery(
     api.intakes.index.list,
-    selected ? "skip" : { projectId: project._id, status },
+    selected || trash ? "skip" : { projectId: project._id, status },
     { initialNumItems: 30 }
   );
   const [creating, setCreating] = useState(false);
@@ -32,6 +34,46 @@ export function Intakes({ project }: { project: Project }) {
       return next;
     });
   };
+  if (trash)
+    return (
+      <section className="space-y-4">
+        <Button
+          variant="secondary"
+          onClick={() =>
+            setParams((current) => {
+              const next = new URLSearchParams(current);
+              next.delete("intake");
+              next.delete("intakeStatus");
+              return next;
+            })
+          }
+        >
+          Back to active intake
+        </Button>
+        <IntakeBoundary key={selected ?? "trash"} onBack={() => select(null)}>
+          <IntakeTrash
+            project={project}
+            selected={selected}
+            onSelect={(id) =>
+              setParams((current) => {
+                const next = new URLSearchParams(current);
+                if (id) next.set("intake", id);
+                else next.delete("intake");
+                return next;
+              })
+            }
+            onRestored={(restoredStatus) =>
+              setParams((current) => {
+                const next = new URLSearchParams(current);
+                next.delete("intake");
+                next.set("intakeStatus", restoredStatus);
+                return next;
+              })
+            }
+          />
+        </IntakeBoundary>
+      </section>
+    );
   if (creating)
     return (
       <SubmissionForm
@@ -75,6 +117,18 @@ export function Intakes({ project }: { project: Project }) {
             {option.label}
           </Button>
         ))}
+        <Button
+          variant="secondary"
+          onClick={() =>
+            setParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set("intakeStatus", "trash");
+              return next;
+            })
+          }
+        >
+          Trash
+        </Button>
       </nav>
       <ul className="divide-y divide-subtle-1">
         {submissions.results.map(({ task, intake }) => (
