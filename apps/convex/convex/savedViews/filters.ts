@@ -2,6 +2,7 @@ import { ConvexError, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { date } from "../commercial/validation";
+import { projectReader } from "./scope";
 import { viewFilters } from "./schema";
 type Filters = Infer<typeof viewFilters>;
 function checkRange(range: Filters["startDate"]) {
@@ -12,7 +13,7 @@ function checkRange(range: Filters["startDate"]) {
     throw new ConvexError("Choose at least one date boundary or remove the date filter.");
   if (range.from && range.to && range.from > range.to) throw new ConvexError("Date range is reversed.");
 }
-export async function validateFilters(ctx: QueryCtx, projectId: Id<"projects">, filters: Filters) {
+function validateShape(filters: Filters) {
   const selections = [
     filters.statuses,
     filters.stateIds,
@@ -29,6 +30,10 @@ export async function validateFilters(ctx: QueryCtx, projectId: Id<"projects">, 
     throw new ConvexError("Choose at most 100 referenced filter values.");
   checkRange(filters.startDate);
   checkRange(filters.targetDate);
+  return users;
+}
+export async function validateFilters(ctx: QueryCtx, projectId: Id<"projects">, filters: Filters) {
+  const users = validateShape(filters);
   await Promise.all(
     filters.stateIds.map(async (id) => {
       const row = await ctx.db.get(id);
@@ -73,7 +78,7 @@ export function matchesFilters(task: Doc<"tasks">, filters: Filters) {
 }
 
 // Keep saved selections visible without relying on a currently loaded directory page.
-export async function filterSelections(ctx: QueryCtx, view: Doc<"savedViews">) {
+export async function filterSelections(ctx: QueryCtx, view: Doc<"savedViews"> & { projectId: Id<"projects"> }) {
   const users = await Promise.all(
     [...new Set([...view.filters.assigneeIds, ...view.filters.creatorIds])].map(async (id) => {
       const membership = await ctx.db
@@ -94,6 +99,69 @@ export async function filterSelections(ctx: QueryCtx, view: Doc<"savedViews">) {
     view.filters.labelIds.map(async (id) => {
       const label = await ctx.db.get(id);
       return { id, name: label?.projectId === view.projectId ? label.name : null };
+    })
+  );
+  return { users, states, labels };
+}
+
+export async function validateWorkspaceFilters(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  userId: Id<"users">,
+  filters: Filters
+) {
+  const users = validateShape(filters);
+  const read = projectReader(ctx, workspaceId, userId);
+  await Promise.all(
+    filters.stateIds.map(async (id) => {
+      const row = await ctx.db.get(id);
+      if (!row || row.status === "triage" || !(await read(row.projectId)))
+        throw new ConvexError("Choose a state from an accessible project.");
+    })
+  );
+  await Promise.all(
+    filters.labelIds.map(async (id) => {
+      const row = await ctx.db.get(id);
+      if (!row || !(await read(row.projectId))) throw new ConvexError("Choose a label from an accessible project.");
+    })
+  );
+  await Promise.all(
+    users.map(async (id) => {
+      const member = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", id))
+        .unique();
+      if (!member) throw new ConvexError("Filter users must belong to this workspace.");
+    })
+  );
+  return filters;
+}
+export async function workspaceFilterSelections(
+  ctx: QueryCtx,
+  view: Doc<"savedViews"> & { workspaceId: Id<"workspaces"> },
+  userId: Id<"users">
+) {
+  const read = projectReader(ctx, view.workspaceId, userId);
+  const users = await Promise.all(
+    [...new Set([...view.filters.assigneeIds, ...view.filters.creatorIds])].map(async (id) => {
+      const member = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q) => q.eq("workspaceId", view.workspaceId).eq("userId", id))
+        .unique();
+      const user = member?.active ? await ctx.db.get(id) : null;
+      return { id, name: user?.name ?? null };
+    })
+  );
+  const states = await Promise.all(
+    view.filters.stateIds.map(async (id) => {
+      const row = await ctx.db.get(id);
+      return { id, name: row && (await read(row.projectId)) ? row.name : null };
+    })
+  );
+  const labels = await Promise.all(
+    view.filters.labelIds.map(async (id) => {
+      const row = await ctx.db.get(id);
+      return { id, name: row && (await read(row.projectId)) ? row.name : null };
     })
   );
   return { users, states, labels };

@@ -19,6 +19,9 @@ const ArchivedProjects = lazy(() =>
 );
 const QuickLinks = lazy(() => import("./quick-links/quick-links").then((module) => ({ default: module.QuickLinks })));
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
+const WorkspaceViews = lazy(() =>
+  import("./saved-views/workspace-views").then((module) => ({ default: module.WorkspaceViews }))
+);
 const SavedViews = lazy(() => import("./saved-views/saved-views").then((module) => ({ default: module.SavedViews })));
 const Intakes = lazy(() => import("./intakes/intakes").then((module) => ({ default: module.Intakes })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
@@ -416,6 +419,7 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         {[
           { id: "projects", label: "Projects" },
           { id: "tasks", label: "Tasks" },
+          { id: "views", label: "Views" },
           { id: "clients", label: "Clients" },
           { id: "opportunities", label: "Opportunities" },
           { id: "documents", label: "Documents" },
@@ -438,7 +442,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
         ))}
       </nav>
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "tasks" ? (
+        {module === "views" ? (
+          <WorkspaceViews key={workspace._id} workspace={workspace} />
+        ) : module === "tasks" ? (
           <TaskCenter workspace={workspace} />
         ) : module === "automation" ? (
           <Automation workspace={workspace} />
