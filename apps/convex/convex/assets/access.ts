@@ -10,9 +10,13 @@ import { requireDocument } from "../documents/access";
 
 export async function requireAssetScope(
   ctx: QueryCtx,
-  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId">,
+  scope: Pick<
+    Doc<"assets">,
+    "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId" | "documentCopyId"
+  >,
   write: boolean
 ) {
+  if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
   if (scope.draftId) {
     if (scope.taskId || scope.projectId || scope.documentId || scope.conversationId)
       throw new ConvexError("Draft assets cannot have another scope.");

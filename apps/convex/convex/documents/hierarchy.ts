@@ -140,3 +140,15 @@ export const move = mutation({
     return document._id;
   },
 });
+
+/** Copying a leaf keeps its parent through the same destination rules as moving. */
+export async function documentCopyParent(ctx: QueryCtx, document: Doc<"documents">) {
+  const relation = await edge(ctx, document._id);
+  if (!relation) return { parentId: null, parentUpdatedAt: null };
+  const { document: parentDocument } = await requireDocument(ctx, relation.parentId, true);
+  movable(parentDocument);
+  if (parentDocument.workspaceId !== document.workspaceId)
+    throw new ConvexError("Parent document must belong to the same workspace.");
+  await destinationDepth(ctx, document._id, parentDocument._id);
+  return { parentId: parentDocument._id, parentUpdatedAt: parentDocument.updatedAt };
+}

@@ -2,14 +2,14 @@ import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
 import { documentFields, snapshotFields } from "./schema";
 
-async function validateMetadata(
-  ctx: MutationCtx,
+export async function validateDocumentMetadata(
+  ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
   data: Pick<Doc<"documents">, keyof typeof documentFields>
 ) {
@@ -39,7 +39,7 @@ export const create = mutation({
   args: { workspaceId: v.id("workspaces"), ...documentFields },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId, true);
-    await validateMetadata(ctx, args.workspaceId, args);
+    await validateDocumentMetadata(ctx, args.workspaceId, args);
     return ctx.db.insert("documents", {
       ...args,
       ownedBy: user._id,
@@ -111,7 +111,7 @@ export const update = mutation({
         JSON.stringify(metadata.projectIds) !== JSON.stringify(document.projectIds))
     )
       throw new ConvexError("Only the owner can change document visibility.");
-    await validateMetadata(ctx, document.workspaceId, metadata);
+    await validateDocumentMetadata(ctx, document.workspaceId, metadata);
     await ctx.db.patch(documentId, {
       ...metadata,
       updatedBy: user._id,
