@@ -4,7 +4,8 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import { AssetTransfers, uploadedStorageId } from "../../documents/asset-transfers";
+import { AssetTransfers } from "../../documents/asset-transfers";
+import { uploadFileAsset } from "../../assets/upload-file";
 import { attachmentContentType } from "./upload-file";
 export function AttachmentUpload({ taskId }: { taskId: Id<"tasks"> }) {
   const prepare = useMutation(api.assets.taskAttachments.prepare);
@@ -46,30 +47,7 @@ export function FileAttachmentUpload({
             try {
               const contentType = attachmentContentType(file, policy);
               if (supportedTypes && !supportedTypes.includes(contentType)) throw new Error("Choose a supported image.");
-              await transfers.run(async (signal) => {
-                const bytes = await file.arrayBuffer();
-                signal.throwIfAborted();
-                const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-                signal.throwIfAborted();
-                const ticket = await prepare({
-                  name: file.name,
-                  contentType,
-                  size: file.size,
-                  sha256: btoa(String.fromCharCode(...digest)),
-                });
-                signal.throwIfAborted();
-                const response = await fetch(ticket.uploadUrl, {
-                  method: "POST",
-                  headers: { "Content-Type": contentType },
-                  body: new Blob([bytes], { type: contentType }),
-                  signal,
-                  credentials: "omit",
-                });
-                const storageId = await uploadedStorageId(response);
-                signal.throwIfAborted();
-                await finalize({ assetId: ticket.assetId, storageId });
-                signal.throwIfAborted();
-              });
+              await transfers.run((signal) => uploadFileAsset(file, policy, prepare, finalize, signal));
             } catch (failure) {
               setError(failure instanceof Error ? failure.message : "Upload failed.");
             } finally {
