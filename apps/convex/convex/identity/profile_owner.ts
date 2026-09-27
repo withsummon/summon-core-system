@@ -26,7 +26,9 @@ export function profileRevision(profile: Doc<"userProfiles"> | null, expected: n
 export async function writeProfile(
   ctx: MutationCtx,
   owner: Awaited<ReturnType<typeof ownProfile>>,
-  fields: Partial<Pick<Doc<"userProfiles">, "firstName" | "lastName" | "timezone" | "preferences">> & {
+  fields: Partial<
+    Pick<Doc<"userProfiles">, "firstName" | "lastName" | "timezone" | "preferences" | "marketingEmailConsent">
+  > & {
     revision: number;
   }
 ) {
