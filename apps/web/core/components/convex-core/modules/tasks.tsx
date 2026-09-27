@@ -28,7 +28,7 @@ export function ModuleTasks({ module }: { module: Module }) {
                 onClick={() =>
                   setParams((current) => {
                     const next = new URLSearchParams(current);
-                    next.delete("projectView");
+                    next.set("projectView", "tasks");
                     next.delete("taskView");
                     next.delete("projectModule");
                     next.delete("comment");

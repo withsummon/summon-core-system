@@ -42,5 +42,15 @@ with a generic JSON settings store.
 Four module-local behavior tests cover defaults/reset/order preservation,
 private guest preferences and revoke/rejoin, ordering/navigation CAS conflicts,
 and duplicate/archived/missing-owner rejection. Eleven combined navigation/order
-tests pass; scoped Oxc passes. Native frontend activation, browser acceptance and
-remote deployment are not yet claimed. No inherited route is retired.
+tests pass; scoped Oxc passes. Backend b20b92537f passed exact-archive TypeScript
+7 and deployed locally (project-navigation-b20b92537f-local-deploy.txt).
+
+The native project consumer now uses the shared tab owner, renders Overview
+separately, preserves hidden destinations in More, and captures form revisions.
+Task links from favorites, notifications, saved views, cycle/module membership,
+intake acceptance, hierarchy and lifecycle explicitly select Tasks. Two route
+behavior tests cover default/deep-link precedence and stale selector cleanup;
+all 52 frontend tests and native web TypeScript 7 pass. The existing unordered
+project chooser remains active pending the separate D01 both-host backfill.
+Browser acceptance and remote deployment are not yet claimed. No inherited
+route is retired.

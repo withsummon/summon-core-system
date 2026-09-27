@@ -15,8 +15,10 @@ export function favoriteRoute(workspaceSlug: string, row: Favorite) {
     if (!row.entity.projectIdentifier) return null;
     params.set("module", "projects");
     params.set("project", row.entity.projectIdentifier);
-    if (target.type === "issue") params.set("task", target.id);
-    else if (target.type === "cycle") {
+    if (target.type === "issue") {
+      params.set("task", target.id);
+      params.set("projectView", "tasks");
+    } else if (target.type === "cycle") {
       params.set("projectView", "cycles");
       params.set("cycle", target.id);
     } else if (target.type === "module") {

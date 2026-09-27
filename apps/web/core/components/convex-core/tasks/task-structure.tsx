@@ -42,6 +42,7 @@ function TaskLink({ task, projectIdentifier }: { task: Task; projectIdentifier?:
   const next = new URLSearchParams(params);
   next.delete("comment");
   next.set("task", task._id);
+  next.set("projectView", "tasks");
   next.delete("taskView");
   return (
     <Link

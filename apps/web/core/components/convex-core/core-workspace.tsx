@@ -1,3 +1,5 @@
+import { ProjectNavigation } from "./projects/navigation";
+import { projectSection, projectSectionParams } from "./projects/navigation-route";
 import { WorkspaceLogoIdentity } from "./workspace-appearance/logo-image";
 import { LeaveMembership } from "./memberships/leave";
 import { MembershipAccessBoundary } from "./memberships/access-boundary";
@@ -276,65 +278,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
         />
       ) : project ? (
         <ProjectBoundary key={project._id} onRecover={openArchived}>
-          <div className="space-y-6">
-            <RecordVisit workspaceId={workspace._id} target={{ type: "project", id: project._id }} />
-            {!hasSelectedTask && projectView !== "settings" && (
-              <ProjectCoverHeader key={`cover-${project._id}`} projectId={project._id} />
-            )}
-            <nav aria-label="Project sections" className="flex flex-wrap gap-2">
-              {[
-                { value: "tasks", label: "Tasks" },
-                { value: "cycles", label: "Cycles" },
-                { value: "modules", label: "Modules" },
-                { value: "intake", label: "Intake" },
-                { value: "views", label: "Views" },
-                { value: "settings", label: "Settings" },
-              ].map((section) => (
-                <Button
-                  key={section.value}
-                  variant={projectView === section.value ? "primary" : "secondary"}
-                  onClick={() =>
-                    setParams((current) => {
-                      const next = new URLSearchParams(current);
-                      next.delete("comment");
-                      next.delete("task");
-                      next.delete("cycle");
-                      next.delete("cycleView");
-                      next.delete("projectModule");
-                      next.delete("moduleView");
-                      next.delete("intake");
-                      next.delete("intakeStatus");
-                      next.delete("savedView");
-                      next.delete("savedViewTab");
-                      if (section.value !== "tasks") next.set("projectView", section.value);
-                      else next.delete("projectView");
-                      return next;
-                    })
-                  }
-                >
-                  {section.label}
-                </Button>
-              ))}
-            </nav>
-            {projectView === "views" ? (
-              <SavedViews key={project._id} project={project} />
-            ) : projectView === "intake" ? (
-              <Intakes key={project._id} project={project} />
-            ) : projectView === "settings" ? (
-              <ProjectSettings key={project._id} projectId={project._id} onArchived={openArchived} />
-            ) : projectView === "modules" ? (
-              <Modules key={project._id} project={project} />
-            ) : projectView === "cycles" ? (
-              <Cycles key={project._id} project={project} />
-            ) : (
-              <>
-                {!hasSelectedTask && !params.get("taskView") && (
-                  <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />
-                )}
-                <ProjectTasks key={project._id} project={project} />
-              </>
-            )}
-          </div>
+          <ProjectContent project={project} workspace={workspace} onArchived={openArchived} />
         </ProjectBoundary>
       ) : params.get("project") ? (
         <section className="space-y-3">
@@ -452,6 +396,51 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
           <Projects workspace={workspace} />
         )}
       </Suspense>
+    </div>
+  );
+}
+
+function ProjectContent({
+  project,
+  workspace,
+  onArchived,
+}: {
+  onArchived: () => void;
+  project: FunctionReturnType<typeof api.projects.index.list>[number];
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+}) {
+  const [params, setParams] = useSearchParams();
+  const preferences = useQuery(api.projects.navigation.get, { projectId: project._id });
+  const hasSelectedTask = Boolean(params.get("task"));
+  if (!preferences) return <p role="status">Loading project navigation…</p>;
+  const projectView = projectSection(params, preferences.navigation);
+  return (
+    <div className="space-y-6">
+      <RecordVisit workspaceId={workspace._id} target={{ type: "project", id: project._id }} />
+      {!hasSelectedTask && projectView !== "settings" && (
+        <ProjectCoverHeader key={`cover-${project._id}`} projectId={project._id} />
+      )}
+      <ProjectNavigation
+        projectId={project._id}
+        preferences={preferences}
+        active={projectView}
+        onSelect={(view) => setParams((current) => projectSectionParams(current, view))}
+      />
+      {projectView === "overview" ? (
+        <ProjectOverview key={`overview:${project._id}`} projectId={project._id} />
+      ) : projectView === "views" ? (
+        <SavedViews key={project._id} project={project} />
+      ) : projectView === "intake" ? (
+        <Intakes key={project._id} project={project} />
+      ) : projectView === "settings" ? (
+        <ProjectSettings key={project._id} projectId={project._id} onArchived={onArchived} />
+      ) : projectView === "modules" ? (
+        <Modules key={project._id} project={project} />
+      ) : projectView === "cycles" ? (
+        <Cycles key={project._id} project={project} />
+      ) : (
+        <ProjectTasks key={project._id} project={project} />
+      )}
     </div>
   );
 }

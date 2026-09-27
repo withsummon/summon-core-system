@@ -15,6 +15,7 @@ test("cross-project links use destination project while clearing stale task subv
   assert.equal(next.get("project"), "NEW");
   assert.equal(next.get("module"), "projects");
   assert.equal(next.get("task"), "target");
-  for (const field of ["projectView", "taskView", "comment"]) assert.equal(next.has(field), false);
+  for (const field of ["taskView", "comment"]) assert.equal(next.has(field), false);
+  assert.equal(next.get("projectView"), "tasks");
   assert.equal(current.get("project"), "OLD");
 });

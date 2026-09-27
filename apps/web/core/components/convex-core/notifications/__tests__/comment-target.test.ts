@@ -8,6 +8,7 @@ test("a comment notification opens its task with a canonical comment selector", 
     project: "DELIVERY",
     task: "task-1",
     module: "projects",
+    projectView: "tasks",
     comment: "comment-older-than-page",
   });
 });

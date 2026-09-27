@@ -28,7 +28,7 @@ export function CycleTasks({ cycle }: { cycle: Cycle }) {
                 onClick={() =>
                   setParams((current) => {
                     const next = new URLSearchParams(current);
-                    next.delete("projectView");
+                    next.set("projectView", "tasks");
                     next.delete("taskView");
                     next.delete("cycle");
                     next.delete("comment");

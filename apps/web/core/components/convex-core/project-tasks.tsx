@@ -34,6 +34,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
     setParams((current) => {
       const next = new URLSearchParams(current);
       next.delete("comment");
+      next.set("projectView", "tasks");
       if (id) next.set("task", id);
       else next.delete("task");
       return next;
@@ -62,6 +63,7 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
             onClick={() =>
               setParams((current) => {
                 const next = new URLSearchParams(current);
+                next.set("projectView", "tasks");
                 if (item.value === "active") next.delete("taskView");
                 else next.set("taskView", item.value);
                 return next;

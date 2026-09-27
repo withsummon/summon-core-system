@@ -44,7 +44,7 @@ export function TaskLifecycle({ task }: { task: Task }) {
                     const next = new URLSearchParams(current);
                     next.delete("comment");
                     next.delete("task");
-                    next.delete("projectView");
+                    next.set("projectView", "tasks");
                     next.set("module", "projects");
                     if (confirmation.operation === "delete") next.set("taskView", "deleted");
                     else if (

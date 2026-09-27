@@ -176,7 +176,7 @@ function IntakeDetail({ taskId, project, onBack }: { taskId: string; project: Pr
   if (detail.task.projectId !== project._id) return <Unavailable onBack={onBack} />;
   const taskRoute = (id: Id<"tasks">) => {
     const next = new URLSearchParams(params);
-    next.delete("projectView");
+    next.set("projectView", "tasks");
     next.delete("intake");
     next.delete("intakeStatus");
     next.delete("taskView");

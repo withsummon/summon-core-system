@@ -10,7 +10,8 @@ test("workspace view result opens its canonical project and clears stale lifecyc
   assert.equal(destination.get("module"), "projects");
   assert.equal(destination.get("project"), "RIGHT");
   assert.equal(destination.get("task"), "task-1");
-  for (const key of ["projectView", "savedView", "savedViewTab", "taskView", "cycle", "intake", "comment"])
+  for (const key of ["savedView", "savedViewTab", "taskView", "cycle", "intake", "comment"])
     assert.equal(destination.has(key), false);
+  assert.equal(destination.get("projectView"), "tasks");
   assert.equal(source.get("project"), "WRONG");
 });

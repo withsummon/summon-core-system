@@ -109,7 +109,11 @@ function TaskCenterContent({ workspace }: { workspace: FunctionReturnType<typeof
           Drafts
         </Button>
         {filterProject && filterProject.membershipRole !== "guest" && filterProject.workspaceRole !== "guest" && (
-          <Button onClick={() => setParams({ workspace: workspace.slug, project: filterProject.identifier })}>
+          <Button
+            onClick={() =>
+              setParams({ workspace: workspace.slug, project: filterProject.identifier, projectView: "tasks" })
+            }
+          >
             Create task in project
           </Button>
         )}
