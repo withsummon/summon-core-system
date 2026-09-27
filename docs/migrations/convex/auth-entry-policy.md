@@ -39,3 +39,21 @@ regressions preserve current issuer errors and auth/session owners.
 Identity/invitation regression suite: 92 tests passed, followed by two additional
 installed magic/OAuth signup rejection tests (16 mail/OAuth tests passed). Native
 TS7 and touched Oxc passed.
+
+## Password setup during onboarding
+
+The installed canonical guarded create/modify credential owner retains the exact
+initiating session and its refresh tokens while revoking other sessions. Email
+change and account unlink separately revoke all sessions; those consequences must
+not be applied to password setup. The preserved profile step may therefore set a
+password and then complete the profile using its captured revision. Password setup
+does not modify profile revision. New end-to-end owner tests cover both magic and
+OAuth identities through set-password, profile completion, workspace selection and
+real destination resolution, including current-session retention and other-session
+revocation.
+
+Password capabilities and both actions now obey canonical operator Password
+availability. A disabled provider offers neither set nor change and rejects before
+credential mutation; it does not silently advertise an action against an
+unregistered provider. Ten focused password tests and native TS7 passed. No real
+credentials, sessions or deployed configuration were changed.

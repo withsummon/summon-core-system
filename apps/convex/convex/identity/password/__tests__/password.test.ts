@@ -223,3 +223,67 @@ test("aggregate refresh budget aborts set-password before creating an account or
   expect(await f.t.run((ctx) => ctx.db.query("authAccounts").collect())).toHaveLength(0);
   expect(await f.t.run((ctx) => ctx.db.query("authRefreshTokens").collect())).toHaveLength(1001);
 });
+
+test.each(["summon-magic", "google"])(
+  "%s onboarding can set password, retain current session, complete profile and resolve real destination",
+  async (provider) => {
+    const f = await fixture(false);
+    const other = await f.t.run(async (ctx) => {
+      await ctx.db.insert("authAccounts", {
+        userId: f.userId,
+        provider,
+        providerAccountId: provider === "google" ? "oauth-subject" : email,
+        emailVerified: email,
+      });
+      const sessionId = await ctx.db.insert("authSessions", { userId: f.userId, expirationTime: Date.now() + 600000 });
+      await ctx.db.insert("authRefreshTokens", { sessionId, expirationTime: Date.now() + 600000 });
+      await ctx.db.insert("authRefreshTokens", { sessionId: f.sessionId, expirationTime: Date.now() + 600000 });
+      return sessionId;
+    });
+    const profile = await f.owner.query(api.identity.profile.get, {});
+    await f.owner.action(api.identity.password.index.set, { newPassword: "new-password" });
+    expect(await f.owner.query(api.identity.session.status, {})).toMatchObject({ valid: true });
+    expect(await f.t.run((ctx) => ctx.db.get(other))).toBeNull();
+    expect(await f.t.run((ctx) => ctx.db.query("authRefreshTokens").collect())).toMatchObject([
+      { sessionId: f.sessionId },
+    ]);
+    const completed = await f.owner.mutation(api.identity.profile.completeProfile, {
+      firstName: "Ada",
+      lastName: "",
+      displayName: "Ada",
+      timezone: "UTC",
+      expectedRevision: profile.revision,
+    });
+    expect(completed.revision).toBe(profile.revision + 1);
+    expect(await f.owner.query(api.identity.preferences.destination, {})).toMatchObject({
+      onboardingComplete: false,
+      workspace: null,
+    });
+    const workspaceId = await f.owner.mutation(api.workspaces.index.create, {
+      name: "First",
+      slug: `password-${provider}`,
+    });
+    await f.owner.mutation(api.identity.onboarding.complete, { workspaceId, expectedRevision: completed.revision });
+    expect(await f.owner.query(api.identity.preferences.destination, {})).toMatchObject({
+      onboardingComplete: true,
+      workspace: { id: workspaceId, slug: `password-${provider}` },
+    });
+    expect((await f.owner.query(api.identity.profile.get, {})).preferences.onboarding.profileComplete).toBe(true);
+  }
+);
+test("disabled password policy hides onboarding capabilities and rejects both credential actions before changes", async () => {
+  const f = await fixture(false);
+  vi.stubEnv("ENABLE_EMAIL_PASSWORD", "0");
+  expect(await f.owner.query(api.identity.password.index.capabilities, {})).toEqual({
+    canSet: false,
+    canChange: false,
+  });
+  await expect(f.owner.action(api.identity.password.index.set, { newPassword: "new-password" })).rejects.toThrow(
+    "disabled"
+  );
+  await expect(
+    f.owner.action(api.identity.password.index.change, { oldPassword: "old-password", newPassword: "new-password" })
+  ).rejects.toThrow("disabled");
+  expect(await f.t.run((ctx) => ctx.db.query("authAccounts").collect())).toHaveLength(0);
+  expect(await f.owner.query(api.identity.session.status, {})).toMatchObject({ valid: true });
+});

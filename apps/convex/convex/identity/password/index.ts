@@ -1,3 +1,4 @@
+import { signInPolicy } from "../signin_policy";
 import { v, ConvexError } from "convex/values";
 import { retrieveAccount, modifyAccountCredentials, createAccount } from "@convex-dev/auth/server";
 import { action, internalQuery, query } from "../../_generated/server";
@@ -26,14 +27,20 @@ export const capabilities = query({
   handler: async (ctx) => {
     const current = await currentAccount(ctx);
     return {
-      canChange: current.account !== null,
-      canSet: current.account === null && current.email !== undefined && current.emailVerificationTime !== undefined,
+      canChange: signInPolicy(process.env).password && current.account !== null,
+      canSet:
+        signInPolicy(process.env).password &&
+        current.account === null &&
+        current.email !== undefined &&
+        current.emailVerificationTime !== undefined,
     };
   },
 });
 export const change = action({
   args: { oldPassword: v.string(), newPassword: v.string() },
   handler: async (ctx, args): Promise<void> => {
+    if (!signInPolicy(process.env).password)
+      throw new ConvexError("Password sign-in is disabled by the instance operator.");
     requireSafeAuthLogging();
     validatePassword(args.newPassword);
     if (!args.oldPassword || args.oldPassword.length > 1024) throw new ConvexError("Current password is required.");
@@ -66,6 +73,8 @@ export const change = action({
 export const set = action({
   args: { newPassword: v.string() },
   handler: async (ctx, args): Promise<void> => {
+    if (!signInPolicy(process.env).password)
+      throw new ConvexError("Password sign-in is disabled by the instance operator.");
     requireSafeAuthLogging();
     validatePassword(args.newPassword);
     const current = await ctx.runQuery(internal.identity.password.index.account, {});
