@@ -15,7 +15,9 @@
     "Canonical matching task loaded",
     "Peer task status change caused live exclusion and reinclusion without reload",
     "Synthetic task restored to original To do status",
-    "No captured browser errors"
+    "No captured browser errors",
+    "Saved result link opened canonical task detail",
+    "Stale concurrent metadata save rejected while preserving draft; cancel showed newer revision"
   ],
   "limitations": [
     "Frontend served locally against remote self-hosted Convex; no public frontend cutover",
