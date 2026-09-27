@@ -1,3 +1,4 @@
+import { Distribution } from "./distribution";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -280,33 +281,12 @@ function Snapshot({ snapshot }: { snapshot: Doc<"cycleTransfers">["snapshot"] })
         Numeric estimates: {snapshot.numericEstimates} · Estimates without a numeric value:{" "}
         {snapshot.unquantifiedEstimates}
       </p>
-      <Distribution title="Status" rows={snapshot.statuses} />
-      <Distribution title="Assignees" rows={snapshot.assignees} />
-      <Distribution title="Labels" rows={snapshot.labels} />
+      <Distribution kind="statuses" rows={snapshot.statuses} />
+      <Distribution kind="assignees" rows={snapshot.assignees} />
+      <Distribution kind="labels" rows={snapshot.labels} />
       <p className="text-12 text-secondary">
         A task appears under each assigned person and label, so distribution totals may overlap.
       </p>
     </details>
-  );
-}
-function Distribution({ title, rows }: { title: string; rows: Doc<"cycleTransfers">["snapshot"]["labels"] }) {
-  const [visible, setVisible] = useState(50);
-  return (
-    <div>
-      <h5 className="text-14 font-medium">{title}</h5>
-      <ul className="text-14">
-        {rows.slice(0, visible).map((row) => (
-          <li key={row.id ?? "none"}>
-            {row.name}: {row.count} tasks · {row.numericEstimates} numeric estimates
-            {row.unquantifiedEstimates > 0 ? ` · ${row.unquantifiedEstimates} nonnumeric estimates` : ""}
-          </li>
-        ))}
-      </ul>
-      {visible < rows.length && (
-        <Button variant="secondary" onClick={() => setVisible((value) => value + 50)}>
-          Show more {title.toLowerCase()}
-        </Button>
-      )}
-    </div>
   );
 }
