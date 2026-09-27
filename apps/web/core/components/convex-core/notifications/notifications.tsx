@@ -57,6 +57,7 @@ export function Notifications({
     { initialNumItems: 30 }
   );
   const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
+  const profile = useQuery(api.identity.profile.get);
   return (
     <section className="space-y-5">
       <header>
@@ -169,6 +170,7 @@ export function Notifications({
           <NotificationRow
             key={notification._id}
             notification={notification}
+            compact={profile?.preferences.notificationViewMode === "compact"}
             onOpen={() => {
               const project = projects?.find((p) => p._id === notification.projectId);
               if (project)
@@ -208,10 +210,12 @@ export function Notifications({
 }
 function NotificationRow({
   notification,
+  compact,
   onOpen,
   canOpen,
 }: {
   notification: Notification;
+  compact: boolean;
   onOpen: () => void;
   canOpen: boolean;
 }) {
@@ -234,8 +238,10 @@ function NotificationRow({
   };
   const event = notification.event;
   return (
-    <li className={`space-y-3 py-4 ${notification.readAt === null ? "font-medium" : ""}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <li
+      className={`${compact ? "space-y-1 py-2" : "space-y-3 py-4"} ${notification.readAt === null ? "font-medium" : ""}`}
+    >
+      <div className={`flex flex-wrap items-start justify-between ${compact ? "gap-1" : "gap-3"}`}>
         <div className="min-w-0">
           <button
             disabled={!canOpen || pending}
