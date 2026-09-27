@@ -16,8 +16,8 @@
   "exports": {
     ".": "./dist/index.js",
     "./lib": "./dist/lib.js",
-    "./image-contract": "./src/core/extensions/custom-image/contract.ts",
     "./package.json": "./package.json",
+    "./image-contract": "./src/core/extensions/custom-image/contract.ts",
     "./styles.css": "./dist/styles/index.css",
     "./styles": "./dist/styles/index.css"
   },
