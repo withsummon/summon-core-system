@@ -20,7 +20,8 @@
   "dependencies": {
     "@convex-dev/auth": "catalog:",
     "convex": "catalog:",
-    "sanitize-html": "catalog:"
+    "sanitize-html": "catalog:",
+    "@plane/editor": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
