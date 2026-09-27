@@ -44,7 +44,12 @@ test("guest policy gates direct content, subscribed notifications, project/works
   expect(
     (await guest.query(api.reporting.overview.project, { projectId: f.projectId })).recentTasks.map((t) => t.id)
   ).toEqual([own]);
-  expect(await guest.query(api.tasks.hierarchy.parent, { taskId: own })).toEqual({ task: null, hasParent: true });
+  expect(await guest.query(api.tasks.hierarchy.parent, { taskId: own })).toEqual({
+    task: null,
+    project: null,
+    canUnlink: false,
+    hasParent: true,
+  });
   expect(
     (
       await guest.query(api.notifications.index.list, {
