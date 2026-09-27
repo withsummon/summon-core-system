@@ -5,11 +5,11 @@ import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask, taskIsActive } from "./access";
+import { requireDiscussion, discussionIsActive } from "./discussion_access";
 import { reactionCode, reactionActor, setReaction } from "./reaction_owner";
 const target = { taskId: v.id("tasks"), commentId: v.id("taskComments") };
 async function requireComment(ctx: QueryCtx, taskId: Id<"tasks">, commentId: Id<"taskComments">, write = false) {
-  const task = await requireTask(ctx, taskId, write ? "active" : "read");
+  const task = await requireDiscussion(ctx, taskId, write ? "active" : "read");
   const comment = await ctx.db.get(commentId);
   if (!comment || comment.taskId !== task._id || comment.deletedAt != null) throw new ConvexError("Comment not found.");
   const { user } = await requireProject(ctx, task.projectId);
@@ -18,7 +18,7 @@ async function requireComment(ctx: QueryCtx, taskId: Id<"tasks">, commentId: Id<
 export const access = query({
   args: target,
   handler: async (ctx, args) => ({
-    canReact: taskIsActive((await requireComment(ctx, args.taskId, args.commentId)).task),
+    canReact: discussionIsActive((await requireComment(ctx, args.taskId, args.commentId)).task),
   }),
 });
 export const list = query({

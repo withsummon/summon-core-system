@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { taskCanRead } from "../tasks/access";
+import { discussionCanRead } from "../tasks/discussion_access";
 export const category = v.union(v.literal("assigned"), v.literal("subscribed"), v.literal("created"));
 export const selectionFields = {
   view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
@@ -33,7 +33,7 @@ export async function selectedTask(
       : row.archivedAt === null && (selection.view === "snoozed" ? snoozed : !snoozed);
   if (!visible || (selection.mentionsOnly && !row.isMention)) return null;
   const task = await ctx.db.get(row.taskId);
-  if (!task || !(await taskCanRead(ctx, task, userId))) return null;
+  if (!task || !(await discussionCanRead(ctx, task, userId))) return null;
   const categories = selection.categories ?? [];
   if (!categories.length) return task;
   const created = task.createdBy === userId;

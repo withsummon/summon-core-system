@@ -3,16 +3,16 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask, taskIsActive } from "./access";
+import { requireDiscussion, discussionIsActive } from "./discussion_access";
 import { reactionCode, reactionActor, setReaction } from "./reaction_owner";
 export const access = query({
   args: { taskId: v.id("tasks") },
-  handler: async (ctx, args) => ({ canReact: taskIsActive(await requireTask(ctx, args.taskId, "read")) }),
+  handler: async (ctx, args) => ({ canReact: discussionIsActive(await requireDiscussion(ctx, args.taskId, "read")) }),
 });
 export const list = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, "read");
+    const task = await requireDiscussion(ctx, args.taskId, "read");
     const { user } = await requireProject(ctx, task.projectId);
     const result = await ctx.db
       .query("taskReactions")
@@ -26,7 +26,7 @@ export const list = query({
 export const set = mutation({
   args: { taskId: v.id("tasks"), reaction: v.string(), active: v.boolean() },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireDiscussion(ctx, args.taskId);
     const { user } = await requireProject(ctx, task.projectId);
     const reaction = reactionCode(args.reaction);
     const existing = await ctx.db

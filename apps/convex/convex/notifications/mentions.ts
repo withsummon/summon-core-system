@@ -4,11 +4,11 @@ import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
-import { requireTask, taskCanRead } from "../tasks/access";
+import { requireDiscussion, discussionCanRead } from "../tasks/discussion_access";
 import { pageBudget } from "../commercial/validation";
 export const MAX_MENTION_RECIPIENTS = 20;
 export const policy = query({ args: {}, handler: async () => ({ maxRecipients: MAX_MENTION_RECIPIENTS }) });
-export const canMention = taskCanRead;
+export const canMention = discussionCanRead;
 export async function validateMentions(ctx: QueryCtx, task: Doc<"tasks">, ids: Id<"users">[]) {
   if (ids.length > MAX_MENTION_RECIPIENTS || new Set(ids).size !== ids.length)
     throw new ConvexError("Choose up to 20 distinct mention recipients.");
@@ -23,7 +23,7 @@ export async function validateMentions(ctx: QueryCtx, task: Doc<"tasks">, ids: I
 export const choices = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId);
+    const task = await requireDiscussion(ctx, args.taskId);
     await requireProject(ctx, task.projectId);
     const result = await ctx.db
       .query("projectMembers")

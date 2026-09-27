@@ -1,7 +1,7 @@
 import { addSubscribers } from "./subscriptions";
 import { canMention } from "./mentions";
 import type { Id } from "../_generated/dataModel";
-import { taskCanRead } from "../tasks/access";
+import { discussionCanRead } from "../tasks/discussion_access";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
@@ -25,7 +25,7 @@ export async function recordTaskEvent(
   recipients.delete(event.actorId);
   await Promise.all(
     [...recipients].map(async (receiverId) => {
-      if (!(await taskCanRead(ctx, task, receiverId))) return;
+      if (!(await discussionCanRead(ctx, task, receiverId))) return;
       if (mentions.has(receiverId) && !(await canMention(ctx, task, receiverId))) return;
       await ctx.db.insert("notifications", {
         workspaceId: task.workspaceId,
