@@ -18,12 +18,12 @@ def contents(path):
                 key=lambda row: row["_id"],
             )
             for name in archive.namelist()
-            if name.endswith("/documents.jsonl") and not name.startswith("_tables/")
+            if name.endswith("/documents.jsonl") and not name.endswith("_tables/documents.jsonl")
         }
         files = {
             name: hashlib.sha256(archive.read(name)).hexdigest()
             for name in archive.namelist()
-            if name.startswith("_storage/")
+            if "_storage/" in name
             and not name.endswith("/")
             and not name.endswith("/documents.jsonl")
         }
