@@ -1,3 +1,4 @@
+import { EstimateSelection } from "../estimates/selection";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
@@ -9,7 +10,7 @@ import { selectClass } from "../commercial/forms";
 import { statusOptions } from "./options";
 export type TaskPropertyValues = Pick<
   FunctionArgs<typeof api.tasks.index.update>,
-  "priority" | "assigneeIds" | "labelIds" | "startDate" | "targetDate" | "stateId"
+  "priority" | "assigneeIds" | "labelIds" | "startDate" | "targetDate" | "stateId" | "estimatePointId"
 > &
   Pick<FunctionArgs<typeof api.tasks.drafts.index.save>, "status">;
 const priorities = ["none", "urgent", "high", "medium", "low"] as const satisfies TaskPropertyValues["priority"][];
@@ -88,6 +89,11 @@ export function TaskProperties<T extends TaskPropertyValues>({
           ))}
         </select>
       </SummonField>
+      <EstimateSelection
+        projectId={projectId}
+        value={draft.estimatePointId}
+        onChange={(estimatePointId) => onChange({ ...draft, estimatePointId })}
+      />
       <SummonField label="Start date">
         <Input
           type="date"

@@ -5,7 +5,7 @@ export function changeDraftProject(draft: Draft, projectId: Draft["projectId"]):
   return {
     ...draft,
     projectId,
-    properties: { ...draft.properties, stateId: null, assigneeIds: [], labelIds: [] },
+    properties: { ...draft.properties, stateId: null, estimatePointId: null, assigneeIds: [], labelIds: [] },
     parent: null,
     cycle: null,
     modules: [],
@@ -15,6 +15,7 @@ export function changeDraftProject(draft: Draft, projectId: Draft["projectId"]):
 export function hasScopedDraftSelections(draft: Draft) {
   return Boolean(
     draft.properties.stateId ||
+    draft.properties.estimatePointId ||
     draft.properties.assigneeIds.length ||
     draft.properties.labelIds.length ||
     draft.parent ||

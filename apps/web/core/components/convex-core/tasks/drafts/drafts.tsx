@@ -1,3 +1,4 @@
+import { DraftEstimate } from "../../estimates/selection";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -195,6 +196,7 @@ function DraftDetail({
                 </dd>
               </div>
             </dl>
+            <DraftEstimate draftId={draft._id} />
             {draft.description.trim() && (
               <TaskRichEditor
                 id={`draft-preview-${draft._id}`}
