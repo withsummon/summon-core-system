@@ -1,45 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { TFileHandler } from "@plane/editor";
-import { AssetLifecycle } from "./asset-lifecycle";
-import { AssetTransfers, uploadedStorageId } from "./asset-transfers";
+import { useDocumentAssetReader } from "./use-document-asset-reader";
+import { uploadedStorageId } from "./asset-transfers";
 
 export function useDocumentAssets(documentId: Id<"documents">, getToken: () => string) {
   const client = useConvex();
   const document = useQuery(api.documents.index.get, { documentId });
   const policy = useQuery(api.assets.index.policy, {});
   const [assetsUploadStatus, setStatus] = useState<Record<string, number>>({});
-  const [lifecycle] = useState(() => new AssetLifecycle());
-  const [transfers] = useState(() => new AssetTransfers());
+  const { lifecycle, transfers, resolve, source } = useDocumentAssetReader(documentId, getToken);
   const siteUrl = import.meta.env.VITE_CONVEX_SITE_URL;
-  useEffect(() => () => transfers.dispose(), [transfers]);
   const workspaceId = document?.workspaceId;
   const handlers = useMemo(() => {
     if (!workspaceId || !policy || !siteUrl) return null;
-    const resolve = (assetId: string) => client.query(api.assets.index.resolveDocumentAsset, { documentId, assetId });
-    const source = (assetId: string, download: boolean) =>
-      transfers.run(async (signal) => {
-        await lifecycle.wait(assetId);
-        const asset = await resolve(assetId);
-        signal.throwIfAborted();
-        if (!asset) throw new Error("This file is unavailable.");
-        const response = await fetch(new URL(asset.downloadPath, siteUrl), {
-          headers: { Authorization: `Bearer ${getToken()}` },
-          credentials: "omit",
-          cache: "no-store",
-          signal,
-        });
-        if (!response.ok)
-          throw new Error(
-            response.status === 403 || response.status === 401
-              ? "You no longer have access to this file."
-              : "The file could not be loaded."
-          );
-        const blob = await response.blob();
-        return transfers.objectUrl(download ? new Blob([blob], { type: "application/octet-stream" }) : blob, signal);
-      });
     return {
       cancel: () => {
         transfers.cancel();
@@ -103,6 +79,6 @@ export function useDocumentAssets(documentId: Id<"documents">, getToken: () => s
         }),
       validation: { maxFileSize: policy.imageMaxBytes },
     } satisfies Omit<TFileHandler, "assetsUploadStatus">;
-  }, [client, documentId, workspaceId, policy, siteUrl, transfers, lifecycle, getToken]);
+  }, [client, documentId, workspaceId, policy, siteUrl, transfers, lifecycle, resolve, source]);
   return handlers ? { ...handlers, assetsUploadStatus } : null;
 }
