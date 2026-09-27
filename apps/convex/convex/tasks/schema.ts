@@ -110,6 +110,7 @@ export const taskTables = {
   })
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
+    .index("by_project_sequence", ["projectId", "sequence"])
     .index("by_workspace", ["workspaceId"])
     .index("by_state", ["stateId"]),
   taskEvents: defineTable({
