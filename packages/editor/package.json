@@ -94,7 +94,5 @@
   "peerDependencies": {
     "react": "catalog:",
     "react-dom": "catalog:"
-  },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js"
+  }
 }

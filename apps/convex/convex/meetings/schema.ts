@@ -1,3 +1,4 @@
+import { summaryTables } from "./summary/schema";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 export const meetingStatus = v.union(v.literal("scheduled"), v.literal("completed"), v.literal("cancelled"));
@@ -15,6 +16,7 @@ export const meetingFields = {
   summaryDocumentId: v.union(v.id("documents"), v.null()),
 };
 export const meetingTables = {
+  ...summaryTables,
   meetings: defineTable({
     ...meetingFields,
     workspaceId: v.id("workspaces"),

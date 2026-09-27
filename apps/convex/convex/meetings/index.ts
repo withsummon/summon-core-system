@@ -12,7 +12,8 @@ import { requireMeeting, canReadMeetingProject } from "./access";
 async function validateMeeting(
   ctx: MutationCtx,
   workspaceId: Id<"workspaces">,
-  data: Pick<Doc<"meetings">, keyof typeof meetingFields>
+  data: Pick<Doc<"meetings">, keyof typeof meetingFields>,
+  existing: Doc<"meetings"> | null
 ) {
   const title = text(data.title, "Title", 255, true);
   const agenda = text(data.agenda, "Agenda", 100000);
@@ -40,7 +41,7 @@ async function validateMeeting(
     const { project } = await requireProject(ctx, data.projectId, true);
     if (project.workspaceId !== workspaceId) throw new ConvexError("Project belongs to another workspace.");
   }
-  if (data.summaryDocumentId) {
+  if (data.summaryDocumentId && data.summaryDocumentId !== existing?.summaryDocumentId) {
     const { document } = await requireDocument(ctx, data.summaryDocumentId);
     if (document.workspaceId !== workspaceId) throw new ConvexError("Summary document belongs to another workspace.");
   }
@@ -84,6 +85,7 @@ export const save = mutation({
   args: {
     workspaceId: v.id("workspaces"),
     meetingId: v.optional(v.id("meetings")),
+    expectedUpdatedAt: v.optional(v.number()),
     data: v.object(meetingFields),
     participantIds: v.array(v.id("users")),
   },
@@ -92,7 +94,7 @@ export const save = mutation({
     const existing = args.meetingId
       ? (await requireMeeting(ctx, args.workspaceId, args.meetingId, true)).meeting
       : null;
-    const data = await validateMeeting(ctx, args.workspaceId, args.data);
+    const data = await validateMeeting(ctx, args.workspaceId, args.data, existing);
     if (existing && existing.projectId !== data.projectId) {
       const linked = await ctx.db
         .query("meetingTasks")
@@ -100,7 +102,17 @@ export const save = mutation({
         .first();
       if (linked) throw new ConvexError("Unlink meeting tasks before changing its project.");
     }
-    const updated = { ...data, updatedAt: Date.now(), updatedBy: user._id };
+    if (existing && args.expectedUpdatedAt !== existing.updatedAt)
+      throw new ConvexError("Meeting changed while you were editing. Cancel and reopen before saving.");
+    if (existing) {
+      const transcript = await ctx.db
+        .query("meetingTranscripts")
+        .withIndex("by_meeting", (q) => q.eq("meetingId", existing._id))
+        .unique();
+      if (transcript && (data.summaryDocumentId !== transcript.documentId || data.projectId !== existing.projectId))
+        throw new ConvexError("A meeting with a transcript must keep its canonical document and project.");
+    }
+    const updated = { ...data, updatedAt: Math.max(Date.now(), (existing?.updatedAt ?? 0) + 1), updatedBy: user._id };
     const meetingId =
       args.meetingId ??
       (await ctx.db.insert("meetings", {
@@ -160,7 +172,11 @@ export const participants = query({
 export const remove = mutation({
   args: { workspaceId: v.id("workspaces"), meetingId: v.id("meetings") },
   handler: async (ctx, args) => {
-    const { user } = await requireMeeting(ctx, args.workspaceId, args.meetingId, true);
-    await ctx.db.patch(args.meetingId, { deleted: true, updatedAt: Date.now(), updatedBy: user._id });
+    const { user, meeting } = await requireMeeting(ctx, args.workspaceId, args.meetingId, true);
+    await ctx.db.patch(args.meetingId, {
+      deleted: true,
+      updatedAt: Math.max(Date.now(), meeting.updatedAt + 1),
+      updatedBy: user._id,
+    });
   },
 });

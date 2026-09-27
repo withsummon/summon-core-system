@@ -5,6 +5,7 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { MeetingForm } from "./meeting-form";
+import { MeetingSummary } from "./summary/meeting-summary";
 import { MeetingTasks } from "./meeting-tasks";
 
 type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
@@ -78,6 +79,14 @@ export function Meetings({ workspace }: { workspace: Workspace }) {
           <p className="mt-2 whitespace-pre-wrap">{meeting.notes || "No notes yet."}</p>
         </section>
         <Participants workspaceId={workspace._id} meetingId={meeting._id} />
+        {meeting.projectId && (
+          <MeetingSummary
+            key={meeting._id}
+            workspaceId={workspace._id}
+            meetingId={meeting._id}
+            projectId={meeting.projectId}
+          />
+        )}
         <MeetingTasks workspaceId={workspace._id} meeting={meeting} projects={projects ?? []} canWrite={canWrite} />
       </section>
     ) : (

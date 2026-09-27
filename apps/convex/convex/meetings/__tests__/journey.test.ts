@@ -31,6 +31,7 @@ describe("meeting lifecycle", () => {
     await owner.mutation(api.meetings.index.save, {
       workspaceId,
       meetingId,
+      expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
       data: { ...meetingData, projectId },
       participantIds: [userId],
     });
@@ -46,6 +47,7 @@ describe("meeting lifecycle", () => {
     await owner.mutation(api.meetings.index.save, {
       workspaceId,
       meetingId,
+      expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
       data: { ...meetingData, projectId, notes: "Updated after removal" },
       participantIds: [],
     });
@@ -66,6 +68,7 @@ describe("meeting lifecycle", () => {
     await owner.mutation(api.meetings.index.save, {
       workspaceId,
       meetingId,
+      expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
       data: { ...meetingData, projectId, notes: "Send proposal", status: "completed" },
       participantIds: [],
     });
@@ -164,7 +167,13 @@ describe("meeting lifecycle", () => {
     await t.run((ctx) => ctx.db.patch(member!._id, { role: "guest" }));
     expect(await owner.query(api.meetings.index.get, { workspaceId, meetingId })).toMatchObject({ _id: meetingId });
     await expect(
-      owner.mutation(api.meetings.index.save, { workspaceId, meetingId, data: meetingData, participantIds: [] })
+      owner.mutation(api.meetings.index.save, {
+        workspaceId,
+        meetingId,
+        expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
+        data: meetingData,
+        participantIds: [],
+      })
     ).rejects.toThrow("access");
   });
 });
@@ -184,7 +193,13 @@ describe("explicit meeting task links", () => {
     });
     expect(links.page).toMatchObject([{ linkId, task: { _id: taskId, title: "Send proposal", status: "done" } }]);
     await expect(
-      owner.mutation(api.meetings.index.save, { workspaceId, meetingId, data: meetingData, participantIds: [] })
+      owner.mutation(api.meetings.index.save, {
+        workspaceId,
+        meetingId,
+        expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
+        data: meetingData,
+        participantIds: [],
+      })
     ).rejects.toThrow("Unlink");
     await owner.mutation(api.meetings.tasks.unlink, { workspaceId, meetingId, linkId });
     expect(
@@ -300,6 +315,7 @@ describe("meeting document references", () => {
     await owner.mutation(api.meetings.index.save, {
       workspaceId,
       meetingId,
+      expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
       data: { ...meetingData, projectId, summaryDocumentId: documentId },
       participantIds: [],
     });
@@ -313,7 +329,6 @@ describe("meeting document references", () => {
     await expect(
       other.mutation(api.meetings.index.save, {
         workspaceId,
-        meetingId,
         data: { ...meetingData, projectId, summaryDocumentId: documentId },
         participantIds: [],
       })
@@ -342,6 +357,7 @@ test("editing meeting details preserves responses for retained participants", as
   await owner.mutation(api.meetings.index.save, {
     workspaceId,
     meetingId,
+    expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
     data: { ...meetingData, projectId, notes: "Updated notes" },
     participantIds: [userId],
   });
@@ -372,6 +388,7 @@ test("meeting visibility does not grant access to a summary document after its A
   await owner.mutation(api.meetings.index.save, {
     workspaceId,
     meetingId,
+    expectedUpdatedAt: (await owner.query(api.meetings.index.get, { workspaceId, meetingId })).updatedAt,
     data: { ...meetingData, projectId, summaryDocumentId: documentId },
     participantIds: [],
   });
