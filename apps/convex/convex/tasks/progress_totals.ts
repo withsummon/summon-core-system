@@ -70,18 +70,7 @@ export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
   const totals = emptyProgress();
   await Promise.all(
     tasks.map(async (task) => {
-      const point = task.estimatePointId ? await ctx.db.get(task.estimatePointId) : null;
-      const system = point ? await ctx.db.get(point.systemId) : null;
-      const numeric =
-        point &&
-        point.projectId === task.projectId &&
-        system?.projectId === task.projectId &&
-        system.workspaceId === task.workspaceId &&
-        system.type === "points" &&
-        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(point.value.trim())
-          ? Number(point.value)
-          : null;
-      const estimate = numeric !== null && Number.isFinite(numeric) ? numeric : null;
+      const estimate = await numericTaskEstimate(ctx, task);
       const completed = task.completedAt !== null;
       contribute(totals, estimate, task.estimatePointId !== null, completed);
       add(statuses, task.status, task.status, estimate, task.estimatePointId !== null, completed);
@@ -119,4 +108,19 @@ export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
     assignees: [...assignees.values()],
     labels: [...labels.values()],
   };
+}
+
+export async function numericTaskEstimate(ctx: QueryCtx, task: Doc<"tasks">) {
+  const point = task.estimatePointId ? await ctx.db.get(task.estimatePointId) : null;
+  const system = point ? await ctx.db.get(point.systemId) : null;
+  const numeric =
+    point &&
+    point.projectId === task.projectId &&
+    system?.projectId === task.projectId &&
+    system.workspaceId === task.workspaceId &&
+    system.type === "points" &&
+    /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(point.value.trim())
+      ? Number(point.value)
+      : null;
+  return numeric !== null && Number.isFinite(numeric) ? numeric : null;
 }

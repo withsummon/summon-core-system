@@ -45,6 +45,8 @@ import type * as commercial_opportunities from "../commercial/opportunities.js";
 import type * as commercial_validation from "../commercial/validation.js";
 import type * as crons from "../crons.js";
 import type * as cycles_access from "../cycles/access.js";
+import type * as cycles_burndown from "../cycles/burndown.js";
+import type * as cycles_completion_curve from "../cycles/completion_curve.js";
 import type * as cycles_dates from "../cycles/dates.js";
 import type * as cycles_index from "../cycles/index.js";
 import type * as cycles_progress from "../cycles/progress.js";
@@ -269,6 +271,8 @@ declare const fullApi: ApiFromModules<{
   "commercial/validation": typeof commercial_validation;
   crons: typeof crons;
   "cycles/access": typeof cycles_access;
+  "cycles/burndown": typeof cycles_burndown;
+  "cycles/completion_curve": typeof cycles_completion_curve;
   "cycles/dates": typeof cycles_dates;
   "cycles/index": typeof cycles_index;
   "cycles/progress": typeof cycles_progress;
