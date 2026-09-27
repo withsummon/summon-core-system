@@ -227,7 +227,10 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
         </div>
       </header>
       {project && (
-        <LeaveMembership key={project._id} scope={{ kind: "project", id: project._id, name: project.name }} />
+        <LeaveMembership
+          key={`leave-${project._id}`}
+          scope={{ kind: "project", id: project._id, name: project.name }}
+        />
       )}
       <div className="grid min-w-0 gap-3 md:grid-cols-2">
         <ManagedInvitations
