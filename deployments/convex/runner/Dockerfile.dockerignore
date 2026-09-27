@@ -4,7 +4,7 @@
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !apps/
-!apps/*/
+apps/*/**
 !apps/*/package.json
 !apps/convex/**
 !packages/
