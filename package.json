@@ -21,7 +21,7 @@
     "doctor": "npx react-doctor@latest",
     "tsgo": "tsc",
     "check:toolchain": "node tools/check-toolchain.mjs",
-    "test": "pnpm --filter @summon/convex test && pnpm --filter web test"
+    "test": "pnpm --filter @summon/convex test && pnpm --filter live test && pnpm --filter web test"
   },
   "devDependencies": {
     "husky": "catalog:",
