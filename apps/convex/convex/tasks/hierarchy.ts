@@ -35,9 +35,7 @@ export const parent = query({
     const parentTask = link ? await ctx.db.get(link.parentId) : null;
     const access = parentTask ? await projectReader(ctx, task.workspaceId, user._id)(parentTask.projectId) : null;
     const visible = parentTask && access && (await taskCanRead(ctx, parentTask, user._id));
-    return {
-      task: visible ? parentTask : null,
-      project: visible ? projectSummary(access.project) : null,
+    const relationship = {
       hasParent: link !== null,
       canUnlink:
         taskIsActive(task) &&
@@ -46,6 +44,8 @@ export const parent = query({
         access !== null &&
         access.member.role !== "guest",
     };
+    if (visible) return { ...relationship, task: parentTask, project: projectSummary(access.project) };
+    return { ...relationship, task: null, project: null };
   },
 });
 export const children = query({

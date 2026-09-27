@@ -37,20 +37,14 @@ const relationDirections = [
   "implements",
 ] as const satisfies readonly RelationDirection[];
 
-function TaskLink({ task, projectIdentifier }: { task: Task; projectIdentifier?: string }) {
+function TaskLink({ task, projectIdentifier }: { task: Task; projectIdentifier: string }) {
   const [params] = useSearchParams();
-  const next = new URLSearchParams(params);
-  next.delete("comment");
-  next.set("task", task._id);
-  next.set("projectView", "tasks");
-  next.delete("taskView");
   return (
     <Link
       className="min-w-0 text-14 break-words text-accent-primary hover:underline"
-      to={projectIdentifier ? relatedTaskRoute(params, task._id, projectIdentifier) : `?${next}`}
+      to={relatedTaskRoute(params, task._id, projectIdentifier)}
     >
-      {projectIdentifier ? `${projectIdentifier}-` : "#"}
-      {task.sequence} · {task.title}
+      {projectIdentifier}-{task.sequence} · {task.title}
     </Link>
   );
 }
@@ -85,7 +79,7 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
       <div className="text-14">
         <span className="mr-2 text-secondary">Parent</span>
         {parent?.task ? (
-          <TaskLink task={parent.task} projectIdentifier={parent.project?.identifier} />
+          <TaskLink task={parent.task} projectIdentifier={parent.project.identifier} />
         ) : parent ? (
           parent.hasParent ? (
             "Parent task unavailable"
