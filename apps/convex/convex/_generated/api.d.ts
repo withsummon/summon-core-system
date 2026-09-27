@@ -143,6 +143,8 @@ import type * as notifications_selection from "../notifications/selection.js";
 import type * as notifications_subscriptions from "../notifications/subscriptions.js";
 import type * as projects_create from "../projects/create.js";
 import type * as projects_index from "../projects/index.js";
+import type * as projects_order from "../projects/order.js";
+import type * as projects_order_owner from "../projects/order_owner.js";
 import type * as projects_settings from "../projects/settings.js";
 import type * as projects_timezone from "../projects/timezone.js";
 import type * as quickLinks_index from "../quickLinks/index.js";
@@ -352,6 +354,8 @@ declare const fullApi: ApiFromModules<{
   "notifications/subscriptions": typeof notifications_subscriptions;
   "projects/create": typeof projects_create;
   "projects/index": typeof projects_index;
+  "projects/order": typeof projects_order;
+  "projects/order_owner": typeof projects_order_owner;
   "projects/settings": typeof projects_settings;
   "projects/timezone": typeof projects_timezone;
   "quickLinks/index": typeof quickLinks_index;
