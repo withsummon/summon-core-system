@@ -41,8 +41,7 @@ complexity checks pass. Main-run Chrome acceptance owns rendered editor, two-use
 collaboration, lock/unlock and refresh verification. Backend/live tests separately
 verify ACLs, CAS conflicts, title seeding and rejection recovery.
 
-AI editor actions and issue embeds remain disabled. Mentions, hierarchy, historical-version restore,
-version UI, sharing dialogs and all legacy page navigation are not migrated.
+AI editor actions and issue embeds remain disabled. Native mentions, hierarchy and version preview/restore now exist; inherited sharing and page-navigation contracts still need route-wide acceptance.
 No Django/live-service retirement or full document parity is claimed here.
 
 ## Primary Chrome acceptance
@@ -74,3 +73,7 @@ Metadata forms now retain their opening document/version, and metadata and lifec
 Chrome at `127.0.0.1:3010` created a synthetic private document with persisted editor content, soft-deleted it, found it in owner Trash, restored it, and reopened the same content/private visibility. Trash became empty after restoration. Three module tests independently cover retained binary revisions and lock/archive state, another administrator's exclusion, stale restores and current membership revocation.
 
 In two owner tabs, the first kept a settings draft while the second renamed the document. Saving the stale draft produced the expected conflict message, retained the category input, and preserved the current title. Reopening settings and saving against the new version succeeded. The live two-user network suite also passed after the version-contract deployment: bidirectional editing, durable merged HTML, title synchronization, locked-write rejection, revocation and eviction of rejected room bytes. This is local runtime evidence, not remote deployment acceptance.
+
+## Current local Chrome editor acceptance, 2026-09-28
+
+The local web app at `http://localhost:3021/core` and dedicated Convex Hocuspocus service at `ws://127.0.0.1:1235` used the same local Convex backend. Chrome created private document `md77qvztrrwe0x93pdye0sk3fs8f6s7f`, wrote content, observed revision 2 and reloaded to the persisted body. A second tab showed the same content; its edit appeared in the first tab without reload and created revision 3. The first tab previewed revision 2, confirmed body restore, and the second tab received the restored body and revision 4. A reload network capture showed no Django URLs among 155 observed requests, but Chrome reported that capture as truncated; it cannot close the route-wide zero-Django gate. This acceptance used a development build and one account across two tabs, so two-user permission and remote served-build checks remain separate.
