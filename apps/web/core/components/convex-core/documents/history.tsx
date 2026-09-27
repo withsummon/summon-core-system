@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import { TaskRichEditor } from "../tasks/rich-editor";
+import { DocumentHistoryPreview } from "./history-preview";
 import { mutationMessage } from "../commercial/forms";
 type Preview = FunctionReturnType<typeof api.documents.historyActions.preview>;
 export function DocumentHistory({ document, canWrite }: { document: Doc<"documents">; canWrite: boolean }) {
@@ -59,19 +59,18 @@ export function DocumentHistory({ document, canWrite }: { document: Doc<"documen
               onClick={() => {
                 setSelected(null);
                 setConfirming(false);
+                setError("");
               }}
             >
               Close preview
             </Button>
           </header>
           <p className="text-14 text-secondary">Historical title: {selected.title || "Untitled"}</p>
-          <TaskRichEditor
+          <DocumentHistoryPreview
             key={selected.versionId}
-            id={`document-history-${selected.versionId}`}
-            label="Historical document content"
+            documentId={document._id}
+            versionId={selected.versionId}
             html={selected.html}
-            placeholder="Empty document"
-            editable={false}
           />
           {canWrite && (
             <Button disabled={pending} variant="secondary" onClick={() => setConfirming(true)}>
