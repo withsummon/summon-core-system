@@ -1,0 +1,9 @@
+# Connected account disconnection
+
+Legacy AccountEndpoint deletes a current user's Account row without a last-method check. Native disconnect adds an explicit safety invariant: keep at least one currently configured usable owned sign-in method. Password needs an existing nonempty canonical hash. OAuth requires configured known provider plus authAccounts.emailVerified string exactly equal to the current verified user email. Magic additionally requires providerAccountId equal to that email and configured Resend. A truthy unrelated email proof is rejected.
+
+Shared accounts/proof captures the exact hash from canonical retrieveAccount; the committing transaction compares that same hash and current session. Passwordless accounts require actual session creation within five minutes. Deactivation now reuses this proof and bounded session cleanup owner. No custom passwords, hashes, tokens or credential scheme were introduced.
+
+Disconnect validates target ownership and alternatives, caps account/code records at100, sessions at100 and aggregate refresh tokens at1000 before writes. Target account and verification codes plus all current-user sessions/tokens are removed atomically. Other users are untouched; retained sign-in accounts and content remain. Sessions lack provider attribution, so revoking all sessions is deliberate. No provider-side token revocation is claimed because canonical auth does not persist provider access tokens. UI and real account disconnection remain unperformed.
+
+Tests cover retained password, exact verified-email match, disabled provider refusal, stale proof, foreign target, code/session cleanup and overflow rollback. Existing deactivation tests verify the shared proof and cleanup regression. External provider health cannot be established from configuration alone; disconnection never sends an external request.
