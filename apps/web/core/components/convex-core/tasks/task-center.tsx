@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -9,6 +9,17 @@ import { SummonField } from "@/components/summon/forms";
 import { TaskDetail } from "./task-detail";
 import { taskStatusOptions } from "./options";
 type Filters = FunctionArgs<typeof api.tasks.center.list>;
+const TaskDrafts = lazy(() => import("./drafts/drafts").then((module) => ({ default: module.TaskDrafts })));
+export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
+  const [params] = useSearchParams();
+  return params.get("taskSection") === "drafts" ? (
+    <Suspense fallback={<p role="status">Loading drafts…</p>}>
+      <TaskDrafts key={workspace._id} workspace={workspace} />
+    </Suspense>
+  ) : (
+    <TaskCenterContent workspace={workspace} />
+  );
+}
 const scopes = [
   { value: "mine", label: "My tasks" },
   { value: "team", label: "Team tasks" },
@@ -28,7 +39,7 @@ function localDate() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
-export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
+function TaskCenterContent({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
   const [params, setParams] = useSearchParams();
   const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
   const scope = scopes.find((item) => item.value === params.get("scope"))?.value ?? "mine";
@@ -91,6 +102,12 @@ export function TaskCenter({ workspace }: { workspace: FunctionReturnType<typeof
           <p className="text-12 text-secondary">{workspace.name}</p>
           <h1 className="text-28 font-semibold">Tasks</h1>
         </div>
+        <Button
+          variant="secondary"
+          onClick={() => setParams({ workspace: workspace.slug, module: "tasks", taskSection: "drafts" })}
+        >
+          Drafts
+        </Button>
         {filterProject && filterProject.membershipRole !== "guest" && filterProject.workspaceRole !== "guest" && (
           <Button onClick={() => setParams({ workspace: workspace.slug, project: filterProject.identifier })}>
             Create task in project

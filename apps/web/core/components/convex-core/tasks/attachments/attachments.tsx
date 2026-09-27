@@ -1,15 +1,17 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../../commercial/forms";
 import { AttachmentDownload } from "./download";
 import { AttachmentUpload } from "./upload";
-type Attachment = FunctionReturnType<typeof api.assets.taskAttachments.list>["page"][number];
+export type Attachment = FunctionReturnType<typeof api.assets.taskAttachments.list>["page"][number];
 export function TaskAttachments({ taskId }: { taskId: Id<"tasks"> }) {
   const access = useQuery(api.assets.taskAttachments.access, { taskId });
+  const change = useMutation(api.assets.taskAttachments.change);
   const [deleted, setDeleted] = useState(false);
   const files = usePaginatedQuery(api.assets.taskAttachments.list, { taskId, deleted }, { initialNumItems: 30 });
   return (
@@ -26,27 +28,12 @@ export function TaskAttachments({ taskId }: { taskId: Id<"tasks"> }) {
         </div>
       </header>
       {access?.canUpload && !deleted && <AttachmentUpload key={taskId} taskId={taskId} />}
-      <ul className="divide-y divide-subtle-1">
-        {files.results.map((file) => (
-          <li key={file.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-14 font-medium break-all">{file.name}</p>
-              <p className="text-12 text-secondary">
-                {file.contentType} · {(file.size / 1024).toLocaleString(undefined, { maximumFractionDigits: 1 })} KB
-              </p>
-              {deleted && file.restoreUntil !== null && (
-                <p className="text-12 text-secondary">
-                  Recovery expires {new Date(file.restoreUntil).toLocaleString()}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {!deleted && <AttachmentDownload taskId={taskId} assetId={file.id} name={file.name} />}
-              <AttachmentLifecycle taskId={taskId} file={file} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      <AttachmentRows
+        files={files.results}
+        deleted={deleted}
+        renderDownload={(file) => <AttachmentDownload taskId={taskId} assetId={file.id} name={file.name} />}
+        change={(args) => change({ taskId, ...args })}
+      />
       {files.status === "LoadingFirstPage" && <p role="status">Loading attachments…</p>}
       {files.status === "Exhausted" && !files.results.length && (
         <p className="text-14 text-secondary">{deleted ? "No removed files available." : "No attachments yet."}</p>
@@ -59,8 +46,41 @@ export function TaskAttachments({ taskId }: { taskId: Id<"tasks"> }) {
     </section>
   );
 }
-function AttachmentLifecycle({ taskId, file }: { taskId: Id<"tasks">; file: Attachment }) {
-  const change = useMutation(api.assets.taskAttachments.change);
+type Change = (args: Omit<FunctionArgs<typeof api.assets.taskAttachments.change>, "taskId">) => Promise<unknown>;
+export function AttachmentRows({
+  files,
+  deleted,
+  renderDownload,
+  change,
+}: {
+  files: Attachment[];
+  deleted: boolean;
+  renderDownload: (file: Attachment) => ReactNode;
+  change: Change;
+}) {
+  return (
+    <ul className="divide-y divide-subtle-1">
+      {files.map((file) => (
+        <li key={file.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-14 font-medium break-all">{file.name}</p>
+            <p className="text-12 text-secondary">
+              {file.contentType} · {(file.size / 1024).toLocaleString(undefined, { maximumFractionDigits: 1 })} KB
+            </p>
+            {deleted && file.restoreUntil !== null && (
+              <p className="text-12 text-secondary">Recovery expires {new Date(file.restoreUntil).toLocaleString()}</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!deleted && renderDownload(file)}
+            <AttachmentLifecycle file={file} change={change} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function AttachmentLifecycle({ file, change }: { file: Attachment; change: Change }) {
   const [snapshot, setSnapshot] = useState<Attachment | null>(null),
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
@@ -83,7 +103,6 @@ function AttachmentLifecycle({ taskId, file }: { taskId: Id<"tasks">; file: Atta
                 setError("");
                 try {
                   await change({
-                    taskId,
                     assetId: snapshot.id,
                     expectedRevision: snapshot.revision,
                     deleted: !snapshot.canRestore,
