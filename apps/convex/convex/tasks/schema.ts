@@ -155,13 +155,25 @@ export const taskTables = {
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"])
     .index("by_project_default", ["projectId", "isDefault"]),
+  labelRemovalJobs: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    labelIds: v.array(v.id("taskLabels")),
+    name: v.string(),
+    phase: v.union(v.literal("tasks"), v.literal("drafts"), v.literal("documents"), v.literal("views")),
+    documentLabelIndex: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    changed: v.number(),
+    started: v.boolean(),
+    status: v.union(v.literal("running"), v.literal("completed"), v.literal("cancelled")),
+  }).index("by_project", ["projectId"]),
   taskLabels: defineTable({
     ...labelFields,
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
-    parentId: v.optional(v.union(v.id("taskLabels"), v.null())),
-    revision: v.optional(v.number()),
-    retiring: v.optional(v.boolean()),
+    parentId: v.union(v.id("taskLabels"), v.null()),
+    revision: v.number(),
+    retiring: v.boolean(),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])

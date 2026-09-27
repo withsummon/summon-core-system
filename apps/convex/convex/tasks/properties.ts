@@ -1,3 +1,4 @@
+import { requireUsableLabel } from "./label_access";
 import { validateEstimatePoint } from "../estimates/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
@@ -51,7 +52,7 @@ export async function validateProperties(
   );
   await Promise.all(
     data.labelIds.map(async (labelId) => {
-      const label = await ctx.db.get(labelId);
+      const label = await requireUsableLabel(ctx, labelId);
       if (!label || label.projectId !== project._id) throw new ConvexError("Labels must belong to this project.");
     })
   );

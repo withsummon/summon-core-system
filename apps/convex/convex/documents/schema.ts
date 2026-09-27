@@ -27,7 +27,8 @@ export const snapshotFields = {
 export const documentTables = {
   documentLabels: defineTable({ documentId: v.id("documents"), labelId: v.id("taskLabels") })
     .index("by_document", ["documentId"])
-    .index("by_document_label", ["documentId", "labelId"]),
+    .index("by_document_label", ["documentId", "labelId"])
+    .index("by_label", ["labelId"]),
   // One edge per child is enforced transactionally by the unique indexed lookup.
   // Existing document rows need no hierarchy field or backfill.
   documentParents: defineTable({ documentId: v.id("documents"), parentId: v.id("documents") })

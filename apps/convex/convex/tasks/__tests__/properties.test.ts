@@ -26,7 +26,11 @@ describe("task properties", () => {
   test("a task persists canonical assignees, priority, dates, labels and custom state through native reads", async () => {
     const { owner, projectId, userId } = await workspaceJourney();
     const stateId = await owner.mutation(api.tasks.states.save, { projectId, data: stateData });
-    const labelId = await owner.mutation(api.tasks.labels.save, { projectId, data: labelData });
+    const labelId = await owner.mutation(api.tasks.labels.save, {
+      parentId: null,
+      projectId,
+      data: labelData,
+    });
     const details = {
       ...properties,
       priority: "high" as const,
@@ -95,7 +99,11 @@ describe("task properties", () => {
     const { owner, projectId, workspaceId } = await workspaceJourney();
     const other = await owner.mutation(api.projects.index.create, { workspaceId, name: "Other", identifier: "OTHER" });
     const stateId = await owner.mutation(api.tasks.states.save, { projectId: other, data: stateData });
-    const labelId = await owner.mutation(api.tasks.labels.save, { projectId: other, data: labelData });
+    const labelId = await owner.mutation(api.tasks.labels.save, {
+      parentId: null,
+      projectId: other,
+      data: labelData,
+    });
     await expect(
       owner.mutation(api.tasks.index.create, { projectId, title: "Invalid", properties: { ...properties, stateId } })
     ).rejects.toThrow("State must belong");
@@ -227,13 +235,21 @@ describe("project task taxonomy", () => {
   test("task taxonomy names are unique within the project and members cannot edit administrative taxonomy", async () => {
     const { t, owner, workspaceId, projectId } = await workspaceJourney();
     await owner.mutation(api.tasks.states.save, { projectId, data: stateData });
-    await owner.mutation(api.tasks.labels.save, { projectId, data: labelData });
+    await owner.mutation(api.tasks.labels.save, {
+      parentId: null,
+      projectId,
+      data: labelData,
+    });
     await expect(owner.mutation(api.tasks.states.save, { projectId, data: stateData })).rejects.toThrow(
       "already exists"
     );
-    await expect(owner.mutation(api.tasks.labels.save, { projectId, data: labelData })).rejects.toThrow(
-      "already exists"
-    );
+    await expect(
+      owner.mutation(api.tasks.labels.save, {
+        parentId: null,
+        projectId,
+        data: labelData,
+      })
+    ).rejects.toThrow("already exists");
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Member" }));
     await owner.mutation(api.workspaces.index.grantMember, { workspaceId, userId, role: "member" });
     await owner.mutation(api.projects.index.grantMember, { projectId, userId, role: "member" });
@@ -243,7 +259,11 @@ describe("project task taxonomy", () => {
       member.mutation(api.tasks.states.save, { projectId, data: { ...stateData, name: "New" } })
     ).rejects.toThrow("administrators");
     await expect(
-      member.mutation(api.tasks.labels.save, { projectId, data: { ...labelData, name: "New" } })
+      member.mutation(api.tasks.labels.save, {
+        parentId: null,
+        projectId,
+        data: { ...labelData, name: "New" },
+      })
     ).rejects.toThrow("administrators");
   });
 });
