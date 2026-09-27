@@ -48,6 +48,6 @@ test.each(["issuer", "recipient"] as const)(
     else
       expect(
         (await recipient.query(api.invitations.index.incoming, { paginationOpts: { cursor: null, numItems: 10 } })).page
-      ).toHaveLength(1);
+      ).toHaveLength(0);
   }
 );

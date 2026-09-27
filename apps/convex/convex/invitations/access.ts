@@ -73,6 +73,7 @@ export function publicInvitation(row: Doc<"invitations">) {
     expiresAt: row.expiresAt,
     revision: row.revision,
     status: row.status,
+    delivery: row.delivery?.revision === row.revision ? row.delivery.status : null,
     respondedAt: row.respondedAt,
     respondedBy: row.respondedBy,
   };

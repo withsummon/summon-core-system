@@ -1,3 +1,4 @@
+import { mailConfiguration } from "../identity/mail/config";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalMutation } from "../_generated/server";
@@ -6,7 +7,14 @@ import { requireUser, requireWorkspace, requireProject } from "../identity/acces
 import { grantWorkspaceMembership } from "../workspaces/index";
 import { grantProjectMembership } from "../projects/index";
 import { pageBudget } from "../commercial/validation";
-import { issuerAccess, recipient, normalizedEmail, publicInvitation, INVITATION_LIFETIME_MS } from "./access";
+import {
+  issuerAccess,
+  canIssueInvitation,
+  recipient,
+  normalizedEmail,
+  publicInvitation,
+  INVITATION_LIFETIME_MS,
+} from "./access";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 function pending(row: Doc<"invitations">) {
@@ -91,24 +99,55 @@ async function acceptMembership(ctx: MutationCtx, row: Doc<"invitations">, user:
   }
   if (row.projectId) await acceptProjectMembership(ctx, row, user, row.projectId);
 }
+async function respondToInvitation(
+  ctx: MutationCtx,
+  args: { invitationId: Doc<"invitations">["_id"]; accepted: boolean; tokenHash?: string; expectedRevision?: number }
+) {
+  const { user, email } = await recipient(ctx);
+  const row = await ctx.db.get(args.invitationId);
+  if (!row || row.email !== email || (args.tokenHash !== undefined && row.tokenHash !== args.tokenHash))
+    throw new ConvexError("Invitation is unavailable.");
+  if (
+    args.expectedRevision !== undefined &&
+    (!Number.isSafeInteger(args.expectedRevision) || row.revision !== args.expectedRevision)
+  )
+    throw new ConvexError("Invitation changed. Review it again.");
+  pending(row);
+  if (row.expiresAt <= Date.now()) throw new ConvexError("Invitation has expired.");
+  await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
+  if (args.accepted) await acceptMembership(ctx, row, user);
+  await ctx.db.patch(row._id, {
+    status: args.accepted ? "accepted" : "declined",
+    respondedAt: Date.now(),
+    respondedBy: user._id,
+    revision: row.revision + 1,
+  });
+  return { accepted: args.accepted, workspaceId: row.workspaceId, projectId: row.projectId };
+}
 export const respond = internalMutation({
   args: { invitationId: v.id("invitations"), tokenHash: v.string(), accepted: v.boolean() },
+  handler: respondToInvitation,
+});
+export const respondIncoming = mutation({
+  args: { invitationId: v.id("invitations"), expectedRevision: v.number(), accepted: v.boolean() },
+  handler: respondToInvitation,
+});
+export const acceptIncoming = mutation({
+  args: { invitations: v.array(v.object({ invitationId: v.id("invitations"), expectedRevision: v.number() })) },
   handler: async (ctx, args) => {
-    const { user, email } = await recipient(ctx);
-    const row = await ctx.db.get(args.invitationId);
-    if (!row || row.email !== email || row.tokenHash !== args.tokenHash)
-      throw new ConvexError("Invitation is unavailable.");
-    pending(row);
-    if (row.expiresAt <= Date.now()) throw new ConvexError("Invitation has expired.");
-    await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
-    if (args.accepted) await acceptMembership(ctx, row, user);
-    await ctx.db.patch(row._id, {
-      status: args.accepted ? "accepted" : "declined",
-      respondedAt: Date.now(),
-      respondedBy: user._id,
-      revision: row.revision + 1,
-    });
-    return { accepted: args.accepted, workspaceId: row.workspaceId, projectId: row.projectId };
+    if (
+      args.invitations.length < 1 ||
+      args.invitations.length > 20 ||
+      new Set(args.invitations.map((row) => row.invitationId)).size !== args.invitations.length
+    )
+      throw new ConvexError("Select between one and twenty distinct invitations.");
+    const results = [];
+    for (const invitation of args.invitations) {
+      // Ordered grants share this atomic transaction and its membership invariants.
+      // eslint-disable-next-line no-await-in-loop
+      results.push(await respondToInvitation(ctx, { ...invitation, accepted: true }));
+    }
+    return results;
   },
 });
 export const list = query({
@@ -141,6 +180,7 @@ export const incoming = query({
       result.page
         .filter((row) => row.expiresAt > Date.now())
         .map(async (row) => {
+          if (!(await canIssueInvitation(ctx, row.workspaceId, row.projectId, row.inviterId, row.role))) return null;
           const workspace = await ctx.db.get(row.workspaceId);
           if (!workspace || workspace.deletedAt != null) return null;
           const project = row.projectId ? await ctx.db.get(row.projectId) : null;
@@ -156,7 +196,7 @@ export const incoming = query({
 });
 export const availability = query({
   args: {},
-  handler: () => ({ emailDelivery: false, manualSharing: true, expiresAfterDays: 7 }),
+  handler: () => ({ emailDelivery: mailConfiguration(process.env) !== null, manualSharing: true, expiresAfterDays: 7 }),
 });
 
 async function acceptProjectMembership(
