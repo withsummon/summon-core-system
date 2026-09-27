@@ -1,3 +1,4 @@
+import { ActivityChanges } from "./changes";
 import { useState } from "react";
 import { usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -36,8 +37,11 @@ function ActivityRows({ taskId }: { taskId: Id<"tasks"> }) {
           <li key={event.id} className="space-y-1 py-3 text-14">
             <p>
               <span className="font-medium">{event.actorName || "Member"}</span> {labels[event.kind]}
-              {event.kind === "status_changed" && ` to ${taskStatusOptions[event.status].label}`}
+              {event.kind === "status_changed" &&
+                !event.changes?.length &&
+                ` to ${taskStatusOptions[event.status].label}`}
             </p>
+            {event.changes && event.changes.length > 0 && <ActivityChanges changes={event.changes} />}
             <time className="text-12 text-secondary" dateTime={new Date(event.at).toISOString()}>
               {new Date(event.at).toLocaleString()}
             </time>
