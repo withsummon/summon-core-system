@@ -279,7 +279,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
           <div className="space-y-6">
             <RecordVisit workspaceId={workspace._id} target={{ type: "project", id: project._id }} />
             {!hasSelectedTask && projectView !== "settings" && (
-              <ProjectCoverHeader key={project._id} projectId={project._id} />
+              <ProjectCoverHeader key={`cover-${project._id}`} projectId={project._id} />
             )}
             <nav aria-label="Project sections" className="flex flex-wrap gap-2">
               {[
