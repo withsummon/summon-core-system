@@ -105,6 +105,7 @@ import type * as identity_profile from "../identity/profile.js";
 import type * as identity_profile_owner from "../identity/profile_owner.js";
 import type * as identity_session from "../identity/session.js";
 import type * as intakes_access from "../intakes/access.js";
+import type * as intakes_description from "../intakes/description.js";
 import type * as intakes_index from "../intakes/index.js";
 import type * as intakes_lifecycle from "../intakes/lifecycle.js";
 import type * as invitations_access from "../invitations/access.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "identity/profile_owner": typeof identity_profile_owner;
   "identity/session": typeof identity_session;
   "intakes/access": typeof intakes_access;
+  "intakes/description": typeof intakes_description;
   "intakes/index": typeof intakes_index;
   "intakes/lifecycle": typeof intakes_lifecycle;
   "invitations/access": typeof invitations_access;

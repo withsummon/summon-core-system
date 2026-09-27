@@ -15,13 +15,16 @@ export const priority = v.union(
   v.literal("low"),
   v.literal("none")
 );
-export const taskProperties = {
+export const nonStateTaskProperties = {
   estimatePointId: v.union(v.id("estimatePoints"), v.null()),
   priority,
   assigneeIds: v.array(v.id("users")),
   labelIds: v.array(v.id("taskLabels")),
   startDate: v.union(v.string(), v.null()),
   targetDate: v.union(v.string(), v.null()),
+};
+export const taskProperties = {
+  ...nonStateTaskProperties,
   stateId: v.union(v.id("taskStates"), v.null()),
 };
 export const stateFields = {

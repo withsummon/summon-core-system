@@ -6,7 +6,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import { date } from "../commercial/validation";
-import { taskProperties } from "./schema";
+import { taskProperties, nonStateTaskProperties } from "./schema";
 
 export const initialProperties = {
   priority: "none",
@@ -19,10 +19,11 @@ export const initialProperties = {
   completedAt: null,
 } satisfies Infer<typeof properties> & { completedAt: null };
 const properties = v.object(taskProperties);
-export async function validateProperties(
+const nonStateProperties = v.object(nonStateTaskProperties);
+export async function validateNonStateProperties(
   ctx: QueryCtx,
   project: Doc<"projects">,
-  data: Infer<typeof properties>,
+  data: Infer<typeof nonStateProperties>,
   retainedEstimatePointId?: Id<"estimatePoints"> | null
 ) {
   const estimatePointId = data.estimatePointId;
@@ -56,11 +57,27 @@ export async function validateProperties(
       if (!label || label.projectId !== project._id) throw new ConvexError("Labels must belong to this project.");
     })
   );
+  return {
+    priority: data.priority,
+    assigneeIds: data.assigneeIds,
+    labelIds: data.labelIds,
+    estimatePointId,
+    startDate,
+    targetDate,
+  };
+}
+export async function validateProperties(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  data: Infer<typeof properties>,
+  retainedEstimatePointId?: Id<"estimatePoints"> | null
+) {
+  const validated = await validateNonStateProperties(ctx, project, data, retainedEstimatePointId);
   const state = data.stateId ? await ctx.db.get(data.stateId) : null;
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
   if (state?.status === "triage") throw new ConvexError("Use intake to manage triage tasks.");
-  return { data: { ...data, estimatePointId, startDate, targetDate }, state };
+  return { data: { ...validated, stateId: data.stateId }, state };
 }
 
 export function parseTaskText(rawTitle: string, description: string) {
