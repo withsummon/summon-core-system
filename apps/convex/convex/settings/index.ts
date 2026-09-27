@@ -1,13 +1,10 @@
 import { workspaceName, workspaceSlug } from "./metadata";
-import type { Infer } from "convex/values";
-import { DEFAULT_WORKSPACE_TIMEZONE, validateTimezone } from "./timezone";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
-import { text } from "../commercial/validation";
 import { settingsFields } from "./schema";
 
-const settingsValue = v.object(settingsFields);
+import { defaultSettings, validateSettings } from "./values";
 export const update = mutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -40,22 +37,6 @@ export const update = mutation({
     return { slug, revision: revision + 1 };
   },
 });
-function validateSettings(args: Infer<typeof settingsValue>) {
-  const organizationSize = args.organizationSize === null ? null : text(args.organizationSize, "Organization size", 20);
-  const industry = text(args.industry, "Industry", 120);
-  const description = text(args.description, "Description", 100000);
-  if (!/^[A-Z]{3}$/.test(args.currency)) throw new ConvexError("Enter a three-letter uppercase currency code.");
-  if (new Set(args.workweek).size !== args.workweek.length) throw new ConvexError("Workweek days must be unique.");
-  validateTimezone(args.timezone);
-  return {
-    organizationSize,
-    industry,
-    description,
-    timezone: args.timezone,
-    currency: args.currency,
-    workweek: args.workweek,
-  };
-}
 export const metadata = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
@@ -65,15 +46,7 @@ export const metadata = query({
       .query("workspaceSettings")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
       .unique();
-    const defaults: Infer<typeof settingsValue> = {
-      organizationSize: null,
-      timezone: DEFAULT_WORKSPACE_TIMEZONE,
-      industry: "",
-      description: "",
-      currency: "IDR",
-      workweek: [],
-    };
-    const { organizationSize, timezone, industry, description, currency, workweek } = stored ?? defaults;
+    const { organizationSize, timezone, industry, description, currency, workweek } = stored ?? defaultSettings;
     return {
       name: workspace.name,
       slug: workspace.slug,
