@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@convex-dev/auth": "catalog:",
+    "@plane/editor": "workspace:*",
     "convex": "catalog:",
-    "sanitize-html": "catalog:",
-    "@plane/editor": "workspace:*"
+    "sanitize-html": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
