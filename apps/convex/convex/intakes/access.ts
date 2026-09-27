@@ -14,8 +14,9 @@ export function intakeCapabilities(access: IntakeAccess, creator: Id<"users">) {
   const guest = access.projectMember.role === "guest" || access.member.role === "guest";
   return {
     canRead: !guest || !!access.project.guestViewAllFeatures || own || admin,
-    canEdit: own || admin,
-    canEditPriority: (own || admin) && !guest,
+    canEdit: !guest || own || admin,
+    canEditProperties: !guest,
+    canEditPriority: !guest,
     canDecide: admin,
     canRemove: own || admin,
   };

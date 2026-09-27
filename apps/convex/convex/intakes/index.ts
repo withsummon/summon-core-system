@@ -1,3 +1,4 @@
+import { boundDescriptionContent } from "../tasks/description_images";
 import { writeDescription } from "../tasks/description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -8,13 +9,15 @@ import { projectMetadata } from "../projects/settings";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { createTask } from "../tasks/create";
-import { initialProperties, parseTaskText } from "../tasks/properties";
-import { priority } from "../tasks/schema";
+import { initialProperties, parseTaskText, validateNonStateProperties } from "../tasks/properties";
+import { priority, nonStateTaskProperties } from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
 import { requireTask } from "../tasks/access";
 import { intakeCapabilities, requireIntakeTask, requireIntakeRevision } from "./access";
 import { intakeStatus } from "./schema";
+const { priority: _priority, ...intakePropertyFields } = nonStateTaskProperties;
+const intakeProperties = v.object(intakePropertyFields);
 const version = { taskId: v.id("tasks"), expectedUpdatedAt: v.number(), expectedTaskUpdatedAt: v.number() };
 export const getConfig = query({
   args: { projectId: v.id("projects") },
@@ -30,6 +33,7 @@ export const getConfig = query({
       guestViewAllFeatures: access.project.guestViewAllFeatures ?? false,
       revision: projectMetadata(access.project).revision,
       canConfigure: intakeCapabilities(access, access.user._id).canDecide,
+      canEditProperties: intakeCapabilities(access, access.user._id).canEditProperties,
     };
   },
 });
@@ -66,14 +70,28 @@ export const configure = mutation({
   },
 });
 export const submit = mutation({
-  args: { projectId: v.id("projects"), title: v.string(), html: v.string(), priority },
+  args: {
+    projectId: v.id("projects"),
+    title: v.string(),
+    html: v.string(),
+    priority,
+    properties: v.optional(intakeProperties),
+  },
   handler: async (ctx, args) => {
-    const { project, user } = await requireProject(ctx, args.projectId);
+    const access = await requireProject(ctx, args.projectId);
+    const { project, user } = access;
     const intake = await ctx.db
       .query("intakes")
       .withIndex("by_project", (q) => q.eq("projectId", project._id))
       .unique();
     if (!project.intakeEnabled || !intake) throw new ConvexError("Intake is not enabled for this project.");
+    if (args.properties && !intakeCapabilities(access, user._id).canEditProperties)
+      throw new ConvexError("Guests can set priority when submitting, but cannot assign intake properties.");
+    const properties = await validateNonStateProperties(ctx, project, {
+      ...initialProperties,
+      ...args.properties,
+      priority: args.priority,
+    });
     const content = taskRichContent(args.html);
     const { title } = parseTaskText(args.title, content.description);
     let state = await ctx.db
@@ -100,6 +118,7 @@ export const submit = mutation({
       user._id,
       {
         ...initialProperties,
+        ...properties,
         title,
         description: content.description,
         status: "triage",
@@ -126,7 +145,10 @@ export const submit = mutation({
   },
 });
 async function detail(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const { task, intake, canEdit, canEditPriority, canDecide, canRemove } = await requireIntakeTask(ctx, taskId);
+  const { task, intake, canEdit, canEditPriority, canEditProperties, canDecide, canRemove } = await requireIntakeTask(
+    ctx,
+    taskId
+  );
   const content = await ctx.db
     .query("taskDescriptions")
     .withIndex("by_task", (q) => q.eq("taskId", taskId))
@@ -144,6 +166,7 @@ async function detail(ctx: QueryCtx, taskId: Id<"tasks">) {
     duplicateTarget,
     canEdit,
     canEditPriority,
+    canEditProperties,
     canDecide,
     canRemove,
   };
@@ -178,18 +201,34 @@ export const list = query({
   },
 });
 export const edit = mutation({
-  args: { ...version, title: v.string(), html: v.string(), priority: v.optional(priority) },
+  args: {
+    ...version,
+    title: v.string(),
+    html: v.optional(v.string()),
+    priority: v.optional(priority),
+    properties: v.optional(intakeProperties),
+  },
   handler: async (ctx, args) => {
     const { task, intake, access, canEdit } = await requireIntakeTask(ctx, args.taskId);
-    if (!canEdit) throw new ConvexError("Only the creator or an administrator can edit this submission.");
+    if (!canEdit)
+      throw new ConvexError("Only a project writer, the creator or an administrator can edit this submission.");
     requireIntakeRevision(intake, task, args.expectedUpdatedAt, args.expectedTaskUpdatedAt);
     const guest = access.member.role === "guest" || access.projectMember.role === "guest";
-    if (guest && args.priority !== undefined && args.priority !== task.priority)
+    if (guest && (args.properties !== undefined || (args.priority !== undefined && args.priority !== task.priority)))
       throw new ConvexError("Guests can edit only the title and description.");
-    const content = taskRichContent(args.html);
-    const { title } = parseTaskText(args.title, content.description);
-    await writeDescription(ctx, task, access.user._id, content);
-    await ctx.db.patch(task._id, { title, ...(args.priority === undefined ? {} : { priority: args.priority }) });
+    const properties =
+      args.properties || args.priority !== undefined
+        ? await validateNonStateProperties(
+            ctx,
+            access.project,
+            { ...task, ...args.properties, priority: args.priority ?? task.priority },
+            task.estimatePointId
+          )
+        : null;
+    const content = args.html === undefined ? null : await boundDescriptionContent(ctx, task._id, args.html);
+    const { title } = parseTaskText(args.title, content?.description ?? task.description);
+    if (content) await writeDescription(ctx, task, access.user._id, content);
+    await ctx.db.patch(task._id, { title, ...properties });
     await taskChanged(ctx, task, access.user._id);
     await ctx.db.patch(intake._id, { updatedAt: Math.max(Date.now(), intake.updatedAt + 1) });
   },
