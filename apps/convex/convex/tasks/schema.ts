@@ -34,6 +34,14 @@ export const stateFields = {
 export const labelFields = { name: v.string(), description: v.string(), color: v.string(), sortOrder: v.number() };
 export const relationKind = v.union(v.literal("blocks"), v.literal("relates_to"), v.literal("duplicate"));
 export const taskTables = {
+  taskCommentReactions: defineTable({
+    commentId: v.id("taskComments"),
+    actorId: v.id("users"),
+    reaction: v.string(),
+    deletedAt: v.union(v.number(), v.null()),
+  })
+    .index("by_comment_deleted", ["commentId", "deletedAt"])
+    .index("by_comment_actor_code_deleted", ["commentId", "actorId", "reaction", "deletedAt"]),
   taskReactions: defineTable({
     taskId: v.id("tasks"),
     actorId: v.id("users"),

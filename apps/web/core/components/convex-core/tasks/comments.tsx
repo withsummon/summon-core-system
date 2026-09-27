@@ -1,3 +1,4 @@
+import { CommentReactions } from "./reactions/reactions";
 import { useSearchParams } from "react-router";
 import { CommentMentions } from "./comment-mentions";
 import { FocusedComment } from "./focused-comment";
@@ -152,6 +153,7 @@ function CommentRow({ comment }: { comment: Comment }) {
           editable={false}
         />
       )}
+      {comment.deletedAt == null && <CommentReactions taskId={comment.taskId} commentId={comment._id} />}
       {deleteRevision !== null && comment.canEdit && (
         <div className="space-y-2" role="group" aria-label="Confirm comment deletion">
           <p className="text-14">
