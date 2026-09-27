@@ -41,6 +41,8 @@ export default defineSchema({
     name: v.string(),
     identifier: v.string(),
     timezone: v.optional(v.string()),
+    description: v.optional(v.string()),
+    metadataRevision: v.optional(v.number()),
     nextSequence: v.number(),
     archived: v.boolean(),
   })
