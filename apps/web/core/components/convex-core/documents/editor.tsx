@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
-import type { CollaborationState, EditorRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
+import type { CollaborationState, EditorRefApi, EditorTitleRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { api } from "@summon/convex/api";
 
 import { useDocumentAssets } from "./use-document-assets";
+
+const DocumentExport = lazy(() => import("./export").then((module) => ({ default: module.DocumentExport })));
 
 const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
@@ -45,6 +47,8 @@ function AuthenticatedEditor({
   url: string;
 }) {
   const editorRef = useRef<EditorRefApi>(null);
+  const titleRef = useRef<EditorTitleRefApi>(null);
+  const [exporting, setExporting] = useState(false);
   const tokenRef = useRef(token);
   tokenRef.current = token;
   const getToken = useCallback(() => tokenRef.current, []);
@@ -92,7 +96,27 @@ function AuthenticatedEditor({
       <div className="text-xs flex flex-wrap items-center justify-between gap-2 text-secondary">
         <span role="status">{statusLabels[state.stage.kind]}</span>
         {!context.canWrite && <span>Read only</span>}
+        <Button variant="secondary" onClick={() => setExporting((value) => !value)} aria-expanded={exporting}>
+          {exporting ? "Close export" : "Export document"}
+        </Button>
       </div>
+      {exporting && (
+        <Suspense fallback={<p role="status">Opening export…</p>}>
+          <DocumentExport
+            documentId={context.documentId}
+            getToken={getToken}
+            snapshot={() => {
+              const content = editorRef.current?.getDocument();
+              const title = titleRef.current?.getDocument();
+              if (!content || !title) throw new Error("Wait for the document editor to open before exporting.");
+              return {
+                html: content.html,
+                title: new DOMParser().parseFromString(title.html, "text/html").body.textContent ?? "",
+              };
+            }}
+          />
+        </Suspense>
+      )}
       {saveError && (
         <p role="alert" className="text-sm rounded-md bg-danger-subtle p-3 text-danger-primary">
           {saveError} Download your local copy before leaving this page, then reload after resolving access.
@@ -129,6 +153,7 @@ function AuthenticatedEditor({
       <div className="min-h-96 rounded-xl border border-subtle-1 bg-surface-1 p-3 sm:p-6">
         <CollaborativeDocumentEditorWithRef
           ref={editorRef}
+          titleRef={titleRef}
           id={context.documentId}
           realtimeConfig={realtimeConfig}
           serverHandler={serverHandler}

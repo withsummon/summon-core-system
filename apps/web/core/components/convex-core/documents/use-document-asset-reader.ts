@@ -14,28 +14,33 @@ export function useDocumentAssetReader(documentId: Id<"documents">, getToken: ()
   useEffect(() => () => transfers.dispose(), [transfers]);
   return useMemo(() => {
     const resolve = (assetId: string) => client.query(api.assets.index.resolveDocumentAsset, { documentId, assetId });
+    const read = async (assetId: string, signal: AbortSignal) => {
+      if (!siteUrl) throw new Error("Document file storage is not configured.");
+      await lifecycle.wait(assetId);
+      const asset = await resolve(assetId);
+      signal.throwIfAborted();
+      if (!asset) throw new Error("This file is unavailable.");
+      const response = await fetch(new URL(asset.downloadPath, siteUrl), {
+        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: "omit",
+        cache: "no-store",
+        signal,
+      });
+      if (!response.ok)
+        throw new Error(
+          response.status === 403 || response.status === 401
+            ? "You no longer have access to this file."
+            : "The file could not be loaded."
+        );
+      const blob = await response.blob();
+      signal.throwIfAborted();
+      return { asset, blob };
+    };
     const source = (assetId: string, download: boolean) =>
       transfers.run(async (signal) => {
-        if (!siteUrl) throw new Error("Document file storage is not configured.");
-        await lifecycle.wait(assetId);
-        const asset = await resolve(assetId);
-        signal.throwIfAborted();
-        if (!asset) throw new Error("This file is unavailable.");
-        const response = await fetch(new URL(asset.downloadPath, siteUrl), {
-          headers: { Authorization: `Bearer ${getToken()}` },
-          credentials: "omit",
-          cache: "no-store",
-          signal,
-        });
-        if (!response.ok)
-          throw new Error(
-            response.status === 403 || response.status === 401
-              ? "You no longer have access to this file."
-              : "The file could not be loaded."
-          );
-        const blob = await response.blob();
+        const { blob } = await read(assetId, signal);
         return transfers.objectUrl(download ? new Blob([blob], { type: "application/octet-stream" }) : blob, signal);
       });
-    return { resolve, source, lifecycle, transfers };
+    return { resolve, source, read, lifecycle, transfers };
   }, [client, documentId, getToken, siteUrl, lifecycle, transfers]);
 }
