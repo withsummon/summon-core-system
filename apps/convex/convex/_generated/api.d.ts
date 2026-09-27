@@ -146,6 +146,7 @@ import type * as settings_timezone from "../settings/timezone.js";
 import type * as stickies_content from "../stickies/content.js";
 import type * as stickies_index from "../stickies/index.js";
 import type * as tasks_access from "../tasks/access.js";
+import type * as tasks_activity from "../tasks/activity.js";
 import type * as tasks_assignees from "../tasks/assignees.js";
 import type * as tasks_center from "../tasks/center.js";
 import type * as tasks_commentReactions from "../tasks/commentReactions.js";
@@ -313,6 +314,7 @@ declare const fullApi: ApiFromModules<{
   "stickies/content": typeof stickies_content;
   "stickies/index": typeof stickies_index;
   "tasks/access": typeof tasks_access;
+  "tasks/activity": typeof tasks_activity;
   "tasks/assignees": typeof tasks_assignees;
   "tasks/center": typeof tasks_center;
   "tasks/commentReactions": typeof tasks_commentReactions;
