@@ -1,4 +1,4 @@
-import { v, ConvexError } from "convex/values";
+import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
 import type { MutationCtx } from "../_generated/server";
@@ -70,21 +70,7 @@ export const grantMember = mutation({
   handler: async (ctx, args) => {
     const access = await requireWorkspace(ctx, args.workspaceId, true);
     if (access.member.role !== "admin") throw new ConvexError("Only workspace administrators can manage members.");
-    if (!(await ctx.db.get(args.userId))) throw new ConvexError("User not found.");
-    const existing = await ctx.db
-      .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
-      .unique();
-    if (existing?.active && existing.role === "admin" && args.role !== "admin") {
-      await requireAnotherAdmin(ctx, args.workspaceId);
-    }
-    if (existing) {
-      if (existing.active && args.role === "guest")
-        await restrictProjectMemberships(ctx, args.workspaceId, args.userId, "guest");
-      await ctx.db.patch(existing._id, { role: args.role, active: true });
-      return existing._id;
-    }
-    return ctx.db.insert("workspaceMembers", { ...args, active: true });
+    return grantWorkspaceMembership(ctx, args);
   },
 });
 
@@ -128,4 +114,25 @@ async function restrictProjectMemberships(
       ctx.db.patch(member._id, restriction === "revoke" ? { active: false } : { role: "guest" })
     )
   );
+}
+
+export async function grantWorkspaceMembership(
+  ctx: MutationCtx,
+  args: { workspaceId: Id<"workspaces">; userId: Id<"users">; role: Infer<typeof role> }
+) {
+  if (!(await ctx.db.get(args.userId))) throw new ConvexError("User not found.");
+  const existing = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
+    .unique();
+  if (existing?.active && existing.role === "admin" && args.role !== "admin") {
+    await requireAnotherAdmin(ctx, args.workspaceId);
+  }
+  if (existing) {
+    if (existing.active && args.role === "guest")
+      await restrictProjectMemberships(ctx, args.workspaceId, args.userId, "guest");
+    await ctx.db.patch(existing._id, { role: args.role, active: true });
+    return existing._id;
+  }
+  return ctx.db.insert("workspaceMembers", { ...args, active: true });
 }
