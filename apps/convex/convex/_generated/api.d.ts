@@ -96,6 +96,8 @@ import type * as modules_access from "../modules/access.js";
 import type * as modules_index from "../modules/index.js";
 import type * as modules_members from "../modules/members.js";
 import type * as modules_tasks from "../modules/tasks.js";
+import type * as navigation_preferences from "../navigation/preferences.js";
+import type * as navigation_recent from "../navigation/recent.js";
 import type * as navigation_address from "../navigation/address.js";
 import type * as notifications_bulk from "../notifications/bulk.js";
 import type * as notifications_cleanup from "../notifications/cleanup.js";
@@ -251,6 +253,8 @@ declare const fullApi: ApiFromModules<{
   "modules/index": typeof modules_index;
   "modules/members": typeof modules_members;
   "modules/tasks": typeof modules_tasks;
+  "navigation/preferences": typeof navigation_preferences;
+  "navigation/recent": typeof navigation_recent;
   "navigation/address": typeof navigation_address;
   "notifications/bulk": typeof notifications_bulk;
   "notifications/cleanup": typeof notifications_cleanup;
