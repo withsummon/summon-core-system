@@ -1,8 +1,8 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../../_generated/server";
-import { requireIdentity } from "../session";
+import { requireUser } from "../session";
 export async function requireInstanceAdmin(ctx: QueryCtx) {
-  const { user } = await requireIdentity(ctx);
+  const user = await requireUser(ctx);
   const instance = await ctx.db
     .query("instanceAuthority")
     .withIndex("by_key", (q) => q.eq("key", "instance"))
