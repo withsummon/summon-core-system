@@ -6,7 +6,7 @@ import { ConvexError } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalQuery, type MutationCtx } from "./_generated/server";
-import authConfig from "./auth.config";
+import authConfig, { betterAuthBasePath } from "./auth.config";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { sendAccountEmail } from "./identity/mail/sender";
 import { requireSignup } from "./identity/signup_policy";
@@ -106,7 +106,7 @@ async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string,
 export const createAuth = (ctx: GenericCtx<DataModel>) =>
   betterAuth({
     baseURL: process.env.CONVEX_SITE_URL,
-    basePath: "/api/better-auth",
+    basePath: betterAuthBasePath,
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
@@ -119,7 +119,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
     emailVerification: { sendOnSignUp: true, sendOnSignIn: true },
     plugins: [
       crossDomain({ siteUrl }),
-      convex({ authConfig }),
+      convex({ authConfig, options: { basePath: betterAuthBasePath } }),
       emailOTP({
         overrideDefaultEmailVerification: true,
         disableSignUp: true,
