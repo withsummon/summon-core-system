@@ -21,6 +21,16 @@ The snapshot transport treats binary as opaque bytes. It neither validates Yjs e
 
 ## Legacy behavior still requiring migration
 
-Page parent/subpage hierarchy, labels, move aliases, sort/reorder operations, ownership transfer, deleted-page restore, timed version generation/restore, PageLog backlink/file extraction, live force-close/title-sync hooks, full-text stripped HTML, and API serializer projections remain outside this slice. Lifecycle authorization is currently owner-only; legacy project-admin lifecycle exceptions need their own parity pass.
+Page parent/subpage hierarchy, labels, move aliases, sort/reorder operations, ownership transfer, timed version generation/restore, PageLog backlink/file extraction, live force-close/title-sync hooks, full-text stripped HTML, and API serializer projections remain outside this slice. Lifecycle authorization is currently owner-only; legacy project-admin lifecycle exceptions need their own parity pass.
 
 Resource credential relationships require the credential domain owner. File uploads remain FileAsset-owned. Generated artifacts, download/PDF/DOCX rendering, template aliases, meeting summary/source-transcript projections, assistant automation, and context record CRUD are not migrated merely because their metadata can be stored here. No Django or Hocuspocus retirement is authorized by these backend checks alone.
+
+## Settings and lifecycle concurrency
+
+Metadata updates and lifecycle mutations require the document's opening `expectedUpdatedAt`. Every update, lifecycle change, and snapshot save advances that value monotonically, including multiple writes within one millisecond. A stale settings save cannot restore old visibility or an old title; a stale lifecycle action cannot undo another tab's lock/archive/delete decision. The existing snapshot `expectedRevision` conflict contract is unchanged. Trash restore already requires the current settings version and advances it monotonically.
+
+The metadata UI captures the complete opening record once per form mount and retains its draft on conflict. It does not combine stale visible inputs with new hidden metadata from a live prop. Behavior tests cover visibility/title conflicts, lifecycle conflicts, and same-clock writes; existing document, asset, assistant, meeting, and live collaboration callers supply the explicit expected version.
+
+## Owner Trash and recovery
+
+`lifecycle.trash` scans bounded deleted-document pages and returns only the current owner's records. Ordinary document reads and snapshots still reject deleted documents. `lifecycle.restore` requires current workspace write membership, exact ownership and the observed update version. It restores the same record without changing visibility, lock/archive state, metadata or immutable revisions. No purge endpoint was added. Project-admin lifecycle exceptions remain outside this slice.

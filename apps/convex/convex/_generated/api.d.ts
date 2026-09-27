@@ -31,6 +31,7 @@ import type * as commercial_validation from "../commercial/validation.js";
 import type * as crons from "../crons.js";
 import type * as documents_access from "../documents/access.js";
 import type * as documents_index from "../documents/index.js";
+import type * as documents_lifecycle from "../documents/lifecycle.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_index from "../identity/index.js";
@@ -106,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "documents/access": typeof documents_access;
   "documents/index": typeof documents_index;
+  "documents/lifecycle": typeof documents_lifecycle;
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/index": typeof identity_index;

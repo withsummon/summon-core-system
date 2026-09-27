@@ -96,10 +96,16 @@ export const list = query({
     return { ...result, page: visible.filter((document) => document !== null) };
   },
 });
+function requireMetadataVersion(document: Doc<"documents">, expectedUpdatedAt: number) {
+  if (expectedUpdatedAt !== document.updatedAt)
+    throw new ConvexError("This document changed while you were editing. Reopen its latest settings before saving.");
+}
+
 export const update = mutation({
-  args: { documentId: v.id("documents"), ...documentFields },
-  handler: async (ctx, { documentId, ...metadata }) => {
+  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...documentFields },
+  handler: async (ctx, { documentId, expectedUpdatedAt, ...metadata }) => {
     const { document, user } = await requireDocument(ctx, documentId, true);
+    requireMetadataVersion(document, expectedUpdatedAt);
     if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
     if (
       document.ownedBy !== user._id &&
@@ -109,15 +115,30 @@ export const update = mutation({
     )
       throw new ConvexError("Only the owner can change document visibility.");
     await validateMetadata(ctx, document.workspaceId, metadata);
-    await ctx.db.patch(documentId, { ...metadata, updatedBy: user._id, updatedAt: Date.now() });
+    await ctx.db.patch(documentId, {
+      ...metadata,
+      updatedBy: user._id,
+      updatedAt: Math.max(Date.now(), document.updatedAt + 1),
+    });
   },
 });
 export const setLifecycle = mutation({
-  args: { documentId: v.id("documents"), isLocked: v.boolean(), archived: v.boolean(), deleted: v.boolean() },
-  handler: async (ctx, { documentId, ...state }) => {
+  args: {
+    documentId: v.id("documents"),
+    expectedUpdatedAt: v.number(),
+    isLocked: v.boolean(),
+    archived: v.boolean(),
+    deleted: v.boolean(),
+  },
+  handler: async (ctx, { documentId, expectedUpdatedAt, ...state }) => {
     const { document, user } = await requireDocument(ctx, documentId, true);
     if (document.ownedBy !== user._id) throw new ConvexError("Only the owner can manage document lifecycle.");
-    await ctx.db.patch(documentId, { ...state, updatedBy: user._id, updatedAt: Date.now() });
+    requireMetadataVersion(document, expectedUpdatedAt);
+    await ctx.db.patch(documentId, {
+      ...state,
+      updatedBy: user._id,
+      updatedAt: Math.max(Date.now(), document.updatedAt + 1),
+    });
   },
 });
 // CAS transport preserves the exact Yjs bytes. The editor/Hocuspocus owner must merge
@@ -149,7 +170,7 @@ export const saveSnapshot = mutation({
     await ctx.db.insert("documentRevisions", { ...snapshot, documentId, revision, createdBy: user._id });
     await ctx.db.patch(documentId, {
       revision,
-      updatedAt: Date.now(),
+      updatedAt: Math.max(Date.now(), document.updatedAt + 1),
       updatedBy: user._id,
       ...(name === undefined ? {} : { name }),
     });

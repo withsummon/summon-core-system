@@ -186,6 +186,7 @@ test("document deletion after provider start blocks publication and historical m
     model: "test",
   });
   await owner.mutation(api.documents.index.setLifecycle, {
+    expectedUpdatedAt: (await owner.query(api.documents.index.get, { documentId })).updatedAt,
     documentId,
     isLocked: false,
     archived: false,
