@@ -29,3 +29,9 @@ Module `MIGRATION.md` files and frontend acceptance records own the detailed omi
 5. Stop obsolete Django workers/API and Postgres only after proving no active consumer remains. Preserve their data volumes and a documented rollback path; volume deletion is not part of this migration.
 
 No legacy route redirect, service removal, or data deletion has been performed merely to make these checks pass.
+
+## Checkpoint `8496aa7bd6` additions
+
+Native cycles, many-to-many modules, recoverable comment deletion and project settings/archive recovery now have local role/concurrency/recovery Chrome evidence. Project archive retains children and blocks normal project operations; documents retain their independently owned access rules. Workspace role changes protect the final administrator of archived projects so recovery cannot be orphaned.
+
+These additions do not close inherited cycle/module analytics, saved views, task lifecycle, project feature settings, public/PAT APIs or the other exclusions in module receipts. The remote owned domain still had no A record at the last DNS check, and no live provider configuration has been supplied. Existing Django/Postgres services and legacy routes remain necessary.
