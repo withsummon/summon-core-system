@@ -19,8 +19,12 @@ test("same actor coalesces through rolling600s, no-op preserves version, outside
   const f = await fixture();
   const initial = (await f.owner.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).page[0];
   async function save(html: string) {
-    const task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
-    await f.owner.mutation(api.tasks.description.save, { taskId: f.taskId, expectedUpdatedAt: task.updatedAt, html });
+    const content = await f.owner.query(api.tasks.description.get, { taskId: f.taskId });
+    await f.owner.mutation(api.tasks.description.save, {
+      taskId: f.taskId,
+      expectedContentVersion: content.contentVersion,
+      html,
+    });
   }
   vi.setSystemTime(1600000);
   await save("<p>Second</p>");
@@ -37,13 +41,13 @@ test("same actor coalesces through rolling600s, no-op preserves version, outside
 test("restore validates mutable version and task CAS and does not accept a different task's version", async () => {
   const f = await fixture();
   const version = (await f.owner.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).page[0];
-  let task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
+  const content = await f.owner.query(api.tasks.description.get, { taskId: f.taskId });
   await f.owner.mutation(api.tasks.description.save, {
     taskId: f.taskId,
-    expectedUpdatedAt: task.updatedAt,
+    expectedContentVersion: content.contentVersion,
     html: "<p>Changed</p>",
   });
-  task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
+  const task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
   const args = {
     scope: f.scope,
     versionId: version._id,
@@ -95,14 +99,14 @@ test("different actor appends; restoring older HTML creates current content atom
   await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId: id, role: "member" });
   await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId: id, role: "member" });
   const editor = await signedIn(f.t, id);
-  let task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
+  const content = await f.owner.query(api.tasks.description.get, { taskId: f.taskId });
   await editor.mutation(api.tasks.description.save, {
     taskId: f.taskId,
-    expectedUpdatedAt: task.updatedAt,
+    expectedContentVersion: content.contentVersion,
     html: "<p><strong>Other edit</strong></p>",
   });
   expect((await f.owner.query(api.tasks.history.list, { scope: f.scope, paginationOpts })).page).toHaveLength(2);
-  task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
+  let task = await f.owner.query(api.tasks.index.get, { taskId: f.taskId });
   await f.owner.mutation(api.tasks.history.restore, {
     scope: f.scope,
     versionId: original._id,

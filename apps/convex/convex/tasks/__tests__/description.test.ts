@@ -17,10 +17,10 @@ describe("canonical task rich description", () => {
   test("rich save retains lists and emphasis, strips active content, derives decoded text and rejects stale save", async () => {
     const { owner, projectId } = await workspaceJourney();
     const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Plan" });
-    const task = await owner.query(api.tasks.index.get, { taskId });
+    const task = await owner.query(api.tasks.description.get, { taskId });
     await owner.mutation(api.tasks.description.save, {
       taskId,
-      expectedUpdatedAt: task.updatedAt,
+      expectedContentVersion: task.contentVersion,
       html: '<p onclick="evil()"><strong>Review &amp; plan</strong></p><ul><li>First</li></ul><script>evil()</script><img src="x" onerror="evil()"><a href="javascript:evil()">Link</a>',
     });
     const rich = await owner.query(api.tasks.description.get, { taskId });
@@ -31,16 +31,20 @@ describe("canonical task rich description", () => {
     expect(saved.description).toContain("Review & plan\n");
     expect(saved.description).toContain("First");
     await expect(
-      owner.mutation(api.tasks.description.save, { taskId, expectedUpdatedAt: task.updatedAt, html: "<p>stale</p>" })
+      owner.mutation(api.tasks.description.save, {
+        taskId,
+        expectedContentVersion: task.contentVersion,
+        html: "<p>stale</p>",
+      })
     ).rejects.toThrow("changed");
   });
   test("editor color marks and alignment persist without allowing CSS URL injection", async () => {
     const { owner, projectId } = await workspaceJourney();
     const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Formatting" });
-    const task = await owner.query(api.tasks.index.get, { taskId });
+    const task = await owner.query(api.tasks.description.get, { taskId });
     await owner.mutation(api.tasks.description.save, {
       taskId,
-      expectedUpdatedAt: task.updatedAt,
+      expectedContentVersion: task.contentVersion,
       html: '<p style="text-align: center; background-image: url(https://example.com)"><span data-text-color="peach" data-background-color="red">Color</span><span data-text-color="red; background-image: url(https://example.com)" style="color: rgb(255, 0, 0)">Safe style</span></p>',
     });
     const { html } = await owner.query(api.tasks.description.get, { taskId });
@@ -54,10 +58,10 @@ describe("canonical task rich description", () => {
   test("legacy text update intentionally replaces formatting rather than leaving stale rich content", async () => {
     const { owner, projectId } = await workspaceJourney();
     const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Plan" });
-    const first = await owner.query(api.tasks.index.get, { taskId });
+    const first = await owner.query(api.tasks.description.get, { taskId });
     await owner.mutation(api.tasks.description.save, {
       taskId,
-      expectedUpdatedAt: first.updatedAt,
+      expectedContentVersion: first.contentVersion,
       html: "<p><strong>Rich</strong></p>",
     });
     const task = await owner.query(api.tasks.index.get, { taskId });
@@ -80,7 +84,7 @@ describe("canonical task rich description", () => {
   test("project guest cannot save and revoked membership cannot read rich data", async () => {
     const { t, owner, projectId, userId } = await workspaceJourney();
     const taskId = await owner.mutation(api.tasks.index.create, { projectId, title: "Private" });
-    const task = await owner.query(api.tasks.index.get, { taskId });
+    const task = await owner.query(api.tasks.description.get, { taskId });
     const memberId = await t.run(async (ctx) => {
       const member = await ctx.db
         .query("projectMembers")
@@ -90,7 +94,11 @@ describe("canonical task rich description", () => {
       return member!._id;
     });
     await expect(
-      owner.mutation(api.tasks.description.save, { taskId, expectedUpdatedAt: task.updatedAt, html: "<p>no</p>" })
+      owner.mutation(api.tasks.description.save, {
+        taskId,
+        expectedContentVersion: task.contentVersion,
+        html: "<p>no</p>",
+      })
     ).rejects.toThrow("access");
     await t.run((ctx) => ctx.db.patch(memberId, { active: false }));
     await expect(owner.query(api.tasks.description.get, { taskId })).rejects.toThrow("access");
