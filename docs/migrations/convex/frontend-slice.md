@@ -53,3 +53,7 @@ The web workspace has Node pure-function tests but no React testing setup. No
 new test dependency was introduced. Backend module behavioral tests and the main
 run's real Chrome journeys verify this slice; rendered frontend acceptance is
 not claimed by these source checks.
+
+## Compact workspace scrolling correction
+
+Chrome at 390px showed the fixed-height shell keeping its tall workspace sidebar above a separately scrolling content region, leaving too little editing area. The shared native shell now scrolls as one column below the desktop breakpoint; desktop retains independently scrolling content. The header does not shrink. Resource editing and meeting summary controls were rendered at 390px with the workspace selector scrolled away and no horizontal overflow. Native web types and focused shell lint pass. No navigation or permission policy changed.
