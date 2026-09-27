@@ -55,3 +55,20 @@ export async function updateHeights(ctx: MutationCtx, chain: Doc<"favorites">[])
     await ctx.db.patch(parent._id, { height: (child?.height ?? 0) + 1 });
   }
 }
+
+export async function effectiveFavorite(ctx: QueryCtx, row: Doc<"favorites"> | null) {
+  return !!row && row.deletedAt === null && !(await ancestors(ctx, row)).some((parent) => parent.deletedAt !== null);
+}
+export function viewFavorite(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  userId: Id<"users">,
+  viewId: Id<"savedViews">
+) {
+  return ctx.db
+    .query("favorites")
+    .withIndex("by_owner_target", (q) =>
+      q.eq("workspaceId", workspaceId).eq("userId", userId).eq("targetKey", `view:${viewId}`)
+    )
+    .unique();
+}

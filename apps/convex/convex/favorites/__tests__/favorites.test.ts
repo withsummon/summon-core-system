@@ -201,14 +201,6 @@ test("saved-view migration is idempotent and reconciles removals without dual wr
   );
   expect((await f.owner.mutation(internal.favorites.migrations.backfill, { cursor: null })).inserted).toBe(1);
   expect((await f.owner.mutation(internal.favorites.migrations.backfill, { cursor: null })).inserted).toBe(0);
-  await expect(
-    f.owner.mutation(api.favorites.index.create, {
-      workspaceId: f.workspaceId,
-      target: { type: "view", id: viewId },
-      name: null,
-      parentId: null,
-    })
-  ).rejects.toThrow("cutover");
   await f.t.run((ctx) => ctx.db.delete(sourceId));
   const replacement = await f.t.run((ctx) =>
     ctx.db.insert("savedViewFavorites", { workspaceId: f.workspaceId, projectId: null, viewId, userId: f.userId })

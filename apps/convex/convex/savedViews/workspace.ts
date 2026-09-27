@@ -1,3 +1,5 @@
+import { setViewFavorite } from "../favorites/views";
+import { effectiveFavorite } from "../favorites/access";
 import { resultPage } from "./result_page";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -105,9 +107,9 @@ export const access = query({
 export const favorite = mutation({
   args: { viewId: v.id("savedViews"), favorite: v.boolean() },
   handler: async (ctx, args) => {
-    const { canFavorite } = await requireWorkspaceView(ctx, args.viewId);
+    const { view, access: permission, canFavorite } = await requireWorkspaceView(ctx, args.viewId);
     if (!canFavorite) throw new ConvexError("Guests cannot change favorites.");
-    throw new ConvexError("Favorite migration is in progress. Try again shortly.");
+    await setViewFavorite(ctx, view, permission.user._id, args.favorite);
   },
 });
 export const favorites = query({
@@ -115,15 +117,20 @@ export const favorites = query({
   handler: async (ctx, args) => {
     const permission = await requireWorkspace(ctx, args.workspaceId);
     const result = await ctx.db
-      .query("savedViewFavorites")
-      .withIndex("by_workspace_project_user", (q) =>
-        q.eq("workspaceId", args.workspaceId).eq("projectId", null).eq("userId", permission.user._id)
+      .query("favorites")
+      .withIndex("by_owner_type_project", (q) =>
+        q
+          .eq("workspaceId", args.workspaceId)
+          .eq("userId", permission.user._id)
+          .eq("targetType", "view")
+          .eq("targetProjectId", null)
       )
       .order("desc")
       .paginate(pageBudget(args.paginationOpts));
     const page = await Promise.all(
       result.page.map(async (row) => {
-        const view = await ctx.db.get(row.viewId);
+        if (row.target.type !== "view" || !(await effectiveFavorite(ctx, row))) return null;
+        const view = await ctx.db.get(row.target.id);
         if (
           !view ||
           view.projectId !== null ||
