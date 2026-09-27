@@ -17,6 +17,7 @@ export const set = mutation({
       await ctx.db.insert("savedViewFavorites", {
         viewId: view._id,
         projectId: view.projectId,
+        workspaceId: access.project.workspaceId,
         userId: access.user._id,
       });
     if (!args.favorite && existing) await ctx.db.delete(existing._id);

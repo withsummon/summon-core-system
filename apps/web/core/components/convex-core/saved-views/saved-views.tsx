@@ -2,15 +2,18 @@ import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 import { taskStatusOptions } from "../tasks/options";
+import { savedViewTaskLink } from "./task-link";
 import { SavedViewForm } from "./form";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
-type Detail = FunctionReturnType<typeof api.savedViews.index.get>;
+type Detail =
+  | FunctionReturnType<typeof api.savedViews.index.get>
+  | FunctionReturnType<typeof api.savedViews.workspace.get>;
 export function SavedViews({ project }: { project: Project }) {
   const [params, setParams] = useSearchParams();
   const selected = params.get("savedView");
@@ -175,7 +178,7 @@ function SavedViewDetail({
 function selectionNames(items: { id: string; name: string | null }[], ids: string[]) {
   return ids.map((id) => items.find((item) => item.id === id)?.name ?? "Unavailable selection").join(", ");
 }
-function SavedFilters({ detail }: { detail: Detail }) {
+export function SavedFilters({ detail }: { detail: Detail }) {
   const { filters } = detail.view;
   const groups = [
     filters.statuses.length
@@ -192,7 +195,7 @@ function SavedFilters({ detail }: { detail: Detail }) {
   return (
     <details className="rounded-md border border-subtle-1 p-3">
       <summary className="cursor-pointer text-14 font-medium">
-        {groups.length ? `Match ${filters.match} filter groups` : "All active project tasks"}
+        {groups.length ? `Match ${filters.match} filter groups` : "All active tasks in this view’s scope"}
       </summary>
       <ul className="mt-2 space-y-1 text-14 text-secondary">
         {groups.map((group) => (
@@ -204,34 +207,13 @@ function SavedFilters({ detail }: { detail: Detail }) {
 }
 function Results({ viewId, project }: { viewId: Id<"savedViews">; project: Project }) {
   const rows = usePaginatedQuery(api.savedViews.results.list, { viewId }, { initialNumItems: 50 });
-  const [params] = useSearchParams();
   return (
     <section className="space-y-3">
       <header>
         <h3 className="text-16 font-medium">Matching tasks</h3>
         <p className="text-12 text-secondary">Newest created first</p>
       </header>
-      <ul className="divide-y divide-subtle-1">
-        {rows.results.map((task) => {
-          const next = new URLSearchParams(params);
-          next.delete("projectView");
-          next.delete("savedView");
-          next.delete("savedViewTab");
-          next.delete("taskView");
-          next.set("task", task._id);
-          return (
-            <li key={task._id}>
-              <Link to={`?${next}`} className="grid gap-1 py-3 text-14 sm:grid-cols-[6rem_minmax(0,1fr)_8rem]">
-                <span className="text-12 text-secondary">
-                  {project.identifier}-{task.sequence}
-                </span>
-                <span className="font-medium break-words">{task.title}</span>
-                <span className="text-secondary">{taskStatusOptions[task.status].label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <TaskResultRows rows={rows.results.map((task) => ({ task, project }))} />
       {rows.status === "LoadingFirstPage" && <p role="status">Loading matching tasks…</p>}
       {rows.status === "Exhausted" && !rows.results.length && (
         <p className="text-14 text-secondary">No matching tasks available.</p>
@@ -244,8 +226,48 @@ function Results({ viewId, project }: { viewId: Id<"savedViews">; project: Proje
     </section>
   );
 }
+export function TaskResultRows({
+  rows,
+}: {
+  rows: {
+    task: FunctionReturnType<typeof api.savedViews.results.list>["page"][number];
+    project: { identifier: string; name: string };
+  }[];
+}) {
+  const [params] = useSearchParams();
+  return (
+    <ul className="divide-y divide-subtle-1">
+      {rows.map(({ task, project }) => (
+        <li key={task._id}>
+          <Link
+            to={savedViewTaskLink(params, project.identifier, task._id)}
+            className="grid gap-1 py-3 text-14 sm:grid-cols-[6rem_minmax(0,1fr)_8rem]"
+          >
+            <span className="text-12 text-secondary">
+              {project.identifier}-{task.sequence}
+            </span>
+            <span className="min-w-0">
+              <span className="block font-medium break-words">{task.title}</span>
+              <span className="block text-12 text-secondary">{project.name}</span>
+            </span>
+            <span className="text-secondary">{taskStatusOptions[task.status].label}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 function Favorite({ detail }: { detail: Pick<Detail, "view" | "canFavorite" | "isFavorite"> }) {
   const save = useMutation(api.savedViews.favorites.set);
+  return <FavoriteControl detail={detail} onChange={(favorite) => save({ viewId: detail.view._id, favorite })} />;
+}
+export function FavoriteControl({
+  detail,
+  onChange,
+}: {
+  detail: Pick<Detail, "view" | "canFavorite" | "isFavorite">;
+  onChange: (favorite: boolean) => Promise<unknown>;
+}) {
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   if (!detail.canFavorite) return null;
@@ -259,7 +281,7 @@ function Favorite({ detail }: { detail: Pick<Detail, "view" | "canFavorite" | "i
           setPending(true);
           setError("");
           try {
-            await save({ viewId: detail.view._id, favorite: !detail.isFavorite });
+            await onChange(!detail.isFavorite);
           } catch (failure) {
             setError(mutationMessage(failure));
           } finally {
@@ -279,6 +301,17 @@ function Favorite({ detail }: { detail: Pick<Detail, "view" | "canFavorite" | "i
 }
 function ViewLifecycle({ detail, onDone }: { detail: Detail; onDone: (deleted: boolean) => void }) {
   const save = useMutation(api.savedViews.index.lifecycle);
+  return <ViewLifecycleControl detail={detail} onDone={onDone} onChange={save} />;
+}
+export function ViewLifecycleControl({
+  detail,
+  onDone,
+  onChange,
+}: {
+  detail: Detail;
+  onDone: (deleted: boolean) => void;
+  onChange: (args: FunctionArgs<typeof api.savedViews.index.lifecycle>) => Promise<unknown>;
+}) {
   const [snapshot, setSnapshot] = useState<Detail | null>(null),
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
@@ -301,7 +334,7 @@ function ViewLifecycle({ detail, onDone }: { detail: Detail; onDone: (deleted: b
                 setError("");
                 try {
                   const deleted = !snapshot.canRestore;
-                  await save({ viewId: snapshot.view._id, expectedUpdatedAt: snapshot.view.updatedAt, deleted });
+                  await onChange({ viewId: snapshot.view._id, expectedUpdatedAt: snapshot.view.updatedAt, deleted });
                   onDone(deleted);
                 } catch (failure) {
                   setError(mutationMessage(failure));
@@ -336,7 +369,7 @@ function ViewLifecycle({ detail, onDone }: { detail: Detail; onDone: (deleted: b
     </section>
   );
 }
-class ViewBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
+export class ViewBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };

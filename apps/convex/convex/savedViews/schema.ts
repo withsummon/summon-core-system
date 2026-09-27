@@ -18,7 +18,8 @@ export const viewFilters = v.object({
 });
 export const savedViewTables = {
   savedViews: defineTable({
-    projectId: v.id("projects"),
+    workspaceId: v.optional(v.id("workspaces")),
+    projectId: v.union(v.id("projects"), v.null()),
     ownerId: v.id("users"),
     name: v.string(),
     description: v.string(),
@@ -26,8 +27,16 @@ export const savedViewTables = {
     isLocked: v.boolean(),
     updatedAt: v.number(),
     deletedAt: v.union(v.number(), v.null()),
-  }).index("by_project_deleted", ["projectId", "deletedAt"]),
-  savedViewFavorites: defineTable({ projectId: v.id("projects"), viewId: v.id("savedViews"), userId: v.id("users") })
+  })
+    .index("by_project_deleted", ["projectId", "deletedAt"])
+    .index("by_workspace_project_deleted", ["workspaceId", "projectId", "deletedAt"]),
+  savedViewFavorites: defineTable({
+    workspaceId: v.optional(v.id("workspaces")),
+    projectId: v.union(v.id("projects"), v.null()),
+    viewId: v.id("savedViews"),
+    userId: v.id("users"),
+  })
     .index("by_view_user", ["viewId", "userId"])
-    .index("by_project_user", ["projectId", "userId"]),
+    .index("by_project_user", ["projectId", "userId"])
+    .index("by_workspace_project_user", ["workspaceId", "projectId", "userId"]),
 };

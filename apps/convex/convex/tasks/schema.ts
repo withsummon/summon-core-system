@@ -106,10 +106,12 @@ export const taskTables = {
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
   })
+    .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"])
     .index("by_project_default", ["projectId", "isDefault"]),
   taskLabels: defineTable({ ...labelFields, workspaceId: v.id("workspaces"), projectId: v.id("projects") })
+    .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"]),
 };

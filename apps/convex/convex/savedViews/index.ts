@@ -12,10 +12,11 @@ const definition = { name: v.string(), description: v.string(), filters: viewFil
 export const create = mutation({
   args: { projectId: v.id("projects"), ...definition },
   handler: async (ctx, args) => {
-    const { user } = await requireProject(ctx, args.projectId);
+    const { user, project } = await requireProject(ctx, args.projectId);
     const filters = await validateFilters(ctx, args.projectId, args.filters);
     return ctx.db.insert("savedViews", {
       projectId: args.projectId,
+      workspaceId: project.workspaceId,
       ownerId: user._id,
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
