@@ -1,3 +1,4 @@
+import { favoriteTables } from "./favorites/schema";
 import { draftTables } from "./tasks/drafts/schema";
 import { stickyTables } from "./stickies/schema";
 import { savedViewTables } from "./savedViews/schema";
@@ -23,6 +24,7 @@ import { resourceTables } from "./resources/schema";
 
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
 export default defineSchema({
+  ...favoriteTables,
   ...draftTables,
   ...authTables,
   ...identityTables,
