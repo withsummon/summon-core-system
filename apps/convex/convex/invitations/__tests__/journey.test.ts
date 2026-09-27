@@ -225,3 +225,26 @@ test("guests cannot issue and forged project scope never creates an invitation",
   ).rejects.toThrow("project administrators");
   expect(await f.t.run((ctx) => ctx.db.query("invitations").collect())).toEqual([]);
 });
+
+test("invitation UI projections expose current grant capabilities and verified recipient scope names without secrets", async () => {
+  const f = await fixture();
+  expect(await f.owner.query(api.invitations.index.access, { workspaceId: f.workspaceId, projectId: null })).toEqual({
+    roles: ["guest", "member", "admin"],
+  });
+  expect(await f.owner.query(api.invitations.index.recipientAccess, {})).toMatchObject({ canRespond: false });
+  expect(await f.invitee.query(api.invitations.index.recipientAccess, {})).toMatchObject({
+    canRespond: true,
+    email: "invitee@example.test",
+  });
+  await f.issue(f.projectId);
+  const incoming = await f.invitee.query(api.invitations.index.incoming, {
+    paginationOpts: { cursor: null, numItems: 10 },
+  });
+  expect(incoming.page).toHaveLength(1);
+  expect(incoming.page[0].workspaceName).toBeTruthy();
+  expect(incoming.page[0].projectName).toBeTruthy();
+  expect(incoming.page[0]).not.toHaveProperty("tokenHash");
+  await expect(
+    f.invitee.query(api.invitations.index.access, { workspaceId: f.workspaceId, projectId: null })
+  ).rejects.toThrow();
+});

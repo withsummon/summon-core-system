@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalMutation } from "../_generated/server";
 import { role } from "../schema";
-import { requireUser } from "../identity/access";
+import { requireUser, requireWorkspace, requireProject } from "../identity/access";
 import { grantWorkspaceMembership } from "../workspaces/index";
 import { grantProjectMembership } from "../projects/index";
 import { pageBudget } from "../commercial/validation";
@@ -137,7 +137,19 @@ export const incoming = query({
       .withIndex("by_email", (q) => q.eq("email", email).eq("status", "pending"))
       .order("desc")
       .paginate(pageBudget(args.paginationOpts));
-    return { ...result, page: result.page.filter((row) => row.expiresAt > Date.now()).map(publicInvitation) };
+    const page = await Promise.all(
+      result.page
+        .filter((row) => row.expiresAt > Date.now())
+        .map(async (row) => {
+          const workspace = await ctx.db.get(row.workspaceId);
+          const project = row.projectId ? await ctx.db.get(row.projectId) : null;
+          return Object.assign(publicInvitation(row), {
+            workspaceName: workspace?.name ?? null,
+            projectName: project?.name ?? null,
+          });
+        })
+    );
+    return { ...result, page };
   },
 });
 export const availability = query({
@@ -163,3 +175,25 @@ async function acceptProjectMembership(
       role: row.role,
     });
 }
+
+export const access = query({
+  args: { workspaceId: v.id("workspaces"), projectId: v.union(v.id("projects"), v.null()) },
+  handler: async (ctx, args) => {
+    const { member } = await requireWorkspace(ctx, args.workspaceId);
+    const roles: Doc<"invitations">["role"][] = [];
+    if (args.projectId) {
+      const project = await requireProject(ctx, args.projectId);
+      if (project.project.workspaceId !== args.workspaceId) throw new ConvexError("Project is outside this workspace.");
+      if (member.role !== "guest" && project.projectMember.role === "admin") roles.push("guest", "member", "admin");
+    } else if (member.role === "admin") roles.push("guest", "member", "admin");
+    else if (member.role === "member") roles.push("guest", "member");
+    return { roles };
+  },
+});
+export const recipientAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    return { email: user.email ?? null, canRespond: !!user.email && user.emailVerificationTime !== undefined };
+  },
+});
