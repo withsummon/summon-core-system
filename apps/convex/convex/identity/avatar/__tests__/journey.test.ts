@@ -35,7 +35,9 @@ test("personal avatar survives zero memberships, shares profile CAS, replaces an
   await expect(f.owner.action(api.assets.upload.finalize, stale)).rejects.toThrow("changed");
   expect((await f.owner.fetch(`/assets/${first.assetId}`)).status).toBe(403);
   await f.owner.mutation(api.identity.avatar.restore, { assetId: first.assetId, expectedRevision: 2 });
-  await f.owner.mutation(api.identity.avatar.remove, { assetId: first.assetId, expectedRevision: 3 });
+  expect(await f.owner.mutation(api.identity.avatar.remove, { assetId: first.assetId, expectedRevision: 3 })).toEqual({
+    revision: 4,
+  });
   expect((await f.owner.query(api.identity.avatar.get, {})).avatar).toBeNull();
   await expect(
     // @ts-expect-error Deliberately malformed public input exercises runtime validation.

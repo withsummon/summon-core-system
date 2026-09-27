@@ -56,7 +56,7 @@ export const remove = mutation({
     const access = await requireAvatarWrite(ctx, args.expectedRevision);
     const appearance = await userAppearance(ctx, access.owner.user._id);
     if (appearance?.avatarAssetId !== args.assetId) throw new ConvexError("Your avatar changed.");
-    await replaceAvatar(ctx, access, null);
+    return replaceAvatar(ctx, access, null);
   },
 });
 export const removed = query({
