@@ -50,3 +50,20 @@ The public deployment was not changed. Preserved auth/onboarding and project
 journeys, their shell dependencies and remaining inherited Plane contracts must
 be completed and browser-tested before route cutover or Django retirement.
 No performance delta is claimed by this checkpoint.
+
+## Preserved renderer follow-up
+
+For portfolio extraction `386347ff47`, root compared the original and extracted
+JSX: it is identical after substituting the supplied `onCreateProject` callback.
+The auth-screen extraction likewise matches the deployed-baseline JSX after
+substituting its header and children slots; that auth extraction is still WIP.
+
+Chrome on the existing Django route
+`http://localhost:3010/summon-local-qa-20260926/summon/projects/` rendered the
+Northstar Delivery Browser Check project. Grid-to-list switching retained its
+identifier, health, completion and destination. Search displayed the no-match
+state and clearing it restored the project. Create Project opened the existing
+cover, emoji, name, identifier, description, Public and Lead controls; Cancel
+dismissed it without creating data. The desktop list screenshot retained the
+existing sidebar, KPI cards, filter bar and table layout. Constrained-width
+acceptance and the disabled native controller remain unverified by this check.
