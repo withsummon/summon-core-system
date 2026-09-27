@@ -66,3 +66,17 @@ resuming module/cycle Chrome acceptance. No remote push was made. Browser proof
 for this new module slice remains pending; cycle proof recorded in `9019e17173`
 precedes the completion-breakdown extension. Scoped manual gates were used with
 commit hooks disabled under the active migration workflow.
+
+## Primary Chrome read acceptance
+
+On local3010, Release readiness module `rh73gsdw9dpnkn1ew1jy12460d8f7xxc`
+showed1 visible task, Done1 and numeric estimate0. Northstar QA Owner showed1
+completed task and0 pending; No label showed the same breakdown. The primary
+agent inspected desktop and390px screenshots: no horizontal overflow at390px,
+and names and breakdowns wrapped. The viewport override was cleared.
+
+This was read acceptance only: no module status mutation, guest session or
+more-than20-membership browser traversal was exercised. Those boundaries retain
+BDD evidence, not browser claims. Heading fixes `a3b6a44153` / `e7230b6711` use
+h4 below Current progress h3 and retain h5 below the historical Transfer h4;
+scoped Oxc/format checks pass.
