@@ -58,9 +58,7 @@ export function CycleProgress({ cycleId }: { cycleId: Id<"cycles"> }) {
         </Button>
       )}
       <p className="text-12 text-secondary">
-        Active tasks you can access. Each person and label receives the task’s contribution, so those totals can
-        overlap. Pages update live and may reflect changes at different moments. Transfer snapshots, when available,
-        remain historical.
+        Includes active tasks you can access. Tasks with multiple assignees or labels count in each group.
       </p>
     </section>
   );
