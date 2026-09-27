@@ -6,6 +6,7 @@
 
 import { layout, route } from "@react-router/dev/routes";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
+import { nativeStickiesRoute } from "./routes/ownership";
 import { coreRoutes } from "./routes/core";
 import { extendedRoutes } from "./routes/extended";
 import { mergeRoutes } from "./routes/helper";
@@ -19,6 +20,7 @@ const mergedRoutes: RouteConfigEntry[] = mergeRoutes(coreRoutes, extendedRoutes)
 // Add catch-all route at the end (404 handler)
 const routes: RouteConfigEntry[] = [
   route("core", "./core.tsx"),
+  ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
   layout("./legacy-layout.tsx", [...mergedRoutes, route("*", "./not-found.tsx")]),
 ];
 

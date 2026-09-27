@@ -13,7 +13,7 @@ import { TaskRichEditor } from "../tasks/rich-editor";
 import { mutationMessage, field } from "../commercial/forms";
 import { StickyForm } from "./form";
 import { adjacentStickyOrder } from "./order";
-type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
+type Workspace = Pick<FunctionReturnType<typeof api.navigation.address.resolveWorkspace>["workspace"], "_id" | "name">;
 type Sticky = FunctionReturnType<typeof api.stickies.index.get>;
 export function Stickies({ workspace }: { workspace: Workspace }) {
   const [params, setParams] = useSearchParams();

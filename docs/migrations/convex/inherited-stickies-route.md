@@ -1,0 +1,21 @@
+# First inherited route auth boundary: stickies
+
+## Actual dependency removed from this route
+
+`app/routes.ts` normally nests inherited routes under `legacy-layout.tsx` → `AppProvider` → `InstanceWrapper` (instance REST query). Workspace layout then mounts `AuthenticationWrapper`, whose `user/index.ts.fetchCurrentUser` fetches Django user, profile, settings and workspaces. `WorkspaceAuthWrapper` adds roles, favorites and navigation preferences; project wrappers add more domain reads. Replacing a leaf alone leaves this session/bootstrap chain running.
+
+The explicit build-time `SUMMON_STICKIES_ROUTE_OWNER=convex` moves only `/:workspaceSlug/stickies` outside that legacy subtree and removes its competing inherited registration. Default/`legacy` leaves the inherited route in place; unknown values fail route construction. This flag owns the entire stickies route family for that deployed artifact; it does not guess by slug, email, available records or failing requests. Use only on a deployment whose sticky data/identities are assigned to the native owner. Other inherited routes remain registered unchanged. No catch-all takeover or Django retirement is claimed.
+
+`app/native-stickies.tsx` uses existing `CoreProvider`, `SignIn` and `Stickies`; `navigation.address.resolveWorkspace` owns slug membership, and the sticky owner remains author-private including guests. Sign-in happens at the same URL, preserving path, query-selected sticky and browser history without a redirect parameter. Sign-out unmounts protected content and returns the same URL to the sign-in form. Editor state is keyed by authenticated user plus workspace, preventing account switches from retaining another user's unsaved note. Errors remain native authorization failures, never trigger a Django fallback. Missing Convex configuration yields the existing unavailable state.
+
+The shared sticky component's workspace input is narrowed to its actual `_id`/`name` needs from the canonical address return; no synthetic membership-role DTO is constructed. Existing editor, note CRUD, recovery, search/order and selected-note URL owner are reused. The route has a small workspace return link and sign-out header, not a new duplicate navigation system. Full inherited shell preferences/recent visits and authentication methods (magic link, reset, OAuth, invitations/onboarding) are separate migration work. Those legacy authentication routes remain available; no cookie/JWT bridging or automatic account linking exists.
+
+## Verification and rollout boundary
+
+Two module-owned route ownership tests pass; `SUMMON_STICKIES_ROUTE_OWNER=convex` React Router type generation, web TypeScript7 and focused Oxc passed. Run route tests explicitly with `node --test app/routes/__tests__/ownership.test.ts`. The normal web behavior test script currently targets feature-module tests only.
+
+Browser acceptance remains unverified in this source slice. Before enabling for users: build/serve with the flag, load a selected-note deep link signed out, sign in and confirm exact URL/selection, create/edit/reload/trash/restore, guest and foreign-owner denial, revoke membership, logout/account switch across tabs and constrained width. Capture network evidence showing no Django instance/user/workspace bootstrap requests on this route and verify another inherited route still renders its existing owner. Runtime URL/build identity and final deployment remain primary-owned.
+
+## Primary development-route check
+
+On port3021 with SUMMON_STICKIES_ROUTE_OWNER=convex and explicit local Convex URLs, Chrome loaded a signed-out selected sticky deep link, signed in the existing synthetic owner, showed the exact selected private note, retained selection after reload, and returned to sign-in at the same URL on logout. Initial preview omitted VITE_CONVEX_URL and correctly showed unavailable; it was restarted with the required configuration. The network capture observed a Convex action and no Django request in captured events, but its buffer was truncated, so it does not establish complete network absence. Guest sign-in using the available synthetic password failed; account-switch denial was not newly verified here. Prior module privacy tests remain the evidence for that invariant. No public rollout is claimed; default route ownership remains legacy.
