@@ -1,3 +1,4 @@
+import { ProjectCover } from "./cover";
 import { EstimateSettings } from "../estimates/settings";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -44,6 +45,7 @@ export function ProjectSettings({ projectId, onArchived }: { projectId: Id<"proj
         <h3 className="mb-3 text-16 font-medium">Timezone</h3>
         <ProjectTimezone projectId={projectId} />
       </div>
+      <ProjectCover key={projectId} projectId={projectId} />
       <IntakeSettings projectId={projectId} />
       <EstimateSettings projectId={projectId} />
       {settings.canManage && (

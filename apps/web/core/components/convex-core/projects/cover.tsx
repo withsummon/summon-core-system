@@ -8,32 +8,32 @@ import { FileAttachmentUpload } from "../tasks/attachments/upload";
 import { mutationMessage } from "../commercial/forms";
 import { AuthenticatedAssetImage } from "../assets/image";
 
-type Appearance = FunctionReturnType<typeof api.settings.logo.get>;
+type Appearance = FunctionReturnType<typeof api.projects.cover.get>;
 type Confirmation = { operation: "remove" | "restore"; assetId: Id<"assets">; name: string; revision: number };
-export function WorkspaceLogo({ workspaceId }: { workspaceId: Id<"workspaces"> }) {
-  const appearance = useQuery(api.settings.logo.get, { workspaceId });
-  if (!appearance) return <p role="status">Loading workspace logo…</p>;
+export function ProjectCover({ projectId }: { projectId: Id<"projects"> }) {
+  const appearance = useQuery(api.projects.cover.get, { projectId });
+  if (!appearance) return <p role="status">Loading project cover…</p>;
   return (
     <section className="space-y-4 rounded-lg border border-subtle p-4">
-      <h2 className="text-16 font-semibold">Workspace logo</h2>
-      {appearance.logo ? (
+      <h2 className="text-16 font-semibold">Project cover</h2>
+      {appearance.cover ? (
         <AuthenticatedAssetImage
-          key={appearance.logo.id}
-          asset={appearance.logo}
-          alt="Workspace logo"
-          className="h-20 w-20 rounded-md border border-subtle object-contain"
+          key={appearance.cover.id}
+          asset={appearance.cover}
+          alt="Project cover"
+          className="h-32 w-full rounded-md border border-subtle object-cover"
         />
       ) : (
-        <p className="text-14 text-secondary">No logo uploaded</p>
+        <p className="text-14 text-secondary">No cover uploaded</p>
       )}
-      {appearance.canManage && <LogoManager workspaceId={workspaceId} appearance={appearance} />}
+      {appearance.canManage && <CoverManager projectId={projectId} appearance={appearance} />}
     </section>
   );
 }
-function LogoManager({ workspaceId, appearance }: { workspaceId: Id<"workspaces">; appearance: Appearance }) {
-  const prepare = useMutation(api.settings.logo.prepare);
-  const remove = useMutation(api.settings.logo.remove);
-  const restore = useMutation(api.settings.logo.restore);
+function CoverManager({ projectId, appearance }: { projectId: Id<"projects">; appearance: Appearance }) {
+  const prepare = useMutation(api.projects.cover.prepare);
+  const remove = useMutation(api.projects.cover.remove);
+  const restore = useMutation(api.projects.cover.restore);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [showRemoved, setShowRemoved] = useState(false);
   const [pending, setPending] = useState(false),
@@ -41,37 +41,42 @@ function LogoManager({ workspaceId, appearance }: { workspaceId: Id<"workspaces"
   return (
     <div className="space-y-4">
       <FileAttachmentUpload
-        label={appearance.logo ? "Replace workspace logo" : "Upload workspace logo"}
+        label={appearance.cover ? "Replace project cover" : "Upload project cover"}
         supportedTypes={appearance.supportedTypes}
-        prepare={(file) => prepare({ workspaceId, expectedRevision: appearance.revision, ...file })}
+        prepare={(file) => prepare({ projectId, expectedRevision: appearance.revision, ...file })}
       />
       <div className="flex flex-wrap gap-2">
-        {appearance.logo && (
+        {appearance.cover && (
           <Button
             variant="secondary"
             onClick={() => {
               setError("");
               setConfirmation({
                 operation: "remove",
-                assetId: appearance.logo!.id,
-                name: appearance.logo!.name,
+                assetId: appearance.cover!.id,
+                name: appearance.cover!.name,
                 revision: appearance.revision,
               });
             }}
           >
-            Remove logo
+            Remove cover
           </Button>
         )}
         <Button variant="secondary" onClick={() => setShowRemoved(!showRemoved)}>
-          {showRemoved ? "Hide removed logos" : "Recover a logo"}
+          {showRemoved ? "Hide removed covers" : "Recover a cover"}
         </Button>
       </div>
       {showRemoved && (
-        <RemovedLogos
-          workspaceId={workspaceId}
-          onRestore={(logo) => {
+        <RemovedCovers
+          projectId={projectId}
+          onRestore={(cover) => {
             setError("");
-            setConfirmation({ operation: "restore", assetId: logo.id, name: logo.name, revision: appearance.revision });
+            setConfirmation({
+              operation: "restore",
+              assetId: cover.id,
+              name: cover.name,
+              revision: appearance.revision,
+            });
           }}
         />
       )}
@@ -80,7 +85,7 @@ function LogoManager({ workspaceId, appearance }: { workspaceId: Id<"workspaces"
           <p className="text-14 break-words">
             {confirmation.operation === "remove"
               ? `Remove ${confirmation.name}? It can be recovered for seven days.`
-              : `Restore ${confirmation.name}? This replaces the current workspace logo, if any.`}
+              : `Restore ${confirmation.name}? This replaces the current project cover, if any.`}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -90,13 +95,13 @@ function LogoManager({ workspaceId, appearance }: { workspaceId: Id<"workspaces"
                 setPending(true);
                 setError("");
                 const { operation, name: _name, revision, ...target } = confirmation;
-                void (operation === "remove" ? remove : restore)({ workspaceId, ...target, expectedRevision: revision })
+                void (operation === "remove" ? remove : restore)({ projectId, ...target, expectedRevision: revision })
                   .then(() => setConfirmation(null))
                   .catch((failure) => setError(mutationMessage(failure)))
                   .finally(() => setPending(false));
               }}
             >
-              {confirmation.operation === "remove" ? "Remove logo" : "Restore logo"}
+              {confirmation.operation === "remove" ? "Remove cover" : "Restore cover"}
             </Button>
             <Button
               variant="secondary"
@@ -119,38 +124,51 @@ function LogoManager({ workspaceId, appearance }: { workspaceId: Id<"workspaces"
     </div>
   );
 }
-function RemovedLogos({
-  workspaceId,
+function RemovedCovers({
+  projectId,
   onRestore,
 }: {
-  workspaceId: Id<"workspaces">;
-  onRestore: (logo: FunctionReturnType<typeof api.settings.logo.removed>["page"][number]) => void;
+  projectId: Id<"projects">;
+  onRestore: (cover: FunctionReturnType<typeof api.projects.cover.removed>["page"][number]) => void;
 }) {
   const { results, status, loadMore } = usePaginatedQuery(
-    api.settings.logo.removed,
-    { workspaceId },
+    api.projects.cover.removed,
+    { projectId },
     { initialNumItems: 10 }
   );
   return (
     <div className="space-y-2">
-      <h3 className="text-14 font-medium">Removed logos</h3>
-      {results.map((logo) => (
-        <div key={logo.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-14">
+      <h3 className="text-14 font-medium">Removed covers</h3>
+      {results.map((cover) => (
+        <div key={cover.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-14">
           <span className="min-w-0 break-words">
-            {logo.name} · Recovery ends {new Date(logo.recoverUntil).toLocaleDateString()}
+            {cover.name} · Recovery ends {new Date(cover.recoverUntil).toLocaleDateString()}
           </span>
-          <Button variant="secondary" onClick={() => onRestore(logo)}>
+          <Button variant="secondary" onClick={() => onRestore(cover)}>
             Restore
           </Button>
         </div>
       ))}
-      {status === "LoadingFirstPage" && <p role="status">Loading removed logos…</p>}
-      {status === "Exhausted" && results.length === 0 && <p className="text-14 text-secondary">No removed logos</p>}
+      {status === "LoadingFirstPage" && <p role="status">Loading removed covers…</p>}
+      {status === "Exhausted" && results.length === 0 && <p className="text-14 text-secondary">No removed covers</p>}
       {(status === "CanLoadMore" || status === "LoadingMore") && (
         <Button variant="secondary" loading={status === "LoadingMore"} onClick={() => loadMore(10)}>
-          Load more logos
+          Load more covers
         </Button>
       )}
     </div>
+  );
+}
+
+export function ProjectCoverHeader({ projectId }: { projectId: Id<"projects"> }) {
+  const appearance = useQuery(api.projects.cover.get, { projectId });
+  if (!appearance?.cover) return null;
+  return (
+    <AuthenticatedAssetImage
+      key={appearance.cover.id}
+      asset={appearance.cover}
+      alt="Project cover"
+      className="h-24 w-full rounded-md object-cover sm:h-32"
+    />
   );
 }
