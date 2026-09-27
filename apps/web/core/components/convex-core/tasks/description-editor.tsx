@@ -58,7 +58,7 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
       getAssetSrc: (id) => source(id, false),
       getAssetDownloadSrc: (id) => source(id, true),
       duplicate: async (id) => {
-        const operation = `duplicate:${id}`;
+        const operation = `duplicate:${crypto.randomUUID()}`;
         setStatus((current) => ({ ...current, [operation]: 0 }));
         try {
           return await client.action(api.assets.upload.duplicateTaskImage, { taskId, assetId: id });
