@@ -1,9 +1,11 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import { mailConfiguration } from "./config";
-export function verificationEmail(purpose: "reset" | "verify") {
+export function verificationEmail(purpose: "reset" | "verify" | "magic") {
+  const minutes = purpose === "magic" ? 10 : 15;
+  const label = purpose === "reset" ? "password reset" : purpose === "verify" ? "email verification" : "sign-in";
   return Email({
     id: `summon-${purpose}`,
-    maxAge: 15 * 60,
+    maxAge: minutes * 60,
     async sendVerificationRequest({ identifier, token }) {
       const config = mailConfiguration(process.env);
       if (!config) throw new Error("Account email delivery is not configured.");
@@ -17,8 +19,13 @@ export function verificationEmail(purpose: "reset" | "verify") {
         body: JSON.stringify({
           from: config.from,
           to: [identifier],
-          subject: purpose === "reset" ? "Reset your Summon password" : "Verify your Summon email",
-          text: `Your Summon ${purpose === "reset" ? "password reset" : "email verification"} code is:\n\n${token}\n\nThis code expires in 15 minutes. If you did not request it, ignore this message.`,
+          subject:
+            purpose === "reset"
+              ? "Reset your Summon password"
+              : purpose === "verify"
+                ? "Verify your Summon email"
+                : "Your Summon sign-in code",
+          text: `Your Summon ${label} code is:\n\n${token}\n\nThis code expires in ${minutes} minutes. If you did not request it, ignore this message.`,
         }),
       });
       if (!response.ok) throw new Error("Account email could not be sent.");
