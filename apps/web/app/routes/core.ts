@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { nativeStickiesRoute } from "./ownership";
 import { index, layout, route } from "@react-router/dev/routes";
 import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 
@@ -101,9 +102,13 @@ export const coreRoutes: RouteConfigEntry[] = [
         ]),
 
         // Stickies
-        layout("./(all)/[workspaceSlug]/(projects)/stickies/layout.tsx", [
-          route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
-        ]),
+        ...(nativeStickiesRoute
+          ? []
+          : [
+              layout("./(all)/[workspaceSlug]/(projects)/stickies/layout.tsx", [
+                route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
+              ]),
+            ]),
 
         // Workspace Views
         layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [
