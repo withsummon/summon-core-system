@@ -32,8 +32,11 @@ Three module-owned BDD scenarios cover archive/trash/project exclusions, canonic
 project identity, guest membership and revocation, sparse continuation, foreign
 workspace denial and page-size budget. Backend TypeScript 7 passes. Codegen log
 workspace-modules-codegen.txt reports Uploading functions to Convex; this is not
-an immutable deployment receipt. Frontend remains unmounted pending runtime
-activation. No browser acceptance or remote deployment is claimed.
+an immutable deployment receipt. Exact archive 5656b1cf2b passed TypeScript 7 and deployed locally, including
+the compatible OIDC rollback and removal of rejected custom JWT helpers. Log:
+workspace-modules-5656b1cf2b-local-deploy.txt. The native directory is mounted
+at /core?workspace=<slug>&module=modules through the global Modules link.
+No browser acceptance or remote deployment is claimed.
 
 Legacy aggregate counts and embedded roster/link projections remain a directory
 wire-parity gap. Native scoped detail is the current supported route for those

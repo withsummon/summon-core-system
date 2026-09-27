@@ -42,6 +42,9 @@ const WorkspaceViews = lazy(() =>
 const SavedViews = lazy(() => import("./saved-views/saved-views").then((module) => ({ default: module.SavedViews })));
 const Intakes = lazy(() => import("./intakes/intakes").then((module) => ({ default: module.Intakes })));
 const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
+const WorkspaceModuleDirectory = lazy(() =>
+  import("./modules/workspace-modules").then((module) => ({ default: module.WorkspaceModuleDirectory }))
+);
 const WorkspaceCycles = lazy(() =>
   import("./cycles/workspace-cycles").then((module) => ({ default: module.WorkspaceCycles }))
 );
@@ -362,7 +365,9 @@ function WorkspaceModules({ workspace }: { workspace: FunctionReturnType<typeof 
   return (
     <div className="space-y-6">
       <Suspense fallback={<p role="status">Loading module…</p>}>
-        {module === "cycles" ? (
+        {module === "modules" ? (
+          <WorkspaceModuleDirectory key={workspace._id} workspace={workspace} />
+        ) : module === "cycles" ? (
           <WorkspaceCycles workspace={workspace} />
         ) : module === "stickies" ? (
           <Stickies key={workspace._id} workspace={workspace} />

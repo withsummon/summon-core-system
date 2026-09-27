@@ -21,6 +21,7 @@ import {
   Settings,
   Menu,
   Repeat2,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
@@ -29,6 +30,7 @@ const modules = [
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "tasks", label: "Tasks", icon: ListTodo },
   { id: "cycles", label: "Cycles", icon: Repeat2 },
+  { id: "modules", label: "Modules", icon: Boxes },
   { id: "views", label: "Views", icon: LayoutList },
   { id: "stickies", label: "Stickies", icon: StickyNote },
   { id: "clients", label: "Clients", icon: Users },
