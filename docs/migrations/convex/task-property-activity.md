@@ -10,4 +10,8 @@ BDD covers all property shapes, immutable values after rename/deletion, stale-CA
 
 ## Local activation
 
-Backend `c2d602a82f` passed586 backend tests, native TypeScript7, scoped Oxc and exact-archive TypeScript checks. It was activated locally as an ancestor of the reviewed authentication fix `168a441677`; the auth deployment log confirms finalization at `http://127.0.0.1:3210`. No separate older activity archive was pushed, so the authentication fix was preserved. The existing activity panel now renders generated typed deltas beneath each event, retaining its original coarse rendering for historical rows. Remote activation and browser acceptance remain unverified for this slice.
+Backend `c2d602a82f` passed586 backend tests, native TypeScript7, scoped Oxc and exact-archive TypeScript checks. It was activated locally as an ancestor of the authentication experiment `168a441677`; the auth deployment log confirms finalization at `http://127.0.0.1:3210`. No separate older activity archive was pushed, and compatible OIDC was subsequently restored in `51cd46a788`. The existing activity panel now renders generated typed deltas beneath each event, retaining its original coarse rendering for historical rows. Remote activation remains unverified for this slice.
+
+## Chrome acceptance — 2026-09-27
+
+Fixed production frontend `4d461b740f3503da73659300ac73a53c33c785c9` at `http://127.0.0.1:3028/core` uses the temporary diagnostic HTTP gateway documented in `local-jwt-site-proxy.md`. On NSTAR-7, changing High to Medium showed `Priority: high → medium` in the existing activity panel. Restoring High added `Priority: medium → high` while retaining the first snapshot. Ready for QA, estimate 1, labels, unassigned ownership and dates remained unchanged. Historical events retained their coarse text. This proves one property journey in Chrome; other property shapes and access denial are covered by the owner BDD, not claimed as browser-tested.
