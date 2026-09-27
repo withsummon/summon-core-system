@@ -26,6 +26,20 @@ The native `/core` route is an independently authenticated Convex workspace. Exi
 
 Module `MIGRATION.md` files and frontend acceptance records own the detailed omissions. Work in progress is not counted as completed here.
 
+## Convex component ownership decisions
+
+The [component model](https://docs.convex.dev/components/understanding) keeps component tables and functions isolated from application data. A component belongs here only when its boundary preserves the existing permission, retry and public API contract.
+
+| Journey                  | Current owner                                                                   | Native component decision                                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Account session          | `@convex-dev/auth` in active routes; `@convex-dev/better-auth` is staged        | Complete [Better Auth's React provider and session cutover](https://labs.convex.dev/better-auth/framework-guides/react) before selecting the candidate issuer remotely. The app's user IDs remain the membership and content owner.                                                  |
+| Transactional mail       | Direct Resend for account OTP and email change; notification email remains open | Keep immediate OTP at Better Auth's callback. Evaluate the [Resend component's durable, idempotent queue](https://www.convex.dev/components/resend) for notification digests and invitations after a verified sender, preference rules and delivery acceptance exist.                |
+| Background provider jobs | Convex scheduler and app-owned status rows                                      | Use [Workpool](https://www.convex.dev/components/workpool) only for accepted jobs that need bounded concurrency, retry and completion state; retries require an idempotent provider operation. Cron remains the schedule owner.                                                      |
+| Assistant                | App-owned conversation permissions, approved task actions and HTTP streaming    | [Agent](https://docs.convex.dev/agents/overview) can own message/stream persistence only after its thread and tool access model preserves existing revocation and approval behavior. Replacing the current owner during route migration would create a second conversation contract. |
+| MCP                      | App-owned outbound MCP client and credential grants                             | The [community MCP gateway](https://www.convex.dev/components/convex-mcp-gateway) serves inbound tools, a distinct public boundary. Assess it if inbound MCP becomes an accepted product journey; it does not replace the outbound client.                                           |
+
+No additional component dependency is justified by the current accepted journeys. An installed component is not proof that an inherited route, job or external contract has migrated.
+
 ## Cutover sequence
 
 1. Close each remaining active consumer against its native public boundary; exercise its actual role and failure/recovery behavior. Replace route ownership only after preserving its supported product contract.
