@@ -238,3 +238,14 @@ test("magic codes reject wrong email and expiry and share issuance budget with p
   ).rejects.toThrow();
   expect(await t.run((ctx) => ctx.db.query("authSessions").collect())).toHaveLength(0);
 });
+
+test("disabled signup blocks a new magic account without sending mail or creating identity rows", async () => {
+  const t = fixture();
+  vi.stubEnv("ENABLE_SIGNUP", "0");
+  await expect(
+    t.action(api.auth.signIn, { provider: "summon-magic", params: { email: "blocked@example.test" } })
+  ).rejects.toThrow("Sign up is disabled");
+  expect(sent).toHaveLength(0);
+  expect(await t.run((ctx) => ctx.db.query("users").collect())).toHaveLength(0);
+  expect(await t.run((ctx) => ctx.db.query("authAccounts").collect())).toHaveLength(0);
+});

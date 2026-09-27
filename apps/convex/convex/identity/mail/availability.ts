@@ -1,3 +1,4 @@
+import { signupPolicy } from "../signup_policy";
 import { query } from "../../_generated/server";
 import { signInPolicy } from "../signin_policy";
 export const get = query({
@@ -5,6 +6,7 @@ export const get = query({
   handler: () => {
     const policy = signInPolicy(process.env);
     return {
+      ...signupPolicy(),
       passwordSignIn: policy.password,
       passwordReset: policy.passwordReset,
       magicCode: policy.magic,

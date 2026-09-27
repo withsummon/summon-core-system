@@ -1,4 +1,4 @@
-import { requireUnrestrictedAccount } from "../identity/deactivation/access";
+import { accountRestricted, requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
@@ -11,14 +11,14 @@ export function normalizedEmail(value: string) {
     throw new ConvexError("Enter a valid email address.");
   return email;
 }
-export async function issuerAccess(
+async function invitationDenial(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
   projectId: Id<"projects"> | null,
   userId: Id<"users">,
   role: Doc<"invitations">["role"]
 ) {
-  await requireUnrestrictedAccount(ctx, userId);
+  if (await accountRestricted(ctx, userId)) return "Invitation authority is unavailable.";
   const workspace = await ctx.db.get(workspaceId);
   const member = await ctx.db
     .query("workspaceMembers")
@@ -31,9 +31,30 @@ export async function issuerAccess(
     member.role === "guest" ||
     (rank[member.role] < rank[role] && projectId === null)
   )
-    throw new ConvexError("Invitation authority is unavailable.");
-  if (projectId) await projectIssuer(ctx, workspaceId, projectId, userId);
-  return member;
+    return "Invitation authority is unavailable.";
+  if (projectId && !(await projectIssuer(ctx, workspaceId, projectId, userId)))
+    return "Only current project administrators can invite members.";
+  return null;
+}
+export async function canIssueInvitation(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  projectId: Id<"projects"> | null,
+  userId: Id<"users">,
+  role: Doc<"invitations">["role"]
+) {
+  return (await invitationDenial(ctx, workspaceId, projectId, userId, role)) === null;
+}
+export async function issuerAccess(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  projectId: Id<"projects"> | null,
+  userId: Id<"users">,
+  role: Doc<"invitations">["role"]
+) {
+  await requireUnrestrictedAccount(ctx, userId);
+  const denial = await invitationDenial(ctx, workspaceId, projectId, userId, role);
+  if (denial) throw new ConvexError(denial);
 }
 export async function recipient(ctx: QueryCtx) {
   const user = await requireUser(ctx);
@@ -76,5 +97,6 @@ async function projectIssuer(
     !membership?.active ||
     membership.role !== "admin"
   )
-    throw new ConvexError("Only current project administrators can invite members.");
+    return false;
+  return true;
 }
