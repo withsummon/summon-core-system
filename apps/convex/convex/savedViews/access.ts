@@ -1,3 +1,4 @@
+import { effectiveFavorite, viewFavorite } from "../favorites/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -43,13 +44,10 @@ export async function projectView(
   view: Doc<"savedViews">,
   access: Awaited<ReturnType<typeof requireProject>>
 ) {
-  const favorite = await ctx.db
-    .query("savedViewFavorites")
-    .withIndex("by_view_user", (q) => q.eq("viewId", view._id).eq("userId", access.user._id))
-    .unique();
+  const favorite = await viewFavorite(ctx, view.workspaceId, access.user._id, view._id);
   return {
     view: { ...view, projectId: access.project._id },
-    isFavorite: view.deletedAt === null && favorite !== null,
+    isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
     ...capabilities(view, access),
   };
 }
@@ -75,13 +73,10 @@ export async function workspaceView(
   view: Doc<"savedViews">,
   access: Awaited<ReturnType<typeof requireWorkspace>>
 ) {
-  const favorite = await ctx.db
-    .query("savedViewFavorites")
-    .withIndex("by_view_user", (q) => q.eq("viewId", view._id).eq("userId", access.user._id))
-    .unique();
+  const favorite = await viewFavorite(ctx, view.workspaceId, access.user._id, view._id);
   return {
     view: { ...view, projectId: null, workspaceId: access.workspace._id },
-    isFavorite: view.deletedAt === null && favorite !== null,
+    isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
     ...workspaceCapabilities(view, access),
   };
 }

@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -86,4 +87,13 @@ export async function visibleTarget(ctx: QueryCtx, target: Target, member: Doc<"
     case "module":
       return groupTarget(ctx, target.id, project);
   }
+}
+
+export async function requireViewFavoriteManagement(
+  ctx: QueryCtx,
+  row: Doc<"favorites">,
+  member: Doc<"workspaceMembers">
+) {
+  if (row.target.type === "view" && !(await visibleTarget(ctx, row.target, member))?.canFavorite)
+    throw new ConvexError("Saved view favorite is unavailable.");
 }

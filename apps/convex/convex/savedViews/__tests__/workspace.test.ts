@@ -211,11 +211,13 @@ test("all view and favorite writers preserve canonical workspace ownership and i
   expect(workspace.view.projectId).toBeNull();
   await expect(f.owner.query(api.savedViews.workspace.get, { viewId: projectView })).rejects.toThrow("not found");
   await expect(f.owner.query(api.savedViews.index.get, { viewId: f.viewId })).rejects.toThrow("not found");
-  const favorites = await f.t.run((ctx) => ctx.db.query("savedViewFavorites").collect());
+  const favorites = await f.t.run((ctx) => ctx.db.query("favorites").collect());
   expect(favorites).toHaveLength(2);
   expect(favorites.map((row) => row.workspaceId)).toEqual([f.workspaceId, f.workspaceId]);
-  expect(favorites.find((row) => row.viewId === projectView)?.projectId).toBe(f.projectId);
-  expect(favorites.find((row) => row.viewId === f.viewId)?.projectId).toBeNull();
+  expect(favorites.find((row) => row.target.type === "view" && row.target.id === projectView)?.targetProjectId).toBe(
+    f.projectId
+  );
+  expect(favorites.find((row) => row.target.type === "view" && row.target.id === f.viewId)?.targetProjectId).toBeNull();
 });
 test("workspace definitions reject cross-workspace taxonomy and reuse canonical date/filter validation", async () => {
   const f = await fixture();
