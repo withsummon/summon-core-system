@@ -438,6 +438,8 @@ test("cycle and task membership caps reject the next record without silently tru
     await Promise.all(
       Array.from({ length: 100 }, async (_, index) => {
         const taskId = await ctx.db.insert("tasks", {
+          archivedAt: null,
+          deletedAt: null,
           workspaceId: f.workspaceId,
           projectId: f.projectId,
           title: `Capacity ${index}`,

@@ -110,8 +110,8 @@ export const taskTables = {
     .index("by_pair", ["fromId", "toId"])
     .index("by_workspace_kind", ["workspaceId", "kind"]),
   tasks: defineTable({
-    archivedAt: v.optional(v.union(v.number(), v.null())),
-    deletedAt: v.optional(v.union(v.number(), v.null())),
+    archivedAt: v.union(v.number(), v.null()),
+    deletedAt: v.union(v.number(), v.null()),
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
     title: v.string(),
