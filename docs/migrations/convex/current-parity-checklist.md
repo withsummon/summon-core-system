@@ -45,6 +45,8 @@ Dependency and credential research on 2026-09-28: the installed Convex CLI is `1
 
 ## Native component choices to prove against current behavior
 
+The [Better Auth candidate boundary](better-auth-candidate.md) records the locally deployed component, the mutually exclusive JWT provider modes, the verified app-user link and the account/route gates still open. Its local HTTP health check does not close the identity or account journeys.
+
 - [Official Resend component](https://www.convex.dev/components/resend): evaluate for durable notifications and invitations. Current direct Resend sender remains the recovery-sensitive authentication delivery owner until password reset and verification semantics are proven with the component's asynchronous queue.
 - [Agent component](https://docs.convex.dev/agents/overview): evaluate for assistant threads/tools/RAG after mapping existing conversation, approval, privacy and cost contracts. Do not duplicate current `assistant/*` storage merely to adopt it.
 - [Workpool](https://www.convex.dev/components/workpool) and [Convex cron jobs](https://docs.convex.dev/scheduling/cron-jobs): use when actual job concurrency/retry or recurring schedule requirements demand them; compare each of the 12 Celery entries with the three current Convex crons.

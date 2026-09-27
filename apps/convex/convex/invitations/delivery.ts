@@ -1,10 +1,16 @@
 import { ConvexError, v } from "convex/values";
 import { internalQuery, internalMutation, query } from "../_generated/server";
 import { requireUser } from "../identity/access";
-import { issuerAccess, recipient } from "./access";
+import { issuerAccess, normalizedEmail } from "./access";
 import { mailConfiguration } from "../identity/mail/config";
 import { workspaceLogo } from "../settings/logo_owner";
 import type { QueryCtx } from "../_generated/server";
+export async function recipient(ctx: QueryCtx) {
+  const user = await requireUser(ctx);
+  if (!user.email || user.emailVerificationTime === undefined)
+    throw new ConvexError("Verify your email before responding to invitations.");
+  return { user, email: normalizedEmail(user.email) };
+}
 async function invitationContext(ctx: QueryCtx, id: string, tokenHash?: string) {
   const invitationId = ctx.db.normalizeId("invitations", id);
   const row = invitationId ? await ctx.db.get(invitationId) : null;

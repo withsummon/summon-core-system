@@ -7,14 +7,8 @@ import { requireUser, requireWorkspace, requireProject } from "../identity/acces
 import { grantWorkspaceMembership } from "../workspaces/index";
 import { grantProjectMembership } from "../projects/index";
 import { pageBudget } from "../commercial/validation";
-import {
-  issuerAccess,
-  canIssueInvitation,
-  recipient,
-  normalizedEmail,
-  publicInvitation,
-  INVITATION_LIFETIME_MS,
-} from "./access";
+import { issuerAccess, canIssueInvitation, normalizedEmail, publicInvitation, INVITATION_LIFETIME_MS } from "./access";
+import { recipient } from "./delivery";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 function pending(row: Doc<"invitations">) {

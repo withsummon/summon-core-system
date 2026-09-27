@@ -36,6 +36,7 @@ import type * as automation_jobs from "../automation/jobs.js";
 import type * as automation_publication from "../automation/publication.js";
 import type * as automation_publish from "../automation/publish.js";
 import type * as automation_templates from "../automation/templates.js";
+import type * as better_auth from "../better_auth.js";
 import type * as commercial_clients from "../commercial/clients.js";
 import type * as commercial_contacts from "../commercial/contacts.js";
 import type * as commercial_delivery from "../commercial/delivery.js";
@@ -290,6 +291,7 @@ declare const fullApi: ApiFromModules<{
   "automation/publication": typeof automation_publication;
   "automation/publish": typeof automation_publish;
   "automation/templates": typeof automation_templates;
+  better_auth: typeof better_auth;
   "commercial/clients": typeof commercial_clients;
   "commercial/contacts": typeof commercial_contacts;
   "commercial/delivery": typeof commercial_delivery;
@@ -534,4 +536,6 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  */
 export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 
-export declare const components: {};
+export declare const components: {
+  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+};
