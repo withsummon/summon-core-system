@@ -1,3 +1,4 @@
+import { draftAttachmentChanged } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
 import { taskChanged } from "../tasks/revision";
 import type { Infer } from "convex/values";
@@ -23,7 +24,7 @@ export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>)
   const assetId = await ctx.db.insert("assets", {
     ...args,
     createdBy: user._id,
-    ...(args.taskId ? { attachmentRevision: 0 } : {}),
+    ...(args.taskId || args.draftId ? { attachmentRevision: 0 } : {}),
     storageId: null,
     status: "pending",
     expiresAt: Date.now() + 60 * 60 * 1000,
@@ -33,6 +34,7 @@ export async function prepareAsset(ctx: MutationCtx, args: Infer<typeof upload>)
 export const prepare = mutation({
   args: uploadFields,
   handler: async (ctx, args) => {
+    if (args.draftId) throw new ConvexError("Prepare draft uploads through draft attachments.");
     if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
     if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
     return prepareAsset(ctx, args);
@@ -80,6 +82,7 @@ export const commit = internalMutation({
       throw new ConvexError("Upload has expired or is closed.");
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
     await ctx.db.patch(assetId, { status: "ready" });
+    if (asset.draftId) await draftAttachmentChanged(ctx, asset.draftId);
     if (asset.taskId) {
       const { task } = await requireTaskAttachmentAccess(ctx, asset.taskId, true);
       await taskChanged(ctx, task, user._id);
@@ -113,6 +116,7 @@ export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.draftId) throw new ConvexError("Remove draft files through draft attachments.");
     if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");
     await ctx.db.patch(assetId, { status: "deleted", expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });

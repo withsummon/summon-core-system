@@ -26,6 +26,8 @@ export const get = query({
     return {
       taskId,
       html: rich?.html ?? plainDescriptionHtml(task.description),
+      descriptionJson: rich?.descriptionJson ?? null,
+      descriptionBinary: rich?.descriptionBinary ?? null,
       updatedAt: task.updatedAt,
     };
   },

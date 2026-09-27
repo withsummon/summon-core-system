@@ -1,3 +1,4 @@
+import { requireDraftAttachmentAccess } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
@@ -9,9 +10,16 @@ import { requireDocument } from "../documents/access";
 
 export async function requireAssetScope(
   ctx: QueryCtx,
-  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId">,
+  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId" | "conversationId" | "taskId" | "draftId">,
   write: boolean
 ) {
+  if (scope.draftId) {
+    if (scope.taskId || scope.projectId || scope.documentId || scope.conversationId)
+      throw new ConvexError("Draft assets cannot have another scope.");
+    const permission = await requireDraftAttachmentAccess(ctx, scope.draftId);
+    if (permission.draft.workspaceId !== scope.workspaceId) throw new ConvexError("Draft asset scope mismatch.");
+    return permission;
+  }
   if (scope.taskId) {
     return requireTaskScope(ctx, scope, scope.taskId, write);
   }
@@ -44,6 +52,7 @@ export function descriptor(asset: Doc<"assets">) {
     projectId: asset.projectId,
     documentId: asset.documentId,
     taskId: asset.taskId ?? null,
+    draftId: asset.draftId ?? null,
     createdBy: asset.createdBy,
     downloadPath: `/assets/${asset._id}`,
   };
