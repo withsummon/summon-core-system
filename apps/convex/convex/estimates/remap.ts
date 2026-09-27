@@ -129,6 +129,7 @@ export const page = mutation({
         if (job.deleteSystem)
           await ctx.db.patch(system._id, { deleted: true, retiring: false, revision: system.revision + 1 });
         else {
+          await ctx.db.patch(system._id, { revision: system.revision + 1 });
           const removed = sourcePoints[0];
           const remaining = await ctx.db
             .query("estimatePoints")
