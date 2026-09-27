@@ -69,6 +69,6 @@ export const mcpTables = {
     resultJson: v.union(v.string(), v.null()),
     error: v.union(v.string(), v.null()),
   })
-    .index("by_credential", ["credentialId"])
+    .index("by_credential_requester", ["credentialId", "requesterId"])
     .index("by_requester_request", ["requesterId", "requestId"]),
 };

@@ -79,10 +79,10 @@ export const list = query({
     await authorizedContext(ctx, conversation.workspaceId, conversation.context);
     const page = await ctx.db
       .query("assistantAttachments")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+      .withIndex("by_conversation_deleted", (q) => q.eq("conversationId", conversationId).eq("deleted", false))
       .order("desc")
       .paginate(pageBudget(paginationOpts));
-    return { ...page, page: page.page.filter((row) => !row.deleted).map(({ text: _text, ...row }) => row) };
+    return { ...page, page: page.page.map(({ text: _text, ...row }) => row) };
   },
 });
 export const extractionSource = internalQuery({

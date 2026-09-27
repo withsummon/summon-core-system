@@ -86,7 +86,9 @@ export const documentTables = {
     deleted: v.boolean(),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
-  }).index("by_workspace", ["workspaceId", "deleted"]),
+  })
+    .index("by_workspace", ["workspaceId", "deleted"])
+    .index("by_workspace_owner_deleted", ["workspaceId", "ownedBy", "deleted"]),
   documentRevisions: defineTable({
     ...snapshotFields,
     documentId: v.id("documents"),
