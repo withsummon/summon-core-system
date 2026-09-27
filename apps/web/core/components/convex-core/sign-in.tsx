@@ -5,13 +5,89 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-type Flow = "signIn" | "signUp" | "reset" | "reset-verification" | "email-verification";
-const titles: Record<Flow, string> = {
-  signIn: "Welcome back",
-  signUp: "Create your account",
-  reset: "Reset your password",
-  "reset-verification": "Choose a new password",
-  "email-verification": "Verify your email",
+type Flow =
+  | "signIn"
+  | "signUp"
+  | "reset"
+  | "reset-verification"
+  | "email-verification"
+  | "magic"
+  | "magic-verification";
+const presentation: Record<
+  Flow,
+  {
+    title: string;
+    submit: string;
+    provider: "password" | "summon-magic";
+    verification: boolean;
+    mail: boolean;
+    password: { name: string; label: string; autoComplete: string } | null;
+    notice: string | null;
+  }
+> = {
+  magic: {
+    title: "Sign in with email",
+    submit: "Send sign-in code",
+    provider: "summon-magic",
+    verification: false,
+    mail: true,
+    password: null,
+    notice: null,
+  },
+  "magic-verification": {
+    title: "Enter your sign-in code",
+    submit: "Sign in",
+    provider: "summon-magic",
+    verification: true,
+    mail: true,
+    password: null,
+    notice: "Paste the sign-in code sent to your email. It expires in 10 minutes.",
+  },
+  signIn: {
+    title: "Welcome back",
+    submit: "Sign in",
+    provider: "password",
+    verification: false,
+    mail: false,
+    password: { name: "password", label: "Password", autoComplete: "current-password" },
+    notice: null,
+  },
+  signUp: {
+    title: "Create your account",
+    submit: "Create account",
+    provider: "password",
+    verification: false,
+    mail: false,
+    password: { name: "password", label: "Password", autoComplete: "new-password" },
+    notice: null,
+  },
+  reset: {
+    title: "Reset your password",
+    submit: "Request reset code",
+    provider: "password",
+    verification: false,
+    mail: true,
+    password: null,
+    notice: null,
+  },
+  "reset-verification": {
+    title: "Choose a new password",
+    submit: "Reset password",
+    provider: "password",
+    verification: true,
+    mail: true,
+    password: { name: "newPassword", label: "New password", autoComplete: "new-password" },
+    notice: "If an account matches this email and delivery is available, a reset code has been sent. Paste it below.",
+  },
+  "email-verification": {
+    title: "Verify your email",
+    submit: "Verify email",
+    provider: "password",
+    verification: true,
+    mail: true,
+    password: null,
+    notice: "Paste the verification code from your email. It expires in 15 minutes.",
+  },
 };
 export function SignIn() {
   const { signIn } = useAuthActions();
@@ -21,8 +97,7 @@ export function SignIn() {
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
-  const verification = flow === "reset-verification" || flow === "email-verification";
-  const mailFlow = flow === "reset" || verification;
+  const form = presentation[flow];
   return (
     <div className="flex min-h-full items-center justify-center p-6">
       <form
@@ -33,15 +108,16 @@ export function SignIn() {
           setError("");
           const data = new FormData(event.currentTarget);
           try {
-            const result = await signIn("password", data);
-            if (flow === "reset") setFlow("reset-verification");
+            const result = await signIn(form.provider, data);
+            if (flow === "magic") setFlow("magic-verification");
+            else if (flow === "reset") setFlow("reset-verification");
             else if (!result.signingIn && available?.emailVerification && (flow === "signIn" || flow === "signUp"))
               setFlow("email-verification");
-            else if (!result.signingIn && verification)
+            else if (!result.signingIn && form.verification)
               setError("This code is invalid or expired. Request another code.");
           } catch {
             setError(
-              mailFlow
+              form.mail
                 ? "This request could not be completed. Check your code and try again."
                 : "Could not sign in. Check your email and password, or try again."
             );
@@ -52,16 +128,11 @@ export function SignIn() {
       >
         <div>
           <p className="text-sm mb-2 text-secondary">Summon Core</p>
-          <h1 className="text-2xl font-semibold">{titles[flow]}</h1>
+          <h1 className="text-2xl font-semibold">{form.title}</h1>
         </div>
-        {flow === "reset-verification" && (
+        {form.notice && (
           <p role="status" className="text-14 text-secondary">
-            If an account matches this email and delivery is available, a reset code has been sent. Paste it below.
-          </p>
-        )}
-        {flow === "email-verification" && (
-          <p role="status" className="text-14 text-secondary">
-            Paste the verification code from your email. It expires in 15 minutes.
+            {form.notice}
           </p>
         )}
         <fieldset disabled={pending} className="space-y-5">
@@ -72,22 +143,22 @@ export function SignIn() {
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              readOnly={verification}
+              readOnly={form.verification}
               required
             />
           </SummonField>
-          {verification && (
+          {form.verification && (
             <SummonField label="Verification code">
               <Input name="code" autoComplete="one-time-code" required maxLength={100} />
             </SummonField>
           )}
-          {flow !== "reset" && flow !== "email-verification" && (
-            <SummonField label={flow === "reset-verification" ? "New password" : "Password"}>
+          {form.password && (
+            <SummonField label={form.password.label}>
               <Input
                 key={flow}
-                name={flow === "reset-verification" ? "newPassword" : "password"}
+                name={form.password.name}
                 type="password"
-                autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+                autoComplete={form.password.autoComplete}
                 minLength={8}
                 required
               />
@@ -97,17 +168,9 @@ export function SignIn() {
           <Button
             type="submit"
             loading={pending}
-            disabled={available === undefined || (mailFlow && !available.passwordReset)}
+            disabled={available === undefined || (form.mail && !available.passwordReset)}
           >
-            {flow === "reset"
-              ? "Request reset code"
-              : flow === "reset-verification"
-                ? "Reset password"
-                : flow === "email-verification"
-                  ? "Verify email"
-                  : flow === "signIn"
-                    ? "Sign in"
-                    : "Create account"}
+            {form.submit}
           </Button>
         </fieldset>
         {error && (
@@ -137,6 +200,19 @@ export function SignIn() {
               Continue with {provider.name}
             </Button>
           ))}
+        {flow === "signIn" && available?.magicCode && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => {
+              setFlow("magic");
+              setError("");
+            }}
+          >
+            Sign in with an email code
+          </Button>
+        )}
         {flow === "signIn" && available?.passwordReset && (
           <Button
             variant="secondary"
