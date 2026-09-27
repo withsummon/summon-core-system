@@ -11,6 +11,7 @@ import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
 const Automation = lazy(() => import("./automation/automation").then((module) => ({ default: module.Automation })));
+const Modules = lazy(() => import("./modules/modules").then((module) => ({ default: module.Modules })));
 const Cycles = lazy(() => import("./cycles/cycles").then((module) => ({ default: module.Cycles })));
 const TaskCenter = lazy(() => import("./tasks/task-center").then((module) => ({ default: module.TaskCenter })));
 const Notifications = lazy(() =>
@@ -175,7 +176,7 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
   const [params, setParams] = useSearchParams();
   const project = projects?.find((item) => item.identifier === params.get("project"));
   const hasSelectedTask = Boolean(params.get("task"));
-  const cyclesView = params.get("projectView") === "cycles";
+  const projectView = params.get("projectView") ?? "tasks";
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -236,17 +237,20 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
             {[
               { value: "tasks", label: "Tasks" },
               { value: "cycles", label: "Cycles" },
+              { value: "modules", label: "Modules" },
             ].map((section) => (
               <Button
                 key={section.value}
-                variant={(cyclesView ? "cycles" : "tasks") === section.value ? "primary" : "secondary"}
+                variant={projectView === section.value ? "primary" : "secondary"}
                 onClick={() =>
                   setParams((current) => {
                     const next = new URLSearchParams(current);
                     next.delete("task");
                     next.delete("cycle");
                     next.delete("cycleView");
-                    if (section.value === "cycles") next.set("projectView", "cycles");
+                    next.delete("projectModule");
+                    next.delete("moduleView");
+                    if (section.value !== "tasks") next.set("projectView", section.value);
                     else next.delete("projectView");
                     return next;
                   })
@@ -256,7 +260,9 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
               </Button>
             ))}
           </nav>
-          {cyclesView ? (
+          {projectView === "modules" ? (
+            <Modules key={project._id} project={project} />
+          ) : projectView === "cycles" ? (
             <Cycles key={project._id} project={project} />
           ) : (
             <>

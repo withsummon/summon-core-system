@@ -1,3 +1,4 @@
+import { moduleTables } from "./modules/schema";
 import { cycleTables } from "./cycles/schema";
 import { notificationTables } from "./notifications/schema";
 import { automationTables } from "./automation/schema";
@@ -18,6 +19,7 @@ export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("
 export default defineSchema({
   ...authTables,
   ...cycleTables,
+  ...moduleTables,
   ...notificationTables,
   ...automationTables,
   ...mcpTables,
