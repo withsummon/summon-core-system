@@ -1,3 +1,4 @@
+import { LeaveMembership } from "../memberships/leave";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -24,6 +25,7 @@ export function ArchivedProjects({
               <p className="text-12 text-secondary">{project.identifier}</p>
               <h3 className="text-16 font-medium break-words">{project.name}</h3>
             </div>
+            <LeaveMembership scope={{ kind: "project", id: project._id, name: project.name }} />
             {project.canRestore ? (
               <RestoreProject project={project} onRestored={onRestored} />
             ) : (

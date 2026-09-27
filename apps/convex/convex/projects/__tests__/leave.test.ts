@@ -10,8 +10,13 @@ test.each(["member", "guest"] as const)(
     const actor = await signedIn(f.t, userId);
     await f.owner.mutation(api.workspaces.index.grantMember, { workspaceId: f.workspaceId, userId, role });
     await f.owner.mutation(api.projects.index.grantMember, { projectId: f.projectId, userId, role });
-    await f.t.run((ctx) => ctx.db.patch(f.projectId, { archived: true }));
-    await actor.mutation(api.projects.index.leave, { projectId: f.projectId });
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.projectId, { archived: true });
+      await ctx.db.patch(f.workspaceId, { slug: "renamed-workspace" });
+    });
+    expect(await actor.mutation(api.projects.index.leave, { projectId: f.projectId })).toEqual({
+      workspaceSlug: "renamed-workspace",
+    });
     expect(await actor.query(api.workspaces.index.list, {})).toHaveLength(1);
     await expect(actor.mutation(api.projects.index.leave, { projectId: f.projectId })).rejects.toThrow("access");
   }
