@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import { initialProperties } from "../../tasks/properties";
 async function fixture() {
@@ -170,22 +170,6 @@ test("replacement advances bounded task/draft pages once and rejects revoked res
   expect(
     (await f.owner.query(api.estimates.index.get, { systemId: f.system._id })).points.map((point) => point.key)
   ).toEqual([0]);
-});
-test("bounded reference migration initializes only missing fields and is idempotent", async () => {
-  const f = await fixture();
-  const taskId = await f.owner.mutation(api.tasks.index.create, {
-    projectId: f.projectId,
-    title: "Preserve",
-    properties: f.props,
-  });
-  const old = await f.owner.mutation(api.tasks.index.create, { projectId: f.projectId, title: "Old" });
-  await f.t.run((ctx) => ctx.db.patch(old, { estimatePointId: undefined }));
-  const first = await f.t.mutation(internal.estimates.migrations.references, { table: "tasks", cursor: null });
-  expect(first.changed).toBe(1);
-  expect((await f.t.mutation(internal.estimates.migrations.references, { table: "tasks", cursor: null })).changed).toBe(
-    0
-  );
-  expect((await f.owner.query(api.tasks.index.get, { taskId })).estimatePointId).toBe(f.props.estimatePointId);
 });
 test("foreign project points reject and whole-system deletion clears references and active selection", async () => {
   const f = await fixture();

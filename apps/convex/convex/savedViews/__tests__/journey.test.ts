@@ -36,6 +36,7 @@ test("saved all/any predicates drive live results; empty predicates match all an
     projectId: f.projectId,
     title: "Todo high",
     properties: {
+      estimatePointId: null,
       priority: "high",
       assigneeIds: [],
       labelIds: [],
@@ -48,7 +49,15 @@ test("saved all/any predicates drive live results; empty predicates match all an
     projectId: f.projectId,
     title: "Done low",
     status: "done",
-    properties: { priority: "low", assigneeIds: [], labelIds: [], stateId: null, startDate: null, targetDate: null },
+    properties: {
+      estimatePointId: null,
+      priority: "low",
+      assigneeIds: [],
+      labelIds: [],
+      stateId: null,
+      startDate: null,
+      targetDate: null,
+    },
   });
   let row = await f.owner.query(api.savedViews.index.get, { viewId: f.viewId });
   const selected = { ...filters, statuses: ["todo" as const], priorities: ["low" as const] };
@@ -251,6 +260,7 @@ test("date clauses are inclusive; foreign filter IDs, duplicates and invalid dat
     projectId: f.projectId,
     title: "Boundary",
     properties: {
+      estimatePointId: null,
       priority: "none",
       assigneeIds: [f.userId],
       labelIds: [],
@@ -316,7 +326,15 @@ test("state and label clauses use any selected value within each field while all
   const taskId = await f.owner.mutation(api.tasks.index.create, {
     projectId: f.projectId,
     title: "Tagged",
-    properties: { stateId, labelIds: [labelId], assigneeIds: [], priority: "none", startDate: null, targetDate: null },
+    properties: {
+      estimatePointId: null,
+      stateId,
+      labelIds: [labelId],
+      assigneeIds: [],
+      priority: "none",
+      startDate: null,
+      targetDate: null,
+    },
   });
   await f.owner.mutation(api.tasks.index.create, { projectId: f.projectId, title: "Not tagged" });
   const row = await f.owner.query(api.savedViews.index.get, { viewId: f.viewId });

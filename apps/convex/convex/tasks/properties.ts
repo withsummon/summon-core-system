@@ -24,7 +24,7 @@ export async function validateProperties(
   data: Infer<typeof properties>,
   retainedEstimatePointId?: Id<"estimatePoints"> | null
 ) {
-  const estimatePointId = data.estimatePointId === undefined ? (retainedEstimatePointId ?? null) : data.estimatePointId;
+  const estimatePointId = data.estimatePointId;
   await validateEstimatePoint(ctx, project._id, estimatePointId, retainedEstimatePointId);
   const startDate = date(data.startDate);
   const targetDate = date(data.targetDate);

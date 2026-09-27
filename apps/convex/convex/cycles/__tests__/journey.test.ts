@@ -446,6 +446,7 @@ test("cycle and task membership caps reject the next record without silently tru
           createdBy: f.userId,
           updatedAt: Date.now(),
           priority: "none",
+          estimatePointId: null,
           assigneeIds: [],
           labelIds: [],
           startDate: null,

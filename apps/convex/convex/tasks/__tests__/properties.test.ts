@@ -3,6 +3,7 @@ import { api } from "../../_generated/api";
 import { workspaceJourney } from "../../../test-support/fixtures";
 import type { FunctionArgs } from "convex/server";
 const properties = {
+  estimatePointId: null,
   priority: "none",
   assigneeIds: [],
   labelIds: [],

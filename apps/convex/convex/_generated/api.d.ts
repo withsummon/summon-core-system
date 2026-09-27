@@ -52,7 +52,6 @@ import type * as documents_index from "../documents/index.js";
 import type * as documents_lifecycle from "../documents/lifecycle.js";
 import type * as estimates_access from "../estimates/access.js";
 import type * as estimates_index from "../estimates/index.js";
-import type * as estimates_migrations from "../estimates/migrations.js";
 import type * as estimates_remap from "../estimates/remap.js";
 import type * as estimates_selection from "../estimates/selection.js";
 import type * as favorites_access from "../favorites/access.js";
@@ -209,7 +208,6 @@ declare const fullApi: ApiFromModules<{
   "documents/lifecycle": typeof documents_lifecycle;
   "estimates/access": typeof estimates_access;
   "estimates/index": typeof estimates_index;
-  "estimates/migrations": typeof estimates_migrations;
   "estimates/remap": typeof estimates_remap;
   "estimates/selection": typeof estimates_selection;
   "favorites/access": typeof favorites_access;
