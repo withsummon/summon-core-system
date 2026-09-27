@@ -40,8 +40,10 @@ Chrome acceptance on local port 3010:
 - Edited the name and added To do; results showed the expected To do and Done tasks in newest-created order. The guest deep link showed “This saved view is unavailable” under the current project access settings.
 - Inspected desktop and 390px rendering; the narrow page measured 390px with readable wrapped controls and task rows. Temporary viewport override was cleared.
 
-Remaining browser coverage: the full any/all/date filter matrix, stale metadata conflict, task deep-link and keyboard-only journey, and deletion of a choice during an open draft. Backend BDD covers filter semantics and stale revisions; it is not a substitute for those unexercised browser cases. Django and legacy view routes remain registered.
+Remaining browser coverage: the full any/all/date filter matrix, keyboard-only journey, and deletion of a choice during an open draft. Backend BDD covers filter semantics and stale revisions; it is not a substitute for those unexercised browser cases. Django and legacy view routes remain registered.
 
 ## Live choice disappearance review
 
 Peer review found that a newly selected draft label/state/member could disappear from its directory while retaining a hidden filter ID. The choice owner now unions live choices, initial saved projections, and every current typed draft selection. Missing draft choices remain explicitly unavailable and removable; no ID is silently dropped or cast. Module-local tests cover select → live option disappears → remove from draft, and live-label precedence with duplicate assignee/creator IDs. Both tests, native web TS7, and scoped lint passed. This is source/behavior verification; the browser deletion-during-edit journey remains a separate QA check.
+
+Remote follow-up verified the task deep-link and concurrent metadata conflict: a newer peer revision prevented the older editor from saving, retained its draft, and Cancel returned to the newer canonical definition.
