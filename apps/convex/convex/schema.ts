@@ -1,3 +1,4 @@
+import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
 import { projectPersonalTables } from "./projects/schema";
 import { navigationTables } from "./navigation/schema";
@@ -67,6 +68,7 @@ export default defineSchema({
     timezone: v.optional(v.string()),
     description: v.string(),
     metadataRevision: v.number(),
+    features: v.optional(projectFeatures),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),

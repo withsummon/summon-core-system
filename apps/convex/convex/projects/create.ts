@@ -1,3 +1,4 @@
+import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
 import { workspaceTimezone } from "../settings/timezone";
 import { ConvexError } from "convex/values";
@@ -29,6 +30,7 @@ export async function createProject(
     timezone: await workspaceTimezone(ctx, args.workspaceId),
     description: "",
     metadataRevision: 0,
+    features: defaultProjectFeatures,
     intakeEnabled: false,
     guestViewAllFeatures: false,
     nextSequence: 1,

@@ -1,4 +1,4 @@
-import { canManageProjectLifecycle } from "./lifecycle";
+import { canAdministerProject } from "./administration";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
@@ -23,7 +23,7 @@ export const get = query({
       name: access.project.name,
       identifier: access.project.identifier,
       canManage: access.member.role !== "guest" && access.projectMember.role === "admin",
-      canDelete: await canManageProjectLifecycle(ctx, access.project, access.user._id, access.member.role),
+      canDelete: await canAdministerProject(ctx, access.project, access.user._id, access.member.role),
     };
   },
 });
@@ -68,7 +68,7 @@ export const archived = query({
           identifier: project.identifier,
           revision: projectMetadata(project).revision,
           canRestore: member.role !== "guest" && membership.role === "admin",
-          canDelete: await canManageProjectLifecycle(ctx, project, user._id, member.role),
+          canDelete: await canAdministerProject(ctx, project, user._id, member.role),
         };
       })
     );

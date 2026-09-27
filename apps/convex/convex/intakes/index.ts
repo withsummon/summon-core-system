@@ -1,3 +1,4 @@
+import { ensureDefaultIntake } from "./configuration_owner";
 import { boundDescriptionContent } from "../tasks/description_images";
 import { writeDescription } from "../tasks/description_content";
 import { ConvexError, v } from "convex/values";
@@ -50,18 +51,7 @@ export const configure = mutation({
       throw new ConvexError("Only administrators can configure intake.");
     if (projectMetadata(access.project).revision !== args.expectedRevision)
       throw new ConvexError("Project settings changed. Refresh before saving.");
-    const existing = await ctx.db
-      .query("intakes")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .unique();
-    if (args.enabled && !existing)
-      await ctx.db.insert("intakes", {
-        projectId: args.projectId,
-        name: `${access.project.name} Intake`,
-        description: "",
-        isDefault: true,
-        updatedAt: Date.now(),
-      });
+    if (args.enabled) await ensureDefaultIntake(ctx, access.project);
     await ctx.db.patch(args.projectId, {
       intakeEnabled: args.enabled,
       guestViewAllFeatures: args.guestViewAllFeatures,
