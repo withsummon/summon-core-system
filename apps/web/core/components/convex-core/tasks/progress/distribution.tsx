@@ -19,7 +19,7 @@ export function Distribution({
   const [visible, setVisible] = useState(50);
   return (
     <div className="min-w-0">
-      <h5 className="text-14 font-medium">{title}</h5>
+      <h4 className="text-14 font-medium">{title}</h4>
       <ul className="text-14">
         {rows.slice(0, visible).map((row) => (
           <li key={row.id ?? "none"} className="break-words">
