@@ -3,11 +3,10 @@ import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireTask } from "./access";
 import { requireProject } from "../identity/access";
-import { requireTaskRevision } from "./revision";
+import { requireTaskRevision, taskChanged } from "./revision";
 import { validateProperties } from "./properties";
 import { status, taskProperties } from "./schema";
 import { v } from "convex/values";
-import { recordTaskEvent } from "../notifications/delivery";
 const properties = v.object(taskProperties);
 export async function preparePropertyUpdate(
   ctx: MutationCtx,
@@ -36,14 +35,6 @@ export async function applyPropertyUpdate(
     ...text,
     status: requestedStatus,
     completedAt: changed ? (requestedStatus === "done" ? Date.now() : null) : task.completedAt,
-    updatedAt: Math.max(Date.now(), task.updatedAt + 1),
   });
-  await recordTaskEvent(ctx, {
-    workspaceId: task.workspaceId,
-    projectId: task.projectId,
-    taskId: task._id,
-    actorId: user._id,
-    kind: changed ? "status_changed" : "updated",
-    status: requestedStatus,
-  });
+  await taskChanged(ctx, task, user._id);
 }

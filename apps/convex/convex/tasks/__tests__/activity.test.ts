@@ -10,7 +10,7 @@ test("activity pages canonical creation/status events and reveals only display i
   const first = await f.owner.query(api.tasks.activity.list, { taskId, paginationOpts });
   expect(first.page).toHaveLength(1);
   expect(first.page[0]).toMatchObject({ kind: "status_changed", status: "done" });
-  expect(Object.keys(first.page[0]).toSorted()).toEqual(["actorName", "at", "id", "kind", "status"]);
+  expect(Object.keys(first.page[0]).toSorted()).toEqual(["actorName", "at", "changes", "id", "kind", "status"]);
   expect(first.isDone).toBe(false);
   const second = await f.owner.query(api.tasks.activity.list, {
     taskId,
