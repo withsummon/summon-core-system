@@ -16,6 +16,7 @@ import { AddFilterButton } from "@/components/rich-filters/add-filters/button";
 
 type TFiltersToggleProps<P extends TFilterProperty, E extends TExternalFilter> = {
   filter: IFilterInstance<P, E> | undefined;
+  disabled?: boolean;
 };
 
 const COMMON_CLASSNAME =
@@ -24,7 +25,7 @@ const COMMON_CLASSNAME =
 export const FiltersToggle = observer(function FiltersToggle<P extends TFilterProperty, E extends TExternalFilter>(
   props: TFiltersToggleProps<P, E>
 ) {
-  const { filter } = props;
+  const { filter, disabled = false } = props;
   // derived values
   const hasAnyConditions = (filter?.allConditionsForDisplay.length ?? 0) > 0;
   const isFilterRowVisible = filter?.isVisible ?? false;
@@ -63,7 +64,7 @@ export const FiltersToggle = observer(function FiltersToggle<P extends TFilterPr
   });
 
   // Show the add filter button when there are no active conditions, the filter row is hidden, and no unsaved changes exist
-  if (filter && showAddFilterButton) {
+  if (filter && showAddFilterButton && !disabled) {
     return (
       <AddFilterButton
         filter={filter}
@@ -80,6 +81,9 @@ export const FiltersToggle = observer(function FiltersToggle<P extends TFilterPr
   return (
     <IconButton
       size="lg"
+      aria-label="Filters"
+      aria-expanded={isFilterRowVisible}
+      disabled={disabled || !filter}
       variant="secondary"
       icon={showFilterRowChangesPill ? FilterAppliedIcon : FilterIcon}
       onClick={handleToggleFilter}

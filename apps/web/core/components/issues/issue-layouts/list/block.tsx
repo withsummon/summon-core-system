@@ -24,7 +24,6 @@ import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
 import { IssueProperties } from "@/components/issues/issue-layouts/properties";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
 // hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
@@ -64,7 +63,6 @@ interface IssueListBlockViewProps {
   isActive: boolean;
   isSelected: boolean;
   isDragging: boolean;
-  sidebarCollapsed: boolean;
   disabled: boolean;
   pending: boolean;
   identifier: ReactNode;
@@ -88,7 +86,6 @@ export function IssueListBlockView({
   isActive,
   isSelected,
   isDragging,
-  sidebarCollapsed,
   disabled,
   pending,
   identifier,
@@ -107,21 +104,19 @@ export function IssueListBlockView({
       href={href}
       aria-label={ariaLabel}
       onClick={onOpen}
-      className="w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+      className="@container/list-row block w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
       disabled={pending || disabled}
     >
       <Row
         ref={rowRef}
         className={cn(
-          "group/list-block relative flex min-h-11 flex-col gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover",
+          "group/list-block relative grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover @3xl/list-row:grid-cols-[minmax(12rem,1fr)_minmax(0,max-content)_auto] @3xl/list-row:items-center",
           {
             "border-accent-strong": isPeeked && isPeekedAtCurrentLevel,
             "border-strong-1": isActive,
             "last:border-b-transparent": !isPeeked && !isActive,
             "bg-accent-primary/5 hover:bg-accent-primary/10": isSelected,
             "bg-layer-1": isDragging,
-            "md:flex-row md:items-center": sidebarCollapsed,
-            "lg:flex-row lg:items-center": !sidebarCollapsed,
           }
         )}
         onDragStart={onDragStart}
@@ -146,42 +141,27 @@ export function IssueListBlockView({
               <p className="cursor-pointer truncate text-body-xs-medium text-primary">{name}</p>
             </Tooltip>
           </div>
-          {actions && (
-            <div
-              className={cn("block rounded-sm border border-strong", {
-                "md:hidden": sidebarCollapsed,
-                "lg:hidden": !sidebarCollapsed,
-              })}
-            >
-              {actions(rowRef)}
-            </div>
-          )}
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <div
-            className={cn("relative flex flex-wrap items-center gap-2 whitespace-nowrap", {
-              "md:flex-shrink-0 md:flex-grow": sidebarCollapsed,
-              "lg:flex-shrink-0 lg:flex-grow": !sidebarCollapsed,
-            })}
-          >
+        <div className="col-span-2 flex min-w-0 items-center gap-2 @3xl/list-row:col-span-1 @3xl/list-row:col-start-2 @3xl/list-row:row-start-1">
+          <div className="relative flex flex-wrap items-center gap-2 whitespace-nowrap">
             {pending ? <Spinner className="size-4" /> : properties}
           </div>
-          {actions && (
-            // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-            <div
-              className={cn("hidden", {
-                "md:flex": sidebarCollapsed,
-                "lg:flex": !sidebarCollapsed,
-              })}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-            >
-              {actions(rowRef)}
-            </div>
-          )}
         </div>
+        {actions && (
+          <fieldset
+            aria-label="Work item actions"
+            className="col-start-2 row-start-1 rounded-sm border border-strong @3xl/list-row:col-start-3 @3xl/list-row:border-0"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") event.stopPropagation();
+            }}
+          >
+            {actions(rowRef)}
+          </fieldset>
+        )}
       </Row>
     </ControlLink>
   );
@@ -211,7 +191,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   // router
   const { workspaceSlug, projectId } = useParams();
   // hooks
-  const { sidebarCollapsed: isSidebarCollapsed } = useAppTheme();
   const { getProjectIdentifierById, currentProjectNextSequenceId } = useProject();
   const {
     getIsIssuePeeked,
@@ -318,7 +297,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
       isActive={isIssueActive}
       isSelected={isIssueSelected}
       isDragging={isCurrentBlockDragging}
-      sidebarCollapsed={!!isSidebarCollapsed}
       disabled={issue.is_draft}
       pending={issue.tempId !== undefined}
       identifier={

@@ -19,6 +19,8 @@ export function FilterHeader({ title, isPreviewEnabled, handleIsPreviewEnabled }
       <div className="flex-grow truncate text-caption-sm-medium text-placeholder">{title}</div>
       <button
         type="button"
+        aria-label={`${isPreviewEnabled ? "Collapse" : "Expand"} ${title}`}
+        aria-expanded={isPreviewEnabled}
         className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-sm hover:bg-layer-transparent-hover"
         onClick={handleIsPreviewEnabled}
       >
