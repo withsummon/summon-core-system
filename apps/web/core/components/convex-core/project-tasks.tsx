@@ -1,7 +1,8 @@
 import { BulkLifecycle } from "./tasks/bulk-lifecycle";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { optimisticallyUpdateValueInPaginatedQuery, useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { statusOptions } from "./tasks/options";

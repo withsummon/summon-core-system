@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import type { FunctionArgs } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
@@ -70,7 +71,7 @@ function ActionProposal({
   conversationId: Id<"assistantConversations">;
   projectId: Id<"projects">;
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
+  const { results, status, loadMore } = useTaskPages(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   const propose = useMutation(api.assistant.actions.propose);
   const [taskId, setTaskId] = useState<Id<"tasks"> | null>(null);
   const [nextStatus, setNextStatus] =
