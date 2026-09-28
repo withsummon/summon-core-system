@@ -13,7 +13,7 @@ export const mcpTables = {
   mcpStepUps: defineTable({
     credentialId: v.id("mcpCredentials"),
     actorId: v.id("users"),
-    sessionId: v.id("authSessions"),
+    sessionId: v.string(),
     operation,
     credentialRevision: v.number(),
     expiresAt: v.number(),

@@ -24,6 +24,7 @@ import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
 // lib
 import { isStaleAssetError, recoverFromStaleAsset } from "@/lib/stale-asset-error";
+import { CoreProvider } from "@/components/convex-core/provider";
 // local
 const CustomErrorComponent = lazy(() => import("./error").then((module) => ({ default: module.CustomErrorComponent })));
 // fonts
@@ -129,7 +130,9 @@ export default function Root() {
   return (
     <div className="desktop-app-container relative flex h-screen w-full flex-col overflow-hidden bg-canvas">
       <main className="relative h-full w-full overflow-hidden">
-        <Outlet />
+        <CoreProvider>
+          <Outlet />
+        </CoreProvider>
       </main>
     </div>
   );

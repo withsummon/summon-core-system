@@ -1,0 +1,33 @@
+diff --git a/dist/react/index.d.ts b/dist/react/index.d.ts
+index 652857c519c97b92f4819cbb8f25bea33be20982..78156f746218491f1d9256ee883f720a23f294d0 100644
+--- a/dist/react/index.d.ts
++++ b/dist/react/index.d.ts
+@@ -12,7 +12,9 @@ type PluginsWithoutCrossDomain = (ConvexClient | BetterAuthClientPlugin)[];
+ type AuthClientWithPlugins<Plugins extends PluginsWithCrossDomain | PluginsWithoutCrossDomain> = ReturnType<typeof createAuthClient<BetterAuthClientPlugin & {
+     plugins: Plugins;
+ }>>;
+-export type AuthClient = AuthClientWithPlugins<PluginsWithCrossDomain> | AuthClientWithPlugins<PluginsWithoutCrossDomain>;
++export type AuthClient =
++    | Pick<AuthClientWithPlugins<[ConvexClient, CrossDomainClient]>, "useSession" | "getSession" | "convex" | "crossDomain" | "updateSession">
++    | Pick<AuthClientWithPlugins<[ConvexClient]>, "useSession" | "getSession" | "convex">;
+ type IConvexReactClient = {
+     setAuth(fetchToken: AuthTokenFetcher): void;
+     clearAuth(): void;
+diff --git a/src/react/index.tsx b/src/react/index.tsx
+index dc10909a67009570ca00ea399828cd2775f6a561..e2beb37077e17f49e849d6d84c85de87e92c1c4a 100644
+--- a/src/react/index.tsx
++++ b/src/react/index.tsx
+@@ -34,8 +34,11 @@ type AuthClientWithPlugins<
+   >
+ >;
+ export type AuthClient =
+-  | AuthClientWithPlugins<PluginsWithCrossDomain>
+-  | AuthClientWithPlugins<PluginsWithoutCrossDomain>;
++  | Pick<
++      AuthClientWithPlugins<[ConvexClient, CrossDomainClient]>,
++      "useSession" | "getSession" | "convex" | "crossDomain" | "updateSession"
++    >
++  | Pick<AuthClientWithPlugins<[ConvexClient]>, "useSession" | "getSession" | "convex">;
+ 
+ // Until we can import from our own entry points (requires TypeScript 4.7),
+ // just describe the interface enough to help users pass the right type.

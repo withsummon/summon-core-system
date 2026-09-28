@@ -27,12 +27,14 @@ function CustomSelect({
   optionsClassName,
   value,
   tabIndex,
+  ariaLabel,
 }: ICustomSelectProps) {
   const { side, align } = convertPlacementToSideAndAlign(placement);
   return (
     <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
       <div className={cn("relative flex-shrink-0 text-left", className)}>
         <Select.Trigger
+          aria-label={ariaLabel}
           render={render}
           tabIndex={tabIndex}
           className={cn(

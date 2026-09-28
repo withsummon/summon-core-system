@@ -4,32 +4,25 @@
  * See the LICENSE file for details.
  */
 
-import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useState } from "react";
-import { observer } from "mobx-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
+import { ORGANIZATION_SIZE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 // ui
 import { CustomSelect, Input } from "@plane/ui";
 import { validateWorkspaceName, validateSlug } from "@plane/utils";
 // hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useAppRouter } from "@/hooks/use-app-router";
 // services
-import { WorkspaceService } from "@/services/workspace.service";
 
 type Props = {
-  onSubmit?: (res: IWorkspace) => Promise<void>;
-  defaultValues: {
-    name: string;
-    slug: string;
-    organization_size: string;
-  };
-  setDefaultValues: Dispatch<SetStateAction<Pick<IWorkspace, "name" | "slug" | "organization_size">>>;
+  onSubmit: (workspaceId: FunctionReturnType<typeof api.workspaces.index.create>, slug: string) => void;
   secondaryButton?: React.ReactNode;
   primaryButtonText?: {
     loading: string;
@@ -37,14 +30,10 @@ type Props = {
   };
 };
 
-const workspaceService = new WorkspaceService();
-
-export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: Props) {
+export function CreateWorkspaceForm(props: Props) {
   const { t } = useTranslation();
   const {
     onSubmit,
-    defaultValues,
-    setDefaultValues,
     secondaryButton,
     primaryButtonText = {
       loading: "workspace_creation.button.loading",
@@ -52,61 +41,36 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
     },
   } = props;
   // states
-  const [slugError, setSlugError] = useState(false);
-  const [invalidSlug, setInvalidSlug] = useState(false);
+  const [error, setError] = useState("");
   // router
   const router = useAppRouter();
   // store hooks
-  const { createWorkspace } = useWorkspace();
+  const createWorkspace = useMutation(api.workspaces.index.create);
   // form info
   const {
     handleSubmit,
     control,
     setValue,
-    getValues,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<IWorkspace>({ defaultValues, mode: "onChange" });
+  } = useForm<FunctionArgs<typeof api.workspaces.index.create>>({
+    defaultValues: { name: "", slug: "", organizationSize: "" },
+    mode: "onChange",
+  });
 
-  const handleCreateWorkspace = async (formData: IWorkspace) => {
+  const handleCreateWorkspace = async (fields: FunctionArgs<typeof api.workspaces.index.create>) => {
+    setError("");
     try {
-      const res = (await workspaceService.workspaceSlugCheck(formData.slug)) as { status: boolean };
-      if (res.status === true && !RESTRICTED_URLS.includes(formData.slug)) {
-        setSlugError(false);
-        try {
-          const workspaceResponse = await createWorkspace(formData);
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: t("workspace_creation.toast.success.title"),
-            message: t("workspace_creation.toast.success.message"),
-          });
-
-          if (onSubmit) await onSubmit(workspaceResponse);
-        } catch {
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: t("workspace_creation.toast.error.title"),
-            message: t("workspace_creation.toast.error.message"),
-          });
-        }
-      } else {
-        setSlugError(true);
-      }
-    } catch {
+      const workspaceId = await createWorkspace(fields);
       setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("workspace_creation.toast.error.title"),
-        message: t("workspace_creation.toast.error.message"),
+        type: TOAST_TYPE.SUCCESS,
+        title: t("workspace_creation.toast.success.title"),
+        message: t("workspace_creation.toast.success.message"),
       });
+      onSubmit(workspaceId, fields.slug);
+    } catch (failure) {
+      setError(mutationMessage(failure));
     }
   };
-
-  useEffect(
-    () => () => {
-      // when the component unmounts set the default values to whatever user typed in
-      setDefaultValues(getValues());
-    },
-    [getValues, setDefaultValues]
-  );
 
   return (
     <form
@@ -140,7 +104,6 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
                   value={value}
                   onChange={(e) => {
                     onChange(e.target.value);
-                    setValue("name", e.target.value);
                     setValue("slug", e.target.value.toLocaleLowerCase().trim().replace(/ /g, "-"), {
                       shouldValidate: true,
                     });
@@ -161,11 +124,12 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
             <span className="ml-0.5 text-danger-primary">*</span>
           </label>
           <div className="flex w-full items-center rounded-md border border-subtle bg-layer-2 px-3">
-            <span className="text-12 whitespace-nowrap text-secondary">{window && window.location.host}/</span>
+            <span className="text-12 whitespace-nowrap text-secondary">{window.location.host}/</span>
             <Controller
               control={control}
               name="slug"
               rules={{
+                validate: validateSlug,
                 required: t("common.errors.required"),
                 maxLength: {
                   value: 48,
@@ -177,12 +141,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
                   id="workspaceUrl"
                   type="text"
                   value={value.toLocaleLowerCase().trim().replace(/ /g, "-")}
-                  onChange={(e) => {
-                    const validation = validateSlug(e.target.value);
-                    if (validation === true) setInvalidSlug(false);
-                    else setInvalidSlug(true);
-                    onChange(e.target.value.toLowerCase());
-                  }}
+                  onChange={(e) => onChange(e.target.value.toLowerCase().trim().replace(/ /g, "-"))}
                   ref={ref}
                   hasError={Boolean(errors.slug)}
                   placeholder={t("workspace_creation.form.url.placeholder")}
@@ -191,13 +150,10 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
               )}
             />
           </div>
-          {slugError && (
-            <p className="-mt-3 text-13 text-danger-primary">
-              {t("workspace_creation.errors.validation.url_already_taken")}
+          {error && (
+            <p role="alert" className="text-13 text-danger-primary">
+              {error}
             </p>
-          )}
-          {invalidSlug && (
-            <p className="text-13 text-danger-primary">{t("workspace_creation.errors.validation.url_alphanumeric")}</p>
           )}
           {errors.slug && <span className="text-11 text-danger-primary">{errors.slug.message}</span>}
         </div>
@@ -208,7 +164,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
           </span>
           <div className="w-full">
             <Controller
-              name="organization_size"
+              name="organizationSize"
               control={control}
               rules={{ required: t("common.errors.required") }}
               render={({ field: { value, onChange } }) => (
@@ -233,23 +189,23 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
                 </CustomSelect>
               )}
             />
-            {errors.organization_size && (
-              <span className="text-13 text-danger-primary">{errors.organization_size.message}</span>
+            {errors.organizationSize && (
+              <span className="text-13 text-danger-primary">{errors.organizationSize.message}</span>
             )}
           </div>
         </div>
       </div>
       <div className="flex items-center gap-4">
         {secondaryButton}
-        <Button variant="primary" type="submit" size="xl" disabled={!isValid} loading={isSubmitting}>
+        <Button variant="primary" type="submit" size="xl" disabled={!isValid || isSubmitting} loading={isSubmitting}>
           {isSubmitting ? t(primaryButtonText.loading) : t(primaryButtonText.default)}
         </Button>
         {!secondaryButton && (
-          <Button variant="secondary" type="button" size="xl" onClick={() => router.back()}>
+          <Button variant="secondary" type="button" size="xl" disabled={isSubmitting} onClick={() => router.back()}>
             {t("common.go_back")}
           </Button>
         )}
       </div>
     </form>
   );
-});
+}

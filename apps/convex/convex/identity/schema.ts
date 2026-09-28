@@ -31,10 +31,12 @@ export const identityTables = {
     issuedCount: v.number(),
     active: v.boolean(),
   }).index("by_user", ["userId"]),
-  userAppearance: defineTable({ userId: v.id("users"), avatarAssetId: v.union(v.id("assets"), v.null()) }).index(
-    "by_user",
-    ["userId"]
-  ),
+  userAppearance: defineTable({
+    userId: v.id("users"),
+    avatarAssetId: v.union(v.id("assets"), v.null()),
+    coverAssetId: v.optional(v.union(v.id("assets"), v.null())),
+    externalCoverUrl: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
   instanceAuthority: defineTable({ key: v.literal("instance"), initializedAt: v.number() }).index("by_key", ["key"]),
   instanceAdmins: defineTable({
     instanceId: v.id("instanceAuthority"),

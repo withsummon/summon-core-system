@@ -2,18 +2,12 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
+import { THEME_OPTIONS } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../commercial/forms";
 type Profile = FunctionReturnType<typeof api.identity.profile.get>;
-const themes = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "light-contrast", label: "Light contrast" },
-  { value: "dark-contrast", label: "Dark contrast" },
-];
 export function PreferencesForm({ initial, onClose }: { initial: Profile; onClose: () => void }) {
   const [snapshot] = useState(initial);
   const [draft, setDraft] = useState(initial.preferences);
@@ -48,16 +42,19 @@ export function PreferencesForm({ initial, onClose }: { initial: Profile; onClos
           <select
             id="profile-theme"
             className={selectClass}
-            value={draft.theme.theme ?? ""}
-            onChange={(event) => setDraft({ ...draft, theme: { ...draft.theme, theme: event.target.value } })}
+            value={draft.theme.theme}
+            onChange={(event) => {
+              const theme = THEME_OPTIONS.find((option) => option.value === event.target.value);
+              if (theme) setDraft({ ...draft, theme: { ...draft.theme, theme: theme.value } });
+            }}
           >
-            {!draft.theme.theme && <option value="">Current browser appearance</option>}
-            {draft.theme.theme === "custom" && <option value="custom">Saved custom theme</option>}
-            {themes.map((theme) => (
-              <option key={theme.value} value={theme.value}>
-                {theme.label}
-              </option>
-            ))}
+            {THEME_OPTIONS.filter((theme) => theme.value !== "custom" || draft.theme.theme === "custom").map(
+              (theme) => (
+                <option key={theme.value} value={theme.value}>
+                  {theme.i18n_label}
+                </option>
+              )
+            )}
           </select>
         </SummonField>
         <SummonField label="Notification density" htmlFor="profile-notification-mode">

@@ -1,4 +1,4 @@
-import { accountRestricted, requireUnrestrictedAccount } from "./deactivation/access";
+import { accountRestricted } from "./deactivation/access";
 import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
@@ -14,14 +14,22 @@ export async function liveIdentity(ctx: QueryCtx) {
   const user = await ctx.db.get(userId);
   return user && !(await accountRestricted(ctx, userId)) ? { user, session } : null;
 }
-export async function requireIdentity(ctx: QueryCtx) {
-  const identity = await liveIdentity(ctx);
-  if (!identity)
-    throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
-  return identity;
-}
-export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
-  if (process.env.SUMMON_AUTH_ENGINE !== "better-auth") return (await requireIdentity(ctx)).user;
+export async function requireIdentity(
+  ctx: QueryCtx
+): Promise<{ user: Doc<"users">; sessionId: string; expiresAt: number }> {
+  if (process.env.SUMMON_AUTH_ENGINE !== "better-auth") {
+    const current = await liveIdentity(ctx);
+    if (!current)
+      throw new ConvexError({
+        code: "SESSION_EXPIRED",
+        message: "Sign in again. Your session expired or was revoked.",
+      });
+    return {
+      user: current.user,
+      sessionId: current.session._id,
+      expiresAt: current.session.expirationTime,
+    };
+  }
   const authUser = await ctx.runQuery(internal.better_auth.sessionUser, {});
   if (!authUser?.emailVerified)
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
@@ -32,24 +40,23 @@ export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
   const user = link && (await ctx.db.get(link.userId));
   if (!user || user.email !== authUser.email || user.emailVerificationTime === undefined)
     throw new ConvexError("Your account is unavailable.");
-  await requireUnrestrictedAccount(ctx, user._id);
-  return user;
+  if (await accountRestricted(ctx, user._id))
+    throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
+  return { user, sessionId: authUser.sessionId, expiresAt: authUser.expiresAt };
+}
+export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
+  return (await requireIdentity(ctx)).user;
 }
 // This read remains available to a valid JWT whose backing session has been revoked.
 export const status = query({
   args: {},
   handler: async (ctx): Promise<{ valid: true; expiresAt: number } | { valid: false }> => {
-    if (process.env.SUMMON_AUTH_ENGINE === "better-auth") {
-      try {
-        await requireUser(ctx);
-        const expiresAt = await ctx.runQuery(internal.better_auth.sessionExpiry, {});
-        return expiresAt && expiresAt > Date.now() ? { valid: true, expiresAt } : { valid: false };
-      } catch (error) {
-        if (error instanceof ConvexError) return { valid: false };
-        throw error;
-      }
+    try {
+      const { expiresAt } = await requireIdentity(ctx);
+      return { valid: true, expiresAt };
+    } catch (error) {
+      if (error instanceof ConvexError) return { valid: false };
+      throw error;
     }
-    const identity = await liveIdentity(ctx);
-    return identity ? { valid: true as const, expiresAt: identity.session.expirationTime } : { valid: false as const };
   },
 });

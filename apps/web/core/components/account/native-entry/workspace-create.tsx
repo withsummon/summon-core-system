@@ -3,116 +3,63 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
 import { useState } from "react";
-import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
 import { CircleCheck } from "lucide-react";
-// plane imports
-import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
+import { ORGANIZATION_SIZE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUser, IWorkspace } from "@plane/types";
 import { Spinner } from "@plane/ui";
 import { cn, validateWorkspaceName, validateSlug } from "@plane/utils";
-// hooks
-import { useInstance } from "@/hooks/store/use-instance";
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserProfile, useUserSettings } from "@/hooks/store/user";
-// services
-import { WorkspaceService } from "@/services/workspace.service";
-// local components
-import { CommonOnboardingHeader } from "../common";
+import { CommonOnboardingHeader } from "@/components/onboarding/steps/common";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
-type Props = {
-  user: IUser | undefined;
-  onComplete: (skipInvites?: boolean) => void;
-  handleCurrentViewChange: () => void;
-  hasInvitations?: boolean;
-};
-
-const workspaceService = new WorkspaceService();
-
-export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
-  user,
+export function NativeWorkspaceCreate({
   onComplete,
+  profileRevision,
   handleCurrentViewChange,
-  hasInvitations = false,
-}: Props) {
-  // states
-  const [slugError, setSlugError] = useState(false);
-  const [invalidSlug, setInvalidSlug] = useState(false);
-  // plane hooks
+  hasInvitations,
+  onPendingChange,
+}: {
+  profileRevision: number;
+  onComplete: (workspaceId: Id<"workspaces">, skipInvites: boolean) => void;
+  handleCurrentViewChange: () => void;
+  hasInvitations: boolean;
+  onPendingChange?: (pending: boolean) => void;
+}) {
   const { t } = useTranslation();
-  // store hooks
-  const { config } = useInstance();
-  const { updateUserProfile } = useUserProfile();
-  const { fetchCurrentUserSettings } = useUserSettings();
-  const { createWorkspace, fetchWorkspaces } = useWorkspace();
-
-  const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
-
-  // form info
+  const [openingRevision] = useState(profileRevision);
+  const [error, setError] = useState("");
+  const create = useMutation(api.workspaces.index.create);
+  const policy = useQuery(api.identity.instance.configuration.availability);
   const {
     handleSubmit,
     control,
     setValue,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<IWorkspace>({
-    defaultValues: {
-      name: "",
-      slug: "",
-      organization_size: "",
-    },
+  } = useForm<FunctionArgs<typeof api.workspaces.index.create>>({
+    defaultValues: { name: "", slug: "", organizationSize: "" },
     mode: "onChange",
   });
-
-  const handleCreateWorkspace = async (formData: IWorkspace) => {
-    if (isSubmitting) return;
-
+  const handleCreateWorkspace = async (fields: FunctionArgs<typeof api.workspaces.index.create>) => {
+    setError("");
+    onPendingChange?.(true);
     try {
-      const res = (await workspaceService.workspaceSlugCheck(formData.slug)) as { status: boolean };
-      if (res.status === true && !RESTRICTED_URLS.includes(formData.slug)) {
-        setSlugError(false);
-        try {
-          const workspaceResponse = await createWorkspace(formData);
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: t("workspace_creation.toast.success.title"),
-            message: t("workspace_creation.toast.success.message"),
-          });
-          await fetchWorkspaces();
-          await completeStep(workspaceResponse.id);
-          onComplete(formData.organization_size === "Just myself");
-        } catch {
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: t("workspace_creation.toast.error.title"),
-            message: t("workspace_creation.toast.error.message"),
-          });
-        }
-      } else {
-        setSlugError(true);
-      }
-    } catch {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("workspace_creation.toast.error.title"),
-        message: t("workspace_creation.toast.error.message"),
-      });
+      const id = await create({ ...fields, onboardingRevision: openingRevision });
+      onComplete(id, fields.organizationSize === "Just myself");
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      onPendingChange?.(false);
     }
   };
-
-  const completeStep = async (workspaceId: string) => {
-    if (!user) return;
-    await updateUserProfile({
-      last_workspace_id: workspaceId,
-    });
-    await fetchCurrentUserSettings();
-  };
-
-  const isButtonDisabled = !isValid || invalidSlug || isSubmitting;
+  if (!policy) return <p role="status">Loading workspace options…</p>;
+  const isWorkspaceCreationDisabled = policy.isWorkspaceCreationDisabled;
+  const isButtonDisabled = !isValid || isSubmitting;
 
   if (isWorkspaceCreationDisabled) {
     return (
@@ -161,7 +108,6 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                   value={value}
                   onChange={(event) => {
                     onChange(event.target.value);
-                    setValue("name", event.target.value);
                     setValue("slug", event.target.value.toLocaleLowerCase().trim().replace(/ /g, "-"), {
                       shouldValidate: true,
                     });
@@ -175,7 +121,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                       "border-danger-strong": errors.name,
                     }
                   )}
-                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  // oxlint-disable-next-line jsx-a11y/no-autofocus -- Preserve the existing workspace-step initial focus.
                   autoFocus
                 />
               </div>
@@ -194,6 +140,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
             control={control}
             name="slug"
             rules={{
+              validate: validateSlug,
               required: t("common.errors.required"),
               maxLength: {
                 value: 48,
@@ -205,25 +152,18 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                 className={cn(
                   "flex w-full items-center rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
                   {
-                    "border-strong": !errors.name,
-                    "border-danger-strong": errors.name,
+                    "border-strong": !errors.slug,
+                    "border-danger-strong": errors.slug,
                   }
                 )}
               >
-                <span className={cn("rounded-md pr-0 whitespace-nowrap text-secondary")}>
-                  {window && window.location.host}/
-                </span>
+                <span className={cn("rounded-md pr-0 whitespace-nowrap text-secondary")}>{window.location.host}/</span>
                 <input
                   id="slug"
                   name="slug"
                   type="text"
                   value={value.toLocaleLowerCase().trim().replace(/ /g, "-")}
-                  onChange={(e) => {
-                    const validation = validateSlug(e.target.value);
-                    if (validation === true) setInvalidSlug(false);
-                    else setInvalidSlug(true);
-                    onChange(e.target.value.toLowerCase());
-                  }}
+                  onChange={(e) => onChange(e.target.value.toLowerCase().trim().replace(/ /g, "-"))}
                   ref={ref}
                   placeholder={t("workspace_creation.form.url.placeholder")}
                   className={cn(
@@ -234,26 +174,23 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
             )}
           />
           <p className="text-13 text-tertiary">{t("workspace_creation.form.url.edit_slug")}</p>
-          {slugError && (
-            <p className="-mt-3 text-13 text-danger-primary">
-              {t("workspace_creation.errors.validation.url_already_taken")}
+          {error && (
+            <p role="alert" className="text-13 text-danger-primary">
+              {error}
             </p>
-          )}
-          {invalidSlug && (
-            <p className="text-13 text-danger-primary">{t("workspace_creation.errors.validation.url_alphanumeric")}</p>
           )}
           {errors.slug && <span className="text-13 text-danger-primary">{errors.slug.message}</span>}
         </div>
         <div className="flex flex-col gap-2">
           <label
             className="text-13 font-medium text-tertiary after:ml-0.5 after:text-danger-primary after:content-['*']"
-            htmlFor="organization_size"
+            htmlFor="organizationSize"
           >
             {t("workspace_creation.form.organization_size.label")}
           </label>
           <div className="w-full">
             <Controller
-              name="organization_size"
+              name="organizationSize"
               control={control}
               rules={{ required: t("common.errors.required") }}
               render={({ field: { value, onChange } }) => (
@@ -263,11 +200,9 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                     return (
                       <button
                         key={size}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onChange(size);
-                        }}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => onChange(size)}
                         className={`flex items-center justify-between gap-1 rounded-lg border px-3 py-2 text-13 transition-all duration-200 ${
                           isSelected
                             ? "border-subtle bg-layer-1 text-secondary"
@@ -283,8 +218,8 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                 </div>
               )}
             />
-            {errors.organization_size && (
-              <span className="text-13 text-danger-primary">{errors.organization_size.message}</span>
+            {errors.organizationSize && (
+              <span className="text-13 text-danger-primary">{errors.organizationSize.message}</span>
             )}
           </div>
         </div>
@@ -294,11 +229,18 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
           {isSubmitting ? <Spinner height="20px" width="20px" /> : t("workspace_creation.button.default")}
         </Button>
         {hasInvitations && (
-          <Button variant="ghost" size="xl" className="w-full" onClick={handleCurrentViewChange}>
+          <Button
+            variant="ghost"
+            type="button"
+            size="xl"
+            className="w-full"
+            disabled={isSubmitting}
+            onClick={handleCurrentViewChange}
+          >
             Join existing workspace
           </Button>
         )}
       </div>
     </form>
   );
-});
+}

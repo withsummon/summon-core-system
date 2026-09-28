@@ -1,13 +1,6 @@
-import { Suspense } from "react";
 import { Link, useParams } from "react-router";
-import { useTheme } from "next-themes";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import { TranslationProvider } from "@plane/i18n";
-import { Toast } from "@plane/propel/toast";
-import { resolveGeneralTheme } from "@plane/utils";
-import { CoreProvider } from "@/components/convex-core/provider";
-import { SignIn } from "@/components/convex-core/sign-in";
 import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 import { NativeStickiesProvider, useStickiesCommands } from "@/components/stickies/native/provider";
 import { NativeStickiesPage, NativeStickiesModal } from "@/components/stickies/native/surfaces";
@@ -18,39 +11,10 @@ type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
 type Profile = FunctionReturnType<typeof api.identity.profile.get>;
 
 export default function NativeStickiesRoute() {
-  const { resolvedTheme } = useTheme();
   return (
-    <CoreProvider>
-      <TranslationProvider>
-        <Toast theme={resolveGeneralTheme(resolvedTheme)} />
-        <Suspense
-          fallback={
-            <p role="status" className="p-6">
-              Loading stickies…
-            </p>
-          }
-        >
-          <Session />
-        </Suspense>
-      </TranslationProvider>
-    </CoreProvider>
-  );
-}
-function Session() {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  if (isLoading)
-    return (
-      <p role="status" className="p-6">
-        Loading your account…
-      </p>
-    );
-  // This route owns its session in place; Django authentication never selects its transport.
-  return isAuthenticated ? (
     <SessionBoundary>
       <WorkspaceNotes />
     </SessionBoundary>
-  ) : (
-    <SignIn />
   );
 }
 function WorkspaceNotes() {

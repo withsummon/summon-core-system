@@ -1,4 +1,7 @@
 import { useQuery } from "convex/react";
+import { useState } from "react";
+import type { TProfileSettingsTabs } from "@plane/types";
+import { ProfileSettingsModal } from "@/components/settings/profile/modal";
 import { api } from "@summon/convex/api";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Avatar } from "@plane/ui";
@@ -14,6 +17,7 @@ export function NativeAccountMenu({
   onSignOut: () => void;
   beforeLeave: () => Promise<void>;
 }) {
+  const [activeTab, setActiveTab] = useState<TProfileSettingsTabs | null>(null);
   const appearance = useQuery(api.identity.avatar.get, {});
   const avatar = (size: 20 | 40) =>
     appearance?.avatar ? (
@@ -28,7 +32,7 @@ export function NativeAccountMenu({
   const navigate = async (tab: "general" | "preferences") => {
     try {
       await beforeLeave();
-      window.location.assign(`/settings/profile/${tab}`);
+      setActiveTab(tab);
     } catch (error) {
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -38,16 +42,26 @@ export function NativeAccountMenu({
     }
   };
   return (
-    <UserMenuView
-      displayName={profile.displayName}
-      firstName={profile.firstName}
-      lastName={profile.lastName}
-      email={profile.email}
-      smallAvatar={avatar(20)}
-      largeAvatar={avatar(40)}
-      onSettings={() => void navigate("general")}
-      onPreferences={() => void navigate("preferences")}
-      onSignOut={onSignOut}
-    />
+    <>
+      {activeTab && (
+        <ProfileSettingsModal
+          isOpen
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onClose={() => setActiveTab(null)}
+        />
+      )}
+      <UserMenuView
+        displayName={profile.displayName}
+        firstName={profile.firstName}
+        lastName={profile.lastName}
+        email={profile.email}
+        smallAvatar={avatar(20)}
+        largeAvatar={avatar(40)}
+        onSettings={() => void navigate("general")}
+        onPreferences={() => void navigate("preferences")}
+        onSignOut={onSignOut}
+      />
+    </>
   );
 }

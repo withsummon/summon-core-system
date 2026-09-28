@@ -2,7 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireUser, requireWorkspace } from "./access";
-export async function requireAvatarScope(
+export async function requirePersonalImageScope(
   ctx: QueryCtx,
   scope: Pick<
     Doc<"assets">,
@@ -29,15 +29,15 @@ export async function requireAvatarScope(
     scope.conversationId ||
     scope.documentCopyId
   )
-    throw new ConvexError("Avatar scope is invalid.");
+    throw new ConvexError("Profile image scope is invalid.");
   const user = await requireUser(ctx);
   if (user._id === ownerId) return { user };
-  if (write || !readWorkspaceId) throw new ConvexError("Avatar access denied.");
+  if (write || !readWorkspaceId) throw new ConvexError("Profile image access denied.");
   await requireWorkspace(ctx, readWorkspaceId);
   const owner = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", readWorkspaceId).eq("userId", ownerId))
     .unique();
-  if (!owner?.active) throw new ConvexError("Avatar access denied.");
+  if (!owner?.active) throw new ConvexError("Profile image access denied.");
   return { user };
 }

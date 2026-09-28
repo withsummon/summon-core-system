@@ -5,45 +5,10 @@
  */
 
 import { nativeStickiesRoute } from "./ownership";
-import { index, layout, route } from "@react-router/dev/routes";
+import { layout, route } from "@react-router/dev/routes";
 import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 
 export const coreRoutes: RouteConfigEntry[] = [
-  // ========================================================================
-  // USER MANAGEMENT ROUTES
-  // ========================================================================
-
-  // Home - Sign In
-  layout("./(home)/layout.tsx", [index("./(home)/page.tsx")]),
-
-  // Sign Up
-  layout("./(all)/sign-up/layout.tsx", [route("sign-up", "./(all)/sign-up/page.tsx")]),
-
-  // Account Routes - Password Management
-  layout("./(all)/accounts/forgot-password/layout.tsx", [
-    route("accounts/forgot-password", "./(all)/accounts/forgot-password/page.tsx"),
-  ]),
-  layout("./(all)/accounts/reset-password/layout.tsx", [
-    route("accounts/reset-password", "./(all)/accounts/reset-password/page.tsx"),
-  ]),
-  layout("./(all)/accounts/set-password/layout.tsx", [
-    route("accounts/set-password", "./(all)/accounts/set-password/page.tsx"),
-  ]),
-
-  // Create Workspace
-  layout("./(all)/create-workspace/layout.tsx", [route("create-workspace", "./(all)/create-workspace/page.tsx")]),
-
-  // Onboarding
-  layout("./(all)/onboarding/layout.tsx", [route("onboarding", "./(all)/onboarding/page.tsx")]),
-
-  // Invitations
-  layout("./(all)/invitations/layout.tsx", [route("invitations", "./(all)/invitations/page.tsx")]),
-
-  // Workspace Invitations
-  layout("./(all)/workspace-invitations/layout.tsx", [
-    route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
-  ]),
-
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================
@@ -364,14 +329,6 @@ export const coreRoutes: RouteConfigEntry[] = [
     // ======================================================================
     // STANDALONE ROUTES (outside workspace context)
     // ======================================================================
-
-    // --------------------------------------------------------------------
-    // PROFILE SETTINGS
-    // --------------------------------------------------------------------
-
-    layout("./(all)/settings/profile/layout.tsx", [
-      route("settings/profile/:profileTabId", "./(all)/settings/profile/[profileTabId]/page.tsx"),
-    ]),
   ]),
 
   // ========================================================================

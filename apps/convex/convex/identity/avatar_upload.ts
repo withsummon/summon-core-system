@@ -12,11 +12,11 @@ export const receipt = internalQuery({
     const asset = await ctx.db.get(assetId);
     if (
       !asset ||
-      asset.purpose !== "userAvatar" ||
+      (asset.purpose !== "userAvatar" && asset.purpose !== "userCover") ||
       asset.avatarUserId !== user._id ||
       asset.avatarRevision === undefined
     )
-      throw new ConvexError("Avatar upload not found.");
+      throw new ConvexError("Profile image upload not found.");
     return {
       assetId: asset._id,
       startingRevision: asset.avatarRevision,

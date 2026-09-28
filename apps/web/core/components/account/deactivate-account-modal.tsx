@@ -4,15 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import { authClient } from "@/components/convex-core/provider";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { Button } from "@plane/propel/button";
 import { TrashIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
-import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 
 type Props = {
@@ -25,39 +28,48 @@ export function DeactivateAccountModal(props: Props) {
   const { isOpen, onClose } = props;
   // hooks
   const { t } = useTranslation();
-  const { deactivateAccount, signOut } = useUser();
+  const capabilities = useQuery(api.identity.password.index.capabilities, isOpen ? {} : "skip");
+  const deactivateAccount = useMutation(api.identity.deactivation.index.deactivate);
+  const passwordId = useId();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   // states
   const [isDeactivating, setIsDeactivating] = useState(false);
 
   const handleClose = () => {
-    setIsDeactivating(false);
+    if (isDeactivating) return;
+    setPassword("");
+    setError("");
     onClose();
   };
 
   const handleDeleteAccount = async () => {
+    if (!capabilities || isDeactivating) return;
     setIsDeactivating(true);
-
-    await deactivateAccount()
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Account deactivated successfully.",
-        });
-        signOut();
-        router.push("/");
-        handleClose();
+    setError("");
+    try {
+      const denial = await deactivateAccount({ password: capabilities.requiresPassword ? password : undefined });
+      if (denial) {
+        setError(denial.message);
+        setPassword("");
         return;
-      })
-      .catch((err: any) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.error,
-        });
-      })
-      .finally(() => setIsDeactivating(false));
+      }
+      await authClient.signOut();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Account deactivated",
+        message: "Account deactivated successfully.",
+      });
+      router.push("/");
+      setPassword("");
+      onClose();
+    } catch (failure) {
+      setError(mutationMessage(failure));
+      setPassword("");
+    } finally {
+      setIsDeactivating(false);
+    }
   };
 
   return (
@@ -74,17 +86,54 @@ export function DeactivateAccountModal(props: Props) {
             <div>
               <h3 className="my-4 text-20 leading-6 font-medium text-primary">{t("deactivate_your_account")}</h3>
               <p className="mt-6 list-disc pr-4 text-14 font-regular text-secondary">
-                {t("deactivate_your_account_description")}
+                Your sign-in credentials will be removed and your workspace memberships disabled. Existing tasks,
+                documents and other workspace data will remain. This account cannot be reactivated.
               </p>
             </div>
           </div>
         </div>
       </div>
+      <div className="space-y-3 px-4 sm:px-6">
+        {capabilities ? (
+          capabilities.requiresPassword ? (
+            <div className="space-y-1">
+              <label htmlFor={passwordId} className="text-13 font-medium text-secondary">
+                Current password
+              </label>
+              <Input
+                id={passwordId}
+                type="password"
+                autoComplete="current-password"
+                required
+                maxLength={1024}
+                value={password}
+                disabled={isDeactivating}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+          ) : (
+            <p className="text-13 text-secondary">A recent sign-in is required to deactivate your account.</p>
+          )
+        ) : (
+          <p role="status">Checking account security…</p>
+        )}
+        {error && (
+          <p role="alert" className="text-13 text-danger-primary">
+            {error}
+          </p>
+        )}
+      </div>
       <div className="mb-2 flex items-center justify-end gap-2 p-4 sm:px-6">
-        <Button variant="secondary" size="lg" onClick={handleClose}>
+        <Button variant="secondary" size="lg" disabled={isDeactivating} onClick={handleClose}>
           {t("cancel")}
         </Button>
-        <Button variant="error-fill" size="lg" onClick={handleDeleteAccount}>
+        <Button
+          variant="error-fill"
+          size="lg"
+          loading={isDeactivating}
+          disabled={isDeactivating || !capabilities || (capabilities.requiresPassword && !password)}
+          onClick={handleDeleteAccount}
+        >
           {isDeactivating ? t("deactivating") : t("confirm")}
         </Button>
       </div>

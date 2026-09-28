@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { getAuthToken } from "@/components/convex-core/provider";
 import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
 import type { CollaborationState, EditorRefApi, EditorTitleRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
@@ -30,34 +30,27 @@ export function DocumentEditor({
 }: {
   context: FunctionReturnType<typeof api.documents.index.collaborationContext>;
 }) {
-  const token = useAuthToken();
   const url = import.meta.env.VITE_CONVEX_LIVE_URL;
-  if (!token) return <p role="status">Restoring editor session…</p>;
   if (!url)
     return <p role="alert">Collaborative editing is unavailable. Please contact your workspace administrator.</p>;
   return (
     <DocumentMentionsProvider key={context.documentId} documentId={context.documentId}>
-      <AuthenticatedEditor context={context} token={token} url={url} />
+      <AuthenticatedEditor context={context} url={url} />
     </DocumentMentionsProvider>
   );
 }
 function AuthenticatedEditor({
   context,
-  token,
   url,
 }: {
   context: FunctionReturnType<typeof api.documents.index.collaborationContext>;
-  token: string;
   url: string;
 }) {
   const mentionHandler = useDocumentMentions(context.documentId);
   const editorRef = useRef<EditorRefApi>(null);
   const titleRef = useRef<EditorTitleRefApi>(null);
   const [exporting, setExporting] = useState(false);
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-  const getToken = useCallback(() => tokenRef.current, []);
-  const fileHandler = useDocumentAssets(context.documentId, getToken);
+  const fileHandler = useDocumentAssets(context.documentId);
   const [state, setState] = useState<CollaborationState>({
     stage: { kind: "initial" },
     isServerSynced: false,
@@ -68,7 +61,7 @@ function AuthenticatedEditor({
   const realtimeConfig: TRealtimeConfig = useMemo(
     () => ({
       url,
-      authToken: getToken,
+      authToken: getAuthToken,
       roomName: `convex:${context.documentId}`,
       persistOffline: false,
       cacheKey: `convex:${context.userId}:${context.documentId}`,
@@ -85,7 +78,7 @@ function AuthenticatedEditor({
         if (event.type === "save-failed") setSaveError("The document could not be saved.");
       },
     }),
-    [url, getToken, context.documentId, context.userId]
+    [url, context.documentId, context.userId]
   );
   const user = useMemo(
     () => ({ id: context.userId, name: context.name ?? "Collaborator", color: "#635bff" }),
@@ -109,7 +102,6 @@ function AuthenticatedEditor({
         <Suspense fallback={<p role="status">Opening export…</p>}>
           <DocumentExport
             documentId={context.documentId}
-            getToken={getToken}
             snapshot={() => {
               const content = editorRef.current?.getDocument();
               const title = titleRef.current?.getDocument();

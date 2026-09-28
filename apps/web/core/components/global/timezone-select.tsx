@@ -20,6 +20,7 @@ type TTimezoneSelect = {
   className?: string;
   optionsClassName?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 };
 
 export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneSelect) {
@@ -33,6 +34,7 @@ export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneS
     className = "",
     optionsClassName = "",
     disabled = false,
+    ariaLabel,
   } = props;
   // hooks
   const { disabled: isDisabled, timezones, selectedValue } = useTimezone();
@@ -40,6 +42,7 @@ export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneS
   return (
     <div>
       <CustomSearchSelect
+        ariaLabel={ariaLabel}
         value={value}
         label={value && selectedValue ? selectedValue(value) : label}
         options={isDisabled || disabled ? [] : timezones}

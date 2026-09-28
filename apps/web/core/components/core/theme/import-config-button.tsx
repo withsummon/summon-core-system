@@ -5,20 +5,19 @@
  */
 
 import { useRef } from "react";
-import { observer } from "mobx-react";
 import type { UseFormSetValue } from "react-hook-form";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { IUserTheme } from "@plane/types";
+import type { CustomTheme } from "./custom-theme-selector";
 
 type Props = {
-  handleUpdateTheme: (formData: IUserTheme) => Promise<void>;
-  setValue: UseFormSetValue<IUserTheme>;
+  handleUpdateTheme: (formData: CustomTheme) => Promise<void>;
+  setValue: UseFormSetValue<CustomTheme>;
 };
 
-export const CustomThemeImportConfigButton = observer(function CustomThemeImportConfigButton(props: Props) {
+export function CustomThemeImportConfigButton(props: Props) {
   const { handleUpdateTheme, setValue } = props;
   // refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,44 +30,36 @@ export const CustomThemeImportConfigButton = observer(function CustomThemeImport
 
     try {
       const text = await file.text();
-      const config = JSON.parse(text) as IUserTheme;
+      const config: unknown = JSON.parse(text);
 
-      // Validate required fields
-      if (!config.primary || !config.background) {
-        throw new Error("Missing required fields: primary and background");
-      }
-
-      // Validate hex color format
-      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-      if (!hexPattern.test(config.primary)) {
-        throw new Error("Invalid brand color hex format");
-      }
-      if (!hexPattern.test(config.background)) {
-        throw new Error("Invalid neutral color hex format");
-      }
-
-      // Validate theme mode
-      const themeMode = config.darkPalette ?? false;
-      if (typeof themeMode !== "boolean") {
-        throw new Error("Invalid theme mode. Must be a boolean");
-      }
+      if (
+        typeof config !== "object" ||
+        config === null ||
+        !("primary" in config) ||
+        typeof config.primary !== "string" ||
+        !("background" in config) ||
+        typeof config.background !== "string"
+      )
+        throw new Error("Theme configuration needs brand and neutral colors.");
+      const darkPalette = "darkPalette" in config ? config.darkPalette : false;
+      if (typeof darkPalette !== "boolean") throw new Error("Theme color mode must be a boolean.");
 
       // Apply the configuration to form
-      const formData: IUserTheme = {
+      const formData: CustomTheme = {
         theme: "custom",
         primary: config.primary,
         background: config.background,
-        darkPalette: themeMode,
+        darkPalette,
       };
+
+      // The mutation owner validates colors before the imported values are applied.
+      await handleUpdateTheme(formData);
 
       // Update form values
       setValue("primary", formData.primary);
       setValue("background", formData.background);
       setValue("darkPalette", formData.darkPalette);
       setValue("theme", "custom");
-
-      // Apply the theme
-      await handleUpdateTheme(formData);
 
       setToast({
         type: TOAST_TYPE.SUCCESS,
@@ -98,4 +89,4 @@ export const CustomThemeImportConfigButton = observer(function CustomThemeImport
       </Button>
     </>
   );
-});
+}

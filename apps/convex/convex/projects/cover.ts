@@ -4,7 +4,8 @@ import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { descriptor } from "../assets/access";
 import { prepareAsset } from "../assets/index";
-import { assetSizeLimit, supportedAssetTypes } from "../assets/content";
+import { fileMetadataFields } from "../assets/schema";
+import { assetSizeLimit, externalCoverUrl, supportedAssetTypes } from "../assets/content";
 import { pageBudget } from "../commercial/validation";
 import { projectCover, requireCoverWrite, replaceProjectCover } from "./cover_owner";
 export const get = query({
@@ -23,10 +24,7 @@ export const prepare = mutation({
   args: {
     projectId: v.id("projects"),
     expectedRevision: v.number(),
-    name: v.string(),
-    contentType: v.string(),
-    size: v.number(),
-    sha256: v.string(),
+    ...fileMetadataFields,
   },
   handler: async (ctx, { expectedRevision, ...args }) => {
     const { project } = await requireCoverWrite(ctx, args.projectId, expectedRevision);
@@ -85,31 +83,17 @@ export const restore = mutation({
   },
 });
 
-function externalUrl(value: string | null) {
-  if (value === null) return undefined;
-  if (!value || value.length > 2048 || value !== value.trim())
-    throw new ConvexError("Enter an external cover URL of at most 2048 characters.");
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new ConvexError("Enter a valid external cover URL.");
-  }
-  if (!["https:", "http:"].includes(url.protocol) || !url.hostname || url.username || url.password)
-    throw new ConvexError("Use an http or https cover URL without credentials.");
-  return value;
-}
 export const setExternal = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number(), url: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
     const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
-    const externalCoverUrl = externalUrl(args.url);
-    if (appearance) await ctx.db.patch(appearance._id, { externalCoverUrl, revision: appearance.revision + 1 });
+    const url = externalCoverUrl(args.url);
+    if (appearance) await ctx.db.patch(appearance._id, { externalCoverUrl: url, revision: appearance.revision + 1 });
     else
       await ctx.db.insert("projectAppearance", {
         projectId: args.projectId,
         coverAssetId: null,
-        externalCoverUrl,
+        externalCoverUrl: url,
         revision: 1,
       });
   },

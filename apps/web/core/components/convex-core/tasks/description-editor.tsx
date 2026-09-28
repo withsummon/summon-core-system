@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentProps } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
 import { useConvex, useQuery } from "convex/react";
 import type { TFileHandler } from "@plane/editor";
 import { api } from "@summon/convex/api";
@@ -17,13 +16,6 @@ export function TaskDescriptionEditor(props: Props) {
   return <BoundEditor key={props.taskId} {...props} />;
 }
 function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
-  const token = useAuthToken();
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-  const getToken = useCallback(() => {
-    if (!tokenRef.current) throw new Error("Sign in again to load this image.");
-    return tokenRef.current;
-  }, []);
   const client = useConvex();
   const policy = useQuery(api.assets.index.policy, {});
   const resolve = useCallback(
@@ -34,7 +26,7 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
     },
     [client, taskId]
   );
-  const { source, transfers } = useEditorAssetReader(resolve, getToken);
+  const { source, transfers } = useEditorAssetReader(resolve);
   const [assetsUploadStatus, setStatus] = useState<Record<string, number>>({});
   const uploading = Object.keys(assetsUploadStatus).length > 0;
   useEffect(() => {
@@ -93,6 +85,6 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
       validation: { maxFileSize: policy.imageMaxBytes },
     } satisfies TFileHandler;
   }, [policy, assetsUploadStatus, transfers, resolve, source, client, taskId]);
-  if (!token || !fileHandler) return <p role="status">Loading description editor…</p>;
+  if (!fileHandler) return <p role="status">Loading description editor…</p>;
   return <TaskRichEditor {...editor} imageFileHandler={fileHandler} />;
 }

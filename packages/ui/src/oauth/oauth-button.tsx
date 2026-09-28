@@ -22,6 +22,7 @@ const OAuthButton = React.forwardRef(function OAuthButton(
   return (
     <button
       ref={ref}
+      aria-label={text}
       className={cn(
         "bg-onboarding-background-200 hover:bg-onboarding-background-300 flex h-9 w-full items-center justify-center gap-2 rounded-md border border-strong px-4 py-2.5 text-13 font-medium text-primary duration-300",
         className

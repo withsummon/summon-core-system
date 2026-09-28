@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { getAuthToken } from "@/components/convex-core/provider";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
@@ -158,7 +158,6 @@ function Message({ message }: { message: Doc<"assistantMessages"> }) {
 function Composer({ conversation }: { conversation: Doc<"assistantConversations"> }) {
   const attachments = useQuery(api.assistant.attachments.pending, { conversationId: conversation._id });
   const filesReady = attachments !== undefined && attachments.every((file) => file.status === "ready");
-  const token = useAuthToken();
   const cancel = useMutation(api.assistant.index.cancelReply);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -172,7 +171,7 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
       className="rounded-xl border border-subtle-1 bg-surface-1 p-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (!token || !siteUrl || sending || conversation.activeMessageId || !filesReady || uploading) return;
+        if (!siteUrl || sending || conversation.activeMessageId || !filesReady || uploading) return;
         const controller = new AbortController();
         request.current = controller;
         setSending(true);
@@ -180,7 +179,7 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
         try {
           await requestAssistantReply({
             siteUrl,
-            token,
+            token: await getAuthToken(),
             conversationId: conversation._id,
             content,
             attachmentIds: attachments?.map((file) => file._id) ?? [],
@@ -233,9 +232,7 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
         <Button
           type="submit"
           loading={sending}
-          disabled={
-            !siteUrl || !token || Boolean(conversation.activeMessageId) || !content.trim() || !filesReady || uploading
-          }
+          disabled={!siteUrl || Boolean(conversation.activeMessageId) || !content.trim() || !filesReady || uploading}
         >
           Send
         </Button>

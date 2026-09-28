@@ -5,13 +5,10 @@
  */
 
 import React from "react";
-import { observer } from "mobx-react";
-import Link from "next/link";
-import { AUTH_TRACKER_ELEMENTS, SITE_TITLE } from "@plane/constants";
+import { Link, useSearchParams } from "react-router";
+import { AUTH_TRACKER_ELEMENTS, EAuthModes, SITE_TITLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { PageHead } from "@/components/core/page-title";
-import { EAuthModes } from "@/helpers/authentication.helper";
-import { useInstance } from "@/hooks/store/use-instance";
 
 const authContentMap = {
   [EAuthModes.SIGN_IN]: {
@@ -24,31 +21,30 @@ const authContentMap = {
     pageTitle: "Sign up",
     text: "auth.common.already_have_an_account",
     linkText: "Sign in",
-    linkHref: "/sign-in",
+    linkHref: "/",
   },
 };
 
 type AuthHeaderProps = {
   type: EAuthModes;
+  enableSignUp?: boolean;
+  pageTitle?: string;
 };
 
-export const AuthHeader = observer(function AuthHeader({ type }: AuthHeaderProps) {
+export function AuthHeader({ type, enableSignUp, pageTitle }: AuthHeaderProps) {
   const { t } = useTranslation();
-  // store
-  const { config } = useInstance();
-  // derived values
-  const enableSignUpConfig = config?.enable_signup ?? false;
+  const [params] = useSearchParams();
 
   return (
     <AuthHeaderBase
-      pageTitle={t(authContentMap[type].pageTitle)}
+      pageTitle={t(pageTitle ?? authContentMap[type].pageTitle)}
       additionalAction={
-        enableSignUpConfig && (
+        enableSignUp && (
           <div className="flex flex-col items-end text-center text-13 font-medium text-tertiary sm:flex-row sm:items-center sm:gap-2">
             <span className="text-body-sm-regular text-tertiary">{t(authContentMap[type].text)}</span>
             <Link
               data-ph-element={AUTH_TRACKER_ELEMENTS.NAVIGATE_TO_SIGN_UP}
-              href={authContentMap[type].linkHref}
+              to={`${authContentMap[type].linkHref}?${params}`}
               className="text-body-sm-semibold text-accent-primary hover:underline"
             >
               {t(authContentMap[type].linkText)}
@@ -58,7 +54,7 @@ export const AuthHeader = observer(function AuthHeader({ type }: AuthHeaderProps
       }
     />
   );
-});
+}
 
 type TAuthHeaderBase = {
   pageTitle: string;
@@ -71,7 +67,7 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
     <>
       <PageHead title={`${pageTitle} - ${SITE_TITLE}`} />
       <div className="flex w-full flex-shrink-0 items-center justify-between gap-6">
-        <Link href="/" className="font-semibold text-primary lg:invisible">
+        <Link to="/" className="font-semibold text-primary lg:invisible">
           <span className="text-16 font-semibold text-primary">{SITE_TITLE}</span>
         </Link>
         {additionalAction}

@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { authClient } from "@/components/convex-core/provider";
 import { useMutation } from "convex/react";
 import { api } from "@summon/convex/api";
 import {
@@ -52,7 +52,6 @@ export function PreservedStickiesShell({
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const { signOut } = useAuthActions();
   const savePreferences = useMutation(api.identity.preferences.save);
   const { storedValue, setValue } = useLocalStorage("sidebarWidth", SIDEBAR_WIDTH);
   const [width, setWidth] = useState(storedValue ?? SIDEBAR_WIDTH);
@@ -84,7 +83,7 @@ export function PreservedStickiesShell({
   const leave = async () => {
     try {
       await beforeLeave();
-      await signOut();
+      await authClient.signOut({ fetchOptions: { throw: true } });
     } catch (error) {
       setToast({
         type: TOAST_TYPE.ERROR,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getAuthToken } from "@/components/convex-core/provider";
 import { ConvexHttpClient } from "convex/browser";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
@@ -12,14 +13,12 @@ import { exportContent } from "./export-content";
 const sizes = ["A4", "A3", "A2", "LETTER", "LEGAL", "TABLOID"] as const;
 export function DocumentExport({
   documentId,
-  getToken,
   snapshot,
 }: {
   documentId: Id<"documents">;
-  getToken: () => string;
   snapshot: () => { html: string; title: string };
 }) {
-  const { read, transfers } = useDocumentAssetReader(documentId, getToken);
+  const { read, transfers } = useDocumentAssetReader(documentId);
   const [format, setFormat] = useState<"pdf" | "markdown">("pdf"),
     [pageSize, setPageSize] = useState<(typeof sizes)[number]>("A4");
   const [noImages, setNoImages] = useState(false),
@@ -39,7 +38,7 @@ export function DocumentExport({
     try {
       await transfers.run(async (signal) => {
         const client = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL);
-        client.setAuth(getToken());
+        client.setAuth(await getAuthToken());
         await client.query(api.documents.index.get, { documentId });
         signal.throwIfAborted();
         const captured = snapshot();
@@ -77,7 +76,7 @@ export function DocumentExport({
                 ]);
                 return pdf(<PDFDocument content={content} pageFormat={pageSize} />).toBlob();
               })();
-        client.setAuth(getToken());
+        client.setAuth(await getAuthToken());
         await client.query(api.documents.index.get, { documentId });
         signal.throwIfAborted();
         const base =

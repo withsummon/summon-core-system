@@ -4,129 +4,161 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-import { useSearchParams } from "next/navigation";
-import useSWR from "swr";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Boxes, Share2, Star, User2 } from "lucide-react";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
-// components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EmptySpace, EmptySpaceItem } from "@/components/ui/empty-space";
-// constants
-import { WORKSPACE_INVITATION } from "@plane/constants";
-// helpers
-import { EPageTypes } from "@/helpers/authentication.helper";
-// hooks
-import { useUser } from "@/hooks/store/user";
+import { authClient } from "@/components/convex-core/provider";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { useAppRouter } from "@/hooks/use-app-router";
-// wrappers
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
-import { WorkspaceService } from "@/services/workspace.service";
-// services
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 
-// service initialization
-const workspaceService = new WorkspaceService();
-
-function WorkspaceInvitationPage() {
-  // router
-  const router = useAppRouter();
-  // query params
-  const searchParams = useSearchParams();
-  const invitation_id = searchParams.get("invitation_id");
-  const slug = searchParams.get("slug");
-  const token = searchParams.get("token");
-  // store hooks
-  const { data: currentUser } = useUser();
-
-  const { data: invitationDetail, error } = useSWR(
-    invitation_id && slug && WORKSPACE_INVITATION(invitation_id.toString()),
-    invitation_id && slug
-      ? () => workspaceService.getWorkspaceInvitation(slug.toString(), invitation_id.toString())
-      : null
-  );
-
-  const handleAccept = () => {
-    if (!invitationDetail) return;
-    workspaceService
-      .joinWorkspace(invitationDetail.workspace.slug, invitationDetail.id, {
-        accepted: true,
-        token: token,
-      })
-      .then(() => {
-        if (invitationDetail.email === currentUser?.email) {
-          router.push(`/${invitationDetail.workspace.slug}`);
-        } else {
-          router.push("/");
-        }
-      })
-      .catch((err: unknown) => console.error(err));
-  };
-
-  const handleReject = () => {
-    if (!invitationDetail || !token) return;
-    void workspaceService
-      .joinWorkspace(invitationDetail.workspace.slug, invitationDetail.id, {
-        accepted: false,
-        token: token,
-      })
-      .then(() => {
-        router.push("/");
-      })
-      .catch((err: unknown) => console.error(err));
-  };
-
-  return (
-    <AuthenticationWrapper pageType={EPageTypes.PUBLIC}>
-      <div className="flex h-full w-full flex-col items-center justify-center px-3">
-        {invitationDetail && !invitationDetail.responded_at ? (
-          error ? (
-            <div className="shadow-2xl flex w-full flex-col space-y-4 rounded-sm border border-subtle bg-surface-1 px-4 py-8 text-center md:w-1/3">
-              <h2 className="text-18 uppercase">INVITATION NOT FOUND</h2>
-            </div>
-          ) : (
-            <EmptySpace
-              title={`You have been invited to ${invitationDetail.workspace.name}`}
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-            >
-              <EmptySpaceItem Icon={CheckIcon} title="Accept" action={handleAccept} />
-              <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={handleReject} />
-            </EmptySpace>
-          )
-        ) : error || invitationDetail?.responded_at ? (
-          invitationDetail?.accepted ? (
-            <EmptySpace
-              title={`You are already a member of ${invitationDetail.workspace.name}`}
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-            >
-              <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
-            </EmptySpace>
-          ) : (
-            <EmptySpace
-              title="This invitation link is not active anymore."
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-              link={{ text: "Or start from an empty project", href: "/" }}
-            >
-              {!currentUser ? (
-                <EmptySpaceItem Icon={User2} title="Sign in to continue" href="/" />
-              ) : (
-                <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
-              )}
-              <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
-              <EmptySpaceItem
-                Icon={Share2}
-                title="Join our community of active creators"
-                href="https://forum.plane.so"
-              />
-            </EmptySpace>
-          )
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <LogoSpinner />
-          </div>
-        )}
-      </div>
-    </AuthenticationWrapper>
+export default function WorkspaceInvitationPage() {
+  const { isAuthenticated } = useConvexAuth();
+  return isAuthenticated ? (
+    <SessionBoundary>
+      <WorkspaceInvitationContent />
+    </SessionBoundary>
+  ) : (
+    <WorkspaceInvitationContent />
   );
 }
-
-export default observer(WorkspaceInvitationPage);
+function WorkspaceInvitationContent() {
+  const router = useAppRouter();
+  const [params] = useSearchParams();
+  const invitationId = params.get("invitation_id");
+  const token = params.get("token");
+  const preview = useAction(api.invitations.email.preview);
+  const respond = useAction(api.invitations.tokens.respond);
+  const [invitation, setInvitation] = useState<FunctionReturnType<typeof api.invitations.email.preview> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { data: session } = authClient.useSession();
+  const workspaces = useQuery(api.workspaces.index.list, isAuthenticated ? {} : "skip");
+  const membership = workspaces?.find((row) => row._id === invitation?.workspace.id);
+  useEffect(() => {
+    let active = true;
+    setInvitation(null);
+    setError("");
+    setLoading(true);
+    if (!invitationId || !token) {
+      setError("This invitation link is not active anymore.");
+      setLoading(false);
+      return;
+    }
+    const load = async () => {
+      try {
+        const result = await preview({ invitationId, token });
+        if (active) setInvitation(result);
+      } catch (failure) {
+        if (active) setError(mutationMessage(failure));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [invitationId, token, preview]);
+  const signInHref = `/?next_path=${encodeURIComponent(`/workspace-invitations?${params}`)}`;
+  const homeAction = isAuthenticated
+    ? { Icon: Boxes, title: "Continue to home", href: "/" }
+    : { Icon: User2, title: "Sign in to continue", href: signInHref };
+  const answer = async (accepted: boolean) => {
+    if (!invitation || !token || pending) return;
+    setPending(true);
+    setError("");
+    try {
+      const destination = await respond({ invitationId: invitation.id, token, accepted });
+      router.push(accepted ? `/${destination.slug}/stickies` : "/");
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center px-3">
+      {loading || isLoading || (isAuthenticated && !workspaces) ? (
+        <div className="flex size-full items-center justify-center">
+          <LogoSpinner />
+        </div>
+      ) : invitation && membership && (invitation.project === null || invitation.status === "accepted") ? (
+        <EmptySpace
+          title={`You are already a member of ${invitation.workspace.name}`}
+          description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
+        >
+          <EmptySpaceItem Icon={Boxes} title="Continue to home" href={`/${membership.slug}/stickies`} />
+        </EmptySpace>
+      ) : invitation?.status === "accepted" ? (
+        <EmptySpace
+          title={`This invitation to ${invitation.workspace.name} has already been accepted.`}
+          description="Workspace access is no longer available to this account. Contact a workspace administrator to restore access."
+        >
+          <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
+        </EmptySpace>
+      ) : invitation ? (
+        <EmptySpace
+          title={`You have been invited to ${invitation.workspace.name}`}
+          description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
+        >
+          {!isAuthenticated ? (
+            <EmptySpaceItem {...homeAction} />
+          ) : session?.user.email !== invitation.email ? (
+            <EmptySpaceItem
+              Icon={User2}
+              title={`Sign in as ${invitation.email} to continue`}
+              disabled={pending}
+              action={async () => {
+                setPending(true);
+                setError("");
+                try {
+                  const result = await authClient.signOut();
+                  if (result.error) setError(result.error.message ?? "Could not sign out.");
+                  else router.push(signInHref);
+                } catch (failure) {
+                  setError(mutationMessage(failure));
+                } finally {
+                  setPending(false);
+                }
+              }}
+            />
+          ) : (
+            <>
+              <EmptySpaceItem Icon={CheckIcon} title="Accept" action={() => void answer(true)} disabled={pending} />
+              <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={() => void answer(false)} disabled={pending} />
+            </>
+          )}
+          {error && (
+            <li role="alert" className="py-3 text-13 text-danger-primary">
+              {error}
+            </li>
+          )}
+        </EmptySpace>
+      ) : (
+        <EmptySpace
+          title="This invitation link is not active anymore."
+          description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
+          link={{ text: "Or start from an empty project", href: "/" }}
+        >
+          <EmptySpaceItem {...homeAction} />
+          <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
+          <EmptySpaceItem Icon={Share2} title="Join our community of active creators" href="https://forum.plane.so" />
+          {error && (
+            <li role="alert" className="py-3 text-13 text-danger-primary">
+              {error}
+            </li>
+          )}
+        </EmptySpace>
+      )}
+    </div>
+  );
+}

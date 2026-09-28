@@ -1,8 +1,17 @@
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
+export const themeName = v.union(
+  v.literal("light"),
+  v.literal("dark"),
+  v.literal("system"),
+  v.literal("custom"),
+  v.literal("light-contrast"),
+  v.literal("dark-contrast")
+);
+export const defaultTheme: Infer<typeof themeName> = "system";
 export const preferences = v.object({
   theme: v.object({
-    theme: v.optional(v.string()),
+    theme: v.optional(themeName),
     primary: v.optional(v.string()),
     background: v.optional(v.string()),
     darkPalette: v.optional(v.boolean()),
@@ -26,7 +35,7 @@ export const preferences = v.object({
   lastWorkspaceId: v.union(v.id("workspaces"), v.null()),
 });
 export const defaultPreferences: Infer<typeof preferences> = {
-  theme: {},
+  theme: { theme: defaultTheme },
   language: "en",
   startOfWeek: 0,
   appRailDocked: true,

@@ -4,28 +4,23 @@
  * See the LICENSE file for details.
  */
 
-// plane imports
-import { EAuthModes } from "@plane/constants";
-// components
-import { ResetPasswordForm } from "@/components/account/auth-forms/reset-password";
-import { AuthHeader } from "@/components/auth-screens/header";
-// helpers
-import { EPageTypes } from "@/helpers/authentication.helper";
-// layouts
-import DefaultLayout from "@/layouts/default-layout";
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
+import { Link } from "react-router";
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
+import { AccountPassword } from "@/components/convex-core/identity/password/password";
+import { AuthScreen } from "@/components/auth-screens/auth-screen";
+import { AuthHeaderBase } from "@/components/auth-screens/header";
 
-function SetPasswordPage() {
+export default function SetPasswordPage() {
   return (
-    <DefaultLayout>
-      <AuthenticationWrapper pageType={EPageTypes.SET_PASSWORD}>
-        <div className="relative z-10 flex h-screen w-screen flex-col items-center overflow-hidden overflow-y-auto px-8 pt-6 pb-10">
-          <AuthHeader type={EAuthModes.SIGN_IN} />
-          <ResetPasswordForm />
+    <SessionBoundary>
+      <AuthScreen header={<AuthHeaderBase pageTitle="Set password" />}>
+        <div className="mx-auto w-full max-w-md space-y-6 py-12">
+          <AccountPassword />
+          <Link to="/" className="text-13 text-accent-primary">
+            Continue to your workspace
+          </Link>
         </div>
-      </AuthenticationWrapper>
-    </DefaultLayout>
+      </AuthScreen>
+    </SessionBoundary>
   );
 }
-
-export default SetPasswordPage;

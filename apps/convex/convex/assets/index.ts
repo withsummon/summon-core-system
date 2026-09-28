@@ -1,5 +1,5 @@
 import type { Id } from "../_generated/dataModel";
-import { publishAvatar } from "../identity/avatar_owner";
+import { publishPersonalImage } from "../identity/avatar_owner";
 import { publishProjectCover } from "../projects/cover_owner";
 import { publishWorkspaceLogo } from "../settings/logo_owner";
 import { draftAttachmentChanged } from "./draft_access";
@@ -10,16 +10,14 @@ import type { MutationCtx } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { requireUser } from "../identity/access";
-import { assetScope } from "./schema";
+import { assetScope, fileMetadataFields } from "./schema";
+import type { personalImagePurpose } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
 import { validateIntent, supportedAssetTypes, assetSizeLimit, assetTypesByExtension } from "./content";
 
 export const uploadFields = {
   ...assetScope,
-  name: v.string(),
-  contentType: v.string(),
-  size: v.number(),
-  sha256: v.string(),
+  ...fileMetadataFields,
 };
 const upload = v.object(uploadFields);
 export async function prepareAsset(
@@ -28,7 +26,7 @@ export async function prepareAsset(
   appearance?:
     | { purpose: "workspaceLogo"; workspaceLogoRevision: number }
     | { purpose: "projectCover"; projectCoverRevision: number }
-    | { purpose: "userAvatar"; avatarUserId: Id<"users">; avatarRevision: number }
+    | { purpose: Infer<typeof personalImagePurpose>; avatarUserId: Id<"users">; avatarRevision: number }
 ) {
   const { user } = await requireAssetScope(ctx, { ...args, ...appearance }, true);
   validateIntent(args.name, args.contentType, args.size, args.sha256);
@@ -95,7 +93,7 @@ export const commit = internalMutation({
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
     if (asset.purpose === "workspaceLogo") await publishWorkspaceLogo(ctx, asset);
     if (asset.purpose === "projectCover") await publishProjectCover(ctx, asset);
-    if (asset.purpose === "userAvatar") await publishAvatar(ctx, asset);
+    if (asset.purpose === "userAvatar" || asset.purpose === "userCover") await publishPersonalImage(ctx, asset);
     await ctx.db.patch(assetId, { status: "ready" });
     if (asset.draftId) await draftAttachmentChanged(ctx, asset.draftId);
     if (asset.taskId) {
@@ -134,7 +132,8 @@ export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
-    if (asset.purpose === "userAvatar") throw new ConvexError("Remove avatars through your profile.");
+    if (asset.purpose === "userAvatar" || asset.purpose === "userCover")
+      throw new ConvexError("Remove profile images through your profile.");
     if (asset.purpose === "workspaceLogo")
       throw new ConvexError("Remove workspace logos through workspace appearance.");
     if (asset.purpose === "projectCover") throw new ConvexError("Remove project covers through project appearance.");

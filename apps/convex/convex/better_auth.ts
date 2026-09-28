@@ -1,15 +1,21 @@
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth/minimal";
-import { emailOTP } from "better-auth/plugins";
-import { ConvexError } from "convex/values";
+import { emailOTP, genericOAuth } from "better-auth/plugins";
+import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
+import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalQuery, type MutationCtx } from "./_generated/server";
-import authConfig, { betterAuthBasePath } from "./auth.config";
+import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
+import authConfig from "./auth.config";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
+import { deactivateAccount } from "./identity/deactivation/index";
 import { sendAccountEmail } from "./identity/mail/sender";
+import { signInPolicy } from "./identity/signin_policy";
 import { requireSignup } from "./identity/signup_policy";
+import { nativeOAuthProviders } from "./identity/oauth/providers";
+import { passwordAttemptWindowMs } from "./identity/password/policy";
+import { normalizedEmail } from "./invitations/access";
 
 export const siteUrl = process.env.SITE_URL ?? "";
 
@@ -30,7 +36,10 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           .query("betterAuthLinks")
           .withIndex("by_auth_id", (q) => q.eq("authId", user._id))
           .unique();
-        if (link) await ctx.db.delete(link._id);
+        if (link) {
+          await deactivateAccount(ctx, link.userId);
+          await ctx.db.delete(link._id);
+        }
       },
     },
   },
@@ -41,21 +50,59 @@ export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 export const sessionUser = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-    return user ? { id: user._id, email: user.email, emailVerified: user.emailVerified } : null;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    const current = await auth.api.getSession({
+      headers,
+      query: { disableCookieCache: true, disableRefresh: true },
+    });
+    if (!current || current.user.id !== identity.subject || current.session.id !== identity.sessionId) return null;
+    return {
+      id: current.user.id,
+      email: current.user.email,
+      emailVerified: current.user.emailVerified,
+      sessionId: current.session.id,
+      // The Convex adapter returns native date fields as epoch milliseconds.
+      expiresAt: Number(current.session.expiresAt),
+    };
   },
 });
 
-export const sessionExpiry = internalQuery({
-  args: {},
-  handler: async (ctx): Promise<number | null> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (typeof identity?.sessionId !== "string") return null;
-    const session = await ctx.runQuery(components.betterAuth.adapter.findOne, {
-      model: "session",
-      where: [{ field: "_id", value: identity.sessionId }],
-    });
-    return typeof session?.expiresAt === "number" ? session.expiresAt : null;
+// Operator-only cutover: preserve application IDs and the compatible canonical
+// Scrypt hash. Unverified, restricted, or ambiguous identities fail closed.
+export const migrateAccount = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user?.email || user.emailVerificationTime === undefined)
+      throw new ConvexError("Verify this account before migration.");
+    if (normalizedEmail(user.email) !== user.email || (await existingAppUser(ctx, user.email))?._id !== user._id)
+      throw new ConvexError("Email identity is ambiguous.");
+    const passwords = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id).eq("provider", "password"))
+      .take(2);
+    if (passwords.length > 1) throw new ConvexError("Password identity is ambiguous.");
+    const password = passwords[0]?.secret;
+    if (password && !/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(password))
+      throw new ConvexError("This credential requires a password reset before migration.");
+    const { internalAdapter } = await createAuth(ctx).$context;
+    const existing = await internalAdapter.findUserByEmail(user.email);
+    if (existing && !existing.user.emailVerified) throw new ConvexError("Native account must be verified first.");
+    const authUser =
+      existing?.user ??
+      (await internalAdapter.createUser({ name: user.name ?? user.email, email: user.email, emailVerified: true }));
+    await linkVerifiedUser(ctx, authUser.id, authUser.email, authUser.name);
+    const accounts = await internalAdapter.findAccounts(authUser.id);
+    if (password && !accounts.some((account) => account.providerId === "credential"))
+      await internalAdapter.createAccount({
+        userId: authUser.id,
+        accountId: authUser.id,
+        providerId: "credential",
+        password,
+      });
+    return { userId: user._id, authId: authUser.id };
   },
 });
 
@@ -72,7 +119,13 @@ async function existingAppUser(ctx: MutationCtx, email: string) {
   return existing ?? null;
 }
 
-async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string, name: string, previousEmail?: string) {
+async function linkVerifiedUser(
+  ctx: MutationCtx,
+  authId: string,
+  email: string,
+  name: string,
+  previousEmail?: string
+): Promise<void> {
   const link = await ctx.db
     .query("betterAuthLinks")
     .withIndex("by_auth_id", (q) => q.eq("authId", authId))
@@ -80,11 +133,23 @@ async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string,
   if (link) {
     const owner = await ctx.db.get(link.userId);
     if (!owner) throw new ConvexError("Account is unavailable.");
+    await requireUnrestrictedAccount(ctx, owner._id);
     if (owner.email !== email) {
       if (owner.email !== previousEmail) throw new ConvexError("Account email changed. Sign in again.");
       const collision = await existingAppUser(ctx, email);
       if (collision && collision._id !== owner._id) throw new ConvexError("Email address is unavailable.");
       await ctx.db.patch(owner._id, { email, emailVerificationTime: Date.now() });
+      const { internalAdapter } = await createAuth(ctx).$context;
+      await internalAdapter.deleteUserSessions(authId);
+      if (owner.email) {
+        const id = await ctx.db.insert("emailChangeNotices", {
+          userId: owner._id,
+          recipient: owner.email,
+          attempts: 0,
+          status: "pending",
+        });
+        await ctx.scheduler.runAfter(0, internal.identity.emailChange.notifications.deliver, { id });
+      }
     }
     return;
   }
@@ -103,14 +168,82 @@ async function linkVerifiedUser(ctx: MutationCtx, authId: string, email: string,
   await ctx.db.insert("betterAuthLinks", { authId, userId });
 }
 
-export const createAuth = (ctx: GenericCtx<DataModel>) =>
-  betterAuth({
+// The native adapter's increment fallback spans separate HTTP adapter calls.
+// Consume the native rate row inside one Convex mutation instead.
+export const consumeHttpRateLimit = internalMutation({
+  args: { key: v.string(), window: v.number(), max: v.number() },
+  handler: async (ctx, { key, window, max }) => {
+    const { adapter } = await createAuth(ctx).$context;
+    const where = [{ field: "key", value: key }];
+    const existing = await adapter.findOne<RateLimit>({ model: "rateLimit", where });
+    const now = Date.now();
+    const count = existing && now - existing.lastRequest <= window * 1000 ? existing.count : 0;
+    if (existing && count >= max)
+      return { allowed: false, retryAfter: Math.ceil((existing.lastRequest + window * 1000 - now) / 1000) };
+    const update = { count: count + 1, lastRequest: now };
+    if (existing) await adapter.updateMany({ model: "rateLimit", where, update });
+    else await adapter.create<RateLimit>({ model: "rateLimit", data: { key, ...update } });
+    return { allowed: true, retryAfter: null };
+  },
+});
+
+export const expireRateLimits = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    // The effective native HTTP rules are at most 60 seconds; application
+    // password attempts fully refill within an hour. Retain both for two hours.
+    const page = await ctx.runMutation(components.betterAuth.adapter.deleteMany, {
+      input: {
+        model: "rateLimit",
+        where: [{ field: "lastRequest", operator: "lt", value: Date.now() - passwordAttemptWindowMs * 2 }],
+      },
+      // The installed native adapter caps this page at 200 rows read.
+      paginationOpts: { cursor: args.cursor, numItems: 100 },
+    });
+    if (!page.isDone)
+      await ctx.scheduler.runAfter(0, internal.better_auth.expireRateLimits, { cursor: page.continueCursor });
+  },
+});
+
+export const createAuth = (ctx: GenericCtx<DataModel>) => {
+  const rateLimitStorage: NonNullable<BetterAuthRateLimitOptions["customStorage"]> = {
+    get: async (key) => {
+      const { adapter } = await createAuth(ctx).$context;
+      return adapter.findOne<RateLimit>({ model: "rateLimit", where: [{ field: "key", value: key }] });
+    },
+    set: async (key, value, update) => {
+      const { adapter } = await createAuth(ctx).$context;
+      if (update)
+        await adapter.updateMany({ model: "rateLimit", where: [{ field: "key", value: key }], update: value });
+      else await adapter.create<RateLimit>({ model: "rateLimit", data: { ...value, key } });
+    },
+    consume: async (key, rule) => {
+      if (!("runMutation" in ctx)) throw new Error("HTTP rate consumption requires a mutation-capable context.");
+      return ctx.runMutation(internal.better_auth.consumeHttpRateLimit, { key, ...rule });
+    },
+  };
+  return betterAuth({
     baseURL: process.env.CONVEX_SITE_URL,
-    basePath: betterAuthBasePath,
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
+    rateLimit: { enabled: true, storage: "database", customStorage: rateLimitStorage },
+    session: { freshAge: 300, deferSessionRefresh: true },
+    user: { deleteUser: { enabled: true } },
+    account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
+    disabledPaths: [
+      "/delete-user",
+      "/delete-user/callback",
+      "/unlink-account",
+      "/change-password",
+      "/verify-password",
+      "/update-user",
+      ...(!signInPolicy(process.env).magic ? ["/sign-in/email-otp"] : []),
+      ...(!signInPolicy(process.env).passwordReset
+        ? ["/email-otp/request-password-reset", "/email-otp/reset-password", "/forget-password/email-otp"]
+        : []),
+    ],
     emailAndPassword: {
-      enabled: true,
+      enabled: signInPolicy(process.env).password,
       requireEmailVerification: true,
       minPasswordLength: 8,
       maxPasswordLength: 1024,
@@ -119,14 +252,18 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
     emailVerification: { sendOnSignUp: true, sendOnSignIn: true },
     plugins: [
       crossDomain({ siteUrl }),
-      convex({ authConfig, options: { basePath: betterAuthBasePath } }),
+      convex({ authConfig }),
+      genericOAuth({ config: nativeOAuthProviders(process.env) }),
       emailOTP({
         overrideDefaultEmailVerification: true,
-        disableSignUp: true,
+        changeEmail: { enabled: true, verifyCurrentEmail: true },
         expiresIn: 600,
         allowedAttempts: 5,
         storeOTP: "encrypted",
         async sendVerificationOTP({ email, otp, type }) {
+          const policy = signInPolicy(process.env);
+          if ((type === "sign-in" && !policy.magic) || (type === "forget-password" && !policy.passwordReset))
+            throw new ConvexError("This sign-in method is disabled by the instance operator.");
           const purpose =
             type === "sign-in"
               ? "Sign in"
@@ -144,3 +281,4 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
       }),
     ],
   });
+};

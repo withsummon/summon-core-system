@@ -5,9 +5,6 @@ const convexSiteUrl = process.env.CONVEX_SITE_URL;
 if (!convexSiteUrl) throw new Error("CONVEX_SITE_URL is required for Convex Auth.");
 
 export const betterAuthEnabled = process.env.SUMMON_AUTH_ENGINE === "better-auth";
-export const betterAuthBasePath = "/api/better-auth";
 export default {
-  providers: betterAuthEnabled
-    ? [getAuthConfigProvider({ basePath: betterAuthBasePath })]
-    : [{ domain: convexSiteUrl, applicationID: "convex" }],
+  providers: betterAuthEnabled ? [getAuthConfigProvider()] : [{ domain: convexSiteUrl, applicationID: "convex" }],
 } satisfies AuthConfig;

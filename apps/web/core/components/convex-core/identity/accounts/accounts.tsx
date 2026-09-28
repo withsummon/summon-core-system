@@ -1,47 +1,42 @@
+import { useEffect, useState } from "react";
+import { authClient } from "@/components/convex-core/provider";
+import { mutationMessage } from "../../commercial/forms";
 import { DisconnectAccount } from "./disconnect";
-import { SessionBoundary } from "../session-boundary";
-import { usePaginatedQuery } from "convex/react";
-import { api } from "@summon/convex/api";
-import { Button } from "@plane/propel/button";
+
+type Accounts = Awaited<ReturnType<typeof authClient.listAccounts<{ throw: true }>>>;
 export function ConnectedAccounts() {
-  return (
-    <SessionBoundary>
-      <AccountsList />
-    </SessionBoundary>
-  );
-}
-function AccountsList() {
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.identity.accounts.index.list,
-    {},
-    { initialNumItems: 20 }
-  );
+  const [accounts, setAccounts] = useState<Accounts | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void authClient
+      .listAccounts({ fetchOptions: { throw: true } })
+      .then(setAccounts)
+      .catch((failure) => setError(mutationMessage(failure)));
+  }, []);
   return (
     <section
       className="min-w-0 space-y-3 rounded-lg border border-subtle-1 p-3"
       aria-label="Connected sign-in accounts"
     >
       <h3 className="font-medium">Connected sign-in accounts</h3>
-      {status === "LoadingFirstPage" && <p role="status">Loading accounts…</p>}
-      {!results.length && status === "Exhausted" && <p>No connected accounts.</p>}
+      {!accounts && !error && <p role="status">Loading accounts…</p>}
+      {error && (
+        <p role="alert" className="text-12 text-danger-primary">
+          {error}
+        </p>
+      )}
+      {accounts?.length === 0 && <p>No connected accounts.</p>}
       <ul className="space-y-3">
-        {results.map((account) => (
+        {accounts?.map((account) => (
           <li key={account.id} className="min-w-0 border-b border-subtle-1 pb-3 last:border-0 last:pb-0">
-            <p className="font-medium break-words">{account.name}</p>
-            <p className="text-12 text-secondary">
-              {account.configuredForSignIn ? "Sign-in method configured" : "Sign-in method unavailable"}
+            <p className="font-medium break-words">
+              {account.providerId === "credential" ? "Password" : account.providerId}
             </p>
-            <p className="text-12 text-secondary">Connected {new Date(account.connectedAt).toLocaleDateString()}</p>
-            <DisconnectAccount accountId={account.id} name={account.name} />
+            <p className="text-12 text-secondary">Connected {new Date(account.createdAt).toLocaleDateString()}</p>
+            <DisconnectAccount account={account} />
           </li>
         ))}
       </ul>
-      {status === "CanLoadMore" && (
-        <Button type="button" variant="secondary" onClick={() => loadMore(20)}>
-          Load more accounts
-        </Button>
-      )}
-      {status === "LoadingMore" && <p role="status">Loading more accounts…</p>}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalQuery, internalMutation, query } from "../_generated/server";
-import { requireUser } from "../identity/access";
+import { requireProject, requireUser, requireWorkspace } from "../identity/access";
 import { issuerAccess, normalizedEmail } from "./access";
 import { mailConfiguration } from "../identity/mail/config";
 import { workspaceLogo } from "../settings/logo_owner";
@@ -17,11 +17,16 @@ async function invitationContext(ctx: QueryCtx, id: string, tokenHash?: string) 
   if (
     !row ||
     (tokenHash !== undefined && row.tokenHash !== tokenHash) ||
-    row.status !== "pending" ||
+    (row.status !== "pending" && row.status !== "accepted") ||
     row.expiresAt <= Date.now()
   )
     throw new ConvexError("Invitation is unavailable.");
-  await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
+  if (row.status === "accepted") {
+    const { user, email } = await recipient(ctx);
+    if (user._id !== row.respondedBy || email !== row.email) throw new ConvexError("Invitation is unavailable.");
+    await requireWorkspace(ctx, row.workspaceId);
+    if (row.projectId) await requireProject(ctx, row.projectId);
+  } else await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
   const workspace = await ctx.db.get(row.workspaceId);
   if (!workspace) throw new ConvexError("Invitation is unavailable.");
   const project = row.projectId ? await ctx.db.get(row.projectId) : null;
@@ -39,6 +44,7 @@ export const sending = internalQuery({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
     const { row, workspace, project } = await invitationContext(ctx, args.invitationId, args.tokenHash);
+    if (row.status !== "pending") throw new ConvexError("Invitation has already been answered.");
     await issuerAccess(ctx, row.workspaceId, row.projectId, user._id, row.role);
     return {
       email: row.email,
@@ -69,6 +75,7 @@ export async function invitationPreview(ctx: QueryCtx, args: { invitationId: str
     email: row.email,
     role: row.role,
     expiresAt: row.expiresAt,
+    status: row.status,
     workspace: { id: workspace._id, name: workspace.name, slug: workspace.slug },
     project: project ? { id: project._id, name: project.name, identifier: project.identifier } : null,
     logo: logo && asset?.storageId ? { id: logo.id, storageId: asset.storageId, contentType: logo.contentType } : null,

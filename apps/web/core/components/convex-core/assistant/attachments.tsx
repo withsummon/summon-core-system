@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { getAuthToken } from "@/components/convex-core/provider";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
@@ -153,7 +153,6 @@ export function AttachmentDownload({
   name: string;
 }) {
   const convex = useConvex();
-  const token = useAuthToken();
   const [transfers] = useState(() => new AssetTransfers());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -168,15 +167,14 @@ export function AttachmentDownload({
           setError("");
           try {
             await transfers.run(async (signal) => {
-              if (!token || !import.meta.env.VITE_CONVEX_SITE_URL)
-                throw new Error("Attachment download is unavailable.");
+              if (!import.meta.env.VITE_CONVEX_SITE_URL) throw new Error("Attachment download is unavailable.");
               const descriptor = await convex.query(api.assistant.attachments.download, {
                 conversationId,
                 attachmentId,
               });
               signal.throwIfAborted();
               const response = await fetch(new URL(descriptor.downloadPath, import.meta.env.VITE_CONVEX_SITE_URL), {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${await getAuthToken()}` },
                 cache: "no-store",
                 credentials: "omit",
                 signal,

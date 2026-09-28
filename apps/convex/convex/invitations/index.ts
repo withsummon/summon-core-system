@@ -6,6 +6,7 @@ import { role } from "../schema";
 import { requireUser, requireWorkspace, requireProject } from "../identity/access";
 import { grantWorkspaceMembership } from "../workspaces/index";
 import { grantProjectMembership } from "../projects/index";
+import { selectWorkspaceForUser } from "../identity/preferences";
 import { pageBudget } from "../commercial/validation";
 import { issuerAccess, canIssueInvitation, normalizedEmail, publicInvitation, INVITATION_LIFETIME_MS } from "./access";
 import { recipient } from "./delivery";
@@ -109,6 +110,8 @@ async function respondToInvitation(
   pending(row);
   if (row.expiresAt <= Date.now()) throw new ConvexError("Invitation has expired.");
   await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
+  const workspace = await ctx.db.get(row.workspaceId);
+  if (!workspace || workspace.deletedAt != null) throw new ConvexError("Workspace is unavailable.");
   if (args.accepted) await acceptMembership(ctx, row, user);
   await ctx.db.patch(row._id, {
     status: args.accepted ? "accepted" : "declined",
@@ -116,15 +119,21 @@ async function respondToInvitation(
     respondedBy: user._id,
     revision: row.revision + 1,
   });
-  return { accepted: args.accepted, workspaceId: row.workspaceId, projectId: row.projectId };
+  return { accepted: args.accepted, workspaceId: row.workspaceId, projectId: row.projectId, slug: workspace.slug };
+}
+export type InvitationResponse = Awaited<ReturnType<typeof respondToInvitation>>;
+async function respondAndSelect(ctx: MutationCtx, args: Parameters<typeof respondToInvitation>[1]) {
+  const result = await respondToInvitation(ctx, args);
+  if (result.accepted) await selectWorkspaceForUser(ctx, result.workspaceId);
+  return result;
 }
 export const respond = internalMutation({
   args: { invitationId: v.id("invitations"), tokenHash: v.string(), accepted: v.boolean() },
-  handler: respondToInvitation,
+  handler: respondAndSelect,
 });
 export const respondIncoming = mutation({
   args: { invitationId: v.id("invitations"), expectedRevision: v.number(), accepted: v.boolean() },
-  handler: respondToInvitation,
+  handler: respondAndSelect,
 });
 const maxAcceptInvitations = 20;
 export const acceptIncoming = mutation({
@@ -142,6 +151,7 @@ export const acceptIncoming = mutation({
       // eslint-disable-next-line no-await-in-loop
       results.push(await respondToInvitation(ctx, { ...invitation, accepted: true }));
     }
+    await selectWorkspaceForUser(ctx, results[0].workspaceId);
     return results;
   },
 });
