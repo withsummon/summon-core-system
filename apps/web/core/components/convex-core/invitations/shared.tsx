@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { Button } from "@plane/propel/button";
+import type { usePaginatedQuery } from "convex/react";
 export class InvitationBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -21,10 +22,7 @@ export class InvitationBoundary extends Component<{ children: ReactNode }, { fai
 export function InvitationPages({
   status,
   loadMore,
-}: {
-  status: "LoadingFirstPage" | "LoadingMore" | "CanLoadMore" | "Exhausted";
-  loadMore: (count: number) => void;
-}) {
+}: Pick<ReturnType<typeof usePaginatedQuery>, "status" | "loadMore">) {
   return (
     <>
       {(status === "LoadingFirstPage" || status === "LoadingMore") && <p role="status">Loading invitations…</p>}
@@ -34,22 +32,5 @@ export function InvitationPages({
         </Button>
       )}
     </>
-  );
-}
-export function ShareToken({ token, onDismiss }: { token: string; onDismiss: () => void }) {
-  return (
-    <div className="min-w-0 space-y-2 rounded-md border border-subtle-1 bg-layer-2 p-3">
-      <p className="font-medium">Save this invitation token</p>
-      <p className="text-12 text-secondary">
-        Shown only here. Share it privately with the invited person, who can paste it in Account details → Invitations.
-        No email was sent. It expires in seven days.
-      </p>
-      <code className="block break-all select-all" aria-label="Invitation token">
-        {token}
-      </code>
-      <Button variant="secondary" onClick={onDismiss}>
-        I saved the token
-      </Button>
-    </div>
   );
 }

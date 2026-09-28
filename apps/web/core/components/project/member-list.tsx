@@ -21,6 +21,12 @@ import { MemberListFiltersDropdown } from "./dropdowns/filters/member-list";
 import { ProjectMemberListItem } from "./member-list-item";
 import { SendProjectInvitationModal } from "./send-project-invitation-modal";
 
+const projectRoleOptions = [
+  { value: String(EUserPermissions.ADMIN), label: "Admin" },
+  { value: String(EUserPermissions.MEMBER), label: "Member" },
+  { value: String(EUserPermissions.GUEST), label: "Guest" },
+];
+
 type TProjectMemberListProps = {
   projectId: string;
   workspaceSlug: string;
@@ -88,16 +94,16 @@ export const ProjectMemberList = observer(function ProjectMemberList(props: TPro
             <SearchIcon className="h-3.5 w-3.5" />
             <input
               className="w-full max-w-[234px] border-none bg-transparent text-13 placeholder:text-placeholder focus:outline-none"
+              aria-label={t("search")}
               placeholder="Search"
               value={searchQuery}
-              autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <MemberListFiltersDropdown
             appliedFilters={appliedRoleFilters}
             handleUpdate={handleRoleFilterUpdate}
-            memberType="project"
+            options={projectRoleOptions}
           />
           {isAdmin && (
             <Button

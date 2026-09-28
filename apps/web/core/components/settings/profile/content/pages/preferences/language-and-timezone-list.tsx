@@ -44,7 +44,7 @@ export function ProfileSettingsLanguageAndTimezonePreferencesList({
     }
   };
 
-  const handleLanguageChange = async (language: (typeof SUPPORTED_LANGUAGES)[number]["value"]) => {
+  const handleLanguageChange = async (language: typeof profile.preferences.language) => {
     setPending(true);
     try {
       await savePreferences({

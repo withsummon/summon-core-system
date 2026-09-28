@@ -1,97 +1,87 @@
 import { ConvexError, v } from "convex/values";
-import { internalQuery, internalMutation, query } from "../_generated/server";
+import { internalQuery, internalMutation } from "../_generated/server";
 import { requireProject, requireUser, requireWorkspace } from "../identity/access";
 import { issuerAccess, normalizedEmail } from "./access";
-import { mailConfiguration } from "../identity/mail/config";
 import { workspaceLogo } from "../settings/logo_owner";
+import { invitationDeliveryStatus } from "../schema";
 import type { QueryCtx } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
+import type { Infer } from "convex/values";
+
+export const previewFields = { invitationId: v.string() };
+const previewInput = v.object(previewFields);
+
 export async function recipient(ctx: QueryCtx) {
   const user = await requireUser(ctx);
   if (!user.email || user.emailVerificationTime === undefined)
     throw new ConvexError("Verify your email before responding to invitations.");
   return { user, email: normalizedEmail(user.email) };
 }
-async function invitationContext(ctx: QueryCtx, id: string, tokenHash?: string) {
-  const invitationId = ctx.db.normalizeId("invitations", id);
-  const row = invitationId ? await ctx.db.get(invitationId) : null;
-  if (
-    !row ||
-    (tokenHash !== undefined && row.tokenHash !== tokenHash) ||
-    (row.status !== "pending" && row.status !== "accepted") ||
-    row.expiresAt <= Date.now()
-  )
+async function invitationContext(ctx: QueryCtx, row: Doc<"invitations">) {
+  const status = row.status;
+  if ((status !== "pending" && status !== "accepted") || row.expiresAt <= Date.now())
     throw new ConvexError("Invitation is unavailable.");
   if (row.status === "accepted") {
-    const { user, email } = await recipient(ctx);
-    if (user._id !== row.respondedBy || email !== row.email) throw new ConvexError("Invitation is unavailable.");
     await requireWorkspace(ctx, row.workspaceId);
     if (row.projectId) await requireProject(ctx, row.projectId);
   } else await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
   const workspace = await ctx.db.get(row.workspaceId);
   if (!workspace) throw new ConvexError("Invitation is unavailable.");
   const project = row.projectId ? await ctx.db.get(row.projectId) : null;
-  return { row, workspace, project };
+  return { status, workspace, project };
 }
-export const availability = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireUser(ctx);
-    return { available: mailConfiguration(process.env) !== null };
-  },
-});
 export const sending = internalQuery({
-  args: { invitationId: v.id("invitations"), tokenHash: v.string() },
+  args: { invitationId: v.id("invitations"), expectedRevision: v.number() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const { row, workspace, project } = await invitationContext(ctx, args.invitationId, args.tokenHash);
-    if (row.status !== "pending") throw new ConvexError("Invitation has already been answered.");
+    const row = await ctx.db.get(args.invitationId);
+    if (!row || row.status !== "pending" || row.revision !== args.expectedRevision) return null;
+    const { workspace, project } = await invitationContext(ctx, row);
     await issuerAccess(ctx, row.workspaceId, row.projectId, user._id, row.role);
     return {
       email: row.email,
-      workspace: { name: workspace.name, slug: workspace.slug },
+      workspaceName: workspace.name,
       projectName: project?.name ?? null,
-      revision: row.revision,
     };
   },
 });
 export const record = internalMutation({
   args: {
     invitationId: v.id("invitations"),
-    tokenHash: v.string(),
-    status: v.union(v.literal("sent"), v.literal("failed")),
+    expectedRevision: v.number(),
+    status: invitationDeliveryStatus,
   },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.invitationId);
-    if (row?.tokenHash !== args.tokenHash || row.status !== "pending") return;
-    await ctx.db.patch(row._id, { delivery: { status: args.status, revision: row.revision, attemptedAt: Date.now() } });
+    if (!row || row.revision !== args.expectedRevision || row.status !== "pending") return false;
+    await ctx.db.patch(row._id, {
+      delivery: { status: args.status, revision: args.expectedRevision, attemptedAt: Date.now() },
+    });
+    return true;
   },
 });
-export async function invitationPreview(ctx: QueryCtx, args: { invitationId: string; tokenHash?: string }) {
-  const { row, workspace, project } = await invitationContext(ctx, args.invitationId, args.tokenHash);
+export async function invitationPreview(ctx: QueryCtx, args: Infer<typeof previewInput>) {
+  const { user, email } = await recipient(ctx);
+  const invitationId = ctx.db.normalizeId("invitations", args.invitationId);
+  const row = invitationId ? await ctx.db.get(invitationId) : null;
+  if (!row || row.email !== email || (row.status === "accepted" && row.respondedBy !== user._id))
+    throw new ConvexError("Invitation is unavailable.");
+  const { status, workspace, project } = await invitationContext(ctx, row);
   const logo = await workspaceLogo(ctx, workspace._id);
   const asset = logo ? await ctx.db.get(logo.id) : null;
   return {
     id: row._id,
     email: row.email,
     role: row.role,
+    revision: row.revision,
     expiresAt: row.expiresAt,
-    status: row.status,
+    status,
     workspace: { id: workspace._id, name: workspace.name, slug: workspace.slug },
     project: project ? { id: project._id, name: project.name, identifier: project.identifier } : null,
     logo: logo && asset?.storageId ? { id: logo.id, storageId: asset.storageId, contentType: logo.contentType } : null,
   };
 }
-export const preview = internalQuery({
-  args: { invitationId: v.string(), tokenHash: v.string() },
-  handler: invitationPreview,
-});
-
 export const incomingPreview = internalQuery({
-  args: { invitationId: v.id("invitations") },
-  handler: async (ctx, args) => {
-    const { email } = await recipient(ctx);
-    const row = await ctx.db.get(args.invitationId);
-    if (!row || row.email !== email) throw new ConvexError("Invitation is unavailable.");
-    return invitationPreview(ctx, args);
-  },
+  args: previewFields,
+  handler: invitationPreview,
 });

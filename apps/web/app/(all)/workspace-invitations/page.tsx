@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { useAction, useMutation, useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Boxes, Share2, Star, User2 } from "lucide-react";
@@ -19,43 +19,59 @@ import { useAppRouter } from "@/hooks/use-app-router";
 import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 
 export default function WorkspaceInvitationPage() {
-  const { isAuthenticated } = useConvexAuth();
-  return isAuthenticated ? (
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const [params] = useSearchParams();
+  if (isLoading)
+    return (
+      <div className="flex size-full items-center justify-center">
+        <LogoSpinner />
+      </div>
+    );
+  if (!isAuthenticated)
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center px-3">
+        <EmptySpace title="Sign in to review your invitation" description="Use the email address that was invited.">
+          <EmptySpaceItem
+            Icon={User2}
+            title="Sign in to continue"
+            href={`/?next_path=${encodeURIComponent(`/workspace-invitations/?${params}`)}`}
+          />
+        </EmptySpace>
+      </div>
+    );
+  return (
     <SessionBoundary>
       <WorkspaceInvitationContent />
     </SessionBoundary>
-  ) : (
-    <WorkspaceInvitationContent />
   );
 }
 function WorkspaceInvitationContent() {
   const router = useAppRouter();
   const [params] = useSearchParams();
   const invitationId = params.get("invitation_id");
-  const token = params.get("token");
-  const preview = useAction(api.invitations.email.preview);
-  const respond = useAction(api.invitations.tokens.respond);
-  const [invitation, setInvitation] = useState<FunctionReturnType<typeof api.invitations.email.preview> | null>(null);
+  const preview = useAction(api.invitations.email.incomingPreview);
+  const respond = useMutation(api.invitations.index.respondIncoming);
+  const [invitation, setInvitation] = useState<FunctionReturnType<typeof api.invitations.email.incomingPreview> | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  const { data: session } = authClient.useSession();
-  const workspaces = useQuery(api.workspaces.index.list, isAuthenticated ? {} : "skip");
+  const workspaces = useQuery(api.workspaces.index.list, {});
   const membership = workspaces?.find((row) => row._id === invitation?.workspace.id);
   useEffect(() => {
     let active = true;
     setInvitation(null);
     setError("");
     setLoading(true);
-    if (!invitationId || !token) {
+    if (!invitationId) {
       setError("This invitation link is not active anymore.");
       setLoading(false);
       return;
     }
     const load = async () => {
       try {
-        const result = await preview({ invitationId, token });
+        const result = await preview({ invitationId });
         if (active) setInvitation(result);
       } catch (failure) {
         if (active) setError(mutationMessage(failure));
@@ -67,17 +83,17 @@ function WorkspaceInvitationContent() {
     return () => {
       active = false;
     };
-  }, [invitationId, token, preview]);
-  const signInHref = `/?next_path=${encodeURIComponent(`/workspace-invitations?${params}`)}`;
-  const homeAction = isAuthenticated
-    ? { Icon: Boxes, title: "Continue to home", href: "/" }
-    : { Icon: User2, title: "Sign in to continue", href: signInHref };
+  }, [invitationId, preview]);
   const answer = async (accepted: boolean) => {
-    if (!invitation || !token || pending) return;
+    if (!invitation || pending) return;
     setPending(true);
     setError("");
     try {
-      const destination = await respond({ invitationId: invitation.id, token, accepted });
+      const destination = await respond({
+        invitationId: invitation.id,
+        expectedRevision: invitation.revision,
+        accepted,
+      });
       router.push(accepted ? `/${destination.slug}/stickies` : "/");
     } catch (failure) {
       setError(mutationMessage(failure));
@@ -87,7 +103,7 @@ function WorkspaceInvitationContent() {
   };
   return (
     <div className="flex h-full w-full flex-col items-center justify-center px-3">
-      {loading || isLoading || (isAuthenticated && !workspaces) ? (
+      {loading || !workspaces ? (
         <div className="flex size-full items-center justify-center">
           <LogoSpinner />
         </div>
@@ -110,33 +126,8 @@ function WorkspaceInvitationContent() {
           title={`You have been invited to ${invitation.workspace.name}`}
           description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
         >
-          {!isAuthenticated ? (
-            <EmptySpaceItem {...homeAction} />
-          ) : session?.user.email !== invitation.email ? (
-            <EmptySpaceItem
-              Icon={User2}
-              title={`Sign in as ${invitation.email} to continue`}
-              disabled={pending}
-              action={async () => {
-                setPending(true);
-                setError("");
-                try {
-                  const result = await authClient.signOut();
-                  if (result.error) setError(result.error.message ?? "Could not sign out.");
-                  else router.push(signInHref);
-                } catch (failure) {
-                  setError(mutationMessage(failure));
-                } finally {
-                  setPending(false);
-                }
-              }}
-            />
-          ) : (
-            <>
-              <EmptySpaceItem Icon={CheckIcon} title="Accept" action={() => void answer(true)} disabled={pending} />
-              <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={() => void answer(false)} disabled={pending} />
-            </>
-          )}
+          <EmptySpaceItem Icon={CheckIcon} title="Accept" action={() => void answer(true)} disabled={pending} />
+          <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={() => void answer(false)} disabled={pending} />
           {error && (
             <li role="alert" className="py-3 text-13 text-danger-primary">
               {error}
@@ -149,7 +140,23 @@ function WorkspaceInvitationContent() {
           description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
           link={{ text: "Or start from an empty project", href: "/" }}
         >
-          <EmptySpaceItem {...homeAction} />
+          <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
+          <EmptySpaceItem
+            Icon={User2}
+            title="Use a different account"
+            disabled={pending}
+            action={async () => {
+              setPending(true);
+              setError("");
+              try {
+                await authClient.signOut({ fetchOptions: { throw: true } });
+              } catch (failure) {
+                setError(mutationMessage(failure));
+              } finally {
+                setPending(false);
+              }
+            }}
+          />
           <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
           <EmptySpaceItem Icon={Share2} title="Join our community of active creators" href="https://forum.plane.so" />
           {error && (

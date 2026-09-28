@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useNavigate } from "react-router";
 import { authClient } from "@/components/convex-core/provider";
 import { useMutation } from "convex/react";
 import { api } from "@summon/convex/api";
@@ -32,7 +33,108 @@ import { NativeHelpMenu } from "./help-menu";
 import { NativeAccountMenu } from "./account-menu";
 import { NativeWorkspaceMenu } from "./workspace-menu";
 import { StickyCommands } from "./commands";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
+import { SettingsMobileNav } from "@/components/settings/mobile/nav";
+import { WorkspaceSettingsSidebarView } from "@/components/settings/workspace/sidebar/root";
+import { WorkspaceSettingsSidebarHeaderView } from "@/components/settings/workspace/sidebar/header";
+import { WorkspaceSettingsSidebarItemCategoriesView } from "@/components/settings/workspace/sidebar/item-categories";
 import type { NativeWorkspace, NativeProfile } from "./types";
+
+const workspaceRoles = {
+  admin: EUserWorkspaceRoles.ADMIN,
+  member: EUserWorkspaceRoles.MEMBER,
+  guest: EUserWorkspaceRoles.GUEST,
+} satisfies Record<NativeWorkspace["membershipRole"], EUserWorkspaceRoles>;
+
+export function PreservedWorkspaceSettingsShell({
+  workspace,
+  workspaces,
+  user,
+  activePath,
+  header,
+  hugging,
+  children,
+}: {
+  workspace: NativeWorkspace;
+  workspaces: NativeWorkspace[];
+  user: NativeProfile;
+  activePath: string;
+  header: ReactNode;
+  hugging?: boolean;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const commands = useStickiesCommands();
+  const role = workspaceRoles[workspace.membershipRole];
+  const create = async () => {
+    await commands.create();
+    commands.openAll();
+  };
+  const sidebar = (onNavigate?: () => void) => (
+    <WorkspaceSettingsSidebarView
+      header={
+        <WorkspaceSettingsSidebarHeaderView
+          name={workspace.name}
+          roleLabel={t(`role_details.${workspace.membershipRole}.title`)}
+          onGoBack={() => navigate(`/${workspace.slug}/stickies/`)}
+          logo={
+            <div className="relative grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border border-subtle bg-accent-primary text-on-color uppercase">
+              {workspace.logo ? (
+                <AuthenticatedAssetImage
+                  asset={workspace.logo}
+                  alt="Workspace logo"
+                  className="absolute inset-0 size-full object-cover"
+                />
+              ) : (
+                workspace.name[0]
+              )}
+            </div>
+          }
+        />
+      }
+    >
+      <WorkspaceSettingsSidebarItemCategoriesView
+        workspaceSlug={workspace.slug}
+        isAccessible={(access) => access.includes(role)}
+        onNavigate={onNavigate}
+      />
+    </WorkspaceSettingsSidebarView>
+  );
+  return (
+    <WorkspaceContentFrame
+      shouldRenderAppRail={false}
+      appRail={null}
+      topNavigation={
+        <NativeWorkspaceTopNavigation
+          workspace={workspace}
+          workspaces={workspaces}
+          user={user}
+          powerK={<StickyCommands onCreateSticky={create} onOpenStickies={commands.openAll} />}
+          beforeLeave={commands.flushAll}
+        />
+      }
+    >
+      <div className="flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
+        <SettingsMobileNav activePath={activePath}>{sidebar}</SettingsMobileNav>
+        <div className="flex size-full min-h-0 min-w-0">
+          <div className="hidden h-full shrink-0 md:block">{sidebar()}</div>
+          {workspace.membershipRole === "guest" ? (
+            <NotAuthorizedView section="settings" className="h-auto" />
+          ) : (
+            <SettingsContentWrapper header={header} hugging={hugging}>
+              {children}
+            </SettingsContentWrapper>
+          )}
+        </div>
+      </div>
+    </WorkspaceContentFrame>
+  );
+}
+
 export function PreservedStickiesShell({
   workspace,
   workspaces,
@@ -79,11 +181,7 @@ export function PreservedStickiesShell({
     setPeek(false);
     setAdvanced(false);
   };
-  const role = {
-    admin: EUserWorkspaceRoles.ADMIN,
-    member: EUserWorkspaceRoles.MEMBER,
-    guest: EUserWorkspaceRoles.GUEST,
-  }[workspace.membershipRole];
+  const role = workspaceRoles[workspace.membershipRole];
   const link = (item: typeof SUMMON_ASSISTANT_NAVIGATION_ITEM) => (
     <WorkspaceSidebarLink
       key={item.key}

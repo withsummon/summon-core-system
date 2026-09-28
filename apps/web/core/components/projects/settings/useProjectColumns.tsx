@@ -6,7 +6,8 @@
 
 import { useState } from "react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel, MEMBER_PROPERTY_DETAILS } from "@plane/constants";
+import type { IProjectMemberDisplayProperties } from "@plane/constants";
 import type { IWorkspaceMember, TProjectMembership } from "@plane/types";
 import { renderFormattedDate } from "@plane/utils";
 // components
@@ -56,18 +57,38 @@ export const useProjectColumns = (props: TUseProjectColumnsProps) => {
     updateFilters(projectId, filters);
   };
 
+  const sorting = (property: keyof IProjectMemberDisplayProperties) => {
+    const details = MEMBER_PROPERTY_DETAILS[property];
+    const direction =
+      displayFilters?.order_by === details.ascendingOrderKey
+        ? "asc"
+        : displayFilters?.order_by === details.descendingOrderKey
+          ? "desc"
+          : undefined;
+    return (
+      <MemberHeaderColumn
+        property={property}
+        direction={direction}
+        onOrderChange={(order) =>
+          updateFilters(projectId, {
+            order_by:
+              order === undefined
+                ? undefined
+                : order === "asc"
+                  ? details.ascendingOrderKey
+                  : details.descendingOrderKey,
+          })
+        }
+      />
+    );
+  };
+
   const columns = [
     {
       key: "Full Name",
       content: "Full name",
       thClassName: "text-left",
-      thRender: () => (
-        <MemberHeaderColumn
-          property="full_name"
-          displayFilters={displayFilters}
-          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        />
-      ),
+      thRender: () => sorting("full_name"),
       tdRender: (rowData: RowData) => (
         <NameColumn
           rowData={rowData}
@@ -81,37 +102,19 @@ export const useProjectColumns = (props: TUseProjectColumnsProps) => {
     {
       key: "Display Name",
       content: "Display name",
-      thRender: () => (
-        <MemberHeaderColumn
-          property="display_name"
-          displayFilters={displayFilters}
-          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        />
-      ),
+      thRender: () => sorting("display_name"),
       tdRender: (rowData: RowData) => <div className="w-32">{rowData.member.display_name}</div>,
     },
     {
       key: "Email",
       content: "Email",
-      thRender: () => (
-        <MemberHeaderColumn
-          property="email"
-          displayFilters={displayFilters}
-          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        />
-      ),
+      thRender: () => sorting("email"),
       tdRender: (rowData: RowData) => <div className="w-48 text-secondary">{rowData.member.email}</div>,
     },
     {
       key: "Account Type",
       content: "Account type",
-      thRender: () => (
-        <MemberHeaderColumn
-          property="role"
-          displayFilters={displayFilters}
-          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        />
-      ),
+      thRender: () => sorting("role"),
       tdRender: (rowData: RowData) => (
         <AccountTypeColumn
           rowData={rowData}
@@ -124,13 +127,7 @@ export const useProjectColumns = (props: TUseProjectColumnsProps) => {
     {
       key: "Joining Date",
       content: "Joining date",
-      thRender: () => (
-        <MemberHeaderColumn
-          property="joining_date"
-          displayFilters={displayFilters}
-          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        />
-      ),
+      thRender: () => sorting("joining_date"),
       tdRender: (rowData: RowData) => <div>{renderFormattedDate(rowData?.member?.joining_date)}</div>,
     },
   ];
