@@ -3,10 +3,7 @@ import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Extension, Connection, Document } from "@hocuspocus/server";
-import {
-  getAllDocumentFormatsFromDocumentEditorBinaryData,
-  getBinaryDataFromDocumentEditorHTMLString,
-} from "@plane/editor/lib";
+import { getBinaryDataFromDocumentEditorHTMLString } from "@plane/editor/lib";
 import * as Y from "yjs";
 
 const ROOM_PREFIX = "convex:";
@@ -46,7 +43,6 @@ class DocumentSession {
       { documentId: this.access.documentId },
       (access) => {
         connection.readOnly = !access.canWrite;
-        connection.sendStateless(JSON.stringify({ type: "permission", readOnly: !access.canWrite }));
       },
       deny
     );
@@ -101,15 +97,11 @@ async function persist(document: Document, auth: DocumentSession, attempt = 0): 
   // is a Yjs merge, not replacement; concurrent local edits remain in this document.
   if (latest) Y.applyUpdate(document, new Uint8Array(latest.descriptionBinary));
   const bytes = Y.encodeStateAsUpdate(document);
-  const { contentHTML, contentJSON, titleHTML } = getAllDocumentFormatsFromDocumentEditorBinaryData(bytes, true);
   try {
-    await auth.http.mutation(api.documents.index.saveSnapshot, {
+    await auth.http.action(api.documents.historyActions.save, {
       documentId: access.documentId,
       expectedRevision: latest?.revision ?? 0,
       descriptionBinary: new Uint8Array(bytes).buffer,
-      descriptionHtml: contentHTML,
-      descriptionJson: { ...contentJSON },
-      name: titleHTML,
     });
     return;
   } catch (error) {
@@ -137,14 +129,11 @@ export function convexDocuments(url: string) {
         const existing = await auth.http.query(api.documents.index.snapshot, { documentId: access.documentId });
         if (!existing) {
           const bytes = getBinaryDataFromDocumentEditorHTMLString("<p></p>", access.documentName);
-          const { contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(bytes, true);
           try {
-            await auth.http.mutation(api.documents.index.saveSnapshot, {
+            await auth.http.action(api.documents.historyActions.save, {
               documentId: access.documentId,
               expectedRevision: 0,
               descriptionBinary: new Uint8Array(bytes).buffer,
-              descriptionHtml: contentHTML,
-              descriptionJson: { ...contentJSON },
             });
           } catch (error) {
             // Another process won initialization. Loading its bytes avoids duplicate
@@ -181,12 +170,6 @@ export function convexDocuments(url: string) {
         // Prevent unsaved rejected edits from later being persisted under another
         // connection's identity. Clients keep their local Y.Doc for recovery.
         document.getConnections().forEach((connection) => {
-          connection.sendStateless(
-            JSON.stringify({
-              type: "save-failed",
-              message: "Document was not saved. Reconnect to reload your access and merge local changes.",
-            })
-          );
           connection.close({ code: 4003, reason: "Document persistence failed." });
         });
         await instance.unloadDocument(document);

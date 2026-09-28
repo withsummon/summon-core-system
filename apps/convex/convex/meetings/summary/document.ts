@@ -4,6 +4,7 @@ import { snapshotFields } from "../../documents/schema";
 import type { MutationCtx } from "../../_generated/server";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { api } from "../../_generated/api";
+import { saveDocumentSnapshot } from "../../documents/index";
 const snapshotValidator = v.object(snapshotFields);
 export async function writeCanonicalDocument(
   ctx: MutationCtx,
@@ -53,7 +54,7 @@ export async function writeCanonicalDocument(
       externalId: null,
       externalSource: null,
     });
-  await ctx.runMutation(api.documents.index.saveSnapshot, {
+  await saveDocumentSnapshot(ctx, {
     documentId,
     expectedRevision: existing?.revision ?? 0,
     descriptionBinary: snapshot.descriptionBinary,

@@ -1,14 +1,18 @@
-import { useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { AlertModalCore } from "@plane/ui";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { SummonField } from "@/components/summon/forms";
-import { cardClass, field, mutationMessage, selectClass } from "../commercial/forms";
+import { cardClass, mutationMessage, selectClass } from "../commercial/forms";
 
-const newDocument = {
+export const newDocument = {
   name: "",
   access: "private",
   isGlobal: false,
@@ -30,128 +34,188 @@ export function MetadataForm({
   canManage,
   onDone,
   onCancel,
+  dialog = false,
 }: {
   workspaceId: Id<"workspaces">;
   document: Doc<"documents"> | null;
   canManage: boolean;
   onDone: (id: Id<"documents">) => void;
   onCancel: () => void;
+  dialog?: boolean;
 }) {
   const create = useMutation(api.documents.index.create);
   const update = useMutation(api.documents.index.update);
   const projects = useQuery(api.projects.index.list, { workspaceId });
   const [initialDocument] = useState(document);
   const initial = initialDocument ?? newDocument;
-  const [visibility, setVisibility] = useState(
-    initial.access === "private" ? "private" : initial.isGlobal ? "workspace" : "projects"
-  );
-  const [projectIds, setProjectIds] = useState<Id<"projects">[]>(initial.projectIds);
-  const [pending, setPending] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { isDirty, isSubmitting },
+  } = useForm<Omit<FunctionArgs<typeof api.documents.index.create>, "workspaceId">>({ defaultValues: initial });
+  const access = watch("access");
+  const isGlobal = watch("isGlobal");
+  const projectIds = watch("projectIds");
+  const visibility = access === "private" ? "private" : isGlobal ? "workspace" : "projects";
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  const continuation = useRef<typeof onDone | null>(null);
+  const leave = useCallback(() => {
+    continuation.current = null;
+  }, []);
+  const release = useReloadConfirmations(isDirty || isSubmitting, "The page settings have not been saved yet.", leave);
+  useEffect(() => leave, [leave]);
   const visibilityId = useId();
-  return (
+  const close = () => {
+    if (isSubmitting) return;
+    if (isDirty) setConfirming(true);
+    else onCancel();
+  };
+  const content = (
     <form
-      className={`${cardClass} grid gap-4 sm:grid-cols-2`}
-      onSubmit={async (event) => {
-        event.preventDefault();
-        const form = new FormData(event.currentTarget);
-        setPending(true);
+      className={cardClass}
+      onSubmit={handleSubmit(async (metadata) => {
+        continuation.current = onDone;
         setError("");
         try {
-          const metadata = {
-            name: field(form, "name"),
-            access: visibility === "private" ? ("private" as const) : ("public" as const),
-            isGlobal: visibility === "private" ? initial.isGlobal : visibility === "workspace",
-            projectIds,
-            category: field(form, "category"),
-            tags: field(form, "tags")
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter(Boolean),
-            color: initial.color,
-            viewProps: initial.viewProps,
-            logoProps: initial.logoProps,
-            sortOrder: initial.sortOrder,
-            clientId: initial.clientId,
-            opportunityId: initial.opportunityId,
-            externalId: initial.externalId,
-            externalSource: initial.externalSource,
-          };
+          let id: Id<"documents">;
           if (initialDocument) {
             await update({
               documentId: initialDocument._id,
               expectedUpdatedAt: initialDocument.updatedAt,
               ...metadata,
             });
-            onDone(initialDocument._id);
-          } else {
-            const id = await create({ workspaceId, ...metadata });
-            onDone(id);
-          }
+            id = initialDocument._id;
+          } else id = await create({ workspaceId, ...metadata });
+          reset(metadata);
+          release((allow) => {
+            const done = continuation.current;
+            continuation.current = null;
+            if (allow) done?.(id);
+          });
         } catch (failure) {
-          setError(mutationMessage(failure));
-        } finally {
-          setPending(false);
+          if (continuation.current !== null) setError(mutationMessage(failure));
+          continuation.current = null;
         }
-      }}
+      })}
     >
-      <h2 className="font-semibold sm:col-span-2">{document ? "Document settings" : "New document"}</h2>
-      <SummonField label="Document name">
-        <Input name="name" required maxLength={255} defaultValue={initial.name} readOnly={document !== null} />
-      </SummonField>
-      <SummonField label="Category">
-        <Input name="category" maxLength={80} defaultValue={initial.category} />
-      </SummonField>
-      <SummonField label="Visibility" htmlFor={visibilityId}>
-        <select
-          id={visibilityId}
-          className={selectClass}
-          value={visibility}
-          disabled={!canManage}
-          onChange={(event) => setVisibility(event.target.value)}
-        >
-          <option value="private">Private · only you</option>
-          <option value="workspace">Workspace members</option>
-          <option value="projects">Selected projects</option>
-        </select>
-      </SummonField>
-      <SummonField label="Tags (comma separated)">
-        <Input name="tags" defaultValue={initial.tags.join(", ")} />
-      </SummonField>
-      {visibility === "projects" && (
-        <fieldset className="space-y-2 sm:col-span-2" disabled={!canManage}>
-          <legend className="text-sm mb-2 font-medium">Projects</legend>
-          {projects
-            ?.filter((project) => project.membershipRole !== "guest" && project.workspaceRole !== "guest")
-            .map((project) => (
-              <label key={project._id} className="text-sm flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={projectIds.includes(project._id)}
-                  onChange={(event) =>
-                    setProjectIds((ids) =>
-                      event.target.checked ? [...ids, project._id] : ids.filter((id) => id !== project._id)
-                    )
-                  }
-                />
-                {project.name}
-              </label>
-            ))}
-        </fieldset>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-danger-primary sm:col-span-2">
-          {error}
-        </p>
-      )}
-      <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" loading={pending}>
-          Save document
-        </Button>
-        <Button variant="secondary" disabled={pending} onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+      <fieldset disabled={isSubmitting} className="grid gap-4 sm:grid-cols-2">
+        {dialog ? (
+          <Dialog.Title className="font-semibold sm:col-span-2">Page settings</Dialog.Title>
+        ) : (
+          <h2 className="font-semibold sm:col-span-2">{document ? "Document settings" : "New document"}</h2>
+        )}
+        <SummonField label="Document name">
+          <Input {...register("name")} required maxLength={255} readOnly={document !== null} />
+        </SummonField>
+        <SummonField label="Category">
+          <Input {...register("category")} maxLength={80} />
+        </SummonField>
+        <SummonField label="Visibility" htmlFor={visibilityId}>
+          <select
+            id={visibilityId}
+            className={selectClass}
+            value={visibility}
+            disabled={!canManage}
+            onChange={(event) => {
+              setValue("access", event.target.value === "private" ? "private" : "public", { shouldDirty: true });
+              if (event.target.value !== "private")
+                setValue("isGlobal", event.target.value === "workspace", { shouldDirty: true });
+            }}
+          >
+            <option value="private">Private · only you</option>
+            <option value="workspace">Workspace members</option>
+            <option value="projects">Selected projects</option>
+          </select>
+        </SummonField>
+        <SummonField label="Tags (comma separated)">
+          <Input
+            defaultValue={initial.tags.join(", ")}
+            onChange={(event) =>
+              setValue(
+                "tags",
+                event.target.value
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean),
+                { shouldDirty: true }
+              )
+            }
+          />
+        </SummonField>
+        {visibility === "projects" && (
+          <fieldset className="space-y-2 sm:col-span-2" disabled={!canManage}>
+            <legend className="text-sm mb-2 font-medium">Projects</legend>
+            {projects
+              ?.filter((project) => project.membershipRole !== "guest" && project.workspaceRole !== "guest")
+              .map((project) => (
+                <label key={project._id} className="text-sm flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={projectIds.includes(project._id)}
+                    onChange={(event) =>
+                      setValue(
+                        "projectIds",
+                        event.target.checked
+                          ? [...projectIds, project._id]
+                          : projectIds.filter((id) => id !== project._id),
+                        { shouldDirty: true }
+                      )
+                    }
+                  />
+                  {project.name}
+                </label>
+              ))}
+          </fieldset>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-danger-primary sm:col-span-2">
+            {error}
+          </p>
+        )}
+        <div className="flex gap-2 sm:col-span-2">
+          <Button type="submit" loading={isSubmitting}>
+            {isSubmitting ? "Saving…" : "Save document"}
+          </Button>
+          <Button variant="secondary" disabled={isSubmitting} onClick={close}>
+            Cancel
+          </Button>
+        </div>
+      </fieldset>
     </form>
+  );
+  return (
+    <>
+      {dialog ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) close();
+          }}
+        >
+          <Dialog.Panel width={EDialogWidth.XXL} className="p-4 sm:p-6">
+            {content}
+          </Dialog.Panel>
+        </Dialog>
+      ) : (
+        content
+      )}
+      {confirming && (
+        <AlertModalCore
+          isOpen
+          isSubmitting={isSubmitting}
+          handleClose={() => setConfirming(false)}
+          handleSubmit={onCancel}
+          title="Discard page settings?"
+          content="Your changes to the page settings will be lost."
+          variant="primary"
+          primaryButtonText={{ default: "Discard", loading: "Discarding…" }}
+          secondaryButtonText="Keep editing"
+        />
+      )}
+    </>
   );
 }

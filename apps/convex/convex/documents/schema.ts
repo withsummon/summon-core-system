@@ -24,6 +24,7 @@ export const snapshotFields = {
   descriptionHtml: v.string(),
   descriptionJson: jsonObject,
 };
+export const MAX_DOCUMENT_SNAPSHOT_BYTES = 524288;
 export const documentTables = {
   documentReferenceJobs: defineTable({
     documentId: v.id("documents"),
@@ -78,7 +79,7 @@ export const documentTables = {
     .index("by_parent", ["parentId"]),
   documents: defineTable({
     ...documentFields,
-    nameOrder: v.optional(v.string()),
+    nameOrder: v.string(),
     workspaceId: v.id("workspaces"),
     ownedBy: v.id("users"),
     revision: v.number(),
@@ -89,6 +90,8 @@ export const documentTables = {
     updatedBy: v.id("users"),
   })
     .index("by_workspace", ["workspaceId", "deleted"])
+    .index("by_workspace_name", ["workspaceId", "deleted", "nameOrder"])
+    .index("by_workspace_updated", ["workspaceId", "deleted", "updatedAt"])
     .index("by_workspace_owner_deleted", ["workspaceId", "ownedBy", "deleted"]),
   documentRevisions: defineTable({
     ...snapshotFields,

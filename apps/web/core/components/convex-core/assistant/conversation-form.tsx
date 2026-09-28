@@ -192,7 +192,7 @@ function DocumentContext({
     <fieldset className="space-y-2">
       <legend className="text-sm mb-2 font-medium">Documents</legend>
       <div className="max-h-44 space-y-2 overflow-y-auto">
-        {results.map((document) => (
+        {results.map(({ document }) => (
           <label key={document._id} className="text-sm flex gap-2">
             <input
               type="checkbox"
@@ -210,7 +210,7 @@ function DocumentContext({
           </label>
         ))}
         {value.documentIds
-          .filter((id) => !results.some((document) => document._id === id))
+          .filter((id) => !results.some(({ document }) => document._id === id))
           .map((id) => (
             <label className="text-sm flex gap-2" key={id}>
               <input

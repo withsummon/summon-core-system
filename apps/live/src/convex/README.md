@@ -2,30 +2,25 @@
 
 ## Owner and protocol
 
-The separate `convex-start.ts` process accepts only `convex:<documentId>` rooms and a raw Convex Auth JWT in the Hocuspocus provider token. It has no Django cookie fallback and never uses service/admin credentials. The existing `start.ts` process and legacy page rooms remain unchanged.
+The separate `convex-start.ts` process accepts `convex:<documentId>` rooms and the bearer token issued by the configured Convex authentication integration. Each connection uses its own user identity. Convex owns document access, revisions and persisted content; Hocuspocus owns the shared Y.Doc.
 
-Convex verifies the JWT and derives the user and canonical document ID in `documents.collaborationContext`. Workspace, private-document and project visibility remain backend-owned. Hocuspocus owns the shared Y.Doc; the existing `@plane/editor/lib` converter derives HTML/JSON from its encoded state.
+Load applies stored Yjs bytes. The first writable connection initializes content using revision-zero compare-and-swap. Competing connections load the winning seed. Save merges the newest stored snapshot, then sends bytes and the expected revision to `documents.historyActions.save`. That Node action derives HTML, JSON and title with the existing editor converter. Its internal mutation rechecks access, size and revision in the write transaction. Only `DOCUMENT_REVISION_CONFLICT` retries, with a fresh merge, up to three attempts.
 
-Load applies stored Yjs bytes directly. The first writable connection initializes an empty document from its metadata title using revision-zero compare-and-swap; competing processes load the winning seed instead of merging duplicate initial titles. Save fetches the newest snapshot, merges it with `Y.applyUpdate`, regenerates renderings, then performs an atomic revision-checked mutation including the editor-derived title. Only the structured `DOCUMENT_REVISION_CONFLICT` error triggers a retry, with a new load/merge each time, up to three attempts.
+Each connection subscribes to its authorized context and snapshot. Durable updates propagate between live processes without scheduling another save. Incoming messages recheck access before applying updates. Access revocation, token expiry or a lost authorization subscription closes the connection. Failed persistence closes and quarantines the room; the server evicts that document instance before another connection loads durable content.
 
-Already durable snapshots use the default non-client Yjs origin. Hocuspocus broadcasts those updates without scheduling a new save with missing client identity; pending authenticated client saves still merge the latest durable content.
-
-Other failures report an unsaved-document event, close the room's clients, quarantine that document instance and evict its cached state. The dedicated Hocuspocus subclass removes a room by object identity before asynchronous unload hooks, preventing an old disconnect from evicting a newly loaded generation. A fresh connection loads only durable content. No service identity retries rejected edits. Clients must pause after save failure rather than automatically retransmit their entire old shared Y.Doc.
-
-Each connection subscribes to its authorized context and current snapshot using that same user's JWT. This updates read-only permissions, propagates persisted changes from other live processes, and closes a revoked reader. Incoming messages recheck permissions before Hocuspocus applies them, and persistence checks again. Losing an established Convex subscription connection closes the document connection so an idle reader cannot continue receiving changes with an unmonitored ACL.
+The native editor compares its local bytes with the stored snapshot before permitting navigation. Transport synchronization alone does not establish persistence. Disconnected clients can download their local copy. IndexedDB replay is disabled for Convex rooms, and rejected content is not retried under another user's identity.
 
 ## Run locally
 
-Build with `pnpm --filter live build`. Start with `CONVEX_URL=http://127.0.0.1:3210 CONVEX_LIVE_PORT=1235 node apps/live/dist/convex-start.mjs`. The standalone script accepts `CONVEX_URL` and `CONVEX_LIVE_URL` and creates isolated test users/documents:
+Build through the repository's dependency graph:
 
 ```sh
-node apps/live/src/convex/__tests__/network-smoke.mjs
+pnpm turbo run build --filter=live
+CONVEX_URL=http://127.0.0.1:3220 CONVEX_LIVE_HOST=127.0.0.1 CONVEX_LIVE_PORT=3235 node apps/live/dist/convex-start.mjs
 ```
 
-Hook tests live in the same `__tests__` folder and use real Yjs plus the real editor converter, with the Convex network mocked. The network smoke uses real Password signup/JWT verification and actual Hocuspocus providers. It verifies bidirectional edits, persisted merged HTML, title initialization, locked-write rejection, revocation disconnect and rejection of unsaved bytes after a fresh authorized reconnect. It creates test data and emits only a document ID and outcome flags, never tokens.
+Build the web app with `VITE_CONVEX_LIVE_URL=ws://127.0.0.1:3235` and the matching Convex API and auth-site URLs. The original `start.ts` still serves inherited Django-backed rooms until their migration gates pass.
 
 ## Remaining integration and limits
 
-The native `/core` editor now selects this endpoint/room prefix, supplies refreshed JWTs, handles permission/save-failed events and offers an explicit download of unsaved recovery content. IndexedDB replay is disabled for Convex rooms; rejected shared state cannot be silently replayed under another identity. Legacy page routes continue using the original live service. This server cannot refresh a user's JWT; expiration fails closed and the client must reconnect with a fresh token. Page parent notifications, admin force-close routes and PDF/file side effects are not wired into this process.
-
-Multi-process content convergence uses durable Convex snapshot subscriptions; transient awareness/presence is limited to a single live process until a dedicated shared awareness transport is implemented. Authorization currently makes an HTTP query before every incoming message, which adds network latency and backend load; neither is benchmarked here. This slice is not a production deployment, capacity benchmark or rendered editor QA result. The backend snapshot size limits still apply, and raw public snapshot writes are not independently validated as Yjs by Convex.
+Transient awareness is limited to one live process. Document access currently requires an HTTP query before each incoming message; its latency and load need equivalent benchmarks. Parent notifications, administration force-close endpoints and PDF side effects still need integration with this process. Workspace document size limits apply. Local source or build verification does not establish production deployment, full editor parity or capacity.

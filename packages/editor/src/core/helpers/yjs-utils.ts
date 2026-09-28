@@ -180,25 +180,21 @@ export const getAllDocumentFormatsFromRichTextEditorBinaryData = (
  * @returns
  */
 export const getAllDocumentFormatsFromDocumentEditorBinaryData = (
-  description: Uint8Array,
-  updateTitle: boolean
+  description: Uint8Array
 ): {
   contentBinaryEncoded: string;
-  contentJSON: object;
+  contentJSON: JSONContent;
   contentHTML: string;
-  titleHTML?: string;
+  titleHTML: string;
 } => {
   // encode binary description data
   const base64Data = convertBinaryDataToBase64String(description);
   const yDoc = new Y.Doc();
-  Y.applyUpdate(yDoc, description);
-  // convert to JSON
-  const type = yDoc.getXmlFragment("default");
-  const contentJSON = yXmlFragmentToProseMirrorRootNode(type, documentEditorSchema).toJSON();
-  // convert to HTML
-  const contentHTML = generateHTML(contentJSON, DOCUMENT_EDITOR_EXTENSIONS);
-
-  if (updateTitle) {
+  try {
+    Y.applyUpdate(yDoc, description);
+    const type = yDoc.getXmlFragment("default");
+    const contentJSON = yXmlFragmentToProseMirrorRootNode(type, documentEditorSchema).toJSON();
+    const contentHTML = generateHTML(contentJSON, DOCUMENT_EDITOR_EXTENSIONS);
     const title = yDoc.getXmlFragment("title");
     const titleJSON = yXmlFragmentToProseMirrorRootNode(title, documentEditorSchema).toJSON();
     const titleHTML = extractTextFromHTML(generateHTML(titleJSON, DOCUMENT_EDITOR_EXTENSIONS));
@@ -209,12 +205,8 @@ export const getAllDocumentFormatsFromDocumentEditorBinaryData = (
       contentHTML,
       titleHTML,
     };
-  } else {
-    return {
-      contentBinaryEncoded: base64Data,
-      contentJSON,
-      contentHTML,
-    };
+  } finally {
+    yDoc.destroy();
   }
 };
 
@@ -251,10 +243,8 @@ export const convertHTMLDocumentToAllFormats = (args: TConvertHTMLDocumentToAllF
     // Convert HTML to binary format for document editor
     const contentBinary = getBinaryDataFromDocumentEditorHTMLString(document_html);
     // Generate all document formats from the binary data
-    const { contentBinaryEncoded, contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(
-      contentBinary,
-      false
-    );
+    const { contentBinaryEncoded, contentHTML, contentJSON } =
+      getAllDocumentFormatsFromDocumentEditorBinaryData(contentBinary);
     allFormats = {
       description_json: contentJSON,
       description_html: contentHTML,
@@ -272,12 +262,12 @@ export const extractTextFromHTML = (html: string): string => {
   // This is more secure than regex as it handles edge cases and prevents injection
   // Note: sanitizeHTML trims whitespace, which is acceptable for title extraction
   const sanitizedText = sanitizeHTML(html); // sanitize the string to remove all HTML tags
-  return sanitizedText.trim() || ""; // trim the string to remove leading and trailing whitespaces
+  return sanitizedText.trim();
 };
 
 /** Document copies get fresh CRDT identities and independently owned image sources. */
 export function documentEditorAssetSources(binary: Uint8Array): string[] {
-  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, false);
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
   const document = documentEditorSchema.nodeFromJSON(contentJSON);
   const sources = new Set<string>();
   document.descendants((node) => {
@@ -294,7 +284,7 @@ export function duplicateDocumentEditorBinary(
   title: string,
   sources: Record<string, string>
 ): Uint8Array {
-  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, false);
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
   const document = documentEditorSchema.nodeFromJSON(contentJSON);
   function remap(node: JSONContent): JSONContent {
     const result = { ...node, ...(node.content ? { content: node.content.map(remap) } : {}) };

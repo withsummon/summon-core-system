@@ -102,7 +102,7 @@ export class PdfExportService extends Effect.Service<PdfExportService>()("PdfExp
         }
 
         const binaryData = new Uint8Array(descriptionBinary);
-        const { contentJSON, titleHTML } = getAllDocumentFormatsFromDocumentEditorBinaryData(binaryData, true);
+        const { contentJSON, titleHTML } = getAllDocumentFormatsFromDocumentEditorBinaryData(binaryData);
 
         return {
           contentJSON: contentJSON as TipTapDocument,
@@ -162,17 +162,19 @@ export class PdfExportService extends Effect.Service<PdfExportService>()("PdfExp
         });
 
         // Resolve URLs first
-        const resolvedUrlMap = yield* tryAsync(
-          async () => {
-            const urlMap = new Map<string, string>();
-            for (const assetId of assetIds) {
-              const url = await pageService.resolveImageAssetUrl?.(workspaceSlug, assetId, projectId);
-              if (url) urlMap.set(assetId, url);
-            }
-            return urlMap;
-          },
-          () => new Map<string, string>()
-        ).pipe(recoverWithDefault(new Map<string, string>()));
+        const resolvedUrlMap = yield* Effect.forEach(
+          assetIds,
+          (assetId) =>
+            tryAsync(
+              async () =>
+                [assetId, await pageService.resolveImageAssetUrl?.(workspaceSlug, assetId, projectId)] as const,
+              () => new Map<string, string>()
+            ),
+          { concurrency: 1 }
+        ).pipe(
+          Effect.map((entries) => new Map(entries.flatMap<[string, string]>(([id, url]) => (url ? [[id, url]] : [])))),
+          recoverWithDefault(new Map<string, string>())
+        );
 
         if (resolvedUrlMap.size === 0) {
           return {};

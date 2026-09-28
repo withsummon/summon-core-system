@@ -1,34 +1,50 @@
-import { ConvexError, v } from "convex/values";
+import { compareValues, ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { query, mutation } from "../_generated/server";
+import { stream } from "convex-helpers/server/stream";
+import { query, mutation, internalMutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
 import { scheduleDocumentReferences } from "./references";
-import { documentFields, snapshotFields } from "./schema";
+import { documentFields, snapshotFields, MAX_DOCUMENT_SNAPSHOT_BYTES } from "./schema";
+import schema from "../schema";
+import { pageBudget } from "../commercial/validation";
+import { renderedProjectLogo } from "../projects/branding_schema";
+import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 
 export async function validateDocumentMetadata(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
-  data: Pick<Doc<"documents">, keyof typeof documentFields>
+  data: Pick<Doc<"documents">, keyof typeof documentFields>,
+  previous?: Doc<"documents">
 ) {
+  renderedProjectLogo(data.logoProps);
   if (data.name.length > 255 || data.category.length > 80 || data.tags.length > 100 || !Number.isFinite(data.sortOrder))
     throw new ConvexError("Invalid document metadata.");
   if (data.projectIds.length > 20 || new Set(data.projectIds).size !== data.projectIds.length)
     throw new ConvexError("Choose up to 20 distinct projects.");
   if (!data.isGlobal && data.projectIds.length === 0 && data.access === "public")
     throw new ConvexError("Public documents need a project or workspace visibility.");
+  const visibilityChanged =
+    !previous ||
+    previous.access !== data.access ||
+    previous.isGlobal !== data.isGlobal ||
+    compareValues(previous.projectIds, data.projectIds) !== 0;
+  const projectIds = new Set(data.projectIds);
+  if (previous && visibilityChanged) previous.projectIds.forEach((id) => projectIds.add(id));
   await Promise.all(
-    data.projectIds.map(async (projectId) => {
+    [...projectIds].map(async (projectId) => {
+      if (!visibilityChanged && previous?.projectIds.includes(projectId)) return;
       const { project } = await requireProject(ctx, projectId, true);
       if (project.workspaceId !== workspaceId) throw new ConvexError("Project belongs to another workspace.");
     })
   );
   await Promise.all(
-    [data.clientId, data.opportunityId].map(async (id) => {
-      if (!id) return;
+    (["clientId", "opportunityId"] as const).map(async (key) => {
+      const id = data[key];
+      if (!id || (!visibilityChanged && id === previous?.[key])) return;
       const record = await ctx.db.get(id);
       if (!record || record.deleted || record.workspaceId !== workspaceId)
         throw new ConvexError("Context belongs to another workspace.");
@@ -43,6 +59,7 @@ export const create = mutation({
     await validateDocumentMetadata(ctx, args.workspaceId, args);
     return ctx.db.insert("documents", {
       ...args,
+      nameOrder: args.name.toLowerCase(),
       ownedBy: user._id,
       revision: 0,
       isLocked: false,
@@ -57,64 +74,136 @@ export const get = query({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => (await requireDocument(ctx, args.documentId)).document,
 });
+async function documentContext(
+  ctx: QueryCtx,
+  { document, user, member }: Awaited<ReturnType<typeof requireDocument>>,
+  projectId?: Id<"projects">
+) {
+  const canWrite =
+    member.role !== "guest" &&
+    !document.isLocked &&
+    !document.archived &&
+    (await canAccessDocument(ctx, document, user._id, true, projectId));
+  return {
+    documentId: document._id,
+    userId: user._id,
+    name: user.name ?? user.email ?? null,
+    documentName: document.name,
+    canWrite,
+    canManage: member.role !== "guest" && document.ownedBy === user._id,
+    logo: renderedProjectLogo(document.logoProps),
+  };
+}
 export const collaborationContext = query({
   args: { documentId: v.string() },
   handler: async (ctx, args) => {
     const documentId = ctx.db.normalizeId("documents", args.documentId);
     if (!documentId) throw new ConvexError("Document not found.");
-    const { document, user, member } = await requireDocument(ctx, documentId);
-    const canWrite =
-      member.role !== "guest" &&
-      !document.isLocked &&
-      !document.archived &&
-      (await canAccessDocument(ctx, document, user._id, true));
-    return {
-      documentId,
-      userId: user._id,
-      name: user.name ?? user.email ?? null,
-      documentName: document.name,
-      canWrite,
-    };
+    return documentContext(ctx, await requireDocument(ctx, documentId));
+  },
+});
+export const resolve = query({
+  args: { workspaceId: v.id("workspaces"), projectId: v.string(), documentId: v.string() },
+  handler: async (ctx, args) => {
+    const projectId = ctx.db.normalizeId("projects", args.projectId);
+    if (!projectId) throw new ConvexError("Project not found.");
+    const access = await requireProject(ctx, projectId);
+    if (access.workspace._id !== args.workspaceId) throw new ConvexError("Project not found.");
+    const documentId = ctx.db.normalizeId("documents", args.documentId);
+    const document = documentId ? await ctx.db.get(documentId) : null;
+    if (
+      !document ||
+      document.workspaceId !== args.workspaceId ||
+      !document.projectIds.includes(projectId) ||
+      !(await canAccessDocument(ctx, document, access.user._id, false, projectId))
+    )
+      return null;
+    return { document, context: await documentContext(ctx, { ...access, document }, projectId) };
   },
 });
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    pageType: v.optional(v.union(v.literal("public"), v.literal("private"), v.literal("archived"))),
+    search: v.optional(v.string()),
+    sortKey: v.optional(v.union(v.literal("name"), v.literal("created_at"), v.literal("updated_at"))),
+    sortBy: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId);
-    if (
-      !Number.isSafeInteger(args.paginationOpts.numItems) ||
-      args.paginationOpts.numItems < 1 ||
-      args.paginationOpts.numItems > 100
-    )
-      throw new ConvexError("Choose 1–100 documents.");
-    const result = await ctx.db
+    const access = await requireWorkspace(ctx, args.workspaceId);
+    const project = args.projectId ? await requireProject(ctx, args.projectId) : null;
+    if (project && project.workspace._id !== args.workspaceId) throw new ConvexError("Project not found.");
+    const search = (args.search ?? "").toLowerCase();
+    const index = {
+      name: "by_workspace_name",
+      created_at: "by_workspace",
+      updated_at: "by_workspace_updated",
+    } as const;
+    return stream(ctx.db, schema)
       .query("documents")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
-      .order("desc")
-      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
-    const visible = await Promise.all(
-      result.page.map(async (document) => ((await canAccessDocument(ctx, document, user._id)) ? document : null))
-    );
-    return { ...result, page: visible.filter((document) => document !== null) };
+      .withIndex(index[args.sortKey ?? "created_at"], (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
+      .order(args.sortBy ?? "desc")
+      .filterWith(async (document) => {
+        if (args.projectId && !document.projectIds.includes(args.projectId)) return false;
+        if (
+          args.pageType === "archived"
+            ? !document.archived
+            : args.pageType && (document.archived || document.access !== args.pageType)
+        )
+          return false;
+        if (!(document.name.trim() ? document.name : "Untitled").toLowerCase().includes(search)) return false;
+        return canAccessDocument(ctx, document, access.user._id, false, args.projectId);
+      })
+      .map(async (document) => {
+        const owner = await ctx.db.get(document.ownedBy);
+        const membership = await ctx.db
+          .query("workspaceMembers")
+          .withIndex("by_workspace_user", (q) =>
+            q.eq("workspaceId", document.workspaceId).eq("userId", document.ownedBy)
+          )
+          .unique();
+        return {
+          document,
+          canManage: access.member.role !== "guest" && document.ownedBy === access.user._id,
+          logo: renderedProjectLogo(document.logoProps),
+          owner: {
+            name: owner?.name ?? null,
+            avatar: membership?.active
+              ? await personalImageDescriptor(
+                  ctx,
+                  await userAppearance(ctx, document.ownedBy),
+                  "avatar",
+                  document.workspaceId
+                )
+              : null,
+          },
+        };
+      })
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 
 export const update = mutation({
-  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...documentFields },
+  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...v.object(documentFields).partial().fields },
   handler: async (ctx, { documentId, expectedUpdatedAt, ...metadata }) => {
     const { document, user } = await requireDocument(ctx, documentId, true);
     requireMetadataVersion(document, expectedUpdatedAt);
     if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
+    const updated = { ...document, ...metadata };
     if (
       document.ownedBy !== user._id &&
-      (metadata.access !== document.access ||
-        metadata.isGlobal !== document.isGlobal ||
-        JSON.stringify(metadata.projectIds) !== JSON.stringify(document.projectIds))
+      (updated.access !== document.access ||
+        updated.isGlobal !== document.isGlobal ||
+        compareValues(updated.projectIds, document.projectIds) !== 0)
     )
       throw new ConvexError("Only the owner can change document visibility.");
-    await validateDocumentMetadata(ctx, document.workspaceId, metadata);
+    await validateDocumentMetadata(ctx, document.workspaceId, updated, document);
+    if (compareValues(updated, document) === 0) return;
     await ctx.db.patch(documentId, {
       ...metadata,
+      ...(metadata.name === undefined ? {} : { nameOrder: metadata.name.toLowerCase() }),
       updatedBy: user._id,
       updatedAt: Math.max(Date.now(), document.updatedAt + 1),
     });
@@ -139,8 +228,8 @@ export const setLifecycle = mutation({
     });
   },
 });
-// CAS transport preserves the exact Yjs bytes. The editor/Hocuspocus owner must merge
-// concurrent changes and regenerate HTML/JSON before retrying a revision conflict.
+// Public saves decode Yjs in the Node action before this transactional writer.
+// Hocuspocus merges concurrent bytes before retrying a revision conflict.
 const snapshotWrite = v.object({
   documentId: v.id("documents"),
   expectedRevision: v.number(),
@@ -161,7 +250,7 @@ export async function saveDocumentSnapshot(
     });
   if (
     snapshot.descriptionBinary.byteLength === 0 ||
-    snapshot.descriptionBinary.byteLength > 524288 ||
+    snapshot.descriptionBinary.byteLength > MAX_DOCUMENT_SNAPSHOT_BYTES ||
     snapshot.descriptionHtml.length > 100000 ||
     JSON.stringify(snapshot.descriptionJson).length > 100000
   )
@@ -178,11 +267,11 @@ export async function saveDocumentSnapshot(
     revision,
     updatedAt: Math.max(Date.now(), document.updatedAt + 1),
     updatedBy: user._id,
-    ...(name === undefined ? {} : { name }),
+    ...(name === undefined ? {} : { name, nameOrder: name.toLowerCase() }),
   });
   return revision;
 }
-export const saveSnapshot = mutation({ args: snapshotWrite, handler: saveDocumentSnapshot });
+export const saveSnapshot = internalMutation({ args: snapshotWrite, handler: saveDocumentSnapshot });
 
 export const snapshot = query({
   args: { documentId: v.id("documents"), revision: v.optional(v.number()) },

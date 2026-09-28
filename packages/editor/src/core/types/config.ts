@@ -53,7 +53,6 @@ export type TRealtimeConfig = {
   roomName?: string;
   cacheKey?: string;
   persistOffline?: boolean;
-  onStateless?: (payload: string) => void;
 };
 
 export type IMarking = {
