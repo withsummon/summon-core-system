@@ -154,7 +154,7 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
         </div>
       )}
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className={cn("flex min-w-0 flex-1 flex-col overflow-hidden", pane && "max-md:hidden")}>
           {isStickyToolbarEnabled && editable && (
             <div id="page-toolbar-container" className="hidden min-h-[52px] shrink-0 items-center px-page-x md:flex">
               <div
@@ -221,7 +221,7 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
           </div>
         </div>
         {pane && (
-          <aside className="flex h-full w-[294px] shrink-0 flex-col border-l border-subtle bg-surface-1 pt-3.5">
+          <aside className="flex h-full w-full shrink-0 flex-col border-l border-subtle bg-surface-1 pt-3.5 md:w-[294px]">
             <div className="mb-3.5 flex items-center gap-3 px-3.5">
               <button
                 type="button"
