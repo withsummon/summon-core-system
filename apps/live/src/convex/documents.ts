@@ -97,6 +97,14 @@ async function persist(document: Document, auth: DocumentSession, attempt = 0): 
   // is a Yjs merge, not replacement; concurrent local edits remain in this document.
   if (latest) Y.applyUpdate(document, new Uint8Array(latest.descriptionBinary));
   const bytes = Y.encodeStateAsUpdate(document);
+  if (latest) {
+    const stored = new Uint8Array(latest.descriptionBinary);
+    const snapshot = Y.createSnapshot(
+      Y.decodeUpdate(stored).ds,
+      Y.decodeStateVector(Y.encodeStateVectorFromUpdate(stored))
+    );
+    if (Y.snapshotContainsUpdate(snapshot, bytes)) return;
+  }
   try {
     await auth.http.action(api.documents.historyActions.save, {
       documentId: access.documentId,
