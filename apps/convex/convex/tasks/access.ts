@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
+import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 export function taskIsActive(task: Doc<"tasks">) {
   return task.status !== "triage" && task.deletedAt === null && task.archivedAt === null;
 }
@@ -53,11 +54,44 @@ export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "act
 }
 
 export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof requireTask>>) {
-  const { user, member, projectMember } = await requireProject(ctx, task.projectId);
+  const { user, member, projectMember, project } = await requireProject(ctx, task.projectId);
   const writer = member.role !== "guest" && projectMember.role !== "guest";
   const recovery = task.createdBy === user._id || projectMember.role === "admin";
+  const assignees = await Promise.all(
+    task.assigneeIds.map(async (id) => {
+      const [person, projectMembership, workspaceMembership] = await Promise.all([
+        ctx.db.get(id),
+        ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", id))
+          .unique(),
+        ctx.db
+          .query("workspaceMembers")
+          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
+          .unique(),
+      ]);
+      const selectable = Boolean(
+        person &&
+        projectMembership?.active &&
+        projectMembership.role !== "guest" &&
+        workspaceMembership?.active &&
+        workspaceMembership.role !== "guest"
+      );
+      return {
+        id,
+        name: person?.name ?? null,
+        email: selectable ? (person?.email ?? null) : null,
+        avatar:
+          person && workspaceMembership?.active
+            ? await personalImageDescriptor(ctx, await userAppearance(ctx, id), "avatar", project.workspaceId)
+            : null,
+        selectable,
+      };
+    })
+  );
   return {
     ...task,
+    assignees,
     archivedAt: task.archivedAt ?? null,
     deletedAt: task.deletedAt ?? null,
     canEdit: writer && taskIsActive(task),
