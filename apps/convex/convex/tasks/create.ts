@@ -2,7 +2,7 @@ import { requireUsableLabel } from "./label_access";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
-import { status, taskProperties } from "./schema";
+import { priority, status, taskProperties } from "./schema";
 import { requireProject } from "../identity/access";
 import { requireParent } from "./hierarchy";
 import { initialProperties, validateProperties, parseTaskText } from "./properties";
@@ -37,6 +37,16 @@ export async function createTask(
 ) {
   const { title, description, status: nextStatus, ...data } = fields;
   await Promise.all(fields.labelIds.map((id) => requireUsableLabel(ctx, id)));
+  const last = await ctx.db
+    .query("tasks")
+    .withIndex("by_project_state_order", (q) =>
+      q.eq("projectId", project._id).eq("stateId", data.stateId).eq("status", nextStatus).eq("deletedAt", null)
+    )
+    .order("desc")
+    .first();
+  const sortOrder = last ? last.sortOrder + 10000 : 65535;
+  if (!Number.isFinite(sortOrder) || (last && sortOrder <= last.sortOrder))
+    throw new ConvexError("Task ordering has reached its numeric limit.");
   const taskId = await ctx.db.insert("tasks", {
     archivedAt: null,
     deletedAt: null,
@@ -48,11 +58,17 @@ export async function createTask(
     completedAt: nextStatus === "done" ? Date.now() : null,
     status: nextStatus,
     sequence: project.nextSequence,
+    sortOrder,
+    // The actual document timestamp replaces this value before the transaction publishes.
+    createdAtDescending: 0,
+    startDateMissing: data.startDate === null,
+    priorityOrder: priority.members.findIndex(({ value }) => value === data.priority),
     createdBy: userId,
     updatedAt: Date.now(),
   });
   const created = await ctx.db.get(taskId);
   if (!created) throw new Error("Created task missing from transaction.");
+  await ctx.db.patch(taskId, { createdAtDescending: -created._creationTime });
   await writeDescription(ctx, created, userId, { html: html ?? plainDescriptionHtml(description), description }, true);
   await addSubscribers(ctx, taskId, [userId]);
   if (parent) {
