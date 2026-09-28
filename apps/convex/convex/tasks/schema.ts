@@ -142,6 +142,11 @@ export const taskTables = {
     description: v.string(),
     status: taskStatus,
     sequence: v.number(),
+    sortOrder: v.number(),
+    // Ascending value orders retain newest-task ties and place missing dates last.
+    createdAtDescending: v.number(),
+    startDateMissing: v.boolean(),
+    priorityOrder: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
     ...taskProperties,
@@ -150,7 +155,12 @@ export const taskTables = {
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
     .index("by_project_sequence", ["projectId", "sequence"])
+    .index("by_project_state_order", ["projectId", "stateId", "status", "deletedAt", "sortOrder"])
     .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_manual", ["workspaceId", "sortOrder", "createdAtDescending"])
+    .index("by_workspace_start_date", ["workspaceId", "startDateMissing", "startDate", "createdAtDescending"])
+    .index("by_workspace_priority", ["workspaceId", "priorityOrder", "createdAtDescending"])
+    .index("by_workspace_updated", ["workspaceId", "updatedAt"])
     .index("by_state", ["stateId"]),
   taskEvents: defineTable({
     workspaceId: v.id("workspaces"),
