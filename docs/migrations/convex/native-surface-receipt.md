@@ -1,0 +1,66 @@
+# Native registered surfaces
+
+Snapshot: 2026-09-28, committed `d235f3c87981b1b85de16f2303d64c57ac4cb533`; later dirty member/auth/invitation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **601 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+
+## Registered boundaries
+
+| Surface                     |    Rows | Meaning                                                                                                             |
+| --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
+| App RPC                     |     518 | 441 public and 77 internal declarations across generated app modules.                                               |
+| Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
+| HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
+| HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
+| Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
+| Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
+| **Total**                   | **601** | **All OPEN.**                                                                                                       |
+
+The 530 declarations comprise 522 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+
+## HTTP candidates and availability
+
+`http.ts` always mounts asset GET/OPTIONS and assistant POST/OPTIONS. Native auth mounts discovery GET plus GET/POST/OPTIONS under `/api/auth/*` when `betterAuthEnabled` is true. The five Convex Auth factory mounts belong to the alternate branch; three additionally require a configured OAuth provider. These are candidate registrations across branches, not 13 simultaneously active mounts.
+
+Better Auth exposes 58 SDK descriptors: 51 pathful HTTP candidates and seven server APIs. Installed Better Call excludes `SERVER_ONLY` operations from its HTTP router. Better Auth returns 404 for normalized paths in `disabledPaths`; the server `auth.api` registry remains available. Eleven HTTP paths are always disabled, including account lifecycle/password bridges and API-key management. Four more OTP paths depend on the canonical sign-in/reset policy. Thus at most 40 descriptors remain after the fixed exclusions, and 36 in the metadata fixture with all four conditional paths disabled. Neither number proves a reachable or authorized production endpoint: native capability checks, providers, trusted origins, method and auth-engine selection still apply. Prefix mounts are routing owners, not additional SDK functions.
+
+Installed owners: Convex `1.46.0`, Better Auth component `0.12.5`, Better Auth and API-key plugin `1.6.33`, `convex-helpers` `0.1.124`, retained Convex Auth `0.0.95`, and Better Call `1.4.0`. The [workspace manifest](../../../pnpm-workspace.yaml) pins the repository patches for the auth packages. SDK source anchors in the ledger refer to this installed, patched source; reproduce them with those locked versions.
+
+## Acceptance families
+
+Apply the existing [24-family journeys and acceptance rule](current-parity-checklist.md#scope-and-acceptance-rule) to every ledger row, including its exact role, denial/recovery behavior and public contract. These are primary-family declaration counts only; HTTP mounts and SDK descriptors remain separately inventoried. No family is closed by the count.
+
+| Family         | Declarations | Family        | Declarations |
+| -------------- | -----------: | ------------- | -----------: |
+| Identity       |           23 | Account       |           27 |
+| Instance       |            7 | Workspace     |           44 |
+| Shared shell   |           20 | Projects      |           56 |
+| Tasks          |           66 | Cycles        |           20 |
+| Modules        |           18 | Intake        |           14 |
+| Views/search   |           23 | Documents     |           36 |
+| Assets         |           28 | Commercial    |           18 |
+| Meetings       |           18 | Resources/MCP |           37 |
+| Assistant      |           28 | Automation    |           15 |
+| Reporting      |            7 | Notifications |           13 |
+| Public sharing |            0 | External API  |            1 |
+| Stickies       |            9 | Operations    |            2 |
+
+## Seven concrete owner mappings
+
+These locate replacement candidates without asserting REST payload or journey equivalence. Both sides have source anchors in their respective ledgers.
+
+| Inherited registration                                                  | Native candidate                                                        | Remaining boundary                                                                                                                                                         |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/auth/email-check/`                                                    | `identity/entry:check`                                                  | Native credential/magic policy and signup discovery; old response shape is not carried forward.                                                                            |
+| `/api/users/me/`, `/api/users/me/profile/`                              | `identity/profile:{get,save}`, `identity/deactivation/index:deactivate` | Profile and lifecycle ownership; activity/graph APIs are separate journeys.                                                                                                |
+| `/api/users/me/notification-preferences/`                               | `notifications/index:{preferences,savePreferences}`                     | Notifications owns storage; Account owns tab acceptance; real delivery is separate.                                                                                        |
+| `/api/workspaces/`                                                      | `workspaces/index:{list,create}`                                        | Native directory/create ownership; onboarding, invitations and the external REST envelope need their own acceptance.                                                       |
+| `/api/users/last-visited-workspace/`                                    | `identity/preferences:{destination,selectWorkspace}`                    | Profile preferences and current membership own selection; shell navigation remains a separate journey.                                                                     |
+| `/api/users/api-tokens/`, `/api/users/api-tokens/<uuid:pk>/`            | `identity/apiTokens:{list,create,revoke}`; internal `verify`            | Management is distinct from an external transport. Native IDs, hashing, rate windows and expired-row retention do not establish `/api/v1/` equivalence.                    |
+| `/api/summon/workspaces/<str:slug>/projects/<uuid:project_id>/profile/` | `commercial/delivery:{getProfile,saveProfile}`                          | Commercial project profile with project permissions. The inherited ledger now assigns Commercial as primary and Projects as secondary; this is not an account-profile API. |
+
+## Verification and limits
+
+Independent checks matched all 245 generated app module names, all 246 inspected module-source hashes against committed `d235f3c879`, 530 declaration anchors, 84 HTTP/SDK owner anchors and all 601 unique ledger rows. Factory exports were checked against installed native constructors; the eight component references carry parent visibility `internal`. The 53 excluded value exports were checked as helpers, schema/config values or routing helpers. Metadata extraction inspected registrations and endpoint options without invoking an endpoint or database operation.
+
+Snapshot `_generated/api.d.ts` SHA-256: `b42ffa23fd48294849d927876265385dc92df3d0751369994d63c0802464b68f`. Oxfmt changed the extraction artifact's raw generated-file digest; the current module set and declaration owners still match. Four common HTTP mount conditions were corrected from auth-engine-dependent to unconditional in the published ledger.
+
+No native inbound `/api/v1/`/webhook, anonymous public-sharing or MCP-server HTTP mount is registered. Internal PAT verification is a candidate owner, and `mcp/*` is an outbound client. Configured endpoint availability, real mail/OAuth/providers, external API capacity, browser dialogs/commands, jobs, backup/restore, rollback and exact served-build identity remain acceptance work. This inventory changes no deployment or parity status.
