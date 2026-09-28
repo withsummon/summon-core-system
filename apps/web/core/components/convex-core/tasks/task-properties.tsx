@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";

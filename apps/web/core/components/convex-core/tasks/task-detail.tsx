@@ -3,8 +3,9 @@ import { TaskEstimate } from "../estimates/selection";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, lazy, Suspense, useState } from "react";
 import type { ReactNode } from "react";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
+import { memberLabel } from "@summon/convex/member-label";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
@@ -111,9 +112,7 @@ function TaskDetailContent({
             </div>
             <div>
               <dt className="text-secondary">Assignees</dt>
-              <dd>
-                <AssigneeNames projectId={project._id} ids={task.assigneeIds} />
-              </dd>
+              <dd>{task.assignees.map(memberLabel).join(", ") || "Unassigned"}</dd>
             </div>
           </dl>
           {!recovery && <TaskEstimate taskId={task._id} />}
@@ -134,30 +133,6 @@ function TaskDetailContent({
       )}
       <TaskLifecycle task={task} />
     </article>
-  );
-}
-function AssigneeNames({ projectId, ids }: { projectId: Id<"projects">; ids: Id<"users">[] }) {
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.tasks.assignees.list,
-    { projectId },
-    { initialNumItems: 100 }
-  );
-  return (
-    <>
-      {ids.length === 0
-        ? "Unassigned"
-        : ids
-            .map((id) => {
-              const person = results.find((user) => user.id === id);
-              return person?.name || person?.email || "Member unavailable or not loaded";
-            })
-            .join(", ")}
-      {status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => loadMore(100)}>
-          Load more members
-        </Button>
-      )}
-    </>
   );
 }
 function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"projects">; onDone: () => void }) {
