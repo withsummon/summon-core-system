@@ -1,7 +1,14 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
-import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
+import {
+  CollaborativeDocumentEditorWithRef,
+  createSnapshot,
+  decodeStateVector,
+  decodeUpdate,
+  encodeStateVectorFromUpdate,
+  snapshotContainsUpdate,
+} from "@plane/editor";
 import type { CollaborationState, EditorRefApi, EditorTitleRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
 import type { Doc } from "@summon/convex/data-model";
@@ -74,23 +81,16 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
   });
   const snapshot = useQuery(api.documents.index.snapshot, { documentId: context.documentId });
   const [binary, setBinary] = useState<Uint8Array | null>(null);
+  const capture = useCallback(() => setBinary(editorRef.current?.getDocument().binary ?? null), []);
   useEffect(() => {
-    if (!ready) return;
-    const capture = () => setBinary(editorRef.current?.getDocument().binary ?? null);
-    capture();
-    const content = editorRef.current?.onStateChange(capture);
-    const title = titleRef.current?.onStateChange(capture);
-    return () => {
-      content?.();
-      title?.();
-    };
-  }, [ready]);
-  const persisted = snapshot ? new Uint8Array(snapshot.descriptionBinary) : null;
-  const isSaving =
-    binary !== null &&
-    (persisted === null ||
-      binary.length !== persisted.length ||
-      !binary.every((value, index) => value === persisted[index]));
+    if (ready) capture();
+  }, [ready, capture]);
+  const persisted = useMemo(() => {
+    if (!snapshot) return null;
+    const bytes = new Uint8Array(snapshot.descriptionBinary);
+    return createSnapshot(decodeUpdate(bytes).ds, decodeStateVector(encodeStateVectorFromUpdate(bytes)));
+  }, [snapshot]);
+  const isSaving = binary !== null && (persisted === null || !snapshotContainsUpdate(persisted, binary));
   useReloadConfirmations(isSaving, "The latest document changes have not been saved yet.");
   const { fontSize, fontStyle, isFullWidth, isStickyToolbarEnabled, handleFullWidth, handleStickyToolbar } =
     usePageFilters();
@@ -212,6 +212,8 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
               extendedEditorProps={extendedEditorProps}
               editorProps={editorProps}
               displayConfig={displayConfig}
+              onTransaction={capture}
+              updatePageProperties={capture}
               containerClassName="h-full p-0 pb-64"
               handleEditorReady={setReady}
               placeholder="Start writing…"

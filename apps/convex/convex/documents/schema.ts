@@ -19,6 +19,8 @@ export const documentFields = {
   externalId: v.union(v.string(), v.null()),
   externalSource: v.union(v.string(), v.null()),
 };
+const { name: _name, ...metadataFields } = documentFields;
+export const documentMetadata = v.object(metadataFields).partial();
 export const snapshotFields = {
   descriptionBinary: v.bytes(),
   descriptionHtml: v.string(),

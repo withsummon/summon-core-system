@@ -21,20 +21,7 @@ export async function writeCanonicalDocument(
     await ctx.runMutation(api.documents.index.update, {
       documentId,
       expectedUpdatedAt: existing.updatedAt,
-      name,
       viewProps: { ...existing.viewProps, ...viewProps },
-      access: existing.access,
-      isGlobal: existing.isGlobal,
-      projectIds: existing.projectIds,
-      color: existing.color,
-      logoProps: existing.logoProps,
-      sortOrder: existing.sortOrder,
-      category: existing.category,
-      tags: existing.tags,
-      clientId: existing.clientId,
-      opportunityId: existing.opportunityId,
-      externalId: existing.externalId,
-      externalSource: existing.externalSource,
     });
   } else
     documentId = await ctx.runMutation(api.documents.index.create, {
@@ -57,6 +44,7 @@ export async function writeCanonicalDocument(
   await saveDocumentSnapshot(ctx, {
     documentId,
     expectedRevision: existing?.revision ?? 0,
+    name,
     descriptionBinary: snapshot.descriptionBinary,
     descriptionHtml: snapshot.descriptionHtml,
     descriptionJson: snapshot.descriptionJson,
