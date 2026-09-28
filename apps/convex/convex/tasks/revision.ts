@@ -15,6 +15,7 @@ export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId:
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   await ctx.db.patch(task._id, {
     updatedAt,
+    titleUpdatedAt: current.title !== task.title ? updatedAt : current.titleUpdatedAt,
     startDateMissing: current.startDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === current.priority),
   });

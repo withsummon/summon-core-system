@@ -42,7 +42,7 @@ export async function writeDescription(
     .withIndex("by_task", (q) => q.eq("taskId", task._id))
     .unique();
   const unchanged = (rich?.html ?? plainDescriptionHtml(task.description)) === content.html;
-  if (!creating && unchanged) return;
+  if (!creating && unchanged) return false;
   if (rich)
     await ctx.db.patch(rich._id, { html: content.html, descriptionJson: undefined, descriptionBinary: undefined });
   else await ctx.db.insert("taskDescriptions", { taskId: task._id, html: content.html });
@@ -53,6 +53,7 @@ export async function writeDescription(
   if (latest && latest.actorId === actorId && now - latest.lastSavedAt <= 600000) {
     await ctx.db.patch(latest._id, { ...data, revision: latest.revision + 1 });
   } else await ctx.db.insert("taskDescriptionVersions", { taskId: task._id, actorId, ...data, revision: 0 });
+  return true;
 }
 
 // Opaque imported editor payloads are preserved only alongside their original HTML.

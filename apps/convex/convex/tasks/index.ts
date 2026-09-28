@@ -1,4 +1,4 @@
-import { taskIsActive, taskDetail, taskCanRead, readableTasks } from "./access";
+import { taskIsActive, taskDetail, taskCanRead, readableTasks, requireTask } from "./access";
 import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
 import { syncPlainDescription } from "./description";
 import { createPreparedTask } from "./create";
@@ -9,6 +9,7 @@ import { query, mutation } from "../_generated/server";
 import { requireProject, requireUser } from "../identity/access";
 import { status, taskProperties } from "./schema";
 import { parseTaskText } from "./properties";
+import { taskChanged } from "./revision";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
@@ -80,5 +81,19 @@ export const update = mutation({
     if (description !== undefined) await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
     await applyPropertyUpdate(ctx, prepared, text);
     return taskId;
+  },
+});
+export const setTitle = mutation({
+  args: { taskId: v.id("tasks"), expectedTitleUpdatedAt: v.number(), title: v.string() },
+  handler: async (ctx, args) => {
+    const task = await requireTask(ctx, args.taskId);
+    const { user } = await requireProject(ctx, task.projectId, true);
+    if (!Number.isSafeInteger(args.expectedTitleUpdatedAt) || args.expectedTitleUpdatedAt !== task.titleUpdatedAt)
+      throw new ConvexError("This title changed while you were editing. Reopen the latest title before saving.");
+    const { title } = parseTaskText(args.title, task.description);
+    if (title === task.title) return { titleUpdatedAt: task.titleUpdatedAt, title };
+    await ctx.db.patch(task._id, { title });
+    const titleUpdatedAt = await taskChanged(ctx, task, user._id);
+    return { titleUpdatedAt, title };
   },
 });

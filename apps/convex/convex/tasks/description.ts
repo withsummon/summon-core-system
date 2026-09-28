@@ -45,8 +45,8 @@ export const save = mutation({
     const { user } = await requireProject(ctx, task.projectId, true);
     await requireDescriptionVersion(ctx, task._id, args.expectedContentVersion);
     const content = await boundDescriptionContent(ctx, task._id, args.html);
-    await writeDescription(ctx, task, user._id, content);
-    await taskChanged(ctx, task, user._id);
-    return task._id;
+    const changed = await writeDescription(ctx, task, user._id, content);
+    if (changed) await taskChanged(ctx, task, user._id);
+    return { contentVersion: await descriptionVersion(ctx, task._id), html: content.html };
   },
 });

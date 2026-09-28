@@ -149,7 +149,7 @@ export const taskTables = {
     priorityOrder: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
-    titleUpdatedAt: v.optional(v.number()),
+    titleUpdatedAt: v.number(),
     ...taskProperties,
     completedAt: v.union(v.number(), v.null()),
   })
