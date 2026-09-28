@@ -1,4 +1,4 @@
-import { addSubscribers } from "./subscriptions";
+import { addSubscribers, removeSubscriber } from "./subscriptions";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
@@ -40,16 +40,8 @@ export const subscribe = mutation({
   handler: async (ctx, args) => {
     const task = await requireDiscussion(ctx, args.taskId, args.subscribed ? "active" : "read");
     const { user } = await requireProject(ctx, task.projectId);
-    const previous = await ctx.db
-      .query("taskSubscriptions")
-      .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
-      .unique();
-    if (!args.subscribed) {
-      if (previous) await ctx.db.delete(previous._id);
-      return;
-    }
-    if (previous) return;
-    await addSubscribers(ctx, task._id, [user._id]);
+    if (args.subscribed) await addSubscribers(ctx, task._id, [user._id]);
+    else await removeSubscriber(ctx, task, user._id);
   },
 });
 export const subscription = query({

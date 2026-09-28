@@ -2,6 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import { selectionFields } from "./selection";
+export const MAX_TASK_SUBSCRIBERS = 100;
 export const emailPreferenceSettings = v.object({
   propertyChange: v.boolean(),
   stateChange: v.boolean(),

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@better-auth/api-key": "1.6.33",
+    "@convex-dev/aggregate": "catalog:",
     "@convex-dev/auth": "catalog:",
     "@convex-dev/better-auth": "0.12.5",
     "@plane/editor": "workspace:*",

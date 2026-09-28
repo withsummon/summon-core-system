@@ -8,14 +8,21 @@ export function taskIsActive(task: Doc<"tasks">) {
 export function taskIsReadable(task: Doc<"tasks">) {
   return task.status !== "triage" && task.deletedAt === null;
 }
+export function taskRoleCanReadAll(
+  workspaceRole: Doc<"workspaceMembers">["role"],
+  projectRole: Doc<"projectMembers">["role"],
+  guestViewAllFeatures: boolean
+) {
+  return (workspaceRole !== "guest" && projectRole !== "guest") || guestViewAllFeatures;
+}
 export function taskRoleCanRead(
   task: Pick<Doc<"tasks">, "createdBy">,
   userId: Id<"users">,
-  workspaceRole: string,
-  projectRole: string,
+  workspaceRole: Doc<"workspaceMembers">["role"],
+  projectRole: Doc<"projectMembers">["role"],
   guestViewAllFeatures: boolean
 ) {
-  return (workspaceRole !== "guest" && projectRole !== "guest") || guestViewAllFeatures || task.createdBy === userId;
+  return taskRoleCanReadAll(workspaceRole, projectRole, guestViewAllFeatures) || task.createdBy === userId;
 }
 export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "active" | "read" | "recovery" = "active") {
   const task = await ctx.db.get(taskId);

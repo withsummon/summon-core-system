@@ -1,4 +1,5 @@
 import { defineTable } from "convex/server";
+import { migrationsTable } from "convex-helpers/server/migrations";
 import { v } from "convex/values";
 export const status = v.union(
   v.literal("backlog"),
@@ -66,6 +67,7 @@ export const taskChange = v.union(
   v.object({ field: v.literal("estimate"), before: activityEstimate, after: activityEstimate })
 );
 export const taskTables = {
+  taskProfileMigrations: migrationsTable,
   taskCommentReactions: defineTable({
     commentId: v.id("taskComments"),
     actorId: v.id("users"),

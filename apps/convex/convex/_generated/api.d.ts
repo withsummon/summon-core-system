@@ -238,6 +238,7 @@ import type * as tasks_label_removal from "../tasks/label_removal.js";
 import type * as tasks_labels from "../tasks/labels.js";
 import type * as tasks_lifecycle from "../tasks/lifecycle.js";
 import type * as tasks_links from "../tasks/links.js";
+import type * as tasks_profile from "../tasks/profile.js";
 import type * as tasks_progress_totals from "../tasks/progress_totals.js";
 import type * as tasks_properties from "../tasks/properties.js";
 import type * as tasks_property_updates from "../tasks/property_updates.js";
@@ -485,6 +486,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/labels": typeof tasks_labels;
   "tasks/lifecycle": typeof tasks_lifecycle;
   "tasks/links": typeof tasks_links;
+  "tasks/profile": typeof tasks_profile;
   "tasks/progress_totals": typeof tasks_progress_totals;
   "tasks/properties": typeof tasks_properties;
   "tasks/property_updates": typeof tasks_property_updates;
@@ -522,4 +524,5 @@ export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, 
 
 export declare const components: {
   betterAuth: import("../betterAuth/_generated/component.js").ComponentApi<"betterAuth">;
+  profileAggregate: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileAggregate">;
 };
