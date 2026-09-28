@@ -78,7 +78,7 @@ export function WorkspaceInvitationsListItem({ invitation, roles, emailDelivery 
           }}
         />
       )}
-      <div className="group flex h-full w-full items-center justify-between gap-3 px-3 py-4 hover:bg-layer-transparent-hover">
+      <div className="group flex h-full w-full flex-col items-start justify-between gap-3 px-3 py-4 hover:bg-layer-transparent-hover sm:flex-row sm:items-center">
         <div className="flex min-w-0 items-center gap-x-4 gap-y-2">
           <span
             className="relative flex size-10 shrink-0 items-center justify-center rounded-sm bg-layer-3 p-4 text-tertiary capitalize"
@@ -100,7 +100,7 @@ export function WorkspaceInvitationsListItem({ invitation, roles, emailDelivery 
             )}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2 text-11">
+        <div className="flex shrink-0 items-center gap-2 self-end text-11 sm:self-auto">
           <span className="rounded-sm bg-label-yellow-bg-strong/20 px-2.5 py-1 text-caption-sm-medium text-label-yellow-text">
             {t("common.pending")}
           </span>
