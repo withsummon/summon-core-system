@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { CalendarDays } from "lucide-react";
 import { Popover } from "@plane/propel/popover";
@@ -77,7 +77,10 @@ export function DateDropdownView(
   } = props;
   // states
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const isDateSelected = value && value.toString().trim() !== "";
+  const withText = BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant);
+  const canClear = isClearable && !disabled && isDateSelected;
 
   const { handleClose, handleOpenChange } = useDropdown({ onClose, setIsOpen });
 
@@ -92,9 +95,32 @@ export function DateDropdownView(
   if (minDate) disabledDays.push({ before: minDate });
   if (maxDate) disabledDays.push({ after: maxDate });
 
+  const clearButton = canClear && (
+    <button
+      type="button"
+      aria-label={`Clear ${placeholder}`}
+      className="absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-sm text-primary hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong"
+      onClick={(event) => {
+        event.stopPropagation();
+        onChange(null);
+        if (isOpen) handleClose();
+        triggerRef.current?.focus();
+      }}
+    >
+      <CloseIcon
+        className={cn(
+          "h-2.5 w-2.5 shrink-0",
+          clearIconClassName,
+          "group-focus-within/date:inline group-hover/date:inline [@media(hover:none)]:inline"
+        )}
+      />
+    </button>
+  );
+
   const trigger = (
     <button
       type="button"
+      aria-label={placeholder}
       className={cn(
         "clickable block h-full max-w-full outline-none",
         {
@@ -106,7 +132,7 @@ export function DateDropdownView(
       disabled={disabled}
     >
       <DropdownButton
-        className={buttonClassName}
+        className={cn(buttonClassName, canClear && "pr-8")}
         isActive={isOpen}
         tooltipHeading={placeholder}
         tooltipContent={value ? renderFormattedDate(value, formatToken) : "None"}
@@ -115,31 +141,23 @@ export function DateDropdownView(
         renderToolTipByDefault={renderByDefault}
       >
         {!hideIcon && icon}
-        {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
+        {withText && (
           <span className={cn("flex-grow truncate text-left text-body-xs-medium", labelClassName)}>
             {value ? renderFormattedDate(value, formatToken) : placeholder}
           </span>
-        )}
-        {isClearable && !disabled && isDateSelected && (
-          <CloseIcon
-            className={cn("h-2.5 w-2.5 flex-shrink-0", clearIconClassName)}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onChange(null);
-            }}
-          />
         )}
       </DropdownButton>
     </button>
   );
 
   return (
-    <div className={cn("h-full", className)}>
+    <div className={cn("group/date relative h-full", className)}>
       <Popover open={isOpen} onOpenChange={handleOpenChange}>
-        <Popover.Button render={trigger} disabled={disabled} tabIndex={tabIndex} />
+        <Popover.Button ref={triggerRef} render={trigger} disabled={disabled} tabIndex={tabIndex} />
+        {clearButton}
         <Popover.Panel
           aria-label={placeholder}
+          finalFocus={triggerRef}
           placement={placement ?? "bottom-start"}
           sideOffset={4}
           positionerClassName="z-[120]"

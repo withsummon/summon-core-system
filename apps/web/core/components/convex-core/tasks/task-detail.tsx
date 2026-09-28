@@ -1,19 +1,16 @@
 import { RecordVisit } from "../navigation/record-visit";
-import { TaskEstimate } from "../estimates/selection";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, lazy, Suspense, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import { memberLabel } from "@summon/convex/member-label";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
-import { taskStatusOptions } from "./options";
-import { TaskProperties } from "./task-properties";
+import { TaskInlineProperties, TaskProperties } from "./task-properties";
 import { TaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
 
@@ -47,10 +44,8 @@ function TaskDetailContent({
   const recovered = useQuery(api.tasks.lifecycle.get, recovery ? { taskId, view: "deleted" } : "skip");
   const task = recovery ? recovered : active;
   const [editing, setEditing] = useState(false);
-  const states = useQuery(api.tasks.states.list, { projectId: project._id });
-  const labels = useQuery(api.tasks.labels.list, { projectId: project._id });
   const canWrite = task?.canEdit === true;
-  if (!task || !states || !labels) return <p role="status">Opening task…</p>;
+  if (!task) return <p role="status">Opening task…</p>;
   if (task.projectId !== project._id) return <TaskUnavailable onBack={onBack} />;
   return (
     <article className="space-y-5">
@@ -84,38 +79,7 @@ function TaskDetailContent({
       ) : (
         <>
           <h2 className="text-24 font-semibold break-words">{task.title}</h2>
-          <dl className="grid gap-4 text-14 sm:grid-cols-3">
-            <div>
-              <dt className="text-secondary">State</dt>
-              <dd>
-                {states.find((state) => state._id === task.stateId)?.name ?? taskStatusOptions[task.status].label}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-secondary">Priority</dt>
-              <dd className="capitalize">{task.priority}</dd>
-            </div>
-            <div>
-              <dt className="text-secondary">Dates</dt>
-              <dd>
-                {task.startDate || "No start date"} → {task.targetDate || "No due date"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-secondary">Labels</dt>
-              <dd>
-                {labels
-                  .filter((label) => task.labelIds.includes(label._id))
-                  .map((label) => label.name)
-                  .join(", ") || "None"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-secondary">Assignees</dt>
-              <dd>{task.assignees.map(memberLabel).join(", ") || "Unassigned"}</dd>
-            </div>
-          </dl>
-          {!recovery && <TaskEstimate taskId={task._id} />}
+          <TaskInlineProperties key={task._id} task={task} />
           {recovery ? (
             <p className="text-14 break-words whitespace-pre-wrap">{task.description}</p>
           ) : (
