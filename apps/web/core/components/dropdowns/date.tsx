@@ -117,43 +117,41 @@ export function DateDropdownView(
     </button>
   );
 
-  const trigger = (
-    <button
-      type="button"
-      aria-label={placeholder}
-      className={cn(
-        "clickable block h-full max-w-full outline-none",
-        {
-          "cursor-not-allowed text-secondary": disabled,
-          "cursor-pointer": !disabled,
-        },
-        buttonContainerClassName
-      )}
-      disabled={disabled}
-    >
-      <DropdownButton
-        className={cn(buttonClassName, canClear && "pr-8")}
-        isActive={isOpen}
-        tooltipHeading={placeholder}
-        tooltipContent={value ? renderFormattedDate(value, formatToken) : "None"}
-        showTooltip={showTooltip}
-        variant={buttonVariant}
-        renderToolTipByDefault={renderByDefault}
-      >
-        {!hideIcon && icon}
-        {withText && (
-          <span className={cn("flex-grow truncate text-left text-body-xs-medium", labelClassName)}>
-            {value ? renderFormattedDate(value, formatToken) : placeholder}
-          </span>
-        )}
-      </DropdownButton>
-    </button>
-  );
-
   return (
     <div className={cn("group/date relative h-full", className)}>
       <Popover open={isOpen} onOpenChange={handleOpenChange}>
-        <Popover.Button ref={triggerRef} render={trigger} disabled={disabled} tabIndex={tabIndex} />
+        <Popover.Button
+          ref={triggerRef}
+          aria-label={placeholder}
+          className={cn(
+            "clickable block h-full max-w-full outline-none",
+            disabled ? "cursor-not-allowed text-secondary" : "cursor-pointer",
+            buttonContainerClassName
+          )}
+          disabled={disabled}
+          tabIndex={tabIndex}
+          render={(triggerProps) => (
+            // The primitive blocks disabled actions; the native trigger retains focus during a save.
+            <button {...triggerProps} disabled={false} aria-disabled={disabled}>
+              <DropdownButton
+                className={cn(buttonClassName, canClear && "pr-8")}
+                isActive={isOpen}
+                tooltipHeading={placeholder}
+                tooltipContent={value ? renderFormattedDate(value, formatToken) : "None"}
+                showTooltip={showTooltip}
+                variant={buttonVariant}
+                renderToolTipByDefault={renderByDefault}
+              >
+                {!hideIcon && icon}
+                {withText && (
+                  <span className={cn("flex-grow truncate text-left text-body-xs-medium", labelClassName)}>
+                    {value ? renderFormattedDate(value, formatToken) : placeholder}
+                  </span>
+                )}
+              </DropdownButton>
+            </button>
+          )}
+        />
         {clearButton}
         <Popover.Panel
           aria-label={placeholder}
