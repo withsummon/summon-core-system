@@ -8,7 +8,7 @@ Load applies stored Yjs bytes. The first writable connection initializes content
 
 Each connection subscribes to its authorized context and snapshot. Durable updates propagate between live processes without scheduling another save. Incoming messages recheck access before applying updates. Access revocation, token expiry or a lost authorization subscription closes the connection. Failed persistence closes and quarantines the room; the server evicts that document instance before another connection loads durable content.
 
-The native editor compares its local bytes with the stored snapshot before permitting navigation. Transport synchronization alone does not establish persistence. Disconnected clients can download their local copy. IndexedDB replay is disabled for Convex rooms, and rejected content is not retried under another user's identity.
+The native editor uses Yjs's state vector and delete set to check that the stored snapshot includes its local edits before permitting navigation. Existing editor transaction callbacks remain attached when editing permissions change. Transport synchronization alone does not establish persistence. Disconnected clients can download their local copy. IndexedDB replay is disabled for Convex rooms, and rejected content is not retried under another user's identity.
 
 ## Run locally
 

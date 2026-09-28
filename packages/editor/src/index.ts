@@ -18,6 +18,13 @@ export * from "@/constants/common";
 // helpers
 export * from "@/helpers/common";
 export * from "@/helpers/yjs-utils";
+export {
+  createSnapshot,
+  decodeStateVector,
+  decodeUpdate,
+  encodeStateVectorFromUpdate,
+  snapshotContainsUpdate,
+} from "yjs";
 
 export { CORE_EXTENSIONS } from "@/constants/extension";
 export { ADDITIONAL_EXTENSIONS } from "@/plane-editor/constants/extensions";

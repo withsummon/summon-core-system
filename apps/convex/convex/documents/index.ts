@@ -8,7 +8,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
 import { scheduleDocumentReferences } from "./references";
-import { documentFields, snapshotFields, MAX_DOCUMENT_SNAPSHOT_BYTES } from "./schema";
+import { documentFields, documentMetadata, snapshotFields, MAX_DOCUMENT_SNAPSHOT_BYTES } from "./schema";
 import schema from "../schema";
 import { pageBudget } from "../commercial/validation";
 import { renderedProjectLogo } from "../projects/branding_schema";
@@ -186,7 +186,7 @@ export const list = query({
 });
 
 export const update = mutation({
-  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...v.object(documentFields).partial().fields },
+  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...documentMetadata.fields },
   handler: async (ctx, { documentId, expectedUpdatedAt, ...metadata }) => {
     const { document, user } = await requireDocument(ctx, documentId, true);
     requireMetadataVersion(document, expectedUpdatedAt);
@@ -203,7 +203,6 @@ export const update = mutation({
     if (compareValues(updated, document) === 0) return;
     await ctx.db.patch(documentId, {
       ...metadata,
-      ...(metadata.name === undefined ? {} : { nameOrder: metadata.name.toLowerCase() }),
       updatedBy: user._id,
       updatedAt: Math.max(Date.now(), document.updatedAt + 1),
     });

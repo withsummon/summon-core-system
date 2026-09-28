@@ -83,10 +83,11 @@ export function MetadataForm({
         try {
           let id: Id<"documents">;
           if (initialDocument) {
+            const { name: _name, ...properties } = metadata;
             await update({
               documentId: initialDocument._id,
               expectedUpdatedAt: initialDocument.updatedAt,
-              ...metadata,
+              ...properties,
             });
             id = initialDocument._id;
           } else id = await create({ workspaceId, ...metadata });
