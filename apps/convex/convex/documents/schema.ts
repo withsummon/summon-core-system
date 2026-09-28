@@ -78,6 +78,7 @@ export const documentTables = {
     .index("by_parent", ["parentId"]),
   documents: defineTable({
     ...documentFields,
+    nameOrder: v.optional(v.string()),
     workspaceId: v.id("workspaces"),
     ownedBy: v.id("users"),
     revision: v.number(),
