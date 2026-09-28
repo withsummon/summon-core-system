@@ -1,10 +1,8 @@
 import { requireUsableLabel } from "./label_access";
 import { validateEstimatePoint } from "../estimates/access";
-import { ConvexError } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { Infer } from "convex/values";
-import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import { date } from "../commercial/validation";
 import { taskProperties, nonStateTaskProperties } from "./schema";
 
@@ -25,10 +23,9 @@ export async function validateNonStateProperties(
   ctx: QueryCtx,
   project: Doc<"projects">,
   data: Infer<typeof nonStateProperties>,
-  retainedEstimatePointId?: Id<"estimatePoints"> | null
+  retainedTask?: Doc<"tasks">
 ) {
-  const estimatePointId = data.estimatePointId;
-  await validateEstimatePoint(ctx, project._id, estimatePointId, retainedEstimatePointId);
+  await validateEstimatePoint(ctx, project._id, data.estimatePointId, retainedTask?.estimatePointId);
   const startDate = date(data.startDate);
   const targetDate = date(data.targetDate);
   if (startDate && targetDate && startDate > targetDate) throw new ConvexError("Start date cannot exceed target date.");
@@ -37,32 +34,36 @@ export async function validateNonStateProperties(
   if (data.labelIds.length > 100 || new Set(data.labelIds).size !== data.labelIds.length)
     throw new ConvexError("Choose up to 100 distinct labels.");
   await Promise.all(
-    data.assigneeIds.map(async (userId) => {
-      const [member, workspaceMember] = await Promise.all([
-        ctx.db
-          .query("projectMembers")
-          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
-          .unique(),
-        ctx.db
-          .query("workspaceMembers")
-          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
-          .unique(),
-      ]);
-      if (!member?.active || member.role === "guest" || !workspaceMember?.active || workspaceMember.role === "guest")
-        throw new ConvexError("Assignees must be active project writers.");
-    })
+    data.assigneeIds
+      .filter((id) => !retainedTask?.assigneeIds.includes(id))
+      .map(async (userId) => {
+        const [member, workspaceMember] = await Promise.all([
+          ctx.db
+            .query("projectMembers")
+            .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
+            .unique(),
+          ctx.db
+            .query("workspaceMembers")
+            .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
+            .unique(),
+        ]);
+        if (!member?.active || member.role === "guest" || !workspaceMember?.active || workspaceMember.role === "guest")
+          throw new ConvexError("Assignees must be active project writers.");
+      })
   );
   await Promise.all(
-    data.labelIds.map(async (labelId) => {
-      const label = await requireUsableLabel(ctx, labelId);
-      if (!label || label.projectId !== project._id) throw new ConvexError("Labels must belong to this project.");
-    })
+    data.labelIds
+      .filter((id) => !retainedTask?.labelIds.includes(id))
+      .map(async (labelId) => {
+        const label = await requireUsableLabel(ctx, labelId);
+        if (label.projectId !== project._id) throw new ConvexError("Labels must belong to this project.");
+      })
   );
   return {
     priority: data.priority,
     assigneeIds: data.assigneeIds,
     labelIds: data.labelIds,
-    estimatePointId,
+    estimatePointId: data.estimatePointId,
     startDate,
     targetDate,
   };
@@ -71,14 +72,14 @@ export async function validateProperties(
   ctx: QueryCtx,
   project: Doc<"projects">,
   data: Infer<typeof properties>,
-  retainedEstimatePointId?: Id<"estimatePoints"> | null
+  retainedTask?: Doc<"tasks">
 ) {
-  const validated = await validateNonStateProperties(ctx, project, data, retainedEstimatePointId);
+  const validated = await validateNonStateProperties(ctx, project, data, retainedTask);
   const state = data.stateId ? await ctx.db.get(data.stateId) : null;
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
   if (state?.status === "triage") throw new ConvexError("Use intake to manage triage tasks.");
-  return { data: { ...validated, stateId: data.stateId }, state };
+  return { data: { ...validated, stateId: data.stateId }, state: state ? { ...state, status: state.status } : null };
 }
 
 export function parseTaskText(rawTitle: string, description: string) {

@@ -66,19 +66,16 @@ export const update = mutation({
   args: {
     taskId: v.id("tasks"),
     expectedUpdatedAt: v.number(),
-    title: v.string(),
-    description: v.string(),
-    status,
-    ...taskProperties,
+    ...v.object({ title: v.string(), description: v.string(), status, ...taskProperties }).partial().fields,
   },
   handler: async (
     ctx,
     { taskId, expectedUpdatedAt, title: rawTitle, description, status: requestedStatus, ...properties }
   ) => {
     const prepared = await preparePropertyUpdate(ctx, taskId, expectedUpdatedAt, properties, requestedStatus);
-    const { title } = parseTaskText(rawTitle, description);
-    await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
-    await applyPropertyUpdate(ctx, prepared, { title, description });
+    const text = parseTaskText(rawTitle ?? prepared.task.title, description ?? prepared.task.description);
+    if (description !== undefined) await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
+    await applyPropertyUpdate(ctx, prepared, text);
     return taskId;
   },
 });

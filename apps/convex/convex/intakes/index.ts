@@ -212,7 +212,7 @@ export const edit = mutation({
             ctx,
             access.project,
             { ...task, ...args.properties, priority: args.priority ?? task.priority },
-            task.estimatePointId
+            task
           )
         : null;
     const content = args.html === undefined ? null : await boundDescriptionContent(ctx, task._id, args.html);

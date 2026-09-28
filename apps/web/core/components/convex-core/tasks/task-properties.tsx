@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
-import type { Id } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
@@ -10,7 +10,7 @@ import { SummonField } from "@/components/summon/forms";
 import { selectClass } from "../commercial/forms";
 import { statusOptions } from "./options";
 export type TaskPropertyValues = Pick<
-  FunctionArgs<typeof api.tasks.index.update>,
+  Doc<"tasks">,
   "priority" | "assigneeIds" | "labelIds" | "startDate" | "targetDate" | "stateId" | "estimatePointId"
 > &
   Pick<FunctionArgs<typeof api.tasks.drafts.index.save>, "status">;
