@@ -6,15 +6,16 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
-type Detail = FunctionReturnType<typeof api.intakes.index.get>;
+type Detail = FunctionReturnType<typeof api.intakes.index.resolve>;
 type Status = FunctionArgs<typeof api.intakes.index.decide>["status"];
-export const intakeOptions = Object.values({
+export const intakeDecisions = {
   pending: { value: "pending", label: "Pending" },
   accepted: { value: "accepted", label: "Accepted" },
   rejected: { value: "rejected", label: "Rejected" },
   snoozed: { value: "snoozed", label: "Snoozed" },
   duplicate: { value: "duplicate", label: "Duplicate" },
-} as const satisfies { [S in Status]: { value: S; label: string } });
+} as const satisfies { [S in Status]: { value: S; label: string } };
+export const intakeOptions = Object.values(intakeDecisions);
 export function DecisionForm({ detail, onClose }: { detail: Detail; onClose: () => void }) {
   const [snapshot] = useState(detail);
   const [status, setStatus] = useState<Status | null>(null),

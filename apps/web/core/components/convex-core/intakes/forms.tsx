@@ -9,7 +9,7 @@ import { SummonField } from "@/components/summon/forms";
 import { TaskNonStateProperties, type NonStatePropertyValues } from "../tasks/task-properties";
 import { TaskRichEditor } from "../tasks/rich-editor";
 import { mutationMessage } from "../commercial/forms";
-type Detail = FunctionReturnType<typeof api.intakes.index.get>;
+type Detail = FunctionReturnType<typeof api.intakes.index.resolve>;
 const priorities = ["none", "urgent", "high", "medium", "low"] as const satisfies FunctionArgs<
   typeof api.intakes.index.submit
 >["priority"][];

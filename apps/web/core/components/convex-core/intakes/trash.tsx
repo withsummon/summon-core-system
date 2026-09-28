@@ -5,7 +5,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
 import { TaskRichEditor } from "../tasks/rich-editor";
-type Project = FunctionReturnType<typeof api.projects.index.list>[number];
+type Project = FunctionReturnType<typeof api.navigation.address.resolveProjectId>["project"];
 type Removed = FunctionReturnType<typeof api.intakes.lifecycle.get>;
 export function IntakeTrash({
   project,
@@ -15,7 +15,7 @@ export function IntakeTrash({
 }: {
   project: Project;
   selected: string | null;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: Removed["task"]["_id"] | null) => void;
   onRestored: (status: Removed["intake"]["status"]) => void;
 }) {
   const rows = usePaginatedQuery(api.intakes.lifecycle.list, selected ? "skip" : { projectId: project._id }, {
@@ -64,13 +64,12 @@ function RemovedSubmission({
   onBack: () => void;
   onRestored: (status: Removed["intake"]["status"]) => void;
 }) {
-  const detail = useQuery(api.intakes.lifecycle.get, { taskId });
+  const detail = useQuery(api.intakes.lifecycle.get, { taskId, projectId: project._id });
   const restore = useMutation(api.intakes.lifecycle.restore);
   const [snapshot, setSnapshot] = useState<Removed | null>(null);
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   if (!detail) return <p role="status">Opening removed submission…</p>;
-  if (detail.task.projectId !== project._id) throw new Error("Submission belongs to another project");
   return (
     <article className="space-y-4">
       <Button variant="secondary" onClick={onBack}>

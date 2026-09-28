@@ -38,11 +38,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
         ]),
 
-        // Browse
-        layout("./(all)/[workspaceSlug]/(projects)/browse/[workItem]/layout.tsx", [
-          route(":workspaceSlug/browse/:workItem", "./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx"),
-        ]),
-
         // Drafts
         layout("./(all)/[workspaceSlug]/(projects)/drafts/layout.tsx", [
           route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
@@ -177,13 +172,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             route(
               ":workspaceSlug/projects/:projectId/pages",
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx"
-            ),
-          ]),
-          // Intake list
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/intake",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx"
             ),
           ]),
           // Automation

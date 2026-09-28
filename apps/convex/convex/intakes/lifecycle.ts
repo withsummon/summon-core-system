@@ -47,11 +47,12 @@ export const list = query({
   },
 });
 export const get = query({
-  args: { taskId: v.string() },
+  args: { projectId: v.id("projects"), taskId: v.string() },
   handler: async (ctx, args) => {
     const taskId = ctx.db.normalizeId("tasks", args.taskId);
     if (!taskId) throw new ConvexError("Intake task not found.");
     const { task, intake } = await requireIntakeTask(ctx, taskId, "removed");
+    if (task.projectId !== args.projectId) throw new ConvexError("Intake task not found.");
     const rich = await ctx.db
       .query("taskDescriptions")
       .withIndex("by_task", (q) => q.eq("taskId", taskId))

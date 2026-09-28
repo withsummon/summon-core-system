@@ -4,18 +4,32 @@
  * See the LICENSE file for details.
  */
 
-import { createContext, useCallback, useContext, useEffect, useId, useState } from "react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useReducer, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useBeforeUnload, useBlocker } from "react-router";
 import { AlertModalCore } from "@plane/ui";
 
 type Confirmations = Map<string, Parameters<typeof useReloadConfirmations>>;
-const ConfirmationContext = createContext<Dispatch<SetStateAction<Confirmations>> | null>(null);
+type AfterRelease = (allowDefaultNavigation: boolean) => void;
+const ConfirmationContext = createContext<
+  ((id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => void) | null
+>(null);
 
 /** React Router supports one blocker; the root composes all active editor and selection policies. */
 export function ReloadConfirmations({ children }: { children: ReactNode }) {
-  const [confirmations, setConfirmations] = useState<Confirmations>(() => new Map());
-  const blocker = useBlocker(confirmations.size > 0);
+  const [confirmations] = useState<Confirmations>(() => new Map());
+  const completions = useRef<AfterRelease[]>([]);
+  const [revision, publish] = useReducer((current) => current + 1, 0);
+  const setConfirmation = useCallback(
+    (id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => {
+      if (confirmation) confirmations.set(id, confirmation);
+      else confirmations.delete(id);
+      if (afterRelease) completions.current.push(afterRelease);
+      publish();
+    },
+    [confirmations]
+  );
+  const blocker = useBlocker(useCallback(() => confirmations.size > 0, [confirmations]));
   useBeforeUnload(
     useCallback(
       (event) => {
@@ -28,10 +42,14 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
     { capture: true }
   );
   useEffect(() => {
+    const completed = completions.current;
+    completions.current = [];
+    completed.forEach((afterRelease) => afterRelease(blocker.state === "unblocked"));
     if (blocker.state === "blocked" && confirmations.size === 0) blocker.proceed();
-  }, [blocker, confirmations.size]);
+  }, [blocker, confirmations, revision]);
+  const activeConfirmations = [...confirmations.values()];
   return (
-    <ConfirmationContext.Provider value={setConfirmations}>
+    <ConfirmationContext.Provider value={setConfirmation}>
       {children}
       {blocker.state === "blocked" && (
         <AlertModalCore
@@ -39,12 +57,12 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
           isOpen
           handleClose={() => blocker.reset()}
           handleSubmit={() => {
-            confirmations.forEach(([, , onLeave]) => onLeave?.());
+            activeConfirmations.forEach(([, , onLeave]) => onLeave?.());
             blocker.proceed();
           }}
           variant="primary"
           title="Leave this page?"
-          content={[...new Set([...confirmations.values()].map(([, message]) => message))].join(" ")}
+          content={[...new Set(activeConfirmations.map(([, message]) => message))].join(" ")}
           primaryButtonText={{ default: "Leave", loading: "Leaving…" }}
           secondaryButtonText="Stay"
         />
@@ -59,17 +77,16 @@ export default function useReloadConfirmations(
   onLeave?: () => void
 ) {
   const id = useId();
-  const setConfirmations = useContext(ConfirmationContext);
-  if (!setConfirmations) throw new Error("Reload confirmation requires the root navigation owner.");
+  const setConfirmation = useContext(ConfirmationContext);
+  if (!setConfirmation) throw new Error("Reload confirmation requires the root navigation owner.");
+  const release = useCallback(
+    (afterRelease?: AfterRelease) => setConfirmation(id, undefined, afterRelease),
+    [id, setConfirmation]
+  );
   useEffect(() => {
     if (!active) return;
-    setConfirmations((current) => new Map(current).set(id, [active, message, onLeave]));
-    return () => {
-      setConfirmations((current) => {
-        const next = new Map(current);
-        next.delete(id);
-        return next;
-      });
-    };
-  }, [active, id, message, onLeave, setConfirmations]);
+    setConfirmation(id, [active, message, onLeave]);
+    return release;
+  }, [active, id, message, onLeave, setConfirmation, release]);
+  return release;
 }

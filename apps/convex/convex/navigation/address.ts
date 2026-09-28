@@ -5,6 +5,7 @@ import type { QueryCtx } from "../_generated/server";
 import { requireUser, requireWorkspace, requireProject } from "../identity/access";
 import { taskCanRead, taskDetail } from "../tasks/access";
 import { intakeCapabilities } from "../intakes/access";
+import { renderedProjectLogo } from "../projects/branding_schema";
 
 async function workspaceAddress(ctx: QueryCtx, workspaceSlug: string) {
   await requireUser(ctx);
@@ -44,6 +45,16 @@ export const resolveProject = query({
     return { workspace, project, workspaceRole: member.role, projectRole: projectMember.role };
   },
 });
+export const resolveProjectId = query({
+  args: { workspaceId: v.id("workspaces"), projectId: v.string() },
+  handler: async (ctx, args) => {
+    const projectId = ctx.db.normalizeId("projects", args.projectId);
+    if (!projectId) throw new ConvexError("Project not found.");
+    const { workspace, project, member, projectMember } = await requireProject(ctx, projectId);
+    if (workspace._id !== args.workspaceId) throw new ConvexError("Project not found.");
+    return { workspace, project, workspaceRole: member.role, projectRole: projectMember.role };
+  },
+});
 export const resolveTask = query({
   args: { workspaceSlug: v.string(), workItem: v.string() },
   handler: async (ctx, args) => {
@@ -61,6 +72,7 @@ export const resolveTask = query({
     const address = {
       workspace: { id: workspace._id, slug: workspace.slug, name: workspace.name },
       project,
+      projectLogo: renderedProjectLogo(project.logoProps ?? {}),
       workItem: `${project.identifier}-${task.sequence}`,
     };
     if (task.status === "triage") {

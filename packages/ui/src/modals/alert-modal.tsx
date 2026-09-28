@@ -90,7 +90,7 @@ export function AlertModalCore(props: Props) {
         )}
         <div className="text-center sm:text-left">
           <Dialog.Title className="text-16 font-medium">{title}</Dialog.Title>
-          <p className="mt-1 text-13 text-secondary">{content}</p>
+          <Dialog.Description className="mt-1 text-13 text-secondary">{content}</Dialog.Description>
         </div>
       </div>
       <div className="flex flex-col-reverse gap-2 border-t-[0.5px] border-subtle px-5 py-4 sm:flex-row sm:justify-end">

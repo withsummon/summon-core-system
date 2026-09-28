@@ -136,9 +136,7 @@ DialogTitle.displayName = "DialogTitle";
 const Dialog = Object.assign(DialogComponent, {
   Panel: DialogPanel,
   Title: DialogTitle,
-}) as typeof DialogComponent & {
-  Panel: typeof DialogPanel;
-  Title: typeof DialogTitle;
-};
+  Description: BaseDialog.Description,
+});
 
 export { Dialog, DialogTitle, DialogPanel };

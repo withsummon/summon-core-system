@@ -135,7 +135,7 @@ export function PreservedWorkspaceSettingsShell({
   );
 }
 
-export function PreservedStickiesShell({
+export function PreservedWorkspaceShell({
   workspace,
   workspaces,
   user,
