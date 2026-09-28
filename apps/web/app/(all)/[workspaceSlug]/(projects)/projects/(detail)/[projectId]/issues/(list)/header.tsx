@@ -155,6 +155,7 @@ export function CreateProjectIssue({
           </label>
           <Input
             id="new-work-item-title"
+            className="w-full"
             {...register("title")}
             required
             maxLength={255}
