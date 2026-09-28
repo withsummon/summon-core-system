@@ -1,6 +1,13 @@
 import { preferences } from "./preferences_fields";
+import { oauthProviderIds } from "./oauth/config";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+
+export const lastLoginMedium = v.union(
+  v.literal("email"),
+  v.literal("magic-code"),
+  ...oauthProviderIds.map((provider) => v.literal(provider))
+);
 
 export const profileFields = {
   firstName: v.string(),
@@ -8,7 +15,12 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
-  betterAuthLinks: defineTable({ authId: v.string(), userId: v.id("users") })
+  betterAuthLinks: defineTable({
+    authId: v.string(),
+    userId: v.id("users"),
+    lastLoginMedium: v.optional(lastLoginMedium),
+    lastLoginAt: v.optional(v.number()),
+  })
     .index("by_auth_id", ["authId"])
     .index("by_user", ["userId"]),
   emailChangeNotices: defineTable({

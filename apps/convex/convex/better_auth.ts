@@ -1,7 +1,9 @@
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { requireRunMutationCtx } from "@convex-dev/better-auth/utils";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
+import { createAuthMiddleware } from "better-auth/api";
 import { emailOTP, genericOAuth } from "better-auth/plugins";
 import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
 import { ConvexError, v } from "convex/values";
@@ -16,8 +18,10 @@ import { sendAccountEmail } from "./identity/mail/sender";
 import { signInPolicy } from "./identity/signin_policy";
 import { requireSignup } from "./identity/signup_policy";
 import { nativeOAuthProviders } from "./identity/oauth/providers";
+import { oauthConfigurations } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
 import { normalizedEmail } from "./invitations/access";
+import { lastLoginMedium } from "./identity/schema";
 
 export const siteUrl = process.env.SITE_URL ?? "";
 
@@ -71,6 +75,18 @@ export const sessionUser = internalQuery({
       // The Convex adapter returns native date fields as epoch milliseconds.
       expiresAt: Number(current.session.expiresAt),
     };
+  },
+});
+
+export const recordSignIn = internalMutation({
+  args: { authId: v.string(), medium: lastLoginMedium, createdAt: v.number() },
+  handler: async (ctx, args): Promise<void> => {
+    const link = await ctx.db
+      .query("betterAuthLinks")
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
+      .unique();
+    if (!link || (link.lastLoginAt !== undefined && link.lastLoginAt >= args.createdAt)) return;
+    await ctx.db.patch(link._id, { lastLoginMedium: args.medium, lastLoginAt: args.createdAt });
   },
 });
 
@@ -231,11 +247,35 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     ...authOptions,
     database: authComponent.adapter(ctx),
     rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
+    hooks: {
+      after: createAuthMiddleware(async (request) => {
+        const session = request.context.newSession;
+        if (!session) return;
+        const medium =
+          request.path === "/sign-in/email"
+            ? "email"
+            : request.path === "/sign-in/email-otp"
+              ? "magic-code"
+              : request.path === "/oauth2/callback/:providerId"
+                ? oauthConfigurations(process.env).find((provider) => provider.id === request.params?.providerId)?.id
+                : undefined;
+        if (!medium) return;
+        // Native issuance and metadata are separate HTTP transactions. The
+        // scheduler owns retries; the native helper reports handoff failures.
+        await request.context.runInBackgroundOrAwait(
+          requireRunMutationCtx(ctx).scheduler.runAfter(0, internal.better_auth.recordSignIn, {
+            authId: session.user.id,
+            medium,
+            createdAt: Number(session.session.createdAt),
+          })
+        );
+      }),
+    },
   });
 };
 
 // The documented local component and runtime share the native plugin schema.
-// Only the database adapter and HTTP limiter require a runtime context.
+// The database adapter, HTTP limiter, and sign-in recorder require a runtime context.
 export const authOptions = {
   baseURL: process.env.CONVEX_SITE_URL,
   trustedOrigins: [siteUrl],

@@ -1,7 +1,7 @@
-const providers = ["google", "github", "gitlab", "gitea"] as const;
+export const oauthProviderIds = ["google", "github", "gitlab", "gitea"] as const;
 export const providerNames = { google: "Google", github: "GitHub", gitlab: "GitLab", gitea: "Gitea" } as const;
 export function oauthConfigurations(env: Record<string, string | undefined>) {
-  return providers.flatMap((id) => {
+  return oauthProviderIds.flatMap((id) => {
     const prefix = id.toUpperCase();
     const clientId = env[`${prefix}_CLIENT_ID`];
     const clientSecret = env[`${prefix}_CLIENT_SECRET`];
