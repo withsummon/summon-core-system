@@ -1,11 +1,11 @@
 import { mergedStream, stream } from "convex-helpers/server/stream";
-import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
+import { zodToConvex } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod/v4";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
-import { query, type QueryCtx } from "../_generated/server";
-import { date, pageBudget } from "../commercial/validation";
+import { mutation, query, type QueryCtx } from "../_generated/server";
+import { pageBudget } from "../commercial/validation";
 import { requireWorkspace } from "../identity/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { defaultProfile } from "../identity/profile_owner";
@@ -14,82 +14,17 @@ import { projectReader, projectSummary } from "../savedViews/scope";
 import schema from "../schema";
 import { taskIsActive, taskRoleCanRead } from "./access";
 import { requireUsableLabel } from "./label_access";
-import { priority, status } from "./schema";
+import {
+  priority,
+  status,
+  profileCondition,
+  profileExpression,
+  profileGroup,
+  profileOrder,
+  profileView,
+  profileTaskPreferences,
+} from "./schema";
 
-const conditionFields = { id: z.string(), type: z.literal("condition") };
-const calendarDate = z.string().transform((value) => {
-  date(value);
-  return value;
-});
-const dateProperty = z.enum(["startDate", "targetDate"]);
-const profileCondition = z.union([
-  z.object({
-    ...conditionFields,
-    property: z.literal("priority"),
-    operator: z.literal("exact"),
-    value: convexToZod(priority),
-  }),
-  z.object({
-    ...conditionFields,
-    property: z.literal("priority"),
-    operator: z.literal("in"),
-    value: z.array(convexToZod(priority)).min(1),
-  }),
-  z.object({
-    ...conditionFields,
-    property: z.literal("status"),
-    operator: z.literal("exact"),
-    value: convexToZod(status),
-  }),
-  z.object({
-    ...conditionFields,
-    property: z.literal("status"),
-    operator: z.literal("in"),
-    value: z.array(convexToZod(status)).min(1),
-  }),
-  z.object({
-    ...conditionFields,
-    property: z.literal("labelId"),
-    operator: z.literal("exact"),
-    value: zid("taskLabels"),
-  }),
-  z.object({
-    ...conditionFields,
-    property: z.literal("labelId"),
-    operator: z.literal("in"),
-    value: z.array(zid("taskLabels")).min(1),
-  }),
-  z.object({ ...conditionFields, property: dateProperty, operator: z.literal("exact"), value: calendarDate }),
-  z.object({
-    ...conditionFields,
-    property: dateProperty,
-    operator: z.literal("range"),
-    value: z.tuple([calendarDate, calendarDate]).refine(([from, to]) => from <= to, "Date range is reversed."),
-  }),
-]);
-const filterGroup = z.object({ id: z.string(), type: z.literal("group"), logicalOperator: z.literal("and") });
-// The inherited public filter API counts the root as depth one and permits five levels.
-// Finite composition keeps every native validator and generated argument precise.
-const filterDepth2 = z.union([profileCondition, filterGroup.extend({ children: z.array(profileCondition).min(1) })]);
-const filterDepth3 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth2).min(1) })]);
-const filterDepth4 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth3).min(1) })]);
-const profileExpression = z
-  .union([profileCondition, filterGroup.extend({ children: z.array(filterDepth4).min(1) })])
-  .nullable();
-const profileGroup = v.union(
-  v.null(),
-  v.object({ by: v.literal("status"), value: status }),
-  v.object({ by: v.literal("priority"), value: priority }),
-  v.object({ by: v.literal("projectId"), value: v.id("projects") }),
-  v.object({ by: v.literal("labelId"), value: v.union(v.id("taskLabels"), v.null()) })
-);
-const profileOrder = v.union(
-  v.literal("sortOrder"),
-  v.literal("createdAt"),
-  v.literal("updatedAt"),
-  v.literal("startDate"),
-  v.literal("priority")
-);
 const ordering = {
   sortOrder: { index: "by_workspace_manual", direction: "asc" },
   createdAt: { index: "by_workspace", direction: "desc" },
@@ -105,6 +40,96 @@ function profileConditions(expression: z.infer<typeof profileExpression>): z.inf
   if (expression === null) return [];
   return expression.type === "condition" ? [expression] : expression.children.flatMap(profileConditions);
 }
+
+const defaultPreferences = {
+  displayFilters: {
+    layout: "list",
+    groupBy: null,
+    order: "createdAt",
+    includeSubtasks: true,
+    showEmptyGroups: true,
+  },
+  displayProperties: {
+    assignee: true,
+    attachment_count: true,
+    created_on: true,
+    due_date: true,
+    estimate: true,
+    key: true,
+    labels: true,
+    link: true,
+    priority: true,
+    start_date: true,
+    state: true,
+    sub_issue_count: true,
+    updated_on: true,
+    cycle: true,
+    modules: true,
+  },
+  filters: null,
+} satisfies Infer<typeof profileTaskPreferences>;
+
+// Preferences belong to the signed-in viewer, independent of the viewed member.
+export const preferences = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const stored = await ctx.db
+      .query("profileTaskPreferences")
+      .withIndex("by_owner", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", user._id))
+      .unique();
+    return {
+      displayFilters: stored?.displayFilters ?? defaultPreferences.displayFilters,
+      displayProperties: stored?.displayProperties ?? defaultPreferences.displayProperties,
+      filters: stored?.filters ?? defaultPreferences.filters,
+      revision: stored?.revision ?? 0,
+    };
+  },
+});
+
+export const savePreferences = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    expectedRevision: v.number(),
+    ...profileTaskPreferences.partial().fields,
+  },
+  handler: async (ctx, { workspaceId, expectedRevision, displayFilters, displayProperties, filters }) => {
+    const { user } = await requireWorkspace(ctx, workspaceId);
+    const stored = await ctx.db
+      .query("profileTaskPreferences")
+      .withIndex("by_owner", (q) => q.eq("workspaceId", workspaceId).eq("userId", user._id))
+      .unique();
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== (stored?.revision ?? 0))
+      throw new ConvexError("Profile display preferences changed. Reload before saving.");
+    const current = stored ?? defaultPreferences;
+    const parsed = profileExpression.safeParse(filters === undefined ? current.filters : filters);
+    if (!parsed.success) throw new ConvexError(z.prettifyError(parsed.error));
+    const read = projectReader(ctx, workspaceId, user._id);
+    await Promise.all(
+      profileConditions(filters === undefined ? null : parsed.data).map(async (condition) => {
+        if (condition.property !== "labelId") return;
+        const ids = condition.operator === "exact" ? [condition.value] : condition.value;
+        await Promise.all(
+          ids.map(async (id) => {
+            const label = await requireUsableLabel(ctx, id);
+            if (!(await read(label.projectId))) throw new ConvexError("Choose a label from an accessible project.");
+          })
+        );
+      })
+    );
+    const display = displayFilters ?? current.displayFilters;
+    const next = {
+      displayFilters:
+        display.layout === "kanban" && display.groupBy === null ? { ...display, groupBy: "status" } : display,
+      displayProperties: displayProperties ?? current.displayProperties,
+      filters: parsed.data,
+      revision: expectedRevision + 1,
+    } satisfies Infer<typeof profileTaskPreferences> & { revision: number };
+    if (stored) await ctx.db.patch(stored._id, next);
+    else await ctx.db.insert("profileTaskPreferences", { workspaceId, userId: user._id, ...next });
+    return next;
+  },
+});
 function matchesCondition(task: Doc<"tasks">, condition: z.infer<typeof profileCondition>) {
   switch (condition.property) {
     case "priority":
@@ -227,7 +252,7 @@ export const subject = query({
 export const list = query({
   args: {
     ...subjectArgs,
-    view: v.union(v.literal("assigned"), v.literal("created"), v.literal("subscribed")),
+    view: profileView,
     order: profileOrder,
     includeSubtasks: v.boolean(),
     filters: zodToConvex(profileExpression),

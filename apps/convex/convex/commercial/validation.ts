@@ -2,6 +2,7 @@ import type { PaginationOptions } from "convex/server";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
+import { z } from "zod/v4";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { clientFields, contactFields, opportunityFields, profileFields } from "./schema";
@@ -12,16 +13,11 @@ export function text(value: string, field: string, max: number, required = false
     throw new ConvexError(`${field} must contain ${required ? "1" : "0"}–${max} characters.`);
   return trimmed;
 }
+export const calendarDate = z.iso.date().refine((value) => !value.startsWith("0000"), "Year must be positive.");
 export function date(value: string | null) {
-  if (value === null) return null;
-  if (
-    value.startsWith("0000") ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-    !Number.isFinite(Date.parse(value)) ||
-    new Date(value).toISOString().slice(0, 10) !== value
-  )
-    throw new ConvexError("Enter a valid ISO calendar date.");
-  return value;
+  const parsed = calendarDate.nullable().safeParse(value);
+  if (!parsed.success) throw new ConvexError("Enter a valid ISO calendar date.");
+  return parsed.data;
 }
 // Decimal(18,2) stays a decimal string across storage and the public API. No Number conversion.
 export function money(value: string | null) {

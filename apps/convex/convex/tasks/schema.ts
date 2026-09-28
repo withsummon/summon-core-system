@@ -1,3 +1,6 @@
+import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
+import { z } from "zod/v4";
+import { calendarDate } from "../commercial/validation";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 export const status = v.union(
@@ -15,6 +18,112 @@ export const priority = v.union(
   v.literal("low"),
   v.literal("none")
 );
+const conditionFields = { id: z.string(), type: z.literal("condition") };
+const dateProperty = z.enum(["startDate", "targetDate"]);
+export const profileCondition = z.union([
+  z.object({
+    ...conditionFields,
+    property: z.literal("priority"),
+    operator: z.literal("exact"),
+    value: convexToZod(priority),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("priority"),
+    operator: z.literal("in"),
+    value: z.array(convexToZod(priority)).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("status"),
+    operator: z.literal("exact"),
+    value: convexToZod(status),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("status"),
+    operator: z.literal("in"),
+    value: z.array(convexToZod(status)).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("labelId"),
+    operator: z.literal("exact"),
+    value: zid("taskLabels"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("labelId"),
+    operator: z.literal("in"),
+    value: z.array(zid("taskLabels")).min(1),
+  }),
+  z.object({ ...conditionFields, property: dateProperty, operator: z.literal("exact"), value: calendarDate }),
+  z.object({
+    ...conditionFields,
+    property: dateProperty,
+    operator: z.literal("range"),
+    value: z.tuple([calendarDate, calendarDate]).refine(([from, to]) => from <= to, "Date range is reversed."),
+  }),
+]);
+const filterGroup = z.object({ id: z.string(), type: z.literal("group"), logicalOperator: z.literal("and") });
+// The inherited public filter API counts the root as depth one and permits five levels.
+// Finite composition keeps every native validator and generated argument precise.
+const filterDepth2 = z.union([profileCondition, filterGroup.extend({ children: z.array(profileCondition).min(1) })]);
+const filterDepth3 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth2).min(1) })]);
+const filterDepth4 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth3).min(1) })]);
+export const profileExpression = z
+  .union([profileCondition, filterGroup.extend({ children: z.array(filterDepth4).min(1) })])
+  .nullable();
+export const profileView = v.union(v.literal("assigned"), v.literal("created"), v.literal("subscribed"));
+export const profileViewSchema = convexToZod(profileView);
+export const profileGroup = v.union(
+  v.null(),
+  v.object({ by: v.literal("status"), value: status }),
+  v.object({ by: v.literal("priority"), value: priority }),
+  v.object({ by: v.literal("projectId"), value: v.id("projects") }),
+  v.object({ by: v.literal("labelId"), value: v.union(v.id("taskLabels"), v.null()) })
+);
+export const profileOrder = v.union(
+  v.literal("sortOrder"),
+  v.literal("createdAt"),
+  v.literal("updatedAt"),
+  v.literal("startDate"),
+  v.literal("priority")
+);
+export const profileGroupBy = v.union(
+  ...profileGroup.members.filter((member) => member.kind === "object").map((member) => member.fields.by),
+  v.null()
+);
+export const profileDisplayFilters = v.object({
+  layout: v.union(v.literal("list"), v.literal("kanban")),
+  groupBy: profileGroupBy,
+  order: profileOrder,
+  includeSubtasks: v.boolean(),
+  showEmptyGroups: v.boolean(),
+});
+export const profileDisplayProperties = v.object({
+  assignee: v.boolean(),
+  attachment_count: v.boolean(),
+  created_on: v.boolean(),
+  due_date: v.boolean(),
+  estimate: v.boolean(),
+  key: v.boolean(),
+  labels: v.boolean(),
+  link: v.boolean(),
+  priority: v.boolean(),
+  start_date: v.boolean(),
+  state: v.boolean(),
+  sub_issue_count: v.boolean(),
+  updated_on: v.boolean(),
+  cycle: v.boolean(),
+  modules: v.boolean(),
+});
+export const profileTaskPreferences = v.object({
+  displayFilters: profileDisplayFilters,
+  displayProperties: profileDisplayProperties,
+  filters: zodToConvex(profileExpression),
+});
+export const profileTaskPreferencesSchema = convexToZod(profileTaskPreferences).extend({ filters: profileExpression });
 export const nonStateTaskProperties = {
   estimatePointId: v.union(v.id("estimatePoints"), v.null()),
   priority,
@@ -94,6 +203,13 @@ export const taskChange = v.union(
   v.object({ field: v.literal("modules"), added: v.array(activityModule), removed: v.array(activityModule) })
 );
 export const taskTables = {
+  profileTaskPreferences: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    ...profileTaskPreferences.fields,
+    revision: v.number(),
+  }).index("by_owner", ["workspaceId", "userId"]),
+
   taskCommentReactions: defineTable({
     commentId: v.id("taskComments"),
     actorId: v.id("users"),

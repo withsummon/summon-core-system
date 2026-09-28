@@ -7,7 +7,8 @@
     "./api": "./convex/_generated/api.js",
     "./data-model": "./convex/_generated/dataModel.d.ts",
     "./member-label": "./shared/member-label.ts",
-    "./project-navigation": "./shared/project-navigation.ts"
+    "./project-navigation": "./shared/project-navigation.ts",
+    "./task-schema": "./convex/tasks/schema.ts"
   },
   "scripts": {
     "dev": "convex dev --typecheck disable",
