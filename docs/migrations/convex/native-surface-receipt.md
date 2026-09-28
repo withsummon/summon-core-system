@@ -1,22 +1,22 @@
 # Native registered surfaces
 
-Snapshot: 2026-09-29, immutable export of committed `1025230af04352797cd43629f8a34e66af866745`; uncommitted Activity/profile/project presentation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **601 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Snapshot: 2026-09-29, immutable export of committed `68249d2db6dabd58ff184c63ca8ad5f186dfd053`; uncommitted Activity/profile/project presentation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **603 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 ## Registered boundaries
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     518 | 443 public and 75 internal declarations across generated app modules.                                               |
+| App RPC                     |     520 | 444 public and 76 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **601** | **All OPEN.**                                                                                                       |
+| **Total**                   | **603** | **All OPEN.**                                                                                                       |
 
-The 530 declarations comprise 522 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The 532 declarations comprise 524 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
-This snapshot includes the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners. Deleted `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. These source contracts still need their complete route, role and recovery acceptance.
+This snapshot includes the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution and the canonical Yjs snapshot action. Deleted `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. These source contracts still need their complete route, role and recovery acceptance.
 
 ## HTTP candidates and availability
 
@@ -37,7 +37,7 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 | Shared shell   |           22 | Projects      |           56 |
 | Tasks          |           69 | Cycles        |           20 |
 | Modules        |           18 | Intake        |           13 |
-| Views/search   |           23 | Documents     |           36 |
+| Views/search   |           23 | Documents     |           38 |
 | Assets         |           28 | Commercial    |           18 |
 | Meetings       |           18 | Resources/MCP |           37 |
 | Assistant      |           28 | Automation    |           15 |
@@ -61,10 +61,10 @@ These locate replacement candidates without asserting REST payload or journey eq
 
 ## Verification and limits
 
-Independent checks matched all 244 generated app module names, 245 inspected module-source hashes, 530 declaration anchors, 88 HTTP/SDK/policy owner anchors and all 601 unique ledger rows. The 14 factory exports match their installed constructor kinds and source hashes; all eight component references carry parent visibility `internal`. The 57 excluded value exports remain helpers, schema/config values or routing helpers. The added declaration is `navigation/address:resolveTaskId`; no HTTP transport was added.
+Independent checks matched all 244 generated app module names, 245 inspected module-source hashes, 532 declaration anchors, 88 HTTP/SDK/policy owner anchors and all 603 unique ledger rows. The 14 factory exports match their installed constructor kinds and source hashes; all eight component references carry parent visibility `internal`. The 57 excluded value exports remain helpers, schema/config values or routing helpers. The added declarations are `documents/index:resolve` and `documents/historyActions:save`; `documents/index:saveSnapshot` is now internal-only. No HTTP transport was added.
 
-Operators read `/tmp/summon-project-title-width-20260929-source` and verify all 6,195 immutable manifest file hashes in `/tmp/summon-project-title-width-commit-20260929.json`. Source identity SHA-256: `e45674dd5718ad70ce7f375b58cb137052ffe037c4c51860c274f6facdbedb2c`; `_generated/api.d.ts` SHA-256: `31dc1a71dbeb7d7c4407b4502f0ab422b108c43fb0f9a0eb57854984d39eff2d`. The updated native-ledger SHA-256 is `5930b5e8074e67ae670e42c2b853c34765edf6684aaa05d85b4cecac35d95985`; the separately reviewed inherited ledger has 916 OPEN rows and SHA-256 `cc291ffaab386fafdcffb25fa51751dc0824948b5220080cd14e57b3145b9c1e`.
+Operators read `/tmp/summon-pages-search-labels-candidate-20260929-source` and verify all 6,194 immutable manifest file hashes in `/tmp/summon-pages-search-labels-commit-20260929.json`. Source identity SHA-256: `46a1d32ce29ba6a58c1dcbf66dc1beb8da21e08587d76a16e5f372aaa84a579c`; `_generated/api.d.ts` SHA-256: `31dc1a71dbeb7d7c4407b4502f0ab422b108c43fb0f9a0eb57854984d39eff2d`. The updated native-ledger SHA-256 is `43780bbdb058da895a66c3304fb89f570fb3be24ec48292c4134b186861b546d`; the separately reviewed inherited ledger has 919 OPEN rows and SHA-256 `1a1cef2a898bd0d783d0f9647c6e0e1e1f24d8ad6798149f9b62ed2e5a3d9a62`.
 
-The auth/HTTP app source is byte-identical to `ff55ddde8c5d799f72802cbb849bb2482b305f11`. Every retained installed SDK/factory/policy hash and captured anchor matches the current installation, so the previous metadata descriptors are reused. No endpoint, database operation or provider was invoked. Evidence: `/tmp/summon-convex-native-inventory-20260929.json` and `/tmp/summon-native-ledger-refresh-20260929.json`. Historical evidence and artifacts remain preserved.
+The auth/HTTP app source is byte-identical to `ff55ddde8c5d799f72802cbb849bb2482b305f11`. Every retained installed SDK/factory/policy hash and captured anchor matches the current installation, so the previous metadata descriptors are reused. No endpoint, database operation or provider was invoked. Evidence: `/tmp/summon-pages-convex-native-inventory-20260929.json` and `/tmp/summon-pages-native-ledger-refresh-20260929.json`. Historical evidence and artifacts remain preserved.
 
 No native inbound `/api/v1/`/webhook, anonymous public-sharing or MCP-server HTTP mount is registered. Internal PAT verification is a candidate owner, and `mcp/*` is an outbound client. Configured endpoint availability, real mail/OAuth/providers, external API capacity, browser dialogs/commands, jobs, backup/restore, rollback and exact served-build identity remain acceptance work. This inventory changes no deployment or parity status.
