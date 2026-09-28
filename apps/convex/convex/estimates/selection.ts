@@ -28,9 +28,9 @@ export const choices = query({
   },
 });
 export const forTask = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: v.id("tasks"), recovery: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, "read");
+    const task = await requireTask(ctx, args.taskId, args.recovery ? "recovery" : "read");
     if (!task.estimatePointId) return null;
     const point = await ctx.db.get(task.estimatePointId);
     if (!point || point.projectId !== task.projectId) throw new ConvexError("Task estimate reference is invalid.");

@@ -1,15 +1,42 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
-import type { FunctionArgs } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
+import { memberLabel } from "@summon/convex/member-label";
+import { STATE_GROUPS } from "@plane/constants";
+import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 import { Input } from "@plane/propel/input";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  DueDatePropertyIcon,
+  EstimatePropertyIcon,
+  LabelFilledIcon,
+  LabelPropertyIcon,
+  MembersPropertyIcon,
+  PlusIcon,
+  PriorityPropertyIcon,
+  SearchIcon,
+  StartDatePropertyIcon,
+  StateGroupIcon,
+  StatePropertyIcon,
+} from "@plane/propel/icons";
+import { AvatarGroup } from "@plane/ui";
+import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
+import { DateDropdownView } from "@/components/dropdowns/date";
+import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { SummonField } from "@/components/summon/forms";
-import { selectClass } from "../commercial/forms";
-import { statusOptions } from "./options";
+import { AuthenticatedAssetImage } from "../assets/image";
+import { mutationMessage, selectClass } from "../commercial/forms";
+import { statusOptions, taskStatusOptions } from "./options";
 export type TaskPropertyValues = Pick<
   Doc<"tasks">,
   "priority" | "assigneeIds" | "labelIds" | "startDate" | "targetDate" | "stateId" | "estimatePointId"
@@ -148,7 +175,7 @@ export function TaskNonStateProperties<T extends NonStatePropertyValues>({
                 })
               }
             />
-            {member.name || member.email || member.id}
+            {memberLabel(member)}
           </label>
         ))}
         {status === "CanLoadMore" && (
@@ -206,5 +233,447 @@ export function TaskNonStateProperties<T extends NonStatePropertyValues>({
         {labels?.length === 0 && <p className="text-14 text-secondary">No project labels yet.</p>}
       </fieldset>
     </div>
+  );
+}
+
+type InlinePropertyProps = {
+  task: FunctionReturnType<typeof api.tasks.index.get>;
+  disabled: boolean;
+  onChange: (
+    change: Omit<FunctionArgs<typeof api.tasks.index.update>, "taskId" | "expectedUpdatedAt">
+  ) => Promise<void>;
+};
+
+const stateGroups = {
+  backlog: STATE_GROUPS.backlog.key,
+  todo: STATE_GROUPS.unstarted.key,
+  in_progress: STATE_GROUPS.started.key,
+  done: STATE_GROUPS.completed.key,
+  cancelled: STATE_GROUPS.cancelled.key,
+} satisfies Record<FunctionReturnType<typeof api.tasks.index.get>["status"], keyof typeof STATE_GROUPS>;
+const propertyOptionClass =
+  "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
+
+export function TaskInlineProperties({ task }: { task: FunctionReturnType<typeof api.tasks.index.get> }) {
+  const update = useMutation(api.tasks.index.update);
+  const profile = useQuery(api.identity.profile.get, {});
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const disabled = !task.canEdit || pending;
+  const save: InlinePropertyProps["onChange"] = async (change) => {
+    if (disabled) return;
+    setPending(true);
+    setError("");
+    try {
+      await update({ ...change, taskId: task._id, expectedUpdatedAt: task.updatedAt });
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <fieldset disabled={disabled} className="min-w-0">
+      <legend className="text-body-xs-medium">Properties</legend>
+      <div className={cn("mt-4 mb-2 space-y-2.5", !task.canEdit && "opacity-60")}>
+        <SidebarPropertyListItem icon={StatePropertyIcon} label="State">
+          <InlineTaskState task={task} disabled={disabled} onChange={save} />
+        </SidebarPropertyListItem>
+        <SidebarPropertyListItem icon={MembersPropertyIcon} label="Assignees">
+          <InlineTaskAssignees task={task} disabled={disabled} onChange={save} />
+        </SidebarPropertyListItem>
+        <SidebarPropertyListItem icon={PriorityPropertyIcon} label="Priority">
+          <PriorityDropdown
+            value={task.priority}
+            onChange={(priority) => void save({ priority })}
+            disabled={disabled}
+            buttonVariant="transparent-with-text"
+            className="h-7.5 w-full grow rounded-sm"
+            buttonContainerClassName="size-full text-left"
+            buttonClassName="size-full px-2 py-0.5 whitespace-nowrap [&_svg]:size-3.5"
+          />
+        </SidebarPropertyListItem>
+        {(
+          [
+            ["startDate", "Start date", StartDatePropertyIcon],
+            ["targetDate", "Due date", DueDatePropertyIcon],
+          ] as const
+        ).map(([field, label, Icon]) => (
+          <SidebarPropertyListItem key={field} icon={Icon} label={label}>
+            <DateDropdownView
+              value={task[field]}
+              onChange={(date) => {
+                const value = date ? renderFormattedPayloadDate(date) : null;
+                void save(field === "startDate" ? { startDate: value } : { targetDate: value });
+              }}
+              minDate={field === "targetDate" ? (getDate(task.startDate) ?? undefined) : undefined}
+              maxDate={field === "startDate" ? (getDate(task.targetDate) ?? undefined) : undefined}
+              weekStartsOn={profile?.preferences.startOfWeek}
+              placeholder={field === "startDate" ? "Add start date" : "Add due date"}
+              disabled={disabled || !profile}
+              buttonVariant="transparent-with-text"
+              className="group w-full grow"
+              buttonContainerClassName="h-7.5 w-full text-left"
+              buttonClassName={cn("text-body-xs-regular", {
+                "text-placeholder": !task[field],
+                "text-danger-primary":
+                  field === "targetDate" && shouldHighlightIssueDueDate(task.targetDate, stateGroups[task.status]),
+              })}
+              hideIcon
+              clearIconClassName="hidden h-3 w-3 group-hover:inline"
+            />
+          </SidebarPropertyListItem>
+        ))}
+        <InlineTaskEstimate task={task} disabled={disabled} onChange={save} />
+        <SidebarPropertyListItem icon={LabelPropertyIcon} label="Labels">
+          <InlineTaskLabels task={task} disabled={disabled} onChange={save} />
+        </SidebarPropertyListItem>
+      </div>
+      {pending && (
+        <p role="status" className="text-body-xs-regular text-secondary">
+          Saving properties…
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-body-xs-regular text-danger-primary">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+function TaskPropertyOptions({ label, children, footer }: { label: string; children: ReactNode; footer?: ReactNode }) {
+  return (
+    <Combobox.Portal>
+      <Combobox.Positioner align="start" sideOffset={4} className="z-[120]">
+        <Combobox.Popup
+          aria-label={label}
+          data-prevent-outside-click
+          className="w-56 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200"
+        >
+          <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
+            <SearchIcon className="size-3.5 shrink-0 text-placeholder" />
+            <Combobox.Input
+              aria-label={`Search ${label.toLowerCase()}`}
+              placeholder={`Search ${label.toLowerCase()}`}
+              className="min-w-0 grow bg-transparent py-1 text-11 text-secondary outline-none placeholder:text-placeholder"
+            />
+          </div>
+          <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-auto">{children}</Combobox.List>
+          {footer}
+        </Combobox.Popup>
+      </Combobox.Positioner>
+    </Combobox.Portal>
+  );
+}
+
+function InlineTaskState({ task, disabled, onChange }: InlinePropertyProps) {
+  const states = useQuery(api.tasks.states.list, { projectId: task.projectId });
+  const [search, setSearch] = useState("");
+  const selected = states?.find((state) => state._id === task.stateId);
+  const options = states?.filter((state) => state.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const groups =
+    states?.length === 0
+      ? statusOptions.filter((group) => group.label.toLowerCase().includes(search.trim().toLowerCase()))
+      : [];
+  return (
+    <Combobox.Root<Id<"taskStates"> | typeof task.status, Id<"taskStates"> | typeof task.status | null>
+      items={[...(options?.map((state) => state._id) ?? []), ...groups.map((group) => group.value)]}
+      itemToStringLabel={(value) =>
+        states?.find((state) => state._id === value)?.name ??
+        statusOptions.find((group) => group.value === value)?.label ??
+        ""
+      }
+      value={task.stateId ?? task.status}
+      inputValue={search}
+      onInputValueChange={setSearch}
+      filter={null}
+      disabled={disabled || !states}
+      onValueChange={(value) => {
+        const state = states?.find((item) => item._id === value);
+        if (state) void onChange({ stateId: state._id, status: state.status });
+        else {
+          const group = statusOptions.find((item) => item.value === value);
+          if (group) void onChange({ stateId: null, status: group.value });
+        }
+      }}
+    >
+      <Combobox.Trigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="State"
+            className="group font-normal h-7.5 w-full justify-start text-body-xs-regular"
+          >
+            <StateGroupIcon
+              stateGroup={stateGroups[task.status]}
+              className="size-3.5 shrink-0"
+              color={selected?.color}
+            />
+            <span className="min-w-0 grow truncate text-left">
+              {states ? (selected?.name ?? taskStatusOptions[task.status].label) : "Loading state…"}
+            </span>
+            <ChevronDownIcon className="hidden size-3.5 group-hover:inline" />
+          </Button>
+        }
+      />
+      <TaskPropertyOptions label="State">
+        {options?.map((state) => (
+          <Combobox.Item key={state._id} value={state._id} disabled={disabled} className={propertyOptionClass}>
+            <StateGroupIcon stateGroup={stateGroups[state.status]} className="size-3.5 shrink-0" color={state.color} />
+            <span className="min-w-0 grow truncate">{state.name}</span>
+            <Combobox.ItemIndicator>
+              <CheckIcon className="size-3.5" />
+            </Combobox.ItemIndicator>
+          </Combobox.Item>
+        ))}
+        {groups.map((group) => (
+          <Combobox.Item key={group.value} value={group.value} disabled={disabled} className={propertyOptionClass}>
+            <StateGroupIcon stateGroup={stateGroups[group.value]} className="size-3.5 shrink-0" />
+            <span className="grow">{group.label}</span>
+            <Combobox.ItemIndicator>
+              <CheckIcon className="size-3.5" />
+            </Combobox.ItemIndicator>
+          </Combobox.Item>
+        ))}
+        <Combobox.Empty className="px-1 py-1.5 text-placeholder">No matching states.</Combobox.Empty>
+      </TaskPropertyOptions>
+    </Combobox.Root>
+  );
+}
+
+function TaskMemberAvatar({ member }: { member: InlinePropertyProps["task"]["assignees"][number] }) {
+  const name = memberLabel(member);
+  return member.avatar ? (
+    <AuthenticatedAssetImage
+      asset={member.avatar}
+      alt={name}
+      compactName={name}
+      className="size-5 rounded-full object-cover"
+    />
+  ) : (
+    <Avatar name={name} size="md" showTooltip={false} />
+  );
+}
+
+function InlineTaskAssignees({ task, disabled, onChange }: InlinePropertyProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.tasks.assignees.list,
+    open ? { projectId: task.projectId, search } : "skip",
+    { initialNumItems: 100 }
+  );
+  const selected = task.assignees.filter(
+    (member) =>
+      !results.some((option) => option.id === member.id) &&
+      memberLabel(member).toLowerCase().includes(search.trim().toLowerCase())
+  );
+  const options = [...selected, ...results];
+  return (
+    <Combobox.Root<Id<"users">, Id<"users">, true>
+      items={options.map((member) => member.id)}
+      multiple
+      value={task.assigneeIds}
+      inputValue={search}
+      onInputValueChange={setSearch}
+      open={open}
+      onOpenChange={setOpen}
+      filter={null}
+      disabled={disabled}
+      onValueChange={(assigneeIds) => void onChange({ assigneeIds })}
+    >
+      <Combobox.Trigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="group font-normal h-7.5 w-full justify-start text-body-xs-regular"
+            aria-label={
+              task.assignees.length ? `Assignees: ${task.assignees.map(memberLabel).join(", ")}` : "Add assignees"
+            }
+          >
+            {task.assignees.length > 0 && (
+              <AvatarGroup showTooltip={false}>
+                {task.assignees.map((member) => (
+                  <TaskMemberAvatar key={member.id} member={member} />
+                ))}
+              </AvatarGroup>
+            )}
+            {task.assignees.length < 2 && (
+              <span
+                className={cn("min-w-0 grow truncate text-left", task.assignees.length === 0 && "text-placeholder")}
+              >
+                {task.assignees.length ? memberLabel(task.assignees[0]) : "Add assignees"}
+              </span>
+            )}
+            <ChevronDownIcon className="ml-auto hidden size-3.5 group-hover:inline" />
+          </Button>
+        }
+      />
+      <TaskPropertyOptions
+        label="Assignees"
+        footer={
+          status === "CanLoadMore" ? (
+            <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => loadMore(100)}>
+              Load more members
+            </Button>
+          ) : (
+            (status === "LoadingFirstPage" || status === "LoadingMore") && (
+              <p role="status" className="px-1 py-1.5 text-placeholder">
+                Loading members…
+              </p>
+            )
+          )
+        }
+      >
+        {options.map((member) => (
+          <Combobox.Item key={member.id} value={member.id} disabled={disabled} className={propertyOptionClass}>
+            <TaskMemberAvatar member={member} />
+            <span className="min-w-0 grow truncate">
+              {memberLabel(member)}
+              {!member.selectable && <span className="ml-1 text-placeholder">(no longer assignable)</span>}
+            </span>
+            <Combobox.ItemIndicator>
+              <CheckIcon className="size-3.5" />
+            </Combobox.ItemIndicator>
+          </Combobox.Item>
+        ))}
+        {status === "Exhausted" && options.length === 0 && (
+          <p role="status" className="px-1 py-1.5 text-placeholder">
+            No matching members.
+          </p>
+        )}
+      </TaskPropertyOptions>
+    </Combobox.Root>
+  );
+}
+
+function InlineTaskLabels({ task, disabled, onChange }: InlinePropertyProps) {
+  const labels = useQuery(api.tasks.labels.list, { projectId: task.projectId });
+  const [search, setSearch] = useState("");
+  const options = labels?.filter((label) => label.name.toLowerCase().includes(search.trim().toLowerCase()));
+  return (
+    <>
+      {labels
+        ?.filter((label) => task.labelIds.includes(label._id))
+        .map((label) => (
+          <Button
+            key={label._id}
+            variant="tertiary"
+            size="sm"
+            aria-label={`Remove label ${label.name}`}
+            disabled={disabled}
+            onClick={() => void onChange({ labelIds: task.labelIds.filter((id) => id !== label._id) })}
+          >
+            <LabelFilledIcon className="size-3" color={label.color} />
+            <span className="text-body-xs-regular">{label.name}</span>
+            {!disabled && <CloseIcon className="size-2.5" />}
+          </Button>
+        ))}
+      <Combobox.Root<Id<"taskLabels">, Id<"taskLabels">, true>
+        items={options?.map((label) => label._id) ?? []}
+        multiple
+        value={task.labelIds}
+        inputValue={search}
+        onInputValueChange={setSearch}
+        filter={null}
+        disabled={disabled || !labels}
+        onValueChange={(labelIds) => void onChange({ labelIds })}
+      >
+        <Combobox.Trigger
+          render={
+            <Button variant="ghost" size="sm" aria-label="Add labels" prependIcon={<PlusIcon />}>
+              Add labels
+            </Button>
+          }
+        />
+        <TaskPropertyOptions label="Labels">
+          {options?.map((label) => (
+            <Combobox.Item
+              key={label._id}
+              value={label._id}
+              disabled={disabled || (label.retiring && !task.labelIds.includes(label._id))}
+              className={propertyOptionClass}
+            >
+              <LabelFilledIcon className="size-3.5 shrink-0" color={label.color} />
+              <span className="min-w-0 grow truncate">
+                {label.name}
+                {label.retiring && " (being removed)"}
+              </span>
+              <Combobox.ItemIndicator>
+                <CheckIcon className="size-3.5" />
+              </Combobox.ItemIndicator>
+            </Combobox.Item>
+          ))}
+          <Combobox.Empty className="px-1 py-1.5 text-placeholder">No matching labels.</Combobox.Empty>
+        </TaskPropertyOptions>
+      </Combobox.Root>
+    </>
+  );
+}
+
+function InlineTaskEstimate({ task, disabled, onChange }: InlinePropertyProps) {
+  const choices = useQuery(api.estimates.selection.choices, { projectId: task.projectId });
+  const selected = useQuery(api.estimates.selection.forTask, {
+    taskId: task._id,
+    recovery: task.deletedAt !== null,
+  });
+  const [search, setSearch] = useState("");
+  if (!choices || selected === undefined || (!choices.system && !selected)) return null;
+  const options = choices.points.filter((point) => point.value.toLowerCase().includes(search.trim().toLowerCase()));
+  return (
+    <SidebarPropertyListItem icon={EstimatePropertyIcon} label="Estimate">
+      <Combobox.Root<Id<"estimatePoints"> | null>
+        items={[null, ...options.map((point) => point._id)]}
+        itemToStringLabel={(value) =>
+          value === null
+            ? "No estimate"
+            : (choices.points.concat(selected ? [selected.point] : []).find((point) => point._id === value)?.value ??
+              "")
+        }
+        value={task.estimatePointId}
+        inputValue={search}
+        onInputValueChange={setSearch}
+        filter={null}
+        disabled={disabled || !choices.canAssign}
+        onValueChange={(estimatePointId) => void onChange({ estimatePointId })}
+      >
+        <Combobox.Trigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Estimate"
+              className="group font-normal h-7.5 w-full justify-start text-body-xs-regular"
+            >
+              <span className={cn("min-w-0 grow truncate text-left", !selected && "text-placeholder")}>
+                {selected?.point.value ?? "No estimate"}
+                {selected && !choices.points.some((point) => point._id === selected.point._id) && " (not active)"}
+              </span>
+              <ChevronDownIcon className="hidden size-3.5 group-hover:inline" />
+            </Button>
+          }
+        />
+        <TaskPropertyOptions label="Estimate">
+          <Combobox.Item value={null} disabled={disabled} className={propertyOptionClass}>
+            <span className="grow">No estimate</span>
+            <Combobox.ItemIndicator>
+              <CheckIcon className="size-3.5" />
+            </Combobox.ItemIndicator>
+          </Combobox.Item>
+          {options.map((point) => (
+            <Combobox.Item key={point._id} value={point._id} disabled={disabled} className={propertyOptionClass}>
+              <span className="min-w-0 grow truncate">{point.value}</span>
+              <Combobox.ItemIndicator>
+                <CheckIcon className="size-3.5" />
+              </Combobox.ItemIndicator>
+            </Combobox.Item>
+          ))}
+        </TaskPropertyOptions>
+      </Combobox.Root>
+    </SidebarPropertyListItem>
   );
 }
