@@ -30,7 +30,6 @@ const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ 
 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Task = FunctionReturnType<typeof api.tasks.index.get>;
-type Draft = FunctionArgs<typeof api.tasks.index.update>;
 
 function TaskDetailContent({
   taskId,
@@ -163,7 +162,7 @@ function AssigneeNames({ projectId, ids }: { projectId: Id<"projects">; ids: Id<
 }
 function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"projects">; onDone: () => void }) {
   const save = useMutation(api.tasks.index.update);
-  const [draft, setDraft] = useState<Draft>({
+  const [draft, setDraft] = useState({
     taskId: task._id,
     expectedUpdatedAt: task.updatedAt,
     title: task.title,
@@ -176,7 +175,7 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
     targetDate: task.targetDate,
     stateId: task.stateId,
     estimatePointId: task.estimatePointId,
-  });
+  } satisfies FunctionArgs<typeof api.tasks.index.update>);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return (
