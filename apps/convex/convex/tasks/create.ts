@@ -47,6 +47,7 @@ export async function createTask(
   const sortOrder = last ? last.sortOrder + 10000 : 65535;
   if (!Number.isFinite(sortOrder) || (last && sortOrder <= last.sortOrder))
     throw new ConvexError("Task ordering has reached its numeric limit.");
+  const updatedAt = Date.now();
   const taskId = await ctx.db.insert("tasks", {
     archivedAt: null,
     deletedAt: null,
@@ -64,7 +65,8 @@ export async function createTask(
     startDateMissing: data.startDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === data.priority),
     createdBy: userId,
-    updatedAt: Date.now(),
+    updatedAt,
+    titleUpdatedAt: updatedAt,
   });
   const created = await ctx.db.get(taskId);
   if (!created) throw new Error("Created task missing from transaction.");
