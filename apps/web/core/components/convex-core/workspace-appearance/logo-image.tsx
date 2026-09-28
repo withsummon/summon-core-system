@@ -12,7 +12,7 @@ export function WorkspaceLogoIdentity({
       key={workspace.logo.id}
       asset={workspace.logo}
       alt="Workspace logo"
-      className="h-20 w-20 rounded-md border border-subtle object-contain"
+      className="h-6 w-6 rounded-md border border-subtle object-contain"
       compactName={workspace.name}
     />
   ) : (

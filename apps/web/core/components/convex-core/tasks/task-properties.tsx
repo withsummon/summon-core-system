@@ -302,7 +302,7 @@ export function TaskInlineProperties({
           />
         </SidebarPropertyListItem>
         <SidebarPropertyListItem icon={UserCirclePropertyIcon} label="Created by">
-          <div className="flex items-center gap-2 px-2">
+          <div className="flex min-w-0 grow items-center gap-2 px-2">
             {task.creator.avatar ? (
               <AuthenticatedAssetImage
                 asset={task.creator.avatar}
