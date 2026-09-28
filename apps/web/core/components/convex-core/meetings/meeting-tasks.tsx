@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
@@ -136,7 +137,7 @@ function TaskPicker({
   meetingId: Id<"meetings">;
   projectId: Id<"projects">;
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
+  const { results, status, loadMore } = useTaskPages(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   const [taskId, setTaskId] = useState<Id<"tasks"> | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);

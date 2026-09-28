@@ -12,6 +12,7 @@ export type TIdentifierTextVariant = "default" | "secondary" | "tertiary" | "pri
 
 export type TIssueIdentifierBaseProps = {
   projectId: string;
+  minWidth?: number;
   size?: TIssueIdentifierSize;
   variant?: TIdentifierTextVariant;
   displayProperties?: IIssueDisplayProperties | undefined;
@@ -37,6 +38,7 @@ export type TIssueTypeIdentifier = {
 
 export type TIdentifierTextProps = {
   identifier: string;
+  minWidth?: number;
   enableClickToCopyIdentifier?: boolean;
   size?: TIssueIdentifierSize;
   variant?: TIdentifierTextVariant;

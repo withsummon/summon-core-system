@@ -3,6 +3,7 @@ import { Component, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionArgs } from "convex/server";
@@ -437,7 +438,7 @@ function TaskChoice({
   onChange: (task: Task | null) => void;
   label: string;
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
+  const { results, status, loadMore } = useTaskPages(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   const fieldId = `choice-${label.replaceAll(" ", "-")}`;
   return (
     <div className="space-y-2">

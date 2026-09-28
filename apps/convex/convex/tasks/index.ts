@@ -1,15 +1,18 @@
-import { taskIsActive, taskDetail, taskCanRead, readableTasks, requireTask } from "./access";
+import { taskIsActive, taskDetail, taskCanRead, requireTask } from "./access";
 import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
 import { syncPlainDescription } from "./description";
 import { createPreparedTask } from "./create";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject, requireUser } from "../identity/access";
 import { status, taskProperties } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
+import { plainDescriptionHtml, taskRichContent } from "./rich_content";
+import schema from "../schema";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
@@ -24,16 +27,16 @@ export const list = query({
       args.paginationOpts.numItems > MAX_PAGE_TASKS
     )
       throw new ConvexError("Request an integer between 1 and 100 tasks per page.");
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .order("desc")
+      .filterWith(async (task) => taskIsActive(task) && (await taskCanRead(ctx, task, user._id)))
       .paginate({
         ...args.paginationOpts,
         maximumRowsRead: MAX_PAGE_TASKS,
         maximumBytesRead: MAX_PAGE_BYTES,
       });
-    return { ...result, page: await readableTasks(ctx, result.page.filter(taskIsActive), user._id) };
   },
 });
 export const create = mutation({
@@ -41,12 +44,14 @@ export const create = mutation({
     projectId: v.id("projects"),
     title: v.string(),
     description: v.optional(v.string()),
+    html: v.optional(v.string()),
     status: v.optional(status),
     properties: v.optional(v.object(taskProperties)),
     parent: v.optional(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() })),
   },
   handler: async (ctx, args) => {
-    return createPreparedTask(ctx, args);
+    const content = taskRichContent(args.html ?? plainDescriptionHtml(args.description ?? ""));
+    return createPreparedTask(ctx, { ...args, description: content.description }, content.html);
   },
 });
 export const setStatus = mutation({

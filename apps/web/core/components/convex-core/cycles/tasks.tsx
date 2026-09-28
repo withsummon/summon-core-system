@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import { useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
@@ -60,7 +61,7 @@ export function CycleTasks({ cycle }: { cycle: Cycle }) {
 }
 function AssignTask({ cycle, onClose }: { cycle: Cycle; onClose: () => void }) {
   const [initial] = useState(cycle);
-  const tasks = usePaginatedQuery(api.tasks.index.list, { projectId: cycle.projectId }, { initialNumItems: 50 });
+  const tasks = useTaskPages(api.tasks.index.list, { projectId: cycle.projectId }, { initialNumItems: 50 });
   const [selected, setSelected] = useState<Doc<"tasks"> | null>(null);
   const current = useQuery(api.cycles.tasks.current, selected ? { taskId: selected._id } : "skip");
   const assign = useMutation(api.cycles.tasks.assign);
