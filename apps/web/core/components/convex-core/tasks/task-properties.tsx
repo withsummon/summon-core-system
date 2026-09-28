@@ -273,7 +273,7 @@ export function TaskInlineProperties({ task }: { task: FunctionReturnType<typeof
     }
   };
   return (
-    <fieldset disabled={disabled} className="min-w-0">
+    <fieldset disabled={!task.canEdit} aria-busy={pending} className="min-w-0">
       <legend className="text-body-xs-medium">Properties</legend>
       <div className={cn("mt-4 mb-2 space-y-2.5", !task.canEdit && "opacity-60")}>
         <SidebarPropertyListItem icon={StatePropertyIcon} label="State">
