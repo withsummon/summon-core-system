@@ -500,9 +500,9 @@ convex-rpc	savedViews/workspace:list	apps/convex/convex/savedViews/workspace.ts:
 convex-rpc	savedViews/workspace:resolve	apps/convex/convex/savedViews/workspace.ts:59	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspace:results	apps/convex/convex/savedViews/workspace.ts:148	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspace:update	apps/convex/convex/savedViews/workspace.ts:33	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:labels	apps/convex/convex/savedViews/workspaceChoices.ts:29	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:people	apps/convex/convex/savedViews/workspaceChoices.ts:48	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:states	apps/convex/convex/savedViews/workspaceChoices.ts:8	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:labels	apps/convex/convex/savedViews/workspaceChoices.ts:28	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:people	apps/convex/convex/savedViews/workspaceChoices.ts:46	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:states	apps/convex/convex/savedViews/workspaceChoices.ts:10	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:metadata	apps/convex/convex/settings/index.ts:40	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:slugAvailability	apps/convex/convex/settings/index.ts:65	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:update	apps/convex/convex/settings/index.ts:8	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
@@ -581,9 +581,11 @@ convex-rpc	tasks/links:get	apps/convex/convex/tasks/links.ts:61	Convex source ca
 convex-rpc	tasks/links:lifecycle	apps/convex/convex/tasks/links.ts:116	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:list	apps/convex/convex/tasks/links.ts:46	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:update	apps/convex/convex/tasks/links.ts:91	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:list	apps/convex/convex/tasks/profile.ts:227	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:subject	apps/convex/convex/tasks/profile.ts:192	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:summary	apps/convex/convex/tasks/profile.ts:316	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:list	apps/convex/convex/tasks/profile.ts:252	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:preferences	apps/convex/convex/tasks/profile.ts:73	Convex authenticated viewer workspace profile preferences	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:savePreferences	apps/convex/convex/tasks/profile.ts:90	Convex canonical viewer preference writer with revision and label access	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:subject	apps/convex/convex/tasks/profile.ts:217	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:summary	apps/convex/convex/tasks/profile.ts:341	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:access	apps/convex/convex/tasks/reactions.ts:8	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:list	apps/convex/convex/tasks/reactions.ts:12	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:set	apps/convex/convex/tasks/reactions.ts:26	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
