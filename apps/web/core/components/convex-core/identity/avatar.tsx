@@ -43,7 +43,7 @@ function AvatarManager({ appearance }: { appearance: Appearance }) {
       <FileAttachmentUpload
         label={appearance.avatar ? "Replace avatar" : "Upload avatar"}
         supportedTypes={appearance.supportedTypes}
-        prepare={(file) => prepare({ expectedRevision: appearance.revision, ...file })}
+        prepare={(file) => prepare({ slot: "avatar", expectedRevision: appearance.revision, ...file })}
       />
       <div className="flex flex-wrap gap-2">
         {appearance.avatar && (
@@ -94,7 +94,11 @@ function AvatarManager({ appearance }: { appearance: Appearance }) {
                 setPending(true);
                 setError("");
                 const { operation, name: _name, revision, ...target } = confirmation;
-                void (operation === "remove" ? remove : restore)({ ...target, expectedRevision: revision })
+                void (operation === "remove" ? remove : restore)({
+                  slot: "avatar",
+                  ...target,
+                  expectedRevision: revision,
+                })
                   .then(() => setConfirmation(null))
                   .catch((failure) => setError(mutationMessage(failure)))
                   .finally(() => setPending(false));
@@ -128,7 +132,11 @@ function RemovedAvatars({
 }: {
   onRestore: (avatar: FunctionReturnType<typeof api.identity.avatar.removed>["page"][number]) => void;
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(api.identity.avatar.removed, {}, { initialNumItems: 10 });
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.identity.avatar.removed,
+    { slot: "avatar" },
+    { initialNumItems: 10 }
+  );
   return (
     <div className="space-y-2">
       <h3 className="text-14 font-medium">Removed avatars</h3>

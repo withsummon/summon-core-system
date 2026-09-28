@@ -1,6 +1,14 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
+export const personalImageSlot = v.union(v.literal("avatar"), v.literal("cover"));
+export const personalImagePurpose = v.union(v.literal("userAvatar"), v.literal("userCover"));
+export const fileMetadataFields = {
+  name: v.string(),
+  contentType: v.string(),
+  size: v.number(),
+  sha256: v.string(),
+};
 export const assetScope = {
   draftId: v.optional(v.id("taskDrafts")),
   taskId: v.optional(v.id("tasks")),
@@ -18,14 +26,11 @@ export const assetTables = {
     avatarPublishedRevision: v.optional(v.number()),
     projectCoverRevision: v.optional(v.number()),
     workspaceLogoRevision: v.optional(v.number()),
-    purpose: v.optional(v.union(v.literal("workspaceLogo"), v.literal("projectCover"), v.literal("userAvatar"))),
+    purpose: v.optional(v.union(v.literal("workspaceLogo"), v.literal("projectCover"), personalImagePurpose)),
     documentCopyId: v.optional(v.id("documentCopies")),
     // Required by the task attachment owner; absent on older, non-task assets.
     attachmentRevision: v.optional(v.number()),
-    name: v.string(),
-    contentType: v.string(),
-    size: v.number(),
-    sha256: v.string(),
+    ...fileMetadataFields,
     createdBy: v.id("users"),
     storageId: v.union(v.id("_storage"), v.null()),
     status: v.union(
@@ -37,7 +42,7 @@ export const assetTables = {
     ),
     expiresAt: v.number(),
   })
-    .index("by_avatar_user_status", ["avatarUserId", "status"])
+    .index("by_personal_user_purpose_status", ["avatarUserId", "purpose", "status"])
     .index("by_project_purpose_status", ["projectId", "purpose", "status"])
     .index("by_workspace_purpose_status", ["workspaceId", "purpose", "status"])
     .index("by_draft", ["draftId"])

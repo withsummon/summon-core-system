@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
@@ -23,12 +23,12 @@ function PasswordForm({ canChange, onClose }: { canChange: boolean; onClose: () 
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const change = useAction(api.identity.password.index.change),
-    set = useAction(api.identity.password.index.set);
+  const set = useMutation(api.identity.password.index.set);
+  const change = useMutation(api.identity.password.index.change);
   if (saved)
     return (
       <div className="min-w-0 space-y-3">
-        <p role="status">Password saved. Other sessions have been signed out.</p>
+        <p role="status">Password saved.</p>
         <Button type="button" onClick={onClose}>
           Done
         </Button>
@@ -48,8 +48,13 @@ function PasswordForm({ canChange, onClose }: { canChange: boolean; onClose: () 
         setPending(true);
         setError("");
         try {
-          if (changing) await change({ oldPassword: String(data.get("oldPassword") ?? ""), newPassword });
-          else await set({ newPassword });
+          const denial = changing
+            ? await change({ currentPassword: String(data.get("oldPassword") ?? ""), newPassword })
+            : await set({ newPassword });
+          if (denial) {
+            setError(denial.message);
+            return;
+          }
           setSaved(true);
         } catch (reason) {
           setError(mutationMessage(reason));
@@ -59,7 +64,11 @@ function PasswordForm({ canChange, onClose }: { canChange: boolean; onClose: () 
       }}
     >
       <h3 className="font-medium">{changing ? "Change password" : "Set password"}</h3>
-      <p className="text-12 text-secondary">Other sessions will be signed out. This session stays signed in.</p>
+      <p className="text-12 text-secondary">
+        {changing
+          ? "Other sessions will be signed out. This session stays signed in."
+          : "Set a password for this account."}
+      </p>
       <fieldset disabled={pending} className="min-w-0 space-y-3">
         {changing && (
           <SummonField label="Current password">

@@ -4,56 +4,49 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback } from "react";
 import { X } from "lucide-react";
-import { observer } from "mobx-react";
 // plane imports
 import { IconButton } from "@plane/propel/icon-button";
+import { Dialog } from "@plane/propel/dialog";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-// hooks
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import type { TProfileSettingsTabs } from "@plane/types";
 // local imports
 import { ProfileSettingsContent } from "./content";
 import { ProfileSettingsSidebarRoot } from "./sidebar";
 
-export const ProfileSettingsModal = observer(function ProfileSettingsModal() {
-  // store hooks
-  const { profileSettingsModal, toggleProfileSettingsModal } = useCommandPalette();
-  // derived values
-  const activeTab = profileSettingsModal.activeTab ?? "general";
-
-  const handleClose = useCallback(() => {
-    toggleProfileSettingsModal({
-      isOpen: false,
-    });
-    setTimeout(() => {
-      toggleProfileSettingsModal({
-        activeTab: null,
-      });
-    }, 300);
-  }, [toggleProfileSettingsModal]);
-
+export function ProfileSettingsModal({
+  isOpen,
+  activeTab,
+  onTabChange,
+  onClose,
+}: {
+  isOpen: boolean;
+  activeTab: TProfileSettingsTabs;
+  onTabChange: (tab: TProfileSettingsTabs) => void;
+  onClose: () => void;
+}) {
   return (
     <ModalCore
-      isOpen={profileSettingsModal.isOpen}
-      handleClose={handleClose}
+      isOpen={isOpen}
+      handleClose={onClose}
       position={EModalPosition.CENTER}
       width={EModalWidth.VIXL}
       className="h-175"
     >
+      <Dialog.Title className="sr-only">Account settings</Dialog.Title>
       <div className="@container relative size-full">
-        <div className="flex size-full">
+        <div className="flex size-full flex-col md:flex-row">
           <ProfileSettingsSidebarRoot
             activeTab={activeTab}
             className="w-[250px] rounded-l-xl"
-            updateActiveTab={(tab) => toggleProfileSettingsModal({ activeTab: tab })}
+            updateActiveTab={onTabChange}
           />
           <ProfileSettingsContent activeTab={activeTab} className="flex-1 rounded-r-xl" />
         </div>
         <div className="absolute top-3.5 right-3.5">
-          <IconButton size="base" variant="tertiary" icon={X} onClick={handleClose} />
+          <IconButton size="base" variant="tertiary" icon={X} onClick={onClose} aria-label="Close account settings" />
         </div>
       </div>
     </ModalCore>
   );
-});
+}

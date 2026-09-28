@@ -4,34 +4,26 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // plane imports
-import type { IUserTheme } from "@plane/types";
+import type { CustomTheme } from "./custom-theme-selector";
 import { InputColorPicker } from "@plane/ui";
 
 type Props = {
-  control: Control<IUserTheme>;
+  control: Control<CustomTheme>;
 };
 
-export const CustomThemeColorInputs = observer(function CustomThemeColorInputs(props: Props) {
+export function CustomThemeColorInputs(props: Props) {
   const { control } = props;
-
-  const handleValueChange = (val: string | undefined, onChange: (...args: unknown[]) => void) => {
-    let hex = val;
-    // prepend a hashtag if it doesn't exist
-    if (val && val[0] !== "#") hex = `#${val}`;
-    onChange(hex);
-  };
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {/* Neutral Color */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-body-sm-medium">
+        <label htmlFor="background" className="text-body-sm-medium">
           Neutral color<span className="text-danger-primary">*</span>
-        </h3>
+        </label>
         <div className="w-full">
           <Controller
             control={control}
@@ -43,28 +35,35 @@ export const CustomThemeColorInputs = observer(function CustomThemeColorInputs(p
                 message: "Enter a valid hex code",
               },
             }}
-            render={({ field: { value, onChange } }) => (
-              <InputColorPicker
-                name="background"
-                value={value}
-                onChange={(val) => handleValueChange(val, onChange)}
-                placeholder="#1a1a1a"
-                className="w-full placeholder:text-placeholder"
-                style={{
-                  backgroundColor: value,
-                  color: "#ffffff",
-                }}
-                hasError={false}
-              />
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <>
+                <InputColorPicker
+                  name="background"
+                  value={value}
+                  onChange={(color) => onChange(color && !color.startsWith("#") ? `#${color}` : color)}
+                  placeholder="#1a1a1a"
+                  className="w-full placeholder:text-placeholder"
+                  style={{
+                    backgroundColor: value,
+                    color: "#ffffff",
+                  }}
+                  hasError={Boolean(error)}
+                />
+                {error && (
+                  <p role="alert" className="mt-1 text-caption-md-regular text-danger-primary">
+                    {error.message}
+                  </p>
+                )}
+              </>
             )}
           />
         </div>
       </div>
       {/* Brand Color */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-body-sm-medium">
+        <label htmlFor="primary" className="text-body-sm-medium">
           Brand color<span className="text-danger-primary">*</span>
-        </h3>
+        </label>
         <div className="w-full">
           <Controller
             control={control}
@@ -76,23 +75,30 @@ export const CustomThemeColorInputs = observer(function CustomThemeColorInputs(p
                 message: "Enter a valid hex code",
               },
             }}
-            render={({ field: { value, onChange } }) => (
-              <InputColorPicker
-                name="primary"
-                value={value}
-                onChange={(val) => handleValueChange(val, onChange)}
-                placeholder="#3f76ff"
-                className="w-full placeholder:text-placeholder"
-                style={{
-                  backgroundColor: value,
-                  color: "#ffffff",
-                }}
-                hasError={false}
-              />
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <>
+                <InputColorPicker
+                  name="primary"
+                  value={value}
+                  onChange={(color) => onChange(color && !color.startsWith("#") ? `#${color}` : color)}
+                  placeholder="#3f76ff"
+                  className="w-full placeholder:text-placeholder"
+                  style={{
+                    backgroundColor: value,
+                    color: "#ffffff",
+                  }}
+                  hasError={Boolean(error)}
+                />
+                {error && (
+                  <p role="alert" className="mt-1 text-caption-md-regular text-danger-primary">
+                    {error.message}
+                  </p>
+                )}
+              </>
             )}
           />
         </div>
       </div>
     </div>
   );
-});
+}

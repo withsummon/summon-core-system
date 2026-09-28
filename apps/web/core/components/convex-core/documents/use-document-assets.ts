@@ -6,12 +6,12 @@ import type { TFileHandler } from "@plane/editor";
 import { useDocumentAssetReader } from "./use-document-asset-reader";
 import { uploadFileAsset } from "../assets/upload-file";
 
-export function useDocumentAssets(documentId: Id<"documents">, getToken: () => string) {
+export function useDocumentAssets(documentId: Id<"documents">) {
   const client = useConvex();
   const document = useQuery(api.documents.index.get, { documentId });
   const policy = useQuery(api.assets.index.policy, {});
   const [assetsUploadStatus, setStatus] = useState<Record<string, number>>({});
-  const { lifecycle, transfers, resolve, source } = useDocumentAssetReader(documentId, getToken);
+  const { lifecycle, transfers, resolve, source } = useDocumentAssetReader(documentId);
   const siteUrl = import.meta.env.VITE_CONVEX_SITE_URL;
   const workspaceId = document?.workspaceId;
   const handlers = useMemo(() => {

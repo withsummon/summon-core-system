@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { layout, route } from "@react-router/dev/routes";
+import { index, layout, route } from "@react-router/dev/routes";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 import { nativeStickiesRoute } from "./routes/ownership";
 import { coreRoutes } from "./routes/core";
@@ -19,8 +19,38 @@ const mergedRoutes: RouteConfigEntry[] = mergeRoutes(coreRoutes, extendedRoutes)
 
 // Add catch-all route at the end (404 handler)
 const routes: RouteConfigEntry[] = [
-  route("core", "./core.tsx"),
-  ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
+  layout("./native-layout.tsx", [
+    // Home - Sign In
+    layout("./(home)/layout.tsx", [index("./(home)/page.tsx")]),
+
+    // Sign Up
+    layout("./(all)/sign-up/layout.tsx", [route("sign-up", "./(all)/sign-up/page.tsx")]),
+
+    // Account Routes - Password Management
+    layout("./(all)/accounts/forgot-password/layout.tsx", [
+      route("accounts/forgot-password", "./(all)/accounts/forgot-password/page.tsx"),
+    ]),
+    layout("./(all)/accounts/reset-password/layout.tsx", [
+      route("accounts/reset-password", "./(all)/accounts/reset-password/page.tsx"),
+    ]),
+    layout("./(all)/accounts/set-password/layout.tsx", [
+      route("accounts/set-password", "./(all)/accounts/set-password/page.tsx"),
+    ]),
+
+    // Account and workspace entry share the native session.
+    layout("./(all)/onboarding/layout.tsx", [route("onboarding", "./(all)/onboarding/page.tsx")]),
+    layout("./(all)/create-workspace/layout.tsx", [route("create-workspace", "./(all)/create-workspace/page.tsx")]),
+    layout("./(all)/invitations/layout.tsx", [route("invitations", "./(all)/invitations/page.tsx")]),
+    layout("./(all)/workspace-invitations/layout.tsx", [
+      route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
+    ]),
+
+    route("core", "./core.tsx"),
+    ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
+    layout("./(all)/settings/profile/layout.tsx", [
+      route("settings/profile/:profileTabId", "./(all)/settings/profile/[profileTabId]/page.tsx"),
+    ]),
+  ]),
   layout("./legacy-layout.tsx", [...mergedRoutes, route("*", "./not-found.tsx")]),
 ];
 

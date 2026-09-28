@@ -4,16 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 // plane imports
 import { PlaneLockup, ChevronLeftIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TOnboardingStep } from "@plane/types";
 import { EOnboardingSteps } from "@plane/types";
 import { cn } from "@plane/utils";
 // hooks
-import { useInstance } from "@/hooks/store/use-instance";
-import { useUser } from "@/hooks/store/user";
 // local imports
 import { SwitchAccountDropdown } from "./switch-account-dropdown";
 
@@ -21,26 +17,17 @@ type OnboardingHeaderProps = {
   currentStep: EOnboardingSteps;
   updateCurrentStep: (step: EOnboardingSteps) => void;
   hasInvitations: boolean;
+  pending: boolean;
 };
 
-export const OnboardingHeader = observer(function OnboardingHeader(props: OnboardingHeaderProps) {
-  const { currentStep, updateCurrentStep, hasInvitations } = props;
-  // store hooks
-  const { data: user } = useUser();
-  const { config: instanceConfig } = useInstance();
-  const isSelfManaged = instanceConfig?.is_self_managed;
+export function OnboardingHeader(props: OnboardingHeaderProps) {
+  const { currentStep, updateCurrentStep, hasInvitations, pending } = props;
 
   // handle step back
   const handleStepBack = () => {
     switch (currentStep) {
-      case EOnboardingSteps.ROLE_SETUP:
-        updateCurrentStep(EOnboardingSteps.PROFILE_SETUP);
-        break;
-      case EOnboardingSteps.USE_CASE_SETUP:
-        updateCurrentStep(EOnboardingSteps.ROLE_SETUP);
-        break;
       case EOnboardingSteps.WORKSPACE_CREATE_OR_JOIN:
-        updateCurrentStep(isSelfManaged ? EOnboardingSteps.PROFILE_SETUP : EOnboardingSteps.USE_CASE_SETUP);
+        updateCurrentStep(EOnboardingSteps.PROFILE_SETUP);
         break;
     }
   };
@@ -50,9 +37,8 @@ export const OnboardingHeader = observer(function OnboardingHeader(props: Onboar
 
   // step order for progress tracking — include INVITE_MEMBERS if user is currently on it
   const showInviteStep = !hasInvitations || currentStep === EOnboardingSteps.INVITE_MEMBERS;
-  const stepOrder: TOnboardingStep[] = [
+  const stepOrder: EOnboardingSteps[] = [
     EOnboardingSteps.PROFILE_SETUP,
-    ...(isSelfManaged ? [] : [EOnboardingSteps.ROLE_SETUP, EOnboardingSteps.USE_CASE_SETUP]),
     EOnboardingSteps.WORKSPACE_CREATE_OR_JOIN,
     ...(showInviteStep ? [EOnboardingSteps.INVITE_MEMBERS] : []),
   ];
@@ -60,11 +46,6 @@ export const OnboardingHeader = observer(function OnboardingHeader(props: Onboar
   // derived values
   const currentStepNumber = stepOrder.indexOf(currentStep) + 1;
   const totalSteps = stepOrder.length;
-  const userName = user?.display_name
-    ? user?.display_name
-    : user?.first_name
-      ? `${user?.first_name} ${user?.last_name ?? ""}`
-      : user?.email;
 
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-4">
@@ -79,14 +60,20 @@ export const OnboardingHeader = observer(function OnboardingHeader(props: Onboar
       <div className={cn("flex w-full items-center justify-between gap-6 px-6", canGoBack && "pr-6 pl-4")}>
         <div className="flex items-center gap-2.5">
           {canGoBack && (
-            <button onClick={handleStepBack} className="cursor-pointer" type="button" disabled={!canGoBack}>
+            <button
+              onClick={handleStepBack}
+              className="cursor-pointer"
+              type="button"
+              disabled={pending}
+              aria-label="Back to previous onboarding step"
+            >
               <ChevronLeftIcon className="size-6 text-placeholder" />
             </button>
           )}
           <PlaneLockup height={20} width={95} className="text-primary" />
         </div>
-        <SwitchAccountDropdown fullName={userName} />
+        <SwitchAccountDropdown disabled={pending} />
       </div>
     </div>
   );
-});
+}

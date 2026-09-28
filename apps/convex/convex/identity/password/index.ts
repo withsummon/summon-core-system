@@ -1,91 +1,73 @@
 import { signInPolicy } from "../signin_policy";
 import { v, ConvexError } from "convex/values";
-import { retrieveAccount, modifyAccountCredentials, createAccount } from "@convex-dev/auth/server";
-import { action, internalQuery, query } from "../../_generated/server";
-import type { QueryCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
-import { requireIdentity } from "../session";
-import { validatePassword, requireSafeAuthLogging } from "./policy";
-async function currentAccount(ctx: QueryCtx) {
-  const { user, session } = await requireIdentity(ctx);
-  const accounts = await ctx.db
-    .query("authAccounts")
-    .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id).eq("provider", "password"))
-    .take(2);
-  if (accounts.length > 1) throw new ConvexError("Password account is ambiguous.");
-  return {
-    userId: user._id,
-    sessionId: session._id,
-    email: user.email,
-    emailVerificationTime: user.emailVerificationTime,
-    account: accounts[0] ? { id: accounts[0]._id, identifier: accounts[0].providerAccountId } : null,
-  };
-}
-export const account = internalQuery({ args: {}, handler: currentAccount });
+import { isAPIError } from "better-auth/api";
+import { mutation, query } from "../../_generated/server";
+import { authComponent, createAuth } from "../../better_auth";
+import { requireUser } from "../session";
+import { clearPasswordAttempts, reservePasswordAttempt } from "./policy";
+
 export const capabilities = query({
   args: {},
   handler: async (ctx) => {
-    const current = await currentAccount(ctx);
+    await requireUser(ctx);
+    const user = await authComponent.getAuthUser(ctx);
+    const { internalAdapter } = await createAuth(ctx).$context;
+    const accounts = await internalAdapter.findAccounts(user._id);
+    const hasPassword = accounts.some((account) => account.providerId === "credential" && account.password);
     return {
-      canChange: signInPolicy(process.env).password && current.account !== null,
-      canSet:
-        signInPolicy(process.env).password &&
-        current.account === null &&
-        current.email !== undefined &&
-        current.emailVerificationTime !== undefined,
+      requiresPassword: hasPassword,
+      canChange: signInPolicy(process.env).password && hasPassword,
+      canSet: signInPolicy(process.env).password && !hasPassword,
     };
   },
 });
-export const change = action({
-  args: { oldPassword: v.string(), newPassword: v.string() },
-  handler: async (ctx, args): Promise<void> => {
+
+// Keep native credential verification, update, and session revocation in one
+// transaction. The native HTTP endpoint rotates even the current session.
+export const change = mutation({
+  args: { currentPassword: v.string(), newPassword: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
     if (!signInPolicy(process.env).password)
       throw new ConvexError("Password sign-in is disabled by the instance operator.");
-    requireSafeAuthLogging();
-    validatePassword(args.newPassword);
-    if (!args.oldPassword || args.oldPassword.length > 1024) throw new ConvexError("Current password is required.");
-    const current = await ctx.runQuery(internal.identity.password.index.account, {});
-    if (!current.account) throw new ConvexError("No password is set for this account.");
-    let verified;
-    try {
-      verified = await retrieveAccount(ctx, {
-        provider: "password",
-        account: { id: current.account.identifier, secret: args.oldPassword },
-      });
-    } catch {
-      throw new ConvexError("Current password could not be verified.");
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    const { adapter, password } = await auth.$context;
+    if (args.currentPassword.length > password.config.maxPasswordLength)
+      throw new ConvexError("Password exceeds the account policy limit.");
+    const attemptKey = await reservePasswordAttempt(adapter, user._id);
+    if (!attemptKey) {
+      const error = auth.$ERROR_CODES.TOO_MANY_ATTEMPTS;
+      return { code: error.code, message: error.message };
     }
-    if (verified.user._id !== current.userId || verified.account._id !== current.account.id || !verified.account.secret)
-      throw new ConvexError("Password account changed.");
-    // Capture the exact hash verified above. Never reread a newer hash after verification.
-    await modifyAccountCredentials(ctx, {
-      provider: "password",
-      account: { id: current.account.identifier, secret: args.newPassword },
-      sessionGuard: {
-        userId: current.userId,
-        sessionId: current.sessionId,
-        accountId: verified.account._id,
-        expectedSecret: verified.account.secret,
-      },
-    });
+    try {
+      await auth.api.changePassword({ headers, body: { ...args, revokeOtherSessions: false } });
+    } catch (error) {
+      if (isAPIError(error) && error.body?.code === "INVALID_PASSWORD") {
+        const denial = auth.$ERROR_CODES.INVALID_PASSWORD;
+        return { code: denial.code, message: denial.message };
+      }
+      if (isAPIError(error)) throw new ConvexError(error.message);
+      throw error;
+    }
+    await clearPasswordAttempts(adapter, attemptKey);
+    await auth.api.revokeOtherSessions({ headers });
+    return null;
   },
 });
-export const set = action({
+
+// Better Auth only exposes setPassword to trusted server callers.
+export const set = mutation({
   args: { newPassword: v.string() },
-  handler: async (ctx, args): Promise<void> => {
+  handler: async (ctx, args) => {
+    await requireUser(ctx);
     if (!signInPolicy(process.env).password)
       throw new ConvexError("Password sign-in is disabled by the instance operator.");
-    requireSafeAuthLogging();
-    validatePassword(args.newPassword);
-    const current = await ctx.runQuery(internal.identity.password.index.account, {});
-    if (current.account || !current.email || current.emailVerificationTime === undefined)
-      throw new ConvexError("A verified account without a password is required.");
-    await createAccount(ctx, {
-      provider: "password",
-      account: { id: current.email, secret: args.newPassword },
-      profile: { email: current.email, emailVerificationTime: current.emailVerificationTime },
-      shouldLinkViaEmail: true,
-      sessionGuard: { userId: current.userId, sessionId: current.sessionId },
-    });
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    try {
+      await auth.api.setPassword({ headers, body: args });
+    } catch (error) {
+      if (isAPIError(error)) throw new ConvexError(error.message);
+      throw error;
+    }
   },
 });

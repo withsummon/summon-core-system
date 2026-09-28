@@ -91,13 +91,13 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
   const handleUpdateChange = async (payload: Partial<IProject>) => {
     if (!workspaceSlug || !project) return;
     return updateProject(workspaceSlug.toString(), project.id, payload)
-      .then(() => {
+      .then(() =>
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: t("toast.success"),
           message: t("project_settings.general.toast.success"),
-        });
-      })
+        })
+      )
       .catch((err) => {
         try {
           // Handle the new error format where codes are nested in arrays under field names
@@ -186,14 +186,14 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
       return;
     }
 
-    if (project.identifier !== formData.identifier)
-      await projectService
-        .checkProjectIdentifierAvailability(workspaceSlug, payload.identifier ?? "")
-        .then(async (res) => {
-          if (res.exists) setError("identifier", { message: t("common.identifier_already_exists") });
-          else await handleUpdateChange(payload);
-        });
-    else await handleUpdateChange(payload);
+    if (project.identifier !== formData.identifier) {
+      const availability = await projectService.checkProjectIdentifierAvailability(
+        workspaceSlug,
+        payload.identifier ?? ""
+      );
+      if (availability.exists) setError("identifier", { message: t("common.identifier_already_exists") });
+      else await handleUpdateChange(payload);
+    } else await handleUpdateChange(payload);
     setTimeout(() => {
       setIsLoading(false);
     }, 300);
@@ -261,7 +261,6 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                 render={({ field: { value, onChange } }) => (
                   <ImagePickerPopover
                     label={t("change_cover")}
-                    control={control}
                     onChange={onChange}
                     value={value ?? null}
                     disabled={!isAdmin}
@@ -423,9 +422,7 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                 <>
                   <TimezoneSelect
                     value={value}
-                    onChange={(value: string) => {
-                      onChange(value);
-                    }}
+                    onChange={onChange}
                     error={Boolean(errors.timezone)}
                     buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
                     disabled={!isAdmin}

@@ -4,23 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
-// components
 import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
-// hooks
-import { useUserProfile } from "@/hooks/store/user";
-// local imports
-import { ProfileSettingsDefaultPreferencesList } from "./default-list";
+import { ThemeSwitcher } from "@/components/appearance";
 import { ProfileSettingsLanguageAndTimezonePreferencesList } from "./language-and-timezone-list";
 
-export const PreferencesProfileSettings = observer(function PreferencesProfileSettings() {
+export function PreferencesProfileSettings() {
   const { t } = useTranslation();
-  // hooks
-  const { data: userProfile } = useUserProfile();
+  const profile = useQuery(api.identity.profile.get, {});
 
-  if (!userProfile) return null;
+  if (!profile) return <p role="status">Loading preferences…</p>;
 
   return (
     <div className="size-full">
@@ -30,13 +25,21 @@ export const PreferencesProfileSettings = observer(function PreferencesProfileSe
       />
       <div className="mt-7 flex w-full flex-col gap-6">
         <section>
-          <ProfileSettingsDefaultPreferencesList />
+          <div className="flex flex-col gap-y-1">
+            <ThemeSwitcher
+              profile={profile}
+              option={{
+                title: "theme",
+                description: "select_or_customize_your_interface_color_scheme",
+              }}
+            />
+          </div>
         </section>
         <section className="flex flex-col gap-y-3">
           <div className="text-h6-medium text-primary">{t("language_and_time")}</div>
-          <ProfileSettingsLanguageAndTimezonePreferencesList />
+          <ProfileSettingsLanguageAndTimezonePreferencesList profile={profile} />
         </section>
       </div>
     </div>
   );
-});
+}

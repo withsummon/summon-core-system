@@ -1,14 +1,13 @@
 import { reply as assistantReply, options as assistantOptions } from "./assistant/http";
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
-import { betterAuthBasePath, betterAuthEnabled } from "./auth.config";
+import { betterAuthEnabled } from "./auth.config";
 import { authComponent, createAuth, siteUrl } from "./better_auth";
 import { read, options } from "./assets/http";
 const http = httpRouter();
 if (betterAuthEnabled) {
   if (!siteUrl) throw new Error("SITE_URL is required for Better Auth.");
   authComponent.registerRoutesLazy(http, createAuth, {
-    basePath: betterAuthBasePath,
     cors: true,
     trustedOrigins: [siteUrl],
   });

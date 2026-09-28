@@ -4,124 +4,86 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
-import { observer } from "mobx-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-// plane imports
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUserTheme } from "@plane/types";
-import { applyCustomTheme } from "@plane/utils";
-// components
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
-// hooks
-import { useUserProfile } from "@/hooks/store/user";
-// local imports
 import { CustomThemeColorInputs } from "./color-inputs";
 import { CustomThemeDownloadConfigButton } from "./download-config-button";
 import { CustomThemeImportConfigButton } from "./import-config-button";
 import { CustomThemeModeSelector } from "./theme-mode-selector";
 
-export const CustomThemeSelector = observer(function CustomThemeSelector() {
-  // store hooks
-  const { data: userProfile, updateUserTheme } = useUserProfile();
-  // translation
+export type CustomTheme = FunctionReturnType<typeof api.identity.profile.get>["preferences"]["theme"];
+
+export function CustomThemeSelector({
+  theme,
+  revision,
+  onSave,
+}: {
+  theme: CustomTheme;
+  revision: number;
+  onSave: (theme: CustomTheme, expectedRevision: number) => Promise<{ revision: number }>;
+}) {
   const { t } = useTranslation();
-
-  // Loading state for async palette generation
-  const [isLoadingPalette, setIsLoadingPalette] = useState(false);
-
-  // Load saved theme from userProfile (fallback to defaults)
-  const savedTheme = useMemo((): IUserTheme => {
-    const theme = userProfile?.theme;
-    if (theme && theme.primary && theme.background) {
-      return {
-        theme: "custom",
-        primary: theme.primary,
-        background: theme.background,
-        darkPalette: !!theme.darkPalette,
-      };
-    }
-
-    // Fallback to defaults
-    return {
+  const [expectedRevision, setExpectedRevision] = useState(revision);
+  const [pending, setPending] = useState(false);
+  const { control, handleSubmit, getValues, setValue } = useForm<CustomTheme>({
+    defaultValues: {
       theme: "custom",
-      primary: "#3f76ff",
-      background: "#1a1a1a",
-      darkPalette: false,
-    };
-  }, [userProfile?.theme]);
-
-  const {
-    control,
-    formState: { isSubmitting },
-    handleSubmit,
-    getValues,
-    setValue,
-  } = useForm<IUserTheme>({
-    defaultValues: savedTheme,
+      primary: theme.primary ?? "#3f76ff",
+      background: theme.background ?? "#1a1a1a",
+      darkPalette: theme.darkPalette ?? false,
+    },
   });
 
-  const handleUpdateTheme = async (formData: IUserTheme) => {
-    if (!formData.primary || !formData.background) return;
-
+  const handleUpdateTheme = async (formData: CustomTheme) => {
+    setPending(true);
     try {
-      setIsLoadingPalette(true);
-      applyCustomTheme(formData.primary, formData.background, formData.darkPalette ? "dark" : "light");
-      // Save to profile endpoint
-      await updateUserTheme({
-        theme: "custom",
-        primary: formData.primary,
-        background: formData.background,
-        darkPalette: formData.darkPalette,
-      });
-
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("success"),
-        message: "Reloading to apply changes...",
-      });
-      // reload the page after showing the toast
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error("Failed to apply theme:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("error"),
-        message: t("failed_to_update_the_theme"),
-      });
+      const saved = await onSave(formData, expectedRevision);
+      setExpectedRevision(saved.revision);
     } finally {
-      setIsLoadingPalette(false);
+      setPending(false);
     }
   };
 
   return (
     <form
-      onSubmit={(e) => {
-        void handleSubmit(handleUpdateTheme)(e);
-      }}
+      onSubmit={handleSubmit(async (formData) => {
+        try {
+          await handleUpdateTheme(formData);
+          setToast({ type: TOAST_TYPE.SUCCESS, title: t("success"), message: "Theme updated successfully" });
+        } catch (error) {
+          setToast({ type: TOAST_TYPE.ERROR, title: t("error"), message: mutationMessage(error) });
+        }
+      })}
       className="rounded-lg border border-subtle bg-layer-1 px-4 py-3"
     >
-      <div className="space-y-5">
-        <ProfileSettingsHeading
-          title={t("customize_your_theme")}
-          control={<CustomThemeImportConfigButton handleUpdateTheme={handleUpdateTheme} setValue={setValue} />}
-        />
-        <CustomThemeModeSelector control={control} />
-        {/* Color Inputs */}
-        <CustomThemeColorInputs control={control} />
-      </div>
-      <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Save Theme Button */}
-        <Button variant="primary" size="lg" type="submit" loading={isSubmitting || isLoadingPalette}>
-          {isSubmitting ? t("common.saving") : isLoadingPalette ? "Generating" : t("set_theme")}
-        </Button>
-        {/* Import/Export Section */}
-        <CustomThemeDownloadConfigButton getValues={getValues} />
-      </div>
+      <fieldset disabled={pending}>
+        <div className="space-y-5">
+          <ProfileSettingsHeading
+            title={t("customize_your_theme")}
+            control={<CustomThemeImportConfigButton handleUpdateTheme={handleUpdateTheme} setValue={setValue} />}
+          />
+          <CustomThemeModeSelector control={control} />
+          <CustomThemeColorInputs control={control} />
+        </div>
+        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="primary" size="lg" type="submit" loading={pending}>
+            {pending ? t("common.saving") : t("set_theme")}
+          </Button>
+          <CustomThemeDownloadConfigButton getValues={getValues} />
+        </div>
+      </fieldset>
+      {revision !== expectedRevision && !pending && (
+        <p role="status" className="mt-3 text-caption-md-regular text-secondary">
+          Your preferences changed elsewhere. Reopen this page before saving the custom theme.
+        </p>
+      )}
     </form>
   );
-});
+}

@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useMemo } from "react";
 import { DocumentEditorWithRef } from "@plane/editor";
 import type { IEditorProps, TFileHandler } from "@plane/editor";
 import type { Id } from "@summon/convex/data-model";
@@ -31,14 +30,7 @@ export function DocumentHistoryPreview({
   versionId: Id<"documentRevisions">;
 }) {
   const mentionHandler = useDocumentMentions(documentId);
-  const token = useAuthToken();
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-  const getToken = useCallback(() => {
-    if (!tokenRef.current) throw new Error("Sign in to view document files.");
-    return tokenRef.current;
-  }, []);
-  const { resolve, source, transfers } = useDocumentAssetReader(documentId, getToken);
+  const { resolve, source, transfers } = useDocumentAssetReader(documentId);
   const fileHandler = useMemo(
     () =>
       ({

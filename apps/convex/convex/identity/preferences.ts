@@ -1,5 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { preferences } from "./preferences_fields";
 import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
@@ -16,11 +18,6 @@ function validatePreferences(value: Infer<typeof preferences>) {
   validateTheme(value.theme);
 }
 function validateTheme(theme: Infer<typeof preferences>["theme"]) {
-  if (
-    theme.theme !== undefined &&
-    !["light", "dark", "system", "custom", "light-contrast", "dark-contrast"].includes(theme.theme)
-  )
-    throw new ConvexError("Choose a supported appearance theme.");
   for (const color of [theme.primary, theme.background]) {
     if (color !== undefined && !/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i.test(color))
       throw new ConvexError("Custom theme colors must be hexadecimal colors.");
@@ -34,24 +31,27 @@ export const save = mutation({
     validatePreferences(args.preferences);
     if (args.preferences.lastWorkspaceId) await requireWorkspace(ctx, args.preferences.lastWorkspaceId);
     await writeProfile(ctx, owner, { preferences: args.preferences, revision });
+    return { revision };
   },
 });
 
 // Workspace selection is a field-level action, not a full preference form save.
 export const selectWorkspace = mutation({
   args: { workspaceId: v.id("workspaces") },
-  handler: async (ctx, { workspaceId }) => {
-    const owner = await ownProfile(ctx);
-    const { workspace } = await requireWorkspace(ctx, workspaceId);
-    const profile = owner.profile ?? defaultProfile;
-    if (profile.preferences.lastWorkspaceId !== workspaceId)
-      await writeProfile(ctx, owner, {
-        revision: profile.revision + 1,
-        preferences: { ...profile.preferences, lastWorkspaceId: workspaceId },
-      });
-    return { workspaceId: workspace._id, slug: workspace.slug };
-  },
+  handler: (ctx, { workspaceId }) => selectWorkspaceForUser(ctx, workspaceId),
 });
+
+export async function selectWorkspaceForUser(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
+  const owner = await ownProfile(ctx);
+  const { workspace } = await requireWorkspace(ctx, workspaceId);
+  const profile = owner.profile ?? defaultProfile;
+  if (profile.preferences.lastWorkspaceId !== workspaceId)
+    await writeProfile(ctx, owner, {
+      revision: profile.revision + 1,
+      preferences: { ...profile.preferences, lastWorkspaceId: workspaceId },
+    });
+  return { workspaceId: workspace._id, slug: workspace.slug };
+}
 
 export const destination = query({
   args: {},

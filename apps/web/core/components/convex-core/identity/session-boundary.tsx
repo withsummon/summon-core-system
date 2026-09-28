@@ -1,11 +1,12 @@
 import { Component, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth, useQuery } from "convex/react";
+import { EAuthModes } from "@plane/constants";
+import { NativeEntryAuth } from "@/components/account/native-entry/auth";
+import { authClient } from "@/components/convex-core/provider";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 function SessionRecovery() {
-  const { signOut } = useAuthActions();
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   return (
@@ -18,7 +19,7 @@ function SessionRecovery() {
           setPending(true);
           setError("");
           try {
-            await signOut();
+            await authClient.signOut({ fetchOptions: { throw: true } });
           } catch {
             setError("Could not clear this session. Try again.");
           } finally {
@@ -78,8 +79,17 @@ function SessionGate({ children }: { children: ReactNode }) {
   return children;
 }
 export function SessionBoundary({ children }: { children: ReactNode }) {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const session = authClient.useSession();
+  if (isLoading)
+    return (
+      <p role="status" className="p-8">
+        Restoring your session…
+      </p>
+    );
+  if (!isAuthenticated) return <NativeEntryAuth initialState={{ flow: "email", mode: EAuthModes.SIGN_IN }} />;
   return (
-    <SessionErrors>
+    <SessionErrors key={session.data?.session.id}>
       <SessionGate>{children}</SessionGate>
     </SessionErrors>
   );

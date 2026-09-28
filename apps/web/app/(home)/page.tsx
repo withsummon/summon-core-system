@@ -4,24 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
 // components
 import { AuthBase } from "@/components/auth-screens/auth-base";
 // helpers
-import { EAuthModes, EPageTypes } from "@/helpers/authentication.helper";
-// layouts
-import DefaultLayout from "@/layouts/default-layout";
-// wrappers
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
+import { EAuthModes } from "@plane/constants";
 
 function HomePage() {
-  return (
-    <DefaultLayout>
-      <AuthenticationWrapper pageType={EPageTypes.NON_AUTHENTICATED}>
-        <AuthBase authType={EAuthModes.SIGN_IN} />
-      </AuthenticationWrapper>
-    </DefaultLayout>
-  );
+  return <AuthBase authType={EAuthModes.SIGN_IN} />;
 }
 
 export default HomePage;

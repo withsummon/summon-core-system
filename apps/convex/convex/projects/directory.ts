@@ -4,7 +4,7 @@ import { query } from "../_generated/server";
 import { requireProjectDiscovery } from "./network_access";
 import { pageBudget } from "../commercial/validation";
 import { memberLabel } from "../../shared/member-label";
-import { avatarDescriptor } from "../identity/avatar_owner";
+import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 // Each returned row contributes one currently active human member. The total
 // requires cursor exhaustion; there is no silently truncated member count.
 export const members = query({
@@ -27,7 +27,12 @@ export const members = query({
         return {
           userId: user._id,
           name: memberLabel({ id: user._id, name: user.name, email: user.email }),
-          avatar: await avatarDescriptor(ctx, user._id),
+          avatar: await personalImageDescriptor(
+            ctx,
+            await userAppearance(ctx, user._id),
+            "avatar",
+            project.workspaceId
+          ),
         };
       })
     );

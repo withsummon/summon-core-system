@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { getAuthToken } from "@/components/convex-core/provider";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { AssetTransfers } from "../documents/asset-transfers";
@@ -14,7 +14,6 @@ export function AuthenticatedAssetImage({
   className: string;
   compactName?: string;
 }) {
-  const token = useAuthToken();
   const [source, setSource] = useState<{ path: string; url: string } | null>(null),
     [error, setError] = useState("");
   useEffect(() => {
@@ -24,9 +23,9 @@ export function AuthenticatedAssetImage({
     setError("");
     void transfers
       .run(async (signal) => {
-        if (!token || !import.meta.env.VITE_CONVEX_SITE_URL) throw new Error(`${alt} preview is unavailable.`);
+        if (!import.meta.env.VITE_CONVEX_SITE_URL) throw new Error(`${alt} preview is unavailable.`);
         const response = await fetch(new URL(asset.downloadPath, import.meta.env.VITE_CONVEX_SITE_URL), {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${await getAuthToken()}` },
           credentials: "omit",
           cache: "no-store",
           signal,
@@ -43,7 +42,7 @@ export function AuthenticatedAssetImage({
       active = false;
       transfers.dispose();
     };
-  }, [asset.downloadPath, token, alt]);
+  }, [asset.downloadPath, alt]);
   const url = source?.path === asset.downloadPath ? source.url : null;
   if (compactName !== undefined) {
     return url ? (

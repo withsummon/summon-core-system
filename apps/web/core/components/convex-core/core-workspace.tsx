@@ -4,22 +4,21 @@ import { WorkspaceLogoIdentity } from "./workspace-appearance/logo-image";
 import { LeaveMembership } from "./memberships/leave";
 import { MembershipAccessBoundary } from "./memberships/access-boundary";
 import { Onboarding } from "./identity/onboarding/onboarding";
+import { SessionBoundary } from "./identity/session-boundary";
 import { CreateWorkspace } from "./create-workspace";
 import { ManagedInvitations } from "./invitations/manage";
-import { SessionBoundary } from "./identity/session-boundary";
 import { RecordVisit } from "./navigation/record-visit";
 import { WorkspaceNavigation } from "./favorites/workspace-navigation";
 import { FavoriteToggle } from "./favorites/toggle";
 import { lazy, Suspense, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { authClient } from "@/components/convex-core/provider";
+import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-import { SignIn } from "./sign-in";
 import { ProjectTasks } from "./project-tasks";
 import { Membership } from "./membership";
 import { ProjectBoundary } from "./projects/boundary";
@@ -72,21 +71,12 @@ const Assistant = lazy(() => import("./assistant/assistant-module").then((module
 const Meetings = lazy(() => import("./meetings/meeting-module").then((module) => ({ default: module.Meetings })));
 
 export function CoreWorkspace() {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  if (isLoading)
-    return (
-      <p role="status" className="p-8">
-        Restoring your session…
-      </p>
-    );
-  return isAuthenticated ? (
+  return (
     <SessionBoundary>
       <Onboarding>
         <Workspace />
       </Onboarding>
     </SessionBoundary>
-  ) : (
-    <SignIn />
   );
 }
 
@@ -94,7 +84,6 @@ function Workspace() {
   const workspaces = useQuery(api.workspaces.index.list);
   const [params, setParams] = useSearchParams();
   const workspace = workspaces?.find((item) => item.slug === params.get("workspace"));
-  const { signOut } = useAuthActions();
   const connection = useConvexConnectionState();
   const [error, setError] = useState("");
   return (
@@ -110,7 +99,9 @@ function Workspace() {
           <Button
             variant="secondary"
             onClick={() => {
-              void signOut().catch(() => setError("Could not sign out. Please try again."));
+              void authClient
+                .signOut({ fetchOptions: { throw: true } })
+                .catch(() => setError("Could not sign out. Please try again."));
             }}
           >
             Sign out

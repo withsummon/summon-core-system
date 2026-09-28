@@ -5,24 +5,18 @@
  */
 
 import { Outlet } from "react-router";
-// components
-import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
-// lib
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 
 export default function ProfileSettingsLayout() {
   return (
-    <>
-      <ProjectsAppPowerKProvider />
-      <AuthenticationWrapper>
-        <div className="relative flex size-full overflow-hidden bg-canvas p-2">
-          <main className="relative flex size-full flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
-            <div className="size-full overflow-hidden">
-              <Outlet />
-            </div>
-          </main>
-        </div>
-      </AuthenticationWrapper>
-    </>
+    <SessionBoundary>
+      <div className="relative flex size-full overflow-hidden bg-canvas p-2">
+        <main className="relative flex size-full flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
+          <div className="size-full overflow-hidden">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </SessionBoundary>
   );
 }

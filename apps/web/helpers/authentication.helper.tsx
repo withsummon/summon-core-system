@@ -17,10 +17,7 @@ export enum EPageTypes {
   AUTHENTICATED = "AUTHENTICATED",
 }
 
-export enum EAuthModes {
-  SIGN_IN = "SIGN_IN",
-  SIGN_UP = "SIGN_UP",
-}
+export { EAuthModes } from "@plane/constants";
 
 export enum EAuthSteps {
   EMAIL = "EMAIL",

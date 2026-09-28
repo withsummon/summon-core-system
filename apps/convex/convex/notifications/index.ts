@@ -5,6 +5,36 @@ import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
 import { requireDiscussion } from "../tasks/discussion_access";
 import { selectedTask, selectionFields, validateSelection } from "./selection";
+import { defaultEmailPreferenceSettings, emailPreferenceSettings } from "./schema";
+export const preferences = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const stored = await ctx.db
+      .query("notificationPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    return {
+      revision: stored?.revision ?? 0,
+      settings: stored?.settings ?? defaultEmailPreferenceSettings,
+    };
+  },
+});
+export const savePreferences = mutation({
+  args: { expectedRevision: v.number(), settings: emailPreferenceSettings },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const stored = await ctx.db
+      .query("notificationPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== (stored?.revision ?? 0))
+      throw new ConvexError("Your notification settings changed. Try again with the latest settings.");
+    const changes = { settings: args.settings, revision: args.expectedRevision + 1 };
+    if (stored) await ctx.db.patch(stored._id, changes);
+    else await ctx.db.insert("notificationPreferences", { userId: user._id, ...changes });
+  },
+});
 export const subscribe = mutation({
   args: { taskId: v.id("tasks"), subscribed: v.boolean() },
   handler: async (ctx, args) => {

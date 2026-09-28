@@ -6,13 +6,11 @@ import { attachmentContentType } from "../tasks/attachments/upload-file.ts";
 type Prepare = (
   file: Omit<FunctionArgs<typeof api.assets.taskAttachments.prepare>, "taskId">
 ) => Promise<FunctionReturnType<typeof api.assets.taskAttachments.prepare>>;
-export async function uploadFileAsset(
+export async function uploadFileAsset<Result>(
   file: File,
   policy: FunctionReturnType<typeof api.assets.index.policy>,
   prepare: Prepare,
-  finalize: (
-    args: FunctionArgs<typeof api.assets.upload.finalize>
-  ) => Promise<FunctionReturnType<typeof api.assets.upload.finalize>>,
+  finalize: (args: FunctionArgs<typeof api.assets.upload.finalize>) => Promise<Result>,
   signal: AbortSignal
 ) {
   const contentType = attachmentContentType(file, policy);
@@ -36,7 +34,7 @@ export async function uploadFileAsset(
   });
   const storageId = await uploadedStorageId(response);
   signal.throwIfAborted();
-  const assetId = await finalize({ assetId: ticket.assetId, storageId });
+  const result = await finalize({ assetId: ticket.assetId, storageId });
   signal.throwIfAborted();
-  return assetId;
+  return result;
 }

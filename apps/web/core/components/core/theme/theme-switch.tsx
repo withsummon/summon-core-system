@@ -14,16 +14,18 @@ import { CustomSelect } from "@plane/ui";
 
 type Props = {
   value: I_THEME_OPTION | null;
-  onChange: (value: I_THEME_OPTION) => void;
+  onChange: (value: (typeof THEME_OPTIONS)[number]) => void;
+  ariaLabel: string;
 };
 
 export function ThemeSwitch(props: Props) {
-  const { value, onChange } = props;
+  const { value, onChange, ariaLabel } = props;
   // translation
   const { t } = useTranslation();
 
   return (
     <CustomSelect
+      ariaLabel={ariaLabel}
       value={value}
       label={
         value ? (

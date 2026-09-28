@@ -5,49 +5,40 @@
  */
 
 import { useState } from "react";
-import { observer } from "mobx-react";
 import { MenuPrimitive as Menu } from "@plane/propel/menu";
 // ui
-import { cn, getFileURL } from "@plane/utils";
+import { cn } from "@plane/utils";
 // helpers
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 // components
 import { SwitchAccountModal } from "./switch-account-modal";
 
-type TSwitchAccountDropdownProps = {
-  fullName?: string;
-};
-
-export const SwitchAccountDropdown = observer(function SwitchAccountDropdown(props: TSwitchAccountDropdownProps) {
-  const { fullName } = props;
-  // states
+export function SwitchAccountDropdown({ disabled = false }: { disabled?: boolean }) {
   const [showSwitchAccountModal, setShowSwitchAccountModal] = useState(false);
-  // store hooks
-  const { data: user } = useUser();
-
-  const displayName = user?.first_name
-    ? `${user?.first_name} ${user?.last_name ?? ""}`
-    : fullName && fullName.trim().length > 0
-      ? fullName
-      : user?.email;
-
-  if (!displayName && !fullName) return null;
-
+  const profile = useQuery(api.identity.profile.get);
+  const appearance = useQuery(api.identity.avatar.get);
+  if (!profile) return null;
+  const displayName = profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : profile.email;
   return (
     <>
       <SwitchAccountModal isOpen={showSwitchAccountModal} onClose={() => setShowSwitchAccountModal(false)} />
       <Menu.Root>
-        <Menu.Trigger className="z-10 flex items-center gap-x-2.5 rounded-lg bg-layer-1 px-2 py-1.5">
+        <Menu.Trigger
+          disabled={disabled}
+          className="z-10 flex items-center gap-x-2.5 rounded-lg bg-layer-1 px-2 py-1.5"
+        >
           <div className="flex size-6 items-center justify-center rounded-full bg-success-primary text-13 font-semibold text-on-color capitalize">
-            {user?.avatar_url ? (
-              <img
-                src={getFileURL(user?.avatar_url)}
-                alt={user?.display_name}
+            {appearance?.avatar ? (
+              <AuthenticatedAssetImage
+                asset={appearance.avatar}
+                alt={profile.displayName}
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (
-              <>{fullName?.[0] ?? "R"}</>
+              profile.firstName[0] || "R"
             )}
           </div>
           <span className="text-13 font-medium text-secondary">{displayName}</span>
@@ -73,4 +64,4 @@ export const SwitchAccountDropdown = observer(function SwitchAccountDropdown(pro
       </Menu.Root>
     </>
   );
-});
+}

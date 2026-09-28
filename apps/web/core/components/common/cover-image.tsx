@@ -19,7 +19,7 @@ type TCoverImageProps = {
   showDefaultWhenEmpty?: boolean;
   /** Custom fallback URL to use instead of DEFAULT_COVER_IMAGE_URL */
   fallbackUrl?: string;
-} & React.ComponentProps<"img">;
+} & Omit<React.ComponentProps<"img">, "src">;
 
 /**
  * A reusable cover image component that handles:

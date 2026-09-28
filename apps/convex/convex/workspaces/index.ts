@@ -1,4 +1,5 @@
 import { recordWorkspaceCreation } from "../identity/onboarding";
+import { selectWorkspaceForUser } from "../identity/preferences";
 import { defaultSettings, validateSettings } from "../settings/values";
 import { requireWorkspaceCreation } from "../identity/instance/configuration";
 import { workspaceLogo } from "../settings/logo_owner";
@@ -59,6 +60,7 @@ export const create = mutation({
     await ctx.db.insert("workspaceMembers", { workspaceId, userId: user._id, role: "admin", active: true });
     if (args.onboardingRevision !== undefined)
       await recordWorkspaceCreation(ctx, workspaceId, args.onboardingRevision, settings.organizationSize);
+    else await selectWorkspaceForUser(ctx, workspaceId);
     return workspaceId;
   },
 });

@@ -5,7 +5,6 @@ import { ConnectedAccounts } from "./accounts/accounts";
 import { AccountPassword } from "./password/password";
 import { AccountSessions } from "./sessions/sessions";
 import { PreferencesForm } from "./preferences";
-import { ProfileAppearance } from "./appearance";
 import { useId, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -28,7 +27,6 @@ export function Profile() {
       <summary className="cursor-pointer">Account details</summary>
       {profile ? (
         <div className="mt-3 space-y-3">
-          <ProfileAppearance theme={profile.preferences.theme} />
           <UserAvatar key={profile.id} />
           <IncomingInvitations />
           <InstanceAdministration />

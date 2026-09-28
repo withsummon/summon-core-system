@@ -4,17 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // plane imports
-import type { IUserTheme } from "@plane/types";
+import type { CustomTheme } from "./custom-theme-selector";
 
 type Props = {
-  control: Control<IUserTheme>;
+  control: Control<CustomTheme>;
 };
 
-export const CustomThemeModeSelector = observer(function CustomThemeModeSelector(props: Props) {
+export function CustomThemeModeSelector(props: Props) {
   const { control } = props;
 
   return (
@@ -54,4 +53,4 @@ export const CustomThemeModeSelector = observer(function CustomThemeModeSelector
       />
     </div>
   );
-});
+}

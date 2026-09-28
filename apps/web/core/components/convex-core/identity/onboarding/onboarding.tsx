@@ -2,7 +2,7 @@ import { completionRoute } from "./route";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { authClient } from "@/components/convex-core/provider";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -25,7 +25,6 @@ export function Onboarding({ children }: { children: ReactNode }) {
 function Setup({ profile }: { profile: Profile }) {
   const workspaces = useQuery(api.workspaces.index.list);
   const complete = useMutation(api.identity.onboarding.complete);
-  const { signOut } = useAuthActions();
   const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -42,7 +41,9 @@ function Setup({ profile }: { profile: Profile }) {
         <Button
           variant="secondary"
           onClick={() => {
-            void signOut().catch((failure) => setError(mutationMessage(failure)));
+            void authClient
+              .signOut({ fetchOptions: { throw: true } })
+              .catch((failure) => setError(mutationMessage(failure)));
           }}
         >
           Sign out

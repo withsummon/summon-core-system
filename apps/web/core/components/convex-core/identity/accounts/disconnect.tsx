@@ -1,89 +1,47 @@
 import { useId, useState } from "react";
-import { useAction, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import type { Id } from "@summon/convex/data-model";
+import { authClient } from "@/components/convex-core/provider";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
-import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../../commercial/forms";
-export function DisconnectAccount({ accountId, name }: { accountId: Id<"authAccounts">; name: string }) {
-  const options = useQuery(api.identity.accounts.unlink.options);
+
+type Account = Awaited<ReturnType<typeof authClient.listAccounts<{ throw: true }>>>[number];
+export function DisconnectAccount({ account }: { account: Account }) {
   const [open, setOpen] = useState(false);
-  if (!options) return <p role="status">Checking sign-in methods…</p>;
-  const canDisconnect = options.accounts.find((row) => row.id === accountId)?.canDisconnect;
-  if (!canDisconnect)
-    return (
-      <p className="text-12 text-secondary">
-        Keep this account connected until another verified sign-in method is configured.
-      </p>
-    );
-  return open ? (
-    <DisconnectForm
-      accountId={accountId}
-      name={name}
-      requiresPassword={options.requiresPassword}
-      onCancel={() => setOpen(false)}
-    />
-  ) : (
-    <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-      Disconnect {name}
-    </Button>
-  );
-}
-function DisconnectForm({
-  accountId,
-  name,
-  requiresPassword,
-  onCancel,
-}: {
-  accountId: Id<"authAccounts">;
-  name: string;
-  requiresPassword: boolean;
-  onCancel: () => void;
-}) {
-  const passwordId = useId();
   const [password, setPassword] = useState("");
+  const passwordId = useId();
+  const capabilities = useQuery(api.identity.password.index.capabilities, open ? {} : "skip");
+  const disconnect = useMutation(api.identity.accounts.unlink.disconnect);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const disconnect = useAction(api.identity.accounts.unlink.disconnect);
-  const { signOut } = useAuthActions();
-  return (
-    <form
-      className="min-w-0 space-y-3"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setPending(true);
-        setError("");
-        try {
-          await disconnect({ targetId: accountId, password: requiresPassword ? password : undefined });
-          setPassword("");
-          await signOut();
-        } catch (failure) {
-          setError(mutationMessage(failure));
-        } finally {
-          setPending(false);
-        }
-      }}
-    >
-      <p className="break-words">
-        Disconnect {name}? You will be signed out on every device. Sign in again using a remaining connected method.
+  const name = account.providerId === "credential" ? "password" : account.providerId;
+  return open ? (
+    <div className="min-w-0 space-y-3">
+      <p className="break-words">Disconnect {name}? This signs out all sessions.</p>
+      <p className="text-12 text-secondary">
+        A recent sign-in is required. Keep another enabled sign-in method to sign in again.
       </p>
-      {requiresPassword ? (
-        <SummonField label="Current password" htmlFor={passwordId}>
-          <Input
-            id={passwordId}
-            type="password"
-            autoComplete="current-password"
-            required
-            maxLength={1024}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full min-w-0"
-          />
-        </SummonField>
+      {capabilities ? (
+        capabilities.requiresPassword && (
+          <div className="space-y-1">
+            <label htmlFor={passwordId} className="text-13 font-medium">
+              Current password
+            </label>
+            <Input
+              id={passwordId}
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={1024}
+              disabled={pending}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+        )
       ) : (
-        <p className="text-12 text-secondary">A sign-in completed within the last five minutes is required.</p>
+        <p role="status">Checking account security…</p>
       )}
       {error && (
         <p role="alert" className="text-12 text-danger-primary">
@@ -91,13 +49,52 @@ function DisconnectForm({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={pending}>
-          Disconnect and sign out
+        <Button
+          type="button"
+          loading={pending}
+          disabled={!capabilities || (capabilities.requiresPassword && !password)}
+          onClick={async () => {
+            setPending(true);
+            setError("");
+            try {
+              const denial = await disconnect({
+                providerId: account.providerId,
+                accountId: account.accountId,
+                password: capabilities?.requiresPassword ? password : undefined,
+              });
+              setPassword("");
+              if (denial) {
+                setError(denial.message);
+                return;
+              }
+              await authClient.signOut();
+            } catch (failure) {
+              setError(mutationMessage(failure));
+              setPassword("");
+            } finally {
+              setPending(false);
+            }
+          }}
+        >
+          Disconnect
         </Button>
-        <Button type="button" variant="secondary" disabled={pending} onClick={onCancel}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          onClick={() => {
+            setPassword("");
+            setError("");
+            setOpen(false);
+          }}
+        >
           Cancel
         </Button>
       </div>
-    </form>
+    </div>
+  ) : (
+    <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
+      Disconnect {name}
+    </Button>
   );
 }

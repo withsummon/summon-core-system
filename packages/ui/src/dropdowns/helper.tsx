@@ -64,11 +64,13 @@ export interface ICustomMenuDropdownProps extends IDropdownProps {
 
 export interface ICustomSelectProps extends IDropdownProps {
   children: React.ReactNode;
+  ariaLabel?: string;
   value: any;
   onChange: any;
 }
 
 interface CustomSearchSelectProps {
+  ariaLabel?: string;
   footerOption?: React.ReactNode;
   onChange: any;
   onClose?: () => void;

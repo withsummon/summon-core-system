@@ -54,3 +54,18 @@ export async function validateContent(blob: Blob, contentType: string) {
     }
   } else if (!signatures[contentType]?.()) throw new ConvexError("File content does not match its declared type.");
 }
+
+export function externalCoverUrl(value: string | null) {
+  if (value === null) return undefined;
+  if (!value || value.length > 2048 || value !== value.trim())
+    throw new ConvexError("Enter an external cover URL of at most 2048 characters.");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new ConvexError("Enter a valid external cover URL.");
+  }
+  if (!["https:", "http:"].includes(url.protocol) || !url.hostname || url.username || url.password)
+    throw new ConvexError("Use an http or https cover URL without credentials.");
+  return value;
+}

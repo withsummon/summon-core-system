@@ -26,7 +26,7 @@ export function SensitiveOperation({
   onClose: () => void;
   onDeleted: () => void;
 }) {
-  const verify = useAction(api.mcp.stepUp.verify);
+  const verify = useMutation(api.mcp.stepUp.verify);
   const reveal = useAction(api.mcp.sensitive.reveal);
   const rotate = useAction(api.mcp.sensitive.rotate);
   const revoke = useMutation(api.mcp.sensitive.revoke);
@@ -82,6 +82,10 @@ export function SensitiveOperation({
               try {
                 const proofId = await verify({ credentialId, operation, password });
                 setPassword("");
+                if (proofId === null) {
+                  setError("Password verification failed. Check your current password and try again.");
+                  return;
+                }
                 if (operation === "reveal") {
                   const value = await reveal({ proofId });
                   if (mounted.current && document.visibilityState === "visible") setRevealed(value);
