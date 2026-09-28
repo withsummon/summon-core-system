@@ -1,15 +1,23 @@
 import { ConvexError } from "convex/values";
+import { z } from "zod/v4";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 const forbidden = /[&+,:;$^}{*=?@#|'<>.()%!-]/;
+export const projectIdentifierSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(1)
+  .max(12)
+  .refine((value) => !forbidden.test(value));
 export function projectIdentifier(
   value: string,
   errorMessage = "Enter a project identifier of 1–12 characters without reserved punctuation."
 ) {
-  const identifier = value.trim().toUpperCase();
-  if (!identifier || identifier.length > 12 || forbidden.test(identifier)) throw new ConvexError(errorMessage);
-  return identifier;
+  const identifier = projectIdentifierSchema.safeParse(value);
+  if (!identifier.success) throw new ConvexError(errorMessage);
+  return identifier.data;
 }
 export async function validateProjectMetadata(
   ctx: QueryCtx,

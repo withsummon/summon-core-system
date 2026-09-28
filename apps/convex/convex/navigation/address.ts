@@ -1,4 +1,4 @@
-import { projectIdentifier as validateIdentifier } from "../projects/metadata_fields";
+import { projectIdentifierSchema } from "../projects/metadata_fields";
 import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
@@ -7,6 +7,7 @@ import { requireUser, requireWorkspace, requireProject } from "../identity/acces
 import { taskCanRead, taskDetail } from "../tasks/access";
 import { intakeCapabilities } from "../intakes/access";
 import { renderedProjectLogo } from "../projects/branding_schema";
+import { projectReader } from "../savedViews/scope";
 
 async function workspaceAddress(ctx: QueryCtx, workspaceSlug: string) {
   await requireUser(ctx);
@@ -59,29 +60,42 @@ export const resolveProjectId = query({
 export const resolveTask = query({
   args: { workspaceSlug: v.string(), workItem: v.string() },
   handler: async (ctx, args) => {
+    const access = await workspaceAddress(ctx, args.workspaceSlug);
     const match = /^(.+)-([0-9]+)$/.exec(args.workItem);
-    if (!match || match[1] !== match[1].trim()) throw new ConvexError("Invalid task address.");
+    if (!match || match[1] !== match[1].trim()) return null;
     const sequence = Number(match[2]);
-    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new ConvexError("Invalid task address.");
-    const access = await projectAddress(ctx, args.workspaceSlug, validateIdentifier(match[1], "Invalid task address."));
+    const identifier = projectIdentifierSchema.safeParse(match[1]);
+    if (!Number.isSafeInteger(sequence) || sequence < 1 || !identifier.success) return null;
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace_identifier", (q) =>
+        q.eq("workspaceId", access.workspace._id).eq("identifier", identifier.data)
+      )
+      .unique();
+    const readable = project ? await projectReader(ctx, access.workspace._id, access.user._id)(project._id) : null;
+    if (!readable) return null;
     const task = await ctx.db
       .query("tasks")
-      .withIndex("by_project_sequence", (q) => q.eq("projectId", access.project._id).eq("sequence", sequence))
+      .withIndex("by_project_sequence", (q) => q.eq("projectId", readable.project._id).eq("sequence", sequence))
       .unique();
-    return task ? taskAddress(ctx, access, task) : null;
+    return task
+      ? taskAddress(ctx, { ...access, project: readable.project, projectMember: readable.member }, task)
+      : null;
   },
 });
 
 export const resolveTaskId = query({
   args: { workspaceId: v.id("workspaces"), projectId: v.string(), taskId: v.string() },
   handler: async (ctx, args) => {
+    const access = await requireWorkspace(ctx, args.workspaceId);
     const projectId = ctx.db.normalizeId("projects", args.projectId);
-    if (!projectId) return null;
-    const access = await requireProject(ctx, projectId);
-    if (access.workspace._id !== args.workspaceId) return null;
+    const readable = projectId ? await projectReader(ctx, args.workspaceId, access.user._id)(projectId) : null;
+    if (!readable) return null;
     const taskId = ctx.db.normalizeId("tasks", args.taskId);
     const task = taskId ? await ctx.db.get(taskId) : null;
-    return task ? taskAddress(ctx, access, task) : null;
+    return task
+      ? taskAddress(ctx, { ...access, project: readable.project, projectMember: readable.member }, task)
+      : null;
   },
 });
 
