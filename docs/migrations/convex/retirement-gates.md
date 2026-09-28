@@ -41,6 +41,14 @@ The [component model](https://docs.convex.dev/components/understanding) keeps co
 
 The approved API-key plugin is installed in the local Better Auth component. Generated PAT management and internal verification are implemented; no native inbound external API, webhook, public-sharing or MCP-server HTTP route is registered. Bounded token counter checks passed; the 64-way OCC capacity gate remains OPEN. Durable mail and job components must retain recipient, retry and idempotency contracts. Installing any component alone does not close a route, job or external API gate.
 
+### Profile totals and supported bulk operations
+
+The approved Aggregate experiment was removed in `3cb17a40ed636b8631df334a67452c3d88dccc08`. Twenty tasks with 100 assignees and 100 subscribers each require 4,020 synchronous index changes. The control `d7e04bda467d3dcb6c8c2952fe8aaf125c5cb9e9` could delete and restore that cohort atomically. Aggregate variants exceeded Convex's transaction read limits; smaller nodes still exceeded the document limit. Restricting supported bulk operations or making totals eventually consistent would change the product contract.
+
+`tasks/profile.ts` now derives authorized contributions from canonical tasks, subscriptions and memberships using official stream pagination. The generated query has no maintained counter, component or backfill dependency. Consumers must fold current pages by project and show totals only after complete coverage; the preserved profile frontend is still an unregistered candidate. Its reactive pagination, cold-load cost and memory at volume remain open.
+
+The exact committed backend was deployed only to the isolated local QA container (`127.0.0.1:3220`; image `sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8`). Authenticated public queries matched canonical totals and enum distributions for all 100 subjects in five phases. Bulk delete, restore, status/priority change and property restoration each acknowledged 20 changes; all 2,000 subscriptions survived. Backend TS7 passed 15 ordered tasks; web TS7 passed 22 tasks, and backend lint/format passed from the immutable Git archive. These are correctness and capacity probes, not Chrome acceptance or a latency comparison with Django. Private receipts and fixture backups are retained under `/tmp/summon-profile-capacity-fixtures-20260928/`.
+
 ## Cutover sequence
 
 1. Close each remaining active consumer against its native public boundary; exercise its actual role and failure/recovery behavior. Replace route ownership only after preserving its supported product contract.
