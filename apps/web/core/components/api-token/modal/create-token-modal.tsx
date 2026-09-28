@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { add } from "date-fns";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -42,6 +42,7 @@ export function CreateApiTokenModal({ onClose }: { onClose: () => void }) {
   );
   const {
     register,
+    control,
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<FunctionArgs<typeof api.identity.apiTokens.create>>({
@@ -85,11 +86,18 @@ export function CreateApiTokenModal({ onClose }: { onClose: () => void }) {
                   placeholder={t("title")}
                   className="w-full text-14"
                 />
-                <TextArea
-                  {...register("description")}
-                  aria-label={t("description")}
-                  placeholder={t("description")}
-                  className="min-h-24 w-full resize-none text-14"
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <TextArea
+                      value={value}
+                      onChange={onChange}
+                      aria-label={t("description")}
+                      placeholder={t("description")}
+                      className="min-h-24 w-full resize-none text-14"
+                    />
+                  )}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
