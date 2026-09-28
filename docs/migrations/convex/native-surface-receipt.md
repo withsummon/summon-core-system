@@ -1,20 +1,22 @@
 # Native registered surfaces
 
-Snapshot: 2026-09-28, committed `d235f3c87981b1b85de16f2303d64c57ac4cb533`; later dirty member/auth/invitation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **601 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Snapshot: 2026-09-28, immutable export of committed `ff55ddde8c5d799f72802cbb849bb2482b305f11`; uncommitted Activity/profile/project presentation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **600 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 ## Registered boundaries
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     518 | 441 public and 77 internal declarations across generated app modules.                                               |
+| App RPC                     |     517 | 442 public and 75 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **601** | **All OPEN.**                                                                                                       |
+| **Total**                   | **600** | **All OPEN.**                                                                                                       |
 
-The 530 declarations comprise 522 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The 529 declarations comprise 521 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+
+This snapshot includes the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project-ID address resolver, Members directory/role writer, sign-in recorder and ID-based invitation owners. Deleted `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. These source contracts still need their complete route, role and recovery acceptance.
 
 ## HTTP candidates and availability
 
@@ -30,11 +32,11 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 
 | Family         | Declarations | Family        | Declarations |
 | -------------- | -----------: | ------------- | -----------: |
-| Identity       |           23 | Account       |           27 |
-| Instance       |            7 | Workspace     |           44 |
-| Shared shell   |           20 | Projects      |           56 |
-| Tasks          |           66 | Cycles        |           20 |
-| Modules        |           18 | Intake        |           14 |
+| Identity       |           24 | Account       |           27 |
+| Instance       |            7 | Workspace     |           39 |
+| Shared shell   |           21 | Projects      |           56 |
+| Tasks          |           69 | Cycles        |           20 |
+| Modules        |           18 | Intake        |           13 |
 | Views/search   |           23 | Documents     |           36 |
 | Assets         |           28 | Commercial    |           18 |
 | Meetings       |           18 | Resources/MCP |           37 |
@@ -59,8 +61,10 @@ These locate replacement candidates without asserting REST payload or journey eq
 
 ## Verification and limits
 
-Independent checks matched all 245 generated app module names, all 246 inspected module-source hashes against committed `d235f3c879`, 530 declaration anchors, 84 HTTP/SDK owner anchors and all 601 unique ledger rows. Factory exports were checked against installed native constructors; the eight component references carry parent visibility `internal`. The 53 excluded value exports were checked as helpers, schema/config values or routing helpers. Metadata extraction inspected registrations and endpoint options without invoking an endpoint or database operation.
+Independent checks matched all 244 generated app module names, 245 inspected module-source hashes, 529 declaration anchors, 88 HTTP/SDK/policy owner anchors and all 600 unique ledger rows. The 14 factory export anchors match their exact installed constructor kinds and source hashes; the eight component references carry parent visibility `internal`. The 57 excluded value exports were checked as helpers, schema/config values or routing helpers. Metadata extraction inspected registrations and endpoint options without invoking an endpoint, database operation or provider.
 
-Snapshot `_generated/api.d.ts` SHA-256: `b42ffa23fd48294849d927876265385dc92df3d0751369994d63c0802464b68f`. Oxfmt changed the extraction artifact's raw generated-file digest; the current module set and declaration owners still match. Four common HTTP mount conditions were corrected from auth-engine-dependent to unconditional in the published ledger.
+The existing three operators read `/tmp/summon-task-canonical-write-ff55ddde8c-source` and verify all 3,024 file hashes in `/tmp/summon-native-browse-intake-source-identity-20260928.json`. Source identity SHA-256: `9da1befd75893f3af601b48c9d2cb4f42f7079d5e754220b0d0dd1dfbb77f6f7`; archive SHA-256: `0e82d4bb551bd4ad5945ffc69dd8bb74b7d8009bdb39efe99e45e10243553d76`; `_generated/api.d.ts` SHA-256: `31dc1a71dbeb7d7c4407b4502f0ab422b108c43fb0f9a0eb57854984d39eff2d`. The separately reviewed inherited-ledger metadata contains 863 OPEN rows and has SHA-256 `12a4aa19750644391e8e10e31eca38e1a3415b990ad179a6e8552fb194a6c734`; it is not claimed as part of the code archive.
+
+Evidence: `/tmp/summon-convex-native-evidence-20260928.json`, with parser, HTTP metadata and final anchor checks in `/tmp/summon-native-{inventory,http-inventory,evidence}-ff55-20260928.log`. The operators now retain unconditional asset/assistant mount conditions and the exact sign-in-policy and prefix CORS owners. Previous artifacts are preserved in `/tmp/summon-native-registry-before-ff55-20260928`.
 
 No native inbound `/api/v1/`/webhook, anonymous public-sharing or MCP-server HTTP mount is registered. Internal PAT verification is a candidate owner, and `mcp/*` is an outbound client. Configured endpoint availability, real mail/OAuth/providers, external API capacity, browser dialogs/commands, jobs, backup/restore, rollback and exact served-build identity remain acceptance work. This inventory changes no deployment or parity status.

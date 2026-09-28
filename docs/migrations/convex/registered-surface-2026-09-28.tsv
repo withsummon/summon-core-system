@@ -56,8 +56,8 @@ command	nav_summon_home	apps/web/core/components/power-k/config/navigation/comma
 command	nav_summon_settings	apps/web/core/components/power-k/config/navigation/commands.ts:287	Django-backed Power K	shared-shell		OPEN
 command	open_keyboard_shortcuts	apps/web/core/components/power-k/config/help-commands.ts:22	Django-backed Power K	shared-shell		OPEN
 command	toggle_app_sidebar	apps/web/core/components/power-k/config/miscellaneous-commands.ts:56	Django-backed Power K	shared-shell		OPEN
-command	Create new sticky	apps/web/core/components/workspace/native-shell/commands.tsx:73	Convex shared workspace shell	stickies	Native Stickies/General; inherited Power K IDs remain legacy	OPEN
-command	Open all stickies	apps/web/core/components/workspace/native-shell/commands.tsx:81	Convex shared workspace shell	stickies	Native Stickies/General; inherited Power K IDs remain legacy	OPEN
+command	Create new sticky	apps/web/core/components/workspace/native-shell/commands.tsx:73	Convex shared workspace shell	stickies	Registered native workspace routes share Stickies commands; acceptance: create/open with keyboard and preserve drafts across route leave; inherited Power K IDs remain legacy	OPEN
+command	Open all stickies	apps/web/core/components/workspace/native-shell/commands.tsx:81	Convex shared workspace shell	stickies	Registered native workspace routes share Stickies commands; acceptance: create/open with keyboard and preserve drafts across route leave; inherited Power K IDs remain legacy	OPEN
 command	add_work_item_labels	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:367	Django-backed Power K	tasks		OPEN
 command	add_work_item_to_cycle	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:295	Django-backed Power K	tasks		OPEN
 command	add_work_item_to_modules	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:335	Django-backed Power K	tasks		OPEN
@@ -93,6 +93,7 @@ command	open_workspace	apps/web/core/components/power-k/config/navigation/comman
 command	open_workspace_setting	apps/web/core/components/power-k/config/navigation/commands.ts:445	Django-backed Power K	workspace		OPEN
 command	workspace_invites	apps/web/core/components/power-k/config/account-commands.ts:42	Legacy Power K; Convex invitations destination	workspace		OPEN
 dialog-mount	ChangeEmailModal	apps/web/core/components/settings/profile/content/pages/general/form.tsx:111	Better Auth account UI	account		OPEN
+dialog-mount	CreateApiTokenModal	apps/web/core/components/settings/profile/content/pages/api-tokens.tsx:36	Convex/Better Auth PAT management; external transport open	account	Account Settings management; acceptance: create/copy-once/revoke/expiry and denied roles; secondary external-api transport /api/v1/ remains Django and OPEN	OPEN
 dialog-mount	DeactivateAccountModal	apps/web/core/components/settings/profile/content/pages/general/form.tsx:110	Convex account UI	account		OPEN
 dialog-mount	ProfileAvatarDialog	apps/web/core/components/account/native-entry/profile.tsx:74	Convex account UI	account		OPEN
 dialog-mount	ProfileAvatarDialog	apps/web/core/components/settings/profile/content/pages/general/form.tsx:113	Convex account UI	account		OPEN
@@ -100,9 +101,12 @@ dialog-mount	ProfileSettingsModal	apps/web/core/components/common/modal/global.t
 dialog-mount	ProfileSettingsModal	apps/web/core/components/workspace/native-shell/account-menu.tsx:47	Convex account UI and Better Auth PAT management	account		OPEN
 dialog-mount	UserImageUploadDialog	apps/web/core/components/account/native-entry/avatar.tsx:27	Convex account UI	assets		OPEN
 dialog-mount	UserImageUploadDialog	apps/web/core/components/core/modals/user-image-upload-modal.tsx:26	Django-backed web	assets		OPEN
+dialog-mount	Dialog	apps/web/core/components/automation/document-generator/document-preview-modal.tsx:49	Controlled legacy generated-document preview; real copy/export acceptance OPEN	automation	Acceptance: Open generated output, verify content/provenance, acknowledged clipboard copy and actual exported bytes; current download toast is not an export	OPEN
 dialog-mount	SelectMonthModal	apps/web/core/components/automation/auto-archive-automation.tsx:63	Django-backed web	automation		OPEN
 dialog-mount	SelectMonthModal	apps/web/core/components/automation/auto-close-automation.tsx:81	Django-backed web	automation		OPEN
 dialog-mount	CreateOpportunityDialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx:221	Django-backed web	commercial		OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/clients/[clientId]/page.tsx:509	Django summonService.updateClient; deployed client editor	commercial	Acceptance: Edit/save/cancel client, verify persisted fields, role denial and failure recovery in the deployed layout	OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx:401	Django summonService.createOpportunity; opportunity editor	commercial	Acceptance: Create opportunity with exact money/client fields, verify selected-route result, validation, cancellation and failure recovery	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/cycles/delete-modal.tsx:80	Django-backed web	cycles		OPEN
 dialog-mount	ArchiveCycleModal	apps/web/core/components/cycles/quick-actions.tsx:124	Django-backed web	cycles		OPEN
 dialog-mount	CycleCreateUpdateModal	apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx:98	Django-backed web	cycles		OPEN
@@ -117,19 +121,23 @@ dialog-mount	AlertModalCore	apps/web/core/components/pages/modals/delete-page-mo
 dialog-mount	CreatePageModal	apps/web/core/components/modals/project-level.tsx:57	Django-backed web	documents		OPEN
 dialog-mount	DeletePageModal	apps/web/core/components/pages/dropdowns/actions.tsx:181	Django-backed web	documents		OPEN
 dialog-mount	DescriptionVersionsModal	apps/web/core/components/core/description-versions/root.tsx:75	Django-backed web	documents		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/documents/hierarchy.tsx:96	Convex documents.hierarchy.move source candidate	documents	Acceptance: Choose an authorized parent and move with revision proof; cycle/stale/denied recovery, cancel and reactive hierarchy update	OPEN
+dialog-mount	Dialog	apps/web/core/components/knowledge/knowledge-detail-modal.tsx:48	Controlled legacy knowledge detail; real copy/export acceptance OPEN	documents	Acceptance: Open knowledge content/provenance, verify acknowledged clipboard copy and actual download bytes; current download toast is not an export	OPEN
 dialog-mount	ExportPageModal	apps/web/core/components/pages/editor/toolbar/options-dropdown.tsx:129	Django-backed web	documents		OPEN
 dialog-mount	KnowledgeDetailModal	apps/web/core/components/knowledge/knowledge-root.tsx:276	Django-backed web	documents		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/api-token/delete-token-modal.tsx:59	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/web-hooks/delete-webhook-modal.tsx:58	Django-backed web	external-api		OPEN
-dialog-mount	CreateApiTokenModal	apps/web/core/components/settings/profile/content/pages/api-tokens.tsx:36	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	CreateWebhookModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx:68	Django-backed web	external-api		OPEN
 dialog-mount	DeleteApiTokenModal	apps/web/core/components/api-token/token-list-item.tsx:35	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	DeleteWebhookModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx:100	Django-backed web	external-api		OPEN
+dialog-mount	Dialog	apps/web/core/components/onboarding/switch-account-modal.tsx:55	Native Better Auth authClient.signOut source owner; theme reset and entry navigation	identity	Acceptance: Cancel retains current account; confirm sign-out revokes backing session, resets appearance and enters another verified account; failed sign-out recovery	OPEN
 dialog-mount	SwitchAccountModal	apps/web/core/components/onboarding/switch-account-dropdown.tsx:27	Better Auth entry UI	identity		OPEN
 dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/gitea/form.tsx:171	Django-backed admin	instance		OPEN
 dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/github/form.tsx:192	Django-backed admin	instance		OPEN
 dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/gitlab/form.tsx:174	Django-backed admin	instance		OPEN
 dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/google/form.tsx:184	Django-backed admin	instance		OPEN
+dialog-mount	Dialog	apps/admin/app/(all)/(dashboard)/email/test-email-modal.tsx:70	Django InstanceService.sendTestEmail; admin email settings	instance	Acceptance: Send a real test email, verify delivery/failure and retry, then dismiss; Resend-only native replacement remains OPEN	OPEN
+dialog-mount	Dialog	apps/admin/components/common/confirm-discard-modal.tsx:23	Controlled admin settings discard/navigation presentation	instance	Acceptance: Keep editing retains unsaved settings; Go back follows the intended destination and discards; pending saves, focus and dismissal	OPEN
 dialog-mount	SendTestEmailModal	apps/admin/app/(all)/(dashboard)/email/email-config-form.tsx:150	Django-backed admin	instance		OPEN
 dialog-mount	DateFilterModal	apps/web/core/components/inbox/inbox-filter/filters/date.tsx:63	Django-backed web	intake		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/modules/delete-module-modal.tsx:74	Django-backed web	modules		OPEN
@@ -163,16 +171,26 @@ dialog-mount	LeaveProjectModal	apps/web/core/components/navigation/tab-navigatio
 dialog-mount	LeaveProjectModal	apps/web/core/components/workspace/sidebar/projects-list-item.tsx:281	Django-backed web	projects		OPEN
 dialog-mount	PublishProjectModal	apps/web/core/components/navigation/tab-navigation-root.tsx:170	Django-backed web	projects		OPEN
 dialog-mount	PublishProjectModal	apps/web/core/components/workspace/sidebar/projects-list-item.tsx:280	Django-backed web	projects		OPEN
-dialog-mount	SendProjectInvitationModal	apps/web/core/components/project/member-list.tsx:78	Django-backed web	projects		OPEN
+dialog-mount	SendProjectInvitationModal	apps/web/core/components/project/member-list.tsx:84	Django-backed web	projects		OPEN
+dialog-mount	Dialog	apps/space/components/issues/peek-overview/layout.tsx:66	Django public issue store; side Peek presentation	public-sharing	Acceptance: Open authorized public issue side Peek, preserve board/filter URL on close and validate hidden/denied issue recovery	OPEN
+dialog-mount	Dialog	apps/space/components/issues/peek-overview/layout.tsx:79	Django public issue store; modal/full Peek presentation	public-sharing	Acceptance: Switch modal/full Peek, preserve board/filter URL on close and validate public scope, responsive layout and dismissal	OPEN
 dialog-mount	AddResourceModal	apps/web/core/components/summon/resources/resources-root.tsx:627	Django-backed web	resources-mcp		OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx:680	Django summonService.createCredential/updateCredential; credential editor	resources-mcp	Acceptance: Create/edit credential, preserve secret exposure policy, pending dismissal, permission denial and retry	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/credentials/sensitive-operation.tsx:59	Convex mcp.stepUp/sensitive source candidate	resources-mcp	Acceptance: Password step-up, then authorized reveal/rotate/revoke/remove; denied/replayed proof, pending dismissal and retry; real provider acceptance OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/summon/credential-drawer.tsx:145	Django summonService credential grants/audit/reveal/rotate/delete	resources-mcp	Acceptance: Read grants/audit, step-up reveal/rotate/delete and grant/revoke; verify denied operations, pending dismissal and error recovery	OPEN
+dialog-mount	Dialog	apps/web/core/components/summon/resources/add-resource-modal.tsx:55	Controlled legacy AddResourceModal onSave resource-link boundary	resources-mcp	Acceptance: Submit title/URL/project through actual parent save, verify persisted link, validation, cancellation and provider/permission failure	OPEN
+dialog-mount	AlertModalCore	apps/web/core/hooks/use-reload-confirmation.tsx:55	Shared router navigation confirmation source owner; native and legacy draft/selection policies	shared-shell	Acceptance: Stay preserves drafts; Leave invokes active policy callbacks and continues SPA/POP navigation; hard reload warns; local legacy Peek dismissal remains OPEN	OPEN
 dialog-mount	CustomizeNavigationDialog	apps/web/core/components/sidebar/sidebar-wrapper.tsx:46	Django-backed web	shared-shell		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:231	Convex favorites.index.create folder source candidate	shared-shell	Acceptance: Create named folder, verify ordered tree publication, permissions, validation, cancellation and retry	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:37	Convex favorites.index.update/lifecycle and reorder.move source candidate	shared-shell	Acceptance: Edit/move/remove favorite with authoritative revision; reject stale/denied writes, preserve pending/error state and navigation target	OPEN
+dialog-mount	Dialog	apps/web/core/components/power-k/ui/modal/shortcuts-root.tsx:39	Inherited Power K shortcuts presentation and command owner	shared-shell	Acceptance: Open shortcuts from keyboard/menu, read command catalog and restore focus on Escape/backdrop/close; native command parity remains OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/power-k/ui/modal/wrapper.tsx:120	Django-backed inherited Power K command/store wrapper	shared-shell	Acceptance: Search/select/execute all registered commands, validate permission/navigation and keyboard focus; native command migration remains OPEN	OPEN
 dialog-mount	LinkCreateUpdateModal	apps/web/core/components/home/widgets/links/root.tsx:43	Django-backed web	shared-shell		OPEN
 dialog-mount	ManageWidgetsModal	apps/web/core/components/home/home-dashboard-widgets.tsx:84	Django-backed web	shared-shell		OPEN
 dialog-mount	ShortcutsModal	apps/web/core/components/power-k/global-shortcuts.tsx:82	Django-backed web	shared-shell		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/stickies/delete-modal.tsx:43	Django-backed web	stickies		OPEN
-dialog-mount	AlertModalCore	apps/web/core/components/stickies/native/provider.tsx:139	Convex UI	stickies		OPEN
 dialog-mount	AllStickiesModal	apps/web/core/components/stickies/action-bar.tsx:145	Django-backed web	stickies		OPEN
-dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:57	Convex shared workspace note controller	stickies	Mounted once for native Stickies and workspace General	OPEN
+dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:57	Convex shared workspace note controller	stickies	Mounted once for registered native workspace routes; acceptance: create/open/edit, dirty-draft navigation and flush before leave; cross-route legacy destinations remain OPEN	OPEN
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/native/note.tsx:57	Convex UI	stickies		OPEN
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/sticky/root.tsx:77	Django-backed web	stickies		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/decline-issue-modal.tsx:44	Django-backed web	tasks		OPEN
@@ -218,6 +236,8 @@ dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quic
 dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/module-issue.tsx:120	Django-backed web	tasks		OPEN
 dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/project-issue.tsx:122	Django-backed web	tasks		OPEN
 dialog-mount	DeleteIssueModal	apps/web/core/components/modals/work-item-level.tsx:94	Django-backed web	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/description-history.tsx:22	Convex tasks.history scoped task/Intake source candidate	tasks	Acceptance: Page versions, preview canonical HTML and restore with revision/capability proof; secondary intake; stale/denied recovery and dismissal	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/lifecycle.tsx:134	Convex tasks.lifecycle.change revisioned source candidate	tasks	Acceptance: Confirm archive/unarchive/delete/restore with canonical receipt; protect dirty drafts and pending navigation, reject stale/denied writes and retry	OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:177	Django-backed web	tasks		OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:188	Django-backed web	tasks		OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail/relation-select.tsx:84	Django-backed web	tasks		OPEN
@@ -258,9 +278,12 @@ dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/v
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/quick-action.tsx:65	Django-backed web	workspace		OPEN
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/view-list-item.tsx:39	Django-backed web	workspace		OPEN
 dialog-mount	DeleteWorkspaceModal	apps/web/core/components/workspace/delete-workspace-section.tsx:22	Convex workspace lifecycle; retained data	workspace	Flush shared note drafts before revisioned soft deletion	OPEN
+dialog-mount	Dialog	apps/web/core/components/workspace/confirm-workspace-member-remove.tsx:42	Controlled removal presentation; Convex workspace callers and current Django project callers	workspace	Acceptance: Confirm member/invitation removal or self leave; await caller acknowledgement and draft flush, last-admin/denied/failure recovery; secondary projects remain staged	OPEN
+dialog-mount	Dialog	apps/web/core/components/workspace/members/invite-modal.tsx:76	Convex invitations.index.create/email.send scope/access source owner	workspace	Acceptance: Bulk invite with authoritative roles/max batch, truthful mail availability, per-recipient delivery failure and guarded close; secondary projects and real mail acceptance OPEN	OPEN
 dialog-mount	PaidPlanUpgradeModal	apps/web/core/components/workspace/edition-badge.tsx:29	Django-backed web	workspace		OPEN
 dialog-mount	ProductUpdatesModal	apps/web/core/components/workspace/sidebar/help-section/root.tsx:24	Django-backed web	workspace		OPEN
-dialog-mount	SendWorkspaceInvitationModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx:104	Django-backed web	workspace		OPEN
+dialog-mount	SendWorkspaceInvitationModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx:55	Convex workspace invitations source owner in preserved Members screen	workspace	Acceptance: authorized bulk create/send, unavailable-mail manual links, per-recipient delivery failures and pending-close guard; source-only owner, real mail remains OPEN	OPEN
+dialog-mount	SendWorkspaceInvitationModal	apps/web/core/components/convex-core/invitations/manage.tsx:53	Convex generic workspace/project invitation management source owner	workspace	Acceptance: same preserved bulk invitation form in both scopes, authoritative roles, create/manual copy/resend/revoke and truthful delivery failures; secondary projects, real mail remains OPEN	OPEN
 dialog-mount	UserImageUploadDialog	apps/web/core/components/core/modals/workspace-image-upload-modal.tsx:37	Convex workspace logo/private assets	workspace	Shared uploader presentation; assets secondary	OPEN
 dialog-mount	WorkspaceDraftIssueDeleteIssueModal	apps/web/core/components/issues/workspace-draft/draft-issue-block.tsx:103	Django-backed web	workspace		OPEN
 dialog-mount	WorkspaceImageUploadModal	apps/web/core/components/workspace/settings/workspace-details.tsx:82	Convex workspace logo CAS/private assets	workspace	Own publication receipt; assets secondary	OPEN
@@ -733,14 +756,14 @@ scheduled-job	check-every-day-to-delete-issue-description-versions	apps/api/plan
 web-index	/	apps/web/app/routes.ts:24	Better Auth/Convex entry	identity	./(home)/page.tsx	OPEN
 web-index	/	apps/admin/app/routes.ts:11	Django-backed admin	instance	./(all)/(home)/page.tsx	OPEN
 web-index	/	apps/space/app/routes.ts:11	Django-backed public space	public-sharing	./page.tsx	OPEN
-web-route	/:workspaceSlug/profile/:userId	apps/web/app/routes/core.ts:58	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx	OPEN
-web-route	/:workspaceSlug/profile/:userId/:profileViewId	apps/web/app/routes/core.ts:59	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx	OPEN
-web-route	/:workspaceSlug/profile/:userId/activity	apps/web/app/routes/core.ts:63	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx	OPEN
-web-route	/profile/*	apps/web/app/routes/core.ts:369	Django shell; redirect to Convex account UI	account	routes/redirects/core/profile-settings.tsx	OPEN
-web-route	/settings/profile/:profileTabId	apps/web/app/routes.ts:54	Convex account UI and Better Auth PAT management	account	./(all)/settings/profile/[profileTabId]/page.tsx	OPEN
+web-route	/:workspaceSlug/profile/:userId	apps/web/app/routes/core.ts:53	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx	OPEN
+web-route	/:workspaceSlug/profile/:userId/:profileViewId	apps/web/app/routes/core.ts:54	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx	OPEN
+web-route	/:workspaceSlug/profile/:userId/activity	apps/web/app/routes/core.ts:58	Django-backed web	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx	OPEN
+web-route	/profile/*	apps/web/app/routes/core.ts:353	Django shell; redirect to Convex account UI	account	routes/redirects/core/profile-settings.tsx	OPEN
+web-route	/settings/profile/:profileTabId	apps/web/app/routes.ts:65	Convex account UI and Better Auth PAT management	account	./(all)/settings/profile/[profileTabId]/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/assistant	apps/web/app/routes/extended.ts:37	Django-backed web	assistant	./(all)/[workspaceSlug]/(projects)/summon/assistant/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/automation	apps/web/app/routes/core.ts:191	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/automations	apps/web/app/routes/core.ts:319	Django-backed web	automation	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/automation	apps/web/app/routes/core.ts:179	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/automations	apps/web/app/routes/core.ts:303	Django-backed web	automation	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/automation	apps/web/app/routes/extended.ts:35	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/automation/:jobId	apps/web/app/routes/extended.ts:36	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/[jobId]/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/clients	apps/web/app/routes/extended.ts:23	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/clients/page.tsx	OPEN
@@ -748,28 +771,28 @@ web-route	/:workspaceSlug/summon/clients/:clientId	apps/web/app/routes/extended.
 web-route	/:workspaceSlug/summon/opportunities	apps/web/app/routes/extended.ts:25	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/opportunities/:opportunityId	apps/web/app/routes/extended.ts:26	Django-backed web	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/[opportunityId]/page.tsx	OPEN
 web-route	/:workspaceSlug/active-cycles	apps/web/app/routes/core.ts:33	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/archives/cycles	apps/web/app/routes/core.ts:217	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/cycles	apps/web/app/routes/core.ts:129	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/cycles/:cycleId	apps/web/app/routes/core.ts:121	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/features/cycles	apps/web/app/routes/core.ts:282	Django-backed web	cycles	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/cycles/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/pages	apps/web/app/routes/core.ts:177	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/pages/:pageId	apps/web/app/routes/core.ts:169	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/features/pages	apps/web/app/routes/core.ts:294	Django-backed web	documents	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/cycles	apps/web/app/routes/core.ts:205	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/cycles	apps/web/app/routes/core.ts:124	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/cycles/:cycleId	apps/web/app/routes/core.ts:116	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/cycles	apps/web/app/routes/core.ts:266	Django-backed web	cycles	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/cycles/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/pages	apps/web/app/routes/core.ts:172	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/pages/:pageId	apps/web/app/routes/core.ts:164	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/pages	apps/web/app/routes/core.ts:278	Django-backed web	documents	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/documents	apps/web/app/routes/extended.ts:21	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/documents/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/knowledge	apps/web/app/routes/extended.ts:22	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/api-tokens	apps/web/app/routes/core.ts:351	Django shell; redirect to Convex account UI	external-api	routes/redirects/core/api-tokens.tsx	OPEN
-web-route	/:workspaceSlug/settings/webhooks	apps/web/app/routes/core.ts:253	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/webhooks/:webhookId	apps/web/app/routes/core.ts:257	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/api-tokens	apps/web/app/routes/core.ts:335	Django shell; redirect to Convex account UI	external-api	routes/redirects/core/api-tokens.tsx	OPEN
+web-route	/:workspaceSlug/settings/webhooks	apps/web/app/routes/core.ts:237	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/webhooks/:webhookId	apps/web/app/routes/core.ts:241	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx	OPEN
 web-route	/accounts/forgot-password	apps/web/app/routes.ts:31	Better Auth/Convex entry	identity	./(all)/accounts/forgot-password/page.tsx	OPEN
 web-route	/accounts/reset-password	apps/web/app/routes.ts:34	Better Auth/Convex entry	identity	./(all)/accounts/reset-password/page.tsx	OPEN
 web-route	/accounts/set-password	apps/web/app/routes.ts:37	Better Auth/Convex entry	identity	./(all)/accounts/set-password/page.tsx	OPEN
-web-route	/accounts/sign-up	apps/web/app/routes/core.ts:358	Django shell; redirect to Convex entry	identity	routes/redirects/core/accounts-signup.tsx	OPEN
-web-route	/login	apps/web/app/routes/core.ts:363	Django shell; redirect to Convex entry	identity	routes/redirects/core/login.tsx	OPEN
+web-route	/accounts/sign-up	apps/web/app/routes/core.ts:342	Django shell; redirect to Convex entry	identity	routes/redirects/core/accounts-signup.tsx	OPEN
+web-route	/login	apps/web/app/routes/core.ts:347	Django shell; redirect to Convex entry	identity	routes/redirects/core/login.tsx	OPEN
 web-route	/onboarding	apps/web/app/routes.ts:41	Better Auth/Convex entry	identity	./(all)/onboarding/page.tsx	OPEN
-web-route	/register	apps/web/app/routes/core.ts:366	Django shell; redirect to Convex entry	identity	routes/redirects/core/register.tsx	OPEN
-web-route	/sign-in	apps/web/app/routes/core.ts:361	Django shell; redirect to Convex entry	identity	routes/redirects/core/sign-in.tsx	OPEN
+web-route	/register	apps/web/app/routes/core.ts:350	Django shell; redirect to Convex entry	identity	routes/redirects/core/register.tsx	OPEN
+web-route	/sign-in	apps/web/app/routes/core.ts:345	Django shell; redirect to Convex entry	identity	routes/redirects/core/sign-in.tsx	OPEN
 web-route	/sign-up	apps/web/app/routes.ts:27	Better Auth/Convex entry	identity	./(all)/sign-up/page.tsx	OPEN
-web-route	/signin	apps/web/app/routes/core.ts:362	Django shell; redirect to Convex entry	identity	routes/redirects/core/signin.tsx	OPEN
+web-route	/signin	apps/web/app/routes/core.ts:346	Django shell; redirect to Convex entry	identity	routes/redirects/core/signin.tsx	OPEN
 web-route	/*	apps/admin/app/routes.ts:26	Django-backed admin	instance	./components/404.tsx	OPEN
 web-route	/ai	apps/admin/app/routes.ts:22	Django-backed admin	instance	./(all)/(dashboard)/ai/page.tsx	OPEN
 web-route	/authentication	apps/admin/app/routes.ts:17	Django-backed admin	instance	./(all)/(dashboard)/authentication/page.tsx	OPEN
@@ -782,60 +805,60 @@ web-route	/general	apps/admin/app/routes.ts:13	Django-backed admin	instance	./(a
 web-route	/image	apps/admin/app/routes.ts:23	Django-backed admin	instance	./(all)/(dashboard)/image/page.tsx	OPEN
 web-route	/workspace	apps/admin/app/routes.ts:14	Django-backed admin	instance	./(all)/(dashboard)/workspace/page.tsx	OPEN
 web-route	/workspace/create	apps/admin/app/routes.ts:15	Django-backed admin	instance	./(all)/(dashboard)/workspace/create/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/inbox	apps/web/app/routes/core.ts:355	Django-backed web	intake	routes/redirects/core/inbox.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/intake	apps/web/app/routes/core.ts:184	Django-backed web	intake	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/features/intake	apps/web/app/routes/core.ts:298	Django-backed web	intake	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/inbox	apps/web/app/routes/core.ts:339	Django-backed web	intake	routes/redirects/core/inbox.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/intake	apps/web/app/routes.ts:54	Convex scoped Intake source candidate in preserved shell; feature settings destination remains Django	intake	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/intake	apps/web/app/routes/core.ts:282	Django-backed web	intake	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/meetings	apps/web/app/routes/extended.ts:33	Django-backed web	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/meetings/:meetingId	apps/web/app/routes/extended.ts:34	Django-backed web	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/archives/modules	apps/web/app/routes/core.ts:225	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/modules	apps/web/app/routes/core.ts:145	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/modules/:moduleId	apps/web/app/routes/core.ts:137	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/features/modules	apps/web/app/routes/core.ts:286	Django-backed web	modules	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx	OPEN
-web-route	/:workspaceSlug/notifications	apps/web/app/routes/core.ts:53	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/notifications/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/modules	apps/web/app/routes/core.ts:213	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/modules	apps/web/app/routes/core.ts:140	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/modules/:moduleId	apps/web/app/routes/core.ts:132	Django-backed web	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/modules	apps/web/app/routes/core.ts:270	Django-backed web	modules	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx	OPEN
+web-route	/:workspaceSlug/notifications	apps/web/app/routes/core.ts:48	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/notifications/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/notifications	apps/web/app/routes/extended.ts:32	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/summon/notifications/page.tsx	OPEN
-web-route	/*	apps/web/app/routes.ts:57	Django-backed web	operations	./not-found.tsx	OPEN
-web-route	/:workspaceSlug/projects	apps/web/app/routes/core.ts:101	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/settings/*	apps/web/app/routes/core.ts:344	Django-backed web	projects	routes/redirects/core/project-settings.tsx	OPEN
-web-route	/:workspaceSlug/projects/archives	apps/web/app/routes/core.ts:89	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects	apps/web/app/routes/core.ts:269	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId	apps/web/app/routes/core.ts:272	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/estimates	apps/web/app/routes/core.ts:313	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/labels	apps/web/app/routes/core.ts:308	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/labels/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/states	apps/web/app/routes/core.ts:303	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx	OPEN
+web-route	/*	apps/web/app/routes.ts:68	Django-backed web	operations	./not-found.tsx	OPEN
+web-route	/:workspaceSlug/projects	apps/web/app/routes/core.ts:96	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/settings/*	apps/web/app/routes/core.ts:328	Django-backed web	projects	routes/redirects/core/project-settings.tsx	OPEN
+web-route	/:workspaceSlug/projects/archives	apps/web/app/routes/core.ts:84	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects	apps/web/app/routes/core.ts:253	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId	apps/web/app/routes/core.ts:256	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/estimates	apps/web/app/routes/core.ts:297	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/labels	apps/web/app/routes/core.ts:292	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/labels/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/states	apps/web/app/routes/core.ts:287	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/projects	apps/web/app/routes/extended.ts:18	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/projects/:projectId	apps/web/app/routes/extended.ts:19	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/[projectId]/page.tsx	OPEN
 web-route	/*	apps/space/app/routes.ts:15	Django-backed public space	public-sharing	./not-found.tsx	OPEN
 web-route	/:workspaceSlug/:projectId	apps/space/app/routes.ts:12	Django-backed public space	public-sharing	./[workspaceSlug]/[projectId]/page.tsx	OPEN
 web-route	/issues/:anchor	apps/space/app/routes.ts:13	Django-backed public space	public-sharing	./issues/[anchor]/page.tsx	OPEN
-web-route	/:workspaceSlug/analytics	apps/web/app/routes/core.ts:347	Django-backed web	reporting	routes/redirects/core/analytics.tsx	OPEN
+web-route	/:workspaceSlug/analytics	apps/web/app/routes/core.ts:331	Django-backed web	reporting	routes/redirects/core/analytics.tsx	OPEN
 web-route	/:workspaceSlug/analytics/:tabId	apps/web/app/routes/core.ts:38	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/exports	apps/web/app/routes/core.ts:249	Django-backed web	reporting	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/exports	apps/web/app/routes/core.ts:233	Django-backed web	reporting	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx	OPEN
 web-route	/:workspaceSlug/summon	apps/web/app/routes/extended.ts:17	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/reports	apps/web/app/routes/extended.ts:30	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/reports/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/credentials	apps/web/app/routes/extended.ts:38	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/resources	apps/web/app/routes/extended.ts:31	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/resources/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/account/*	apps/web/app/routes/core.ts:372	Django shell; redirect to Convex account UI	shared-shell	routes/redirects/core/workspace-account-settings.tsx	OPEN
-web-route	/:workspaceSlug/settings/billing	apps/web/app/routes/core.ts:245	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/account/*	apps/web/app/routes/core.ts:356	Django shell; redirect to Convex account UI	shared-shell	routes/redirects/core/workspace-account-settings.tsx	OPEN
+web-route	/:workspaceSlug/settings/billing	apps/web/app/routes/core.ts:229	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/settings	apps/web/app/routes/extended.ts:39	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx	OPEN
 web-route	/core	apps/web/app/routes.ts:48	Convex	shared-shell	./core.tsx	OPEN
 web-route	/:workspaceSlug/stickies	apps/web/app/routes.ts:50	Convex (SUMMON_STICKIES_ROUTE_OWNER=convex)	stickies	./native-stickies.tsx	OPEN
-web-route	/:workspaceSlug/stickies	apps/web/app/routes/core.ts:74	Django (SUMMON_STICKIES_ROUTE_OWNER=legacy)	stickies	./(all)/[workspaceSlug]/(projects)/stickies/page.tsx	OPEN
-web-route	/:workspaceSlug/drafts	apps/web/app/routes/core.ts:48	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/drafts/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/archives/issues	apps/web/app/routes/core.ts:201	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/archives/issues/:archivedIssueId	apps/web/app/routes/core.ts:209	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/issues	apps/web/app/routes/core.ts:108	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/issues/:issueId	apps/web/app/routes/core.ts:114	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx	OPEN
+web-route	/:workspaceSlug/stickies	apps/web/app/routes/core.ts:69	Django (SUMMON_STICKIES_ROUTE_OWNER=legacy)	stickies	./(all)/[workspaceSlug]/(projects)/stickies/page.tsx	OPEN
+web-route	/:workspaceSlug/drafts	apps/web/app/routes/core.ts:43	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/drafts/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/issues	apps/web/app/routes/core.ts:189	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/issues/:archivedIssueId	apps/web/app/routes/core.ts:197	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/issues	apps/web/app/routes/core.ts:103	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/issues/:issueId	apps/web/app/routes/core.ts:109	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/tasks	apps/web/app/routes/extended.ts:20	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx	OPEN
-web-route	/:workspaceSlug/browse/:workItem	apps/web/app/routes/core.ts:43	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/views	apps/web/app/routes/core.ts:161	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx	OPEN
-web-route	/:workspaceSlug/projects/:projectId/views/:viewId	apps/web/app/routes/core.ts:153	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/features/views	apps/web/app/routes/core.ts:290	Django-backed web	views-search	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/views/page.tsx	OPEN
+web-route	/:workspaceSlug/browse/:workItem	apps/web/app/routes.ts:52	Convex task/address source candidate in preserved shell; legacy profile/project destinations remain OPEN	views-search	./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/views	apps/web/app/routes/core.ts:156	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/views/:viewId	apps/web/app/routes/core.ts:148	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/views	apps/web/app/routes/core.ts:274	Django-backed web	views-search	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/views/page.tsx	OPEN
 web-route	/:workspaceSlug	apps/web/app/routes/core.ts:29	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/page.tsx	OPEN
-web-route	/:workspaceSlug/settings	apps/web/app/routes.ts:51	Convex workspace General in preserved shell	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/members	apps/web/app/routes/core.ts:241	Django-backed web	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx	OPEN
-web-route	/:workspaceSlug/settings/projects/:projectId/members	apps/web/app/routes/core.ts:277	Django-backed web	workspace	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx	OPEN
-web-route	/:workspaceSlug/workspace-views	apps/web/app/routes/core.ts:80	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx	OPEN
-web-route	/:workspaceSlug/workspace-views/:globalViewId	apps/web/app/routes/core.ts:81	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings	apps/web/app/routes.ts:58	Convex workspace General in preserved shell	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/members	apps/web/app/routes.ts:59	Convex Members/invitations source owner in preserved settings shell; profile destination remains Django	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/members	apps/web/app/routes/core.ts:261	Django-backed web	workspace	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views	apps/web/app/routes/core.ts:75	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/:globalViewId	apps/web/app/routes/core.ts:76	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx	OPEN
 web-route	/create-workspace	apps/web/app/routes.ts:42	Better Auth/Convex entry	workspace	./(all)/create-workspace/page.tsx	OPEN
 web-route	/invitations	apps/web/app/routes.ts:43	Better Auth/Convex entry	workspace	./(all)/invitations/page.tsx	OPEN
 web-route	/workspace-invitations	apps/web/app/routes.ts:45	Better Auth/Convex entry	workspace	./(all)/workspace-invitations/page.tsx	OPEN
