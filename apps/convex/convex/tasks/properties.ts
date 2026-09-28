@@ -8,6 +8,7 @@ import { v } from "convex/values";
 import { date } from "../commercial/validation";
 import { taskProperties, nonStateTaskProperties } from "./schema";
 
+export const MAX_TASK_ASSIGNEES = 100;
 export const initialProperties = {
   priority: "none",
   estimatePointId: null,
@@ -31,8 +32,8 @@ export async function validateNonStateProperties(
   const startDate = date(data.startDate);
   const targetDate = date(data.targetDate);
   if (startDate && targetDate && startDate > targetDate) throw new ConvexError("Start date cannot exceed target date.");
-  if (data.assigneeIds.length > 100 || new Set(data.assigneeIds).size !== data.assigneeIds.length)
-    throw new ConvexError("Choose up to 100 distinct assignees.");
+  if (data.assigneeIds.length > MAX_TASK_ASSIGNEES || new Set(data.assigneeIds).size !== data.assigneeIds.length)
+    throw new ConvexError(`Choose up to ${MAX_TASK_ASSIGNEES} distinct assignees.`);
   if (data.labelIds.length > 100 || new Set(data.labelIds).size !== data.labelIds.length)
     throw new ConvexError("Choose up to 100 distinct labels.");
   await Promise.all(

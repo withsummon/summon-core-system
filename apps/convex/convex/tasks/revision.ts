@@ -1,5 +1,6 @@
 import { taskPropertyChanges } from "./activity_changes";
 import { recordTaskEvent } from "../notifications/delivery";
+import { syncTaskProfile } from "./profile";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -10,6 +11,7 @@ export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: numbe
 export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId: Id<"users">) {
   const current = await ctx.db.get(task._id);
   if (!current) throw new ConvexError("Task not found.");
+  await syncTaskProfile(ctx, task, current);
   const changes = await taskPropertyChanges(ctx, task, current);
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   await ctx.db.patch(task._id, { updatedAt });
