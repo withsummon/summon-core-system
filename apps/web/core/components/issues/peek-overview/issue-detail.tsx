@@ -5,7 +5,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -29,6 +29,7 @@ import type { TIssueOperations } from "../issue-detail";
 import { IssueParentDetail } from "../issue-detail/parent";
 import { IssueReaction } from "../issue-detail/reactions";
 import { IssueTitleInput } from "../title-input";
+import { nameDescriptionStatus } from "../issue-update-status";
 // services init
 const workItemVersionService = new WorkItemVersionService();
 
@@ -40,13 +41,15 @@ type Props = {
   issueOperations: TIssueOperations;
   disabled: boolean;
   isArchived: boolean;
-  isSubmitting: TNameDescriptionLoader;
   setIsSubmitting: (value: TNameDescriptionLoader) => void;
 };
 
 export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetails(props: Props) {
-  const { editorRef, workspaceSlug, issueId, issueOperations, disabled, isArchived, isSubmitting, setIsSubmitting } =
-    props;
+  const { editorRef, workspaceSlug, issueId, issueOperations, disabled, isArchived, setIsSubmitting } = props;
+  const [titleStatus, setTitleStatus] = useState<TNameDescriptionLoader>("saved");
+  const [descriptionStatus, setDescriptionStatus] = useState<TNameDescriptionLoader>("saved");
+  const isSubmitting = nameDescriptionStatus(titleStatus, descriptionStatus);
+  useEffect(() => setIsSubmitting(isSubmitting), [isSubmitting, setIsSubmitting]);
   // store hooks
   const { data: currentUser } = useUser();
   const {
@@ -55,30 +58,23 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
 
   const { getUserDetails } = useMember();
   // reload confirmation
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
+  useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isSubmitting === "submitted") {
-      setShowAlert(false);
-      timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting" || isSubmitting === "failed") {
-      setShowAlert(true);
-    }
+    if (isSubmitting !== "submitted") return;
+    const timer = setTimeout(() => {
+      setTitleStatus("saved");
+      setDescriptionStatus("saved");
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [isSubmitting, setShowAlert, setIsSubmitting]);
+  }, [isSubmitting]);
 
   // derived values
   const issue = issueId ? getIssueById(issueId) : undefined;
 
   if (!issue || !issue.project_id) return <></>;
-
-  const issueDescription =
-    issue.description_html !== undefined || issue.description_html !== null
-      ? issue.description_html != ""
-        ? issue.description_html
-        : "<p></p>"
-      : undefined;
+  const currentProjectId = issue.project_id;
+  const currentIssueId = issue.id;
 
   return (
     <div className="space-y-2">
@@ -95,12 +91,14 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         <IssueTypeSwitcher issueId={issueId} disabled={isArchived || disabled} />
       </div>
       <IssueTitleInput
-        workspaceSlug={workspaceSlug}
-        projectId={issue.project_id}
-        issueId={issue.id}
-        isSubmitting={isSubmitting}
-        setIsSubmitting={(value) => setIsSubmitting(value)}
-        issueOperations={issueOperations}
+        key={issue.id}
+        onSubmit={async (title) => {
+          const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+            name: title,
+          });
+          return response.name;
+        }}
+        setIsSubmitting={setTitleStatus}
         disabled={disabled || isArchived}
         value={issue.name}
         containerClassName="-ml-3"
@@ -113,16 +111,16 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         editorRef={editorRef}
         entityId={issue.id}
         fileAssetType={EFileAssetType.ISSUE_DESCRIPTION}
-        initialValue={issueDescription}
+        initialValue={issue.description_html}
         key={issue.id}
-        onSubmit={async (value, isMigrationUpdate) => {
-          if (!issue.id || !issue.project_id) return;
-          await issueOperations.update(workspaceSlug, issue.project_id, issue.id, {
-            description_html: value.description_html,
+        onSubmit={async (html, isMigrationUpdate) => {
+          const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+            description_html: html,
             ...(isMigrationUpdate ? { skip_activity: "true" } : {}),
           });
+          return response.description_html;
         }}
-        setIsSubmitting={(value) => setIsSubmitting(value)}
+        setIsSubmitting={setDescriptionStatus}
         projectId={issue.project_id}
         workspaceSlug={workspaceSlug}
       />

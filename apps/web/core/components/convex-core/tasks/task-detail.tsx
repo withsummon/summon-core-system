@@ -1,15 +1,15 @@
 import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import type { FunctionArgs, FunctionReturnType } from "convex/server";
-import type { Id } from "@summon/convex/data-model";
+import type { FunctionReturnType } from "convex/server";
+import type { TNameDescriptionLoader } from "@plane/types";
 import { Button } from "@plane/propel/button";
-import { Input } from "@plane/propel/input";
-import { SummonField } from "@/components/summon/forms";
-import { mutationMessage } from "../commercial/forms";
-import { TaskInlineProperties, TaskProperties } from "./task-properties";
+import { IssueTitleInput } from "@/components/issues/title-input";
+import { NameDescriptionUpdateStatus, nameDescriptionStatus } from "@/components/issues/issue-update-status";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { TaskInlineProperties } from "./task-properties";
 import { TaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
 
@@ -39,10 +39,14 @@ export function TaskDetail({
   onBack: () => void;
   recovery?: boolean;
 }) {
+  const [titleStatus, setTitleStatus] = useState<TNameDescriptionLoader>("saved");
+  const [descriptionStatus, setDescriptionStatus] = useState<TNameDescriptionLoader>("saved");
+  const status = nameDescriptionStatus(titleStatus, descriptionStatus);
+  const hasUnsavedText = status === "submitting" || status === "failed";
+  useReloadConfirmations(hasUnsavedText);
   const active = useQuery(api.tasks.index.get, recovery ? "skip" : { taskId });
   const recovered = useQuery(api.tasks.lifecycle.get, recovery ? { taskId, view: "deleted" } : "skip");
   const task = recovery ? recovered : active;
-  const [editing, setEditing] = useState(false);
   const canWrite = task?.canEdit === true;
   if (task === undefined) return <p role="status">Opening task…</p>;
   if (task === null) return <TaskUnavailable onBack={onBack} />;
@@ -64,7 +68,6 @@ export function TaskDetail({
             <FavoriteToggle workspaceId={task.workspaceId} target={{ type: "issue", id: task._id }} />
           )}
           {task.deletedAt === null && <TaskSubscription taskId={task._id} />}
-          {canWrite && !editing && <Button onClick={() => setEditing(true)}>Edit task</Button>}
         </div>
       </header>
       {task.deletedAt !== null ? (
@@ -74,91 +77,58 @@ export function TaskDetail({
       ) : (
         task.archivedAt !== null && <p className="text-14 text-secondary">Archived task · read only</p>
       )}
-      {editing && canWrite ? (
-        <TaskForm task={task} projectId={project._id} onDone={() => setEditing(false)} />
-      ) : (
-        <>
-          <h2 className="text-24 font-semibold break-words">{task.title}</h2>
-          <TaskInlineProperties key={task._id} task={task} />
-          {recovery ? (
-            <p className="text-14 break-words whitespace-pre-wrap">{task.description}</p>
-          ) : (
-            <Suspense fallback={<p role="status">Loading task details…</p>}>
-              <RichDescription taskId={task._id} canWrite={canWrite} />
-              <TaskStructure task={task} canWrite={canWrite} />
-              <TaskAttachments key={`attachments:${task._id}`} taskId={task._id} />
-              <TaskLinks key={`links:${task._id}`} taskId={task._id} />
-              <TaskReactions key={`reactions:${task._id}`} taskId={task._id} />
-              <TaskComments key={task._id} taskId={task._id} />
-              <TaskActivity key={`activity:${task._id}`} taskId={task._id} />
-            </Suspense>
-          )}
-        </>
-      )}
-      <TaskLifecycle task={task} />
+      <>
+        <TaskTitle key={task._id} task={task} status={status} setStatus={setTitleStatus} />
+        <TaskInlineProperties key={task._id} task={task} />
+        {recovery ? (
+          <p className="text-14 break-words whitespace-pre-wrap">{task.description}</p>
+        ) : (
+          <Suspense fallback={<p role="status">Loading task details…</p>}>
+            <RichDescription taskId={task._id} canWrite={canWrite} setIsSubmitting={setDescriptionStatus} />
+            <TaskStructure task={task} canWrite={canWrite} />
+            <TaskAttachments key={`attachments:${task._id}`} taskId={task._id} />
+            <TaskLinks key={`links:${task._id}`} taskId={task._id} />
+            <TaskReactions key={`reactions:${task._id}`} taskId={task._id} />
+            <TaskComments key={task._id} taskId={task._id} />
+            <TaskActivity key={`activity:${task._id}`} taskId={task._id} />
+          </Suspense>
+        )}
+      </>
+      <TaskLifecycle task={task} disabled={hasUnsavedText} />
     </article>
   );
 }
-function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"projects">; onDone: () => void }) {
-  const save = useMutation(api.tasks.index.update);
-  const [draft, setDraft] = useState({
-    taskId: task._id,
-    expectedUpdatedAt: task.updatedAt,
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    assigneeIds: task.assigneeIds,
-    labelIds: task.labelIds,
-    startDate: task.startDate,
-    targetDate: task.targetDate,
-    stateId: task.stateId,
-    estimatePointId: task.estimatePointId,
-  } satisfies FunctionArgs<typeof api.tasks.index.update>);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+function TaskTitle({
+  task,
+  status,
+  setStatus,
+}: {
+  task: Task;
+  status: TNameDescriptionLoader;
+  setStatus: (status: TNameDescriptionLoader) => void;
+}) {
+  const save = useMutation(api.tasks.index.setTitle);
+  const submit = useMemo(() => {
+    let expectedTitleUpdatedAt = task.titleUpdatedAt;
+    return async (title: string) => {
+      const result = await save({ taskId: task._id, expectedTitleUpdatedAt, title });
+      expectedTitleUpdatedAt = result.titleUpdatedAt;
+      return result.title;
+    };
+  }, [save, task._id, task.titleUpdatedAt]);
   return (
-    <form
-      className="space-y-5"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setPending(true);
-        setError("");
-        try {
-          await save(draft);
-          onDone();
-        } catch (failure) {
-          setError(mutationMessage(failure));
-        } finally {
-          setPending(false);
-        }
-      }}
-    >
-      <fieldset disabled={pending} className="space-y-5">
-        <SummonField label="Task title">
-          <Input
-            value={draft.title}
-            maxLength={255}
-            required
-            onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-          />
-        </SummonField>
-        <TaskProperties projectId={projectId} draft={draft} onChange={setDraft} />
-        <div className="flex gap-2">
-          <Button type="submit" loading={pending}>
-            Save task
-          </Button>
-          <Button variant="secondary" onClick={onDone}>
-            Cancel
-          </Button>
-        </div>
-      </fieldset>
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
-      )}
-    </form>
+    <div className="space-y-2.5">
+      <div className="flex justify-end">
+        <NameDescriptionUpdateStatus isSubmitting={status} />
+      </div>
+      <IssueTitleInput
+        value={task.title}
+        onSubmit={submit}
+        setIsSubmitting={setStatus}
+        disabled={!task.canEdit}
+        containerClassName="-ml-3"
+      />
+    </div>
   );
 }
 

@@ -1,51 +1,47 @@
-export type DescriptionDraft = {
-  description_html: string;
-  description_json?: object;
-  isMigrationUpdate: boolean;
-};
-
-/** One mounted description owns its draft and serial acknowledgements. */
-export class DescriptionAutosave {
-  draft: DescriptionDraft;
+/** One mounted text editor owns its draft and serial acknowledgements. */
+export class TextAutosave {
+  draft: string;
   private saved: string;
   private inFlight: Promise<void> | undefined;
-  private queued = false;
   private failed = false;
   private failure: unknown;
 
-  private submit: (draft: DescriptionDraft) => Promise<void>;
+  private submit: (text: string) => Promise<string>;
 
-  constructor(html: string, submit: (draft: DescriptionDraft) => Promise<void>) {
+  constructor(text: string, submit: (text: string) => Promise<string>) {
     this.submit = submit;
-    this.draft = { description_html: html, isMigrationUpdate: false };
-    this.saved = html;
+    this.draft = text;
+    this.saved = text;
   }
   get dirty() {
-    return this.draft.description_html !== this.saved;
+    return this.draft !== this.saved;
+  }
+  get saving() {
+    return this.inFlight !== undefined;
+  }
+  get status() {
+    if (this.failed) return "failed";
+    return this.dirty || this.inFlight ? "submitting" : "saved";
   }
   get canFlushOnUnmount() {
     return this.dirty && !this.failed;
   }
-  receive(html: string) {
-    if (this.dirty || this.inFlight) return false;
-    this.saved = html;
-    this.draft = { description_html: html, isMigrationUpdate: false };
+  receive(text: string) {
+    if (this.dirty || this.inFlight || this.failed) return false;
+    this.saved = text;
+    this.draft = text;
     return true;
   }
-  edit(draft: DescriptionDraft) {
-    this.draft = draft;
-    this.failed = false;
+  edit(text: string, submit: (text: string) => Promise<string>) {
+    // Capture the revision-bearing writer when editing starts, before debounce.
+    if (!this.dirty && !this.inFlight && !this.failed) this.submit = submit;
+    this.draft = text;
   }
-  setSubmit(submit: (draft: DescriptionDraft) => Promise<void>) {
-    this.submit = submit;
-  }
-  save(): Promise<void> {
-    if (this.inFlight) {
-      this.queued = true;
-      return this.inFlight;
-    }
-    if (this.failed) return Promise.reject(this.failure);
-    if (!this.dirty) return Promise.resolve();
+  save(retry = false): Promise<void> {
+    if (this.inFlight) return this.inFlight;
+    if (!retry && this.failed) return Promise.reject(this.failure);
+    if (!retry && !this.dirty) return Promise.resolve();
+    if (retry) this.failed = false;
     this.inFlight = this.drain().finally(() => {
       this.inFlight = undefined;
     });
@@ -54,15 +50,13 @@ export class DescriptionAutosave {
   private async drain() {
     try {
       do {
-        this.queued = false;
         const submitted = this.draft;
         // Saves must serialize: parallel requests could acknowledge or overwrite newer content.
         // oxlint-disable-next-line no-await-in-loop
-        await this.submit(submitted);
-        this.saved = submitted.description_html;
-      } while (this.queued && this.dirty);
+        this.saved = await this.submit(submitted);
+        if (this.draft === submitted) this.draft = this.saved;
+      } while (this.dirty);
     } catch (error) {
-      this.queued = false;
       this.failed = true;
       this.failure = error;
       throw error;

@@ -11,6 +11,7 @@ import { EInboxIssueSource } from "@plane/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";
+import type { IssueService } from "@/services/issue";
 
 export class InboxIssueService extends APIService {
   constructor() {
@@ -66,7 +67,7 @@ export class InboxIssueService extends APIService {
     projectId: string,
     inboxIssueId: string,
     data: Partial<TIssue>
-  ): Promise<TInboxIssue> {
+  ): Promise<TInboxIssue & { issue: Awaited<ReturnType<IssueService["patchIssue"]>> }> {
     return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/inbox-issues/${inboxIssueId}/`, {
       issue: data,
     })

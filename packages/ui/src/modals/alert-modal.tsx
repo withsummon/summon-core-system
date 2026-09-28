@@ -10,6 +10,7 @@ import React from "react";
 // components
 import type { TButtonVariant } from "@plane/propel/button";
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { cn } from "../utils";
 import { EModalPosition, EModalWidth } from "./constants";
 import { ModalCore } from "./modal-core";
@@ -88,7 +89,7 @@ export function AlertModalCore(props: Props) {
           </span>
         )}
         <div className="text-center sm:text-left">
-          <h3 className="text-16 font-medium">{title}</h3>
+          <Dialog.Title className="text-16 font-medium">{title}</Dialog.Title>
           <p className="mt-1 text-13 text-secondary">{content}</p>
         </div>
       </div>
@@ -96,7 +97,7 @@ export function AlertModalCore(props: Props) {
         <Button variant="secondary" onClick={handleClose}>
           {secondaryButtonText}
         </Button>
-        <Button variant={BUTTON_VARIANTS[variant]} tabIndex={1} onClick={handleSubmit} loading={isSubmitting}>
+        <Button variant={BUTTON_VARIANTS[variant]} onClick={handleSubmit} loading={isSubmitting}>
           {isSubmitting ? primaryButtonText.loading : primaryButtonText.default}
         </Button>
       </div>

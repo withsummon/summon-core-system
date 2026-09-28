@@ -12,6 +12,7 @@ import type { EditorRefApi, TExtensions } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
 import type { EFileAssetType, TNameDescriptionLoader } from "@plane/types";
 import { getDescriptionPlaceholderI18n } from "@plane/utils";
+import { Button } from "@plane/propel/button";
 // components
 import { RichTextEditor } from "@/components/editor/rich-text";
 // hooks
@@ -20,8 +21,7 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 // plane web services
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
-import { DescriptionInputLoader } from "./loader";
-import { DescriptionAutosave } from "./autosave";
+import { TextAutosave } from "./autosave";
 // services init
 const workspaceService = new WorkspaceService();
 
@@ -55,19 +55,9 @@ type Props = {
    */
   initialValue: string | undefined;
   /**
-   * @description Key, to ensure the editor is re-rendered when the key changes
-   */
-  key: string;
-  /**
    * @description Submit handler, the actual function which will be called when the form is submitted
    */
-  onSubmit: (
-    value: {
-      description_html: string;
-      description_json: object | undefined;
-    },
-    isMigrationUpdate?: boolean
-  ) => Promise<void>;
+  onSubmit: (html: string, isMigrationUpdate?: boolean) => Promise<string>;
   /**
    * @description Placeholder, if not provided, the placeholder will be the default placeholder
    */
@@ -121,20 +111,9 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
   } = props;
   const incomingValue = swrDescription ?? initialValue;
   const normalizedValue = incomingValue?.trim() === "" ? "<p></p>" : (incomingValue ?? "<p></p>");
+  const migrationUpdate = useRef(false);
   const [autosave] = useState(
-    () =>
-      new DescriptionAutosave(normalizedValue, (draft) =>
-        onSubmit(
-          { description_html: draft.description_html, description_json: draft.description_json },
-          draft.isMigrationUpdate
-        )
-      )
-  );
-  autosave.setSubmit((draft) =>
-    onSubmit(
-      { description_html: draft.description_html, description_json: draft.description_json },
-      draft.isMigrationUpdate
-    )
+    () => new TextAutosave(normalizedValue, (html) => onSubmit(html, migrationUpdate.current))
   );
   const [localDescription, setLocalDescription] = useState(normalizedValue);
   const [saveError, setSaveError] = useState<string>();
@@ -147,31 +126,34 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
 
   useEffect(() => {
     if (autosave.receive(normalizedValue)) setLocalDescription(normalizedValue);
-  }, [autosave, normalizedValue]);
+  }, [autosave, normalizedValue, localDescription]);
 
   const save = useMemo(
-    () => async () => {
-      try {
-        await autosave.save();
-        if (!autosave.dirty) {
-          setLocalDescription(autosave.draft.description_html);
-          statusCallback.current("submitted");
+    () =>
+      async (retry = false) => {
+        if (!autosave.dirty && !autosave.saving && !retry) return;
+        statusCallback.current("submitting");
+        try {
+          await autosave.save(retry);
+          if (!autosave.dirty) {
+            setLocalDescription(autosave.draft);
+            statusCallback.current("submitted");
+          }
+          setSaveError(undefined);
+        } catch (error) {
+          statusCallback.current("failed");
+          setSaveError(
+            error instanceof Error ? error.message : "Description could not be saved. Your changes are retained."
+          );
         }
-        setSaveError(undefined);
-      } catch (error) {
-        statusCallback.current("failed");
-        setSaveError(
-          error instanceof Error ? error.message : "Description could not be saved. Your changes are retained."
-        );
-      }
-    },
+      },
     [autosave]
   );
   const debouncedFormSave = useMemo(() => debounce(save, 1500), [save]);
   useEffect(
     () => () => {
       debouncedFormSave.cancel();
-      // A failed save requires another edit/retry; do not retry a conflict on unmount.
+      // A failed save requires an explicit retry; do not retry a conflict on unmount.
       // The owner queues newer dirty text behind an in-flight save without duplicating it.
       if (autosave.canFlushOnUnmount) void save();
     },
@@ -179,8 +161,6 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
   );
 
   if (!workspaceDetails) return null;
-
-  if (!localDescription) return <DescriptionInputLoader />;
 
   return (
     <>
@@ -191,17 +171,20 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
         id={entityId}
         issueSequenceId={issueSequenceId}
         disabledExtensions={disabledExtensions}
-        initialValue={autosave.draft.description_html}
-        value={autosave.dirty ? null : localDescription}
+        initialValue={autosave.draft}
+        value={autosave.dirty || autosave.saving ? null : localDescription}
         workspaceSlug={workspaceSlug}
         workspaceId={workspaceDetails.id}
         projectId={projectId}
         dragDropEnabled
-        onChange={(description_json, description_html, options) => {
-          if (description_html === autosave.draft.description_html) return;
-          setIsSubmitting("submitting");
-          setSaveError(undefined);
-          autosave.edit({ description_html, description_json, isMigrationUpdate: !!options?.isMigrationUpdate });
+        onChange={(_json, description_html, options) => {
+          if (description_html === autosave.draft) return;
+          migrationUpdate.current = !!options?.isMigrationUpdate;
+          autosave.edit(description_html, (html) => {
+            const isMigrationUpdate = migrationUpdate.current;
+            return onSubmit(html, isMigrationUpdate);
+          });
+          setIsSubmitting(autosave.status);
           debouncedFormSave();
         }}
         placeholder={placeholder ?? ((isFocused, value) => t(getDescriptionPlaceholderI18n(isFocused, value)))}
@@ -245,9 +228,14 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
         }}
       />
       {saveError && (
-        <p role="alert" className="text-13 text-danger-primary">
-          {saveError}
-        </p>
+        <div className="space-y-1">
+          <p role="alert" className="text-13 text-danger-primary">
+            {saveError}
+          </p>
+          <Button variant="secondary" disabled={autosave.saving} onClick={() => void save(true)}>
+            Retry saving description
+          </Button>
+        </div>
       )}
     </>
   );

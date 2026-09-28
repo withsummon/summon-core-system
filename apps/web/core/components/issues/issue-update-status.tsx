@@ -14,6 +14,16 @@ type Props = {
   isSubmitting: TNameDescriptionLoader;
 };
 
+export function nameDescriptionStatus(
+  title: TNameDescriptionLoader,
+  description: TNameDescriptionLoader
+): TNameDescriptionLoader {
+  if (title === "failed" || description === "failed") return "failed";
+  if (title === "submitting" || description === "submitting") return "submitting";
+  if (title === "submitted" || description === "submitted") return "submitted";
+  return "saved";
+}
+
 export const NameDescriptionUpdateStatus = observer(function NameDescriptionUpdateStatus(props: Props) {
   const { isSubmitting } = props;
 
