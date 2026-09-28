@@ -90,5 +90,14 @@ export async function setModuleTask(
   requireTaskRevision(task, args.expectedTaskUpdatedAt);
   if (args.assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
   else if (previous) await ctx.db.delete(previous._id);
-  await taskChanged(ctx, task, user._id);
+  await taskChanged(ctx, task, user._id, {
+    kind: "updated",
+    changes: [
+      {
+        field: "modules",
+        added: args.assigned ? [{ id: module._id, name: module.name }] : [],
+        removed: args.assigned ? [] : [{ id: module._id, name: module.name }],
+      },
+    ],
+  });
 }

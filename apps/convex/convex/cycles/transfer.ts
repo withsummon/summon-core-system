@@ -163,7 +163,16 @@ export const step = mutation({
         const task = checked[index].task;
         if (!task) throw new ConvexError("Task not found.");
         await ctx.db.patch(entry.membershipId, { cycleId: destination._id });
-        await taskChanged(ctx, task, user._id);
+        await taskChanged(ctx, task, user._id, {
+          kind: "updated",
+          changes: [
+            {
+              field: "cycle",
+              before: { id: source._id, name: source.name },
+              after: { id: destination._id, name: destination.name },
+            },
+          ],
+        });
       })
     );
     const moved = new Set(batch.map((entry) => entry.taskId));

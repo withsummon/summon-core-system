@@ -8,10 +8,19 @@ export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: numbe
   if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt !== task.updatedAt)
     throw new ConvexError("This task changed while you were editing. Reopen the latest task before saving.");
 }
-export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId: Id<"users">) {
+export async function taskChanged(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  actorId: Id<"users">,
+  event?: Pick<Doc<"taskEvents">, "kind" | "changes">
+) {
   const current = await ctx.db.get(task._id);
   if (!current) throw new ConvexError("Task not found.");
-  const changes = await taskPropertyChanges(ctx, task, current);
+  const changes = [...(await taskPropertyChanges(ctx, task, current)), ...(event?.changes ?? [])];
+  let kind: Doc<"taskEvents">["kind"] = event?.kind ?? "updated";
+  if (task.deletedAt !== current.deletedAt) kind = current.deletedAt === null ? "restored" : "deleted";
+  else if (task.archivedAt !== current.archivedAt) kind = current.archivedAt === null ? "unarchived" : "archived";
+  else if (changes.some((change) => change.field === "state")) kind = "status_changed";
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   await ctx.db.patch(task._id, {
     updatedAt,
@@ -24,7 +33,7 @@ export async function taskChanged(ctx: MutationCtx, task: Doc<"tasks">, actorId:
     projectId: task.projectId,
     taskId: task._id,
     actorId,
-    kind: changes.some((change) => change.field === "state") ? "status_changed" : "updated",
+    kind,
     status: current.status,
     changes,
   });

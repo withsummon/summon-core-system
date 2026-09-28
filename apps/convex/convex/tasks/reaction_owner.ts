@@ -27,11 +27,11 @@ export async function setReaction<T extends Id<"taskReactions"> | Id<"taskCommen
   if (!active && !existing) return null;
   if (existing) {
     await ctx.db.patch(existing._id, { deletedAt: Date.now() });
-    await taskChanged(ctx, task, actorId);
+    await taskChanged(ctx, task, actorId, { kind: "reaction_changed" });
     return null;
   }
   const id = await insert();
-  await taskChanged(ctx, task, actorId);
+  await taskChanged(ctx, task, actorId, { kind: "reaction_changed" });
   return id;
 }
 export async function reactionActor<T extends { actorId: Id<"users"> }>(ctx: QueryCtx, row: T, userId: Id<"users">) {
