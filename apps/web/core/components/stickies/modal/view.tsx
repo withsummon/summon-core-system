@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 import { RecentStickyIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
+import { Dialog } from "@plane/propel/dialog";
 export function StickiesModalView({
   handleClose,
   creatingSticky,
@@ -22,7 +23,7 @@ export function StickiesModalView({
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2 text-secondary">
           <RecentStickyIcon className="size-5 flex-shrink-0 rotate-90" />
-          <p className="text-18 font-medium">Your stickies</p>
+          <Dialog.Title className="text-18 font-medium">Your stickies</Dialog.Title>
         </div>
         <div className="flex gap-2">
           {search}

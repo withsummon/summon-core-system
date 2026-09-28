@@ -13,9 +13,10 @@ export function HelpMenuView({ onShortcuts, onUpdates }: { onShortcuts: () => vo
   const { t } = useTranslation();
   return (
     <CustomMenu
+      ariaLabel={t("power_k.group_titles.help")}
       customButton={
         <span className="grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover">
-          <HelpCircle className="size-5" />
+          <HelpCircle className="size-5" aria-hidden="true" />
         </span>
       }
       // customButtonClassName="relative grid place-items-center rounded-md p-1.5 outline-none"

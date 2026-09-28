@@ -102,7 +102,7 @@ export class StickyDrafts {
   async flushAll() {
     await Promise.all([...this.entries.keys()].map((id) => this.flush(id)));
     if (this.hasUnsaved())
-      throw new Error(
+      throw new ConvexError(
         "Some sticky changes are still unsaved. Wait for saving or resolve the note's error before leaving."
       );
   }

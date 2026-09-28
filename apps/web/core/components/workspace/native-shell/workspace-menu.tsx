@@ -55,7 +55,7 @@ export function NativeWorkspaceMenu({
   workspaces: NativeWorkspace[];
   user: NativeProfile;
   onSignOut: () => void;
-  beforeLeave: () => Promise<void>;
+  beforeLeave?: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -70,7 +70,7 @@ export function NativeWorkspaceMenu({
   ];
   return (
     <Menu.Root open={open} onOpenChange={setOpen}>
-      <div className="relative flex h-full w-fit max-w-48 flex-grow">
+      <div className="relative flex h-full w-full max-w-48 min-w-0 flex-grow lg:w-fit">
         <Menu.Trigger
           className={cn(
             "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
@@ -103,7 +103,7 @@ export function NativeWorkspaceMenu({
                             return;
                           event.preventDefault();
                           try {
-                            await beforeLeave();
+                            await beforeLeave?.();
                             const destination = await select({ workspaceId: item._id });
                             router.push(`/${destination.slug}/stickies/`);
                           } catch (error) {

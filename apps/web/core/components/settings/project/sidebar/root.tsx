@@ -12,10 +12,11 @@ import { ProjectSettingsSidebarItemCategories } from "./item-categories";
 
 type Props = {
   projectId: string;
+  onNavigate?: () => void;
 };
 
 export function ProjectSettingsSidebarRoot(props: Props) {
-  const { projectId } = props;
+  const { projectId, onNavigate } = props;
 
   return (
     <ScrollArea
@@ -26,7 +27,7 @@ export function ProjectSettingsSidebarRoot(props: Props) {
       viewportClassName="pb-5"
     >
       <ProjectSettingsSidebarHeader projectId={projectId} />
-      <ProjectSettingsSidebarItemCategories projectId={projectId} />
+      <ProjectSettingsSidebarItemCategories projectId={projectId} onNavigate={onNavigate} />
     </ScrollArea>
   );
 }

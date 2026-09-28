@@ -52,7 +52,6 @@ export function PreservedStickiesShell({
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const savePreferences = useMutation(api.identity.preferences.save);
   const { storedValue, setValue } = useLocalStorage("sidebarWidth", SIDEBAR_WIDTH);
   const [width, setWidth] = useState(storedValue ?? SIDEBAR_WIDTH);
   const { storedValue: storedCollapsed, setValue: storeCollapsed } = useLocalStorage("app_sidebar_collapsed", false);
@@ -79,18 +78,6 @@ export function PreservedStickiesShell({
     storeCollapsed(next);
     setPeek(false);
     setAdvanced(false);
-  };
-  const leave = async () => {
-    try {
-      await beforeLeave();
-      await authClient.signOut({ fetchOptions: { throw: true } });
-    } catch (error) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("auth.sign_out.toast.error.title"),
-        message: error instanceof Error ? error.message : t("auth.sign_out.toast.error.message"),
-      });
-    }
   };
   const role = {
     admin: EUserWorkspaceRoles.ADMIN,
@@ -120,58 +107,19 @@ export function PreservedStickiesShell({
       onClick={() => toggle()}
     />
   );
-  const theme = async (value: "light" | "dark") => {
-    try {
-      await savePreferences({
-        expectedRevision: user.revision,
-        preferences: { ...user.preferences, theme: { ...user.preferences.theme, theme: value } },
-      });
-    } catch (error) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Unable to save theme",
-        message: error instanceof Error ? error.message : "Try again.",
-      });
-    }
-  };
   return (
     <WorkspaceContentFrame
       shouldRenderAppRail={false}
       appRail={null}
       topNavigation={
-        <WorkspaceTopNavigation
-          showLabel
+        <NativeWorkspaceTopNavigation
+          workspace={workspace}
+          workspaces={workspaces}
+          user={user}
           sidebarCollapsed={collapsed}
           sidebarToggle={toggleButton}
-          workspaceMenu={
-            <NativeWorkspaceMenu
-              workspace={workspace}
-              workspaces={workspaces}
-              user={user}
-              onSignOut={() => void leave()}
-              beforeLeave={beforeLeave}
-            />
-          }
           powerK={<StickyCommands onCreateSticky={onCreateSticky} onOpenStickies={onOpenStickies} />}
-          actions={
-            <>
-              <Link
-                href={`/${workspace.slug}/notifications/`}
-                aria-label="Inbox"
-                title="Inbox"
-                className="grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover"
-              >
-                <span className="relative">
-                  <InboxIcon className="size-5" />
-                </span>
-              </Link>
-              <NativeHelpMenu />
-              <SummonThemeToggle onChange={theme} />
-              <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
-                <NativeAccountMenu profile={user} onSignOut={() => void leave()} beforeLeave={beforeLeave} />
-              </div>
-            </>
-          }
+          beforeLeave={beforeLeave}
         />
       }
     >
@@ -229,5 +177,88 @@ export function PreservedStickiesShell({
         {children}
       </WorkspaceProjectFrame>
     </WorkspaceContentFrame>
+  );
+}
+
+export function NativeWorkspaceTopNavigation({
+  workspace,
+  workspaces,
+  user,
+  sidebarCollapsed,
+  sidebarToggle,
+  powerK,
+  beforeLeave,
+}: {
+  workspace: NativeWorkspace;
+  workspaces: NativeWorkspace[];
+  user: NativeProfile;
+  sidebarCollapsed?: boolean;
+  sidebarToggle?: ReactNode;
+  powerK: ReactNode;
+  beforeLeave?: () => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const savePreferences = useMutation(api.identity.preferences.save);
+  const leave = async () => {
+    try {
+      await beforeLeave?.();
+      await authClient.signOut({ fetchOptions: { throw: true } });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("auth.sign_out.toast.error.title"),
+        message: error instanceof Error ? error.message : t("auth.sign_out.toast.error.message"),
+      });
+    }
+  };
+  const theme = async (value: "light" | "dark") => {
+    try {
+      await savePreferences({
+        expectedRevision: user.revision,
+        preferences: { ...user.preferences, theme: { ...user.preferences.theme, theme: value } },
+      });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Unable to save theme",
+        message: error instanceof Error ? error.message : "Try again.",
+      });
+    }
+  };
+  return (
+    <WorkspaceTopNavigation
+      showLabel
+      sidebarCollapsed={sidebarCollapsed}
+      sidebarToggle={sidebarToggle}
+      workspaceMenu={
+        <NativeWorkspaceMenu
+          workspace={workspace}
+          workspaces={workspaces}
+          user={user}
+          onSignOut={() => void leave()}
+          beforeLeave={beforeLeave}
+        />
+      }
+      powerK={powerK}
+      actions={
+        <>
+          <Link
+            href={`/${workspace.slug}/notifications/`}
+            aria-label="Inbox"
+            title="Inbox"
+            className="grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover"
+          >
+            <span className="relative">
+              <InboxIcon className="size-5" />
+            </span>
+          </Link>
+          <NativeHelpMenu />
+          <SummonThemeToggle onChange={theme} />
+          <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
+            <NativeAccountMenu profile={user} onSignOut={() => void leave()} beforeLeave={beforeLeave} />
+          </div>
+        </>
+      }
+    />
   );
 }

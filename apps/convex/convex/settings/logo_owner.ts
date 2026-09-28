@@ -32,11 +32,13 @@ export async function replaceWorkspaceLogo(
   if (appearance) await ctx.db.patch(appearance._id, { logoAssetId: assetId });
   else await ctx.db.insert("workspaceAppearance", { workspaceId: workspace._id, logoAssetId: assetId });
   await ctx.db.patch(workspace._id, { metadataRevision: workspace.metadataRevision + 1 });
+  return { startingRevision: workspace.metadataRevision, revision: workspace.metadataRevision + 1 };
 }
 export async function publishWorkspaceLogo(ctx: MutationCtx, asset: Doc<"assets">) {
   if (asset.workspaceLogoRevision === undefined) throw new ConvexError("Workspace logo revision is missing.");
   const { workspace } = await requireLogoWrite(ctx, assetWorkspaceId(asset), asset.workspaceLogoRevision);
-  await replaceWorkspaceLogo(ctx, workspace, asset._id);
+  const receipt = await replaceWorkspaceLogo(ctx, workspace, asset._id);
+  await ctx.db.patch(asset._id, { workspaceLogoPublishedRevision: receipt.revision });
 }
 
 export async function workspaceLogo(ctx: QueryCtx, workspaceId: Id<"workspaces">) {

@@ -26,6 +26,7 @@ export const assetTables = {
     avatarPublishedRevision: v.optional(v.number()),
     projectCoverRevision: v.optional(v.number()),
     workspaceLogoRevision: v.optional(v.number()),
+    workspaceLogoPublishedRevision: v.optional(v.number()),
     purpose: v.optional(v.union(v.literal("workspaceLogo"), v.literal("projectCover"), personalImagePurpose)),
     documentCopyId: v.optional(v.id("documentCopies")),
     // Required by the task attachment owner; absent on older, non-task assets.

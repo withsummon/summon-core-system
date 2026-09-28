@@ -24,12 +24,13 @@ import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
 type Props = {
   projectId: string;
+  onNavigate?: () => void;
 };
 
 export const ProjectSettingsSidebarItemCategories = observer(function ProjectSettingsSidebarItemCategories(
   props: Props
 ) {
-  const { projectId } = props;
+  const { projectId, onNavigate } = props;
   // params
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -68,6 +69,7 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
                     isActive={isItemActive}
                     icon={PROJECT_SETTINGS_ICONS[item.key]}
                     label={t(item.i18n_label)}
+                    onNavigate={onNavigate}
                   />
                 );
               })}

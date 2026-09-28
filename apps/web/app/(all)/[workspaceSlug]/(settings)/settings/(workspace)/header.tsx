@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 // plane imports
 import { WORKSPACE_SETTINGS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -14,7 +13,7 @@ import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SettingsPageHeader } from "@/components/settings/page-header";
 import { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";
 
-export const GeneralWorkspaceSettingsHeader = observer(function GeneralWorkspaceSettingsHeader() {
+export function GeneralWorkspaceSettingsHeader() {
   // translation
   const { t } = useTranslation();
   // derived values
@@ -39,4 +38,4 @@ export const GeneralWorkspaceSettingsHeader = observer(function GeneralWorkspace
       }
     />
   );
-});
+}
