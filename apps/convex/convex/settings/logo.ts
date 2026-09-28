@@ -1,10 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
-import { requireWorkspace } from "../identity/access";
+import type { Id } from "../_generated/dataModel";
+import { action, internalQuery, mutation, query } from "../_generated/server";
+import { api, internal } from "../_generated/api";
+import { requireUser, requireWorkspace } from "../identity/access";
 import { descriptor } from "../assets/access";
 import { prepareAsset } from "../assets/index";
 import { supportedAssetTypes, assetSizeLimit } from "../assets/content";
+import { fileMetadataFields } from "../assets/schema";
 import { requireLogoWrite, replaceWorkspaceLogo, workspaceAppearance, workspaceLogo } from "./logo_owner";
 
 export const get = query({
@@ -25,10 +28,7 @@ export const prepare = mutation({
   args: {
     workspaceId: v.id("workspaces"),
     expectedRevision: v.number(),
-    name: v.string(),
-    contentType: v.string(),
-    size: v.number(),
-    sha256: v.string(),
+    ...fileMetadataFields,
   },
   handler: async (ctx, { expectedRevision, ...args }) => {
     await requireLogoWrite(ctx, args.workspaceId, expectedRevision);
@@ -47,7 +47,7 @@ export const remove = mutation({
     const { workspace } = await requireLogoWrite(ctx, args.workspaceId, args.expectedRevision);
     const appearance = await workspaceAppearance(ctx, workspace._id);
     if (appearance?.logoAssetId !== args.assetId) throw new ConvexError("The workspace logo changed.");
-    await replaceWorkspaceLogo(ctx, workspace, null);
+    return replaceWorkspaceLogo(ctx, workspace, null);
   },
 });
 export const removed = query({
@@ -88,7 +88,39 @@ export const restore = mutation({
       throw new ConvexError("Removed workspace logo not found.");
     if (asset.expiresAt <= Date.now() || !asset.storageId || !(await ctx.db.system.get(asset.storageId)))
       throw new ConvexError("This logo can no longer be recovered.");
-    await replaceWorkspaceLogo(ctx, workspace, asset._id);
+    const receipt = await replaceWorkspaceLogo(ctx, workspace, asset._id);
     await ctx.db.patch(asset._id, { status: "ready" });
+    return receipt;
+  },
+});
+
+export const receipt = internalQuery({
+  args: { assetId: v.id("assets") },
+  handler: async (ctx, { assetId }) => {
+    const user = await requireUser(ctx);
+    const asset = await ctx.db.get(assetId);
+    if (
+      !asset ||
+      asset.purpose !== "workspaceLogo" ||
+      asset.createdBy !== user._id ||
+      asset.workspaceLogoRevision === undefined
+    )
+      throw new ConvexError("Workspace logo upload not found.");
+    return {
+      assetId: asset._id,
+      startingRevision: asset.workspaceLogoRevision,
+      revision: asset.workspaceLogoPublishedRevision ?? null,
+    };
+  },
+});
+
+export const finalize = action({
+  args: { assetId: v.id("assets"), storageId: v.string() },
+  handler: async (ctx, args): Promise<Awaited<ReturnType<typeof replaceWorkspaceLogo>> & { assetId: Id<"assets"> }> => {
+    await ctx.runQuery(internal.settings.logo.receipt, { assetId: args.assetId });
+    await ctx.runAction(api.assets.upload.finalize, args);
+    const result = await ctx.runQuery(internal.settings.logo.receipt, { assetId: args.assetId });
+    if (result.revision === null) throw new ConvexError("This upload has no workspace acknowledgement.");
+    return { ...result, revision: result.revision };
   },
 });

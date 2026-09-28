@@ -14,7 +14,7 @@ import type { ISvgIcons } from "@plane/propel/icons";
 type Props = {
   isActive: boolean;
   label: string;
-} & ({ as: "button"; onClick: () => void } | { as: "link"; href: string }) &
+} & ({ as: "button"; onClick: () => void } | { as: "link"; href: string; onNavigate?: () => void }) &
   (
     | {
         icon: LucideIcon | React.FC<ISvgIcons>;
@@ -53,7 +53,7 @@ export function SettingsSidebarItem(props: Props) {
   }
 
   return (
-    <Link className={className} href={props.href}>
+    <Link className={className} href={props.href} onClick={props.onNavigate}>
       {content}
     </Link>
   );

@@ -4,178 +4,132 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
-import { observer } from "mobx-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-// Plane Imports
-import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
+import { ORGANIZATION_SIZE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EditIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
-import { cn, copyUrlToClipboard, getFileURL, validateWorkspaceName } from "@plane/utils";
-// components
+import { cn, copyUrlToClipboard } from "@plane/utils";
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
-// hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserPermissions } from "@/hooks/store/user";
-// plane web components
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { DeleteWorkspaceSection } from "@/components/workspace/delete-workspace-section";
 
-const defaultValues: Partial<IWorkspace> = {
-  name: "",
-  url: "",
-  organization_size: "2-10",
-  logo_url: null,
-  timezone: "UTC",
-};
-
-export const WorkspaceDetails = observer(function WorkspaceDetails() {
-  // states
-  const [isLoading, setIsLoading] = useState(false);
+export function WorkspaceDetails({
+  workspaceId,
+  metadata,
+  beforeDelete,
+}: {
+  workspaceId: Id<"workspaces">;
+  metadata: FunctionReturnType<typeof api.settings.index.metadata>;
+  beforeDelete: () => Promise<void>;
+}) {
   const [isImageUploadModalOpen, setIsImageUploadModalOpen] = useState(false);
-  // store hooks
-  const { currentWorkspace, updateWorkspace } = useWorkspace();
-  const { allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
-
-  // form info
+  const save = useMutation(api.settings.index.update);
+  const appearance = useQuery(api.settings.logo.get, { workspaceId });
+  const { revision, canManage, ...fields } = metadata;
+  const values = { workspaceId, ...fields, expectedRevision: revision } satisfies FunctionArgs<
+    typeof api.settings.index.update
+  >;
   const {
     handleSubmit,
     control,
+    register,
     reset,
     watch,
-    formState: { errors },
-  } = useForm<IWorkspace>({
-    defaultValues: { ...defaultValues, ...currentWorkspace },
-  });
-  // derived values
-  const workspaceLogo = watch("logo_url");
-
-  const onSubmit = async (formData: IWorkspace) => {
-    if (!currentWorkspace) return;
-
-    setIsLoading(true);
-
-    const payload: Partial<IWorkspace> = {
-      name: formData.name,
-      organization_size: formData.organization_size,
-      timezone: formData.timezone,
-    };
-
+    getValues,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FunctionArgs<typeof api.settings.index.update>>({ defaultValues: values });
+  const expectedRevision = watch("expectedRevision");
+  const stale = revision > expectedRevision;
+  const locked = !canManage || isSubmitting || isImageUploadModalOpen;
+  const workspaceUrl = `${window.location.origin}/${metadata.slug}`;
+  const acknowledge = (starting: number, committed: number) => {
+    if (getValues("expectedRevision") === starting) setValue("expectedRevision", committed);
+  };
+  const onSubmit = async (input: FunctionArgs<typeof api.settings.index.update>) => {
     try {
-      await updateWorkspace(currentWorkspace.slug, payload);
-      setToast({
-        title: "Success!",
-        type: TOAST_TYPE.SUCCESS,
-        message: "Workspace updated successfully",
-      });
-    } catch (err: unknown) {
-      console.error(err);
-    } finally {
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
+      const receipt = await save(input);
+      acknowledge(input.expectedRevision, receipt.revision);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Workspace updated successfully." });
+    } catch (failure) {
+      setToast({ type: TOAST_TYPE.ERROR, title: t("toast.error"), message: mutationMessage(failure) });
     }
   };
-
-  const handleRemoveLogo = async () => {
-    if (!currentWorkspace) return;
-
+  const handleCopyUrl = async () => {
     try {
-      await updateWorkspace(currentWorkspace.slug, {
-        logo_url: "",
-      });
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Workspace picture removed successfully.",
-      });
+      await copyUrlToClipboard(workspaceUrl);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Workspace URL copied to the clipboard." });
     } catch {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "There was some error in deleting your profile picture. Please try again.",
-      });
+      setToast({ type: TOAST_TYPE.ERROR, title: "Unable to copy the workspace URL. Please try again." });
     }
   };
-
-  const handleCopyUrl = () => {
-    if (!currentWorkspace) return;
-
-    void copyUrlToClipboard(`${currentWorkspace.slug}`)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Workspace URL copied to the clipboard.",
-        });
-        return undefined;
-      })
-      .catch(() => {
-        // Silently handle clipboard errors
-      });
-  };
-
-  useEffect(() => {
-    if (currentWorkspace) reset({ ...currentWorkspace });
-  }, [currentWorkspace, reset]);
-
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-
-  if (!currentWorkspace) return null;
+  if (!appearance) return <p role="status">Loading workspace details…</p>;
 
   return (
     <>
-      <Controller
-        control={control}
-        name="logo_url"
-        render={({ field: { onChange, value } }) => (
-          <WorkspaceImageUploadModal
-            isOpen={isImageUploadModalOpen}
-            onClose={() => setIsImageUploadModalOpen(false)}
-            handleRemove={handleRemoveLogo}
-            onSuccess={(imageUrl) => {
-              onChange(imageUrl);
-              setIsImageUploadModalOpen(false);
-            }}
-            value={value}
-          />
-        )}
-      />
-      <div className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !isAdmin })}>
+      {isImageUploadModalOpen && (
+        <WorkspaceImageUploadModal
+          workspaceId={workspaceId}
+          appearance={appearance}
+          expectedRevision={expectedRevision}
+          onClose={() => setIsImageUploadModalOpen(false)}
+          onSuccess={(receipt) => {
+            acknowledge(receipt.startingRevision, receipt.revision);
+            setIsImageUploadModalOpen(false);
+          }}
+        />
+      )}
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !canManage })}
+      >
         <div className="flex items-center gap-5">
           <div className="flex shrink-0 flex-col gap-1">
-            <button type="button" onClick={() => setIsImageUploadModalOpen(true)} disabled={!isAdmin}>
-              {workspaceLogo && workspaceLogo !== "" ? (
+            <button
+              type="button"
+              aria-label={t("workspace_settings.settings.general.edit_logo")}
+              onClick={() => setIsImageUploadModalOpen(true)}
+              disabled={locked || stale}
+            >
+              {appearance.logo ? (
                 <div className="relative flex size-14">
-                  <img
-                    src={getFileURL(workspaceLogo)}
+                  <AuthenticatedAssetImage
+                    asset={appearance.logo}
+                    alt="Workspace logo"
                     className="absolute top-0 left-0 size-full rounded-md object-cover"
-                    alt="Workspace Logo"
                   />
                 </div>
               ) : (
                 <div className="relative grid size-14 place-items-center rounded-md bg-accent-primary text-24 text-on-color uppercase">
-                  {currentWorkspace?.name?.charAt(0) ?? "N"}
+                  {metadata.name.charAt(0)}
                 </div>
               )}
             </button>
           </div>
           <div className="flex flex-col gap-1">
             <div className="mb:-my-5 text-h5-semibold leading-6">{watch("name")}</div>
-            <button type="button" onClick={handleCopyUrl} className="text-left text-body-xs-regular tracking-tight">{`${
-              typeof window !== "undefined" && window.location.origin.replace("http://", "").replace("https://", "")
-            }/${currentWorkspace.slug}`}</button>
-            {isAdmin && (
+            <button type="button" onClick={handleCopyUrl} className="text-left text-body-xs-regular tracking-tight">
+              {workspaceUrl.replace(/^https?:\/\//, "")}
+            </button>
+            {canManage && (
               <button
                 type="button"
                 className="flex items-center gap-1.5 text-left text-caption-sm-medium text-accent-primary"
                 onClick={() => setIsImageUploadModalOpen(true)}
+                disabled={locked || stale}
               >
-                {workspaceLogo && workspaceLogo !== "" ? (
+                {appearance.logo ? (
                   <>
                     <EditIcon className="h-3 w-3" />
                     {t("workspace_settings.settings.general.edit_logo")}
@@ -190,27 +144,18 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
         <div className="flex flex-col gap-7">
           <div className="grid-col grid w-full grid-cols-1 items-center justify-between gap-10 xl:grid-cols-2 2xl:grid-cols-3">
             <div className="flex flex-col gap-2">
-              <h4 className="text-body-sm-medium text-tertiary">{t("workspace_settings.settings.general.name")}</h4>
-              <Controller
-                control={control}
-                name="name"
-                rules={{
-                  validate: (value) => validateWorkspaceName(value, true),
-                }}
-                render={({ field: { value, onChange, ref } }) => (
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={value}
-                    onChange={onChange}
-                    ref={ref}
-                    hasError={Boolean(errors.name)}
-                    placeholder={t("workspace_settings.settings.general.name")}
-                    className="w-full rounded-md"
-                    disabled={!isAdmin}
-                  />
-                )}
+              <label htmlFor="name" className="text-body-sm-medium text-tertiary">
+                {t("workspace_settings.settings.general.name")}
+              </label>
+              <Input
+                id="name"
+                type="text"
+                {...register("name", { required: "Workspace name is required." })}
+                maxLength={80}
+                hasError={Boolean(errors.name)}
+                placeholder={t("workspace_settings.settings.general.name")}
+                className="w-full rounded-md"
+                disabled={locked}
               />
               {errors.name && <p className="text-caption-sm-regular text-danger-primary">{errors.name.message}</p>}
             </div>
@@ -219,19 +164,17 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                 {t("workspace_settings.settings.general.company_size")}
               </h4>
               <Controller
-                name="organization_size"
+                name="organizationSize"
                 control={control}
-                render={({ field: { value, onChange } }) => (
+                render={({ field }) => (
                   <CustomSelect
-                    value={value}
-                    onChange={onChange}
-                    label={
-                      ORGANIZATION_SIZE.find((c) => c === value) ??
-                      t("workspace_settings.settings.general.errors.company_size.select_a_range")
-                    }
+                    value={field.value}
+                    onChange={field.onChange}
+                    ariaLabel={t("workspace_settings.settings.general.company_size")}
+                    label={field.value || t("workspace_settings.settings.general.errors.company_size.select_a_range")}
                     buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-md"
                     input
-                    disabled={!isAdmin}
+                    disabled={locked}
                   >
                     {ORGANIZATION_SIZE.map((item) => (
                       <CustomSelect.Option key={item} value={item}>
@@ -243,26 +186,15 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <h4 className="text-body-sm-medium text-tertiary">{t("workspace_settings.settings.general.url")}</h4>
-              <Controller
-                control={control}
-                name="url"
-                render={({ field: { onChange, ref } }) => (
-                  <Input
-                    id="url"
-                    name="url"
-                    type="url"
-                    value={`${
-                      typeof window !== "undefined" &&
-                      window.location.origin.replace("http://", "").replace("https://", "")
-                    }/${currentWorkspace.slug}`}
-                    onChange={onChange}
-                    ref={ref}
-                    hasError={Boolean(errors.url)}
-                    className="w-full cursor-not-allowed rounded-md !bg-layer-1"
-                    disabled
-                  />
-                )}
+              <label htmlFor="workspaceUrl" className="text-body-sm-medium text-tertiary">
+                {t("workspace_settings.settings.general.url")}
+              </label>
+              <Input
+                id="workspaceUrl"
+                type="text"
+                value={workspaceUrl.replace(/^https?:\/\//, "")}
+                className="w-full cursor-not-allowed rounded-md !bg-layer-1"
+                disabled
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -272,35 +204,50 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
               <Controller
                 name="timezone"
                 control={control}
-                render={({ field: { value, onChange } }) => (
-                  <>
-                    <TimezoneSelect value={value} onChange={onChange} disabled={!isAdmin} />
-                  </>
+                render={({ field }) => (
+                  <TimezoneSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={locked}
+                    ariaLabel={t("workspace_settings.settings.general.workspace_timezone")}
+                  />
                 )}
               />
             </div>
           </div>
         </div>
-        {isAdmin && (
-          <div className="flex items-center justify-between py-2">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={(e) => {
-                void handleSubmit(onSubmit)(e);
-              }}
-              loading={isLoading}
+        {stale && (
+          <p role="status" className="text-body-sm-regular text-secondary">
+            Workspace settings changed. Reload the latest settings before saving. Your edits will be replaced.{" "}
+            <button
+              type="button"
+              className="text-accent-primary underline"
+              disabled={isSubmitting || isImageUploadModalOpen}
+              onClick={() => reset(values)}
             >
-              {isLoading ? t("updating") : t("workspace_settings.settings.general.update_workspace")}
+              Reload settings
+            </button>
+          </p>
+        )}
+        {canManage && (
+          <div className="flex items-center justify-between py-2">
+            <Button variant="primary" size="lg" type="submit" disabled={locked || stale} loading={isSubmitting}>
+              {isSubmitting ? t("updating") : t("workspace_settings.settings.general.update_workspace")}
             </Button>
           </div>
         )}
-      </div>
-      {isAdmin && (
+      </form>
+      {canManage && (
         <div className="mt-10">
-          <DeleteWorkspaceSection workspace={currentWorkspace} />
+          <DeleteWorkspaceSection
+            workspaceId={workspaceId}
+            name={metadata.name}
+            expectedRevision={expectedRevision}
+            disabled={locked || stale}
+            beforeDelete={beforeDelete}
+          />
         </div>
       )}
     </>
   );
-});
+}

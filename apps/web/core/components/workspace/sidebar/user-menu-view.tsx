@@ -37,6 +37,7 @@ export function UserMenuView({
   const { t } = useTranslation();
   return (
     <CustomMenu
+      ariaLabel={t("aria_labels.projects_sidebar.open_user_menu")}
       className="flex items-center"
       customButton={
         <span className="grid size-8 place-items-center rounded-md hover:bg-layer-transparent-hover">

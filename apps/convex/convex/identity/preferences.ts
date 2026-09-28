@@ -7,8 +7,6 @@ import { preferences } from "./preferences_fields";
 import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
 import { requireWorkspace } from "./access";
 function validatePreferences(value: Infer<typeof preferences>) {
-  if (!Number.isInteger(value.startOfWeek) || value.startOfWeek < 0 || value.startOfWeek > 6)
-    throw new ConvexError("Choose a week start from Sunday (0) through Saturday (6).");
   if (!value.language.trim() || value.language.length > 255)
     throw new ConvexError("Language must contain 1–255 characters.");
   if (value.useCase !== null && value.useCase.length > 20000)
@@ -29,7 +27,11 @@ export const save = mutation({
     const owner = await ownProfile(ctx);
     const revision = profileRevision(owner.profile, args.expectedRevision);
     validatePreferences(args.preferences);
-    if (args.preferences.lastWorkspaceId) await requireWorkspace(ctx, args.preferences.lastWorkspaceId);
+    if (
+      args.preferences.lastWorkspaceId &&
+      args.preferences.lastWorkspaceId !== (owner.profile ?? defaultProfile).preferences.lastWorkspaceId
+    )
+      await requireWorkspace(ctx, args.preferences.lastWorkspaceId);
     await writeProfile(ctx, owner, { preferences: args.preferences, revision });
     return { revision };
   },

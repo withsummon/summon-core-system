@@ -15,7 +15,7 @@ export function NativeAccountMenu({
 }: {
   profile: NativeProfile;
   onSignOut: () => void;
-  beforeLeave: () => Promise<void>;
+  beforeLeave?: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<TProfileSettingsTabs | null>(null);
   const appearance = useQuery(api.identity.avatar.get, {});
@@ -31,7 +31,7 @@ export function NativeAccountMenu({
     );
   const navigate = async (tab: "general" | "preferences") => {
     try {
-      await beforeLeave();
+      await beforeLeave?.();
       setActiveTab(tab);
     } catch (error) {
       setToast({

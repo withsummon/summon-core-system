@@ -41,6 +41,7 @@ export const metadata = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
     const { workspace, member } = await requireWorkspace(ctx, args.workspaceId);
+    if (member.role === "guest") throw new ConvexError("Only workspace administrators and members can view settings.");
     const workspaceId = workspace._id;
     const stored = await ctx.db
       .query("workspaceSettings")
