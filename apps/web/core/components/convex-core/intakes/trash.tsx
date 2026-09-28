@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import { mutationMessage } from "../commercial/forms";
 import { TaskRichEditor } from "../tasks/rich-editor";
 type Project = FunctionReturnType<typeof api.navigation.address.resolveProjectId>["project"];
 type Removed = FunctionReturnType<typeof api.intakes.lifecycle.get>;
@@ -11,19 +10,27 @@ export function IntakeTrash({
   project,
   selected,
   onSelect,
-  onRestored,
+  pending,
+  onRestore,
 }: {
   project: Project;
   selected: string | null;
   onSelect: (id: Removed["task"]["_id"] | null) => void;
-  onRestored: (status: Removed["intake"]["status"]) => void;
+  pending: boolean;
+  onRestore: (snapshot: Removed) => void;
 }) {
   const rows = usePaginatedQuery(api.intakes.lifecycle.list, selected ? "skip" : { projectId: project._id }, {
     initialNumItems: 30,
   });
   if (selected)
     return (
-      <RemovedSubmission project={project} taskId={selected} onBack={() => onSelect(null)} onRestored={onRestored} />
+      <RemovedSubmission
+        project={project}
+        taskId={selected}
+        onBack={() => onSelect(null)}
+        pending={pending}
+        onRestore={onRestore}
+      />
     );
   return (
     <section className="space-y-4">
@@ -57,18 +64,17 @@ function RemovedSubmission({
   project,
   taskId,
   onBack,
-  onRestored,
+  pending,
+  onRestore,
 }: {
   project: Project;
   taskId: string;
   onBack: () => void;
-  onRestored: (status: Removed["intake"]["status"]) => void;
+  pending: boolean;
+  onRestore: (snapshot: Removed) => void;
 }) {
   const detail = useQuery(api.intakes.lifecycle.get, { taskId, projectId: project._id });
-  const restore = useMutation(api.intakes.lifecycle.restore);
   const [snapshot, setSnapshot] = useState<Removed | null>(null);
-  const [pending, setPending] = useState(false),
-    [error, setError] = useState("");
   if (!detail) return <p role="status">Opening removed submission…</p>;
   return (
     <article className="space-y-4">
@@ -104,25 +110,7 @@ function RemovedSubmission({
                 : "Restore this intake entry? The project task’s current archive or deletion state will remain unchanged."}
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button
-                loading={pending}
-                onClick={async () => {
-                  setPending(true);
-                  setError("");
-                  try {
-                    await restore({
-                      taskId: snapshot.task._id,
-                      expectedUpdatedAt: snapshot.intake.updatedAt,
-                      expectedTaskUpdatedAt: snapshot.task.updatedAt,
-                    });
-                    onRestored(snapshot.intake.status);
-                  } catch (failure) {
-                    setError(mutationMessage(failure));
-                  } finally {
-                    setPending(false);
-                  }
-                }}
-              >
+              <Button loading={pending} onClick={() => onRestore(snapshot)}>
                 Confirm restore
               </Button>
               <Button variant="secondary" disabled={pending} onClick={() => setSnapshot(null)}>
@@ -131,20 +119,10 @@ function RemovedSubmission({
             </div>
           </section>
         ) : (
-          <Button
-            onClick={() => {
-              setError("");
-              setSnapshot(detail);
-            }}
-          >
+          <Button disabled={pending} onClick={() => setSnapshot(detail)}>
             Restore submission
           </Button>
         ))}
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
-      )}
     </article>
   );
 }
