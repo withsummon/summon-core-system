@@ -193,10 +193,10 @@ convex-rpc	cycles/tasks:current	apps/convex/convex/cycles/tasks.ts:29	Convex sou
 convex-rpc	cycles/tasks:list	apps/convex/convex/cycles/tasks.ts:42	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	cycles/tasks:remove	apps/convex/convex/cycles/tasks.ts:20	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/transfer:begin	apps/convex/convex/cycles/transfer.ts:75	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:cancel	apps/convex/convex/cycles/transfer.ts:214	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:cancel	apps/convex/convex/cycles/transfer.ts:223	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/transfer:inspect	apps/convex/convex/cycles/transfer.ts:52	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	cycles/transfer:list	apps/convex/convex/cycles/transfer.ts:41	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:skipChanged	apps/convex/convex/cycles/transfer.ts:185	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:skipChanged	apps/convex/convex/cycles/transfer.ts:194	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/transfer:step	apps/convex/convex/cycles/transfer.ts:141	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/workspace:list	apps/convex/convex/cycles/workspace.ts:7	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/copy:availability	apps/convex/convex/documents/copy.ts:257	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
@@ -522,7 +522,9 @@ convex-rpc	stickies/index:reorder	apps/convex/convex/stickies/index.ts:101	Conve
 convex-rpc	stickies/index:resolve	apps/convex/convex/stickies/index.ts:131	Convex source candidate	stickies	query | public | app | direct native constructor	OPEN
 convex-rpc	stickies/index:restore	apps/convex/convex/stickies/index.ts:122	Convex source candidate	stickies	mutation | public | app | direct native constructor	OPEN
 convex-rpc	stickies/index:update	apps/convex/convex/stickies/index.ts:80	Convex source candidate	stickies	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/activity:list	apps/convex/convex/tasks/activity.ts:8	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/activity:exportDay	apps/convex/convex/tasks/activity.ts:129	Convex saved-timezone current-permission daily activity export	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/activity:list	apps/convex/convex/tasks/activity.ts:17	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/activity:profile	apps/convex/convex/tasks/activity.ts:117	Convex current-permission member activity feed	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/assignees:list	apps/convex/convex/tasks/assignees.ts:9	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_memberships:change	apps/convex/convex/tasks/bulk_memberships.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_properties:update	apps/convex/convex/tasks/bulk_properties.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
