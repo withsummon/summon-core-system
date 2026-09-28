@@ -13,7 +13,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { recordTaskEvent } from "../notifications/delivery";
 import { checkAncestors } from "./hierarchy";
 import { taskChanged } from "./revision";
-import { syncTaskProfile } from "./profile";
 import { addSubscribers } from "../notifications/subscriptions";
 // Both ordinary creation and intake submission allocate identity here, in the caller transaction.
 export async function createTask(
@@ -55,7 +54,6 @@ export async function createTask(
   const created = await ctx.db.get(taskId);
   if (!created) throw new Error("Created task missing from transaction.");
   await writeDescription(ctx, created, userId, { html: html ?? plainDescriptionHtml(description), description }, true);
-  await syncTaskProfile(ctx, null, created);
   await addSubscribers(ctx, taskId, [userId]);
   if (parent) {
     await checkAncestors(ctx, taskId, parent);

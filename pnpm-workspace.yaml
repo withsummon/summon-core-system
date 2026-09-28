@@ -11,7 +11,6 @@ packages:
 catalog:
   "convex": "1.46.0"
   "convex-helpers": "0.1.124"
-  "@convex-dev/aggregate": "0.3.1"
   "@convex-dev/auth": "0.0.95"
   "@atlaskit/pragmatic-drag-and-drop": "1.7.4"
   "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "1.4.0"
