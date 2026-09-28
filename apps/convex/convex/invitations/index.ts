@@ -12,7 +12,22 @@ import { issuerAccess, canIssueInvitation, normalizedEmail, publicInvitation, IN
 import { recipient } from "./delivery";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-function pending(row: Doc<"invitations">) {
+import type { Infer } from "convex/values";
+
+export const createFields = {
+  workspaceId: v.id("workspaces"),
+  projectId: v.union(v.id("projects"), v.null()),
+  emails: v.array(v.object({ email: v.string(), role })),
+};
+const maxCreateInvitations = 20;
+const responseFields = {
+  invitationId: v.id("invitations"),
+  expectedRevision: v.number(),
+  accepted: v.boolean(),
+};
+const responseInput = v.object(responseFields);
+
+function requirePending(row: Doc<"invitations">) {
   if (row.status !== "pending") throw new ConvexError("Invitation has already been answered or revoked.");
 }
 async function managed(ctx: MutationCtx, id: Doc<"invitations">["_id"], revision: number) {
@@ -22,50 +37,91 @@ async function managed(ctx: MutationCtx, id: Doc<"invitations">["_id"], revision
   await issuerAccess(ctx, row.workspaceId, row.projectId, user._id, row.role);
   if (!Number.isSafeInteger(revision) || row.revision !== revision)
     throw new ConvexError("Invitation changed. Reload before continuing.");
-  pending(row);
+  requirePending(row);
   return { row, user };
 }
-export const issue = internalMutation({
-  args: {
-    workspaceId: v.id("workspaces"),
-    projectId: v.union(v.id("projects"), v.null()),
-    email: v.string(),
-    role,
-    tokenHash: v.string(),
-  },
+export const create = mutation({
+  args: createFields,
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    await issuerAccess(ctx, args.workspaceId, args.projectId, user._id, args.role);
-    const email = normalizedEmail(args.email);
-    const existing = await ctx.db
-      .query("invitations")
-      .withIndex("by_scope_email", (q) =>
-        q.eq("workspaceId", args.workspaceId).eq("projectId", args.projectId).eq("email", email).eq("status", "pending")
-      )
-      .unique();
-    if (existing) throw new ConvexError("A pending invitation exists. Rotate or revoke it first.");
-    return ctx.db.insert("invitations", {
-      ...args,
-      email,
-      inviterId: user._id,
-      expiresAt: Date.now() + INVITATION_LIFETIME_MS,
-      revision: 0,
-      status: "pending",
-      respondedAt: null,
-      respondedBy: null,
-    });
+    if (args.emails.length < 1 || args.emails.length > maxCreateInvitations)
+      throw new ConvexError(`Invite between one and ${maxCreateInvitations} people at once.`);
+    const emails = args.emails.map((entry) => ({ email: normalizedEmail(entry.email), role: entry.role }));
+    if (new Set(emails.map((entry) => entry.email)).size !== emails.length)
+      throw new ConvexError("Invite each email address once.");
+    await Promise.all(
+      emails.map(async (entry) => {
+        await issuerAccess(ctx, args.workspaceId, args.projectId, user._id, entry.role);
+        const existing = await ctx.db
+          .query("invitations")
+          .withIndex("by_scope_email", (q) =>
+            q
+              .eq("workspaceId", args.workspaceId)
+              .eq("projectId", args.projectId)
+              .eq("email", entry.email)
+              .eq("status", "pending")
+          )
+          .first();
+        if (existing)
+          throw new ConvexError(`A pending invitation exists for ${entry.email}. Resend or revoke it first.`);
+        const users = await ctx.db
+          .query("users")
+          .withIndex("email", (q) => q.eq("email", entry.email))
+          .take(2);
+        if (users.length > 1) throw new ConvexError("Email identity is ambiguous.");
+        if (!users.length) return;
+        const projectId = args.projectId;
+        const member = projectId
+          ? await ctx.db
+              .query("projectMembers")
+              .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", users[0]._id))
+              .unique()
+          : await ctx.db
+              .query("workspaceMembers")
+              .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", users[0]._id))
+              .unique();
+        if (member?.active) throw new ConvexError(`${entry.email} is already a member.`);
+      })
+    );
+    const expiresAt = Date.now() + INVITATION_LIFETIME_MS;
+    return Promise.all(
+      emails.map(async (entry) => ({
+        invitationId: await ctx.db.insert("invitations", {
+          workspaceId: args.workspaceId,
+          projectId: args.projectId,
+          email: entry.email,
+          role: entry.role,
+          inviterId: user._id,
+          expiresAt,
+          revision: 0,
+          status: "pending",
+          respondedAt: null,
+          respondedBy: null,
+        }),
+        revision: 0,
+      }))
+    );
   },
 });
-export const rotate = internalMutation({
-  args: { invitationId: v.id("invitations"), expectedRevision: v.number(), tokenHash: v.string() },
+export const prepareResend = internalMutation({
+  args: { invitationId: v.id("invitations"), expectedRevision: v.number() },
   handler: async (ctx, args) => {
     const { row, user } = await managed(ctx, args.invitationId, args.expectedRevision);
+    const revision = row.revision + 1;
     await ctx.db.patch(row._id, {
-      tokenHash: args.tokenHash,
       expiresAt: Date.now() + INVITATION_LIFETIME_MS,
-      revision: row.revision + 1,
+      revision,
       inviterId: user._id,
     });
+    return { invitationId: row._id, revision };
+  },
+});
+export const updateRole = mutation({
+  args: { invitationId: v.id("invitations"), expectedRevision: v.number(), role },
+  handler: async (ctx, args) => {
+    const { row, user } = await managed(ctx, args.invitationId, args.expectedRevision);
+    await issuerAccess(ctx, row.workspaceId, row.projectId, user._id, args.role);
+    await ctx.db.patch(row._id, { role: args.role, revision: row.revision + 1, inviterId: user._id });
   },
 });
 export const revoke = mutation({
@@ -94,20 +150,13 @@ async function acceptMembership(ctx: MutationCtx, row: Doc<"invitations">, user:
   }
   if (row.projectId) await acceptProjectMembership(ctx, row, user, row.projectId);
 }
-async function respondToInvitation(
-  ctx: MutationCtx,
-  args: { invitationId: Doc<"invitations">["_id"]; accepted: boolean; tokenHash?: string; expectedRevision?: number }
-) {
+async function respondToInvitation(ctx: MutationCtx, args: Infer<typeof responseInput>) {
   const { user, email } = await recipient(ctx);
   const row = await ctx.db.get(args.invitationId);
-  if (!row || row.email !== email || (args.tokenHash !== undefined && row.tokenHash !== args.tokenHash))
-    throw new ConvexError("Invitation is unavailable.");
-  if (
-    args.expectedRevision !== undefined &&
-    (!Number.isSafeInteger(args.expectedRevision) || row.revision !== args.expectedRevision)
-  )
+  if (!row || row.email !== email) throw new ConvexError("Invitation is unavailable.");
+  if (!Number.isSafeInteger(args.expectedRevision) || row.revision !== args.expectedRevision)
     throw new ConvexError("Invitation changed. Review it again.");
-  pending(row);
+  requirePending(row);
   if (row.expiresAt <= Date.now()) throw new ConvexError("Invitation has expired.");
   await issuerAccess(ctx, row.workspaceId, row.projectId, row.inviterId, row.role);
   const workspace = await ctx.db.get(row.workspaceId);
@@ -121,19 +170,13 @@ async function respondToInvitation(
   });
   return { accepted: args.accepted, workspaceId: row.workspaceId, projectId: row.projectId, slug: workspace.slug };
 }
-export type InvitationResponse = Awaited<ReturnType<typeof respondToInvitation>>;
-async function respondAndSelect(ctx: MutationCtx, args: Parameters<typeof respondToInvitation>[1]) {
-  const result = await respondToInvitation(ctx, args);
-  if (result.accepted) await selectWorkspaceForUser(ctx, result.workspaceId);
-  return result;
-}
-export const respond = internalMutation({
-  args: { invitationId: v.id("invitations"), tokenHash: v.string(), accepted: v.boolean() },
-  handler: respondAndSelect,
-});
 export const respondIncoming = mutation({
-  args: { invitationId: v.id("invitations"), expectedRevision: v.number(), accepted: v.boolean() },
-  handler: respondAndSelect,
+  args: responseFields,
+  handler: async (ctx, args) => {
+    const result = await respondToInvitation(ctx, args);
+    if (result.accepted) await selectWorkspaceForUser(ctx, result.workspaceId);
+    return result;
+  },
 });
 const maxAcceptInvitations = 20;
 export const acceptIncoming = mutation({
@@ -172,6 +215,29 @@ export const list = query({
     return { ...result, page: result.page.map(publicInvitation) };
   },
 });
+export const pending = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.union(v.id("projects"), v.null()),
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    await issuerAccess(ctx, args.workspaceId, args.projectId, user._id, "guest");
+    const directoryLimit = 1000;
+    const rows = await ctx.db
+      .query("invitations")
+      .withIndex("by_scope_status", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("projectId", args.projectId).eq("status", "pending")
+      )
+      .order("desc")
+      .take(directoryLimit + 1);
+    if (rows.length > directoryLimit)
+      throw new ConvexError(`Pending invitations exceed the ${directoryLimit}-invitation directory limit.`);
+    const search = args.search?.trim().toLowerCase() ?? "";
+    return rows.filter((row) => row.email.includes(search)).map(publicInvitation);
+  },
+});
 export const incoming = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
@@ -205,6 +271,7 @@ export const availability = query({
     emailDelivery: mailConfiguration(process.env) !== null,
     manualSharing: true,
     expiresAfterDays: 7,
+    maxCreateInvitations,
     maxAcceptInvitations,
   }),
 });

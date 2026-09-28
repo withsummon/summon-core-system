@@ -20,7 +20,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { ProjectTasks } from "./project-tasks";
-import { Membership } from "./membership";
+import { ProjectMembership } from "./membership";
 import { ProjectBoundary } from "./projects/boundary";
 import { Profile } from "./identity/profile";
 const ProjectCoverHeader = lazy(() =>
@@ -248,10 +248,12 @@ function Projects({ workspace }: { workspace: FunctionReturnType<typeof api.work
           <summary className="cursor-pointer text-12 font-medium text-secondary">Manage access</summary>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {workspace.membershipRole === "admin" && (
-              <Membership scope={{ kind: "workspace", workspaceId: workspace._id }} />
+              <Link className="text-14 text-accent-primary" to={`/${workspace.slug}/settings/members/`}>
+                Manage workspace members
+              </Link>
             )}
             {project?.membershipRole === "admin" && project.workspaceRole !== "guest" && (
-              <Membership key={project._id} scope={{ kind: "project", projectId: project._id }} />
+              <ProjectMembership key={project._id} projectId={project._id} />
             )}
           </div>
         </details>

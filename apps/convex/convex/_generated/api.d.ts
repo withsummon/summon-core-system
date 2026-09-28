@@ -121,8 +121,6 @@ import type * as invitations_access from "../invitations/access.js";
 import type * as invitations_delivery from "../invitations/delivery.js";
 import type * as invitations_email from "../invitations/email.js";
 import type * as invitations_index from "../invitations/index.js";
-import type * as invitations_token_crypto from "../invitations/token_crypto.js";
-import type * as invitations_tokens from "../invitations/tokens.js";
 import type * as lib_documentConversion from "../lib/documentConversion.js";
 import type * as mcp_access from "../mcp/access.js";
 import type * as mcp_client from "../mcp/client.js";
@@ -370,8 +368,6 @@ declare const fullApi: ApiFromModules<{
   "invitations/delivery": typeof invitations_delivery;
   "invitations/email": typeof invitations_email;
   "invitations/index": typeof invitations_index;
-  "invitations/token_crypto": typeof invitations_token_crypto;
-  "invitations/tokens": typeof invitations_tokens;
   "lib/documentConversion": typeof lib_documentConversion;
   "mcp/access": typeof mcp_access;
   "mcp/client": typeof mcp_client;

@@ -30,6 +30,7 @@ import { documentTables } from "./documents/schema";
 import { resourceTables } from "./resources/schema";
 
 export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("guest"));
+export const invitationDeliveryStatus = v.union(v.literal("sent"), v.literal("failed"));
 export default defineSchema({
   ...projectPersonalTables,
   ...projectAppearanceTables,
@@ -89,7 +90,7 @@ export default defineSchema({
   invitations: defineTable({
     delivery: v.optional(
       v.object({
-        status: v.union(v.literal("sent"), v.literal("failed")),
+        status: invitationDeliveryStatus,
         revision: v.number(),
         attemptedAt: v.number(),
       })
@@ -99,7 +100,8 @@ export default defineSchema({
     email: v.string(),
     role,
     inviterId: v.id("users"),
-    tokenHash: v.string(),
+    // Stored invitation hashes are removed during the ID-link cutover.
+    tokenHash: v.optional(v.string()),
     expiresAt: v.number(),
     revision: v.number(),
     status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("revoked")),
@@ -108,6 +110,7 @@ export default defineSchema({
   })
     .index("by_scope_email", ["workspaceId", "projectId", "email", "status"])
     .index("by_scope", ["workspaceId", "projectId"])
+    .index("by_scope_status", ["workspaceId", "projectId", "status"])
     .index("by_email", ["email", "status"]),
   projectMembers: defineTable({
     workspaceId: v.id("workspaces"),

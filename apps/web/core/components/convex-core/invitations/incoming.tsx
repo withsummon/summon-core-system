@@ -1,10 +1,8 @@
-import { useId, useState } from "react";
-import { useAction, usePaginatedQuery, useQuery } from "convex/react";
+import { useState } from "react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import { Input } from "@plane/propel/input";
-import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
 import { InvitationBoundary, InvitationPages } from "./shared";
 type Invitation = FunctionReturnType<typeof api.invitations.index.incoming>["page"][number];
@@ -43,7 +41,7 @@ function IncomingList() {
     <div className="min-w-0 space-y-3 rounded-lg border border-subtle-1 p-3">
       <h3 className="font-medium">Your invitations</h3>
       <p className="text-12 text-secondary">
-        Ask the inviter for the private token. Existing active membership roles stay unchanged when accepting.
+        Review invitations sent to your verified email. Existing active membership roles stay unchanged when accepting.
       </p>
       <ul className="space-y-3">
         {page.results.map((row) => (
@@ -97,16 +95,14 @@ function ResponseForm({
   onClose: () => void;
   onComplete: (accepted: boolean) => void;
 }) {
-  const respond = useAction(api.invitations.tokens.respond);
-  const tokenId = useId();
-  const [token, setToken] = useState(""),
-    [pending, setPending] = useState(false),
+  const respond = useMutation(api.invitations.index.respondIncoming);
+  const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   async function submit(accepted: boolean) {
     setPending(true);
     setError("");
     try {
-      await respond({ invitationId: invitation._id, token: token.trim(), accepted });
+      await respond({ invitationId: invitation._id, expectedRevision: invitation.revision, accepted });
       onComplete(accepted);
     } catch (failure) {
       setError(mutationMessage(failure));
@@ -125,18 +121,6 @@ function ResponseForm({
       <p className="break-words">
         Respond to {invitation.projectName ?? invitation.workspaceName} — {invitation.role} access.
       </p>
-      <SummonField label="Invitation token" htmlFor={tokenId}>
-        <Input
-          id={tokenId}
-          type="password"
-          autoComplete="off"
-          required
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          disabled={pending}
-          className="w-full"
-        />
-      </SummonField>
       {error && (
         <p role="alert" className="text-danger-primary">
           {error}
@@ -146,12 +130,7 @@ function ResponseForm({
         <Button type="submit" loading={pending}>
           Accept invitation
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={pending || !token.trim()}
-          onClick={() => void submit(false)}
-        >
+        <Button type="button" variant="secondary" disabled={pending} onClick={() => void submit(false)}>
           Decline
         </Button>
         <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>

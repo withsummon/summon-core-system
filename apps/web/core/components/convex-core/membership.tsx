@@ -7,18 +7,15 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 
-type Scope = { kind: "workspace"; workspaceId: Id<"workspaces"> } | { kind: "project"; projectId: Id<"projects"> };
-const roles = ["guest", "member", "admin"] as const satisfies readonly Doc<"workspaceMembers">["role"][];
+const roles = ["guest", "member", "admin"] as const satisfies readonly Doc<"projectMembers">["role"][];
 
-export function Membership({ scope }: { scope: Scope }) {
+export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) {
   const client = useConvex();
-  const grantWorkspace = useMutation(api.workspaces.index.grantMember);
-  const revokeWorkspace = useMutation(api.workspaces.index.revokeMember);
   const grantProject = useMutation(api.projects.index.grantMember);
   const revokeProject = useMutation(api.projects.index.revokeMember);
   const [userId, setUserId] = useState("");
-  const [target, setTarget] = useState<FunctionReturnType<typeof api.workspaces.index.resolveMember> | null>(null);
-  const [role, setRole] = useState<Doc<"workspaceMembers">["role"]>("member");
+  const [target, setTarget] = useState<FunctionReturnType<typeof api.projects.index.resolveMember> | null>(null);
+  const [role, setRole] = useState<Doc<"projectMembers">["role"]>("member");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -29,11 +26,8 @@ export function Membership({ scope }: { scope: Scope }) {
     setError("");
     setMessage("");
     try {
-      if (scope.kind === "workspace") {
-        if (operation === "grant") await grantWorkspace({ workspaceId: scope.workspaceId, userId: target.id, role });
-        else await revokeWorkspace({ workspaceId: scope.workspaceId, userId: target.id });
-      } else if (operation === "grant") await grantProject({ projectId: scope.projectId, userId: target.id, role });
-      else await revokeProject({ projectId: scope.projectId, userId: target.id });
+      if (operation === "grant") await grantProject({ projectId, userId: target.id, role });
+      else await revokeProject({ projectId, userId: target.id });
       setMessage(operation === "grant" ? `${role} access saved.` : "Access revoked.");
     } catch {
       setError(
@@ -46,7 +40,7 @@ export function Membership({ scope }: { scope: Scope }) {
 
   return (
     <details className="max-w-xl rounded-lg border border-subtle-1 p-4">
-      <summary className="cursor-pointer text-14 font-medium">Manage {scope.kind} access</summary>
+      <summary className="cursor-pointer text-14 font-medium">Manage project access</summary>
       <div className="mt-4 space-y-4">
         <p className="text-14 text-secondary">
           Ask the person to share their user ID from Account details. Project access also requires workspace membership.
@@ -60,16 +54,10 @@ export function Membership({ scope }: { scope: Scope }) {
             setError("");
             setMessage("");
             try {
-              const user =
-                scope.kind === "workspace"
-                  ? await client.query(api.workspaces.index.resolveMember, {
-                      workspaceId: scope.workspaceId,
-                      userId: userId.trim(),
-                    })
-                  : await client.query(api.projects.index.resolveMember, {
-                      projectId: scope.projectId,
-                      userId: userId.trim(),
-                    });
+              const user = await client.query(api.projects.index.resolveMember, {
+                projectId,
+                userId: userId.trim(),
+              });
               setTarget(user);
             } catch {
               setError("User not found or unavailable. Check the ID and required workspace membership.");

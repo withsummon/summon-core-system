@@ -10,7 +10,7 @@ import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { cn } from "../utils";
 import type { ICustomSelectItemProps, ICustomSelectProps } from "./helper";
 
-function CustomSelect({
+function CustomSelect<Value>({
   customButtonClassName,
   buttonClassName,
   placement = "bottom-start",
@@ -28,10 +28,10 @@ function CustomSelect({
   value,
   tabIndex,
   ariaLabel,
-}: ICustomSelectProps) {
+}: ICustomSelectProps<Value>) {
   const { side, align } = convertPlacementToSideAndAlign(placement);
   return (
-    <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
+    <Select.Root<Value> value={value} onValueChange={onChange} disabled={disabled}>
       <div className={cn("relative flex-shrink-0 text-left", className)}>
         <Select.Trigger
           aria-label={ariaLabel}
@@ -70,7 +70,7 @@ function CustomSelect({
   );
 }
 
-function Option({ children, value, className }: ICustomSelectItemProps) {
+function Option<Value>({ children, value, className }: ICustomSelectItemProps<Value>) {
   return (
     <Select.Item
       value={value}

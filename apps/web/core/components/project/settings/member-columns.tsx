@@ -11,7 +11,8 @@ import { CircleMinus } from "lucide-react";
 // plane imports
 import { ROLE, EUserPermissions, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EUserProjectRoles, IUser, IWorkspaceMember, TProjectMembership } from "@plane/types";
+import { EUserProjectRoles } from "@plane/types";
+import type { IUser, IWorkspaceMember, TProjectMembership } from "@plane/types";
 import { CustomMenu, CustomSelect } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // hooks
@@ -72,11 +73,10 @@ export function NameColumn(props: NameProps) {
             optionsClassName="p-1.5"
             placement="bottom-end"
           >
-            <CustomMenu.MenuItem>
+            <CustomMenu.MenuItem onClick={() => setRemoveMemberModal(rowData)}>
               <div
                 className="flex cursor-pointer items-center gap-x-1 font-medium text-danger-primary"
                 data-ph-element={MEMBER_TRACKER_ELEMENTS.PROJECT_MEMBER_TABLE_CONTEXT_MENU}
-                onClick={() => setRemoveMemberModal(rowData)}
               >
                 <CircleMinus className="size-3.5 flex-shrink-0" />
                 {rowData.member?.id === currentUser?.id ? "Leave " : "Remove "}
@@ -106,19 +106,14 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
   // derived values
   const roleLabel = ROLE[rowData.original_role ?? EUserPermissions.GUEST];
   const isCurrentUser = currentUser?.id === rowData.member.id;
-  const isRowDataWorkspaceAdmin = [EUserPermissions.ADMIN].includes(
-    Number(getWorkspaceMemberDetails(rowData.member.id)?.role) ?? EUserPermissions.GUEST
-  );
+  const workspaceRole = getWorkspaceMemberDetails(rowData.member.id)?.role;
+  const isRowDataWorkspaceAdmin = workspaceRole === EUserPermissions.ADMIN;
   const isCurrentUserWorkspaceAdmin = currentUser
-    ? [EUserPermissions.ADMIN].includes(
-        Number(getWorkspaceMemberDetails(currentUser.id)?.role) ?? EUserPermissions.GUEST
-      )
+    ? getWorkspaceMemberDetails(currentUser.id)?.role === EUserPermissions.ADMIN
     : false;
   const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
 
-  const isCurrentUserProjectAdmin = currentProjectRole
-    ? ![EUserPermissions.MEMBER, EUserPermissions.GUEST].includes(Number(currentProjectRole) ?? EUserPermissions.GUEST)
-    : false;
+  const isCurrentUserProjectAdmin = currentProjectRole === EUserPermissions.ADMIN;
 
   // logic
   // Workspace admin can change his own role
@@ -126,17 +121,6 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
   const isRoleEditable =
     (isCurrentUserWorkspaceAdmin && isCurrentUser) ||
     (isCurrentUserProjectAdmin && !isRowDataWorkspaceAdmin && !isCurrentUser);
-  const checkCurrentOptionWorkspaceRole = (value: string) => {
-    const currentMemberWorkspaceRole = getWorkspaceMemberDetails(value)?.role as EUserPermissions | undefined;
-    if (!value || !currentMemberWorkspaceRole) return ROLE;
-
-    const isGuest = [EUserPermissions.GUEST].includes(currentMemberWorkspaceRole);
-
-    return Object.fromEntries(
-      Object.entries(ROLE).filter(([key]) => !isGuest || parseInt(key) === EUserPermissions.GUEST)
-    );
-  };
-
   return (
     <>
       {isRoleEditable ? (
@@ -147,8 +131,8 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
           render={() => (
             <CustomSelect
               value={rowData.original_role}
-              onChange={async (value: EUserProjectRoles) => {
-                if (!workspaceSlug) return;
+              onChange={async (value) => {
+                if (value === null || !workspaceSlug) return;
                 await updateMemberRole(workspaceSlug.toString(), projectId.toString(), rowData.member.id, value).catch(
                   (err) => {
                     console.log(err, "err");
@@ -172,11 +156,16 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
               className="w-32 rounded-md p-0"
               input
             >
-              {Object.entries(checkCurrentOptionWorkspaceRole(rowData.member.id)).map(([key, label]) => (
-                <CustomSelect.Option key={key} value={key}>
-                  {label}
-                </CustomSelect.Option>
-              ))}
+              {Object.values(EUserProjectRoles)
+                .filter((role) => typeof role === "number")
+                // oxlint-disable-next-line unicorn/no-array-sort -- Preserve numeric role order on this private enum list; web targets ES2020.
+                .sort((a, b) => a - b)
+                .filter((role) => workspaceRole !== EUserPermissions.GUEST || role === EUserProjectRoles.GUEST)
+                .map((role) => (
+                  <CustomSelect.Option key={role} value={role}>
+                    {ROLE[role]}
+                  </CustomSelect.Option>
+                ))}
             </CustomSelect>
           )}
         />

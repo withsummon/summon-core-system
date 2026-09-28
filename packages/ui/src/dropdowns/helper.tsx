@@ -6,6 +6,7 @@
 
 // FIXME: fix this!!!
 import type { ICustomSearchSelectOption } from "@plane/types";
+import type { SelectPrimitive } from "@plane/propel/select";
 
 type Placement =
   | "top"
@@ -62,11 +63,11 @@ export interface ICustomMenuDropdownProps extends IDropdownProps {
   ariaLabel?: string;
 }
 
-export interface ICustomSelectProps extends IDropdownProps {
+export interface ICustomSelectProps<Value> extends IDropdownProps {
   children: React.ReactNode;
   ariaLabel?: string;
-  value: any;
-  onChange: any;
+  value: SelectPrimitive.Root.Props<Value>["value"];
+  onChange: SelectPrimitive.Root.Props<Value>["onValueChange"];
 }
 
 interface CustomSearchSelectProps {
@@ -99,9 +100,9 @@ export interface ICustomMenuItemProps {
   className?: string;
 }
 
-export interface ICustomSelectItemProps {
+export interface ICustomSelectItemProps<Value> {
   children: React.ReactNode;
-  value: any;
+  value: Value;
   className?: string;
 }
 

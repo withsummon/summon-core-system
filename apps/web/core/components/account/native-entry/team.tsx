@@ -10,10 +10,10 @@ import { CustomSelect, Input, Spinner } from "@plane/ui";
 import { checkEmailValidity } from "@plane/utils";
 import { CommonOnboardingHeader } from "@/components/onboarding/steps/common";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
-type Fields = Pick<FunctionArgs<typeof api.invitations.email.send>, "email" | "role">;
+type Fields = FunctionArgs<typeof api.invitations.email.send>["emails"][number];
 type Row = Fields & {
   id: string;
-  attempt: FunctionReturnType<typeof api.invitations.email.send> | null;
+  attempt: FunctionReturnType<typeof api.invitations.email.resend> | null;
   error: string;
 };
 const emptyRow = (): Row => ({ id: crypto.randomUUID(), email: "", role: "member", attempt: null, error: "" });
@@ -54,16 +54,20 @@ export function NativeTeamStep({
         if (row.attempt?.delivery === "sent") continue;
         try {
           // Each delivery has its own canonical receipt; failures never replay successful recipients.
-          // eslint-disable-next-line no-await-in-loop
-          const attempt = await (row.attempt
-            ? resend({ invitationId: row.attempt.invitationId, expectedRevision: row.attempt.revision })
-            : send({ workspaceId, projectId: null, email: row.email, role: row.role }));
+          const attempt = row.attempt
+            ? // eslint-disable-next-line no-await-in-loop
+              await resend({ invitationId: row.attempt.invitationId, expectedRevision: row.attempt.revision })
+            : // eslint-disable-next-line no-await-in-loop
+              (await send({ workspaceId, projectId: null, emails: [{ email: row.email, role: row.role }] }))[0];
           if (!active.current) return;
           change(row.id, {
             attempt,
-            error: attempt.delivery === "failed" ? "Email delivery failed. Continue to retry this invitation." : "",
+            error:
+              attempt.delivery === "sent"
+                ? ""
+                : "Delivery did not complete. Review this invitation in workspace Members.",
           });
-          if (attempt.delivery === "failed") failed = true;
+          if (attempt.delivery !== "sent") failed = true;
         } catch (failure) {
           if (!active.current) return;
           failed = true;

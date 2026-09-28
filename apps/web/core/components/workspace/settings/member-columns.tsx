@@ -4,185 +4,132 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { useState } from "react";
 import Link from "next/link";
-import { Controller, useForm } from "react-hook-form";
-
-// plane imports
-import { ROLE, EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { useTranslation } from "@plane/i18n";
 import { TrashIcon, SuspendedUserIcon } from "@plane/propel/icons";
 import { Pill, EPillVariant, EPillSize } from "@plane/propel/pill";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUser, IWorkspaceMember } from "@plane/types";
-// plane ui
-import { CustomSelect, PopoverMenu } from "@plane/ui";
-// helpers
-import { getFileURL } from "@plane/utils";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { Avatar, CustomSelect, CustomMenu } from "@plane/ui";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
-export interface RowData {
-  member: IWorkspaceMember;
-  role: EUserPermissions;
-  is_active: boolean;
-}
+export type WorkspaceMember = FunctionReturnType<typeof api.workspaces.index.members>["members"][number];
 
 type NameProps = {
-  rowData: RowData;
+  member: WorkspaceMember;
   workspaceSlug: string;
-  isAdmin: boolean;
-  currentUser: IUser | undefined;
-  setRemoveMemberModal: (rowData: RowData) => void;
+  canRemove: boolean;
+  isSelf: boolean;
+  onRemove: (member: WorkspaceMember) => void;
 };
 
-type AccountTypeProps = {
-  rowData: RowData;
-  workspaceSlug: string;
-};
-
-export function NameColumn(props: NameProps) {
-  const { rowData, workspaceSlug, isAdmin, currentUser, setRemoveMemberModal } = props;
-  // derived values
-  const { avatar_url, display_name, email, first_name, id, last_name } = rowData.member;
-  const isSuspended = rowData.is_active === false;
-
+export function NameColumn({ member, workspaceSlug, canRemove, isSelf, onRemove }: NameProps) {
+  const { t } = useTranslation();
   return (
     <div className="group relative">
       <div className="flex w-72 items-center justify-between gap-x-4 gap-y-2">
         <div className="flex flex-1 items-center gap-x-2 gap-y-2">
-          {isSuspended ? (
+          {!member.active ? (
             <div className="rounded-full bg-layer-1">
-              <SuspendedUserIcon className="size-6 text-placeholder" />
+              <SuspendedUserIcon className="size-6 text-placeholder" aria-hidden="true" />
             </div>
-          ) : avatar_url && avatar_url.trim() !== "" ? (
-            <Link href={`/${workspaceSlug}/profile/${id}`}>
-              <span className="relative flex size-6 items-center justify-center rounded-full text-on-color capitalize">
-                <img
-                  src={getFileURL(avatar_url)}
-                  className="absolute top-0 left-0 h-full w-full rounded-full object-cover"
-                  alt={display_name || email}
-                />
-              </span>
-            </Link>
           ) : (
-            <Link href={`/${workspaceSlug}/profile/${id}`}>
-              <span className="relative flex size-6 items-center justify-center rounded-full bg-layer-3 text-11 text-tertiary capitalize">
-                {(email ?? display_name ?? "?")[0]}
-              </span>
+            <Link
+              href={`/${workspaceSlug}/profile/${member.userId}`}
+              aria-label={`View member profile: ${member.displayName ?? member.userId}`}
+            >
+              {member.avatar ? (
+                <span className="relative flex size-6 items-center justify-center overflow-hidden rounded-full">
+                  <AuthenticatedAssetImage
+                    asset={member.avatar}
+                    alt="Member avatar"
+                    className="absolute inset-0 size-full rounded-full object-cover"
+                  />
+                </span>
+              ) : (
+                <Avatar
+                  name={member.email ?? undefined}
+                  size={24}
+                  shape="circle"
+                  showTooltip={false}
+                  className="bg-layer-3 text-11 text-tertiary"
+                />
+              )}
             </Link>
           )}
-          <span className={isSuspended ? "text-placeholder" : ""}>
-            {first_name} {last_name}
-          </span>
+          <span className={member.active ? "" : "text-placeholder"}>{member.fullName}</span>
         </div>
-
-        {!isSuspended && (isAdmin || id === currentUser?.id) && (
-          <PopoverMenu
-            data={[""]}
-            keyExtractor={(item) => item}
-            popoverClassName="justify-end"
-            buttonClassName="outline-none	origin-center rotate-90 size-8 aspect-square flex-shrink-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
-            render={() => (
-              <div
-                role="button"
-                tabIndex={0}
-                className="flex cursor-pointer items-center gap-x-3"
-                onClick={() => setRemoveMemberModal(rowData)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setRemoveMemberModal(rowData);
-                  }
-                }}
-                data-ph-element={MEMBER_TRACKER_ELEMENTS.WORKSPACE_MEMBER_TABLE_CONTEXT_MENU}
-              >
-                <TrashIcon className="size-3.5 align-middle" /> {id === currentUser?.id ? "Leave " : "Remove "}
-              </div>
-            )}
-          />
+        {member.active && canRemove && (
+          <CustomMenu
+            verticalEllipsis
+            ariaLabel="Member actions"
+            placement="bottom-end"
+            closeOnSelect
+            buttonClassName="size-8 shrink-0 md:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
+          >
+            <CustomMenu.MenuItem onClick={() => onRemove(member)}>
+              <TrashIcon className="size-3.5" aria-hidden="true" />
+              {t(isSelf ? "leave" : "remove")}
+            </CustomMenu.MenuItem>
+          </CustomMenu>
         )}
       </div>
     </div>
   );
 }
 
-export const AccountTypeColumn = observer(function AccountTypeColumn(props: AccountTypeProps) {
-  const { rowData, workspaceSlug } = props;
-  // form info
-  const {
-    control,
-    formState: { errors },
-  } = useForm();
-  // store hooks
-  const { allowPermissions } = useUserPermissions();
+type AccountTypeProps = {
+  member: WorkspaceMember;
+  workspaceId: FunctionArgs<typeof api.workspaces.index.changeMemberRole>["workspaceId"];
+  roles: FunctionReturnType<typeof api.workspaces.index.members>["roles"];
+  editable: boolean;
+};
 
-  const {
-    workspace: { updateMember },
-  } = useMember();
-  const { data: currentUser } = useUser();
-
-  // derived values
-  const isCurrentUser = currentUser?.id === rowData.member.id;
-  const isAdminRole = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  const isRoleNonEditable = isCurrentUser || !isAdminRole;
-  const isSuspended = rowData.is_active === false;
-
+export function AccountTypeColumn({ member, workspaceId, roles, editable }: AccountTypeProps) {
+  const { t } = useTranslation();
+  const changeRole = useMutation(api.workspaces.index.changeMemberRole);
+  const [pending, setPending] = useState(false);
+  if (!member.active)
+    return (
+      <Pill variant={EPillVariant.DEFAULT} size={EPillSize.SM} className="border-none">
+        Suspended
+      </Pill>
+    );
+  const label = t(`role_details.${member.role}.title`);
+  if (!editable) return <span>{label}</span>;
   return (
-    <>
-      {isSuspended ? (
-        <div className="flex w-32">
-          <Pill variant={EPillVariant.DEFAULT} size={EPillSize.SM} className="border-none">
-            Suspended
-          </Pill>
-        </div>
-      ) : isRoleNonEditable ? (
-        <div className="flex w-32">
-          <span>{ROLE[rowData.role]}</span>
-        </div>
-      ) : (
-        <Controller
-          name="role"
-          control={control}
-          rules={{ required: "Role is required." }}
-          render={({ field: { value } }) => (
-            <CustomSelect
-              value={value as EUserPermissions}
-              onChange={async (value: EUserPermissions) => {
-                if (!workspaceSlug) return;
-                try {
-                  await updateMember(workspaceSlug.toString(), rowData.member.id, {
-                    role: value as unknown as EUserPermissions,
-                  });
-                } catch (err: unknown) {
-                  const error = err as { error?: string | string[] };
-                  const errorString = Array.isArray(error?.error) ? error.error[0] : error?.error;
-
-                  setToast({
-                    type: TOAST_TYPE.ERROR,
-                    title: "Error!",
-                    message: errorString ?? "An error occurred while updating member role. Please try again.",
-                  });
-                }
-              }}
-              label={
-                <div className="flex">
-                  <span>{ROLE[rowData.role]}</span>
-                </div>
-              }
-              buttonClassName={`!px-0 !justify-start hover:bg-surface-1 ${errors.role ? "border-danger-strong" : "border-none"}`}
-              className="w-32 rounded-md p-0"
-              input
-            >
-              {Object.keys(ROLE).map((item) => (
-                <CustomSelect.Option key={item} value={item as unknown as EUserPermissions}>
-                  {ROLE[item as unknown as keyof typeof ROLE]}
-                </CustomSelect.Option>
-              ))}
-            </CustomSelect>
-          )}
-        />
-      )}
-    </>
+    <CustomSelect<WorkspaceMember["role"]>
+      value={member.role}
+      disabled={pending}
+      ariaLabel={`Account type for ${member.displayName ?? member.userId}`}
+      onChange={async (role) => {
+        setPending(true);
+        try {
+          await changeRole({ workspaceId, membershipId: member.membershipId, expectedRole: member.role, role });
+        } catch (failure) {
+          setToast({
+            type: TOAST_TYPE.ERROR,
+            title: "Unable to update member role",
+            message: mutationMessage(failure),
+          });
+        } finally {
+          setPending(false);
+        }
+      }}
+      label={<span>{label}</span>}
+      buttonClassName="!px-0 !justify-start hover:bg-surface-1 border-none"
+      className="w-32 rounded-md p-0"
+      input
+    >
+      {roles.map((role) => (
+        <CustomSelect.Option key={role} value={role}>
+          {t(`role_details.${role}.title`)}
+        </CustomSelect.Option>
+      ))}
+    </CustomSelect>
   );
-});
+}
