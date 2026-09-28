@@ -1,4 +1,4 @@
-import { ConvexError, v, type Infer } from "convex/values";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireTask } from "./access";
@@ -29,12 +29,13 @@ export async function applyPropertyUpdate(
   text?: { title: string; description: string }
 ) {
   const { task, user, data, status: requestedStatus } = prepared;
+  const patch = { ...data, ...text, status: requestedStatus };
+  if (compareValues({ ...task, ...patch }, task) === 0) return false;
   const changed = task.status !== requestedStatus || task.stateId !== data.stateId;
   await ctx.db.patch(task._id, {
-    ...data,
-    ...text,
-    status: requestedStatus,
+    ...patch,
     completedAt: changed ? (requestedStatus === "done" ? Date.now() : null) : task.completedAt,
   });
   await taskChanged(ctx, task, user._id);
+  return true;
 }
