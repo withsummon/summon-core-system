@@ -1,16 +1,29 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
 import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
 import type { CollaborationState, EditorRefApi, EditorTitleRefApi, IEditorProps, TRealtimeConfig } from "@plane/editor";
 import type { FunctionReturnType } from "convex/server";
+import type { Doc } from "@summon/convex/data-model";
+import { useMutation, useQuery } from "convex/react";
 import { Button } from "@plane/propel/button";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { EmojiPicker, Logo } from "@plane/propel/emoji-icon-picker";
+import { CustomMenu } from "@plane/ui";
+import { PanelRight, ArrowRightCircle, SmilePlus } from "lucide-react";
 import { api } from "@summon/convex/api";
-
+import { cn } from "@plane/utils";
+import { usePageFilters } from "@/hooks/use-page-filters";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { PageToolbar } from "@/components/pages/editor/toolbar/toolbar";
+import { PageContentBrowser } from "@/components/pages/editor/summary/content-browser";
+import { PageNavigationPaneOutlineTabEmptyState } from "@/components/pages/navigation-pane/tab-panels/empty-state/outline";
 import { DocumentMentionsProvider, useDocumentMentions } from "./mentions";
 import { useDocumentAssets } from "./use-document-assets";
+import { DocumentHistory } from "./history";
+import { mutationMessage } from "../commercial/forms";
 
 const DocumentExport = lazy(() => import("./export").then((module) => ({ default: module.DocumentExport })));
-
 const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
 const extendedEditorProps = {};
@@ -25,39 +38,62 @@ const statusLabels = {
 } satisfies Record<CollaborationState["stage"]["kind"], string>;
 const editorMetadata = () => ({ file_assets: [], user_mentions: [] });
 
-export function DocumentEditor({
-  context,
-}: {
+type Props = {
   context: FunctionReturnType<typeof api.documents.index.collaborationContext>;
-}) {
+  document: Doc<"documents">;
+  renderHeader?: (state: CollaborationState, actions: ReactNode, isSaving: boolean) => ReactNode;
+};
+
+export function DocumentEditor(props: Props) {
   const url = import.meta.env.VITE_CONVEX_LIVE_URL;
   if (!url)
-    return <p role="alert">Collaborative editing is unavailable. Please contact your workspace administrator.</p>;
+    return (
+      <p role="alert" className="p-6">
+        Collaborative editing is unavailable. Please contact your workspace administrator.
+      </p>
+    );
   return (
-    <DocumentMentionsProvider key={context.documentId} documentId={context.documentId}>
-      <AuthenticatedEditor context={context} url={url} />
+    <DocumentMentionsProvider key={props.context.documentId} documentId={props.context.documentId}>
+      <AuthenticatedEditor {...props} url={url} />
     </DocumentMentionsProvider>
   );
 }
-function AuthenticatedEditor({
-  context,
-  url,
-}: {
-  context: FunctionReturnType<typeof api.documents.index.collaborationContext>;
-  url: string;
-}) {
+
+function AuthenticatedEditor({ context, document, renderHeader, url }: Props & { url: string }) {
   const mentionHandler = useDocumentMentions(context.documentId);
   const editorRef = useRef<EditorRefApi>(null);
   const titleRef = useRef<EditorTitleRefApi>(null);
   const [exporting, setExporting] = useState(false);
+  const [pane, setPane] = useState<"outline" | "info" | null>(null);
+  const [ready, setReady] = useState(false);
   const fileHandler = useDocumentAssets(context.documentId);
   const [state, setState] = useState<CollaborationState>({
     stage: { kind: "initial" },
     isServerSynced: false,
     isServerDisconnected: false,
   });
-  const [readOnly, setReadOnly] = useState(false);
-  const [saveError, setSaveError] = useState("");
+  const snapshot = useQuery(api.documents.index.snapshot, { documentId: context.documentId });
+  const [binary, setBinary] = useState<Uint8Array | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    const capture = () => setBinary(editorRef.current?.getDocument().binary ?? null);
+    capture();
+    const content = editorRef.current?.onStateChange(capture);
+    const title = titleRef.current?.onStateChange(capture);
+    return () => {
+      content?.();
+      title?.();
+    };
+  }, [ready]);
+  const persisted = snapshot ? new Uint8Array(snapshot.descriptionBinary) : null;
+  const isSaving =
+    binary !== null &&
+    (persisted === null ||
+      binary.length !== persisted.length ||
+      !binary.every((value, index) => value === persisted[index]));
+  useReloadConfirmations(isSaving, "The latest document changes have not been saved yet.");
+  const { fontSize, fontStyle, isFullWidth, isStickyToolbarEnabled, handleFullWidth, handleStickyToolbar } =
+    usePageFilters();
   const realtimeConfig: TRealtimeConfig = useMemo(
     () => ({
       url,
@@ -65,18 +101,6 @@ function AuthenticatedEditor({
       roomName: `convex:${context.documentId}`,
       persistOffline: false,
       cacheKey: `convex:${context.userId}:${context.documentId}`,
-      onStateless: (payload) => {
-        let event: unknown;
-        try {
-          event = JSON.parse(payload);
-        } catch {
-          return;
-        }
-        if (!event || typeof event !== "object" || !("type" in event)) return;
-        if (event.type === "permission" && "readOnly" in event && typeof event.readOnly === "boolean")
-          setReadOnly(event.readOnly);
-        if (event.type === "save-failed") setSaveError("The document could not be saved.");
-      },
     }),
     [url, context.documentId, context.userId]
   );
@@ -85,88 +109,282 @@ function AuthenticatedEditor({
     [context.userId, context.name]
   );
   const serverHandler = useMemo(() => ({ onStateChange: setState }), []);
-  const connected = state.isServerSynced;
+  const displayConfig = useMemo(
+    () => ({ fontSize, fontStyle, wideLayout: isFullWidth }),
+    [fontSize, fontStyle, isFullWidth]
+  );
+  const editable = context.canWrite && state.isServerSynced;
   if (!import.meta.env.VITE_CONVEX_SITE_URL)
-    return <p role="alert">Document file storage is not configured. Contact your workspace administrator.</p>;
-  if (!fileHandler) return <p role="status">Preparing document files…</p>;
+    return (
+      <p role="alert" className="p-6">
+        Document file storage is not configured. Contact your workspace administrator.
+      </p>
+    );
+  if (!fileHandler)
+    return (
+      <p role="status" className="p-6">
+        Preparing document files…
+      </p>
+    );
+  const actions = (
+    <>
+      <CustomMenu.MenuItem onClick={() => handleFullWidth(!isFullWidth)}>Full width</CustomMenu.MenuItem>
+      <CustomMenu.MenuItem onClick={() => handleStickyToolbar(!isStickyToolbarEnabled)}>
+        Sticky toolbar
+      </CustomMenu.MenuItem>
+      <CustomMenu.MenuItem disabled={!ready} onClick={() => editorRef.current?.copyMarkdownToClipboard()}>
+        Copy markdown
+      </CustomMenu.MenuItem>
+      <CustomMenu.MenuItem onClick={() => setPane("info")}>Version history</CustomMenu.MenuItem>
+      <CustomMenu.MenuItem disabled={!ready} onClick={() => setExporting(true)}>
+        Export
+      </CustomMenu.MenuItem>
+    </>
+  );
   return (
-    <section className="space-y-3">
-      <div className="text-xs flex flex-wrap items-center justify-between gap-2 text-secondary">
-        <span role="status">{statusLabels[state.stage.kind]}</span>
-        {!context.canWrite && <span>Read only</span>}
-        <Button variant="secondary" onClick={() => setExporting((value) => !value)} aria-expanded={exporting}>
-          {exporting ? "Close export" : "Export document"}
-        </Button>
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      {renderHeader ? (
+        renderHeader(state, actions, isSaving)
+      ) : (
+        <div className="flex shrink-0 items-center justify-between gap-2 py-2 text-12 text-secondary">
+          <span role="status">{isSaving ? "Saving…" : statusLabels[state.stage.kind]}</span>
+          <CustomMenu ellipsis placement="bottom-end" closeOnSelect ariaLabel="Page actions">
+            {actions}
+          </CustomMenu>
+        </div>
+      )}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {isStickyToolbarEnabled && editable && (
+            <div id="page-toolbar-container" className="hidden min-h-[52px] shrink-0 items-center px-page-x md:flex">
+              <div
+                className={cn("page-toolbar-content flex w-full items-center justify-between gap-2", {
+                  "wide-layout": isFullWidth,
+                })}
+              >
+                <div className="min-w-0 flex-1">
+                  {ready && editorRef.current && <PageToolbar editorRef={editorRef.current} />}
+                </div>
+                <Button variant="ghost" aria-label="Open page navigation pane" onClick={() => setPane("outline")}>
+                  <PanelRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className="vertical-scrollbar relative min-h-0 flex-1 overflow-y-auto">
+            <EditorRecovery
+              disconnected={state.isServerDisconnected}
+              documentId={context.documentId}
+              editor={editorRef.current}
+            />
+            {!pane && (
+              <button
+                type="button"
+                aria-label="Open page navigation pane"
+                className="absolute top-4 right-4 z-10 grid size-7 place-items-center rounded-sm text-secondary hover:bg-layer-1"
+                onClick={() => setPane("outline")}
+              >
+                <PanelRight className="size-3.5" />
+              </button>
+            )}
+            <div className="page-header-container group/page-header">
+              <div
+                className={cn("mx-auto block w-full max-w-[720px] bg-transparent transition-all", {
+                  "max-w-[1152px]": isFullWidth,
+                })}
+              >
+                <DocumentIcon document={document} logo={context.logo} disabled={!editable} />
+              </div>
+            </div>
+            <CollaborativeDocumentEditorWithRef
+              ref={editorRef}
+              titleRef={titleRef}
+              id={context.documentId}
+              realtimeConfig={realtimeConfig}
+              serverHandler={serverHandler}
+              user={user}
+              editable={editable}
+              disabledExtensions={disabledExtensions}
+              flaggedExtensions={flaggedExtensions}
+              fileHandler={fileHandler}
+              mentionHandler={mentionHandler}
+              getEditorMetaData={editorMetadata}
+              extendedEditorProps={extendedEditorProps}
+              editorProps={editorProps}
+              displayConfig={displayConfig}
+              containerClassName="h-full p-0 pb-64"
+              handleEditorReady={setReady}
+              placeholder="Start writing…"
+            />
+          </div>
+        </div>
+        {pane && (
+          <aside className="flex h-full w-[294px] shrink-0 flex-col border-l border-subtle bg-surface-1 pt-3.5">
+            <div className="mb-3.5 flex items-center gap-3 px-3.5">
+              <button
+                type="button"
+                aria-label="Close page navigation pane"
+                className="grid size-5 place-items-center text-secondary"
+                onClick={() => setPane(null)}
+              >
+                <ArrowRightCircle className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                className="text-13"
+                aria-pressed={pane === "outline"}
+                onClick={() => setPane("outline")}
+              >
+                Outline
+              </button>
+              <button type="button" className="text-13" aria-pressed={pane === "info"} onClick={() => setPane("info")}>
+                Info
+              </button>
+            </div>
+            <div className="vertical-scrollbar flex-1 overflow-y-auto px-3.5 pb-4">
+              {pane === "outline" ? (
+                <PageContentBrowser
+                  editorRef={editorRef.current}
+                  emptyState={<PageNavigationPaneOutlineTabEmptyState />}
+                />
+              ) : (
+                <DocumentHistory document={document} canWrite={editable} />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
       {exporting && (
-        <Suspense fallback={<p role="status">Opening export…</p>}>
-          <DocumentExport
-            documentId={context.documentId}
-            snapshot={() => {
-              const content = editorRef.current?.getDocument();
-              const title = titleRef.current?.getDocument();
-              if (!content || !title) throw new Error("Wait for the document editor to open before exporting.");
-              return {
-                html: content.html,
-                title: new DOMParser().parseFromString(title.html, "text/html").body.textContent ?? "",
-              };
-            }}
-          />
-        </Suspense>
+        <Dialog open onOpenChange={setExporting}>
+          <Dialog.Panel width={EDialogWidth.XXL} className="p-4 sm:p-6">
+            <Dialog.Title>Export page</Dialog.Title>
+            <Suspense fallback={<p role="status">Opening export…</p>}>
+              <DocumentExport
+                documentId={context.documentId}
+                snapshot={() => {
+                  const content = editorRef.current?.getDocument();
+                  const title = titleRef.current?.getDocument();
+                  if (!content || !title) throw new Error("Wait for the document editor to open before exporting.");
+                  return {
+                    html: content.html,
+                    title: new DOMParser().parseFromString(title.html, "text/html").body.textContent ?? "",
+                  };
+                }}
+              />
+            </Suspense>
+            <Button variant="secondary" onClick={() => setExporting(false)}>
+              Close
+            </Button>
+          </Dialog.Panel>
+        </Dialog>
       )}
-      {saveError && (
-        <p role="alert" className="text-sm rounded-md bg-danger-subtle p-3 text-danger-primary">
-          {saveError} Download your local copy before leaving this page, then reload after resolving access.
-        </p>
-      )}
-      {state.isServerDisconnected && (
-        <p role="alert" className="text-sm text-danger-primary">
-          The editor connection closed. Local changes may not be saved. Check access and reconnect before continuing.
-        </p>
-      )}
-      {(saveError || state.isServerDisconnected) && (
-        <Button
-          variant="secondary"
-          onClick={() => {
-            const document = editorRef.current?.getDocument();
-            if (!document) return;
-            const data = {
-              documentId: context.documentId,
-              html: document.html,
-              json: document.json,
-              binary: document.binary ? Array.from(document.binary) : null,
-            };
-            const downloadUrl = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-            const link = window.document.createElement("a");
-            link.href = downloadUrl;
-            link.download = "document-local-recovery.json";
-            link.click();
-            URL.revokeObjectURL(downloadUrl);
-          }}
-        >
-          Download local copy
-        </Button>
-      )}
-      <div className="min-h-96 rounded-xl border border-subtle-1 bg-surface-1 p-3 sm:p-6">
-        <CollaborativeDocumentEditorWithRef
-          ref={editorRef}
-          titleRef={titleRef}
-          id={context.documentId}
-          realtimeConfig={realtimeConfig}
-          serverHandler={serverHandler}
-          user={user}
-          editable={context.canWrite && !readOnly && !saveError && connected}
-          disabledExtensions={disabledExtensions}
-          flaggedExtensions={flaggedExtensions}
-          fileHandler={fileHandler}
-          mentionHandler={mentionHandler}
-          getEditorMetaData={editorMetadata}
-          extendedEditorProps={extendedEditorProps}
-          editorProps={editorProps}
-          containerClassName="min-h-96"
-          placeholder="Start writing…"
-        />
-      </div>
     </section>
+  );
+}
+
+function DocumentIcon({
+  document,
+  logo,
+  disabled,
+}: {
+  document: Doc<"documents">;
+  logo: Props["context"]["logo"];
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const update = useMutation(api.documents.index.update);
+  return (
+    <div className={cn("flex items-end", logo ? "mt-2 h-[104px]" : "h-[48px]")}>
+      <EmojiPicker
+        isOpen={open}
+        handleToggle={setOpen}
+        disabled={disabled || pending}
+        label={
+          <span
+            className={cn(
+              "flex items-center gap-1 rounded-sm p-1 text-13 text-tertiary hover:bg-layer-1",
+              logo && "-ml-2 grid size-[56px] place-items-center"
+            )}
+          >
+            <span className="sr-only">Change page icon</span>
+            {logo ? (
+              <Logo logo={logo} size={48} type="lucide" />
+            ) : (
+              <>
+                <SmilePlus className="size-4" />
+                Icon
+              </>
+            )}
+          </span>
+        }
+        onChange={async (selection) => {
+          setPending(true);
+          setError("");
+          try {
+            await update({
+              documentId: document._id,
+              expectedUpdatedAt: document.updatedAt,
+              logoProps: {
+                in_use: selection.type,
+                [selection.type]: selection.type === "emoji" ? { value: selection.value } : selection.value,
+              },
+            });
+          } catch (failure) {
+            setError(mutationMessage(failure));
+          } finally {
+            setPending(false);
+          }
+        }}
+      />
+      {error && (
+        <p role="alert" className="text-12 text-danger-primary">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function EditorRecovery({
+  disconnected,
+  documentId,
+  editor,
+}: {
+  disconnected: boolean;
+  documentId: Props["context"]["documentId"];
+  editor: EditorRefApi | null;
+}) {
+  if (!disconnected) return null;
+  return (
+    <div className="space-y-2 px-page-x py-3">
+      <p role="alert" className="text-13 text-danger-primary">
+        The editor connection closed. Local changes may not be saved. Download your local copy before leaving, then
+        reconnect after resolving access.
+      </p>
+      <Button
+        variant="secondary"
+        disabled={!editor}
+        onClick={() => {
+          const content = editor?.getDocument();
+          if (!content) return;
+          const data = {
+            documentId,
+            html: content.html,
+            json: content.json,
+            binary: content.binary ? Array.from(content.binary) : null,
+          };
+          const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+          const link = window.document.createElement("a");
+          link.href = url;
+          link.download = "document-local-recovery.json";
+          link.click();
+          URL.revokeObjectURL(url);
+        }}
+      >
+        Download local copy
+      </Button>
+    </div>
   );
 }

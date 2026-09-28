@@ -148,7 +148,6 @@ function CollaborativeDocumentEditor(props: ICollaborativeDocumentEditorProps) {
       docId={realtimeConfig.roomName ?? id}
       cacheKey={realtimeConfig.cacheKey}
       persistOffline={realtimeConfig.persistOffline}
-      onStateless={realtimeConfig.onStateless}
       serverUrl={realtimeConfig.url}
       authToken={token}
       onStateChange={serverHandler?.onStateChange}

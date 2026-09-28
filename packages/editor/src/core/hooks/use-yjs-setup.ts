@@ -28,7 +28,6 @@ type UseYjsSetupArgs = {
   authToken: HocuspocusProviderConfiguration["token"];
   cacheKey?: string;
   persistOffline?: boolean;
-  onStateless?: (payload: string) => void;
   onStateChange?: (state: CollaborationState) => void;
   options?: {
     maxConnectionAttempts?: number;
@@ -43,11 +42,8 @@ export const useYjsSetup = ({
   authToken,
   cacheKey = docId,
   persistOffline = true,
-  onStateless,
   onStateChange,
 }: UseYjsSetupArgs) => {
-  const statelessRef = useRef(onStateless);
-  statelessRef.current = onStateless;
   // Current collaboration stage
   const [stage, setStage] = useState<CollabStage>({ kind: "initial" });
 
@@ -76,7 +72,6 @@ export const useYjsSetup = ({
     const provider = new HocuspocusProvider({
       name: docId,
       token: authToken,
-      onStateless: ({ payload }) => statelessRef.current?.(payload),
       url: serverUrl,
       onAuthenticationFailed: () => {
         if (isDisposedRef.current) return;

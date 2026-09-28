@@ -4,6 +4,7 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { snapshotFields } from "../documents/schema";
 import { requireDocument } from "../documents/access";
+import { saveDocumentSnapshot } from "../documents/index";
 import { requireJob } from "./access";
 export const commit = internalMutation({
   args: { jobId: v.id("automationJobs"), expectedPreview: v.string(), ...snapshotFields },
@@ -42,7 +43,7 @@ export const commit = internalMutation({
       externalId: null,
       externalSource: null,
     });
-    await ctx.runMutation(api.documents.index.saveSnapshot, { documentId, expectedRevision: 0, ...snapshot });
+    await saveDocumentSnapshot(ctx, { documentId, expectedRevision: 0, ...snapshot });
     await ctx.db.patch(jobId, { publishedDocumentId: documentId, publishedAt: Date.now() });
     return documentId;
   },

@@ -11,7 +11,7 @@ export function convertGeneratedText(text: string, title: string, existing: Arra
     existing === null
       ? getBinaryDataFromDocumentEditorHTMLString(html, title)
       : replaceDocumentEditorHTML(new Uint8Array(existing), html, title);
-  const formats = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, true);
+  const formats = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
   return {
     descriptionBinary: new Uint8Array(binary).buffer,
     descriptionHtml: formats.contentHTML,

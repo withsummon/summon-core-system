@@ -3,10 +3,11 @@ import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
-import type { Doc } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
@@ -17,11 +18,14 @@ import { DocumentLabels } from "./labels";
 import { DocumentHistory } from "./history";
 import { DuplicateDocument } from "./duplicate";
 import { DocumentTrash } from "./trash";
+import { CustomMenu } from "@plane/ui";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
+  const [search, setSearch] = useState("");
   const { results, status, loadMore } = usePaginatedQuery(
     api.documents.index.list,
-    { workspaceId: workspace._id },
+    { workspaceId: workspace._id, search },
     { initialNumItems: 50 }
   );
   const [params, setParams] = useSearchParams();
@@ -35,7 +39,6 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
     });
   const [creating, setCreating] = useState(false);
   const [trash, setTrash] = useState(false);
-  const [search, setSearch] = useState("");
   if (selected)
     return (
       <DocumentAccessBoundary key={selected} onBack={() => setSelected(null)}>
@@ -87,30 +90,28 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
             />
           )}
           <Input
-            aria-label="Filter loaded documents"
-            placeholder="Filter loaded documents"
+            aria-label="Search documents"
+            placeholder="Search documents"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
           {status === "LoadingFirstPage" && <p role="status">Loading documents…</p>}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {results
-              .filter((document) => document.name.toLowerCase().includes(search.toLowerCase()))
-              .map((document) => (
-                <button
-                  className={`${cardClass} hover:border-accent-primary min-w-0 text-left`}
-                  key={document._id}
-                  onClick={() => setSelected(document._id)}
-                >
-                  <p className="text-xs text-secondary capitalize">{document.category}</p>
-                  <h2 className="mt-2 font-semibold break-words">{document.name || "Untitled"}</h2>
-                  <p className="text-xs mt-3 text-secondary">
-                    {document.access === "private" ? "Private" : document.isGlobal ? "Workspace" : "Project document"}
-                  </p>
-                  {document.isLocked && <p className="text-xs mt-2 text-secondary">Locked</p>}
-                  {document.archived && <p className="text-xs mt-2 text-secondary">Archived</p>}
-                </button>
-              ))}
+            {results.map(({ document }) => (
+              <button
+                className={`${cardClass} hover:border-accent-primary min-w-0 text-left`}
+                key={document._id}
+                onClick={() => setSelected(document._id)}
+              >
+                <p className="text-xs text-secondary capitalize">{document.category}</p>
+                <h2 className="mt-2 font-semibold break-words">{document.name || "Untitled"}</h2>
+                <p className="text-xs mt-3 text-secondary">
+                  {document.access === "private" ? "Private" : document.isGlobal ? "Workspace" : "Project document"}
+                </p>
+                {document.isLocked && <p className="text-xs mt-2 text-secondary">Locked</p>}
+                {document.archived && <p className="text-xs mt-2 text-secondary">Archived</p>}
+              </button>
+            ))}
           </div>
           {status === "Exhausted" && !results.length && (
             <p className="text-sm text-secondary">No documents are visible to you yet.</p>
@@ -168,11 +169,101 @@ function DocumentDetail({
           onCancel={() => setSettings(false)}
         />
       )}
-      <DocumentEditor context={context} />
+      <DocumentEditor context={context} document={document} />
       <DocumentHierarchy document={document} canWrite={context.canWrite} workspaceSlug={workspaceSlug} />
       <DocumentLabels document={document} canWrite={context.canWrite} />
       <DocumentHistory document={document} canWrite={context.canWrite} />
     </article>
+  );
+}
+
+export function DocumentActions({
+  document,
+  workspaceSlug,
+  projectId,
+  canManage,
+  children,
+  disabled = false,
+}: {
+  document: Doc<"documents">;
+  workspaceSlug: string;
+  projectId: Id<"projects">;
+  canManage: boolean;
+  children?: ReactNode;
+  disabled?: boolean;
+}) {
+  const lifecycle = useMutation(api.documents.index.setLifecycle);
+  const [pending, setPending] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [error, setError] = useState("");
+  useReloadConfirmations(pending, "A page command is still running.");
+  const href = `/${workspaceSlug}/projects/${projectId}/pages/${document._id}`;
+  async function toggle(property: "isLocked" | "archived") {
+    setPending(true);
+    setError("");
+    try {
+      await lifecycle({
+        documentId: document._id,
+        expectedUpdatedAt: document.updatedAt,
+        isLocked: document.isLocked,
+        archived: document.archived,
+        deleted: false,
+        [property]: !document[property],
+      });
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <>
+      <CustomMenu placement="bottom-end" ellipsis closeOnSelect disabled={pending || disabled} ariaLabel="Page actions">
+        {children}
+        <CustomMenu.MenuItem onClick={() => window.open(href, "_blank", "noopener,noreferrer")}>
+          Open in new tab
+        </CustomMenu.MenuItem>
+        <CustomMenu.MenuItem
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(new URL(href, window.location.origin).href);
+            } catch (failure) {
+              setError(mutationMessage(failure));
+            }
+          }}
+        >
+          Copy link
+        </CustomMenu.MenuItem>
+        {canManage && (
+          <>
+            <CustomMenu.MenuItem onClick={() => void toggle("isLocked")}>
+              {document.isLocked ? "Unlock" : "Lock"}
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem onClick={() => void toggle("archived")}>
+              {document.archived ? "Restore" : "Archive"}
+            </CustomMenu.MenuItem>
+            {!document.isLocked && !document.archived && (
+              <CustomMenu.MenuItem onClick={() => setSettings(true)}>Page settings</CustomMenu.MenuItem>
+            )}
+          </>
+        )}
+      </CustomMenu>
+      {error && (
+        <p role="alert" className="text-12 text-danger-primary">
+          {error}
+        </p>
+      )}
+      {settings && (
+        <MetadataForm
+          workspaceId={document.workspaceId}
+          document={document}
+          canManage={canManage}
+          onDone={() => setSettings(false)}
+          onCancel={() => setSettings(false)}
+          dialog
+        />
+      )}
+    </>
   );
 }
 function Lifecycle({ document, onDeleted }: { document: Doc<"documents">; onDeleted: () => void }) {

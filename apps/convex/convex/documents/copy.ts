@@ -211,6 +211,7 @@ export const publish = internalMutation({
     const documentId = await ctx.db.insert("documents", {
       ...metadata,
       name: current.name,
+      nameOrder: current.name.toLowerCase(),
       ownedBy: current.user._id,
       updatedBy: current.user._id,
       updatedAt: Date.now(),

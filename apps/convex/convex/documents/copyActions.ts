@@ -45,7 +45,7 @@ export const run = action({
       new Uint8Array(getBinaryDataFromDocumentEditorHTMLString("<p></p>", progress.source.document.name)).buffer;
     const sources = Object.fromEntries(progress.job.files.map((file) => [file.sourceId, file.targetId]));
     const binary = duplicateDocumentEditorBinary(new Uint8Array(original), progress.source.name, sources);
-    const formats = getAllDocumentFormatsFromDocumentEditorBinaryData(binary, true);
+    const formats = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
     return ctx.runMutation(internal.documents.copy.publish, {
       jobId,
       descriptionBinary: new Uint8Array(binary).buffer,

@@ -8,6 +8,7 @@ if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error("CO
 
 const server = new ConvexHocuspocus({
   name: "summon-convex-documents",
+  address: process.env.CONVEX_LIVE_HOST ?? "0.0.0.0",
   port,
   extensions: [convexDocuments(url)],
   debounce: 250,
