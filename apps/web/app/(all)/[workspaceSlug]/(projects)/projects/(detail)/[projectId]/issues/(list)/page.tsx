@@ -103,7 +103,6 @@ function ProjectIssueRow({
         isActive={false}
         isSelected={false}
         isDragging={false}
-        sidebarCollapsed={false}
         disabled={false}
         pending={false}
         identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}

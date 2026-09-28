@@ -78,6 +78,7 @@ export const AddFilterDropdown = observer(function AddFilterDropdown<
   return (
     <div className="relative transition-all duration-200 ease-in-out">
       <CustomSearchSelect
+        ariaLabel="Add filter"
         defaultOpen={defaultOpen}
         value={""}
         onChange={handleFilterSelect}
