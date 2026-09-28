@@ -10,6 +10,7 @@ packages:
 
 catalog:
   "convex": "1.46.0"
+  "convex-helpers": "0.1.124"
   "@convex-dev/auth": "0.0.95"
   "@atlaskit/pragmatic-drag-and-drop": "1.7.4"
   "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "1.4.0"
@@ -267,5 +268,6 @@ minimumReleaseAgeExclude:
   - storybook@10.4.6
 
 patchedDependencies:
+  "@better-auth/api-key@1.6.33": patches/@better-auth__api-key@1.6.33.patch
   "@convex-dev/auth@0.0.95": patches/@convex-dev__auth@0.0.95.patch
   "@convex-dev/better-auth@0.12.5": patches/@convex-dev__better-auth@0.12.5.patch

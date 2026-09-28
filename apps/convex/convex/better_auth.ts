@@ -1,6 +1,7 @@
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
-import { betterAuth } from "better-auth/minimal";
+import { apiKey } from "@better-auth/api-key";
+import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
 import { emailOTP, genericOAuth } from "better-auth/plugins";
 import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
 import { ConvexError, v } from "convex/values";
@@ -8,6 +9,7 @@ import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import authConfig from "./auth.config";
+import authSchema from "./betterAuth/schema";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { deactivateAccount } from "./identity/deactivation/index";
 import { sendAccountEmail } from "./identity/mail/sender";
@@ -20,7 +22,8 @@ import { normalizedEmail } from "./invitations/access";
 export const siteUrl = process.env.SITE_URL ?? "";
 
 const authFunctions: AuthFunctions = internal.better_auth;
-export const authComponent = createClient<DataModel>(components.betterAuth, {
+export const authComponent = createClient<DataModel, typeof authSchema>(components.betterAuth, {
+  local: { schema: authSchema },
   authFunctions,
   triggers: {
     user: {
@@ -40,6 +43,8 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           await deactivateAccount(ctx, link.userId);
           await ctx.db.delete(link._id);
         }
+        const { adapter } = await createAuth(ctx).$context;
+        await adapter.deleteMany({ model: "apikey", where: [{ field: "referenceId", value: user._id }] });
       },
     },
   },
@@ -223,62 +228,82 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
   };
   return betterAuth({
-    baseURL: process.env.CONVEX_SITE_URL,
-    trustedOrigins: [siteUrl],
+    ...authOptions,
     database: authComponent.adapter(ctx),
-    rateLimit: { enabled: true, storage: "database", customStorage: rateLimitStorage },
-    session: { freshAge: 300, deferSessionRefresh: true },
-    user: { deleteUser: { enabled: true } },
-    account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
-    disabledPaths: [
-      "/delete-user",
-      "/delete-user/callback",
-      "/unlink-account",
-      "/change-password",
-      "/verify-password",
-      "/update-user",
-      ...(!signInPolicy(process.env).magic ? ["/sign-in/email-otp"] : []),
-      ...(!signInPolicy(process.env).passwordReset
-        ? ["/email-otp/request-password-reset", "/email-otp/reset-password", "/forget-password/email-otp"]
-        : []),
-    ],
-    emailAndPassword: {
-      enabled: signInPolicy(process.env).password,
-      requireEmailVerification: true,
-      minPasswordLength: 8,
-      maxPasswordLength: 1024,
-      revokeSessionsOnPasswordReset: true,
-    },
-    emailVerification: { sendOnSignUp: true, sendOnSignIn: true },
-    plugins: [
-      crossDomain({ siteUrl }),
-      convex({ authConfig }),
-      genericOAuth({ config: nativeOAuthProviders(process.env) }),
-      emailOTP({
-        overrideDefaultEmailVerification: true,
-        changeEmail: { enabled: true, verifyCurrentEmail: true },
-        expiresIn: 600,
-        allowedAttempts: 5,
-        storeOTP: "encrypted",
-        async sendVerificationOTP({ email, otp, type }) {
-          const policy = signInPolicy(process.env);
-          if ((type === "sign-in" && !policy.magic) || (type === "forget-password" && !policy.passwordReset))
-            throw new ConvexError("This sign-in method is disabled by the instance operator.");
-          const purpose =
-            type === "sign-in"
-              ? "Sign in"
-              : type === "email-verification"
-                ? "Verify your email"
-                : type === "forget-password"
-                  ? "Reset your password"
-                  : "Change your email";
-          await sendAccountEmail(
-            email,
-            `${purpose} · Summon Core`,
-            `${purpose} code: ${otp}\nThis code expires in 10 minutes.`
-          );
-        },
-      }),
-    ],
+    rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
   });
 };
+
+// The documented local component and runtime share the native plugin schema.
+// Only the database adapter and HTTP limiter require a runtime context.
+export const authOptions = {
+  baseURL: process.env.CONVEX_SITE_URL,
+  trustedOrigins: [siteUrl],
+  rateLimit: { enabled: true, storage: "database" },
+  session: { freshAge: 300, deferSessionRefresh: true },
+  user: { deleteUser: { enabled: true } },
+  account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
+  disabledPaths: [
+    "/delete-user",
+    "/delete-user/callback",
+    "/unlink-account",
+    "/change-password",
+    "/verify-password",
+    "/update-user",
+    "/api-key/create",
+    "/api-key/list",
+    "/api-key/get",
+    "/api-key/update",
+    "/api-key/delete",
+    ...(!signInPolicy(process.env).magic ? ["/sign-in/email-otp"] : []),
+    ...(!signInPolicy(process.env).passwordReset
+      ? ["/email-otp/request-password-reset", "/email-otp/reset-password", "/forget-password/email-otp"]
+      : []),
+  ],
+  emailAndPassword: {
+    enabled: signInPolicy(process.env).password,
+    requireEmailVerification: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 1024,
+    revokeSessionsOnPasswordReset: true,
+  },
+  emailVerification: { sendOnSignUp: true, sendOnSignIn: true },
+  plugins: [
+    crossDomain({ siteUrl }),
+    convex({ authConfig }),
+    apiKey({
+      defaultPrefix: "plane_api_",
+      requireName: true,
+      maximumNameLength: 255,
+      enableMetadata: true,
+      keyExpiration: { minExpiresIn: 0, maxExpiresIn: Infinity },
+      rateLimit: { timeWindow: 60_000, maxRequests: 60 },
+    }),
+    genericOAuth({ config: nativeOAuthProviders(process.env) }),
+    emailOTP({
+      overrideDefaultEmailVerification: true,
+      changeEmail: { enabled: true, verifyCurrentEmail: true },
+      expiresIn: 600,
+      allowedAttempts: 5,
+      storeOTP: "encrypted",
+      async sendVerificationOTP({ email, otp, type }) {
+        const policy = signInPolicy(process.env);
+        if ((type === "sign-in" && !policy.magic) || (type === "forget-password" && !policy.passwordReset))
+          throw new ConvexError("This sign-in method is disabled by the instance operator.");
+        const purpose =
+          type === "sign-in"
+            ? "Sign in"
+            : type === "email-verification"
+              ? "Verify your email"
+              : type === "forget-password"
+                ? "Reset your password"
+                : "Change your email";
+        await sendAccountEmail(
+          email,
+          `${purpose} · Summon Core`,
+          `${purpose} code: ${otp}\nThis code expires in 10 minutes.`
+        );
+      },
+    }),
+  ],
+} satisfies BetterAuthOptions;

@@ -26,6 +26,7 @@
     "@plane/editor": "workspace:*",
     "better-auth": "1.6.33",
     "convex": "catalog:",
+    "convex-helpers": "catalog:",
     "sanitize-html": "catalog:",
     "zod": "catalog:"
   },

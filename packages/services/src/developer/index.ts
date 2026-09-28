@@ -4,5 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./api-token.service";
 export * from "./webhook.service";
