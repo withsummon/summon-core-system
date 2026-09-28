@@ -1,5 +1,6 @@
 import { RichTextEditorWithRef } from "@plane/editor";
 import type { IEditorProps, TFileHandler } from "@plane/editor";
+import { cn } from "@plane/utils";
 const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "image", "issue-embed"];
 const imageExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
 const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
@@ -30,6 +31,8 @@ export function TaskRichEditor({
   editable,
   onChange,
   imageFileHandler,
+  value,
+  containerClassName,
 }: {
   id: string;
   label: string;
@@ -38,12 +41,15 @@ export function TaskRichEditor({
   editable: boolean;
   onChange?: (html: string) => void;
   imageFileHandler?: TFileHandler;
+  value?: IEditorProps["value"];
+  containerClassName?: string;
 }) {
   return (
-    <div className="min-h-36 rounded-xl border border-subtle-1 p-3">
+    <div className={cn("min-h-36 rounded-xl border border-subtle-1 p-3", containerClassName)}>
       <RichTextEditorWithRef
         id={id}
         initialValue={html}
+        value={value}
         editable={editable}
         disabledExtensions={imageFileHandler ? imageExtensions : disabledExtensions}
         flaggedExtensions={flaggedExtensions}

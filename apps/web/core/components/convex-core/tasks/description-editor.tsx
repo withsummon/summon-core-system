@@ -41,7 +41,7 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
         setStatus({});
       },
       checkIfAssetExists: async (id) => (await resolve(id)).status === "ready",
-      // Explicit Save owns reference unlinking. Local delete/undo never retires
+      // An acknowledged description save owns reference unlinking. Local delete/undo never retires
       // bytes needed by canceled drafts, saved history or another reference.
       delete: () => Promise.resolve(),
       restore: async (id) => {

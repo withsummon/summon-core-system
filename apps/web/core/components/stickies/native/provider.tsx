@@ -1,11 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useBlocker } from "react-router";
-import { AlertModalCore } from "@plane/ui";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { isCommentEmpty } from "@plane/utils";
 import { STICKY_COLORS_LIST } from "@/components/editor/sticky-editor/color-palette";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { StickyDrafts } from "./drafts";
 
 function useController(workspaceId: Id<"workspaces">, workspaceSlug: string) {
@@ -122,35 +121,11 @@ export function NativeStickiesProvider({
   children: React.ReactNode;
 }) {
   const value = useController(workspaceId, workspaceSlug);
-  const blocker = useBlocker(() => value.drafts.hasUnsaved());
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (value.drafts.hasUnsaved()) {
-        event.preventDefault();
-        event.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [value.drafts]);
-  return (
-    <Context.Provider value={value}>
-      {children}
-      <AlertModalCore
-        isSubmitting={false}
-        isOpen={blocker.state === "blocked"}
-        handleClose={() => blocker.state === "blocked" && blocker.reset()}
-        handleSubmit={async () => {
-          value.drafts.dispose();
-          if (blocker.state === "blocked") blocker.proceed();
-        }}
-        primaryButtonText={{ default: "Leave without saving", loading: "Leaving…" }}
-        secondaryButtonText="Stay"
-        title="Leave with unsaved stickies?"
-        content="Changes that have not saved will be lost. Stay on this page to keep editing or resolve a save error."
-      />
-    </Context.Provider>
+  useReloadConfirmations(
+    value.drafts.hasUnsaved(),
+    "Some sticky changes are unsaved. Stay on this page to keep editing or resolve a save error."
   );
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useNativeStickies() {
   const value = useContext(Context);

@@ -101,11 +101,11 @@ export const InboxContentRoot = observer(function InboxContentRoot(props: TInbox
         </div>
         <ContentWrapper className="divide-y-2 divide-subtle-1">
           <InboxIssueMainContent
+            key={inboxIssue.issue.id}
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             inboxIssue={inboxIssue}
             isEditable={isEditable && !isIssueDisabled && !readOnly}
-            isSubmitting={isSubmitting}
             setIsSubmitting={setIsSubmitting}
           />
         </ContentWrapper>

@@ -9,7 +9,7 @@ import { mutationMessage } from "../commercial/forms";
 type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Operation = FunctionArgs<typeof api.tasks.lifecycle.change>["operation"];
-export function TaskLifecycle({ task }: { task: Task }) {
+export function TaskLifecycle({ task, disabled }: { task: Task; disabled: boolean }) {
   const change = useMutation(api.tasks.lifecycle.change);
   const [, setParams] = useSearchParams();
   const [confirmation, setConfirmation] = useState<{ operation: Operation; expectedUpdatedAt: number } | null>(null);
@@ -35,6 +35,7 @@ export function TaskLifecycle({ task }: { task: Task }) {
           <div className="flex flex-wrap gap-2">
             <Button
               loading={pending}
+              disabled={disabled || pending}
               onClick={async () => {
                 setPending(true);
                 setError("");
@@ -72,22 +73,22 @@ export function TaskLifecycle({ task }: { task: Task }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {task.canArchive && (
-            <Button variant="secondary" onClick={() => choose("archive")}>
+            <Button variant="secondary" disabled={disabled} onClick={() => choose("archive")}>
               Archive task
             </Button>
           )}
           {task.canUnarchive && (
-            <Button variant="secondary" onClick={() => choose("unarchive")}>
+            <Button variant="secondary" disabled={disabled} onClick={() => choose("unarchive")}>
               Unarchive task
             </Button>
           )}
           {task.canDelete && (
-            <Button variant="secondary" onClick={() => choose("delete")}>
+            <Button variant="secondary" disabled={disabled} onClick={() => choose("delete")}>
               Move task to Trash
             </Button>
           )}
           {task.canRestore && (
-            <Button variant="secondary" onClick={() => choose("restore")}>
+            <Button variant="secondary" disabled={disabled} onClick={() => choose("restore")}>
               Restore task
             </Button>
           )}

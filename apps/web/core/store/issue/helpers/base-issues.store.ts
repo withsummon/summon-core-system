@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { isEqual, concat, get, indexOf, isEmpty, orderBy, pull, set, uniq, update, clone } from "lodash-es";
+import { isEqual, concat, get, indexOf, isEmpty, orderBy, pull, set, uniq, update, clone, pick } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane constants
@@ -230,6 +230,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
       createIssue: action,
       issueUpdate: action,
+      updateLocalIssue: action,
       updateIssueDates: action,
       issueQuickAdd: action.bound,
       removeIssue: action.bound,
@@ -549,43 +550,37 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
    * @param projectId
    * @param issueId
    * @param data Partial Issue Data to be updated
-   * @param shouldSync If False then only issue is to be updated in the store not call API to update
    * @returns
    */
-  async issueUpdate(
-    workspaceSlug: string,
-    projectId: string,
-    issueId: string,
-    data: Partial<TIssue>,
-    shouldSync = true
-  ) {
+  async issueUpdate(workspaceSlug: string, projectId: string, issueId: string, data: Partial<TIssue>) {
     // Store Before state of the issue
     const issueBeforeUpdate = clone(this.rootIssueStore.issues.getIssueById(issueId));
     try {
       // Update the Respective Stores
-      this.rootIssueStore.issues.updateIssue(issueId, data);
-      this.updateIssueList({ ...issueBeforeUpdate, ...data } as TIssue, issueBeforeUpdate);
-
-      // Check if should Sync
-      if (!shouldSync) return;
+      this.updateLocalIssue(issueId, data);
 
       // update parent stats optimistically
-      this.updateParentStats(issueBeforeUpdate, {
-        ...issueBeforeUpdate,
-        ...data,
-      } as TIssue);
+      if (issueBeforeUpdate) this.updateParentStats(issueBeforeUpdate, { ...issueBeforeUpdate, ...data });
 
       // call API to update the issue
-      await this.issueService.patchIssue(workspaceSlug, projectId, issueId, data);
+      const response = await this.issueService.patchIssue(workspaceSlug, projectId, issueId, data);
+      this.updateLocalIssue(issueId, pick(response, Object.keys(data)));
 
       // call fetch Parent Stats
       this.fetchParentStats(workspaceSlug, projectId);
+      return response;
     } catch (error) {
       // If errored out update store again to revert the change
-      this.rootIssueStore.issues.updateIssue(issueId, issueBeforeUpdate ?? {});
-      this.updateIssueList(issueBeforeUpdate, { ...issueBeforeUpdate, ...data } as TIssue);
+      if (issueBeforeUpdate) this.updateLocalIssue(issueId, pick(issueBeforeUpdate, Object.keys(data)));
       throw error;
     }
+  }
+
+  updateLocalIssue(issueId: string, data: Partial<TIssue>) {
+    const previous = clone(this.rootIssueStore.issues.getIssueById(issueId));
+    if (!previous) return;
+    this.rootIssueStore.issues.updateIssue(issueId, data);
+    this.updateIssueList({ ...previous, ...data }, previous);
   }
 
   /**
@@ -701,15 +696,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     runInAction(() => {
       issueIds.forEach((issueId) => {
-        this.issueUpdate(
-          workspaceSlug,
-          projectId,
-          issueId,
-          {
-            archived_at: response.archived_at,
-          },
-          false
-        );
+        this.updateLocalIssue(issueId, { archived_at: response.archived_at });
         this.removeIssueFromList(issueId);
       });
     });
@@ -779,7 +766,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
             });
           }
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          this.updateLocalIssue(update.id, dates);
         }
       });
 
@@ -792,7 +779,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
           if (update.start_date) dates.start_date = update.start_date;
           if (update.target_date) dates.target_date = update.target_date;
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          this.updateLocalIssue(update.id, dates);
         }
       });
       console.error("error while updating Timeline dependencies");
@@ -836,7 +823,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     // For Each issue update cycle Id by calling current store's update Issue, without making an API call
     issueIds.forEach((issueId) => {
-      this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: cycleId }, false);
+      this.updateLocalIssue(issueId, { cycle_id: cycleId });
     });
   }
 
@@ -866,7 +853,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     });
 
     // update Issue cycle Id to null by calling current store's update Issue, without making an API call
-    this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: null }, false);
+    this.updateLocalIssue(issueId, { cycle_id: null });
   }
 
   /**
@@ -892,7 +879,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         // If cycle Id is the current cycle Id, then, add issue to list of issueIds
         if (this.cycleId === cycleId) this.addIssueToList(issueId);
         // For Each issue update cycle Id by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: cycleId }, false);
+        this.updateLocalIssue(issueId, { cycle_id: cycleId });
       });
 
       const issueAfterUpdate = clone(this.rootIssueStore.issues.getIssueById(issueId));
@@ -914,7 +901,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         // If cycle Id is the current cycle Id, then, remove issue to list of issueIds
         if (this.cycleId === cycleId) this.removeIssueFromList(issueId);
         // For Each issue update cycle Id to previous value by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: issueCycleId }, false);
+        this.updateLocalIssue(issueId, { cycle_id: issueCycleId });
       });
 
       throw error;
@@ -939,7 +926,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         // If cycle Id is the current cycle Id, then, add issue to list of issueIds
         if (this.cycleId === issueCycleId) this.removeIssueFromList(issueId);
         // For Each issue update cycle Id by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: null }, false);
+        this.updateLocalIssue(issueId, { cycle_id: null });
       });
 
       // update parent stats optimistically
@@ -957,7 +944,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         // If cycle Id is the current cycle Id, then, add issue to list of issueIds
         if (this.cycleId === issueCycleId) this.addIssueToList(issueId);
         // For Each issue update cycle Id by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { cycle_id: issueCycleId }, false);
+        this.updateLocalIssue(issueId, { cycle_id: issueCycleId });
       });
 
       throw error;
@@ -1000,7 +987,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     issueIds.forEach((issueId) => {
       const issueModuleIds = get(this.rootIssueStore.issues.issuesMap, [issueId, "module_ids"]) ?? [];
       const updatedIssueModuleIds = uniq(concat(issueModuleIds, [moduleId]));
-      this.issueUpdate(workspaceSlug, projectId, issueId, { module_ids: updatedIssueModuleIds }, false);
+      this.updateLocalIssue(issueId, { module_ids: updatedIssueModuleIds });
     });
   }
 
@@ -1030,7 +1017,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       issueIds.forEach((issueId) => {
         const issueModuleIds = get(this.rootIssueStore.issues.issuesMap, [issueId, "module_ids"]) ?? [];
         const updatedIssueModuleIds = pull(issueModuleIds, moduleId);
-        this.issueUpdate(workspaceSlug, projectId, issueId, { module_ids: updatedIssueModuleIds }, false);
+        this.updateLocalIssue(issueId, { module_ids: updatedIssueModuleIds });
       });
     });
 
@@ -1062,7 +1049,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       currentModuleIds = uniq(concat([...currentModuleIds], moduleIds));
 
       // For current Issue, update module Ids by calling current store's update Issue, without making an API call
-      this.issueUpdate(workspaceSlug, projectId, issueId, { module_ids: currentModuleIds }, false);
+      this.updateLocalIssue(issueId, { module_ids: currentModuleIds });
     });
 
     if (moduleIds.includes(this.moduleId ?? "")) {
@@ -1105,7 +1092,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         currentModuleIds = uniq(concat([...currentModuleIds], addModuleIds));
 
         // For current Issue, update module Ids by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { module_ids: currentModuleIds }, false);
+        this.updateLocalIssue(issueId, { module_ids: currentModuleIds });
       });
 
       const issueAfterChanges = clone(this.rootIssueStore.issues.getIssueById(issueId));
@@ -1133,7 +1120,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         if (removeModuleIds.includes(this.moduleId ?? "")) this.addIssueToList(issueId);
 
         // For current Issue, update module Ids by calling current store's update Issue, without making an API call
-        this.issueUpdate(workspaceSlug, projectId, issueId, { module_ids: originalModuleIds }, false);
+        this.updateLocalIssue(issueId, { module_ids: originalModuleIds });
       });
 
       throw error;

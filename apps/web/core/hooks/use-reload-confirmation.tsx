@@ -4,64 +4,72 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useState } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { useBeforeUnload, useBlocker } from "react-router";
+import { AlertModalCore } from "@plane/ui";
 
-//TODO: remove temp flag isActive later and use showAlert as the source of truth
-const useReloadConfirmations = (isActive = true, message?: string, defaultShowAlert = false, onLeave?: () => void) => {
-  const [showAlert, setShowAlert] = useState(defaultShowAlert);
+type Confirmations = Map<string, Parameters<typeof useReloadConfirmations>>;
+const ConfirmationContext = createContext<Dispatch<SetStateAction<Confirmations>> | null>(null);
 
-  const alertMessage = message ?? "Are you sure you want to leave? Changes you made may not be saved.";
-
-  const handleBeforeUnload = useCallback(
-    (event: BeforeUnloadEvent) => {
-      if (!isActive || !showAlert) return;
-      event.preventDefault();
-      event.returnValue = "";
-    },
-    [isActive, showAlert]
-  );
-
-  const handleAnchorClick = useCallback(
-    (event: MouseEvent) => {
-      if (!isActive || !showAlert) return;
-      // Skip if event target is not available or defaultPrevented
-      if (!event.target || event.defaultPrevented) return;
-      // Skip control/command/option/alt+click
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      // check if the event target is an anchor or a child of an anchor tag
-      const eventTarget = event.target as HTMLElement;
-      if (!eventTarget.closest("a")) return; // This is intentionally not type safe
-      // check if anchor target is _blank
-      const anchorElement = eventTarget.closest("a") as HTMLAnchorElement;
-      const isAnchorTargetBlank = anchorElement.getAttribute("target") === "_blank";
-      if (isAnchorTargetBlank) return;
-      // show confirm dialog
-      const isLeaving = confirm(alertMessage);
-      if (isLeaving) {
-        onLeave && onLeave();
-      } else {
+/** React Router supports one blocker; the root composes all active editor and selection policies. */
+export function ReloadConfirmations({ children }: { children: ReactNode }) {
+  const [confirmations, setConfirmations] = useState<Confirmations>(() => new Map());
+  const blocker = useBlocker(confirmations.size > 0);
+  useBeforeUnload(
+    useCallback(
+      (event) => {
+        if (confirmations.size === 0) return;
         event.preventDefault();
-        event.stopPropagation();
-      }
-    },
-    [isActive, showAlert]
+        event.returnValue = "";
+      },
+      [confirmations]
+    ),
+    { capture: true }
   );
-
   useEffect(() => {
-    // handle browser refresh
-    window.addEventListener("beforeunload", handleBeforeUnload, true);
-    // handle anchor tag click
-    window.addEventListener("click", handleAnchorClick, true);
-    // TODO: handle back / forward button click
+    if (blocker.state === "blocked" && confirmations.size === 0) blocker.proceed();
+  }, [blocker, confirmations.size]);
+  return (
+    <ConfirmationContext.Provider value={setConfirmations}>
+      {children}
+      {blocker.state === "blocked" && (
+        <AlertModalCore
+          isSubmitting={false}
+          isOpen
+          handleClose={() => blocker.reset()}
+          handleSubmit={() => {
+            confirmations.forEach(([, , onLeave]) => onLeave?.());
+            blocker.proceed();
+          }}
+          variant="primary"
+          title="Leave this page?"
+          content={[...new Set([...confirmations.values()].map(([, message]) => message))].join(" ")}
+          primaryButtonText={{ default: "Leave", loading: "Leaving…" }}
+          secondaryButtonText="Stay"
+        />
+      )}
+    </ConfirmationContext.Provider>
+  );
+}
 
+export default function useReloadConfirmations(
+  active: boolean,
+  message = "Changes you made may not be saved.",
+  onLeave?: () => void
+) {
+  const id = useId();
+  const setConfirmations = useContext(ConfirmationContext);
+  if (!setConfirmations) throw new Error("Reload confirmation requires the root navigation owner.");
+  useEffect(() => {
+    if (!active) return;
+    setConfirmations((current) => new Map(current).set(id, [active, message, onLeave]));
     return () => {
-      // cleanup
-      window.removeEventListener("beforeunload", handleBeforeUnload, true);
-      window.removeEventListener("click", handleAnchorClick, true);
+      setConfirmations((current) => {
+        const next = new Map(current);
+        next.delete(id);
+        return next;
+      });
     };
-  }, [handleAnchorClick, handleBeforeUnload]);
-
-  return { setShowAlert };
-};
-
-export default useReloadConfirmations;
+  }, [active, id, message, onLeave, setConfirmations]);
+}

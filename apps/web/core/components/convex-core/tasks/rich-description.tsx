@@ -1,100 +1,131 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { debounce } from "lodash-es";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
+import type { TNameDescriptionLoader } from "@plane/types";
+import { Button } from "@plane/propel/button";
+import { TextAutosave } from "@/components/editor/rich-text/description-input/autosave";
 import { DescriptionHistory } from "./description-history";
 import { TaskDescriptionEditor } from "./description-editor";
-import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
-export function RichDescription({ taskId, canWrite }: { taskId: Id<"tasks">; canWrite: boolean }) {
+
+export function RichDescription({
+  taskId,
+  canWrite,
+  setIsSubmitting,
+}: {
+  taskId: Id<"tasks">;
+  canWrite: boolean;
+  setIsSubmitting: (status: TNameDescriptionLoader) => void;
+}) {
   const description = useQuery(api.tasks.description.get, { taskId });
-  const [editing, setEditing] = useState(false);
   if (!description) return <p role="status">Loading description…</p>;
   return (
-    <section className="space-y-3">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-16 font-medium">Description</h3>
-        <DescriptionHistory scope={{ kind: "task", taskId }} />
-        {canWrite && !editing && (
-          <Button variant="secondary" onClick={() => setEditing(true)}>
-            Edit description
-          </Button>
-        )}
-      </header>
-      {editing && canWrite ? (
-        <DescriptionForm key={taskId} description={description} onDone={() => setEditing(false)} />
-      ) : (
-        <TaskDescriptionEditor
-          key={
-            description.contentVersion
-              ? `${description.contentVersion.versionId}:${description.contentVersion.revision}`
-              : "initial"
-          }
-          taskId={taskId}
-          id={`task-description-${taskId}`}
-          label="Task description"
-          placeholder="Describe the work…"
-          html={description.html}
-          editable={false}
-        />
-      )}
-    </section>
+    <DescriptionContent key={taskId} description={description} canWrite={canWrite} setIsSubmitting={setIsSubmitting} />
   );
 }
-function DescriptionForm({
+
+function DescriptionContent({
   description,
-  onDone,
+  canWrite,
+  setIsSubmitting,
 }: {
   description: FunctionReturnType<typeof api.tasks.description.get>;
-  onDone: () => void;
+  canWrite: boolean;
+  setIsSubmitting: (status: TNameDescriptionLoader) => void;
 }) {
-  const save = useMutation(api.tasks.description.save);
-  const [draft, setDraft] = useState({ html: description.html, expectedContentVersion: description.contentVersion });
+  const mutation = useMutation(api.tasks.description.save);
+  const submit = useMemo(() => {
+    let expectedContentVersion = description.contentVersion;
+    return async (html: string) => {
+      const result = await mutation({ taskId: description.taskId, expectedContentVersion, html });
+      expectedContentVersion = result.contentVersion;
+      return result.html;
+    };
+  }, [mutation, description.taskId, description.contentVersion]);
+  const [autosave] = useState(() => new TextAutosave(description.html, submit));
+  const [html, setHtml] = useState(description.html);
+  const uploadingRef = useRef(false);
   const [uploading, setUploading] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (uploading || pending) return;
-        setPending(true);
-        setError("");
-        try {
-          await save({ taskId: description.taskId, ...draft });
-          onDone();
-        } catch (failure) {
-          setError(mutationMessage(failure));
-        } finally {
-          setPending(false);
+  useEffect(() => {
+    if (autosave.receive(description.html)) setHtml(description.html);
+  }, [autosave, description.html, html]);
+
+  const save = useCallback(
+    async (retry = false) => {
+      if (uploadingRef.current || (!autosave.dirty && !autosave.saving && !retry)) return;
+      setIsSubmitting("submitting");
+      try {
+        await autosave.save(retry);
+        if (!autosave.dirty) {
+          setHtml(autosave.draft);
+          setIsSubmitting("submitted");
         }
-      }}
-    >
+        setError("");
+      } catch (failure) {
+        setIsSubmitting("failed");
+        setError(mutationMessage(failure));
+      }
+    },
+    [autosave, setIsSubmitting]
+  );
+  const delayedSave = useMemo(() => debounce(save, 1500), [save]);
+  const onUploadingChange = useCallback(
+    (next: boolean) => {
+      uploadingRef.current = next;
+      setUploading(next);
+      if (!next && autosave.canFlushOnUnmount) delayedSave();
+    },
+    [autosave, delayedSave]
+  );
+  useEffect(
+    () => () => {
+      delayedSave.cancel();
+      if (!uploadingRef.current && autosave.canFlushOnUnmount) void save();
+    },
+    [autosave, delayedSave, save]
+  );
+
+  return (
+    <section className="space-y-3">
       <TaskDescriptionEditor
         taskId={description.taskId}
-        onUploadingChange={setUploading}
         id={`task-description-${description.taskId}`}
         label="Task description"
         placeholder="Describe the work…"
-        html={draft.html}
-        editable={!pending}
-        onChange={(html) => setDraft((current) => ({ ...current, html }))}
+        html={autosave.draft}
+        value={autosave.dirty || autosave.saving ? null : html}
+        editable={canWrite}
+        containerClassName="-ml-6 border-none p-0! pl-6!"
+        onUploadingChange={onUploadingChange}
+        onChange={(nextHtml) => {
+          if (nextHtml === autosave.draft) return;
+          autosave.edit(nextHtml, submit);
+          setHtml(nextHtml);
+          setIsSubmitting(autosave.status);
+          delayedSave();
+        }}
       />
-      <div className="flex gap-2">
-        <Button type="submit" loading={pending} disabled={uploading}>
-          Save description
-        </Button>
-        <Button variant="secondary" disabled={pending} onClick={onDone}>
-          Cancel
-        </Button>
+      <div className="flex justify-end">
+        <DescriptionHistory scope={{ kind: "task", taskId: description.taskId }} />
       </div>
       {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
+        <div className="space-y-1">
+          <p role="alert" className="text-13 text-danger-primary">
+            {error}
+          </p>
+          <Button
+            variant="secondary"
+            disabled={autosave.saving || uploading || !canWrite}
+            onClick={() => void save(true)}
+          >
+            Retry saving description
+          </Button>
+        </div>
       )}
-    </form>
+    </section>
   );
 }
