@@ -27,6 +27,7 @@ import {
   StartDatePropertyIcon,
   StateGroupIcon,
   StatePropertyIcon,
+  UserCirclePropertyIcon,
 } from "@plane/propel/icons";
 import { AvatarGroup } from "@plane/ui";
 import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
@@ -254,12 +255,19 @@ const stateGroups = {
 const propertyOptionClass =
   "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
 
-export function TaskInlineProperties({ task }: { task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>> }) {
+export function TaskInlineProperties({
+  task,
+  disabled: lifecyclePending,
+}: {
+  task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
+  disabled: boolean;
+}) {
   const update = useMutation(api.tasks.index.update);
   const profile = useQuery(api.identity.profile.get, {});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const disabled = !task.canEdit || pending;
+  const creatorName = task.creator.name || "Unavailable account";
+  const disabled = !task.canEdit || pending || lifecyclePending;
   const save: InlinePropertyProps["onChange"] = async (change) => {
     if (disabled) return;
     setPending(true);
@@ -273,7 +281,7 @@ export function TaskInlineProperties({ task }: { task: NonNullable<FunctionRetur
     }
   };
   return (
-    <fieldset disabled={!task.canEdit} aria-busy={pending} className="min-w-0">
+    <fieldset disabled={!task.canEdit || lifecyclePending} aria-busy={pending || lifecyclePending} className="min-w-0">
       <legend className="text-body-xs-medium">Properties</legend>
       <div className={cn("mt-4 mb-2 space-y-2.5", !task.canEdit && "opacity-60")}>
         <SidebarPropertyListItem icon={StatePropertyIcon} label="State">
@@ -292,6 +300,21 @@ export function TaskInlineProperties({ task }: { task: NonNullable<FunctionRetur
             buttonContainerClassName="size-full text-left"
             buttonClassName="size-full px-2 py-0.5 whitespace-nowrap [&_svg]:size-3.5"
           />
+        </SidebarPropertyListItem>
+        <SidebarPropertyListItem icon={UserCirclePropertyIcon} label="Created by">
+          <div className="flex items-center gap-2 px-2">
+            {task.creator.avatar ? (
+              <AuthenticatedAssetImage
+                asset={task.creator.avatar}
+                alt={creatorName}
+                compactName={creatorName}
+                className="size-5 rounded-full object-cover"
+              />
+            ) : (
+              <Avatar name={creatorName} size="md" showTooltip={false} />
+            )}
+            <span className="grow truncate text-body-xs-regular leading-5">{creatorName}</span>
+          </div>
         </SidebarPropertyListItem>
         {(
           [

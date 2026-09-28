@@ -3,9 +3,9 @@ import { boundDescriptionContent } from "../tasks/description_images";
 import { writeDescription } from "../tasks/description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { mutation, query } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { projectMetadata } from "../projects/settings";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -14,9 +14,10 @@ import { initialProperties, parseTaskText, validateNonStateProperties } from "..
 import { priority, nonStateTaskProperties } from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
-import { requireTask } from "../tasks/access";
+import { requireTask, taskCanRead } from "../tasks/access";
 import { intakeCapabilities, requireIntakeTask, requireIntakeRevision } from "./access";
 import { intakeStatus } from "./schema";
+import schema from "../schema";
 const { priority: _priority, ...intakePropertyFields } = nonStateTaskProperties;
 const intakeProperties = v.object(intakePropertyFields);
 const version = { taskId: v.id("tasks"), expectedUpdatedAt: v.number(), expectedTaskUpdatedAt: v.number() };
@@ -134,60 +135,66 @@ export const submit = mutation({
     return taskId;
   },
 });
-async function detail(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const { task, intake, canEdit, canEditPriority, canEditProperties, canDecide, canRemove } = await requireIntakeTask(
-    ctx,
-    taskId
-  );
-  const content = await ctx.db
-    .query("taskDescriptions")
-    .withIndex("by_task", (q) => q.eq("taskId", taskId))
-    .unique();
-  // Duplicate targets were validated on write. Re-check current visibility before projecting metadata.
-  const target = intake.duplicateTo ? await ctx.db.get(intake.duplicateTo) : null;
-  const duplicateTarget =
-    target && target.projectId === task.projectId && target.deletedAt == null && target.status !== "triage"
-      ? { _id: target._id, title: target.title, sequence: target.sequence }
-      : null;
-  return {
-    task,
-    intake,
-    html: content?.html ?? plainDescriptionHtml(task.description),
-    duplicateTarget,
-    canEdit,
-    canEditPriority,
-    canEditProperties,
-    canDecide,
-    canRemove,
-  };
-}
-export const get = query({ args: { taskId: v.id("tasks") }, handler: async (ctx, args) => detail(ctx, args.taskId) });
 export const resolve = query({
-  args: { taskId: v.string() },
+  args: { projectId: v.id("projects"), taskId: v.string() },
   handler: async (ctx, args) => {
-    const id = ctx.db.normalizeId("tasks", args.taskId);
-    if (!id) throw new ConvexError("Intake task not found.");
-    return detail(ctx, id);
+    const taskId = ctx.db.normalizeId("tasks", args.taskId);
+    if (!taskId) throw new ConvexError("Intake task not found.");
+    const { task, intake, access, canEdit, canEditPriority, canEditProperties, canDecide, canRemove } =
+      await requireIntakeTask(ctx, taskId);
+    if (task.projectId !== args.projectId) throw new ConvexError("Intake task not found.");
+    const content = await ctx.db
+      .query("taskDescriptions")
+      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .unique();
+    const target = intake.duplicateTo ? await ctx.db.get(intake.duplicateTo) : null;
+    const duplicateTarget =
+      target && target.projectId === task.projectId && (await taskCanRead(ctx, target, access.user._id))
+        ? { _id: target._id, title: target.title, sequence: target.sequence }
+        : null;
+    return {
+      task,
+      intake,
+      html: content?.html ?? plainDescriptionHtml(task.description),
+      duplicateTarget,
+      canEdit,
+      canEditPriority,
+      canEditProperties,
+      canDecide,
+      canRemove,
+    };
   },
 });
 export const list = query({
-  args: { projectId: v.id("projects"), status: v.optional(intakeStatus), paginationOpts: paginationOptsValidator },
+  args: {
+    projectId: v.id("projects"),
+    view: v.union(intakeStatus, v.literal("open"), v.literal("closed")),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId);
-    const result = await ctx.db
-      .query("intakeTasks")
-      .withIndex("by_project_status", (q) => q.eq("projectId", args.projectId).eq("status", args.status ?? "pending"))
+    const source = stream(ctx.db, schema).query("intakeTasks");
+    const { view } = args;
+    const rows =
+      view === "open" || view === "closed"
+        ? source.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        : source.withIndex("by_project_status", (q) => q.eq("projectId", args.projectId).eq("status", view));
+    return rows
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    const page = await Promise.all(
-      result.page.map(async (intake) => {
-        if (intake.deletedAt != null || !intakeCapabilities(access, intake.createdBy).canRead) return null;
+      .map(async (intake) => {
+        const open = intake.status === "pending" || intake.status === "snoozed";
+        if (
+          intake.deletedAt != null ||
+          !intakeCapabilities(access, intake.createdBy).canRead ||
+          (view === "open" && !open) ||
+          (view === "closed" && open)
+        )
+          return null;
         const task = await ctx.db.get(intake.taskId);
         if (!task || task.deletedAt != null || task.archivedAt != null) return null;
-        return { intake, task, ...intakeCapabilities(access, intake.createdBy) };
+        return { intake, task };
       })
-    );
-    return { ...result, page: page.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const edit = mutation({

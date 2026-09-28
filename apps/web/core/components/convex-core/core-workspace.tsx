@@ -429,7 +429,7 @@ function ProjectContent({
       ) : projectView === "views" ? (
         <SavedViews key={project._id} project={project} />
       ) : projectView === "intake" ? (
-        <Intakes key={project._id} project={project} />
+        <Intakes key={project._id} project={project} workspaceSlug={workspace.slug} />
       ) : projectView === "settings" ? (
         <ProjectSettings key={project._id} projectId={project._id} onArchived={onArchived} />
       ) : projectView === "modules" ? (

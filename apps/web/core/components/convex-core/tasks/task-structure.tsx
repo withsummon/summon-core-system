@@ -1,7 +1,7 @@
 import { relatedTaskRoute } from "./structure-route";
 import { Component, useId, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
@@ -39,10 +39,15 @@ const relationDirections = [
 
 function TaskLink({ task, projectIdentifier }: { task: Task; projectIdentifier: string }) {
   const [params] = useSearchParams();
+  const { workspaceSlug } = useParams();
   return (
     <Link
       className="min-w-0 text-14 break-words text-accent-primary hover:underline"
-      to={relatedTaskRoute(params, task._id, projectIdentifier)}
+      to={
+        workspaceSlug
+          ? `/${workspaceSlug}/browse/${projectIdentifier}-${task.sequence}/`
+          : relatedTaskRoute(params, task._id, projectIdentifier)
+      }
     >
       {projectIdentifier}-{task.sequence} · {task.title}
     </Link>
@@ -66,31 +71,28 @@ function Hierarchy({ task, canWrite }: { task: Task; canWrite: boolean }) {
   const setParent = useMutation(api.tasks.hierarchy.setParent);
   const [mode, setMode] = useState<"parent" | "create" | "link" | null>(null);
   const [error, setError] = useState("");
+  if (!parent) return <p role="status">Loading parent and subtasks…</p>;
   return (
     <section className="space-y-4 rounded-xl border border-subtle-1 p-4">
       <header className="flex flex-wrap justify-between gap-3">
         <h3 className="text-16 font-medium">Parent & subtasks</h3>
-        {canWrite && parent && (!parent.hasParent || parent.canUnlink) && (
+        {canWrite && (!parent.hasParent || parent.canUnlink) && (
           <Button variant="secondary" onClick={() => setMode("parent")}>
-            {parent?.hasParent ? "Change parent" : "Set parent"}
+            {parent.hasParent ? "Change parent" : "Set parent"}
           </Button>
         )}
       </header>
       <div className="text-14">
         <span className="mr-2 text-secondary">Parent</span>
-        {parent?.task ? (
+        {parent.task ? (
           <TaskLink task={parent.task} projectIdentifier={parent.project.identifier} />
-        ) : parent ? (
-          parent.hasParent ? (
-            "Parent task unavailable"
-          ) : (
-            "None"
-          )
+        ) : parent.hasParent ? (
+          "Parent task unavailable"
         ) : (
-          "Loading…"
+          "None"
         )}
       </div>
-      {canWrite && parent?.hasParent && parent.canUnlink && (
+      {canWrite && parent.hasParent && parent.canUnlink && (
         <Button
           variant="secondary"
           onClick={() => {

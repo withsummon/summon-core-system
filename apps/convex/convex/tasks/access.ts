@@ -57,6 +57,13 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
   const { user, member, projectMember, project } = await requireProject(ctx, task.projectId);
   const writer = member.role !== "guest" && projectMember.role !== "guest";
   const recovery = task.createdBy === user._id || projectMember.role === "admin";
+  const [creator, creatorMembership] = await Promise.all([
+    ctx.db.get(task.createdBy),
+    ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", task.createdBy))
+      .unique(),
+  ]);
   const assignees = await Promise.all(
     task.assigneeIds.map(async (id) => {
       const [person, projectMembership, workspaceMembership] = await Promise.all([
@@ -91,6 +98,13 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
   );
   return {
     ...task,
+    creator: {
+      name: creator?.name ?? null,
+      avatar:
+        creator && creatorMembership?.active
+          ? await personalImageDescriptor(ctx, await userAppearance(ctx, task.createdBy), "avatar", project.workspaceId)
+          : null,
+    },
     assignees,
     archivedAt: task.archivedAt ?? null,
     deletedAt: task.deletedAt ?? null,

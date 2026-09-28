@@ -10,7 +10,7 @@ import { useArgs } from "storybook/preview-api";
 import { CloseIcon } from "../icons/actions/close-icon";
 import { Dialog, EDialogWidth } from "./root";
 
-const meta = {
+const meta: Meta<typeof Dialog> = {
   title: "Components/Dialog",
   component: Dialog,
   subcomponents: {
@@ -67,7 +67,7 @@ const meta = {
       </>
     );
   },
-} satisfies Meta<typeof Dialog>;
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;
