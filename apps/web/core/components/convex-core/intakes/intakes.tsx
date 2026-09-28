@@ -1,8 +1,7 @@
-import { Component, useEffect, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode, ComponentProps } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Plus } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
@@ -12,6 +11,7 @@ import { Header, EHeaderVariant, Row } from "@plane/ui";
 import { PriorityIcon } from "@plane/propel/icons";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { cn, renderFormattedDate } from "@plane/utils";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { taskStatusOptions } from "../tasks/options";
 import { DescriptionHistory } from "../tasks/description-history";
 import { TaskComments } from "../tasks/comments";
@@ -22,6 +22,7 @@ import { IntakeDescription } from "./description";
 import { IntakeTrash } from "./trash";
 import { SubmissionForm } from "./forms";
 import { DecisionForm, RemoveSubmission, intakeOptions, intakeDecisions } from "./decisions";
+import { mutationMessage } from "../commercial/forms";
 type Project = FunctionReturnType<typeof api.navigation.address.resolveProjectId>["project"];
 type View = FunctionArgs<typeof api.intakes.index.list>["view"] | "trash";
 const coreViews = [...intakeOptions, { value: "trash", label: "Trash" }] as const;
@@ -79,7 +80,7 @@ export function IntakeView({
   selectionHref: (id: Id<"tasks">) => string;
   onSelect: (id: Id<"tasks"> | null, created?: boolean) => void;
   onViewChange: (view: View) => void;
-  onRestored: ComponentProps<typeof IntakeTrash>["onRestored"];
+  onRestored: (status: FunctionReturnType<typeof api.intakes.lifecycle.get>["intake"]["status"]) => void;
 }) {
   const config = useQuery(api.intakes.index.getConfig, { projectId: project._id });
   const submissions = usePaginatedQuery(
@@ -87,16 +88,47 @@ export function IntakeView({
     view === "trash" ? "skip" : { projectId: project._id, view },
     { initialNumItems: 30 }
   );
-  const [creating, setCreating] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(!selected);
-  const firstId = submissions.results[0]?.task._id;
-  useEffect(() => {
-    if (view !== "trash" && firstId && !selected && !creating) onSelect(firstId);
-  }, [view, firstId, selected, creating, onSelect]);
-  const select: ComponentProps<typeof IntakeView>["onSelect"] = (id, created) => {
-    setCreating(false);
-    setShowSidebar(id === null);
-    onSelect(id, created);
+  const displayed = selected ?? (view === "trash" ? null : (submissions.results[0]?.task._id ?? null));
+  const changes = {
+    remove: useMutation(api.intakes.index.remove),
+    restore: useMutation(api.intakes.lifecycle.restore),
+  };
+  const [pending, setPending] = useState(false),
+    [error, setError] = useState("");
+  const continuation = useRef<(() => void) | null>(null);
+  const leave = useCallback(() => {
+    continuation.current = null;
+  }, []);
+  const release = useReloadConfirmations(pending, "The intake operation is still in progress.", leave);
+  useEffect(() => leave, [leave]);
+  // Removal and recovery invalidate their own detail queries; the command stays above those boundaries.
+  const changeSubmission = async (
+    operation: keyof typeof changes,
+    snapshot:
+      | FunctionReturnType<typeof api.intakes.index.resolve>
+      | FunctionReturnType<typeof api.intakes.lifecycle.get>
+  ) => {
+    continuation.current = operation === "remove" ? () => onSelect(null) : () => onRestored(snapshot.intake.status);
+    setPending(true);
+    setError("");
+    try {
+      await changes[operation]({
+        taskId: snapshot.task._id,
+        expectedUpdatedAt: snapshot.intake.updatedAt,
+        expectedTaskUpdatedAt: snapshot.task.updatedAt,
+      });
+    } catch (failure) {
+      if (continuation.current !== null) setError(mutationMessage(failure));
+      continuation.current = null;
+      return;
+    } finally {
+      setPending(false);
+    }
+    release((allow) => {
+      const navigate = continuation.current;
+      continuation.current = null;
+      if (allow) navigate?.();
+    });
   };
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-surface-1">
@@ -105,7 +137,7 @@ export function IntakeView({
           aria-label="Intake submissions"
           className={cn(
             "h-full w-full shrink-0 flex-col border-r border-strong bg-surface-1 lg:flex lg:w-2/6",
-            showSidebar ? "flex" : "hidden"
+            selected ? "hidden" : "flex"
           )}
         >
           <Header variant={EHeaderVariant.SECONDARY} className="shrink-0 gap-2">
@@ -115,59 +147,45 @@ export function IntakeView({
                   key={option.value}
                   type="button"
                   aria-current={view === option.value ? "page" : undefined}
+                  disabled={view === option.value}
                   className="relative flex h-full shrink-0 items-center border-b-2 border-transparent px-3 text-13 font-medium hover:text-secondary aria-[current=page]:border-accent-strong aria-[current=page]:text-accent-primary"
-                  onClick={() => {
-                    setCreating(false);
-                    setShowSidebar(true);
-                    onViewChange(option.value);
-                  }}
+                  onClick={() => onViewChange(option.value)}
                 >
                   {option.label}
                 </button>
               ))}
             </nav>
             {config?.enabled && (
-              <Button
-                variant="tertiary"
-                size="sm"
-                aria-label="Submit work"
-                className="shrink-0"
-                onClick={() => {
-                  setCreating(true);
-                  setShowSidebar(false);
-                }}
-              >
-                <Plus className="size-4" />
-              </Button>
+              <SubmissionForm
+                key={`create:${project._id}:${view}:${selected}`}
+                projectId={project._id}
+                initial={null}
+                disabled={pending}
+                onDone={(id) => onSelect(id, true)}
+              />
             )}
           </Header>
           <div className="vertical-scrollbar scrollbar-md min-h-0 flex-1 overflow-y-auto">
             {view === "trash" ? (
-              <IntakeBoundary key={`trash:${project._id}`} onBack={() => select(null)}>
-                <IntakeTrash project={project} selected={null} onSelect={select} onRestored={onRestored} />
+              <IntakeBoundary key={`trash:${project._id}`} onBack={() => onSelect(null)}>
+                <IntakeTrash
+                  project={project}
+                  selected={null}
+                  onSelect={onSelect}
+                  pending={pending}
+                  onRestore={(snapshot) => void changeSubmission("restore", snapshot)}
+                />
               </IntakeBoundary>
             ) : (
               <>
                 <ul>
                   {submissions.results.map(({ task, intake }) => (
                     <li key={task._id}>
-                      <Link
-                        to={selectionHref(task._id)}
-                        onClick={(event) => {
-                          if (
-                            event.button === 0 &&
-                            !event.metaKey &&
-                            !event.ctrlKey &&
-                            !event.shiftKey &&
-                            !event.altKey
-                          )
-                            setShowSidebar(false);
-                        }}
-                      >
+                      <Link to={selectionHref(task._id)}>
                         <Row
                           className={cn(
                             "flex cursor-pointer flex-col gap-2 border border-t-transparent border-r-transparent border-b-subtle-1 border-l-transparent py-4 hover:bg-accent-primary/5",
-                            selected === task._id && "border-accent-strong"
+                            displayed === task._id && "border-accent-strong"
                           )}
                         >
                           <div className="space-y-1">
@@ -214,29 +232,31 @@ export function IntakeView({
             )}
           </div>
         </aside>
-        <div className={cn("min-w-0 flex-1 overflow-y-auto p-4 lg:block lg:p-6", showSidebar ? "hidden" : "block")}>
-          {creating ? (
-            <SubmissionForm
-              projectId={project._id}
-              initial={null}
-              onDone={(id) => select(id, true)}
-              onCancel={() => {
-                setCreating(false);
-                setShowSidebar(true);
-              }}
-            />
-          ) : view === "trash" && selected ? (
-            <IntakeBoundary key={`removed:${selected}`} onBack={() => select(null)}>
-              <IntakeTrash project={project} selected={selected} onSelect={select} onRestored={onRestored} />
+        <div className={cn("min-w-0 flex-1 overflow-y-auto p-4 lg:block lg:p-6", selected ? "block" : "hidden")}>
+          {error && (
+            <p role="alert" className="mb-4 text-14 text-danger-primary">
+              {error}
+            </p>
+          )}
+          {view === "trash" && displayed ? (
+            <IntakeBoundary key={`removed:${displayed}`} onBack={() => onSelect(null)}>
+              <IntakeTrash
+                project={project}
+                selected={displayed}
+                onSelect={onSelect}
+                pending={pending}
+                onRestore={(snapshot) => void changeSubmission("restore", snapshot)}
+              />
             </IntakeBoundary>
-          ) : selected ? (
-            <IntakeBoundary key={selected} onBack={() => select(null)}>
+          ) : displayed ? (
+            <IntakeBoundary key={displayed} onBack={() => onSelect(null)}>
               <IntakeDetail
-                taskId={selected}
+                taskId={displayed}
                 project={project}
                 workspaceSlug={workspaceSlug}
-                onBack={() => setShowSidebar(true)}
-                onRemoved={() => select(null)}
+                onBack={() => onSelect(null)}
+                pending={pending}
+                onRemove={(snapshot) => void changeSubmission("remove", snapshot)}
               />
             </IntakeBoundary>
           ) : (
@@ -252,28 +272,20 @@ function IntakeDetail({
   project,
   workspaceSlug,
   onBack,
-  onRemoved,
+  pending,
+  onRemove,
 }: {
   taskId: string;
   project: Project;
   workspaceSlug: string;
   onBack: () => void;
-  onRemoved: () => void;
+  pending: boolean;
+  onRemove: ComponentProps<typeof RemoveSubmission>["onConfirm"];
 }) {
   const detail = useQuery(api.intakes.index.resolve, { taskId, projectId: project._id });
   const states = useQuery(api.tasks.states.list, { projectId: project._id });
-  const [editing, setEditing] = useState(false),
-    [reviewing, setReviewing] = useState(false);
+  const [editor, setEditor] = useState<"submission" | "description" | "decision" | null>(null);
   if (!detail || !states) return <p role="status">Opening submission…</p>;
-  if (editing && detail.canEdit)
-    return (
-      <SubmissionForm
-        projectId={project._id}
-        initial={detail}
-        onDone={() => setEditing(false)}
-        onCancel={() => setEditing(false)}
-      />
-    );
   return (
     <article className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -284,25 +296,38 @@ function IntakeDetail({
           <TaskSubscription taskId={detail.task._id} />
           <DescriptionHistory scope={{ kind: "intake", taskId: detail.task._id }} />
           {detail.canEdit && (
-            <Button variant="secondary" onClick={() => setEditing(true)}>
+            <Button variant="secondary" disabled={pending || editor !== null} onClick={() => setEditor("submission")}>
               Edit submission
             </Button>
           )}
-          {detail.canDecide && !reviewing && <Button onClick={() => setReviewing(true)}>Review submission</Button>}
+          {detail.canDecide && editor !== "decision" && (
+            <Button disabled={pending || editor !== null} onClick={() => setEditor("decision")}>
+              Review submission
+            </Button>
+          )}
         </div>
       </header>
-      <div>
-        <p className="mb-1 text-12 text-secondary">
-          {project.identifier}-{detail.task.sequence} · {intakeDecisions[detail.intake.status].label}
-        </p>
-        <h2 className="text-24 font-semibold break-words">{detail.task.title}</h2>
-        <p className="mt-2 text-14 text-secondary capitalize">
-          {detail.task.priority} priority ·{" "}
-          {states.find((state) => state._id === detail.task.stateId)?.name ??
-            taskStatusOptions[detail.task.status].label}
-        </p>
-      </div>
-      {reviewing && detail.canDecide && <DecisionForm detail={detail} onClose={() => setReviewing(false)} />}
+      {editor === "submission" && detail.canEdit ? (
+        <SubmissionForm
+          projectId={project._id}
+          initial={detail}
+          onDone={() => setEditor(null)}
+          onCancel={() => setEditor(null)}
+        />
+      ) : (
+        <div>
+          <p className="mb-1 text-12 text-secondary">
+            {project.identifier}-{detail.task.sequence} · {intakeDecisions[detail.intake.status].label}
+          </p>
+          <h2 className="text-24 font-semibold break-words">{detail.task.title}</h2>
+          <p className="mt-2 text-14 text-secondary capitalize">
+            {detail.task.priority} priority ·{" "}
+            {states.find((state) => state._id === detail.task.stateId)?.name ??
+              taskStatusOptions[detail.task.status].label}
+          </p>
+        </div>
+      )}
+      {editor === "decision" && detail.canDecide && <DecisionForm detail={detail} onClose={() => setEditor(null)} />}
       {detail.intake.status === "accepted" && (
         <Link
           className="inline-block text-14 text-accent-primary hover:underline"
@@ -329,11 +354,20 @@ function IntakeDetail({
           )}
         </div>
       )}
-      <IntakeDescription key={`description:${detail.task._id}`} taskId={detail.task._id} />
+      <IntakeDescription
+        key={`description:${detail.task._id}`}
+        taskId={detail.task._id}
+        editing={editor === "description"}
+        onEdit={() => setEditor("description")}
+        onDone={() => setEditor(null)}
+        disabled={pending || editor !== null}
+      />
       <TaskAttachments key={`attachments:${detail.task._id}`} taskId={detail.task._id} />
       <TaskReactions key={`reactions:${detail.task._id}`} taskId={detail.task._id} />
       <TaskComments key={`comments:${detail.task._id}`} taskId={detail.task._id} />
-      {detail.canRemove && <RemoveSubmission detail={detail} onDone={onRemoved} />}
+      {detail.canRemove && (
+        <RemoveSubmission detail={detail} pending={pending} disabled={editor !== null} onConfirm={onRemove} />
+      )}
     </article>
   );
 }
