@@ -65,7 +65,9 @@ export function TaskRichEditor({
             "aria-readonly": editable ? "false" : "true",
           },
         }}
-        onChange={(_json, nextHtml) => onChange?.(nextHtml)}
+        onChange={(_json, nextHtml, metadata) => {
+          if (!metadata?.isMigrationUpdate) onChange?.(nextHtml);
+        }}
         placeholder={placeholder}
       />
     </div>
