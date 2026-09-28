@@ -279,7 +279,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 export const authOptions = {
   baseURL: process.env.CONVEX_SITE_URL,
   trustedOrigins: [siteUrl],
-  rateLimit: { enabled: true, storage: "database" },
+  rateLimit: { enabled: true, storage: "database", customRules: { "/convex/jwks": false } },
   session: { freshAge: 300, deferSessionRefresh: true },
   user: { deleteUser: { enabled: true } },
   account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
