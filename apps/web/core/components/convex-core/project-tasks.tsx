@@ -45,7 +45,13 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
   const [error, setError] = useState("");
   if (selected)
     return (
-      <TaskDetail taskId={selected} project={project} recovery={view === "deleted"} onBack={() => setSelected(null)} />
+      <TaskDetail
+        key={`${selected}:${view === "deleted" ? "deleted" : "read"}`}
+        taskId={selected}
+        project={project}
+        recovery={view === "deleted"}
+        onBack={() => setSelected(null)}
+      />
     );
   return (
     <section aria-label="Tasks" className="space-y-5">

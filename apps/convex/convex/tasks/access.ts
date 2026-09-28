@@ -102,8 +102,13 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
   };
 }
 
-export async function taskCanRead(ctx: QueryCtx, task: Doc<"tasks">, userId: Id<"users">) {
-  if (!taskIsReadable(task)) return false;
+export async function taskCanRead(
+  ctx: QueryCtx,
+  task: Doc<"tasks">,
+  userId: Id<"users">,
+  mode: "read" | "recovery" = "read"
+) {
+  if (task.status === "triage" || (mode === "read" && !taskIsReadable(task))) return false;
   const project = await ctx.db.get(task.projectId);
   if (!project || project.archived || project.deletedAt != null || project.workspaceId !== task.workspaceId)
     return false;
@@ -120,7 +125,9 @@ export async function taskCanRead(ctx: QueryCtx, task: Doc<"tasks">, userId: Id<
   return (
     !!workspace?.active &&
     !!member?.active &&
-    taskRoleCanRead(task, userId, workspace.role, member.role, !!project.guestViewAllFeatures)
+    (mode === "recovery"
+      ? task.createdBy === userId || member.role === "admin"
+      : taskRoleCanRead(task, userId, workspace.role, member.role, !!project.guestViewAllFeatures))
   );
 }
 

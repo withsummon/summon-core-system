@@ -237,7 +237,7 @@ export function TaskNonStateProperties<T extends NonStatePropertyValues>({
 }
 
 type InlinePropertyProps = {
-  task: FunctionReturnType<typeof api.tasks.index.get>;
+  task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
   disabled: boolean;
   onChange: (
     change: Omit<FunctionArgs<typeof api.tasks.index.update>, "taskId" | "expectedUpdatedAt">
@@ -250,11 +250,11 @@ const stateGroups = {
   in_progress: STATE_GROUPS.started.key,
   done: STATE_GROUPS.completed.key,
   cancelled: STATE_GROUPS.cancelled.key,
-} satisfies Record<FunctionReturnType<typeof api.tasks.index.get>["status"], keyof typeof STATE_GROUPS>;
+} satisfies Record<NonNullable<FunctionReturnType<typeof api.tasks.index.get>>["status"], keyof typeof STATE_GROUPS>;
 const propertyOptionClass =
   "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
 
-export function TaskInlineProperties({ task }: { task: FunctionReturnType<typeof api.tasks.index.get> }) {
+export function TaskInlineProperties({ task }: { task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>> }) {
   const update = useMutation(api.tasks.index.update);
   const profile = useQuery(api.identity.profile.get, {});
   const [pending, setPending] = useState(false);
