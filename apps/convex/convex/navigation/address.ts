@@ -4,6 +4,7 @@ import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import { requireUser, requireWorkspace, requireProject } from "../identity/access";
 import { taskCanRead, taskDetail } from "../tasks/access";
+import { intakeCapabilities } from "../intakes/access";
 
 async function workspaceAddress(ctx: QueryCtx, workspaceSlug: string) {
   await requireUser(ctx);
@@ -50,26 +51,31 @@ export const resolveTask = query({
     if (!match || match[1] !== match[1].trim()) throw new ConvexError("Invalid task address.");
     const sequence = Number(match[2]);
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new ConvexError("Invalid task address.");
-    const { user, workspace, project } = await projectAddress(
-      ctx,
-      args.workspaceSlug,
-      validateIdentifier(match[1], "Invalid task address.")
-    );
+    const access = await projectAddress(ctx, args.workspaceSlug, validateIdentifier(match[1], "Invalid task address."));
+    const { user, workspace, project } = access;
     const task = await ctx.db
       .query("tasks")
       .withIndex("by_project_sequence", (q) => q.eq("projectId", project._id).eq("sequence", sequence))
       .unique();
-    if (
-      !task ||
-      task.workspaceId !== workspace._id ||
-      task.status === "triage" ||
-      !(await taskCanRead(ctx, task, user._id))
-    )
-      return null;
-    return {
+    if (!task || task.workspaceId !== workspace._id) return null;
+    const address = {
       workspace: { id: workspace._id, slug: workspace.slug, name: workspace.name },
-      project: { id: project._id, identifier: project.identifier, name: project.name },
+      project,
       workItem: `${project.identifier}-${task.sequence}`,
+    };
+    if (task.status === "triage") {
+      if (task.deletedAt !== null || task.archivedAt !== null) return null;
+      const intake = await ctx.db
+        .query("intakeTasks")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .unique();
+      if (!intake || intake.deletedAt !== null || !intakeCapabilities(access, intake.createdBy).canRead) return null;
+      return { ...address, kind: "intake" as const, intake: { taskId: intake.taskId, status: intake.status } };
+    }
+    if (!(await taskCanRead(ctx, task, user._id))) return null;
+    return {
+      ...address,
+      kind: "task" as const,
       task: await taskDetail(ctx, { ...task, status: task.status }),
     };
   },
