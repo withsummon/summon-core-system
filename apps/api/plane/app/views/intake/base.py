@@ -6,6 +6,7 @@
 import json
 
 # Django import
+from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q, Count, OuterRef, Func, F, Prefetch, Subquery
 from django.core.serializers.json import DjangoJSONEncoder
@@ -332,12 +333,17 @@ class IntakeIssueViewSet(BaseViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], creator=True, model=Issue)
+    @transaction.atomic
     def partial_update(self, request, slug, project_id, pk):
+        # Lock the plain row before reading the aggregate snapshot.
+        Issue.objects.select_for_update(of=("self",)).filter(
+            pk=pk, project_id=project_id, workspace__slug=slug
+        ).values_list("pk", flat=True).first()
         skip_activity = request.data.pop("skip_activity", False)
         is_description_update = request.data.get("description_html") is not None
 
         intake_id = Intake.objects.filter(workspace__slug=slug, project_id=project_id).first()
-        intake_issue = IntakeIssue.objects.get(
+        intake_issue = IntakeIssue.objects.select_for_update(of=("self",)).get(
             issue_id=pk,
             workspace__slug=slug,
             project_id=project_id,
@@ -438,39 +444,48 @@ class IntakeIssueViewSet(BaseViewSet):
             # Log all the updates
             if not is_migration_description_update:
                 if issue is not None:
-                    issue_activity.delay(
-                        type="issue.activity.updated",
-                        requested_data=issue_requested_data,
-                        actor_id=str(request.user.id),
-                        issue_id=str(issue.id),
-                        project_id=str(project_id),
-                        current_instance=issue_current_instance,
-                        epoch=int(timezone.now().timestamp()),
-                        notification=True,
-                        origin=base_host(request=request, is_app=True),
-                        intake=str(intake_issue.id),
+                    transaction.on_commit(
+                        lambda: issue_activity.delay(
+                            type="issue.activity.updated",
+                            requested_data=issue_requested_data,
+                            actor_id=str(request.user.id),
+                            issue_id=str(issue.id),
+                            project_id=str(project_id),
+                            current_instance=issue_current_instance,
+                            epoch=int(timezone.now().timestamp()),
+                            notification=True,
+                            origin=base_host(request=request, is_app=True),
+                            intake=str(intake_issue.id),
+                        ),
+                        robust=True,
                     )
                     # updated issue description version
-                    issue_description_version_task.delay(
-                        updated_issue=issue_current_instance,
-                        issue_id=str(pk),
-                        user_id=request.user.id,
+                    transaction.on_commit(
+                        lambda: issue_description_version_task.delay(
+                            updated_issue=issue_current_instance,
+                            issue_id=str(pk),
+                            user_id=request.user.id,
+                        ),
+                        robust=True,
                     )
 
         if intake_serializer:
             intake_serializer.save()
             # create a activity for status change
-            issue_activity.delay(
-                type="intake.activity.created",
-                requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(pk),
-                project_id=str(project_id),
-                current_instance=intake_current_instance,
-                epoch=int(timezone.now().timestamp()),
-                notification=False,
-                origin=base_host(request=request, is_app=True),
-                intake=str(intake_issue.id),
+            transaction.on_commit(
+                lambda: issue_activity.delay(
+                    type="intake.activity.created",
+                    requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(pk),
+                    project_id=str(project_id),
+                    current_instance=intake_current_instance,
+                    epoch=int(timezone.now().timestamp()),
+                    notification=False,
+                    origin=base_host(request=request, is_app=True),
+                    intake=str(intake_issue.id),
+                ),
+                robust=True,
             )
 
         # Fetch and return the updated intake issue
