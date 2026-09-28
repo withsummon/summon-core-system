@@ -1,7 +1,7 @@
 import type { Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import type { taskChange } from "./schema";
+import { taskLifecycleField, type taskChange } from "./schema";
 type Change = Infer<typeof taskChange>;
 async function stateSnapshot(ctx: QueryCtx, task: Doc<"tasks">) {
   const state = task.stateId ? await ctx.db.get(task.stateId) : null;
@@ -37,6 +37,8 @@ async function labels(ctx: QueryCtx, task: Doc<"tasks">, ids: Id<"taskLabels">[]
 /** Capture task-owned audit values in the same transaction, before taxonomy cleanup deletes rows. */
 export async function taskPropertyChanges(ctx: QueryCtx, before: Doc<"tasks">, after: Doc<"tasks">): Promise<Change[]> {
   const changes: Change[] = [];
+  for (const { value: field } of taskLifecycleField.members)
+    if (before[field] !== after[field]) changes.push({ field, before: before[field], after: after[field] });
   if (before.title !== after.title) changes.push({ field: "title", before: before.title, after: after.title });
   if (before.priority !== after.priority)
     changes.push({ field: "priority", before: before.priority, after: after.priority });

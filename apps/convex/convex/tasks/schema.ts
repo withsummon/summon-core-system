@@ -55,6 +55,23 @@ const activityEstimate = v.union(
   v.null(),
   v.object({ id: v.id("estimatePoints"), value: v.union(v.string(), v.null()) })
 );
+const activityCycle = v.object({ id: v.id("cycles"), name: v.union(v.string(), v.null()) });
+const activityModule = v.object({ id: v.id("modules"), name: v.string() });
+export const taskLifecycleField = v.union(v.literal("archivedAt"), v.literal("deletedAt"));
+export const taskEventKind = v.union(
+  v.literal("created"),
+  v.literal("status_changed"),
+  v.literal("updated"),
+  v.literal("archived"),
+  v.literal("unarchived"),
+  v.literal("deleted"),
+  v.literal("restored"),
+  v.literal("reaction_changed"),
+  v.literal("comment_created"),
+  v.literal("comment_updated"),
+  v.literal("comment_deleted"),
+  v.literal("comment_restored")
+);
 export const taskChange = v.union(
   v.object({ field: v.literal("title"), before: v.string(), after: v.string() }),
   v.object({ field: v.literal("priority"), before: priority, after: priority }),
@@ -63,7 +80,18 @@ export const taskChange = v.union(
   v.object({ field: v.literal("targetDate"), before: taskProperties.targetDate, after: taskProperties.targetDate }),
   v.object({ field: v.literal("assignees"), added: v.array(activityMember), removed: v.array(activityMember) }),
   v.object({ field: v.literal("labels"), added: v.array(activityLabel), removed: v.array(activityLabel) }),
-  v.object({ field: v.literal("estimate"), before: activityEstimate, after: activityEstimate })
+  v.object({ field: v.literal("estimate"), before: activityEstimate, after: activityEstimate }),
+  v.object({
+    field: taskLifecycleField,
+    before: v.union(v.number(), v.null()),
+    after: v.union(v.number(), v.null()),
+  }),
+  v.object({
+    field: v.literal("cycle"),
+    before: v.union(activityCycle, v.null()),
+    after: v.union(activityCycle, v.null()),
+  }),
+  v.object({ field: v.literal("modules"), added: v.array(activityModule), removed: v.array(activityModule) })
 );
 export const taskTables = {
   taskCommentReactions: defineTable({
@@ -170,17 +198,11 @@ export const taskTables = {
     actorId: v.id("users"),
     commentId: v.optional(v.id("taskComments")),
     changes: v.optional(v.array(taskChange)),
-    kind: v.union(
-      v.literal("created"),
-      v.literal("status_changed"),
-      v.literal("updated"),
-      v.literal("comment_created"),
-      v.literal("comment_updated"),
-      v.literal("comment_deleted"),
-      v.literal("comment_restored")
-    ),
+    kind: taskEventKind,
     status: taskStatus,
-  }).index("by_task", ["taskId"]),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_workspace_actor", ["workspaceId", "actorId"]),
   taskStates: defineTable({
     ...stateFields,
     status: taskStatus,

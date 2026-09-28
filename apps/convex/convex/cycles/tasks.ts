@@ -93,10 +93,10 @@ export async function assignCycleTask(
     .unique();
   if (previous?.cycleId === cycle._id) return;
   requireTaskRevision(task, args.expectedTaskUpdatedAt);
-  if (previous) {
-    const source = await ctx.db.get(previous.cycleId);
-    if (source && !source.deleted) requireOpenCycle(source);
-  }
+  const source = previous ? await ctx.db.get(previous.cycleId) : null;
+  if (source && source.projectId !== task.projectId)
+    throw new ConvexError("Cycle reference belongs to another project.");
+  if (source && !source.deleted) requireOpenCycle(source);
   if (
     (
       await ctx.db
@@ -108,7 +108,16 @@ export async function assignCycleTask(
     throw new ConvexError("This cycle has reached its 100 task limit.");
   if (previous) await ctx.db.patch(previous._id, { cycleId: cycle._id });
   else await ctx.db.insert("cycleTasks", { cycleId: cycle._id, taskId: task._id });
-  await taskChanged(ctx, task, user._id);
+  await taskChanged(ctx, task, user._id, {
+    kind: "updated",
+    changes: [
+      {
+        field: "cycle",
+        before: previous ? { id: previous.cycleId, name: source?.name ?? null } : null,
+        after: { id: cycle._id, name: cycle.name },
+      },
+    ],
+  });
 }
 
 export async function removeCycleTask(
@@ -129,5 +138,8 @@ export async function removeCycleTask(
   if (previous.cycleId !== cycle._id) throw new ConvexError("Task has moved to another cycle.");
   requireTaskRevision(task, args.expectedTaskUpdatedAt);
   await ctx.db.delete(previous._id);
-  await taskChanged(ctx, task, user._id);
+  await taskChanged(ctx, task, user._id, {
+    kind: "updated",
+    changes: [{ field: "cycle", before: { id: cycle._id, name: cycle.name }, after: null }],
+  });
 }
