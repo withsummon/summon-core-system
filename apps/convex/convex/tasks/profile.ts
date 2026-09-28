@@ -17,22 +17,21 @@ import { priority, status } from "./schema";
 
 const relationship = v.union(v.literal("created"), v.literal("assigned"), v.literal("subscribed"));
 function contribution(task: Doc<"tasks">, subjectId: Id<"users">, selected: Infer<typeof relationship>) {
-  // Stored subscriptions survive Trash for restoration; deleted tasks do not count.
-  const key: [boolean, Doc<"tasks">["status"], Doc<"tasks">["priority"], Id<"users">] | [boolean, Id<"users">] =
-    selected === "assigned"
-      ? [taskIsActive(task), task.status, task.priority, task.createdBy]
-      : [selected === "subscribed" ? task.deletedAt === null : taskIsActive(task), task.createdBy];
+  // Canonical tasks and subscriptions survive Trash; non-counting index entries do not.
+  if (selected === "subscribed" ? task.deletedAt !== null : !taskIsActive(task)) return null;
+  const key: [Doc<"tasks">["status"], Doc<"tasks">["priority"], Id<"users">] | Id<"users"> =
+    selected === "assigned" ? [task.status, task.priority, task.createdBy] : task.createdBy;
   return {
     id: task._id,
     key,
-    namespace: { workspaceId: task.workspaceId, projectId: task.projectId, subjectId, relationship: selected },
+    namespace: { projectId: task.projectId, subjectId, relationship: selected },
     sumValue: Number(selected === "assigned" && task.completedAt !== null),
   };
 }
 const aggregate = new DirectAggregate<{
-  Key: ReturnType<typeof contribution>["key"];
-  Id: ReturnType<typeof contribution>["id"];
-  Namespace: ReturnType<typeof contribution>["namespace"];
+  Key: NonNullable<ReturnType<typeof contribution>>["key"];
+  Id: NonNullable<ReturnType<typeof contribution>>["id"];
+  Namespace: NonNullable<ReturnType<typeof contribution>>["namespace"];
 }>(components.profileAggregate);
 
 /** The canonical task mutation and this index commit together. */
@@ -43,24 +42,22 @@ export async function syncTaskProfile(ctx: MutationCtx, before: Doc<"tasks"> | n
     new Set(current.assigneeIds).size !== current.assigneeIds.length
   )
     throw new ConvexError(`Task profile indexing requires at most ${MAX_TASK_ASSIGNEES} distinct assignees.`);
-  const previous = before ?? current;
-  const previousCreator = contribution(previous, previous.createdBy, "created");
-  const currentCreator = contribution(current, current.createdBy, "created");
-  const creatorChanged = !before || compareValues(previousCreator, currentCreator) !== 0;
-  const keyChanged =
-    !before ||
-    compareValues(
-      contribution(previous, previous.createdBy, "assigned"),
-      contribution(current, current.createdBy, "assigned")
-    ) !== 0;
+  const changes: [ReturnType<typeof contribution>, ReturnType<typeof contribution>][] = [
+    [
+      before ? contribution(before, before.createdBy, "created") : null,
+      contribution(current, current.createdBy, "created"),
+    ],
+  ];
+  for (const userId of new Set([...(before?.assigneeIds ?? []), ...current.assigneeIds]))
+    changes.push([
+      before?.assigneeIds.includes(userId) ? contribution(before, userId, "assigned") : null,
+      current.assigneeIds.includes(userId) ? contribution(current, userId, "assigned") : null,
+    ]);
   const subscriptionChanged =
-    !before ||
     compareValues(
-      contribution(previous, previous.createdBy, "subscribed"),
+      before ? contribution(before, before.createdBy, "subscribed") : null,
       contribution(current, current.createdBy, "subscribed")
     ) !== 0;
-  const previousAssignees = new Set(before?.assigneeIds);
-  const currentAssignees = new Set(current.assigneeIds);
   const subscriptions = subscriptionChanged
     ? await ctx.db
         .query("taskSubscriptions")
@@ -74,25 +71,18 @@ export async function syncTaskProfile(ctx: MutationCtx, before: Doc<"tasks"> | n
     throw new ConvexError(
       `Task profile indexing requires at most ${MAX_TASK_SUBSCRIBERS} distinct subscribers. No partial index was written.`
     );
-  if (creatorChanged) await aggregate.replaceOrInsert(ctx, previousCreator, currentCreator);
-  for (const userId of new Set([...previousAssignees, ...currentAssignees])) {
-    if (!currentAssignees.has(userId)) {
-      await aggregate.deleteIfExists(ctx, contribution(previous, userId, "assigned"));
-      continue;
-    }
-    if (!keyChanged && previousAssignees.has(userId)) continue;
-    await aggregate.replaceOrInsert(
-      ctx,
-      contribution(previous, userId, "assigned"),
-      contribution(current, userId, "assigned")
-    );
-  }
   for (const subscription of subscriptions)
-    await aggregate.replaceOrInsert(
-      ctx,
-      contribution(previous, subscription.userId, "subscribed"),
-      contribution(current, subscription.userId, "subscribed")
-    );
+    changes.push([
+      before ? contribution(before, subscription.userId, "subscribed") : null,
+      contribution(current, subscription.userId, "subscribed"),
+    ]);
+  for (const [previous, next] of changes) {
+    if (compareValues(previous, next) === 0) continue;
+    if (next === null) {
+      if (previous !== null) await aggregate.deleteIfExists(ctx, previous);
+    } else if (previous === null) await aggregate.insertIfDoesNotExist(ctx, next);
+    else await aggregate.replaceOrInsert(ctx, previous, next);
+  }
 }
 /* eslint-enable no-await-in-loop */
 
@@ -103,6 +93,7 @@ export async function syncSubscriptionProfile(
   subscribed: boolean
 ) {
   const entry = contribution(task, userId, "subscribed");
+  if (entry === null) return;
   if (subscribed) await aggregate.insertIfDoesNotExist(ctx, entry);
   else await aggregate.deleteIfExists(ctx, entry);
 }
@@ -110,7 +101,7 @@ export async function syncSubscriptionProfile(
 const migration = makeMigration(internalMutation, { migrationTable: "taskProfileMigrations", defaultBatchSize: 1 });
 // Each task owns up to 201 distinct contributions. Read current task and
 // subscriptions in the same mutation; no audit events or queued index writes.
-export const backfill = migration({
+export const backfillCounts = migration({
   table: "tasks",
   migrateOne: async (ctx, task) => {
     await syncTaskProfile(ctx, null, task);
@@ -125,32 +116,35 @@ async function projectCounts(
   canReadAll: boolean
 ) {
   const assigned = {
-    workspaceId: project.workspaceId,
     projectId: project._id,
     subjectId,
     relationship: "assigned",
-  } satisfies ReturnType<typeof contribution>["namespace"];
-  const created = { ...assigned, relationship: "created" } satisfies ReturnType<typeof contribution>["namespace"];
-  const subscribed = { ...assigned, relationship: "subscribed" } satisfies ReturnType<typeof contribution>["namespace"];
+  } satisfies NonNullable<ReturnType<typeof contribution>>["namespace"];
+  const created = { ...assigned, relationship: "created" } satisfies NonNullable<
+    ReturnType<typeof contribution>
+  >["namespace"];
+  const subscribed = { ...assigned, relationship: "subscribed" } satisfies NonNullable<
+    ReturnType<typeof contribution>
+  >["namespace"];
   const cells = status.members.flatMap((state) =>
     priority.members.map((level) => ({ status: state.value, priority: level.value }))
   );
   const queries: Parameters<typeof aggregate.countBatch>[1] = cells.map((cell) => ({
     namespace: assigned,
-    bounds: { prefix: canReadAll ? [true, cell.status, cell.priority] : [true, cell.status, cell.priority, viewerId] },
+    bounds: { prefix: canReadAll ? [cell.status, cell.priority] : [cell.status, cell.priority, viewerId] },
   }));
   const [counts, completedByTimestamp, createdCount, subscribedCount] = await Promise.all([
     aggregate.countBatch(ctx, queries),
     canReadAll
-      ? aggregate.sum(ctx, { namespace: assigned, bounds: { prefix: [true] } })
+      ? aggregate.sum(ctx, { namespace: assigned })
       : aggregate.sumBatch(ctx, queries).then((values) => values.reduce((sum, value) => sum + value, 0)),
     aggregate.count(ctx, {
       namespace: created,
-      bounds: { prefix: canReadAll ? [true] : [true, viewerId] },
+      bounds: canReadAll ? undefined : { eq: viewerId },
     }),
     aggregate.count(ctx, {
       namespace: subscribed,
-      bounds: { prefix: canReadAll ? [true] : [true, viewerId] },
+      bounds: canReadAll ? undefined : { eq: viewerId },
     }),
   ]);
   const statusDistribution = status.members.map((state) => ({
@@ -235,7 +229,7 @@ export const summary = query({
     const { access, target } = await requireSubject(ctx, args.workspaceId, args.userId);
     const readiness = await ctx.db
       .query("taskProfileMigrations")
-      .withIndex("name", (q) => q.eq("name", getFunctionName(internal.tasks.profile.backfill)))
+      .withIndex("name", (q) => q.eq("name", getFunctionName(internal.tasks.profile.backfillCounts)))
       .unique();
     if (!readiness?.isDone)
       throw new ConvexError("Member profile totals are unavailable until the native task index backfill finishes.");
