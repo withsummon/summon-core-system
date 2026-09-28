@@ -45,6 +45,7 @@
     "cmdk": "catalog:",
     "comlink": "catalog:",
     "convex": "catalog:",
+    "convex-helpers": "catalog:",
     "date-fns": "catalog:",
     "emoji-picker-react": "catalog:",
     "export-to-csv": "catalog:",

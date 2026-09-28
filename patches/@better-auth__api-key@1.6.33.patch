@@ -1,0 +1,65 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index abbc8435004a091bfc22a3bf917d88cc2649da1a..b2ee8b9c0d5f802ffcb4d0ea783d46de9f36f426 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -799,7 +799,7 @@ function createApiKey({ defaultKeyGenerator, configurations, schema, deleteAllEx
+ 			if (name.length < opts.minimumNameLength) throw APIError$1.from("BAD_REQUEST", API_KEY_ERROR_CODES.INVALID_NAME_LENGTH);
+ 			if (name.length > opts.maximumNameLength) throw APIError$1.from("BAD_REQUEST", API_KEY_ERROR_CODES.INVALID_NAME_LENGTH);
+ 		} else if (opts.requireName) throw APIError$1.from("BAD_REQUEST", API_KEY_ERROR_CODES.NAME_REQUIRED);
+-		deleteAllExpiredApiKeys(ctx.context);
++		await deleteAllExpiredApiKeys(ctx.context);
+ 		const key = await keyGenerator({
+ 			length: opts.defaultKeyLength,
+ 			prefix: prefix || opts.defaultPrefix
+@@ -944,7 +944,7 @@ function deleteApiKey({ configurations, schema, deleteAllExpiredApiKeys }) {
+ 		} catch (error) {
+ 			throw APIError$1.fromStatus("INTERNAL_SERVER_ERROR", { message: error?.message });
+ 		}
+-		deleteAllExpiredApiKeys(ctx.context);
++		await deleteAllExpiredApiKeys(ctx.context);
+ 		return ctx.json({ success: true });
+ 	});
+ }
+@@ -1090,7 +1090,7 @@ function getApiKey({ configurations, schema, deleteAllExpiredApiKeys }) {
+ 		const opts = resolveConfiguration(ctx.context, configurations, apiKey.configId);
+ 		if ((opts.references ?? "user") === "organization") await checkOrgApiKeyPermission(ctx, session.user.id, apiKey.referenceId, "read");
+ 		else if (apiKey.referenceId !== session.user.id) throw APIError$1.from("NOT_FOUND", API_KEY_ERROR_CODES.KEY_NOT_FOUND);
+-		deleteAllExpiredApiKeys(ctx.context);
++		await deleteAllExpiredApiKeys(ctx.context);
+ 		const metadata = await migrateDoubleStringifiedMetadata(ctx, apiKey, opts);
+ 		const { key: _key, ...returningApiKey } = apiKey;
+ 		return ctx.json({
+@@ -1314,7 +1314,7 @@ function listApiKeys({ configurations, schema, deleteAllExpiredApiKeys }) {
+ 		let paginatedApiKeys = filteredApiKeys;
+ 		if (offset !== void 0) paginatedApiKeys = paginatedApiKeys.slice(offset);
+ 		if (limit !== void 0) paginatedApiKeys = paginatedApiKeys.slice(0, limit);
+-		deleteAllExpiredApiKeys(ctx.context);
++		await deleteAllExpiredApiKeys(ctx.context);
+ 		const returningApiKeys = paginatedApiKeys.map((apiKey) => {
+ 			const { key: _key, ...rest } = apiKey;
+ 			return {
+@@ -1562,7 +1562,7 @@ function updateApiKey({ configurations, schema, deleteAllExpiredApiKeys }) {
+ 		} catch (error) {
+ 			throw APIError$1.fromStatus("INTERNAL_SERVER_ERROR", { message: error?.message });
+ 		}
+-		deleteAllExpiredApiKeys(ctx.context);
++		await deleteAllExpiredApiKeys(ctx.context);
+ 		const migratedMetadata = await migrateDoubleStringifiedMetadata(ctx, newApiKey, opts);
+ 		const { key: _key, ...returningApiKey } = newApiKey;
+ 		return ctx.json({
+@@ -1997,14 +1997,7 @@ function verifyApiKey({ configurations, schema, deleteAllExpiredApiKeys }) {
+ 				},
+ 				key: null
+ 			});
+-			return ctx.json({
+-				valid: false,
+-				error: {
+-					message: API_KEY_ERROR_CODES.INVALID_API_KEY,
+-					code: "INVALID_API_KEY"
+-				},
+-				key: null
+-			});
++			throw error;
+ 		}
+ 		const { key: _, ...returningApiKey } = apiKey ?? {
+ 			key: 1,

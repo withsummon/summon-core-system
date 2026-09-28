@@ -264,6 +264,9 @@ catalogs:
     convex:
       specifier: 1.46.0
       version: 1.46.0
+    convex-helpers:
+      specifier: 0.1.124
+      version: 0.1.124
     cors:
       specifier: ^2.8.5
       version: 2.8.5
@@ -568,6 +571,7 @@ overrides:
   morgan: 1.11.0
 
 patchedDependencies:
+  '@better-auth/api-key@1.6.33': f608b81d542870562278c6c42f59bafa1aa59081d4ff8881a5568bcd02eecba1
   '@convex-dev/auth@0.0.95': 893f368a07f462d0c0df822f2c3ee33cf9b5e2aef737d9047df7264fd5bb8460
   '@convex-dev/better-auth@0.12.5': d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3
 
@@ -718,7 +722,7 @@ importers:
     dependencies:
       '@better-auth/api-key':
         specifier: 1.6.33
-        version: 1.6.33(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@3.25.76))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(better-call@1.4.0(zod@3.25.76))
+        version: 1.6.33(patch_hash=f608b81d542870562278c6c42f59bafa1aa59081d4ff8881a5568bcd02eecba1)(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@3.25.76))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(better-call@1.4.0(zod@3.25.76))
       '@convex-dev/auth':
         specifier: 'catalog:'
         version: 0.0.95(patch_hash=893f368a07f462d0c0df822f2c3ee33cf9b5e2aef737d9047df7264fd5bb8460)(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
@@ -734,6 +738,9 @@ importers:
       convex:
         specifier: 'catalog:'
         version: 1.46.0(react@18.3.1)
+      convex-helpers:
+        specifier: 'catalog:'
+        version: 0.1.124(@standard-schema/spec@1.1.0)(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)(zod@3.25.76)
       sanitize-html:
         specifier: 'catalog:'
         version: 2.17.5
@@ -1127,6 +1134,9 @@ importers:
       convex:
         specifier: 'catalog:'
         version: 1.46.0(react@18.3.1)
+      convex-helpers:
+        specifier: 'catalog:'
+        version: 0.1.124(@standard-schema/spec@1.1.0)(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)(zod@4.6.5)
       date-fns:
         specifier: 'catalog:'
         version: 4.1.0
@@ -10527,7 +10537,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@better-auth/api-key@1.6.33(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@3.25.76))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(better-call@1.4.0(zod@3.25.76))':
+  '@better-auth/api-key@1.6.33(patch_hash=f608b81d542870562278c6c42f59bafa1aa59081d4ff8881a5568bcd02eecba1)(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@3.25.76))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(better-call@1.4.0(zod@3.25.76))':
     dependencies:
       '@better-auth/core': 1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@3.25.76))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4)
       '@better-auth/utils': 0.4.2
@@ -14024,6 +14034,15 @@ snapshots:
   content-type@1.0.5: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-helpers@0.1.124(@standard-schema/spec@1.1.0)(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)(zod@3.25.76):
+    dependencies:
+      convex: 1.46.0(react@18.3.1)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      react: 18.3.1
+      typescript: 7.0.2
+      zod: 3.25.76
 
   convex-helpers@0.1.124(@standard-schema/spec@1.1.0)(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)(zod@4.6.5):
     dependencies:

@@ -17,7 +17,15 @@ export const preferences = v.object({
     darkPalette: v.optional(v.boolean()),
   }),
   language: v.string(),
-  startOfWeek: v.number(),
+  startOfWeek: v.union(
+    v.literal(0),
+    v.literal(1),
+    v.literal(2),
+    v.literal(3),
+    v.literal(4),
+    v.literal(5),
+    v.literal(6)
+  ),
   appRailDocked: v.boolean(),
   smoothCursor: v.boolean(),
   notificationViewMode: v.union(v.literal("full"), v.literal("compact")),

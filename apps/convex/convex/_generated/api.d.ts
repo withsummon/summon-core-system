@@ -80,6 +80,7 @@ import type * as favorites_write from "../favorites/write.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_accounts_unlink from "../identity/accounts/unlink.js";
+import type * as identity_apiTokens from "../identity/apiTokens.js";
 import type * as identity_avatar from "../identity/avatar.js";
 import type * as identity_avatar_access from "../identity/avatar_access.js";
 import type * as identity_avatar_owner from "../identity/avatar_owner.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/accounts/unlink": typeof identity_accounts_unlink;
+  "identity/apiTokens": typeof identity_apiTokens;
   "identity/avatar": typeof identity_avatar;
   "identity/avatar_access": typeof identity_avatar_access;
   "identity/avatar_owner": typeof identity_avatar_owner;
@@ -523,5 +525,5 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
 export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 
 export declare const components: {
-  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  betterAuth: import("../betterAuth/_generated/component.js").ComponentApi<"betterAuth">;
 };

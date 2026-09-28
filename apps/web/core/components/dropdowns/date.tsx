@@ -13,7 +13,6 @@ import type { Matcher } from "@plane/propel/calendar";
 import { Calendar } from "@plane/propel/calendar";
 import { CloseIcon } from "@plane/propel/icons";
 import { cn, renderFormattedDate, getDate } from "@plane/utils";
-// helpers
 // hooks
 import { useUserProfile } from "@/hooks/store/user";
 import { useDropdown } from "@/hooks/use-dropdown";
@@ -42,17 +41,24 @@ type Props = TDropdownProps & {
 };
 
 export const DateDropdown = observer(function DateDropdown(props: Props) {
+  const { data } = useUserProfile();
+  return <DateDropdownView {...props} weekStartsOn={data?.start_of_the_week} />;
+});
+
+export function DateDropdownView(
+  props: Props & { weekStartsOn?: React.ComponentProps<typeof Calendar>["weekStartsOn"] }
+) {
   const {
-    buttonClassName = "",
+    buttonClassName,
     buttonContainerClassName,
     buttonVariant,
-    className = "",
-    clearIconClassName = "",
+    className,
+    clearIconClassName,
     defaultOpen = false,
-    optionsClassName = "",
+    optionsClassName,
     closeOnSelect = true,
-    disabled = false,
-    hideIcon = false,
+    disabled,
+    hideIcon,
     icon = <CalendarDays className="h-3 w-3 flex-shrink-0" />,
     isClearable = true,
     minDate,
@@ -66,14 +72,11 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
     value,
     formatToken,
     renderByDefault = true,
-    labelClassName = "",
+    labelClassName,
+    weekStartsOn,
   } = props;
   // states
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  // hooks
-  const { data } = useUserProfile();
-  const startOfWeek = data?.start_of_the_week;
-
   const isDateSelected = value && value.toString().trim() !== "";
 
   const { handleClose, handleOpenChange } = useDropdown({ onClose, setIsOpen });
@@ -136,6 +139,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
       <Popover open={isOpen} onOpenChange={handleOpenChange}>
         <Popover.Button render={trigger} disabled={disabled} tabIndex={tabIndex} />
         <Popover.Panel
+          aria-label={placeholder}
           placement={placement ?? "bottom-start"}
           sideOffset={4}
           positionerClassName="z-[120]"
@@ -156,10 +160,10 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
             disabled={disabledDays}
             mode="single"
             fixedWeeks
-            weekStartsOn={startOfWeek}
+            weekStartsOn={weekStartsOn}
           />
         </Popover.Panel>
       </Popover>
     </div>
   );
-});
+}

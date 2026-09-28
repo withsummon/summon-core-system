@@ -5,38 +5,35 @@
  */
 
 import { useState } from "react";
-import { observer } from "mobx-react";
-import useSWR from "swr";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import { APITokenService } from "@plane/services";
 // components
 import { CreateApiTokenModal } from "@/components/api-token/modal/create-token-modal";
 import { ApiTokenListItem } from "@/components/api-token/token-list-item";
 import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 import { APITokenSettingsLoader } from "@/components/ui/loader/settings/api-token";
-// constants
-import { API_TOKENS_LIST } from "@plane/constants";
-
-const apiTokenService = new APITokenService();
-
-export const APITokensProfileSettings = observer(function APITokensProfileSettings() {
+export function APITokensProfileSettings() {
   // states
   const [isCreateTokenModalOpen, setIsCreateTokenModalOpen] = useState(false);
-  // store hooks
-  const { data: tokens } = useSWR(API_TOKENS_LIST, () => apiTokenService.list());
+  const {
+    results: tokens,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.identity.apiTokens.list, {}, { initialNumItems: 30 });
   // translation
   const { t } = useTranslation();
 
-  if (!tokens) {
+  if (status === "LoadingFirstPage") {
     return <APITokenSettingsLoader />;
   }
 
   return (
     <div className="size-full">
-      <CreateApiTokenModal isOpen={isCreateTokenModalOpen} onClose={() => setIsCreateTokenModalOpen(false)} />
+      {isCreateTokenModalOpen && <CreateApiTokenModal onClose={() => setIsCreateTokenModalOpen(false)} />}
       <ProfileSettingsHeading
         title={t("account_settings.api_tokens.title")}
         description={t("account_settings.api_tokens.description")}
@@ -48,13 +45,11 @@ export const APITokensProfileSettings = observer(function APITokensProfileSettin
       />
       <div className="mt-7">
         {tokens.length > 0 ? (
-          <>
-            <div>
-              {tokens.map((token) => (
-                <ApiTokenListItem key={token.id} token={token} />
-              ))}
-            </div>
-          </>
+          <div>
+            {tokens.map((token) => (
+              <ApiTokenListItem key={token._id} token={token} />
+            ))}
+          </div>
         ) : (
           <EmptyStateCompact
             assetKey="token"
@@ -73,7 +68,12 @@ export const APITokensProfileSettings = observer(function APITokensProfileSettin
             rootClassName="py-20"
           />
         )}
+        {(status === "CanLoadMore" || status === "LoadingMore") && (
+          <Button variant="secondary" loading={status === "LoadingMore"} onClick={() => loadMore(30)}>
+            {status === "LoadingMore" ? "Loading more tokens…" : "Load more tokens"}
+          </Button>
+        )}
       </div>
     </div>
   );
-});
+}
