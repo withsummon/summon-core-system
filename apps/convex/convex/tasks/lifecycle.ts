@@ -4,9 +4,9 @@ import type { Infer } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import { requireProject } from "../identity/access";
+import { requireProject, requireUser } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { requireTask, taskDetail, taskRoleCanRead } from "./access";
+import { requireTask, taskDetail, taskCanRead, taskRoleCanRead } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 const MAX_BULK_TASKS = 20;
 export const lifecycleOperation = v.union(
@@ -107,11 +107,13 @@ export const list = query({
 export const get = query({
   args: { taskId: v.string(), view: v.union(v.literal("archived"), v.literal("deleted")) },
   handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
     const id = ctx.db.normalizeId("tasks", args.taskId);
-    if (!id) throw new ConvexError("Task not found.");
-    const task = await requireTask(ctx, id, args.view === "deleted" ? "recovery" : "read");
+    const task = id ? await ctx.db.get(id) : null;
+    if (!task || task.status === "triage") return null;
     if (args.view === "deleted" ? task.deletedAt == null : task.deletedAt != null || task.archivedAt == null)
-      throw new ConvexError("Task not found.");
-    return taskDetail(ctx, task);
+      return null;
+    if (!(await taskCanRead(ctx, task, user._id, args.view === "deleted" ? "recovery" : "read"))) return null;
+    return taskDetail(ctx, { ...task, status: task.status });
   },
 });

@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import { requireUser, requireWorkspace, requireProject } from "../identity/access";
-import { requireTask, taskDetail } from "../tasks/access";
+import { taskCanRead, taskDetail } from "../tasks/access";
 
 async function workspaceAddress(ctx: QueryCtx, workspaceSlug: string) {
   await requireUser(ctx);
@@ -50,7 +50,7 @@ export const resolveTask = query({
     if (!match || match[1] !== match[1].trim()) throw new ConvexError("Invalid task address.");
     const sequence = Number(match[2]);
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new ConvexError("Invalid task address.");
-    const { workspace, project } = await projectAddress(
+    const { user, workspace, project } = await projectAddress(
       ctx,
       args.workspaceSlug,
       validateIdentifier(match[1], "Invalid task address.")
@@ -59,13 +59,18 @@ export const resolveTask = query({
       .query("tasks")
       .withIndex("by_project_sequence", (q) => q.eq("projectId", project._id).eq("sequence", sequence))
       .unique();
-    if (!task || task.workspaceId !== workspace._id) throw new ConvexError("Task not found.");
-    const readable = await requireTask(ctx, task._id, "read");
+    if (
+      !task ||
+      task.workspaceId !== workspace._id ||
+      task.status === "triage" ||
+      !(await taskCanRead(ctx, task, user._id))
+    )
+      return null;
     return {
       workspace: { id: workspace._id, slug: workspace.slug, name: workspace.name },
       project: { id: project._id, identifier: project.identifier, name: project.name },
       workItem: `${project.identifier}-${task.sequence}`,
-      task: await taskDetail(ctx, readable),
+      task: await taskDetail(ctx, { ...task, status: task.status }),
     };
   },
 });

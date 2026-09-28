@@ -6,7 +6,7 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
-type Task = FunctionReturnType<typeof api.tasks.index.get>;
+type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Operation = FunctionArgs<typeof api.tasks.lifecycle.change>["operation"];
 export function TaskLifecycle({ task }: { task: Task }) {

@@ -1,4 +1,4 @@
-import { requireTask, taskIsActive, taskDetail, readableTasks } from "./access";
+import { taskIsActive, taskDetail, taskCanRead, readableTasks } from "./access";
 import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
 import { syncPlainDescription } from "./description";
 import { createPreparedTask } from "./create";
@@ -6,7 +6,7 @@ import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
-import { requireProject } from "../identity/access";
+import { requireProject, requireUser } from "../identity/access";
 import { status, taskProperties } from "./schema";
 import { parseTaskText } from "./properties";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
@@ -56,10 +56,13 @@ export const setStatus = mutation({
 });
 
 export const get = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: v.string() },
   handler: async (ctx, args) => {
-    const task = await requireTask(ctx, args.taskId, "read");
-    return taskDetail(ctx, task);
+    const user = await requireUser(ctx);
+    const id = ctx.db.normalizeId("tasks", args.taskId);
+    const task = id ? await ctx.db.get(id) : null;
+    if (!task || task.status === "triage" || !(await taskCanRead(ctx, task, user._id))) return null;
+    return taskDetail(ctx, { ...task, status: task.status });
   },
 });
 export const update = mutation({
@@ -77,15 +80,5 @@ export const update = mutation({
     if (description !== undefined) await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
     await applyPropertyUpdate(ctx, prepared, text);
     return taskId;
-  },
-});
-
-export const resolve = query({
-  args: { taskId: v.string() },
-  handler: async (ctx, args) => {
-    const taskId = ctx.db.normalizeId("tasks", args.taskId);
-    if (!taskId) throw new ConvexError("Task not found.");
-    const task = await requireTask(ctx, taskId, "read");
-    return taskDetail(ctx, task);
   },
 });

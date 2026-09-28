@@ -1,7 +1,6 @@
 import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
-import { Component, lazy, Suspense, useState } from "react";
-import type { ReactNode } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -27,9 +26,9 @@ const TaskActivity = lazy(() => import("./activity/activity").then((module) => (
 const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ default: module.TaskStructure })));
 
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
-type Task = FunctionReturnType<typeof api.tasks.index.get>;
+type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 
-function TaskDetailContent({
+export function TaskDetail({
   taskId,
   project,
   onBack,
@@ -40,12 +39,13 @@ function TaskDetailContent({
   onBack: () => void;
   recovery?: boolean;
 }) {
-  const active = useQuery(api.tasks.index.resolve, recovery ? "skip" : { taskId });
+  const active = useQuery(api.tasks.index.get, recovery ? "skip" : { taskId });
   const recovered = useQuery(api.tasks.lifecycle.get, recovery ? { taskId, view: "deleted" } : "skip");
   const task = recovery ? recovered : active;
   const [editing, setEditing] = useState(false);
   const canWrite = task?.canEdit === true;
-  if (!task) return <p role="status">Opening task…</p>;
+  if (task === undefined) return <p role="status">Opening task…</p>;
+  if (task === null) return <TaskUnavailable onBack={onBack} />;
   if (task.projectId !== project._id) return <TaskUnavailable onBack={onBack} />;
   return (
     <article className="space-y-5">
@@ -162,13 +162,6 @@ function TaskForm({ task, projectId, onDone }: { task: Task; projectId: Id<"proj
   );
 }
 
-export function TaskDetail(props: { taskId: string; project: Project; onBack: () => void; recovery?: boolean }) {
-  return (
-    <TaskAccessBoundary key={`${props.taskId}:${props.recovery ? "deleted" : "read"}`} onBack={props.onBack}>
-      <TaskDetailContent {...props} />
-    </TaskAccessBoundary>
-  );
-}
 function TaskUnavailable({ onBack }: { onBack: () => void }) {
   return (
     <section className="space-y-4">
@@ -181,13 +174,4 @@ function TaskUnavailable({ onBack }: { onBack: () => void }) {
       </Button>
     </section>
   );
-}
-class TaskAccessBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    return this.state.failed ? <TaskUnavailable onBack={this.props.onBack} /> : this.props.children;
-  }
 }
