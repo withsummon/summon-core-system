@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
+import { cn } from "@plane/utils";
 import { AssetTransfers } from "../documents/asset-transfers";
 export function AuthenticatedAssetImage({
   asset,
@@ -46,9 +47,9 @@ export function AuthenticatedAssetImage({
   const url = source?.path === asset.downloadPath ? source.url : null;
   if (compactName !== undefined) {
     return url ? (
-      <img src={url} alt="" className="h-6 w-6 shrink-0 rounded-md border border-subtle object-contain" />
+      <img src={url} alt="" className={cn("shrink-0", className)} />
     ) : (
-      <AssetInitial name={compactName} error={error} />
+      <AssetInitial name={compactName} error={error} className={className} />
     );
   }
   if (error)
@@ -60,12 +61,15 @@ export function AuthenticatedAssetImage({
   return url ? <img src={url} alt={alt} className={className} /> : <p role="status">Loading {alt.toLowerCase()}…</p>;
 }
 
-export function AssetInitial({ name, error }: { name: string; error?: string }) {
+export function AssetInitial({ name, error, className }: { name: string; error?: string; className?: string }) {
   return (
     <span
       aria-hidden="true"
       title={error || undefined}
-      className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent-primary text-12 font-semibold text-on-color"
+      className={cn(
+        "grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent-primary text-12 font-semibold text-on-color",
+        className
+      )}
     >
       {name.slice(0, 1).toLocaleUpperCase()}
     </span>
