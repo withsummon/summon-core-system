@@ -1,22 +1,22 @@
 # Native registered surfaces
 
-Snapshot: 2026-09-29, immutable export of committed `409cc224077a557b9ba8b14165b363b940494c26`; uncommitted profile/commercial/project presentation candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **606 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Snapshot: 2026-09-29, immutable export of committed `2f324f19e3ba10a441290d0f5cbeeeb60e649602`; uncommitted profile/commercial/project-directory, contextual task creation and Cycles/Modules candidates are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **607 distinct rows, all OPEN**. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 ## Registered boundaries
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     523 | 448 public and 75 internal declarations across generated app modules.                                               |
+| App RPC                     |     524 | 449 public and 75 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **606** | **All OPEN.**                                                                                                       |
+| **Total**                   | **607** | **All OPEN.**                                                                                                       |
 
-The 535 declarations comprise 527 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The 536 declarations comprise 528 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
-This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. These source contracts still need their complete route, role and recovery acceptance.
+This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
 
 ## HTTP candidates and availability
 
@@ -34,7 +34,7 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 | -------------- | -----------: | ------------- | -----------: |
 | Identity       |           23 | Account       |           27 |
 | Instance       |            7 | Workspace     |           39 |
-| Shared shell   |           22 | Projects      |           56 |
+| Shared shell   |           22 | Projects      |           57 |
 | Tasks          |           73 | Cycles        |           20 |
 | Modules        |           18 | Intake        |           13 |
 | Views/search   |           23 | Documents     |           38 |
