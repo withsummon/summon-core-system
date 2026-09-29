@@ -38,7 +38,11 @@ export async function resultPage(
         )
       )
         return null;
-      return { task, project: projectSummary(permission.project) };
+      return {
+        task,
+        project: projectSummary(permission.project),
+        state: task.stateId ? await ctx.db.get(task.stateId) : null,
+      };
     })
     .paginate(pageBudget(paginationOpts));
   return { ...result, viewUpdatedAt: view.updatedAt };
