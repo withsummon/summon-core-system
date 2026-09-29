@@ -1,7 +1,7 @@
 import { accountRestricted } from "./deactivation/access";
 import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import { internal } from "../_generated/api";
+import { authComponent, createAuth } from "../better_auth";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
@@ -30,9 +30,17 @@ export async function requireIdentity(
       expiresAt: current.session.expirationTime,
     };
   }
-  const authUser = await ctx.runQuery(internal.better_auth.sessionUser, {});
-  if (!authUser?.emailVerified)
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity)
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
+  const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+  const current = await auth.api.getSession({
+    headers,
+    query: { disableCookieCache: true, disableRefresh: true },
+  });
+  if (!current?.user.emailVerified || current.user.id !== identity.subject || current.session.id !== identity.sessionId)
+    throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
+  const authUser = current.user;
   const link = await ctx.db
     .query("betterAuthLinks")
     .withIndex("by_auth_id", (q) => q.eq("authId", authUser.id))
@@ -42,7 +50,7 @@ export async function requireIdentity(
     throw new ConvexError("Your account is unavailable.");
   if (await accountRestricted(ctx, user._id))
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
-  return { user, sessionId: authUser.sessionId, expiresAt: authUser.expiresAt };
+  return { user, sessionId: current.session.id, expiresAt: Number(current.session.expiresAt) };
 }
 export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
   return (await requireIdentity(ctx)).user;
