@@ -2,6 +2,8 @@ import { taskCanRead } from "./access";
 import { taskIsActive } from "./access";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
@@ -59,22 +61,14 @@ export const list = query({
     const { user } = await requireWorkspace(ctx, args.workspaceId);
     date(args.today);
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("tasks")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    // The cursor covers scanned rows; consumers must continue through empty filtered pages. Never report page size as a global total.
-    const visible = await Promise.all(
-      result.page.map(async (task) => {
+      .map(async (task) => {
         if (!taskIsActive(task) || !(await taskCanRead(ctx, task, user._id))) return null;
         const project = await ctx.db.get(task.projectId);
-        if (!project || project.archived || project.deletedAt != null) return null;
-        const membership = await ctx.db
-          .query("projectMembers")
-          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", user._id))
-          .unique();
-        if (!membership?.active) return null;
+        if (!project) return null;
         const matches = [
           !args.projectId || task.projectId === args.projectId,
           !args.priority || task.priority === args.priority,
@@ -90,7 +84,6 @@ export const list = query({
           state,
         };
       })
-    );
-    return { ...result, page: visible.filter((task) => task !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
