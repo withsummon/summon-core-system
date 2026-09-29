@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query } from "../_generated/server";
 import { requireProjectDiscovery } from "./network_access";
 import { pageBudget } from "../commercial/validation";
@@ -11,12 +13,10 @@ export const members = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { project } = await requireProjectDiscovery(ctx, args.projectId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
-      .paginate(pageBudget(args.paginationOpts));
-    const page = await Promise.all(
-      result.page.map(async (row) => {
+      .map(async (row) => {
         if (!row.active || row.workspaceId !== project.workspaceId) return null;
         const membership = await ctx.db
           .query("workspaceMembers")
@@ -35,7 +35,6 @@ export const members = query({
           ),
         };
       })
-    );
-    return { ...result, page: page.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
