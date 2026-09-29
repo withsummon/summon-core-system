@@ -19,7 +19,7 @@ export async function requireNetworkScope(ctx: QueryCtx, projectId: Id<"projects
     .unique();
   return { ...access, project, membership };
 }
-export function canDiscover(network: ProjectNetwork, role: string, joined: boolean) {
+export function canDiscover(network: ProjectNetwork, role: Doc<"workspaceMembers">["role"], joined: boolean) {
   return joined || role === "admin" || (role === "member" && network === 2);
 }
 export async function requireProjectDiscovery(ctx: QueryCtx, projectId: Id<"projects">) {

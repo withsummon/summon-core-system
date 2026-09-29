@@ -14,6 +14,7 @@ import { requireWorkspace } from "../identity/access";
 import { canAdministerProject } from "./administration";
 import { grantProjectMembership } from "./index";
 import { projectNetwork } from "./network_schema";
+import { directoryPerson } from "./directory";
 import { pageBudget } from "../commercial/validation";
 function revision(project: Doc<"projects">, expected: number) {
   if (!Number.isSafeInteger(expected) || project.metadataRevision !== expected)
@@ -39,6 +40,7 @@ async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof
     name: project.name,
     identifier: project.identifier,
     description: project.description,
+    lead: project.leadId ? await directoryPerson(ctx, project.leadId, project.workspaceId) : null,
     logoProps,
     logo: renderedProjectLogo(logoProps),
     createdAt: project._creationTime,
