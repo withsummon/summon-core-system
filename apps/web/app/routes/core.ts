@@ -70,14 +70,6 @@ export const coreRoutes: RouteConfigEntry[] = [
               ]),
             ]),
 
-        // Workspace Views
-        layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [
-          route(
-            ":workspaceSlug/workspace-views/:globalViewId",
-            "./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx"
-          ),
-        ]),
-
         // --------------------------------------------------------------------
         // PROJECT LEVEL ROUTES
         // --------------------------------------------------------------------

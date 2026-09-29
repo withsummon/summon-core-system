@@ -215,9 +215,7 @@ export default function NativeWorkspaceView() {
                 initial={null}
                 onDone={(id) => {
                   setCreatingView(false);
-                  navigate(
-                    `/core?${new URLSearchParams({ workspace: session.workspace.slug, module: "views", savedView: id })}`
-                  );
+                  navigate(`/${session.workspace.slug}/workspace-views/${id}/`);
                 }}
                 onCancel={() => setCreatingView(false)}
               />
