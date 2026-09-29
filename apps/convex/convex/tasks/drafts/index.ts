@@ -10,8 +10,6 @@ import { initialProperties } from "../properties";
 import { taskRichContent } from "../rich_content";
 import { createPreparedTask } from "../create";
 import { requireTask } from "../access";
-import { assignCycleTask } from "../../cycles/tasks";
-import { setModuleTask } from "../../modules/tasks";
 import { draftFields } from "./fields";
 import { requireDraft, draftRevision, draftProjectReadable } from "./access";
 import { validateDraft } from "./validate";
@@ -154,20 +152,11 @@ export const publish = mutation({
         properties: draft.properties,
         useDefaultState: draft.status === null && draft.properties.stateId === null,
         parent: draft.parent ?? undefined,
+        cycle: draft.cycle,
+        modules: draft.modules,
       },
       draft.html
     );
-    if (draft.cycle) {
-      const task = await requireTask(ctx, taskId);
-      await assignCycleTask(ctx, { ...draft.cycle, taskId, expectedTaskUpdatedAt: task.updatedAt });
-    }
-    // Each relationship advances task CAS in this same transaction.
-    for (const ref of draft.modules) {
-      // eslint-disable-next-line no-await-in-loop
-      const task = await requireTask(ctx, taskId);
-      // eslint-disable-next-line no-await-in-loop
-      await setModuleTask(ctx, { ...ref, taskId, assigned: true, expectedTaskUpdatedAt: task.updatedAt });
-    }
     await preserveDescriptionRepresentations(ctx, taskId, draft.descriptionJson, draft.descriptionBinary);
     await transferDraftAttachments(ctx, draft, taskId);
     await ctx.db.patch(draft._id, { publishedTaskId: taskId, updatedAt: Math.max(Date.now(), draft.updatedAt + 1) });

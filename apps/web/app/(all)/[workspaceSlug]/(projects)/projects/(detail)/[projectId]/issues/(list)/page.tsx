@@ -4,8 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef } from "react";
-import { useNavigate, useOutletContext, useSearchParams } from "react-router";
+import { useOutletContext } from "react-router";
 import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
@@ -13,20 +12,14 @@ import { api } from "@summon/convex/api";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { PriorityIcon } from "@plane/propel/icons";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 // components
 import { PageHead } from "@/components/core/page-title";
-import { IssueListBlockView } from "@/components/issues/issue-layouts/list/block";
-import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
 import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loader";
 import { taskStatusOptions } from "@/components/convex-core/tasks/options";
-import { renderFormattedDate } from "@plane/utils";
 import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
-import { TaskLifecycle, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
-import { Menu } from "@plane/propel/menu";
-import { usePlatformOS } from "@/hooks/use-platform-os";
+import { ProjectIssueRow } from "@/components/convex-core/tasks/lifecycle";
 
 export default function ProjectIssuesPage() {
   const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
@@ -75,77 +68,5 @@ export default function ProjectIssuesPage() {
       </div>
       <TaskPeek workspaceSlug={workspace.slug} />
     </>
-  );
-}
-
-function ProjectIssueRow({
-  task,
-  identifier,
-  identifierWidth,
-  href,
-  stateName,
-}: {
-  task: FunctionReturnType<typeof api.tasks.index.list>["page"][number];
-  identifier: string;
-  identifierWidth: number;
-  href: string;
-  stateName: string;
-}) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const { isMobile } = usePlatformOS();
-  const lifecycle = useTaskLifecycle(() => {});
-  const peeked = params.get("peek") === identifier;
-  return (
-    <li>
-      <IssueListBlockView
-        issueId={task._id}
-        href={href}
-        name={task.title}
-        ariaLabel={`${identifier}: ${task.title}`}
-        onOpen={() => {
-          if (isMobile) navigate(href);
-          else
-            setParams((current) => {
-              const next = new URLSearchParams(current);
-              next.set("peek", identifier);
-              return next;
-            });
-        }}
-        rowRef={rowRef}
-        onDragStart={undefined}
-        isPeeked={peeked}
-        isPeekedAtCurrentLevel={peeked}
-        isActive={false}
-        isSelected={false}
-        isDragging={false}
-        disabled={false}
-        pending={lifecycle.pending}
-        identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}
-        indent={0}
-        selection={null}
-        expansion={null}
-        properties={
-          <>
-            <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular">{stateName}</span>
-            <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular capitalize">
-              <PriorityIcon priority={task.priority} className="size-3.5" />
-              {task.priority}
-            </span>
-            {task.targetDate && (
-              <span className="text-caption-sm-regular text-secondary">{renderFormattedDate(task.targetDate)}</span>
-            )}
-          </>
-        }
-        actions={() => (
-          <TaskLifecycle task={task} disabled={false} lifecycle={lifecycle}>
-            <Menu.MenuItem onClick={() => window.open(href, "_blank", "noopener,noreferrer")}>
-              Open in new tab
-            </Menu.MenuItem>
-          </TaskLifecycle>
-        )}
-      />
-    </li>
   );
 }

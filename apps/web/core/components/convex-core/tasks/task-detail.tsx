@@ -48,6 +48,10 @@ const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ 
 
 type Project = Doc<"projects">;
 type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
+type CreateValues = Required<
+  Pick<FunctionArgs<typeof api.tasks.index.create>, "title" | "html" | "status" | "properties">
+> &
+  Pick<FunctionArgs<typeof api.tasks.index.create>, "cycle" | "modules">;
 
 export function CopyWorkItemLink({
   href,
@@ -382,11 +386,13 @@ export function CreateProjectIssue({
   states,
   onClose,
   initialValues = {},
+  canCreate = true,
 }: {
   address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
   states: FunctionReturnType<typeof api.tasks.states.list>;
   onClose: () => void;
-  initialValues?: DefaultValues<Required<Pick<FunctionArgs<typeof api.tasks.index.create>, "status" | "properties">>>;
+  initialValues?: DefaultValues<Pick<CreateValues, "status" | "properties">> & Pick<CreateValues, "cycle" | "modules">;
+  canCreate?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -404,7 +410,7 @@ export function CreateProjectIssue({
     clearErrors,
     setError,
     formState: { isDirty, isSubmitting, errors },
-  } = useForm<Required<Pick<FunctionArgs<typeof api.tasks.index.create>, "title" | "html" | "status" | "properties">>>({
+  } = useForm<CreateValues>({
     defaultValues: {
       title: "",
       html: "<p></p>",
@@ -453,6 +459,7 @@ export function CreateProjectIssue({
         className="flex w-full flex-col rounded-lg bg-surface-1"
         aria-busy={isSubmitting}
         onSubmit={handleSubmit(async (values) => {
+          if (!canCreate) return;
           continuation.current = () => {
             if (createMore) reset();
             else onClose();
@@ -514,26 +521,28 @@ export function CreateProjectIssue({
             }}
           />
         </fieldset>
+        {!canCreate && (
+          <p role="alert" className="px-5 text-14 text-danger-primary">
+            You can no longer create a work item here. Your unsaved changes are retained.
+          </p>
+        )}
         {errors.root && (
           <p role="alert" className="px-5 text-14 text-danger-primary">
             {errors.root.message}
           </p>
         )}
         <div className="flex flex-wrap items-center justify-end gap-4 border-t border-subtle px-4 py-3">
-          <label className="inline-flex items-center gap-1.5 text-caption-sm-regular">
-            <ToggleSwitch
-              value={createMore}
-              onChange={setCreateMore}
-              label={t("create_more")}
-              size="sm"
-              disabled={isSubmitting}
-            />
-            {t("create_more")}
-          </label>
+          <ToggleSwitch
+            value={createMore}
+            onChange={setCreateMore}
+            label={t("create_more")}
+            size="sm"
+            disabled={isSubmitting}
+          />
           <Button variant="secondary" size="lg" type="button" disabled={isSubmitting} onClick={dismiss}>
             {t("discard")}
           </Button>
-          <Button size="lg" type="submit" loading={isSubmitting} disabled={isSubmitting}>
+          <Button size="lg" type="submit" loading={isSubmitting} disabled={isSubmitting || !canCreate}>
             {isSubmitting ? t("saving") : t("save")}
           </Button>
         </div>

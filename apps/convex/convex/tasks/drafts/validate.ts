@@ -8,12 +8,11 @@ import { requireParent } from "../hierarchy";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "../../cycles/access";
 import { requireModule, requireModuleRevision, requireEditableModule } from "../../modules/access";
 import { date } from "../../commercial/validation";
-import { draftFields } from "./fields";
+import { draftFields, validateModuleReferences } from "./fields";
 const fields = v.object(draftFields);
 export async function validateDraft(ctx: MutationCtx, workspaceId: Id<"workspaces">, args: Infer<typeof fields>) {
   if (args.title.length > 255) throw new ConvexError("Draft title must be at most 255 characters.");
-  if (args.modules.length > 100 || new Set(args.modules.map((item) => item.moduleId)).size !== args.modules.length)
-    throw new ConvexError("Choose at most 100 distinct modules.");
+  validateModuleReferences(args.modules);
   if (!args.projectId) {
     if (
       args.parent ||

@@ -14,6 +14,10 @@ import { recordTaskEvent } from "../notifications/delivery";
 import { checkAncestors } from "./hierarchy";
 import { taskChanged } from "./revision";
 import { addSubscribers } from "../notifications/subscriptions";
+import { requireTask } from "./access";
+import { assignCycleTask } from "../cycles/tasks";
+import { setModuleTask } from "../modules/tasks";
+import { draftFields, validateModuleReferences } from "./drafts/fields";
 // Both ordinary creation and intake submission allocate identity here, in the caller transaction.
 export async function createTask(
   ctx: MutationCtx,
@@ -94,21 +98,20 @@ export async function createTask(
   return taskId;
 }
 
-const propertiesValidator = v.object(taskProperties);
-export async function createPreparedTask(
-  ctx: MutationCtx,
-  args: {
-    projectId: Id<"projects">;
-    title: string;
-    description?: string;
-    useDefaultState?: boolean;
-    status?: Infer<typeof status>;
-    properties?: Infer<typeof propertiesValidator>;
-    parent?: { taskId: Id<"tasks">; expectedUpdatedAt: number };
-  },
-  html?: string
-) {
+export const taskCreateFields = {
+  projectId: v.id("projects"),
+  title: v.string(),
+  description: v.optional(v.string()),
+  status: v.optional(status),
+  properties: v.optional(v.object(taskProperties)),
+  parent: v.optional(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() })),
+  cycle: v.optional(draftFields.cycle),
+  modules: v.optional(draftFields.modules),
+};
+const preparedFields = v.object({ ...taskCreateFields, useDefaultState: v.optional(v.boolean()) });
+export async function createPreparedTask(ctx: MutationCtx, args: Infer<typeof preparedFields>, html?: string) {
   const { user, project } = await requireProject(ctx, args.projectId, true);
+  if (args.modules) validateModuleReferences(args.modules);
   const { title, description } = parseTaskText(args.title, args.description ?? "");
   const parent = args.parent
     ? await requireParent(ctx, project._id, args.parent.taskId, args.parent.expectedUpdatedAt)
@@ -127,5 +130,24 @@ export async function createPreparedTask(
   if (state && args.status && state.status !== args.status)
     throw new ConvexError("Task status must match its custom state.");
   const nextStatus = state?.status ?? args.status ?? "todo";
-  return createTask(ctx, project, user._id, { title, description, ...data, status: nextStatus }, parent, html);
+  const taskId = await createTask(
+    ctx,
+    project,
+    user._id,
+    { title, description, ...data, status: nextStatus },
+    parent,
+    html
+  );
+  if (args.cycle) {
+    const task = await requireTask(ctx, taskId);
+    await assignCycleTask(ctx, { ...args.cycle, taskId, expectedTaskUpdatedAt: task.updatedAt });
+  }
+  // Each relationship advances task CAS in this same transaction.
+  for (const ref of args.modules ?? []) {
+    // oxlint-disable-next-line no-await-in-loop
+    const task = await requireTask(ctx, taskId);
+    // oxlint-disable-next-line no-await-in-loop
+    await setModuleTask(ctx, { ...ref, taskId, assigned: true, expectedTaskUpdatedAt: task.updatedAt });
+  }
+  return taskId;
 }
