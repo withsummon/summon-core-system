@@ -11,7 +11,13 @@ import { requireWorkspace } from "../identity/access";
 import { date, pageBudget, text } from "../commercial/validation";
 import { priority } from "./schema";
 
-const scope = v.union(v.literal("all"), v.literal("mine"), v.literal("team"), v.literal("created"));
+const scope = v.union(
+  v.literal("all"),
+  v.literal("mine"),
+  v.literal("team"),
+  v.literal("created"),
+  v.literal("subscribed")
+);
 const due = v.union(
   v.literal("all"),
   v.literal("today"),
@@ -20,14 +26,14 @@ const due = v.union(
   v.literal("next7"),
   v.literal("completed")
 );
-function matchesScope(task: Doc<"tasks">, selected: Infer<typeof scope>, userId: Id<"users">) {
+function matchesScope(task: Doc<"tasks">, selected: Exclude<Infer<typeof scope>, "subscribed">, userId: Id<"users">) {
   const assignees = task.assigneeIds;
   const matches = {
     all: true,
     mine: assignees.includes(userId),
     team: assignees.length > 0,
     created: task.createdBy === userId,
-  } satisfies Record<Infer<typeof scope>, boolean>;
+  } satisfies Record<Exclude<Infer<typeof scope>, "subscribed">, boolean>;
   return matches[selected];
 }
 function matchesDue(task: Doc<"tasks">, selected: Infer<typeof due>, today: string) {
@@ -72,11 +78,17 @@ export const list = query({
         const matches = [
           !args.projectId || task.projectId === args.projectId,
           !args.priority || task.priority === args.priority,
-          matchesScope(task, args.scope, user._id),
           matchesDue(task, args.due, args.today),
           `${task.title} ${project.name} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search),
         ];
         if (!matches.every(Boolean)) return null;
+        if (args.scope === "subscribed") {
+          const subscription = await ctx.db
+            .query("taskSubscriptions")
+            .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
+            .unique();
+          if (!subscription) return null;
+        } else if (!matchesScope(task, args.scope, user._id)) return null;
         const state = task.stateId ? await ctx.db.get(task.stateId) : null;
         return {
           task,
