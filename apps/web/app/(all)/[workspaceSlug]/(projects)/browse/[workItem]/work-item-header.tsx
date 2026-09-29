@@ -4,20 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
 import type { ComponentProps } from "react";
 import { useNavigate } from "react-router";
-import { useTranslation } from "@plane/i18n";
 import { Breadcrumbs, Header } from "@plane/ui";
-import { CopyLinkIcon, WorkItemsIcon } from "@plane/propel/icons";
-import { IconButton } from "@plane/propel/icon-button";
+import { WorkItemsIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Menu } from "@plane/propel/menu";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { copyUrlToClipboard } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { TaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
 import { TaskSubscription } from "@/components/convex-core/notifications/task-subscription";
+import { CopyWorkItemLink } from "@/components/convex-core/tasks/task-detail";
 import type { BrowseAddress } from "./layout";
 
 export function WorkItemDetailsHeader({
@@ -30,8 +26,6 @@ export function WorkItemDetailsHeader({
   lifecycle: ComponentProps<typeof TaskLifecycle>["lifecycle"];
 }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [copying, setCopying] = useState(false);
   const projectHref = `/${address.workspace.slug}/projects/${address.project._id}/issues/`;
   return (
     <Header className="h-11 shrink-0 border-b border-subtle">
@@ -60,28 +54,7 @@ export function WorkItemDetailsHeader({
       </Header.LeftItem>
       <Header.RightItem>
         <TaskSubscription taskId={address.task._id} />
-        <IconButton
-          icon={CopyLinkIcon}
-          variant="ghost"
-          size="base"
-          aria-label="Copy work item link"
-          disabled={copying}
-          onClick={async () => {
-            setCopying(true);
-            try {
-              await copyUrlToClipboard(`/${address.workspace.slug}/browse/${address.workItem}/`);
-              setToast({
-                type: TOAST_TYPE.SUCCESS,
-                title: t("common.link_copied"),
-                message: t("common.copied_to_clipboard"),
-              });
-            } catch {
-              setToast({ type: TOAST_TYPE.ERROR, title: t("toast.error") });
-            } finally {
-              setCopying(false);
-            }
-          }}
-        />
+        <CopyWorkItemLink href={`/${address.workspace.slug}/browse/${address.workItem}/`} />
         <TaskLifecycle task={address.task} disabled={disabled} lifecycle={lifecycle}>
           <Menu.MenuItem
             onClick={() =>

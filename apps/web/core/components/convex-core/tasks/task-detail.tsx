@@ -1,14 +1,22 @@
 import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
 import { lazy, Suspense, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { useSearchParams } from "react-router";
+import type { ComponentProps, ReactNode } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Doc } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
+import { IconButton } from "@plane/propel/icon-button";
+import { CheckIcon, CloseIcon, CopyLinkIcon } from "@plane/propel/icons";
+import { Menu } from "@plane/propel/menu";
+import { useTranslation } from "@plane/i18n";
+import { MoveDiagonal } from "lucide-react";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { cn, copyUrlToClipboard } from "@plane/utils";
 import { IssueTitleInput } from "@/components/issues/title-input";
 import { NameDescriptionUpdateStatus, nameDescriptionStatus } from "@/components/issues/issue-update-status";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
@@ -16,6 +24,8 @@ import useSize from "@/hooks/use-window-size";
 import { TaskInlineProperties } from "./task-properties";
 import { TaskLifecycle, useTaskLifecycle } from "./lifecycle";
 import { TaskSubscription } from "../notifications/task-subscription";
+import { peekOptions } from "./options";
+import type { TaskPeekMode } from "./options";
 
 const RichDescription = lazy(() =>
   import("./rich-description").then((module) => ({ default: module.RichDescription }))
@@ -31,6 +41,145 @@ const TaskStructure = lazy(() => import("./task-structure").then((module) => ({ 
 
 type Project = Doc<"projects">;
 type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
+
+export function CopyWorkItemLink({
+  href,
+  variant = "ghost",
+  size = "base",
+}: Pick<ComponentProps<typeof IconButton>, "variant" | "size"> & { href: string }) {
+  const { t } = useTranslation();
+  const [copying, setCopying] = useState(false);
+  return (
+    <IconButton
+      icon={CopyLinkIcon}
+      variant={variant}
+      size={size}
+      aria-label="Copy work item link"
+      disabled={copying}
+      onClick={async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setCopying(true);
+        try {
+          await copyUrlToClipboard(href);
+          setToast({
+            type: TOAST_TYPE.SUCCESS,
+            title: t("common.link_copied"),
+            message: t("common.copied_to_clipboard"),
+          });
+        } catch {
+          setToast({ type: TOAST_TYPE.ERROR, title: t("toast.error") });
+        } finally {
+          setCopying(false);
+        }
+      }}
+    />
+  );
+}
+
+const peekFrames = {
+  "side-peek": "top-0! right-0! left-auto! h-dvh! w-full! max-h-none! max-w-none! translate-0! rounded-none! md:w-1/2!",
+  modal: "h-[83.33dvh]! w-[83.33vw]! max-h-none! max-w-none!",
+  "full-screen": "inset-4! h-[calc(100dvh-2rem)]! w-[calc(100vw-2rem)]! max-h-none! max-w-none! translate-0!",
+} satisfies Record<TaskPeekMode, string>;
+
+export function TaskPeek({ workspaceSlug }: { workspaceSlug: string }) {
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const workItem = params.get("peek");
+  const [mode, setMode] = useState<(typeof peekOptions)[number]>(peekOptions[0]);
+  const address = useQuery(api.navigation.address.resolveTask, workItem ? { workspaceSlug, workItem } : "skip");
+  const close = () =>
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("peek");
+      return next;
+    });
+  const lifecycle = useTaskLifecycle((operation) => {
+    if (operation === "delete" || operation === "archive") close();
+  });
+  const ModeIcon = mode.icon;
+  return (
+    <Dialog
+      open={!!workItem}
+      onOpenChange={(open, details) => {
+        if (!open) {
+          details.cancel();
+          close();
+        }
+      }}
+    >
+      <Dialog.Panel
+        className={cn("@container/task-peek overflow-hidden! data-[open]:animate-none!", peekFrames[mode.key])}
+      >
+        {address?.kind === "task" ? (
+          <TaskDetailContent
+            key={address.task._id}
+            task={address.task}
+            project={address.project}
+            lifecyclePending={lifecycle.pending}
+            propertyPlacement={mode.key === "full-screen" ? "sidebar" : "inline"}
+            header={(hasUnsavedText) => (
+              <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-subtle px-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <IconButton icon={CloseIcon} variant="ghost" aria-label="Close peek" onClick={close} />
+                  <IconButton
+                    icon={MoveDiagonal}
+                    variant="ghost"
+                    aria-label="Open work item in full screen"
+                    onClick={() => navigate(`/${address.workspace.slug}/browse/${address.workItem}/`)}
+                  />
+                  <Menu ariaLabel="Peek layout" customButton={<ModeIcon className="size-4" />} noBorder>
+                    {peekOptions.map((option) => (
+                      <Menu.MenuItem key={option.key} onClick={() => setMode(option)}>
+                        <option.icon className="size-4" />
+                        {t(option.i18n_title)}
+                        {mode.key === option.key && <CheckIcon className="ml-auto size-4" />}
+                      </Menu.MenuItem>
+                    ))}
+                  </Menu>
+                  <Dialog.Title className="min-w-0 truncate text-13">{address.workItem}</Dialog.Title>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <TaskSubscription taskId={address.task._id} />
+                  <CopyWorkItemLink href={`/${address.workspace.slug}/browse/${address.workItem}/`} />
+                  <TaskLifecycle task={address.task} disabled={hasUnsavedText} lifecycle={lifecycle}>
+                    <Menu.MenuItem
+                      onClick={() =>
+                        window.open(
+                          `/${address.workspace.slug}/browse/${address.workItem}/`,
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }
+                    >
+                      Open in new tab
+                    </Menu.MenuItem>
+                  </TaskLifecycle>
+                </div>
+              </header>
+            )}
+          />
+        ) : workItem ? (
+          <div className="space-y-4 p-5">
+            <Dialog.Title>Work item</Dialog.Title>
+            {address === undefined ? (
+              <p role="status">Opening work item…</p>
+            ) : (
+              <p role="alert">
+                This work item is unavailable. It may have been removed or your access may have changed.
+              </p>
+            )}
+            <Button variant="secondary" onClick={close}>
+              Close peek
+            </Button>
+          </div>
+        ) : null}
+      </Dialog.Panel>
+    </Dialog>
+  );
+}
 
 export function TaskDetail({
   taskId,
@@ -96,13 +245,16 @@ export function TaskDetailContent({
   project,
   header,
   lifecyclePending,
+  propertyPlacement = "sidebar",
 }: {
   task: Task;
   project: Project;
   header: (hasUnsavedText: boolean) => ReactNode;
   lifecyclePending: boolean;
+  propertyPlacement?: "sidebar" | "inline";
 }) {
   const [width] = useSize();
+  const inlineProperties = propertyPlacement === "inline" || width < 768;
   const [titleStatus, setTitleStatus] = useState<TNameDescriptionLoader>("saved");
   const [descriptionStatus, setDescriptionStatus] = useState<TNameDescriptionLoader>("saved");
   const status = nameDescriptionStatus(titleStatus, descriptionStatus);
@@ -125,7 +277,6 @@ export function TaskDetailContent({
               task.archivedAt !== null && <p className="text-14 text-secondary">Archived task · read only</p>
             )}
             <TaskTitle
-              key={task._id}
               task={task}
               project={project}
               status={status}
@@ -141,23 +292,23 @@ export function TaskDetailContent({
                   canWrite={task.canEdit && !lifecyclePending}
                   setIsSubmitting={setDescriptionStatus}
                 />
-                <TaskReactions key={`reactions:${task._id}`} taskId={task._id} />
+                <TaskReactions taskId={task._id} />
                 <TaskStructure task={task} canWrite={task.canEdit && !lifecyclePending} />
-                <TaskAttachments key={`attachments:${task._id}`} taskId={task._id} />
-                <TaskLinks key={`links:${task._id}`} taskId={task._id} />
-                {width < 768 && <TaskInlineProperties key={task._id} task={task} disabled={lifecyclePending} />}
-                <TaskComments key={task._id} taskId={task._id} />
-                <TaskActivity key={`activity:${task._id}`} taskId={task._id} />
+                <TaskAttachments taskId={task._id} />
+                <TaskLinks taskId={task._id} />
+                {inlineProperties && <TaskInlineProperties task={task} disabled={lifecyclePending} />}
+                <TaskComments taskId={task._id} />
+                <TaskActivity taskId={task._id} />
               </Suspense>
             )}
           </fieldset>
         </main>
-        {width >= 768 && (
+        {!inlineProperties && (
           <aside
             aria-label="Task properties"
             className="hidden h-full min-w-[300px] shrink-0 overflow-y-auto border-l border-subtle bg-surface-1 p-4 md:block md:w-80"
           >
-            <TaskInlineProperties key={task._id} task={task} disabled={lifecyclePending} />
+            <TaskInlineProperties task={task} disabled={lifecyclePending} />
           </aside>
         )}
       </div>
