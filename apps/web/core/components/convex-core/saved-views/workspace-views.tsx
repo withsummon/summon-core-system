@@ -20,7 +20,6 @@ export function WorkspaceViews({ workspace }: { workspace: Workspace }) {
           ? "favorites"
           : "all";
   const [creating, setCreating] = useState(false);
-  const access = useQuery(api.savedViews.workspace.access, { workspaceId: workspace._id });
   const all = usePaginatedQuery(
     api.savedViews.workspace.list,
     selected || creating || tab === "favorites" ? "skip" : { workspaceId: workspace._id, deleted: tab === "trash" },
@@ -41,7 +40,7 @@ export function WorkspaceViews({ workspace }: { workspace: Workspace }) {
       return next;
     });
   };
-  if (creating && access?.canCreate)
+  if (creating)
     return (
       <WorkspaceViewForm
         workspaceId={workspace._id}
@@ -76,7 +75,7 @@ export function WorkspaceViews({ workspace }: { workspace: Workspace }) {
           <h1 className="text-28 font-semibold">Workspace views</h1>
           <p className="mt-1 text-14 text-secondary">Saved task filters across accessible projects.</p>
         </div>
-        {access?.canCreate && <Button onClick={() => setCreating(true)}>Create workspace view</Button>}
+        <Button onClick={() => setCreating(true)}>Create workspace view</Button>
       </header>
       <nav aria-label="Workspace view lists" className="flex flex-wrap gap-2">
         {(

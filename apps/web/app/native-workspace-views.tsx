@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
-import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import { DEFAULT_GLOBAL_VIEWS_LIST } from "@plane/constants";
@@ -51,7 +50,6 @@ export default function NativeWorkspaceView() {
         : view.key === "subscribed"
           ? "subscribed"
           : "all";
-  const access = useQuery(api.savedViews.workspace.access, { workspaceId: session.workspace._id });
   const { results, status, loadMore } = usePaginatedQuery(
     api.tasks.center.list,
     { workspaceId: session.workspace._id, scope, due: "all", today, search },
@@ -103,11 +101,9 @@ export default function NativeWorkspaceView() {
               </Breadcrumbs>
             </Header.LeftItem>
             <Header.RightItem className="items-center">
-              {access?.canCreate && (
-                <Button variant="primary" size="lg" onClick={() => setCreatingView(true)}>
-                  {t("workspace_views.add_view")}
-                </Button>
-              )}
+              <Button variant="primary" size="lg" onClick={() => setCreatingView(true)}>
+                {t("workspace_views.add_view")}
+              </Button>
               <DefaultWorkspaceViewQuickActions workspaceSlug={session.workspace.slug} view={view} />
             </Header.RightItem>
           </Header>
