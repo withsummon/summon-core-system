@@ -1,17 +1,7 @@
-import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { numericTaskEstimate } from "../tasks/progress_totals";
 import { cycleDay } from "./dates";
-const totals = { count: v.number(), points: v.number(), unquantified: v.number() };
-export const completionCurve = v.object({
-  startDate: v.union(v.string(), v.null()),
-  endDate: v.union(v.string(), v.null()),
-  timezone: v.string(),
-  asOfDay: v.string(),
-  ...totals,
-  completed: v.array(v.object({ day: v.string(), ...totals })),
-});
 /** Sparse daily completions preserve long cycles without allocating an unbounded date range.
  * Remaining on a cycle day = total minus completed buckets through that day; future days are null.
  * This describes current membership, not historical scope or estimate changes. */

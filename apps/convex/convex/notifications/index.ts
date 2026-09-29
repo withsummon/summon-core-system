@@ -4,8 +4,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
 import { requireDiscussion } from "../tasks/discussion_access";
-import { selectedTask, selectionFields, validateSelection } from "./selection";
-import { defaultEmailPreferenceSettings, emailPreferenceSettings } from "./schema";
+import { selectedTask, validateSelection } from "./selection";
+import { defaultEmailPreferenceSettings, emailPreferenceSettings, selectionFields } from "./schema";
 export const preferences = query({
   args: {},
   handler: async (ctx) => {

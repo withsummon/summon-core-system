@@ -1,19 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { discussionCanRead } from "../tasks/discussion_access";
-export const category = v.union(v.literal("assigned"), v.literal("subscribed"), v.literal("created"));
-export const selectionFields = {
-  view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
-  mentionsOnly: v.optional(v.boolean()),
-  categories: v.optional(v.array(category)),
-};
-type Selection = {
-  view: "inbox" | "archived" | "snoozed";
-  mentionsOnly?: boolean;
-  categories?: ("assigned" | "subscribed" | "created")[];
-  now: number;
-};
+type Selection = Pick<Doc<"notificationReadBatches">, "view" | "mentionsOnly" | "categories" | "now">;
 export function validateSelection(selection: Pick<Selection, "categories">) {
   const categories = selection.categories ?? [];
   if (categories.length > 3 || new Set(categories).size !== categories.length)
@@ -30,7 +19,7 @@ export async function selectedTask(
   const visible =
     selection.view === "archived"
       ? row.archivedAt !== null
-      : row.archivedAt === null && (selection.view === "snoozed" ? snoozed : !snoozed);
+      : row.archivedAt === null && snoozed === (selection.view === "snoozed");
   if (!visible || (selection.mentionsOnly && !row.isMention)) return null;
   const task = await ctx.db.get(row.taskId);
   if (!task || !(await discussionCanRead(ctx, task, userId))) return null;
