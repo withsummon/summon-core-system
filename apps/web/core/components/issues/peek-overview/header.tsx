@@ -10,13 +10,12 @@ import Link from "next/link";
 import { MoveDiagonal, MoveRight } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { CenterPanelIcon, CopyLinkIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { CustomSelect } from "@plane/ui";
-import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
+import { generateWorkItemLink } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -27,27 +26,11 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssueSubscription } from "../issue-detail/subscription";
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
-import { IconButton } from "@plane/propel/icon-button";
+import { CopyWorkItemLink } from "@/components/convex-core/tasks/task-detail";
+import { peekOptions as PEEK_OPTIONS } from "@/components/convex-core/tasks/options";
+import type { TaskPeekMode } from "@/components/convex-core/tasks/options";
 
-export type TPeekModes = "side-peek" | "modal" | "full-screen";
-
-const PEEK_OPTIONS: { key: TPeekModes; icon: any; i18n_title: string }[] = [
-  {
-    key: "side-peek",
-    icon: SidePanelIcon,
-    i18n_title: "common.side_peek",
-  },
-  {
-    key: "modal",
-    icon: CenterPanelIcon,
-    i18n_title: "common.modal",
-  },
-  {
-    key: "full-screen",
-    icon: FullScreenPanelIcon,
-    i18n_title: "common.full_screen",
-  },
-];
+export type TPeekModes = TaskPeekMode;
 
 export type PeekOverviewHeaderProps = {
   peekMode: TPeekModes;
@@ -116,25 +99,12 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     isArchived,
   });
 
-  const handleCopyText = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    copyUrlToClipboard(workItemLink).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("common.link_copied"),
-        message: t("common.link_copied_to_clipboard"),
-      });
-    });
-  };
-
   const handleDeleteIssue = async () => {
     try {
       const deleteIssue = issueDetails?.archived_at ? removeArchivedIssue : removeIssue;
 
-      return deleteIssue(workspaceSlug, projectId, issueId).then(() => {
-        setPeekIssue(undefined);
-      });
+      await deleteIssue(workspaceSlug, projectId, issueId);
+      setPeekIssue(undefined);
     } catch (_error) {
       setToast({
         title: t("toast.error"),
@@ -173,8 +143,8 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
         {currentMode && embedIssue === false && (
           <div className="flex flex-shrink-0 items-center gap-2">
             <CustomSelect
-              value={currentMode}
-              onChange={(val: any) => setPeekMode(val)}
+              value={currentMode.key}
+              onChange={setPeekMode}
               customButton={
                 <Tooltip tooltipContent={t("common.toggle_peek_view_layout")} isMobile={isMobile}>
                   <span>
@@ -206,7 +176,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
             <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           )}
           <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>
-            <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} />
+            <CopyWorkItemLink variant="secondary" size="lg" href={workItemLink} />
           </Tooltip>
           {issueDetails && (
             <WorkItemDetailQuickActions

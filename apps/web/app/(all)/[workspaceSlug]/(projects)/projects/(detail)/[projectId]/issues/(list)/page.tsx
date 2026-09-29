@@ -5,7 +5,7 @@
  */
 
 import { useRef } from "react";
-import { useNavigate, useOutletContext } from "react-router";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
@@ -23,6 +23,8 @@ import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/util
 import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loader";
 import { taskStatusOptions } from "@/components/convex-core/tasks/options";
 import { renderFormattedDate } from "@plane/utils";
+import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
+import { usePlatformOS } from "@/hooks/use-platform-os";
 
 export default function ProjectIssuesPage() {
   const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
@@ -69,6 +71,7 @@ export default function ProjectIssuesPage() {
           </p>
         )}
       </div>
+      <TaskPeek workspaceSlug={workspace.slug} />
     </>
   );
 }
@@ -88,6 +91,9 @@ function ProjectIssueRow({
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const { isMobile } = usePlatformOS();
+  const peeked = params.get("peek") === identifier;
   return (
     <li>
       <IssueListBlockView
@@ -95,11 +101,19 @@ function ProjectIssueRow({
         href={href}
         name={task.title}
         ariaLabel={`${identifier}: ${task.title}`}
-        onOpen={() => navigate(href)}
+        onOpen={() => {
+          if (isMobile) navigate(href);
+          else
+            setParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set("peek", identifier);
+              return next;
+            });
+        }}
         rowRef={rowRef}
         onDragStart={undefined}
-        isPeeked={false}
-        isPeekedAtCurrentLevel={false}
+        isPeeked={peeked}
+        isPeekedAtCurrentLevel={peeked}
         isActive={false}
         isSelected={false}
         isDragging={false}

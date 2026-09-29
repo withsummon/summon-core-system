@@ -38,7 +38,7 @@ export function TaskSubscription({ taskId }: { taskId: Id<"tasks"> }) {
           }
         }}
       >
-        <span className="hidden sm:block">{pending ? t("common.loading") : label}</span>
+        <span className="hidden sm:block @max-[28rem]/task-peek:hidden">{pending ? t("common.loading") : label}</span>
       </Button>
       {error && (
         <p role="alert" className="text-12 text-danger-primary">
