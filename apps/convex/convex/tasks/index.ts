@@ -1,7 +1,7 @@
 import { taskIsActive, taskDetail, taskCanRead, requireTask } from "./access";
 import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
 import { syncPlainDescription } from "./description";
-import { createPreparedTask } from "./create";
+import { createPreparedTask, taskCreateFields } from "./create";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -44,13 +44,8 @@ export const list = query({
 });
 export const create = mutation({
   args: {
-    projectId: v.id("projects"),
-    title: v.string(),
-    description: v.optional(v.string()),
+    ...taskCreateFields,
     html: v.optional(v.string()),
-    status: v.optional(status),
-    properties: v.optional(v.object(taskProperties)),
-    parent: v.optional(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() })),
   },
   handler: async (ctx, args) => {
     const content = taskRichContent(args.html ?? plainDescriptionHtml(args.description ?? ""));
