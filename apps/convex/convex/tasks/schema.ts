@@ -10,7 +10,7 @@ export const status = v.union(
   v.literal("done"),
   v.literal("cancelled")
 );
-export const taskStatus = v.union(status, v.literal("triage"));
+export const taskStatus = v.union(...status.members, v.literal("triage"));
 export const priority = v.union(
   v.literal("urgent"),
   v.literal("high"),

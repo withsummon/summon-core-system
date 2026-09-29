@@ -1,5 +1,4 @@
-import { projectLogoProps } from "./branding_schema";
-import { projectNetwork } from "./network_schema";
+import { projectCreateArgs } from "./schema";
 import { initializeProjectOrder } from "./order_owner";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import type { MutationCtx } from "../_generated/server";
@@ -36,16 +35,7 @@ export const list = query({
   },
 });
 export const create = mutation({
-  args: {
-    workspaceId: v.id("workspaces"),
-    name: v.string(),
-    identifier: v.string(),
-    network: v.optional(projectNetwork),
-    logoProps: v.optional(projectLogoProps),
-    description: v.optional(v.string()),
-    leadId: v.optional(v.union(v.id("users"), v.null())),
-    timezone: v.optional(v.string()),
-  },
+  args: projectCreateArgs.fields,
   handler: async (ctx, args) => {
     return createProject(ctx, args);
   },
