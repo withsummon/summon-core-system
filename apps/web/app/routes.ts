@@ -48,6 +48,7 @@ const routes: RouteConfigEntry[] = [
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
       ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
+      route(":workspaceSlug/workspace-views/all-issues", "./native-workspace-views.tsx"),
       // Active and archived Projects share one directory/dialog owner.
       layout("./(all)/[workspaceSlug]/(projects)/projects/(list)/layout.tsx", [
         route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx"),
