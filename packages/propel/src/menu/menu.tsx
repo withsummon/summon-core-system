@@ -65,15 +65,15 @@ function Menu({
   children,
   customButton,
   render,
-  disabled = false,
-  ellipsis = false,
+  disabled,
+  ellipsis,
   label,
   maxHeight = "md",
-  noBorder = false,
-  noChevron = false,
+  noBorder,
+  noChevron,
   optionsClassName,
   menuItemsClassName,
-  verticalEllipsis = false,
+  verticalEllipsis,
   menuButtonOnClick,
   onMenuClose,
   onOpen,
@@ -86,6 +86,7 @@ function Menu({
   closeOnSelect,
 }: TMenuProps) {
   const { side, align } = convertPlacementToSideAndAlign(placement);
+  const isEllipsis = ellipsis || verticalEllipsis;
   return (
     <BaseMenu.Root
       openOnHover={openOnHover}
@@ -99,9 +100,10 @@ function Menu({
         <BaseMenu.Trigger
           render={render}
           disabled={disabled}
-          aria-label={ariaLabel ?? (ellipsis || verticalEllipsis ? "More options" : undefined)}
+          aria-label={ariaLabel ?? (isEllipsis ? "More options" : undefined)}
           tabIndex={customButtonTabIndex}
           onClick={(event) => {
+            event.preventDefault();
             event.stopPropagation();
             menuButtonOnClick?.();
           }}
@@ -110,7 +112,7 @@ function Menu({
             render || customButton
               ? customButtonClassName
               : [
-                  ellipsis || verticalEllipsis
+                  isEllipsis
                     ? "p-1 text-secondary hover:bg-layer-1"
                     : "px-2.5 py-1 text-11 text-secondary hover:bg-layer-1",
                   !noBorder && !ellipsis && !verticalEllipsis && "border border-strong",
@@ -121,7 +123,7 @@ function Menu({
           {render
             ? undefined
             : (customButton ??
-              (ellipsis || verticalEllipsis ? (
+              (isEllipsis ? (
                 <MoreHorizontal className={cn("size-3.5", verticalEllipsis && "rotate-90")} />
               ) : (
                 <>
