@@ -9,7 +9,7 @@ import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
+import { internalMutation, type MutationCtx } from "./_generated/server";
 import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
@@ -55,28 +55,6 @@ export const authComponent = createClient<DataModel, typeof authSchema>(componen
 });
 
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
-
-export const sessionUser = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-    const current = await auth.api.getSession({
-      headers,
-      query: { disableCookieCache: true, disableRefresh: true },
-    });
-    if (!current || current.user.id !== identity.subject || current.session.id !== identity.sessionId) return null;
-    return {
-      id: current.user.id,
-      email: current.user.email,
-      emailVerified: current.user.emailVerified,
-      sessionId: current.session.id,
-      // The Convex adapter returns native date fields as epoch milliseconds.
-      expiresAt: Number(current.session.expiresAt),
-    };
-  },
-});
 
 export const recordSignIn = internalMutation({
   args: { authId: v.string(), medium: lastLoginMedium, createdAt: v.number() },
