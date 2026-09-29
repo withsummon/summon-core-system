@@ -65,6 +65,48 @@ const routes: RouteConfigEntry[] = [
         ":workspaceSlug/projects/:projectId/issues/:issueId",
         "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx"
       ),
+      // Cycle Detail
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/cycles/:cycleId",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx"
+        ),
+      ]),
+      // Cycles List
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/cycles",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx"
+        ),
+      ]),
+      // Module Detail
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/modules/:moduleId",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx"
+        ),
+      ]),
+      // Modules List
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/modules",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx"
+        ),
+      ]),
+      // Project Archives - Cycles
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/archives/cycles",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx"
+        ),
+      ]),
+      // Project Archives - Modules
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/archives/modules",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx"
+        ),
+      ]),
       layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/layout.tsx", [
         route(
           ":workspaceSlug/projects/:projectId/pages",
