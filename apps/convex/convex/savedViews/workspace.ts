@@ -3,6 +3,8 @@ import { effectiveFavorite } from "../favorites/access";
 import { resultPage } from "./result_page";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query, mutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -68,16 +70,18 @@ export const list = query({
   args: { workspaceId: v.id("workspaces"), deleted: v.boolean(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const permission = await requireWorkspace(ctx, args.workspaceId);
-    const source = ctx.db
+    return stream(ctx.db, schema)
       .query("savedViews")
       .withIndex("by_workspace_project_deleted", (q) =>
         args.deleted
           ? q.eq("workspaceId", args.workspaceId).eq("projectId", null).gt("deletedAt", null)
           : q.eq("workspaceId", args.workspaceId).eq("projectId", null).eq("deletedAt", null)
-      );
-    const result = await source.order("desc").paginate(pageBudget(args.paginationOpts));
-    const rows = result.page.filter((view) => workspaceCapabilities(view, permission).canRead);
-    return { ...result, page: await Promise.all(rows.map((view) => workspaceView(ctx, view, permission))) };
+      )
+      .order("desc")
+      .map(async (view) =>
+        workspaceCapabilities(view, permission).canRead ? workspaceView(ctx, view, permission) : null
+      )
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const lifecycle = mutation({
@@ -116,7 +120,7 @@ export const favorites = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const permission = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("favorites")
       .withIndex("by_owner_type_project", (q) =>
         q
@@ -126,9 +130,7 @@ export const favorites = query({
           .eq("targetProjectId", null)
       )
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    const page = await Promise.all(
-      result.page.map(async (row) => {
+      .map(async (row) => {
         if (row.target.type !== "view" || !(await effectiveFavorite(ctx, row))) return null;
         const view = await ctx.db.get(row.target.id);
         if (
@@ -141,8 +143,7 @@ export const favorites = query({
           return null;
         return workspaceView(ctx, view, permission);
       })
-    );
-    return { ...result, page: page.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const results = query({
