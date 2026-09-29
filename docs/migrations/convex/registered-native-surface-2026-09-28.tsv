@@ -395,11 +395,11 @@ convex-rpc	modules/tasks:forTask	apps/convex/convex/modules/tasks.ts:52	Convex s
 convex-rpc	modules/tasks:list	apps/convex/convex/modules/tasks.ts:21	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
 convex-rpc	modules/tasks:set	apps/convex/convex/modules/tasks.ts:11	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/workspace:list	apps/convex/convex/modules/workspace.ts:7	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	navigation/address:resolveProject	apps/convex/convex/navigation/address.ts:38	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
-convex-rpc	navigation/address:resolveProjectId	apps/convex/convex/navigation/address.ts:49	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
-convex-rpc	navigation/address:resolveTask	apps/convex/convex/navigation/address.ts:59	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
-convex-rpc	navigation/address:resolveTaskId	apps/convex/convex/navigation/address.ts:75	Convex generated task-address owner	shared-shell	query | public | app | direct native constructor	OPEN
-convex-rpc	navigation/address:resolveWorkspace	apps/convex/convex/navigation/address.ts:31	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	navigation/address:resolveProject	apps/convex/convex/navigation/address.ts:39	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	navigation/address:resolveProjectId	apps/convex/convex/navigation/address.ts:50	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	navigation/address:resolveTask	apps/convex/convex/navigation/address.ts:60	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	navigation/address:resolveTaskId	apps/convex/convex/navigation/address.ts:87	Convex generated task-address owner	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	navigation/address:resolveWorkspace	apps/convex/convex/navigation/address.ts:32	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	navigation/preferences:ensure	apps/convex/convex/navigation/preferences.ts:36	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	navigation/preferences:list	apps/convex/convex/navigation/preferences.ts:43	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	navigation/preferences:update	apps/convex/convex/navigation/preferences.ts:59	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
