@@ -3,7 +3,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
-export function taskIsActive(task: Doc<"tasks">) {
+export function taskIsActive(
+  task: Doc<"tasks">
+): task is Doc<"tasks"> & { status: Exclude<Doc<"tasks">["status"], "triage"> } {
   return task.status !== "triage" && task.deletedAt === null && task.archivedAt === null;
 }
 export function taskIsReadable(task: Doc<"tasks">) {
