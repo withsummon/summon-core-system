@@ -1,12 +1,15 @@
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import type { QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
+import schema from "../schema";
+import { pageBudget, date } from "../commercial/validation";
 import { requireProjectTimezone } from "../projects/timezone";
 import { cycleFields } from "./schema";
-import { validateCycleDates, cyclePhase } from "./dates";
+import { validateCycleDates, validateCycleClock, cyclePhase } from "./dates";
 import { requireCycle, requireCycleRevision, requireOpenCycle, checkSchedule } from "./access";
 function details(name: string, description: string) {
   if (!name.trim() || name.length > 255 || description.length > 10000)
@@ -47,20 +50,74 @@ export const update = mutation({
   },
 });
 async function cycleDetail(ctx: QueryCtx, cycleId: Id<"cycles">, now: number) {
-  const { cycle, user, member, projectMember } = await requireCycle(ctx, cycleId, false, true);
-  const phase = cyclePhase(cycle, now);
+  const access = await requireCycle(ctx, cycleId, false, true);
+  return cycleProjection(access.cycle, access, now);
+}
+function cycleMetadata(
+  cycle: Doc<"cycles">,
+  { user, member, projectMember }: Awaited<ReturnType<typeof requireProject>>
+) {
   const canWrite = member.role !== "guest" && projectMember.role !== "guest";
+  const canDelete = canWrite && (cycle.createdBy === user._id || projectMember.role === "admin");
   return {
     ...cycle,
-    phase,
     canWrite,
-    canEdit: canWrite && !cycle.deleted && !cycle.archived && phase !== "completed",
-    canDelete: canWrite && (cycle.createdBy === user._id || projectMember.role === "admin"),
+    canDelete,
+    canRestore: canDelete && cycle.deleted,
+    canUnarchive: canWrite && !cycle.deleted && cycle.archived,
+  };
+}
+function cycleProjection(cycle: Doc<"cycles">, access: Awaited<ReturnType<typeof requireProject>>, now: number) {
+  const metadata = cycleMetadata(cycle, access);
+  const phase = cyclePhase(cycle, now);
+  return {
+    ...metadata,
+    phase,
+    canEdit: metadata.canWrite && !cycle.deleted && !cycle.archived && phase !== "completed",
+    canArchive: metadata.canWrite && !cycle.deleted && !cycle.archived && phase === "completed",
+    canTransfer: metadata.canWrite && !cycle.deleted && !cycle.archived && phase === "completed",
   };
 }
 export const get = query({
   args: { cycleId: v.id("cycles"), now: v.number() },
   handler: (ctx, args) => cycleDetail(ctx, args.cycleId, args.now),
+});
+// The preserved list filters before pagination. Its clock is a captured filter
+// value; the display clock can advance without resetting the loaded cursor interval.
+export const browse = query({
+  args: {
+    projectId: v.id("projects"),
+    view: v.union(v.literal("all"), v.literal("archived"), v.literal("trash")),
+    now: v.number(),
+    search: v.string(),
+    phases: v.array(v.union(v.literal("draft"), v.literal("upcoming"), v.literal("current"), v.literal("completed"))),
+    startDate: v.union(v.string(), v.null()),
+    endDate: v.union(v.string(), v.null()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const access = await requireProject(ctx, args.projectId);
+    validateCycleClock(args.now);
+    const startDate = date(args.startDate),
+      endDate = date(args.endDate);
+    if (startDate && endDate && startDate > endDate) throw new ConvexError("Start date cannot exceed end date.");
+    if (args.search.length > 255) throw new ConvexError("Use a search up to 255 characters.");
+    const search = args.search.trim().toLocaleLowerCase();
+    return stream(ctx.db, schema)
+      .query("cycles")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId).eq("deleted", args.view === "trash"))
+      .order("desc")
+      .filterWith(
+        async (cycle) =>
+          (args.view === "trash" || cycle.archived === (args.view === "archived")) &&
+          cycle.name.toLocaleLowerCase().includes(search) &&
+          (!args.phases.length || args.phases.includes(cyclePhase(cycle, args.now))) &&
+          (!startDate || (cycle.startDate !== null && cycle.startDate >= startDate)) &&
+          (!endDate || (cycle.endDate !== null && cycle.endDate <= endDate))
+      )
+      .map(async (cycle) => cycleProjection(cycle, access, args.now))
+      .paginate(pageBudget(args.paginationOpts));
+  },
 });
 export const resolve = query({
   args: { cycleId: v.string(), now: v.number() },
@@ -68,6 +125,17 @@ export const resolve = query({
     const cycleId = ctx.db.normalizeId("cycles", args.cycleId);
     if (!cycleId) throw new ConvexError("Cycle not found.");
     return cycleDetail(ctx, cycleId, args.now);
+  },
+});
+export const address = query({
+  args: { projectId: v.id("projects"), cycleId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await requireProject(ctx, args.projectId);
+    const cycleId = ctx.db.normalizeId("cycles", args.cycleId);
+    const cycle = cycleId ? await ctx.db.get(cycleId) : null;
+    if (!cycle || cycle.projectId !== access.project._id || cycle.workspaceId !== access.project.workspaceId)
+      return null;
+    return cycleMetadata(cycle, access);
   },
 });
 export const list = query({
