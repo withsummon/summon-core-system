@@ -54,6 +54,16 @@ export const save = mutation({
         throw new ConvexError("A contact with this email already exists for this client.");
     }
     const updated = { ...data, updatedBy: user._id, updatedAt: Date.now() };
+    if (data.isPrimary) {
+      const primary = await ctx.db
+        .query("clientContacts")
+        .withIndex("by_client_primary", (q) =>
+          q.eq("clientId", args.clientId).eq("deleted", false).eq("isPrimary", true)
+        )
+        .unique();
+      if (primary && primary._id !== args.contactId)
+        await ctx.db.patch(primary._id, { isPrimary: false, updatedBy: user._id, updatedAt: updated.updatedAt });
+    }
     if (args.contactId) {
       await ctx.db.patch(args.contactId, updated);
       return args.contactId;
