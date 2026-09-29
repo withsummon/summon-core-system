@@ -99,7 +99,7 @@ export function IntakeView({
   const leave = useCallback(() => {
     continuation.current = null;
   }, []);
-  const release = useReloadConfirmations(pending, "The intake operation is still in progress.", leave);
+  const release = useReloadConfirmations(pending, "The intake operation is still in progress.", leave, pending);
   useEffect(() => leave, [leave]);
   // Removal and recovery invalidate their own detail queries; the command stays above those boundaries.
   const changeSubmission = async (

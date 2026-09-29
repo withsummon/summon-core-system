@@ -66,7 +66,12 @@ export function MetadataForm({
   const leave = useCallback(() => {
     continuation.current = null;
   }, []);
-  const release = useReloadConfirmations(isDirty || isSubmitting, "The page settings have not been saved yet.", leave);
+  const release = useReloadConfirmations(
+    isDirty || isSubmitting,
+    "The page settings have not been saved yet.",
+    leave,
+    isSubmitting
+  );
   useEffect(() => leave, [leave]);
   const visibilityId = useId();
   const close = () => {

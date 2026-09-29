@@ -41,7 +41,12 @@ export function DecisionForm({ detail, onClose }: { detail: Detail; onClose: () 
   const leave = useCallback(() => {
     continuation.current = null;
   }, []);
-  const release = useReloadConfirmations(status !== null || pending, "Your intake decision has not been saved.", leave);
+  const release = useReloadConfirmations(
+    status !== null || pending,
+    "Your intake decision has not been saved.",
+    leave,
+    pending
+  );
   useEffect(() => leave, [leave]);
   return (
     <form

@@ -1,3 +1,4 @@
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -89,6 +90,7 @@ function MemberDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const save = useMutation(api.modules.members.set);
+  useReloadConfirmations(pending, "The module member is still being saved.", onClose, pending);
   return (
     <ModalCore
       isOpen

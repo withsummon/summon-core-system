@@ -77,7 +77,7 @@ export class StickyDrafts {
   }
   async changeRevision(id: string, operation: (revision: number) => Promise<{ updatedAt: number }>) {
     const entry = this.entries.get(id);
-    if (!entry || entry.running || entry.value.pending || entry.value.error)
+    if (!this.active || !entry || entry.running || entry.value.pending || entry.value.error)
       throw new Error("Wait for the sticky to save before moving it.");
     entry.running = true;
     try {
@@ -101,6 +101,7 @@ export class StickyDrafts {
   }
   async flushAll() {
     await Promise.all([...this.entries.keys()].map((id) => this.flush(id)));
+    if (!this.active) throw new ConvexError("These sticky drafts were discarded. Choose your destination again.");
     if (this.hasUnsaved())
       throw new ConvexError(
         "Some sticky changes are still unsaved. Wait for saving or resolve the note's error before leaving."
@@ -114,6 +115,10 @@ export class StickyDrafts {
   }
   activate() {
     this.active = true;
+  }
+  discardAll() {
+    this.dispose();
+    return new StickyDrafts(this.save, this.changed);
   }
   dispose() {
     this.active = false;

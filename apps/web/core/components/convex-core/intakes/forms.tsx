@@ -76,7 +76,8 @@ export function SubmissionForm({
   const release = useReloadConfirmations(
     isDirty || isSubmitting,
     "The submission has unsaved changes or is still saving.",
-    leave
+    leave,
+    isSubmitting
   );
   useEffect(() => leave, [leave]);
   const cancel = () => {

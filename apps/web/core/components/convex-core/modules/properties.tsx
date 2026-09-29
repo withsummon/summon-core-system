@@ -23,14 +23,20 @@ function useModulePropertyDraft(module: Module, revision = module.updatedAt, onD
     setError("");
     onDone?.();
   }, [onDone]);
-  const release = useReloadConfirmations(draft !== null || pending, "This module has unsaved property changes.", clear);
+  const release = useReloadConfirmations(
+    draft !== null || pending,
+    "This module has unsaved property changes.",
+    clear,
+    pending
+  );
   const submit = async (update: Update) => {
     setDraft(update);
     setPending(true);
     setError("");
     try {
       await save({ moduleId: module._id, ...update });
-      release(clear);
+      setDraft(null);
+      release(onDone);
     } catch (failure) {
       setError(mutationMessage(failure));
     } finally {

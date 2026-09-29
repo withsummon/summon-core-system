@@ -196,7 +196,7 @@ export function DocumentActions({
   const [pending, setPending] = useState(false);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState("");
-  useReloadConfirmations(pending, "A page command is still running.");
+  useReloadConfirmations(pending, "A page command is still running.", undefined, pending);
   const href = `/${workspaceSlug}/projects/${projectId}/pages/${document._id}`;
   async function toggle(property: "isLocked" | "archived") {
     setPending(true);

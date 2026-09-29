@@ -1,3 +1,4 @@
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { Component, createContext, useCallback, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -73,9 +74,9 @@ export function ModuleActionProvider({
             projectId={createProject}
             module={null}
             onClose={() => setCreateProject(null)}
-            onDone={(moduleId) => {
+            onDone={(moduleId, allow) => {
               setCreateProject(null);
-              onCreated(createProject, moduleId);
+              if (allow) onCreated(createProject, moduleId);
             }}
           />
         )}
@@ -296,6 +297,7 @@ export function ModuleLifecycleDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const save = useMutation(api.modules.index.lifecycle);
+  useReloadConfirmations(pending, "The module action is still being saved.", onClose, pending);
   const allowed =
     module.canWrite && (operation === "delete" || operation === "restore" ? module.canDelete : !module.deleted);
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
@@ -24,8 +24,8 @@ export function CycleForm({
   cycle: Doc<"cycles"> | null;
   canSave: boolean;
   currentRevision?: number;
-  onDone: (id: Id<"cycles">) => void;
-  onCancel: () => void;
+  onDone: (id: Id<"cycles">, allowDefaultNavigation: boolean) => void;
+  onCancel: (allowDefaultNavigation: boolean) => void;
 }) {
   const create = useMutation(api.cycles.index.create);
   const update = useMutation(api.cycles.index.update);
@@ -34,6 +34,7 @@ export function CycleForm({
     register,
     watch,
     setValue,
+    reset,
     handleSubmit,
     formState: { isDirty, isSubmitting },
   } = useForm<Pick<FunctionArgs<typeof api.cycles.index.create>, "name" | "description" | "startDate" | "endDate">>({
@@ -48,11 +49,20 @@ export function CycleForm({
   });
   const [discarding, setDiscarding] = useState(false);
   const [error, setError] = useState("");
-  const release = useReloadConfirmations(isDirty || isSubmitting, "This cycle has unsaved changes.", onCancel);
+  const leave = useCallback(() => {
+    reset();
+    onCancel(false);
+  }, [reset, onCancel]);
+  const release = useReloadConfirmations(
+    isDirty || isSubmitting,
+    "This cycle has unsaved changes.",
+    leave,
+    isSubmitting
+  );
   const dismiss = () => {
     if (isSubmitting) return;
     if (isDirty) setDiscarding(true);
-    else onCancel();
+    else onCancel(true);
   };
   return (
     <Dialog
@@ -73,7 +83,8 @@ export function CycleForm({
                 await update({ cycleId: initial._id, expectedUpdatedAt: initial.updatedAt, ...fields });
                 id = initial._id;
               } else id = await create({ projectId, ...fields });
-              release(() => onDone(id));
+              reset(fields);
+              release((allow) => onDone(id, allow));
             } catch (failure) {
               setError(mutationMessage(failure));
             }
@@ -155,7 +166,13 @@ export function CycleForm({
                 <Button variant="secondary" onClick={() => setDiscarding(false)}>
                   Keep editing
                 </Button>
-                <Button variant="error-fill" onClick={() => release(onCancel)}>
+                <Button
+                  variant="error-fill"
+                  onClick={() => {
+                    reset();
+                    release(onCancel);
+                  }}
+                >
                   Discard
                 </Button>
               </div>

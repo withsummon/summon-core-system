@@ -69,7 +69,8 @@ function DescriptionForm({ initial, onDone }: { initial: Content; onDone: () => 
   const release = useReloadConfirmations(
     isDirty || uploading || isSubmitting,
     "The submission description has unsaved changes or is still saving.",
-    leave
+    leave,
+    isSubmitting || uploading
   );
   useEffect(() => leave, [leave]);
   return (

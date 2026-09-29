@@ -63,8 +63,12 @@ export function Cycles({ project }: { project: FunctionReturnType<typeof api.pro
           projectId={project._id}
           cycle={null}
           canSave={address.projectRole !== "guest" && address.workspaceRole !== "guest"}
-          onDone={close}
-          onCancel={close}
+          onDone={(_, allow) => {
+            if (allow) close();
+          }}
+          onCancel={(allow) => {
+            if (allow) close();
+          }}
         />
       )}
     </>
