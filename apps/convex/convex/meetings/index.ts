@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
@@ -8,6 +9,7 @@ import { requireDocument } from "../documents/access";
 import { text, pageBudget } from "../commercial/validation";
 import { meetingFields } from "./schema";
 import { requireMeeting, canReadMeetingProject } from "./access";
+import schema from "../schema";
 
 async function validateMeeting(
   ctx: MutationCtx,
@@ -134,17 +136,12 @@ export const list = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("meetings")
       .withIndex("by_workspace_start", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
       .order("desc")
+      .filterWith((meeting) => canReadMeetingProject(ctx, meeting.projectId, user._id))
       .paginate(pageBudget(args.paginationOpts));
-    const visible = await Promise.all(
-      result.page.map(async (meeting) =>
-        (await canReadMeetingProject(ctx, meeting.projectId, user._id)) ? meeting : null
-      )
-    );
-    return { ...result, page: visible.filter((meeting) => meeting !== null) };
   },
 });
 export const participants = query({
