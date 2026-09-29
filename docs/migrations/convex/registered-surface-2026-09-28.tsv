@@ -234,6 +234,7 @@ dialog-mount	ModalCore	apps/web/core/components/stickies/native/surfaces.tsx:156
 dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:57	Convex shared workspace note controller	stickies	Mounted once for registered native workspace routes; acceptance: create/open/edit, dirty-draft navigation and flush before leave; cross-route legacy destinations remain OPEN	OPEN
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/native/note.tsx:57	Convex UI	stickies		OPEN
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/sticky/root.tsx:77	Django-backed web	stickies		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:534	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/decline-issue-modal.tsx:44	Django-backed web	tasks		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/delete-issue-modal.tsx:71	Django-backed web	tasks		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/issues/attachment/delete-attachment-modal.tsx:60	Django-backed web	tasks		OPEN
@@ -279,7 +280,7 @@ dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quic
 dialog-mount	DeleteIssueModal	apps/web/core/components/modals/work-item-level.tsx:94	Django-backed web	tasks		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/description-history.tsx:22	Convex tasks.history scoped task/Intake source candidate	tasks	Acceptance: Page versions, preview canonical HTML and restore with revision/capability proof; secondary intake; stale/denied recovery and dismissal	OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/lifecycle.tsx:134	Convex tasks.lifecycle.change revisioned source candidate	tasks	Acceptance: Confirm archive/unarchive/delete/restore with canonical receipt; protect dirty drafts and pending navigation, reject stale/denied writes and retry	OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/task-detail.tsx:104	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/task-detail.tsx:110	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:177	Django-backed web	tasks		OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:188	Django-backed web	tasks		OPEN
 dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail/relation-select.tsx:84	Django-backed web	tasks		OPEN
@@ -293,6 +294,7 @@ dialog-mount	IssueAttachmentDeleteModal	apps/web/core/components/issues/attachme
 dialog-mount	IssueAttachmentDeleteModal	apps/web/core/components/issues/attachment/attachment-item-list.tsx:121	Django-backed web	tasks		OPEN
 dialog-mount	IssueLinkCreateUpdateModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:158	Django-backed web	tasks		OPEN
 dialog-mount	IssueLinkCreateUpdateModal	apps/web/core/components/issues/issue-detail/links/root.tsx:116	Django-backed web	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:437	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	ModalCore	apps/web/core/components/core/modals/bulk-delete-issues-modal.tsx:159	Django-backed web composition; shared UI primitive	tasks		OPEN
 dialog-mount	ModalCore	apps/web/core/components/core/modals/existing-issues-list-modal.tsx:139	Django-backed web composition; shared UI primitive	tasks		OPEN
 dialog-mount	ModalCore	apps/web/core/components/cycles/transfer-issues-modal.tsx:80	Django-backed web composition; shared UI primitive	tasks		OPEN
@@ -322,7 +324,6 @@ dialog-mount	DeleteProjectViewModal	apps/web/core/components/views/quick-actions
 dialog-mount	DeleteProjectViewModal	apps/web/core/components/views/view-list-item-action.tsx:92	Django-backed web	views-search		OPEN
 dialog-mount	DocumentPreviewModal	apps/web/core/components/automation/document-generator/automation-root.tsx:133	Django-backed web	views-search		OPEN
 dialog-mount	ModalCore	apps/web/core/components/views/modal.tsx:86	Django-backed web composition; shared UI primitive	views-search		OPEN
-dialog-mount	AlertModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/header.tsx:212	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/issues/workspace-draft/delete-modal.tsx:95	Django-backed web	workspace		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/workspace/views/delete-view-modal.tsx:56	Django-backed web	workspace		OPEN
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/header.tsx:109	Django-backed web	workspace		OPEN
@@ -333,7 +334,6 @@ dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/v
 dialog-mount	DeleteWorkspaceModal	apps/web/core/components/workspace/delete-workspace-section.tsx:22	Convex workspace lifecycle; retained data	workspace	Flush shared note drafts before revisioned soft deletion	OPEN
 dialog-mount	Dialog	apps/web/core/components/workspace/confirm-workspace-member-remove.tsx:42	Django-backed web composition; shared UI primitive	workspace	Acceptance: Confirm member/invitation removal or self leave; await caller acknowledgement and draft flush, last-admin/denied/failure recovery; secondary projects remain staged	OPEN
 dialog-mount	Dialog	apps/web/core/components/workspace/members/invite-modal.tsx:76	Django-backed web composition; shared UI primitive	workspace	Acceptance: Bulk invite with authoritative roles/max batch, truthful mail availability, per-recipient delivery failure and guarded close; secondary projects and real mail acceptance OPEN	OPEN
-dialog-mount	ModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/header.tsx:117	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
 dialog-mount	ModalCore	apps/web/core/components/workspace-notifications/sidebar/notification-card/options/snooze/modal.tsx:116	Django-backed web composition; shared UI primitive	workspace		OPEN
 dialog-mount	ModalCore	apps/web/core/components/workspace/delete-workspace-modal.tsx:55	Django-backed web composition; shared UI primitive	workspace		OPEN
 dialog-mount	ModalCore	apps/web/core/components/workspace/views/modal.tsx:107	Django-backed web composition; shared UI primitive	workspace		OPEN
