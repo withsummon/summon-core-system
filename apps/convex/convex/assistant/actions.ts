@@ -1,5 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { pageBudget } from "../commercial/validation";
+import schema from "../schema";
 import { v, ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { status } from "../tasks/schema";
@@ -81,18 +83,15 @@ export const list = query({
   args: { conversationId: v.id("assistantConversations"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireConversation(ctx, args.conversationId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("assistantActions")
       .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    const rows = await Promise.all(
-      result.page.map(async (action) => {
+      .map(async (action) => {
         const task = await ctx.db.get(action.taskId);
         if (!task || !(await taskCanRead(ctx, task, user._id))) return null;
         return action;
       })
-    );
-    return { ...result, page: rows.filter((action) => action !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
