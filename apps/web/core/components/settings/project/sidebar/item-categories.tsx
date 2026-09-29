@@ -15,6 +15,7 @@ import {
   PROJECT_SETTINGS_CATEGORY_LABELS,
 } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
+import type { TProjectSettingsItem } from "@plane/types";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
@@ -36,6 +37,30 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
   const pathname = usePathname();
   // store hooks
   const { allowPermissions } = useUserPermissions();
+  return (
+    <ProjectSettingsSidebarItemCategoriesView
+      workspaceSlug={workspaceSlug}
+      projectId={projectId}
+      pathname={pathname}
+      isAccessible={(access) => allowPermissions(access, EUserPermissionsLevel.PROJECT, workspaceSlug, projectId)}
+      onNavigate={onNavigate}
+    />
+  );
+});
+
+export function ProjectSettingsSidebarItemCategoriesView({
+  workspaceSlug,
+  projectId,
+  pathname,
+  isAccessible,
+  onNavigate,
+}: {
+  workspaceSlug: string | undefined;
+  projectId: string;
+  pathname: string;
+  isAccessible: (access: TProjectSettingsItem["access"]) => boolean;
+  onNavigate?: () => void;
+}) {
   // translation
   const { t } = useTranslation();
 
@@ -43,9 +68,7 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
     <div className="mt-3 flex flex-col divide-y divide-subtle px-3">
       {PROJECT_SETTINGS_CATEGORIES.map((category) => {
         const categoryItems = GROUPED_PROJECT_SETTINGS[category];
-        const accessibleItems = categoryItems.filter((item) =>
-          allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, projectId)
-        );
+        const accessibleItems = categoryItems.filter((item) => isAccessible(item.access));
 
         if (accessibleItems.length === 0) return null;
 
@@ -79,4 +102,4 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
       })}
     </div>
   );
-});
+}

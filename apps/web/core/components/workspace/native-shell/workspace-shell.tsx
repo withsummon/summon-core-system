@@ -1,4 +1,10 @@
-import { EUserWorkspaceRoles } from "@plane/types";
+import { EUserWorkspaceRoles, EUserProjectRoles } from "@plane/types";
+import type { ComponentProps } from "react";
+import type { FunctionReturnType } from "convex/server";
+import { Logo } from "@plane/propel/emoji-icon-picker";
+import { ProjectSettingsSidebarView } from "@/components/settings/project/sidebar/root";
+import { ProjectSettingsSidebarHeaderView } from "@/components/settings/project/sidebar/header";
+import { ProjectSettingsSidebarItemCategoriesView } from "@/components/settings/project/sidebar/item-categories";
 import { useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -68,12 +74,7 @@ export function PreservedWorkspaceSettingsShell({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const commands = useStickiesCommands();
   const role = workspaceRoles[workspace.membershipRole];
-  const create = async () => {
-    await commands.create();
-    commands.openAll();
-  };
   const sidebar = (onNavigate?: () => void) => (
     <WorkspaceSettingsSidebarView
       header={
@@ -105,6 +106,81 @@ export function PreservedWorkspaceSettingsShell({
     </WorkspaceSettingsSidebarView>
   );
   return (
+    <PreservedSettingsFrame
+      workspace={workspace}
+      workspaces={workspaces}
+      user={user}
+      activePath={activePath}
+      header={header}
+      hugging={hugging}
+      sidebar={sidebar}
+      authorized={workspace.membershipRole !== "guest"}
+    >
+      {children}
+    </PreservedSettingsFrame>
+  );
+}
+
+const projectRoles = {
+  admin: EUserProjectRoles.ADMIN,
+  member: EUserProjectRoles.MEMBER,
+  guest: EUserProjectRoles.GUEST,
+} satisfies Record<FunctionReturnType<typeof api.projects.features.resolve>["role"], EUserProjectRoles>;
+
+export function PreservedProjectSettingsShell({
+  project,
+  ...props
+}: ComponentProps<typeof PreservedWorkspaceSettingsShell> & {
+  project: FunctionReturnType<typeof api.projects.features.resolve>;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const pathname = usePathname();
+  const sidebar = (onNavigate?: () => void) => (
+    <ProjectSettingsSidebarView
+      header={
+        <ProjectSettingsSidebarHeaderView
+          name={project.name}
+          roleLabel={t(`role_details.${project.role}.title`)}
+          logo={<Logo logo={project.logo ?? undefined} size={20} />}
+          onGoBack={() => navigate(`/${props.workspace.slug}/projects/${project.projectId}/issues/`)}
+        />
+      }
+    >
+      <ProjectSettingsSidebarItemCategoriesView
+        workspaceSlug={props.workspace.slug}
+        projectId={project.projectId}
+        pathname={pathname}
+        isAccessible={(access) => access.includes(projectRoles[project.role])}
+        onNavigate={onNavigate}
+      />
+    </ProjectSettingsSidebarView>
+  );
+  return <PreservedSettingsFrame {...props} sidebar={sidebar} authorized={project.canConfigure} projectView />;
+}
+
+function PreservedSettingsFrame({
+  workspace,
+  workspaces,
+  user,
+  activePath,
+  header,
+  hugging,
+  children,
+  sidebar,
+  authorized,
+  projectView = false,
+}: ComponentProps<typeof PreservedWorkspaceSettingsShell> & {
+  sidebar: (onNavigate?: () => void) => ReactNode;
+  authorized: boolean;
+  projectView?: boolean;
+}) {
+  const commands = useStickiesCommands();
+  const create = async () => {
+    await commands.create();
+    commands.openAll();
+  };
+  return (
     <WorkspaceContentFrame
       shouldRenderAppRail={false}
       appRail={null}
@@ -122,8 +198,8 @@ export function PreservedWorkspaceSettingsShell({
         <SettingsMobileNav activePath={activePath}>{sidebar}</SettingsMobileNav>
         <div className="flex size-full min-h-0 min-w-0">
           <div className="hidden h-full shrink-0 md:block">{sidebar()}</div>
-          {workspace.membershipRole === "guest" ? (
-            <NotAuthorizedView section="settings" className="h-auto" />
+          {!authorized ? (
+            <NotAuthorizedView section="settings" isProjectView={projectView} className="h-auto" />
           ) : (
             <SettingsContentWrapper header={header} hugging={hugging}>
               {children}

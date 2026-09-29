@@ -5,6 +5,7 @@
  */
 
 import { ArrowLeft } from "lucide-react";
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { ROLE_DETAILS } from "@plane/constants";
@@ -40,25 +41,39 @@ export const ProjectSettingsSidebarHeader = observer(function ProjectSettingsSid
   if (!currentProjectRole) return null;
 
   return (
+    <ProjectSettingsSidebarHeaderView
+      name={projectDetails?.name}
+      roleLabel={t(ROLE_DETAILS[currentProjectRole].i18n_title)}
+      logo={<Logo logo={projectDetails?.logo_props} size={20} />}
+      onGoBack={() => router.push(`/${currentWorkspace?.slug}/projects/${projectId}/issues/`)}
+    />
+  );
+});
+
+export function ProjectSettingsSidebarHeaderView({
+  name,
+  roleLabel,
+  logo,
+  onGoBack,
+}: {
+  name: string | undefined;
+  roleLabel: string;
+  logo: ReactNode;
+  onGoBack: () => void;
+}) {
+  return (
     <div className="shrink-0">
       <div className="flex items-center gap-1 py-3 pr-5 pl-4 text-body-md-medium">
-        <IconButton
-          variant="ghost"
-          size="base"
-          icon={ArrowLeft}
-          onClick={() => router.push(`/${currentWorkspace?.slug}/projects/${projectId}/issues/`)}
-        />
+        <IconButton variant="ghost" size="base" icon={ArrowLeft} onClick={onGoBack} aria-label="Back to project" />
         <p>Project settings</p>
       </div>
       <div className="mt-1.5 flex items-center gap-2 truncate px-5 py-0.5">
-        <div className="grid size-8 shrink-0 place-items-center rounded bg-layer-2">
-          <Logo logo={projectDetails?.logo_props} size={20} />
-        </div>
+        <div className="grid size-8 shrink-0 place-items-center rounded bg-layer-2">{logo}</div>
         <div className="truncate">
-          <p className="truncate text-body-sm-medium">{projectDetails?.name}</p>
-          <p className="truncate text-caption-md-regular">{t(ROLE_DETAILS[currentProjectRole].i18n_title)}</p>
+          <p className="truncate text-body-sm-medium">{name}</p>
+          <p className="truncate text-caption-md-regular">{roleLabel}</p>
         </div>
       </div>
     </div>
   );
-});
+}
