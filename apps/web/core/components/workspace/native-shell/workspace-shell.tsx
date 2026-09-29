@@ -38,7 +38,7 @@ import { SummonThemeToggle } from "@/components/summon/theme-toggle";
 import { NativeHelpMenu } from "./help-menu";
 import { NativeAccountMenu } from "./account-menu";
 import { NativeWorkspaceMenu } from "./workspace-menu";
-import { StickyCommands } from "./commands";
+import { WorkspaceCommands } from "./commands";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
@@ -189,7 +189,7 @@ function PreservedSettingsFrame({
           workspace={workspace}
           workspaces={workspaces}
           user={user}
-          powerK={<StickyCommands onCreateSticky={create} onOpenStickies={commands.openAll} />}
+          powerK={<WorkspaceCommands onCreateSticky={create} onOpenStickies={commands.openAll} />}
           beforeLeave={commands.flushAll}
         />
       }
@@ -219,6 +219,7 @@ export function PreservedWorkspaceShell({
   onCreateSticky,
   onOpenStickies,
   beforeLeave,
+  commands,
 }: {
   workspace: NativeWorkspace;
   workspaces: NativeWorkspace[];
@@ -227,6 +228,7 @@ export function PreservedWorkspaceShell({
   onCreateSticky: () => Promise<void>;
   onOpenStickies: () => void;
   beforeLeave: () => Promise<void>;
+  commands?: ComponentProps<typeof WorkspaceCommands>["commands"];
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -292,7 +294,9 @@ export function PreservedWorkspaceShell({
           user={user}
           sidebarCollapsed={collapsed}
           sidebarToggle={toggleButton}
-          powerK={<StickyCommands onCreateSticky={onCreateSticky} onOpenStickies={onOpenStickies} />}
+          powerK={
+            <WorkspaceCommands onCreateSticky={onCreateSticky} onOpenStickies={onOpenStickies} commands={commands} />
+          }
           beforeLeave={beforeLeave}
         />
       }

@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Command } from "cmdk";
 import { StickyNote, Plus } from "lucide-react";
 import { CommandSearchView } from "@/components/navigation/command-search-view";
 import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
 import { useExpandableSearch } from "@/hooks/use-expandable-search";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-export function StickyCommands({
+export function WorkspaceCommands({
   onCreateSticky,
   onOpenStickies,
+  commands,
 }: {
   onCreateSticky: () => Promise<void>;
   onOpenStickies: () => void;
+  commands?: (close: () => void) => ReactNode;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const search = useExpandableSearch({ onClose: () => setSearchTerm("") });
@@ -69,6 +72,7 @@ export function StickyCommands({
       footer={<PowerKModalFooter isWorkspaceLevel={false} projectId={undefined} onWorkspaceLevelChange={() => {}} />}
     >
       <Command.Empty className="p-3 text-13 text-tertiary">No commands found.</Command.Empty>
+      {commands?.(search.handleClose)}
       <Command.Item
         value="Create new sticky"
         onSelect={() => void create()}
