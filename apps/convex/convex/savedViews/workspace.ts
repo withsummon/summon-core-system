@@ -67,9 +67,15 @@ export const resolve = query({
   },
 });
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), deleted: v.boolean(), paginationOpts: paginationOptsValidator },
+  args: {
+    workspaceId: v.id("workspaces"),
+    deleted: v.boolean(),
+    search: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const permission = await requireWorkspace(ctx, args.workspaceId);
+    const search = args.search?.toLowerCase() ?? "";
     return stream(ctx.db, schema)
       .query("savedViews")
       .withIndex("by_workspace_project_deleted", (q) =>
@@ -79,7 +85,9 @@ export const list = query({
       )
       .order("desc")
       .map(async (view) =>
-        workspaceCapabilities(view, permission).canRead ? workspaceView(ctx, view, permission) : null
+        workspaceCapabilities(view, permission).canRead && view.name.toLowerCase().includes(search)
+          ? workspaceView(ctx, view, permission)
+          : null
       )
       .paginate(pageBudget(args.paginationOpts));
   },
