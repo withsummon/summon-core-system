@@ -3,8 +3,10 @@ import type { Id } from "../_generated/dataModel";
 import { cyclePhase } from "./dates";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
-import { requireTask, taskIsActive, taskCanRead } from "../tasks/access";
+import { requireTask, taskIsActive, taskCanRead, taskDetail } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
@@ -51,30 +53,22 @@ export const list = query({
       args.paginationOpts.numItems > 100
     )
       throw new ConvexError("Choose 1–100 tasks per page.");
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("cycleTasks")
       .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
-      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
-    const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
-    const readable = new Set(
-      (
-        await Promise.all(
-          tasks.map(async (task) => (task && (await taskCanRead(ctx, task, user._id)) ? task._id : null))
-        )
-      ).filter((id) => id !== null)
-    );
-    return {
-      ...result,
-      page: tasks
-        .filter((task) => task !== null)
-        .filter((task) => (taskIsActive(task) && readable.has(task._id)) || canDetach)
-        .map((task) => ({
+      .map(async (row) => {
+        const task = await ctx.db.get(row.taskId);
+        if (!task || task.projectId !== cycle.projectId || task.workspaceId !== cycle.workspaceId) return null;
+        const readable = taskIsActive(task) && (await taskCanRead(ctx, task, user._id));
+        if (!readable && !canDetach) return null;
+        return {
           taskId: task._id,
           updatedAt: task.updatedAt,
-          task: taskIsActive(task) && readable.has(task._id) ? task : null,
+          task: readable ? await taskDetail(ctx, task) : null,
           unavailable: !taskIsActive(task),
-        })),
-    };
+        };
+      })
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
   },
 });
 

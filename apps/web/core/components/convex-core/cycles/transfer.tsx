@@ -1,35 +1,62 @@
 import { Distribution } from "../tasks/progress/distribution";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery as useCyclePages } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { cyclePhase } from "@summon/convex/cycle-calendar";
 import { Button } from "@plane/propel/button";
+import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { Select } from "@plane/propel/select";
 import { SummonField } from "@/components/summon/forms";
-import { mutationMessage, selectClass } from "../commercial/forms";
+import { mutationMessage } from "../commercial/forms";
 import { useCycleClock } from "./use-cycle-clock";
-type Cycle = FunctionReturnType<typeof api.cycles.index.get>;
-export function CycleTransfers({ cycle }: { cycle: Cycle }) {
-  const jobs = usePaginatedQuery(api.cycles.transfer.list, { cycleId: cycle._id }, { initialNumItems: 10 });
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+type Cycle = NonNullable<FunctionReturnType<typeof api.cycles.index.address>>;
+export function CycleTransfers({
+  cycle,
+  open = false,
+  onOpenChange,
+}: {
+  cycle: Cycle;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [clock] = useCycleClock();
+  const capabilities = useQuery(api.cycles.index.get, { cycleId: cycle._id, now: clock });
+  const canTransfer = capabilities?.canTransfer === true;
+  const jobs = usePaginatedQuery(
+    api.cycles.transfer.list,
+    cycle.canWrite && !cycle.deleted ? { cycleId: cycle._id } : "skip",
+    { initialNumItems: 10 }
+  );
   const [creating, setCreating] = useState(false),
     [selected, setSelected] = useState<Id<"cycleTransfers"> | null>(null);
+  const closePreparation = () => {
+    setCreating(false);
+    onOpenChange?.(false);
+  };
   return (
-    <section className="space-y-3 border-t border-subtle-1 pt-4">
+    <section
+      className="space-y-3 border-t border-subtle-1 pt-4"
+      hidden={(!cycle.canWrite || cycle.deleted) && !selected && !creating && !open}
+    >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-16 font-medium">Unfinished task transfers</h3>
-        {cycle.phase === "completed" && !cycle.archived && (
+        {canTransfer && (
           <Button variant="secondary" onClick={() => setCreating(true)}>
             Transfer unfinished tasks
           </Button>
         )}
       </header>
-      {creating && (
+      {(creating || open) && (
         <PrepareTransfer
           cycle={cycle}
-          onCancel={() => setCreating(false)}
+          canTransfer={canTransfer}
+          onCancel={closePreparation}
           onCreated={(id) => {
-            setCreating(false);
+            closePreparation();
             setSelected(id);
           }}
         />
@@ -50,16 +77,25 @@ export function CycleTransfers({ cycle }: { cycle: Cycle }) {
           Load more transfers
         </Button>
       )}
-      {selected && <TransferRun key={selected} transferId={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <TransferRun
+          key={selected}
+          transferId={selected}
+          enabled={cycle.canWrite && !cycle.deleted}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </section>
   );
 }
 function PrepareTransfer({
   cycle,
+  canTransfer,
   onCreated,
   onCancel,
 }: {
   cycle: Cycle;
+  canTransfer: boolean;
   onCreated: (id: Id<"cycleTransfers">) => void;
   onCancel: () => void;
 }) {
@@ -68,86 +104,115 @@ function PrepareTransfer({
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const [now] = useCycleClock();
-  const choices = usePaginatedQuery(
-    api.cycles.index.list,
-    { projectId: cycle.projectId, deleted: false },
+  const [queryClock] = useState(Date.now);
+  const choices = useCyclePages(
+    api.cycles.index.browse,
+    {
+      projectId: cycle.projectId,
+      view: "all",
+      now: queryClock,
+      phases: ["draft", "current", "upcoming"],
+      search: "",
+      startDate: null,
+      endDate: null,
+    },
     { initialNumItems: 30 }
+  );
+  const destinationCapabilities = useQuery(
+    api.cycles.index.get,
+    destination ? { cycleId: destination._id, now } : "skip"
   );
   const begin = useMutation(api.cycles.transfer.begin);
   const eligible = choices.results.filter(
     (row) => row._id !== source._id && !row.archived && cyclePhase(row, now) !== "completed"
   );
+  const enabled =
+    canTransfer &&
+    destinationCapabilities?.canEdit === true &&
+    destination !== null &&
+    eligible.some((row) => row._id === destination._id);
+  const release = useReloadConfirmations(pending, "The cycle transfer is still being prepared.", onCancel);
   return (
-    <div className="space-y-3 rounded-md border border-subtle-1 p-3">
-      <p className="text-14">
-        Save a snapshot, then move unfinished tasks in batches. Completed and cancelled tasks stay in this cycle.
-        Changes made after the snapshot need review before continuing.
-      </p>
-      <SummonField label="Destination cycle" htmlFor="cycle-transfer-destination">
-        <select
-          id="cycle-transfer-destination"
-          className={selectClass}
-          value={destination?._id ?? ""}
-          disabled={pending}
-          onChange={(event) => setDestination(eligible.find((row) => row._id === event.target.value) ?? null)}
-        >
-          <option value="">Select open cycle</option>
-          {destination && !eligible.some((row) => row._id === destination._id) && (
-            <option value={destination._id}>Selected cycle is unavailable</option>
-          )}
-          {eligible.map((row) => (
-            <option key={row._id} value={row._id}>
-              {row.name} · {cyclePhase(row, now)}
-            </option>
-          ))}
-        </select>
-      </SummonField>
-      {choices.status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => choices.loadMore(30)}>
-          Load more cycles
-        </Button>
-      )}
-      <div className="flex gap-2">
-        <Button
-          disabled={!destination}
-          loading={pending}
-          onClick={async () => {
-            if (!destination) return;
-            setPending(true);
-            setError("");
-            try {
-              onCreated(
-                await begin({
-                  sourceId: source._id,
-                  destinationId: destination._id,
-                  expectedSourceUpdatedAt: source.updatedAt,
-                  expectedDestinationUpdatedAt: destination.updatedAt,
-                })
-              );
-            } catch (failure) {
-              setError(mutationMessage(failure));
-            } finally {
-              setPending(false);
-            }
-          }}
-        >
-          Create transfer snapshot
-        </Button>
-        <Button variant="secondary" disabled={pending} onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
-      )}
-    </div>
+    <Dialog
+      open
+      onOpenChange={(visible) => {
+        if (!visible && !pending) onCancel();
+      }}
+    >
+      <Dialog.Panel width={EDialogWidth.XXL}>
+        <div className="p-5">
+          <Dialog.Title className="mb-4">Transfer unfinished work items</Dialog.Title>
+          <div className="space-y-3 rounded-md border border-subtle-1 p-3">
+            <p className="text-14">
+              Save a snapshot, then move unfinished tasks in batches. Completed and cancelled tasks stay in this cycle.
+              Changes made after the snapshot need review before continuing.
+            </p>
+            <SummonField label="Destination cycle" htmlFor="cycle-transfer-destination">
+              <Select
+                id="cycle-transfer-destination"
+                value={destination?._id ?? ""}
+                disabled={pending}
+                placeholder="Select open cycle"
+                options={eligible.map((row) => ({ value: row._id, label: `${row.name} · ${cyclePhase(row, now)}` }))}
+                onValueChange={(value) => setDestination(eligible.find((row) => row._id === value) ?? null)}
+              />
+            </SummonField>
+            {choices.status === "CanLoadMore" && (
+              <Button variant="secondary" onClick={() => choices.loadMore(30)}>
+                Load more cycles
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button
+                disabled={!enabled}
+                loading={pending}
+                onClick={async () => {
+                  if (!enabled || !destination) return;
+                  setPending(true);
+                  setError("");
+                  try {
+                    const transferId = await begin({
+                      sourceId: source._id,
+                      destinationId: destination._id,
+                      expectedSourceUpdatedAt: source.updatedAt,
+                      expectedDestinationUpdatedAt: destination.updatedAt,
+                    });
+                    release(() => onCreated(transferId));
+                  } catch (failure) {
+                    setError(mutationMessage(failure));
+                  } finally {
+                    setPending(false);
+                  }
+                }}
+              >
+                Create transfer snapshot
+              </Button>
+              <Button variant="secondary" disabled={pending} onClick={onCancel}>
+                Cancel
+              </Button>
+            </div>
+            {error && (
+              <p role="alert" className="text-14 text-danger-primary">
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 }
-function TransferRun({ transferId, onClose }: { transferId: Id<"cycleTransfers">; onClose: () => void }) {
-  const result = useQuery(api.cycles.transfer.inspect, { transferId });
-  const [clock] = useState(Date.now);
+function TransferRun({
+  transferId,
+  enabled,
+  onClose,
+}: {
+  transferId: Id<"cycleTransfers">;
+  enabled: boolean;
+  onClose: () => void;
+}) {
+  const result = useQuery(api.cycles.transfer.inspect, enabled ? { transferId } : "skip");
+  const [clock] = useCycleClock();
   const destination = useQuery(
     api.cycles.index.get,
     result ? { cycleId: result.job.destinationId, now: clock } : "skip"
@@ -162,6 +227,16 @@ function TransferRun({ transferId, onClose }: { transferId: Id<"cycleTransfers">
     revision: number;
     taskIds: Id<"tasks">[];
   } | null>(null);
+  useReloadConfirmations(pending, "The cycle transfer is still in progress.", onClose);
+  if (!enabled)
+    return (
+      <div className="space-y-2">
+        <p role="status">Transfer access changed. Your saved snapshot is retained.</p>
+        <Button variant="secondary" disabled={pending} onClick={onClose}>
+          Close transfer
+        </Button>
+      </div>
+    );
   if (!result) return <p role="status">Opening transfer…</p>;
   const { job, blockers } = result;
   const moved = job.entries.filter((row) => row.outcome === "moved").length,
@@ -180,95 +255,108 @@ function TransferRun({ transferId, onClose }: { transferId: Id<"cycleTransfers">
     }
   }
   return (
-    <div className="space-y-4 rounded-md border border-subtle-1 p-4">
-      <header className="flex flex-wrap justify-between gap-2">
-        <h4 className="text-16 font-medium">Transfer · {job.status}</h4>
-        <Button variant="secondary" onClick={onClose}>
-          Close transfer
-        </Button>
-      </header>
-      <p className="text-14">
-        Destination: {destination?.name ?? "Loading…"}
-        {destination?.archived ? " · Archived" : ""}
-        {destination?.deleted ? " · Removed" : ""}
-      </p>
-      <p className="text-14">
-        {moved} moved · {skipped} skipped · {remaining} pending
-      </p>
-      {job.status === "cancelled" && (
-        <p className="text-14">Remaining work was cancelled. Tasks already moved stay in the destination cycle.</p>
-      )}
-      <Snapshot snapshot={job.snapshot} />
-      {job.status === "running" && (
-        <>
-          <ul className="space-y-1 text-14">
-            {blockers.map((blocker) => (
-              <li key={blocker.taskId}>
-                {blocker.title}: {blocker.reason}
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={blockers.length > 0 || !destination}
-              loading={pending}
-              onClick={() => run(() => step({ transferId, expectedRevision: job.revision }))}
-            >
-              Move next batch
+    <Dialog
+      open
+      onOpenChange={(visible) => {
+        if (!visible && !pending) onClose();
+      }}
+    >
+      <Dialog.Panel width={EDialogWidth.XXL}>
+        <div className="space-y-4 rounded-md border border-subtle-1 p-4">
+          <header className="flex flex-wrap justify-between gap-2">
+            <Dialog.Title className="text-16 font-medium">Transfer · {job.status}</Dialog.Title>
+            <Button variant="secondary" disabled={pending} onClick={onClose}>
+              Close transfer
             </Button>
-            {blockers.length > 0 && (
-              <Button
-                variant="secondary"
-                disabled={pending}
-                onClick={() =>
-                  setConfirmation({ kind: "skip", revision: job.revision, taskIds: blockers.map((row) => row.taskId) })
-                }
-              >
-                Review skipping changed tasks
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              disabled={pending}
-              onClick={() => setConfirmation({ kind: "cancel", revision: job.revision, taskIds: [] })}
-            >
-              Cancel remaining transfer
-            </Button>
-          </div>
-        </>
-      )}
-      {confirmation && (
-        <div className="space-y-2 border-t border-subtle-1 pt-3">
+          </header>
           <p className="text-14">
-            {confirmation.kind === "skip"
-              ? `Skip these ${confirmation.taskIds.length} changed tasks? They will not be moved by this transfer.`
-              : "Cancel all remaining work? Tasks already moved will not be returned to the source."}
+            Destination: {destination?.name ?? "Loading…"}
+            {destination?.archived ? " · Archived" : ""}
+            {destination?.deleted ? " · Removed" : ""}
           </p>
-          <div className="flex gap-2">
-            <Button
-              loading={pending}
-              onClick={() =>
-                run(() =>
-                  confirmation.kind === "skip"
-                    ? skip({ transferId, expectedRevision: confirmation.revision, taskIds: confirmation.taskIds })
-                    : cancel({ transferId, expectedRevision: confirmation.revision })
-                )
-              }
-            >
-              Confirm {confirmation.kind === "skip" ? "skip" : "cancellation"}
-            </Button>
-            <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
-              Keep reviewing
-            </Button>
-          </div>
+          <p className="text-14">
+            {moved} moved · {skipped} skipped · {remaining} pending
+          </p>
+          {job.status === "cancelled" && (
+            <p className="text-14">Remaining work was cancelled. Tasks already moved stay in the destination cycle.</p>
+          )}
+          <Snapshot snapshot={job.snapshot} />
+          {job.status === "running" && (
+            <>
+              <ul className="space-y-1 text-14">
+                {blockers.map((blocker) => (
+                  <li key={blocker.taskId}>
+                    {blocker.title}: {blocker.reason}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={blockers.length > 0 || !destination?.canEdit}
+                  loading={pending}
+                  onClick={() => run(() => step({ transferId, expectedRevision: job.revision }))}
+                >
+                  Move next batch
+                </Button>
+                {blockers.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={() =>
+                      setConfirmation({
+                        kind: "skip",
+                        revision: job.revision,
+                        taskIds: blockers.map((row) => row.taskId),
+                      })
+                    }
+                  >
+                    Review skipping changed tasks
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={() => setConfirmation({ kind: "cancel", revision: job.revision, taskIds: [] })}
+                >
+                  Cancel remaining transfer
+                </Button>
+              </div>
+            </>
+          )}
+          {confirmation && (
+            <div className="space-y-2 border-t border-subtle-1 pt-3">
+              <p className="text-14">
+                {confirmation.kind === "skip"
+                  ? `Skip these ${confirmation.taskIds.length} changed tasks? They will not be moved by this transfer.`
+                  : "Cancel all remaining work? Tasks already moved will not be returned to the source."}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  loading={pending}
+                  onClick={() =>
+                    run(() =>
+                      confirmation.kind === "skip"
+                        ? skip({ transferId, expectedRevision: confirmation.revision, taskIds: confirmation.taskIds })
+                        : cancel({ transferId, expectedRevision: confirmation.revision })
+                    )
+                  }
+                >
+                  Confirm {confirmation.kind === "skip" ? "skip" : "cancellation"}
+                </Button>
+                <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
+                  Keep reviewing
+                </Button>
+              </div>
+            </div>
+          )}
+          {error && (
+            <p role="alert" className="text-14 text-danger-primary">
+              {error}
+            </p>
+          )}
         </div>
-      )}
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
-      )}
-    </div>
+      </Dialog.Panel>
+    </Dialog>
   );
 }
 function Snapshot({ snapshot }: { snapshot: Doc<"cycleTransfers">["snapshot"] }) {
