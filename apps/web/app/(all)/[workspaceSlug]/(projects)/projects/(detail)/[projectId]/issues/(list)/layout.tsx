@@ -60,7 +60,7 @@ export default function ProjectIssuesLayout() {
           <ContentWrapper>
             <Outlet context={address} />
           </ContentWrapper>
-          {creating && canCreate && states && (
+          {creating && states && (
             <CreateProjectIssue key={address.project._id} address={address} states={states} onClose={close} />
           )}
         </div>
