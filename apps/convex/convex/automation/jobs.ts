@@ -1,6 +1,8 @@
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { query, internalMutation, internalQuery } from "../_generated/server";
+import schema from "../schema";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
 import { authorizedContext } from "../assistant/context";
 import { contextFields } from "../assistant/schema";
@@ -115,13 +117,12 @@ export const list = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("automationJobs")
       .withIndex("by_workspace_requester", (q) => q.eq("workspaceId", args.workspaceId).eq("requesterId", user._id))
       .order("desc")
+      .filterWith((job) => canReadJob(ctx, job, user._id))
       .paginate(pageBudget(args.paginationOpts));
-    const readable = await Promise.all(result.page.map((job) => canReadJob(ctx, job, user._id)));
-    return { ...result, page: result.page.filter((_, index) => readable[index]) };
   },
 });
 export const publication = internalQuery({
