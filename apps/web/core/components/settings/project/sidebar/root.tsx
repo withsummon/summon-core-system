@@ -5,6 +5,7 @@
  */
 
 // plane imports
+import type { ReactNode } from "react";
 import { ScrollArea } from "@plane/propel/scrollarea";
 // local imports
 import { ProjectSettingsSidebarHeader } from "./header";
@@ -19,6 +20,14 @@ export function ProjectSettingsSidebarRoot(props: Props) {
   const { projectId, onNavigate } = props;
 
   return (
+    <ProjectSettingsSidebarView header={<ProjectSettingsSidebarHeader projectId={projectId} />}>
+      <ProjectSettingsSidebarItemCategories projectId={projectId} onNavigate={onNavigate} />
+    </ProjectSettingsSidebarView>
+  );
+}
+
+export function ProjectSettingsSidebarView({ header, children }: { header: ReactNode; children: ReactNode }) {
+  return (
     <ScrollArea
       scrollType="hover"
       orientation="vertical"
@@ -26,8 +35,8 @@ export function ProjectSettingsSidebarRoot(props: Props) {
       rootClassName="shrink-0 animate-fade-in h-full w-[250px] bg-surface-1 border-r border-r-subtle overflow-y-scroll"
       viewportClassName="pb-5"
     >
-      <ProjectSettingsSidebarHeader projectId={projectId} />
-      <ProjectSettingsSidebarItemCategories projectId={projectId} onNavigate={onNavigate} />
+      {header}
+      {children}
     </ScrollArea>
   );
 }

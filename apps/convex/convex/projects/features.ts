@@ -1,36 +1,58 @@
 import { ConvexError, v } from "convex/values";
 import { query, mutation, internalMutation } from "../_generated/server";
 import { requireProject, requireWorkspace } from "../identity/access";
-import { canAdministerProject } from "./administration";
+import { renderedProjectLogo } from "./branding_schema";
 import { projectFeatures, defaultProjectFeatures } from "./feature_schema";
 import { ensureDefaultIntake } from "../intakes/configuration_owner";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 function stored(project: Doc<"projects">) {
   if (!project.features) throw new ConvexError("Project feature migration is required.");
   return { ...project.features, intake: project.intakeEnabled ?? false };
 }
+async function featureAccess(ctx: QueryCtx, projectId: Id<"projects">) {
+  const project = await ctx.db.get(projectId);
+  if (!project || project.deletedAt != null || project.archived) throw new ConvexError("Project is unavailable.");
+  const { member } = await requireWorkspace(ctx, project.workspaceId);
+  const projectRole = member.role === "admin" ? "admin" : (await requireProject(ctx, projectId)).projectMember.role;
+  const role = member.role === "guest" ? "guest" : projectRole;
+  return { project, role, canConfigure: role === "admin" };
+}
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
-    const project = await ctx.db.get(projectId);
-    if (!project || project.deletedAt != null || project.archived) throw new ConvexError("Project is unavailable.");
-    const { user, member } = await requireWorkspace(ctx, project.workspaceId);
-    if (member.role !== "admin") await requireProject(ctx, projectId);
+    const { project, canConfigure } = await featureAccess(ctx, projectId);
     return {
       features: stored(project),
       revision: project.metadataRevision,
-      canConfigure: await canAdministerProject(ctx, project, user._id, member.role),
+      canConfigure,
+    };
+  },
+});
+export const resolve = query({
+  args: { workspaceId: v.id("workspaces"), projectId: v.string() },
+  handler: async (ctx, args) => {
+    await requireWorkspace(ctx, args.workspaceId);
+    const projectId = ctx.db.normalizeId("projects", args.projectId);
+    if (!projectId) throw new ConvexError("Project is unavailable.");
+    const { project, role, canConfigure } = await featureAccess(ctx, projectId);
+    if (project.workspaceId !== args.workspaceId) throw new ConvexError("Project is unavailable.");
+    return {
+      projectId: project._id,
+      name: project.name,
+      logo: renderedProjectLogo(project.logoProps ?? {}),
+      role,
+      features: stored(project),
+      revision: project.metadataRevision,
+      canConfigure,
     };
   },
 });
 export const save = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number(), features: projectFeatures, intake: v.boolean() },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
-    if (!project || project.deletedAt != null || project.archived) throw new ConvexError("Project is unavailable.");
-    const { user, member } = await requireWorkspace(ctx, project.workspaceId);
-    if (!(await canAdministerProject(ctx, project, user._id, member.role)))
-      throw new ConvexError("Only workspace or project administrators can configure features.");
+    const { project, canConfigure } = await featureAccess(ctx, args.projectId);
+    if (!canConfigure) throw new ConvexError("Only workspace or project administrators can configure features.");
     stored(project);
     if (!Number.isSafeInteger(args.expectedRevision) || project.metadataRevision !== args.expectedRevision)
       throw new ConvexError("Project settings changed. Refresh before saving.");
