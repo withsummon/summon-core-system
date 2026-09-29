@@ -79,22 +79,9 @@ export const coreRoutes: RouteConfigEntry[] = [
           ),
         ]),
 
-        // Archived Projects
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/archives",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx"
-          ),
-        ]),
-
         // --------------------------------------------------------------------
         // PROJECT LEVEL ROUTES
         // --------------------------------------------------------------------
-
-        // Project List
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(list)/layout.tsx", [
-          route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx"),
-        ]),
 
         // Project Detail
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/layout.tsx", [

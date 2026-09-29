@@ -18,22 +18,26 @@ import { useProjectFilter } from "@/hooks/store/use-project-filter";
 import { IconButton } from "@plane/propel/icon-button";
 
 export const ProjectSearch = observer(function ProjectSearch() {
+  const { searchQuery, updateSearchQuery } = useProjectFilter();
+  return <ProjectSearchView value={searchQuery} onChange={updateSearchQuery} />;
+});
+
+export function ProjectSearchView({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   // i18n
   const { t } = useTranslation();
   // hooks
-  const { searchQuery, updateSearchQuery } = useProjectFilter();
   // refs
   const inputRef = useRef<HTMLInputElement>(null);
   // states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   // outside click detector hook
   useOutsideClickDetector(inputRef, () => {
-    if (isSearchOpen && searchQuery.trim() === "") setIsSearchOpen(false);
+    if (isSearchOpen && value.trim() === "") setIsSearchOpen(false);
   });
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
-      if (searchQuery && searchQuery.trim() !== "") updateSearchQuery("");
+      if (value.trim() !== "") onChange("");
       else setIsSearchOpen(false);
     }
   };
@@ -50,6 +54,7 @@ export const ProjectSearch = observer(function ProjectSearch() {
             inputRef.current?.focus();
           }}
           icon={SearchIcon}
+          aria-label={t("common.search.label")}
         />
       )}
       <div
@@ -65,8 +70,9 @@ export const ProjectSearch = observer(function ProjectSearch() {
           ref={inputRef}
           className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
           placeholder={t("common.search.label")}
-          value={searchQuery}
-          onChange={(e) => updateSearchQuery(e.target.value)}
+          aria-label={t("common.search.label")}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleInputKeyDown}
         />
         {isSearchOpen && (
@@ -74,7 +80,7 @@ export const ProjectSearch = observer(function ProjectSearch() {
             type="button"
             className="grid place-items-center"
             onClick={() => {
-              updateSearchQuery("");
+              onChange("");
               setIsSearchOpen(false);
             }}
           >
@@ -84,4 +90,4 @@ export const ProjectSearch = observer(function ProjectSearch() {
       </div>
     </div>
   );
-});
+}

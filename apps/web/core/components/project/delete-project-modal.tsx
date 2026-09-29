@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
@@ -15,6 +16,7 @@ import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
 type DeleteProjectModal = {
   isOpen: boolean;
@@ -34,6 +36,42 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = useParams();
+  return (
+    <DeleteProjectDialog
+      isOpen={isOpen}
+      name={project.name}
+      onClose={onClose}
+      onDelete={async () => {
+        if (!workspaceSlug) throw new Error("Workspace is unavailable.");
+        await deleteProject(workspaceSlug.toString(), project.id);
+        if (projectId && projectId.toString() === project.id) router.push(`/${workspaceSlug}/projects`);
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Project deleted successfully." });
+      }}
+    />
+  );
+}
+export function DeleteProjectDialog({
+  isOpen,
+  name,
+  onClose,
+  onDelete,
+  recoverable = false,
+  pending,
+  canSubmit = true,
+  onDone = onClose,
+  statusMessage,
+}: {
+  isOpen: boolean;
+  name: string;
+  onClose: () => void;
+  onDelete: () => Promise<void>;
+  recoverable?: boolean;
+  pending?: boolean;
+  canSubmit?: boolean;
+  onDone?: () => void;
+  statusMessage?: string;
+}) {
+  const [error, setError] = useState("");
   // form info
   const {
     control,
@@ -43,38 +81,31 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
     watch,
   } = useForm({ defaultValues });
 
-  const canDelete = watch("projectName") === project?.name && watch("confirmDelete") === "delete my project";
+  const canDelete = watch("projectName") === name && watch("confirmDelete") === "delete my project";
+  const isPending = pending === undefined ? isSubmitting : pending;
 
   const handleClose = () => {
+    if (isPending) return;
     const timer = setTimeout(() => {
       reset(defaultValues);
       clearTimeout(timer);
     }, 350);
 
+    setError("");
     onClose();
   };
 
   const onSubmit = async () => {
-    if (!workspaceSlug || !canDelete) return;
-
+    if (!canDelete || isPending || !canSubmit) return;
+    setError("");
     try {
-      await deleteProject(workspaceSlug.toString(), project.id);
-      if (projectId && projectId.toString() === project.id) router.push(`/${workspaceSlug}/projects`);
-      handleClose();
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Project deleted successfully.",
-      });
-    } catch (_error) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Something went wrong. Please try again later.",
-      });
+      await onDelete();
+      reset(defaultValues);
+      onDone();
+    } catch (failure) {
+      setError(mutationMessage(failure));
     }
   };
-
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6 p-6">
@@ -88,13 +119,15 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
         </div>
         <span>
           <p className="text-13 leading-7 text-secondary">
-            Are you sure you want to delete project <span className="font-semibold break-words">{project?.name}</span>?
-            All of the data related to the project will be permanently removed. This action cannot be undone
+            Are you sure you want to delete project <span className="font-semibold break-words">{name}</span>?
+            {recoverable
+              ? "The project will move to Trash. Its data is retained and an authorized administrator can restore it."
+              : "All of the data related to the project will be permanently removed. This action cannot be undone"}
           </p>
         </span>
         <div className="text-secondary">
           <p className="text-13 break-words">
-            Enter the project name <span className="font-medium text-primary">{project?.name}</span> to continue:
+            Enter the project name <span className="font-medium text-primary">{name}</span> to continue:
           </p>
           <Controller
             control={control}
@@ -111,6 +144,7 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
                 placeholder="Project name"
                 className="mt-2 w-full"
                 autoComplete="off"
+                disabled={isPending}
               />
             )}
           />
@@ -134,16 +168,33 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
                 placeholder="Enter 'delete my project'"
                 className="mt-2 w-full"
                 autoComplete="off"
+                disabled={isPending}
               />
             )}
           />
         </div>
+        {statusMessage && (
+          <p role="status" className="text-secondary">
+            {statusMessage}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-danger-primary">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" size="lg" onClick={handleClose}>
+          <Button variant="secondary" size="lg" onClick={handleClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button variant="error-fill" size="lg" type="submit" disabled={!canDelete} loading={isSubmitting}>
-            {isSubmitting ? "Deleting" : "Delete project"}
+          <Button
+            variant="error-fill"
+            size="lg"
+            type="submit"
+            disabled={!canDelete || !canSubmit || isPending}
+            loading={isPending}
+          >
+            {isPending ? "Deleting" : "Delete project"}
           </Button>
         </div>
       </form>

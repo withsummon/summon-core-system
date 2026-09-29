@@ -48,6 +48,14 @@ const routes: RouteConfigEntry[] = [
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
       ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
+      // Active and archived Projects share one directory/dialog owner.
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(list)/layout.tsx", [
+        route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx"),
+        route(
+          ":workspaceSlug/projects/archives",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx"
+        ),
+      ]),
       layout("./(all)/[workspaceSlug]/(projects)/browse/[workItem]/layout.tsx", [
         route(":workspaceSlug/browse/:workItem", "./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx"),
       ]),

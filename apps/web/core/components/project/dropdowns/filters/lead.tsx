@@ -4,112 +4,110 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
-// plane ui
 import { Avatar, Loader } from "@plane/ui";
-// components
 import { getFileURL } from "@plane/utils";
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
-// helpers
-// hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
 
 type Props = {
   appliedFilters: string[] | null;
-  handleUpdate: (val: string) => void;
+  handleUpdate: (value: string) => void;
   memberIds: string[] | undefined;
   searchQuery: string;
 };
+export type ProjectMemberFilterOption = { value: string; label: string; icon: ReactNode };
 
-export const FilterLead = observer(function FilterLead(props: Props) {
-  const { appliedFilters, handleUpdate, memberIds, searchQuery } = props;
-  // states
-  const [itemsToRender, setItemsToRender] = useState(5);
-  const [previewEnabled, setPreviewEnabled] = useState(true);
-  // store hooks
+export const FilterLead = observer(function FilterLead({ memberIds, ...props }: Props) {
   const { getUserDetails } = useMember();
   const { data: currentUser } = useUser();
+  const options = memberIds
+    ?.map((id) => {
+      const member = getUserDetails(id);
+      return member
+        ? {
+            value: member.id,
+            label: member.display_name,
+            icon: (
+              <Avatar name={member.display_name} src={getFileURL(member.avatar_url)} showTooltip={false} size="md" />
+            ),
+          }
+        : null;
+    })
+    .filter((option) => option !== null);
+  return <ProjectMemberFilterView {...props} title="Lead" options={options} currentUserId={currentUser?.id} />;
+});
 
-  const appliedFiltersCount = appliedFilters?.length ?? 0;
-
-  const sortedOptions = useMemo(() => {
-    const filteredOptions = (memberIds || []).filter((memberId) =>
-      getUserDetails(memberId)?.display_name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return sortBy(filteredOptions, [
-      (memberId) => !(appliedFilters ?? []).includes(memberId),
-      (memberId) => memberId !== currentUser?.id,
-      (memberId) => getUserDetails(memberId)?.display_name.toLowerCase(),
-    ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
-
-  const handleViewToggle = () => {
-    if (!sortedOptions) return;
-
-    if (itemsToRender === sortedOptions.length) setItemsToRender(5);
-    else setItemsToRender(sortedOptions.length);
-  };
-
+export function ProjectMemberFilterView({
+  appliedFilters,
+  handleUpdate,
+  searchQuery,
+  title,
+  options,
+  currentUserId,
+}: Omit<Props, "memberIds"> & {
+  title: string;
+  options: readonly ProjectMemberFilterOption[] | undefined;
+  currentUserId: string | undefined;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const [previewEnabled, setPreviewEnabled] = useState(true);
+  const count = appliedFilters?.length ?? 0;
+  const sorted =
+    options === undefined
+      ? undefined
+      : sortBy(
+          options.filter((option) => option.label.toLowerCase().includes(searchQuery.toLowerCase())),
+          [
+            (option) => !appliedFilters?.includes(option.value),
+            (option) => option.value !== currentUserId,
+            (option) => option.label.toLowerCase(),
+          ]
+        );
   return (
     <>
       <FilterHeader
-        title={`Lead${appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}`}
+        title={`${title}${count > 0 ? ` (${count})` : ""}`}
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
       {previewEnabled && (
         <div>
-          {sortedOptions ? (
-            sortedOptions.length > 0 ? (
-              <>
-                {sortedOptions.slice(0, itemsToRender).map((memberId) => {
-                  const member = getUserDetails(memberId);
-
-                  if (!member) return null;
-                  return (
-                    <FilterOption
-                      key={`lead-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
-                      onClick={() => handleUpdate(member.id)}
-                      icon={
-                        <Avatar
-                          name={member.display_name}
-                          src={getFileURL(member.avatar_url)}
-                          showTooltip={false}
-                          size="md"
-                        />
-                      }
-                      title={currentUser?.id === member.id ? "You" : member?.display_name}
-                    />
-                  );
-                })}
-                {sortedOptions.length > 5 && (
-                  <button
-                    type="button"
-                    className="ml-8 text-11 font-medium text-accent-primary"
-                    onClick={handleViewToggle}
-                  >
-                    {itemsToRender === sortedOptions.length ? "View less" : "View all"}
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="text-11 text-placeholder italic">No matches found</p>
-            )
-          ) : (
+          {sorted === undefined ? (
             <Loader className="space-y-2">
               <Loader.Item height="20px" />
               <Loader.Item height="20px" />
               <Loader.Item height="20px" />
             </Loader>
+          ) : sorted.length === 0 ? (
+            <p className="text-11 text-placeholder italic">No matches found</p>
+          ) : (
+            <>
+              {(showAll ? sorted : sorted.slice(0, 5)).map((option) => (
+                <FilterOption
+                  key={option.value}
+                  isChecked={appliedFilters?.includes(option.value) === true}
+                  onClick={() => handleUpdate(option.value)}
+                  icon={option.icon}
+                  title={currentUserId === option.value ? "You" : option.label}
+                />
+              ))}
+              {sorted.length > 5 && (
+                <button
+                  type="button"
+                  className="ml-8 text-11 font-medium text-accent-primary"
+                  onClick={() => setShowAll(!showAll)}
+                >
+                  {showAll ? "View less" : "View all"}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
     </>
   );
-});
+}
