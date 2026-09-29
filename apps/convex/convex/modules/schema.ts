@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 export const moduleStatus = v.union(
   v.literal("backlog"),
   v.literal("planned"),
@@ -15,6 +16,39 @@ export const moduleFields = {
   targetDate: v.union(v.string(), v.null()),
   status: moduleStatus,
   leadId: v.union(v.id("users"), v.null()),
+};
+export const moduleInput = v.object(moduleFields);
+export const moduleChanges = v.object({
+  name: v.optional(moduleFields.name),
+  descriptionHtml: v.optional(moduleFields.descriptionHtml),
+  startDate: v.optional(moduleFields.startDate),
+  targetDate: v.optional(moduleFields.targetDate),
+  status: v.optional(moduleFields.status),
+  leadId: v.optional(moduleFields.leadId),
+});
+export const moduleDirectoryView = v.union(v.literal("active"), v.literal("archived"), v.literal("trash"));
+export const moduleDirectoryOrder = v.union(v.literal("created_at"), v.literal("name"), v.literal("target_date"));
+export const moduleDirectoryFilters = v.object({
+  search: v.string(),
+  favorites: v.boolean(),
+  statuses: v.array(moduleStatus),
+  leadIds: v.array(v.id("users")),
+  memberIds: v.array(v.id("users")),
+  startAfter: moduleFields.startDate,
+  startBefore: moduleFields.startDate,
+  targetAfter: moduleFields.targetDate,
+  targetBefore: moduleFields.targetDate,
+});
+export const defaultModuleFilters: Infer<typeof moduleDirectoryFilters> = {
+  search: "",
+  favorites: false,
+  statuses: [],
+  leadIds: [],
+  memberIds: [],
+  startAfter: null,
+  startBefore: null,
+  targetAfter: null,
+  targetBefore: null,
 };
 export const moduleTables = {
   moduleLinks: defineTable({
@@ -41,6 +75,7 @@ export const moduleTables = {
   })
     .index("by_workspace", ["workspaceId", "deleted", "archived"])
     .index("by_project", ["projectId", "deleted"])
+    .index("by_project_due", ["projectId", "deleted", "targetDate"])
     .index("by_project_name", ["projectId", "deleted", "name"]),
   moduleMembers: defineTable({ moduleId: v.id("modules"), userId: v.id("users") }).index("by_module_user", [
     "moduleId",
