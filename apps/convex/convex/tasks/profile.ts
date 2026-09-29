@@ -12,7 +12,7 @@ import { defaultProfile } from "../identity/profile_owner";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { projectReader, projectSummary } from "../savedViews/scope";
 import schema from "../schema";
-import { taskIsActive, taskRoleCanRead } from "./access";
+import { taskDetail, taskIsActive, taskRoleCanRead } from "./access";
 import { requireUsableLabel } from "./label_access";
 import {
   priority,
@@ -330,7 +330,7 @@ export const list = query({
             .unique())
         )
           return null;
-        return { task, project: projectSummary(scope.project) };
+        return { task: await taskDetail(ctx, task), project: projectSummary(scope.project) };
       })
       .paginate(pageBudget(args.paginationOpts));
   },
