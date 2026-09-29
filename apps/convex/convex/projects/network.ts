@@ -5,6 +5,8 @@ import { effectiveFavorite } from "../favorites/access";
 import { projectUserProperty } from "./order_owner";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -72,12 +74,10 @@ export const list = query({
   args: { workspaceId: v.id("workspaces"), archived: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const access = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("projects")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-      .paginate(pageBudget(args.paginationOpts));
-    const page = await Promise.all(
-      result.page.map(async (project) => {
+      .map(async (project) => {
         if (project.archived !== (args.archived ?? false) || project.deletedAt != null) return null;
         const membership = await ctx.db
           .query("projectMembers")
@@ -88,8 +88,7 @@ export const list = query({
         if (!canDiscover(network, access.member.role, joined)) return null;
         return directoryProject(ctx, { ...access, project, membership });
       })
-    );
-    return { ...result, page: page.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const save = mutation({
