@@ -1,6 +1,8 @@
 import { boundedJson } from "../../shared/json";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -30,7 +32,8 @@ export const list = query({
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
     if (args.query.length > 1000) throw new ConvexError("Search must be at most 1000 characters.");
-    const result = await ctx.db
+    const search = args.query.toLowerCase();
+    return stream(ctx.db, schema)
       .query("stickies")
       .withIndex("by_owner_order", (q) =>
         args.deleted
@@ -38,11 +41,8 @@ export const list = query({
           : q.eq("workspaceId", args.workspaceId).eq("ownerId", user._id).eq("deletedAt", null)
       )
       .order("desc")
+      .filterWith(async (row) => row.description.toLowerCase().includes(search))
       .paginate(pageBudget(args.paginationOpts));
-    return {
-      ...result,
-      page: result.page.filter((row) => row.description.toLowerCase().includes(args.query.toLowerCase())),
-    };
   },
 });
 export const get = query({
