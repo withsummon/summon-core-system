@@ -391,7 +391,7 @@ function RelationshipForm({ task, onDone }: { task: Task; onDone: () => void }) 
     </form>
   );
 }
-function ProjectChoice({
+export function ProjectChoice({
   workspaceId,
   value,
   label,
