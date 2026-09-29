@@ -2,6 +2,7 @@ import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import type { DefaultValues } from "react-hook-form";
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -380,15 +381,20 @@ export function CreateProjectIssue({
   address,
   states,
   onClose,
+  initialValues = {},
 }: {
   address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
   states: FunctionReturnType<typeof api.tasks.states.list>;
   onClose: () => void;
+  initialValues?: DefaultValues<Required<Pick<FunctionArgs<typeof api.tasks.index.create>, "status" | "properties">>>;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const create = useMutation(api.tasks.index.create);
-  const defaultState = states.find((state) => state.isDefault);
+  const { properties: initialProperties, ...fields } = initialValues;
+  const defaultState = states.find((state) =>
+    fields.status === undefined ? state.isDefault : state.status === fields.status
+  );
   const {
     register,
     watch,
@@ -403,6 +409,7 @@ export function CreateProjectIssue({
       title: "",
       html: "<p></p>",
       status: defaultState?.status ?? "todo",
+      ...fields,
       properties: {
         stateId: defaultState?._id ?? null,
         priority: "none",
@@ -411,6 +418,7 @@ export function CreateProjectIssue({
         labelIds: [],
         startDate: null,
         targetDate: null,
+        ...initialProperties,
       },
     },
   });
