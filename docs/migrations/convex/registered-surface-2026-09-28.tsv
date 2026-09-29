@@ -93,6 +93,7 @@ command	update_start_of_week	apps/web/core/components/power-k/config/preferences
 command	update_timezone	apps/web/core/components/power-k/config/preferences-commands.ts:122	Django-backed Power K	account		OPEN
 command	workspace_invites	apps/web/core/components/power-k/config/account-commands.ts:42	Legacy Power K; Convex invitations destination	workspace		OPEN
 dialog-mount	AddResourceModal	apps/web/core/components/summon/resources/resources-root.tsx:627	Django-backed web	resources-mcp		OPEN
+dialog-mount	AlertModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:221	Convex native-session preserved directory	views-search	Soft delete uses savedViews.workspace.lifecycle; verify confirmation, live removal, failure recovery and Trash restore	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/api-token/delete-token-modal.tsx:59	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/convex-core/documents/metadata-form.tsx:216	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:556	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
@@ -168,7 +169,6 @@ dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/app/(all)/[workspaceSlug]/(
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/work-item-filters/filters-hoc/workspace-level.tsx:181	Django-backed web	workspace		OPEN
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/header.tsx:94	Django-backed web	workspace		OPEN
 dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/quick-action.tsx:65	Django-backed web	workspace		OPEN
-dialog-mount	ModalCore (native workspace view add/edit)	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:184	Convex native-session preserved directory	workspace	WorkspaceViewForm uses the generated savedViews workspace create/update owner; verify create, edit, cancel and revision conflicts	OPEN
 dialog-mount	CreateWebhookModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx:68	Django-backed web	external-api		OPEN
 dialog-mount	CustomizeNavigationDialog	apps/web/core/components/sidebar/sidebar-wrapper.tsx:46	Django-backed web	shared-shell		OPEN
 dialog-mount	CycleCreateUpdateModal	apps/web/core/components/cycles/quick-actions.tsx:117	Django-backed web	cycles		OPEN
@@ -188,7 +188,6 @@ dialog-mount	DeclineIssueModal	apps/web/core/components/inbox/content/inbox-issu
 dialog-mount	DeleteApiTokenModal	apps/web/core/components/api-token/token-list-item.tsx:35	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	DeleteEstimateModal	apps/web/core/components/estimates/root.tsx:136	Django-backed web	projects		OPEN
 dialog-mount	DeleteGlobalViewModal	apps/web/core/components/workspace/views/quick-action.tsx:66	Django-backed web	views-search		OPEN
-dialog-mount	AlertModalCore (native workspace view delete)	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:221	Convex native-session preserved directory	views-search	Soft delete uses savedViews.workspace.lifecycle; verify confirmation, live removal, failure recovery and Trash restore	OPEN
 dialog-mount	DeleteInboxIssueModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:275	Django-backed web	tasks		OPEN
 dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-detail-widgets/relations/content.tsx:164	Django-backed web	tasks		OPEN
 dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-detail-widgets/sub-issues/content.tsx:133	Django-backed web	tasks		OPEN
@@ -273,6 +272,8 @@ dialog-mount	LinkCreateUpdateModal	apps/web/core/components/home/widgets/links/r
 dialog-mount	ManageWidgetsModal	apps/web/core/components/home/home-dashboard-widgets.tsx:84	Django-backed web	shared-shell		OPEN
 dialog-mount	MemberDialog	apps/web/core/components/convex-core/modules/members.tsx:60	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
 dialog-mount	MemberDialog	apps/web/core/components/convex-core/modules/members.tsx:62	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	ModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:184	Convex native-session preserved directory	workspace	WorkspaceViewForm uses the generated savedViews workspace create/update owner; verify create, edit, cancel and revision conflicts	OPEN
+dialog-mount	ModalCore	apps/web/app/native-workspace-views.tsx:209	Convex native-session built-in Views mode	workspace	WorkspaceViewForm Add dialog; full inherited view editor and global commands OPEN	OPEN
 dialog-mount	ModalCore	apps/web/core/components/account/deactivate-account-modal.tsx:76	Django-backed web composition; shared UI primitive	shared-shell		OPEN
 dialog-mount	ModalCore	apps/web/core/components/api-token/modal/create-token-modal.tsx:71	Django-backed web composition; shared UI primitive	external-api		OPEN
 dialog-mount	ModalCore	apps/web/core/components/automation/select-month-modal.tsx:48	Django-backed web composition; shared UI primitive	automation		OPEN
@@ -942,11 +943,11 @@ web-route	/:workspaceSlug/summon/resources	apps/web/app/routes/extended.ts:31	Dj
 web-route	/:workspaceSlug/summon/settings	apps/web/app/routes/extended.ts:39	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx	OPEN
 web-route	/:workspaceSlug/summon/tasks	apps/web/app/routes/extended.ts:20	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx	OPEN
 web-route	/:workspaceSlug/workspace-views	apps/web/app/routes.ts:51	Convex native-session preserved directory; custom detail, complete commands and Trash restore remain OPEN	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/:globalViewId	apps/web/app/routes/core.ts:75	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx	OPEN
 web-route	/:workspaceSlug/workspace-views/all-issues	apps/web/app/routes.ts:52	Convex native-session preserved All Issues; other inherited Views paths and full commands remain OPEN	workspace	./native-workspace-views.tsx	OPEN
 web-route	/:workspaceSlug/workspace-views/assigned	apps/web/app/routes.ts:55	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
 web-route	/:workspaceSlug/workspace-views/created	apps/web/app/routes.ts:58	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
 web-route	/:workspaceSlug/workspace-views/subscribed	apps/web/app/routes.ts:61	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
-web-route	/:workspaceSlug/workspace-views/:globalViewId	apps/web/app/routes/core.ts:75	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx	OPEN
 web-route	/accounts/forgot-password	apps/web/app/routes.ts:31	Better Auth/Convex entry	identity	./(all)/accounts/forgot-password/page.tsx	OPEN
 web-route	/accounts/reset-password	apps/web/app/routes.ts:34	Better Auth/Convex entry	identity	./(all)/accounts/reset-password/page.tsx	OPEN
 web-route	/accounts/set-password	apps/web/app/routes.ts:37	Better Auth/Convex entry	identity	./(all)/accounts/set-password/page.tsx	OPEN
