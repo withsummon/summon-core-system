@@ -31,7 +31,10 @@ export const list = query({
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .order("desc")
-      .filterWith(async (task) => taskIsActive(task) && (await taskCanRead(ctx, task, user._id)))
+      .map(async (task) => {
+        if (!taskIsActive(task) || !(await taskCanRead(ctx, task, user._id))) return null;
+        return taskDetail(ctx, task);
+      })
       .paginate({
         ...args.paginationOpts,
         maximumRowsRead: MAX_PAGE_TASKS,

@@ -24,6 +24,8 @@ import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loa
 import { taskStatusOptions } from "@/components/convex-core/tasks/options";
 import { renderFormattedDate } from "@plane/utils";
 import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
+import { TaskLifecycle, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
+import { Menu } from "@plane/propel/menu";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
 export default function ProjectIssuesPage() {
@@ -93,6 +95,7 @@ function ProjectIssueRow({
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { isMobile } = usePlatformOS();
+  const lifecycle = useTaskLifecycle(() => {});
   const peeked = params.get("peek") === identifier;
   return (
     <li>
@@ -118,7 +121,7 @@ function ProjectIssueRow({
         isSelected={false}
         isDragging={false}
         disabled={false}
-        pending={false}
+        pending={lifecycle.pending}
         identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}
         indent={0}
         selection={null}
@@ -135,6 +138,13 @@ function ProjectIssueRow({
             )}
           </>
         }
+        actions={() => (
+          <TaskLifecycle task={task} disabled={false} lifecycle={lifecycle}>
+            <Menu.MenuItem onClick={() => window.open(href, "_blank", "noopener,noreferrer")}>
+              Open in new tab
+            </Menu.MenuItem>
+          </TaskLifecycle>
+        )}
       />
     </li>
   );
