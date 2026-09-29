@@ -33,7 +33,7 @@ The [native Views pagination receipt](current-parity-checklist.md#native-views-p
 
 Module `MIGRATION.md` files and frontend receipts own detailed omissions. Earlier account Chrome proof is scoped to its recorded artifact. Later mixed/truncated working-tree captures do not establish current clean-browser acceptance; the [committed-tree gates and scoped General/PAT Chrome receipt](current-parity-checklist.md#committed-local-verification-2026-09-28) are recorded separately. No family is closed by these local proofs.
 
-The [Cycles/Modules receipt](current-parity-checklist.md#preserved-cycles-and-modules-journeys-2026-09-29) records six registered routes, generated contextual task ownership, scoped API/dialog/command checks, constrained-width repairs and exact isolated cleanup. It does not close full inherited analytics/layouts/commands or any production cutover family. The current separate native ledger has 615 OPEN rows.
+The [Cycles/Modules receipt](current-parity-checklist.md#preserved-cycles-and-modules-journeys-2026-09-29) records six registered routes, generated contextual task ownership, scoped API/dialog/command checks, constrained-width repairs and exact isolated cleanup. It does not close full inherited analytics/layouts/commands or any production cutover family. The current separate native ledger has 614 OPEN rows after removing the unconsumed constant workspace-view access query.
 
 ## Convex component ownership decisions
 
