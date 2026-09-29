@@ -498,15 +498,15 @@ convex-rpc	savedViews/index:list	apps/convex/convex/savedViews/index.ts:63	Conve
 convex-rpc	savedViews/index:resolve	apps/convex/convex/savedViews/index.ts:55	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/index:update	apps/convex/convex/savedViews/index.ts:32	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/results:list	apps/convex/convex/savedViews/results.ts:7	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:access	apps/convex/convex/savedViews/workspace.ts:101	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:access	apps/convex/convex/savedViews/workspace.ts:109	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspace:create	apps/convex/convex/savedViews/workspace.ts:17	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:favorite	apps/convex/convex/savedViews/workspace.ts:111	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:favorites	apps/convex/convex/savedViews/workspace.ts:119	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:favorite	apps/convex/convex/savedViews/workspace.ts:119	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:favorites	apps/convex/convex/savedViews/workspace.ts:127	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspace:get	apps/convex/convex/savedViews/workspace.ts:57	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:lifecycle	apps/convex/convex/savedViews/workspace.ts:87	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:list	apps/convex/convex/savedViews/workspace.ts:69	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:lifecycle	apps/convex/convex/savedViews/workspace.ts:95	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:list	apps/convex/convex/savedViews/workspace.ts:69	Convex source candidate	views-search	query | public | app | native directory, pre-page case-insensitive name search and workspace access	OPEN
 convex-rpc	savedViews/workspace:resolve	apps/convex/convex/savedViews/workspace.ts:61	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:results	apps/convex/convex/savedViews/workspace.ts:149	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:results	apps/convex/convex/savedViews/workspace.ts:157	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspace:update	apps/convex/convex/savedViews/workspace.ts:35	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspaceChoices:labels	apps/convex/convex/savedViews/workspaceChoices.ts:28	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/workspaceChoices:people	apps/convex/convex/savedViews/workspaceChoices.ts:46	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
