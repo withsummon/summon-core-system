@@ -78,6 +78,7 @@ export const commercialTables = {
   clients: defineTable({ ...metadata, ...clientFields }).index("by_workspace_name", ["workspaceId", "deleted", "name"]),
   clientContacts: defineTable({ ...metadata, clientId: v.id("clients"), ...contactFields })
     .index("by_client", ["clientId", "deleted", "name"])
+    .index("by_client_primary", ["clientId", "deleted", "isPrimary"])
     .index("by_client_email", ["clientId", "deleted", "email"]),
   opportunities: defineTable({ ...metadata, ...opportunityFields })
     .index("by_workspace_title", ["workspaceId", "deleted", "title"])
