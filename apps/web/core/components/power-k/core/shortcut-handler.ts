@@ -33,11 +33,52 @@ export function isTypingInInput(target: EventTarget | null): boolean {
   if (target instanceof HTMLInputElement) return true;
   if (target instanceof HTMLTextAreaElement) return true;
 
-  const element = target as Element;
-  if (element.classList?.contains("ProseMirror")) return true;
-  if (element.getAttribute?.("contenteditable") === "true") return true;
+  if (!(target instanceof Element)) return false;
+  if (target.classList.contains("ProseMirror")) return true;
+  if (target.getAttribute("contenteditable") === "true") return true;
 
   return false;
+}
+
+/** Shared sequence lifetime for legacy and native command owners. */
+export class KeySequenceHandler {
+  private sequence = "";
+  private sequenceTimeout: number | null = null;
+  constructor(private match: (sequence: string, event: KeyboardEvent) => boolean) {}
+
+  handleKeyDown(e: KeyboardEvent): void {
+    const key = e.key.toLowerCase();
+    this.sequence += key;
+
+    if (this.match(this.sequence, e)) {
+      this.resetSequence();
+      return;
+    }
+
+    this.scheduleSequenceReset();
+  }
+
+  private scheduleSequenceReset(): void {
+    if (this.sequenceTimeout) {
+      window.clearTimeout(this.sequenceTimeout);
+    }
+
+    this.sequenceTimeout = window.setTimeout(() => {
+      this.resetSequence();
+    }, 1000);
+  }
+
+  private resetSequence(): void {
+    this.sequence = "";
+    if (this.sequenceTimeout) {
+      window.clearTimeout(this.sequenceTimeout);
+      this.sequenceTimeout = null;
+    }
+  }
+
+  destroy(): void {
+    this.resetSequence();
+  }
 }
 
 /**
@@ -45,8 +86,7 @@ export function isTypingInInput(target: EventTarget | null): boolean {
  * Handles all keyboard shortcuts: single keys, sequences, and modifiers
  */
 export class ShortcutHandler {
-  private sequence = "";
-  private sequenceTimeout: number | null = null;
+  private keySequence: KeySequenceHandler;
   private registry: IPowerKCommandRegistry;
   private getContext: () => TPowerKContext;
   private openPalette: () => void;
@@ -56,6 +96,27 @@ export class ShortcutHandler {
     this.registry = registry;
     this.getContext = getContext;
     this.openPalette = openPalette;
+    this.keySequence = new KeySequenceHandler((sequence, e) => {
+      // Check if sequence matches a command (e.g., "gm", "op")
+      const sequenceCommand = this.registry.findByKeySequence(this.getContext(), sequence);
+      if (sequenceCommand && this.canExecuteCommand(sequenceCommand)) {
+        e.preventDefault();
+        this.executeCommand(sequenceCommand);
+        return true;
+      }
+
+      // If sequence is one character, check for single-key shortcut
+      if (sequence.length === 1) {
+        const singleKeyCommand = this.registry.findByShortcut(this.getContext(), sequence);
+        if (singleKeyCommand && this.canExecuteCommand(singleKeyCommand)) {
+          e.preventDefault();
+          this.executeCommand(singleKeyCommand);
+          return true;
+        }
+      }
+
+      return false;
+    });
   }
 
   /**
@@ -93,7 +154,7 @@ export class ShortcutHandler {
     }
 
     // Handle single key shortcuts and sequences (c, p, gm, op, etc.)
-    this.handleKeyOrSequence(e, key);
+    this.keySequence.handleKeyDown(e);
   };
 
   /**
@@ -106,61 +167,6 @@ export class ShortcutHandler {
     if (command && this.canExecuteCommand(command)) {
       e.preventDefault();
       this.executeCommand(command);
-    }
-  }
-
-  /**
-   * Handle single key shortcuts or build sequences (c, gm, op, etc.)
-   */
-  private handleKeyOrSequence(e: KeyboardEvent, key: string): void {
-    // Add key to sequence
-    this.sequence += key;
-
-    // Check if sequence matches a command (e.g., "gm", "op")
-    const sequenceCommand = this.registry.findByKeySequence(this.getContext(), this.sequence);
-    if (sequenceCommand && this.canExecuteCommand(sequenceCommand)) {
-      e.preventDefault();
-      this.executeCommand(sequenceCommand);
-      this.resetSequence();
-      return;
-    }
-
-    // If sequence is one character, check for single-key shortcut
-    if (this.sequence.length === 1) {
-      const singleKeyCommand = this.registry.findByShortcut(this.getContext(), key);
-      if (singleKeyCommand && this.canExecuteCommand(singleKeyCommand)) {
-        e.preventDefault();
-        this.executeCommand(singleKeyCommand);
-        this.resetSequence();
-        return;
-      }
-    }
-
-    // Reset sequence after 1 second of no typing
-    this.scheduleSequenceReset();
-  }
-
-  /**
-   * Schedule sequence reset
-   */
-  private scheduleSequenceReset(): void {
-    if (this.sequenceTimeout) {
-      window.clearTimeout(this.sequenceTimeout);
-    }
-
-    this.sequenceTimeout = window.setTimeout(() => {
-      this.resetSequence();
-    }, 1000);
-  }
-
-  /**
-   * Reset key sequence
-   */
-  private resetSequence(): void {
-    this.sequence = "";
-    if (this.sequenceTimeout) {
-      window.clearTimeout(this.sequenceTimeout);
-      this.sequenceTimeout = null;
     }
   }
 
@@ -211,7 +217,7 @@ export class ShortcutHandler {
    * Cleanup
    */
   destroy(): void {
-    this.resetSequence();
+    this.keySequence.destroy();
     this.isEnabled = false;
   }
 }

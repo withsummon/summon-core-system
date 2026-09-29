@@ -35,7 +35,7 @@ export function PagesListHeader({
   const leave = useCallback(() => {
     continuation.current = null;
   }, []);
-  const release = useReloadConfirmations(pending, "The page is still being created.", leave);
+  const release = useReloadConfirmations(pending, "The page is still being created.", leave, pending);
   useEffect(
     () => () => {
       continuation.current = null;

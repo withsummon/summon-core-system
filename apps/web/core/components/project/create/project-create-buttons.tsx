@@ -20,7 +20,6 @@ type Props = {
 };
 
 function ProjectCreateButtons(props: Props) {
-  const { t } = useTranslation();
   const { handleClose, isMobile = false } = props;
   const {
     formState: { isSubmitting },
@@ -29,15 +28,46 @@ function ProjectCreateButtons(props: Props) {
   const { getIndex } = getTabIndex(ETabIndices.PROJECT_CREATE, isMobile);
 
   return (
+    <ProjectCreateButtonsView
+      handleClose={handleClose}
+      isSubmitting={isSubmitting}
+      cancelTabIndex={getIndex("cancel")}
+      submitTabIndex={getIndex("submit")}
+    />
+  );
+}
+
+export default ProjectCreateButtons;
+
+export function ProjectCreateButtonsView({
+  handleClose,
+  isSubmitting,
+  disabled = false,
+  cancelTabIndex,
+  submitTabIndex,
+}: {
+  handleClose: () => void;
+  isSubmitting: boolean;
+  disabled?: boolean;
+  cancelTabIndex?: number;
+  submitTabIndex?: number;
+}) {
+  const { t } = useTranslation();
+  return (
     <div className="flex justify-end gap-2 border-t border-subtle py-4">
-      <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={getIndex("cancel")}>
+      <Button variant="secondary" size="lg" disabled={isSubmitting} onClick={handleClose} tabIndex={cancelTabIndex}>
         {t("common.cancel")}
       </Button>
-      <Button variant="primary" size="lg" type="submit" loading={isSubmitting} tabIndex={getIndex("submit")}>
+      <Button
+        variant="primary"
+        size="lg"
+        type="submit"
+        loading={isSubmitting}
+        disabled={disabled}
+        tabIndex={submitTabIndex}
+      >
         {isSubmitting ? t("creating") : t("create_project")}
       </Button>
     </div>
   );
 }
-
-export default ProjectCreateButtons;

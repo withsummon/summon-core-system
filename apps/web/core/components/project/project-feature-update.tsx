@@ -5,17 +5,19 @@
  */
 
 import { observer } from "mobx-react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import Link from "next/link";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { Row } from "@plane/ui";
+import { Row, ToggleSwitch } from "@plane/ui";
 // components
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 // plane web imports
-import { ProjectFeaturesList } from "@/components/project/settings/features-list";
+import { ProjectFeaturesList, ProjectFeaturesListView } from "@/components/project/settings/features-list";
 
 type Props = {
   workspaceSlug: string;
@@ -63,3 +65,43 @@ export const ProjectFeatureUpdate = observer(function ProjectFeatureUpdate(props
     </>
   );
 });
+
+export function NativeProjectFeatureSelection({
+  value,
+  onChange,
+  savedFeatures,
+  disabled,
+}: {
+  value: FunctionArgs<typeof api.projects.features.save>;
+  onChange: (value: FunctionArgs<typeof api.projects.features.save>) => void;
+  savedFeatures?: FunctionReturnType<typeof api.projects.features.get>["features"];
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Row className="py-6">
+      <ProjectFeaturesListView
+        renderControl={(feature) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {savedFeatures && (
+              <span className="text-12 text-secondary">Saved: {savedFeatures[feature] ? "Enabled" : "Disabled"}</span>
+            )}
+            <ToggleSwitch
+              value={feature === "intake" ? value.intake : value.features[feature]}
+              onChange={(enabled) =>
+                onChange(
+                  feature === "intake"
+                    ? { ...value, intake: enabled }
+                    : { ...value, features: { ...value.features, [feature]: enabled } }
+                )
+              }
+              disabled={disabled}
+              size="sm"
+              label={t(feature)}
+            />
+          </div>
+        )}
+      />
+    </Row>
+  );
+}
