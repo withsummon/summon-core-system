@@ -2,7 +2,9 @@ import { transferDraftAttachments } from "../../assets/draftAttachments";
 import { preserveDescriptionRepresentations } from "../description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { mutation, query } from "../../_generated/server";
+import schema from "../../schema";
 import { requireWorkspace, requireProject } from "../../identity/access";
 import { pageBudget } from "../../commercial/validation";
 import { boundedJson } from "../../../shared/json";
@@ -43,20 +45,15 @@ export const list = query({
   args: { workspaceId: v.id("workspaces"), deleted: v.boolean(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("taskDrafts")
       .withIndex("by_author_workspace", (q) => q.eq("authorId", user._id).eq("workspaceId", args.workspaceId))
       .order("desc")
+      .filterWith(
+        async (row) =>
+          !row.publishedTaskId && (row.deletedAt !== null) === args.deleted && draftProjectReadable(ctx, row, user._id)
+      )
       .paginate(pageBudget(args.paginationOpts));
-    const visible = await Promise.all(
-      result.page.map(async (row) => ((await draftProjectReadable(ctx, row, user._id)) ? row : null))
-    );
-    return {
-      ...result,
-      page: visible
-        .filter((row) => row !== null)
-        .filter((row) => !row.publishedTaskId && (row.deletedAt !== null) === args.deleted),
-    };
   },
 });
 export const resolve = query({
