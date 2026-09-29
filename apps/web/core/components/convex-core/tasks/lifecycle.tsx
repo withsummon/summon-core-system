@@ -100,6 +100,12 @@ export function TaskLifecycle({
   children?: ReactNode;
 }) {
   const { confirmation, pending, error } = lifecycle;
+  const available = {
+    archive: task.canArchive,
+    unarchive: task.canUnarchive,
+    delete: task.canDelete,
+    restore: task.canRestore,
+  };
   if (!children && !task.canArchive && !task.canUnarchive && !task.canRestore && !task.canDelete) return null;
   return (
     <>
@@ -152,7 +158,11 @@ export function TaskLifecycle({
                 <Button variant="secondary" disabled={pending} onClick={lifecycle.cancel}>
                   Cancel
                 </Button>
-                <Button loading={pending} disabled={disabled || pending} onClick={() => void lifecycle.confirm()}>
+                <Button
+                  loading={pending}
+                  disabled={disabled || pending || !available[confirmation.operation]}
+                  onClick={() => void lifecycle.confirm()}
+                >
                   {pending ? "Saving…" : lifecycleLabels[confirmation.operation].action}
                 </Button>
               </div>
