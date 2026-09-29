@@ -536,7 +536,7 @@ convex-rpc	tasks/activity:profile	apps/convex/convex/tasks/activity.ts:117	Conve
 convex-rpc	tasks/assignees:list	apps/convex/convex/tasks/assignees.ts:9	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_memberships:change	apps/convex/convex/tasks/bulk_memberships.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_properties:update	apps/convex/convex/tasks/bulk_properties.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/center:list	apps/convex/convex/tasks/center.ts:49	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/center:list	apps/convex/convex/tasks/center.ts:55	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:access	apps/convex/convex/tasks/commentReactions.ts:18	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:list	apps/convex/convex/tasks/commentReactions.ts:24	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:set	apps/convex/convex/tasks/commentReactions.ts:36	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
