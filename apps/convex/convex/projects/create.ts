@@ -1,30 +1,27 @@
 import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
 import { grantProjectMembership } from "./index";
-import { renderedProjectLogo, type ProjectLogoProps } from "./branding_schema";
-import type { ProjectNetwork } from "./network_schema";
+import { renderedProjectLogo } from "./branding_schema";
 import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
 import { workspaceTimezone, validateTimezone } from "../settings/timezone";
-import { ConvexError } from "convex/values";
+import type { Infer } from "convex/values";
+import type { projectCreateArgs } from "./schema";
 import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
+import { taskStatus } from "../tasks/schema";
 
-export async function createProject(
-  ctx: MutationCtx,
-  args: {
-    workspaceId: Id<"workspaces">;
-    name: string;
-    identifier: string;
-    network?: ProjectNetwork;
-    logoProps?: ProjectLogoProps;
-    description?: string;
-    leadId?: Id<"users"> | null;
-    timezone?: string;
-  }
-): Promise<Id<"projects">> {
-  const { user, member } = await requireWorkspace(ctx, args.workspaceId, true);
-  if (member.role !== "admin") throw new ConvexError("Only workspace administrators can create projects.");
+const defaultStates = {
+  backlog: { name: "Backlog", color: "#60646C", sortOrder: 15000 },
+  todo: { name: "Todo", color: "#60646C", sortOrder: 25000 },
+  in_progress: { name: "In Progress", color: "#F59E0B", sortOrder: 35000 },
+  done: { name: "Done", color: "#46A758", sortOrder: 45000 },
+  cancelled: { name: "Cancelled", color: "#9AA4BC", sortOrder: 55000 },
+  triage: { name: "Triage", color: "#4E5355", sortOrder: 65000 },
+} satisfies Record<Infer<typeof taskStatus>, Pick<Doc<"taskStates">, "name" | "color" | "sortOrder">>;
+
+export async function createProject(ctx: MutationCtx, args: Infer<typeof projectCreateArgs>): Promise<Id<"projects">> {
+  const { user } = await requireWorkspace(ctx, args.workspaceId, true);
   renderedProjectLogo(args.logoProps ?? {});
   const metadata = await validateProjectMetadata(ctx, args.workspaceId, {
     ...args,
@@ -55,6 +52,18 @@ export async function createProject(
     role: "admin",
     active: true,
   });
+  await Promise.all(
+    taskStatus.members.map((state) =>
+      ctx.db.insert("taskStates", {
+        ...defaultStates[state.value],
+        status: state.value,
+        description: "",
+        isDefault: state.value === "backlog",
+        projectId,
+        workspaceId: args.workspaceId,
+      })
+    )
+  );
   await initializeProjectOrder(ctx, { workspaceId: args.workspaceId, projectId, userId: user._id });
   if (leadId && leadId !== user._id)
     await grantProjectMembership(ctx, {
