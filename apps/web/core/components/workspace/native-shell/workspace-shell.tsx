@@ -189,7 +189,7 @@ function PreservedSettingsFrame({
           workspace={workspace}
           workspaces={workspaces}
           user={user}
-          powerK={<WorkspaceCommands onCreateSticky={create} onOpenStickies={commands.openAll} />}
+          powerK={<WorkspaceCommands workspace={workspace} onCreateSticky={create} onOpenStickies={commands.openAll} />}
           beforeLeave={commands.flushAll}
         />
       }
@@ -295,7 +295,12 @@ export function PreservedWorkspaceShell({
           sidebarCollapsed={collapsed}
           sidebarToggle={toggleButton}
           powerK={
-            <WorkspaceCommands onCreateSticky={onCreateSticky} onOpenStickies={onOpenStickies} commands={commands} />
+            <WorkspaceCommands
+              workspace={workspace}
+              onCreateSticky={onCreateSticky}
+              onOpenStickies={onOpenStickies}
+              commands={commands}
+            />
           }
           beforeLeave={beforeLeave}
         />
