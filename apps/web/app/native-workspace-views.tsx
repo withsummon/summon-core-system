@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useOutletContext, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
@@ -29,9 +29,11 @@ import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/wor
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import type { WorkspaceSession } from "./native-workspace";
 
-const allIssues = DEFAULT_GLOBAL_VIEWS_LIST.find((view) => view.key === "all-issues");
-
-export default function NativeWorkspaceAllIssues() {
+export default function NativeWorkspaceView() {
+  const { pathname } = useLocation();
+  const globalViewId = pathname.replace(/\/$/, "").split("/").at(-1);
+  const view = DEFAULT_GLOBAL_VIEWS_LIST.find((item) => item.key === globalViewId);
+  if (!view) throw new Response("Not Found", { status: 404 });
   const session = useOutletContext<WorkspaceSession>();
   const commands = useStickiesCommands();
   const { t } = useTranslation();
@@ -41,10 +43,18 @@ export default function NativeWorkspaceAllIssues() {
   const [creatingView, setCreatingView] = useState(false);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const search = params.get("search") ?? "";
+  const scope =
+    view.key === "assigned"
+      ? "mine"
+      : view.key === "created"
+        ? "created"
+        : view.key === "subscribed"
+          ? "subscribed"
+          : "all";
   const access = useQuery(api.savedViews.workspace.access, { workspaceId: session.workspace._id });
   const { results, status, loadMore } = usePaginatedQuery(
     api.tasks.center.list,
-    { workspaceId: session.workspace._id, scope: "all", due: "all", today, search },
+    { workspaceId: session.workspace._id, scope, due: "all", today, search },
     { initialNumItems: 50 }
   );
 
@@ -76,15 +86,14 @@ export default function NativeWorkspaceAllIssues() {
                 <Breadcrumbs.Item
                   component={
                     <BreadcrumbNavigationSearchDropdown
-                      selectedItem="all-issues"
-                      navigationItems={[
-                        {
-                          value: "all-issues",
-                          query: "all-issues",
-                          content: t("default_global_view.all_issues"),
-                        },
-                      ]}
-                      title={t("default_global_view.all_issues")}
+                      selectedItem={view.key}
+                      navigationItems={DEFAULT_GLOBAL_VIEWS_LIST.map((item) => ({
+                        value: item.key,
+                        query: t(item.i18n_label),
+                        content: t(item.i18n_label),
+                      }))}
+                      onChange={(value) => navigate(`/${session.workspace.slug}/workspace-views/${value}/`)}
+                      title={t(view.i18n_label)}
                       icon={<ViewsIcon className="size-4 shrink-0 text-tertiary" />}
                       isLast
                     />
@@ -99,9 +108,7 @@ export default function NativeWorkspaceAllIssues() {
                   {t("workspace_views.add_view")}
                 </Button>
               )}
-              {allIssues && (
-                <DefaultWorkspaceViewQuickActions workspaceSlug={session.workspace.slug} view={allIssues} />
-              )}
+              <DefaultWorkspaceViewQuickActions workspaceSlug={session.workspace.slug} view={view} />
             </Header.RightItem>
           </Header>
         </Row>
