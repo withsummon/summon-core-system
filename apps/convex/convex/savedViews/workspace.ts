@@ -106,16 +106,6 @@ export const lifecycle = mutation({
   },
 });
 
-export const access = query({
-  args: { workspaceId: v.id("workspaces") },
-  handler: async (ctx, args) => {
-    const permission = await requireWorkspace(ctx, args.workspaceId);
-    return {
-      canCreate: true,
-      canFavorite: permission.member.role !== "guest",
-    };
-  },
-});
 export const favorite = mutation({
   args: { viewId: v.id("savedViews"), favorite: v.boolean() },
   handler: async (ctx, args) => {
