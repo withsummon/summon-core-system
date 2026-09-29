@@ -1,7 +1,12 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
-import { selectionFields } from "./selection";
+const category = v.union(v.literal("assigned"), v.literal("subscribed"), v.literal("created"));
+export const selectionFields = {
+  view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
+  mentionsOnly: v.optional(v.boolean()),
+  categories: v.optional(v.array(category)),
+};
 export const MAX_TASK_SUBSCRIBERS = 100;
 export const emailPreferenceSettings = v.object({
   propertyChange: v.boolean(),

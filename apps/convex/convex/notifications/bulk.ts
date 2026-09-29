@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
-import { selectedTask, selectionFields, validateSelection } from "./selection";
+import { selectedTask, validateSelection } from "./selection";
+import { selectionFields } from "./schema";
 export const begin = mutation({
   args: { workspaceId: v.id("workspaces"), ...selectionFields },
   handler: async (ctx, args) => {

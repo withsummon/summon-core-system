@@ -1,19 +1,7 @@
-import { completionCurve, curve } from "./completion_curve";
+import { curve } from "./completion_curve";
 import { progressTotals } from "../tasks/progress_totals";
-import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-const totals = { count: v.number(), numericEstimates: v.number(), unquantifiedEstimates: v.number() };
-const distribution = v.object({ id: v.union(v.string(), v.null()), name: v.string(), ...totals });
-export const transferSnapshot = v.object({
-  ...totals,
-  statuses: v.array(distribution),
-  assignees: v.array(distribution),
-  labels: v.array(distribution),
-  capturedAt: v.number(),
-  completionCurve: v.optional(completionCurve),
-});
-
 type CurrentProgress = Awaited<ReturnType<typeof progressTotals>>;
 function capturedTotals(row: Pick<CurrentProgress, "count" | "numericEstimates" | "unquantifiedEstimates">) {
   return { count: row.count, numericEstimates: row.numericEstimates, unquantifiedEstimates: row.unquantifiedEstimates };

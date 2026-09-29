@@ -1,6 +1,24 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { transferSnapshot } from "./transfer_snapshot";
+const curveTotals = { count: v.number(), points: v.number(), unquantified: v.number() };
+const completionCurve = v.object({
+  startDate: v.union(v.string(), v.null()),
+  endDate: v.union(v.string(), v.null()),
+  timezone: v.string(),
+  asOfDay: v.string(),
+  ...curveTotals,
+  completed: v.array(v.object({ day: v.string(), ...curveTotals })),
+});
+const totals = { count: v.number(), numericEstimates: v.number(), unquantifiedEstimates: v.number() };
+const distribution = v.object({ id: v.union(v.string(), v.null()), name: v.string(), ...totals });
+const transferSnapshot = v.object({
+  ...totals,
+  statuses: v.array(distribution),
+  assignees: v.array(distribution),
+  labels: v.array(distribution),
+  capturedAt: v.number(),
+  completionCurve: v.optional(completionCurve),
+});
 export const cycleFields = {
   name: v.string(),
   description: v.string(),
