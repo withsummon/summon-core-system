@@ -2,6 +2,8 @@ import { setViewFavorite } from "../favorites/views";
 import { effectiveFavorite } from "../favorites/access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -18,7 +20,7 @@ export const list = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("favorites")
       .withIndex("by_owner_type_project", (q) =>
         q
@@ -28,15 +30,12 @@ export const list = query({
           .eq("targetProjectId", args.projectId)
       )
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    const page = await Promise.all(
-      result.page.map(async (row) => {
+      .map(async (row) => {
         if (row.target.type !== "view" || !(await effectiveFavorite(ctx, row))) return null;
         const view = await ctx.db.get(row.target.id);
         if (!view || view.deletedAt !== null || !capabilities(view, access).canRead) return null;
         return projectView(ctx, view, access);
       })
-    );
-    return { ...result, page: page.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });

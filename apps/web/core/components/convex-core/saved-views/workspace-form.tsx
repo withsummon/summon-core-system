@@ -1,4 +1,5 @@
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";

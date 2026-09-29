@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery as useLabelPages } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
@@ -124,7 +125,7 @@ function AddLabel({
 }) {
   const [snapshot] = useState(document);
   const [selected, setSelected] = useState<Choice | null>(null);
-  const choices = usePaginatedQuery(
+  const choices = useLabelPages(
     api.savedViews.workspaceChoices.labels,
     { workspaceId: document.workspaceId },
     { initialNumItems: 30 }

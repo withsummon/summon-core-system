@@ -1,5 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query, mutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -62,16 +64,16 @@ export const list = query({
   args: { projectId: v.id("projects"), deleted: v.boolean(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId);
-    const source = ctx.db
+    return stream(ctx.db, schema)
       .query("savedViews")
       .withIndex("by_project_deleted", (q) =>
         args.deleted
           ? q.eq("projectId", args.projectId).gt("deletedAt", null)
           : q.eq("projectId", args.projectId).eq("deletedAt", null)
-      );
-    const result = await source.order("desc").paginate(pageBudget(args.paginationOpts));
-    const rows = result.page.filter((view) => capabilities(view, access).canRead);
-    return { ...result, page: await Promise.all(rows.map((view) => projectView(ctx, view, access))) };
+      )
+      .order("desc")
+      .map(async (view) => (capabilities(view, access).canRead ? projectView(ctx, view, access) : null))
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const lifecycle = mutation({
