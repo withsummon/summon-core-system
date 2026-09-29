@@ -2,8 +2,10 @@ import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
-import { requireTask, taskIsActive, taskCanRead } from "../tasks/access";
+import { requireTask, taskIsActive, taskCanRead, taskDetail } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
@@ -18,35 +20,53 @@ export const set = mutation({
   },
   handler: setModuleTask,
 });
+export const setMany = mutation({
+  args: {
+    moduleId: v.id("modules"),
+    expectedModuleUpdatedAt: v.number(),
+    assigned: v.boolean(),
+    tasks: v.array(v.object({ taskId: v.id("tasks"), expectedTaskUpdatedAt: v.number() })),
+  },
+  handler: async (ctx, args) => {
+    if (
+      args.tasks.length < 1 ||
+      args.tasks.length > 100 ||
+      new Set(args.tasks.map((task) => task.taskId)).size !== args.tasks.length
+    )
+      throw new ConvexError("Choose between 1 and 100 distinct work items per operation.");
+    await Promise.all(
+      args.tasks.map((task) =>
+        setModuleTask(ctx, {
+          moduleId: args.moduleId,
+          expectedModuleUpdatedAt: args.expectedModuleUpdatedAt,
+          assigned: args.assigned,
+          ...task,
+        })
+      )
+    );
+  },
+});
 export const list = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { module, user, member, projectMember } = await requireModule(ctx, args.moduleId);
     const canDetach = member.role !== "guest" && projectMember.role !== "guest" && !module.archived;
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("moduleTasks")
       .withIndex("by_module_task", (q) => q.eq("moduleId", args.moduleId))
-      .paginate(pageBudget(args.paginationOpts));
-    const tasks = await Promise.all(result.page.map((row) => ctx.db.get(row.taskId)));
-    const readable = new Set(
-      (
-        await Promise.all(
-          tasks.map(async (task) => (task && (await taskCanRead(ctx, task, user._id)) ? task._id : null))
-        )
-      ).filter((id) => id !== null)
-    );
-    return {
-      ...result,
-      page: tasks
-        .filter((task) => task !== null)
-        .filter((task) => (taskIsActive(task) && readable.has(task._id)) || canDetach)
-        .map((task) => ({
+      .map(async (row) => {
+        const task = await ctx.db.get(row.taskId);
+        if (!task || task.projectId !== module.projectId || task.workspaceId !== module.workspaceId) return null;
+        const readable = taskIsActive(task) && (await taskCanRead(ctx, task, user._id));
+        if (!readable && !canDetach) return null;
+        return {
           taskId: task._id,
           updatedAt: task.updatedAt,
-          task: taskIsActive(task) && readable.has(task._id) ? task : null,
+          task: readable ? await taskDetail(ctx, task) : null,
           unavailable: !taskIsActive(task),
-        })),
-    };
+        };
+      })
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const forTask = query({
@@ -54,15 +74,14 @@ export const forTask = query({
   handler: async (ctx, args) => {
     const task = await requireTask(ctx, args.taskId, "read");
     await requireProject(ctx, task.projectId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("moduleTasks")
       .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .map(async (row) => {
+        const module = await ctx.db.get(row.moduleId);
+        return module && !module.deleted ? module : null;
+      })
       .paginate(pageBudget(args.paginationOpts));
-    const modules = await Promise.all(result.page.map((row) => ctx.db.get(row.moduleId)));
-    return {
-      ...result,
-      page: modules.filter((module) => module !== null).filter((module) => !module.deleted),
-    };
   },
 });
 

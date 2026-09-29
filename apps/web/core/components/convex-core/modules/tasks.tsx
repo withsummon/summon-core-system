@@ -1,32 +1,71 @@
 import { useState } from "react";
-import { useMutation, usePaginatedQuery } from "convex/react";
-import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
+import { useMutation, useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import { useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
-import type { Doc, Id } from "@summon/convex/data-model";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
-import { SummonField } from "@/components/summon/forms";
+import { Dialog } from "@plane/propel/dialog";
+import { Menu } from "@plane/propel/menu";
+import { ModalCore } from "@plane/ui";
+import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
+import { ProjectIssueRow } from "../tasks/lifecycle";
+import { taskStatusOptions } from "../tasks/options";
 import { mutationMessage } from "../commercial/forms";
 type Module = FunctionReturnType<typeof api.modules.index.get>;
-export function ModuleTasks({ module }: { module: Module }) {
-  const tasks = usePaginatedQuery(api.modules.tasks.list, { moduleId: module._id }, { initialNumItems: 50 });
+type Address = FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+type Task = FunctionReturnType<typeof api.tasks.index.list>["page"][number];
+type Relation = FunctionReturnType<typeof api.modules.tasks.list>["page"][number];
+type Remove = FunctionArgs<typeof api.modules.tasks.set>;
+
+export function ModuleTasks({ module, address }: { module: Module; address?: Address }) {
+  const tasks = usePaginatedQuery(api.modules.tasks.list, module.deleted ? "skip" : { moduleId: module._id }, {
+    initialNumItems: 50,
+  });
+  const states = useQuery(api.tasks.states.list, { projectId: module.projectId });
   const [assigning, setAssigning] = useState(false);
+  const [removing, setRemoving] = useState<Remove | null>(null);
   const [, setParams] = useSearchParams();
+  const identity = address?.project;
   return (
-    <section className="space-y-4">
-      <header className="flex flex-wrap justify-between gap-2">
-        <h3 className="text-20 font-medium">Tasks</h3>
-        {module.canEdit && <Button onClick={() => setAssigning(true)}>Link task</Button>}
-      </header>
-      {assigning && module.canWrite && <LinkTask module={module} onClose={() => setAssigning(false)} />}
-      <ul className="divide-y divide-subtle-1">
-        {tasks.results.map((row) => (
-          <li key={row.taskId} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            {row.task ? (
-              <button
-                className="max-w-full min-w-0 text-left text-14 break-words hover:text-accent-primary"
-                onClick={() =>
+    <section className="flex min-h-0 flex-col" hidden={module.deleted && !assigning && !removing}>
+      {!module.deleted && (
+        <>
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-subtle px-page-x py-3">
+            <h3 className="text-14 font-medium">Work items</h3>
+            {module.canEdit && (
+              <Button variant="secondary" size="sm" onClick={() => setAssigning(true)}>
+                Add existing work items
+              </Button>
+            )}
+          </header>
+          <ul className="divide-y divide-subtle">
+            {tasks.results.map((row) => (
+              <ModuleTaskRow
+                key={row.taskId}
+                row={row}
+                module={module}
+                address={address}
+                identifier={identity ? identity.identifier + "-" + row.task?.sequence : ""}
+                identifierWidth={
+                  identity ? calculateIdentifierWidth(identity.identifier.length, identity.nextSequence) : 80
+                }
+                stateName={
+                  row.task
+                    ? (states?.find((state) => state._id === row.task?.stateId)?.name ??
+                      taskStatusOptions[row.task.status].label)
+                    : ""
+                }
+                onRemove={() =>
+                  setRemoving({
+                    moduleId: module._id,
+                    taskId: row.taskId,
+                    assigned: false,
+                    expectedTaskUpdatedAt: row.updatedAt,
+                    expectedModuleUpdatedAt: module.updatedAt,
+                  })
+                }
+                onOpen={() =>
                   setParams((current) => {
                     const next = new URLSearchParams(current);
                     next.set("projectView", "tasks");
@@ -37,121 +76,203 @@ export function ModuleTasks({ module }: { module: Module }) {
                     return next;
                   })
                 }
-              >
-                {row.task.title}
-              </button>
-            ) : (
-              <span className="text-14 text-secondary">Task unavailable</span>
-            )}
-            {module.canEdit && <RemoveTask taskId={row.taskId} updatedAt={row.updatedAt} module={module} />}
-          </li>
-        ))}
-      </ul>
-      {tasks.status === "LoadingFirstPage" && <p role="status">Loading module tasks…</p>}
-      {tasks.status === "Exhausted" && !tasks.results.length && (
-        <p className="text-14 text-secondary">No tasks assigned to this module.</p>
+              />
+            ))}
+          </ul>
+          {tasks.status === "LoadingFirstPage" && (
+            <p role="status" className="p-6">
+              Loading module work items…
+            </p>
+          )}
+          {tasks.status === "Exhausted" && !tasks.results.length && (
+            <p className="p-6 text-14 text-secondary">No work items in this module.</p>
+          )}
+          {tasks.status === "CanLoadMore" && (
+            <Button className="m-4 self-start" variant="secondary" onClick={() => tasks.loadMore(50)}>
+              Load more work items
+            </Button>
+          )}
+          {tasks.status === "LoadingMore" && (
+            <p role="status" className="p-4">
+              Loading more work items…
+            </p>
+          )}
+        </>
       )}
-      {tasks.status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => tasks.loadMore(50)}>
-          Load more module tasks
-        </Button>
-      )}
+      {assigning && <LinkTasks module={module} onClose={() => setAssigning(false)} />}
+      {removing && <RemoveTask snapshot={removing} module={module} onClose={() => setRemoving(null)} />}
     </section>
   );
 }
-function LinkTask({ module, onClose }: { module: Module; onClose: () => void }) {
-  const [initial] = useState(module);
-  const tasks = useTaskPages(api.tasks.index.list, { projectId: module.projectId }, { initialNumItems: 50 });
-  const [selected, setSelected] = useState<Doc<"tasks"> | null>(null);
-  const assign = useMutation(api.modules.tasks.set);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+
+function ModuleTaskRow({
+  row,
+  module,
+  address,
+  identifier,
+  identifierWidth,
+  stateName,
+  onOpen,
+  onRemove,
+}: {
+  row: Relation;
+  module: Module;
+  address?: Address;
+  identifier: string;
+  identifierWidth: number;
+  stateName: string;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
   return (
-    <form
-      className="max-w-xl space-y-3 rounded-xl border border-subtle-1 p-4"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!selected) return;
-        setPending(true);
-        setError("");
-        try {
-          await assign({
-            moduleId: initial._id,
-            assigned: true,
-            expectedModuleUpdatedAt: initial.updatedAt,
-            taskId: selected._id,
-            expectedTaskUpdatedAt: selected.updatedAt,
-          });
-          onClose();
-        } catch (failure) {
-          setError(mutationMessage(failure));
-        } finally {
-          setPending(false);
-        }
-      }}
-    >
-      <SummonField label="Task" htmlFor="module-task">
-        <select
-          id="module-task"
-          required
-          className="w-full rounded-md border border-subtle-1 bg-layer-2 p-2 text-14"
-          value={selected?._id ?? ""}
-          onChange={(e) => setSelected(tasks.results.find((task) => task._id === e.target.value) ?? null)}
+    <>
+      {row.task && address ? (
+        <ProjectIssueRow
+          task={row.task}
+          identifier={identifier}
+          identifierWidth={identifierWidth}
+          stateName={stateName}
+          href={"/" + address.workspace.slug + "/browse/" + identifier + "/"}
         >
-          <option value="">Choose task</option>
-          {tasks.results.map((task) => (
-            <option key={task._id} value={task._id}>
-              {task.title}
-            </option>
-          ))}
-        </select>
-      </SummonField>
-      <p className="text-12 text-secondary">Linking a task keeps its other module memberships unchanged.</p>
-      {tasks.status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => tasks.loadMore(50)}>
-          Load more project tasks
-        </Button>
+          {module.canEdit && <Menu.MenuItem onClick={onRemove}>Remove from module</Menu.MenuItem>}
+        </ProjectIssueRow>
+      ) : (
+        <li className="flex flex-wrap items-center justify-between gap-2 px-page-x py-3">
+          {row.task ? (
+            <button className="min-w-0 text-left text-14 break-words hover:text-accent-primary" onClick={onOpen}>
+              {row.task.title}
+            </button>
+          ) : (
+            <span className="text-14 text-secondary">Work item unavailable</span>
+          )}
+          {module.canEdit && (
+            <Button variant="ghost" size="sm" onClick={onRemove}>
+              Remove from module
+            </Button>
+          )}
+        </li>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={pending} disabled={!selected}>
-          Confirm link
-        </Button>
-        <Button variant="secondary" disabled={pending} onClick={onClose}>
-          Cancel
-        </Button>
-      </div>
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
-      )}
-    </form>
+    </>
   );
 }
-function RemoveTask({ taskId, updatedAt, module }: { taskId: Id<"tasks">; updatedAt: number; module: Module }) {
-  const remove = useMutation(api.modules.tasks.set);
-  const [snapshot, setSnapshot] = useState<{ taskVersion: number; moduleVersion: number } | null>(null);
+
+function LinkTasks({ module, onClose }: { module: Module; onClose: () => void }) {
+  const [initial] = useState(module);
+  const tasks = usePaginatedQuery(api.tasks.index.list, { projectId: module.projectId }, { initialNumItems: 50 });
+  const [selected, setSelected] = useState<Task[]>([]);
+  const assign = useMutation(api.modules.tasks.setMany);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return (
-    <div className="space-y-2">
-      {snapshot ? (
-        <div className="flex flex-wrap gap-2">
+    <ModalCore
+      isOpen
+      handleClose={() => {
+        if (!pending) onClose();
+      }}
+    >
+      <form
+        className="space-y-4 p-5"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!selected.length || !module.canEdit || pending) return;
+          setPending(true);
+          setError("");
+          try {
+            await assign({
+              moduleId: initial._id,
+              expectedModuleUpdatedAt: initial.updatedAt,
+              assigned: true,
+              tasks: selected.map((task) => ({ taskId: task._id, expectedTaskUpdatedAt: task.updatedAt })),
+            });
+            onClose();
+          } catch (failure) {
+            setError(mutationMessage(failure));
+          } finally {
+            setPending(false);
+          }
+        }}
+      >
+        <Dialog.Title className="text-18 font-medium">Add existing work items</Dialog.Title>
+        <ul className="max-h-80 space-y-2 overflow-auto">
+          {tasks.results.map((task) => (
+            <li key={task._id}>
+              <label className="flex cursor-pointer items-start gap-2 text-14">
+                <input
+                  type="checkbox"
+                  disabled={pending || !module.canEdit}
+                  checked={selected.some((item) => item._id === task._id)}
+                  onChange={(event) =>
+                    setSelected(
+                      event.target.checked ? [...selected, task] : selected.filter((item) => item._id !== task._id)
+                    )
+                  }
+                />
+                <span className="min-w-0 break-words">{task.title}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+        {tasks.status === "LoadingFirstPage" && <p role="status">Loading work items…</p>}
+        {tasks.status === "CanLoadMore" && (
+          <Button variant="ghost" size="sm" onClick={() => tasks.loadMore(50)}>
+            Load more work items
+          </Button>
+        )}
+        {!module.canEdit && (
+          <p className="text-14 text-secondary">This module is read-only. Your selection is retained.</p>
+        )}
+        {error && (
+          <p role="alert" className="text-14 text-danger-primary">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" disabled={pending} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!selected.length || !module.canEdit} loading={pending}>
+            Add selected work items
+          </Button>
+        </div>
+      </form>
+    </ModalCore>
+  );
+}
+
+function RemoveTask({ snapshot, module, onClose }: { snapshot: Remove; module: Module; onClose: () => void }) {
+  const remove = useMutation(api.modules.tasks.set);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <ModalCore
+      isOpen
+      handleClose={() => {
+        if (!pending) onClose();
+      }}
+    >
+      <div className="space-y-4 p-5">
+        <Dialog.Title className="text-18 font-medium">Remove from module</Dialog.Title>
+        <Dialog.Description className="text-14 text-secondary">
+          This work item stays in the project and its other modules.
+        </Dialog.Description>
+        {error && (
+          <p role="alert" className="text-14 text-danger-primary">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" disabled={pending} onClick={onClose}>
+            Cancel
+          </Button>
           <Button
-            variant="secondary"
             loading={pending}
+            disabled={!module.canEdit}
             onClick={async () => {
               setPending(true);
               setError("");
               try {
-                await remove({
-                  taskId,
-                  moduleId: module._id,
-                  assigned: false,
-                  expectedTaskUpdatedAt: snapshot.taskVersion,
-                  expectedModuleUpdatedAt: snapshot.moduleVersion,
-                });
-                setSnapshot(null);
+                await remove(snapshot);
+                onClose();
               } catch (failure) {
                 setError(mutationMessage(failure));
               } finally {
@@ -159,25 +280,10 @@ function RemoveTask({ taskId, updatedAt, module }: { taskId: Id<"tasks">; update
               }
             }}
           >
-            Confirm removal
-          </Button>
-          <Button variant="secondary" disabled={pending} onClick={() => setSnapshot(null)}>
-            Cancel
+            Remove from module
           </Button>
         </div>
-      ) : (
-        <Button
-          variant="secondary"
-          onClick={() => setSnapshot({ taskVersion: updatedAt, moduleVersion: module.updatedAt })}
-        >
-          Remove from module
-        </Button>
-      )}
-      {error && (
-        <p role="alert" className="text-12 text-danger-primary">
-          {error}
-        </p>
-      )}
-    </div>
+      </div>
+    </ModalCore>
   );
 }

@@ -1,14 +1,13 @@
 import { FavoriteToggle } from "../favorites/toggle";
-import { Component, useState } from "react";
-import type { ReactNode } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
-import { mutationMessage } from "../commercial/forms";
 import { ModuleForm } from "./forms";
+import { ModuleBoundary, ModuleLifecycleDialog, ModuleUnavailable } from "./actions";
 import { ModuleProgress } from "./progress";
 import { ModuleTasks } from "./tasks";
 import { ModuleLinks } from "./links";
@@ -34,8 +33,13 @@ export function Modules({ project }: { project: Project }) {
       return next;
     });
   };
-  if (creating && canWrite)
-    return <ModuleForm projectId={project._id} module={null} onDone={select} onCancel={() => setCreating(false)} />;
+  if (creating)
+    return (
+      <>
+        <h3 className="px-5 pt-5 text-18 font-medium text-secondary">Create module</h3>
+        <ModuleForm projectId={project._id} module={null} onDone={select} onCancel={() => setCreating(false)} />
+      </>
+    );
   if (selected)
     return (
       <ModuleBoundary key={selected} onBack={() => select(null)}>
@@ -111,18 +115,21 @@ export function Modules({ project }: { project: Project }) {
   );
 }
 function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project: Project; onBack: () => void }) {
-  const module = useQuery(api.modules.index.resolve, { moduleId });
+  const module = useQuery(api.modules.index.address, { projectId: project._id, moduleId });
   const [editing, setEditing] = useState(false);
-  if (!module) return <p role="status">Opening module…</p>;
-  if (module.projectId !== project._id) return <Unavailable onBack={onBack} />;
-  if (editing && module.canWrite)
+  if (module === undefined) return <p role="status">Opening module…</p>;
+  if (module === null) return <ModuleUnavailable onBack={onBack} />;
+  if (editing)
     return (
-      <ModuleForm
-        projectId={project._id}
-        module={module}
-        onDone={() => setEditing(false)}
-        onCancel={() => setEditing(false)}
-      />
+      <>
+        <h3 className="px-5 pt-5 text-18 font-medium text-secondary">Update module</h3>
+        <ModuleForm
+          projectId={project._id}
+          module={module}
+          onDone={() => setEditing(false)}
+          onCancel={() => setEditing(false)}
+        />
+      </>
     );
   return (
     <article className="space-y-5">
@@ -182,53 +189,17 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
   );
 }
 function Lifecycle({ module }: { module: Module }) {
-  const lifecycle = useMutation(api.modules.index.lifecycle);
   const [confirmation, setConfirmation] = useState<{
     operation: FunctionArgs<typeof api.modules.index.lifecycle>["operation"];
     expectedUpdatedAt: number;
   } | null>(null);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  if (!module.canWrite) return null;
+  if (!module.canWrite && confirmation === null) return null;
   const choose = (operation: FunctionArgs<typeof api.modules.index.lifecycle>["operation"]) => {
-    setError("");
     setConfirmation({ operation, expectedUpdatedAt: module.updatedAt });
   };
   return (
     <section className="space-y-3 border-b border-subtle-1 pb-4">
-      {confirmation ? (
-        <div className="space-y-3">
-          <p className="text-14">
-            {confirmation.operation === "delete"
-              ? "Move this module to Trash? Assigned tasks remain in the project."
-              : confirmation.operation === "restore"
-                ? "Restore this module and its task links? Its name must still be available in this project."
-                : `${confirmation.operation === "archive" ? "Archive" : "Unarchive"} this module?`}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              loading={pending}
-              onClick={async () => {
-                setPending(true);
-                setError("");
-                try {
-                  await lifecycle({ moduleId: module._id, ...confirmation });
-                  setConfirmation(null);
-                } catch (failure) {
-                  setError(mutationMessage(failure));
-                } finally {
-                  setPending(false);
-                }
-              }}
-            >
-              Confirm {confirmation.operation}
-            </Button>
-            <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
+      {module.canWrite && (
         <div className="flex flex-wrap gap-2">
           {module.deleted ? (
             module.canDelete && (
@@ -258,33 +229,14 @@ function Lifecycle({ module }: { module: Module }) {
           )}
         </div>
       )}
-      {error && (
-        <p role="alert" className="text-14 text-danger-primary">
-          {error}
-        </p>
+      {confirmation && (
+        <ModuleLifecycleDialog
+          module={module}
+          revision={confirmation.expectedUpdatedAt}
+          operation={confirmation.operation}
+          onClose={() => setConfirmation(null)}
+        />
       )}
     </section>
   );
-}
-function Unavailable({ onBack }: { onBack: () => void }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-20 font-semibold">This module is unavailable</h2>
-      <p role="alert" className="text-14 text-secondary">
-        Check the project and your current access.
-      </p>
-      <Button variant="secondary" onClick={onBack}>
-        Back to modules
-      </Button>
-    </section>
-  );
-}
-class ModuleBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    return this.state.failed ? <Unavailable onBack={this.props.onBack} /> : this.props.children;
-  }
 }
