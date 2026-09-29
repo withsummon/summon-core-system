@@ -37,6 +37,16 @@ export async function requireProjectMembership(ctx: QueryCtx, project: Doc<"proj
 }
 
 // Membership writers preserve this invariant before revoking or demoting an administrator.
+export async function requireAnotherWorkspaceAdmin(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  const admins = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_role_active", (q) =>
+      q.eq("workspaceId", workspaceId).eq("role", "admin").eq("active", true)
+    )
+    .take(2);
+  if (admins.length < 2) throw new ConvexError("Assign another workspace administrator first.");
+}
+
 export async function requireAnotherProjectAdmin(ctx: QueryCtx, projectId: Id<"projects">) {
   const admins = await ctx.db
     .query("projectMembers")

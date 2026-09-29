@@ -12,7 +12,12 @@ import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
 import type { MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
-import { requireUser, requireWorkspace, requireAnotherProjectAdmin } from "../identity/access";
+import {
+  requireUser,
+  requireWorkspace,
+  requireAnotherWorkspaceAdmin,
+  requireAnotherProjectAdmin,
+} from "../identity/access";
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -161,16 +166,6 @@ export const members = query({
   },
 });
 
-export async function requireAnotherAdmin(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
-  const admins = await ctx.db
-    .query("workspaceMembers")
-    .withIndex("by_workspace_role_active", (q) =>
-      q.eq("workspaceId", workspaceId).eq("role", "admin").eq("active", true)
-    )
-    .take(2);
-  if (admins.length < 2) throw new ConvexError("Assign another workspace administrator first.");
-}
-
 export const changeMemberRole = mutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -218,7 +213,7 @@ export const leave = mutation({
   },
 });
 async function revokeWorkspaceMembership(ctx: MutationCtx, member: Doc<"workspaceMembers">) {
-  if (member.role === "admin") await requireAnotherAdmin(ctx, member.workspaceId);
+  if (member.role === "admin") await requireAnotherWorkspaceAdmin(ctx, member.workspaceId);
   await restrictProjectMemberships(ctx, member.workspaceId, member.userId, "revoke");
   await ctx.db.patch(member._id, { active: false });
 }
@@ -266,7 +261,7 @@ export async function grantWorkspaceMembership(
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
     .unique();
   if (existing?.active && existing.role === "admin" && args.role !== "admin") {
-    await requireAnotherAdmin(ctx, args.workspaceId);
+    await requireAnotherWorkspaceAdmin(ctx, args.workspaceId);
   }
   if (existing) {
     if (existing.active && args.role === "guest")
