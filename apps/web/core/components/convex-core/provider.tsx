@@ -42,8 +42,8 @@ class CoreErrorBoundary extends Component<{ children: ReactNode }, { failed: boo
     if (this.state.failed)
       return (
         <div className="p-8">
-          <h1 className="text-xl font-semibold">This workspace is unavailable</h1>
-          <p className="my-4 text-secondary">Your access may have changed. Return to your workspaces to continue.</p>
+          <h1 className="text-xl font-semibold">Summon Core could not load</h1>
+          <p className="my-4 text-secondary">Reload this page to retry, or return to your workspaces.</p>
           <a className="text-accent-primary underline" href="/core">
             Return to workspaces
           </a>
