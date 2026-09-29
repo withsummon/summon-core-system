@@ -258,7 +258,7 @@ export const authOptions = {
   baseURL: process.env.CONVEX_SITE_URL,
   trustedOrigins: [siteUrl],
   rateLimit: { enabled: true, storage: "database", customRules: { "/convex/jwks": false } },
-  session: { freshAge: 300, deferSessionRefresh: true },
+  session: { freshAge: 300 },
   user: { deleteUser: { enabled: true } },
   account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
   disabledPaths: [
