@@ -49,6 +49,8 @@ The [component model](https://docs.convex.dev/components/understanding) keeps co
 
 The approved API-key plugin is installed in the local Better Auth component. Generated PAT management and internal verification are implemented; no native inbound external API, webhook, public-sharing or MCP-server HTTP route is registered. Bounded token counter checks passed; the 64-way OCC capacity gate remains OPEN. Durable mail and job components must retain recipient, retry and idempotency contracts. Installing any component alone does not close a route, job or external API gate.
 
+On 2026-09-30, Cloudflare showed root `withsummon.com` MX records pointing to Hostinger (`mx1.hostinger.com`, `mx2.hostinger.com`), and Cloudflare Email Routing was not enabled. [Root-domain routing would replace the existing inbound MX owner](https://developers.cloudflare.com/email-service/get-started/route-emails/), so the `notifications@withsummon.com` forwarding request remains open. Resend sender-domain verification and real delivery also remain open; the Resend dashboard required an account sign-in during this inspection.
+
 ### Profile totals and supported bulk operations
 
 The approved Aggregate experiment was removed in `3cb17a40ed636b8631df334a67452c3d88dccc08`. Twenty tasks with 100 assignees and 100 subscribers each require 4,020 synchronous index changes. The control `d7e04bda467d3dcb6c8c2952fe8aaf125c5cb9e9` could delete and restore that cohort atomically. Aggregate variants exceeded Convex's transaction read limits; smaller nodes still exceeded the document limit. Restricting supported bulk operations or making totals eventually consistent would change the product contract.
