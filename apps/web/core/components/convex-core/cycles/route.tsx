@@ -128,8 +128,12 @@ export function CycleRouteLayout({ archived = false }: { archived?: boolean }) {
               projectId={address.project._id}
               cycle={null}
               canSave={canWrite && feature.features.cycles}
-              onDone={close}
-              onCancel={close}
+              onDone={(_, allow) => {
+                if (allow) close();
+              }}
+              onCancel={(allow) => {
+                if (allow) close();
+              }}
             />
           )}
           {picking && <CyclePicker address={address} onClose={() => setPicking(false)} />}

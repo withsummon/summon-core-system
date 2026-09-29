@@ -51,7 +51,7 @@ export function useTaskLifecycle(onSuccess: (operation: Operation, task: Task) =
     continuation.current = null;
     setConfirmation(null);
   }, []);
-  const release = useReloadConfirmations(pending, "The work item operation is still in progress.", leave);
+  const release = useReloadConfirmations(pending, "The work item operation is still in progress.", leave, pending);
   useEffect(
     () => () => {
       continuation.current = null;

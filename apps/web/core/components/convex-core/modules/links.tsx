@@ -1,3 +1,4 @@
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -90,6 +91,12 @@ function LinkForm({
     [error, setError] = useState("");
   const create = useMutation(api.modules.links.create),
     update = useMutation(api.modules.links.update);
+  useReloadConfirmations(
+    url !== (snapshot?.url ?? "") || title !== (snapshot?.title ?? "") || pending,
+    "This module link has unsaved changes.",
+    onClose,
+    pending
+  );
   return (
     <ModalCore
       isOpen
@@ -157,6 +164,7 @@ function RemoveLink({ module, link, onClose }: { module: Module; link: Doc<"modu
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const remove = useMutation(api.modules.links.remove);
+  useReloadConfirmations(pending, "The module link is still being removed.", onClose, pending);
   return (
     <ModalCore
       isOpen

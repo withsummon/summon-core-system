@@ -435,7 +435,12 @@ export function CreateProjectIssue({
     continuation.current = null;
     onClose();
   }, [onClose]);
-  const release = useReloadConfirmations(isDirty || isSubmitting, "This work item has unsaved changes.", leave);
+  const release = useReloadConfirmations(
+    isDirty || isSubmitting,
+    "This work item has unsaved changes.",
+    leave,
+    isSubmitting
+  );
   useEffect(
     () => () => {
       continuation.current = null;

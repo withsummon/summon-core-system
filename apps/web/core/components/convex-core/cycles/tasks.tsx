@@ -149,7 +149,7 @@ function AssignTask({ cycle, canEdit, onClose }: { cycle: Cycle; canEdit: boolea
   const assign = useMutation(api.cycles.tasks.assign);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const release = useReloadConfirmations(pending, "The work item assignment is still being saved.", onClose);
+  const release = useReloadConfirmations(pending, "The work item assignment is still being saved.", onClose, pending);
   return (
     <Dialog
       open
@@ -243,7 +243,7 @@ function RemoveTask({
   const [snapshot] = useState({ taskVersion: updatedAt, cycleVersion: cycle.updatedAt });
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
-  const release = useReloadConfirmations(pending, "The work item removal is still being saved.", onClose);
+  const release = useReloadConfirmations(pending, "The work item removal is still being saved.", onClose, pending);
   return (
     <Dialog
       open
@@ -342,7 +342,7 @@ function MoveCycleTask({
     destinationCapabilities?.canEdit === true &&
     destination !== null &&
     eligible.some((row) => row._id === destination._id);
-  const release = useReloadConfirmations(pending, "The work item move is still being saved.", onClose);
+  const release = useReloadConfirmations(pending, "The work item move is still being saved.", onClose, pending);
   return (
     <Dialog
       open

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { ConfirmationContext } from "@/hooks/use-reload-confirmation";
+import { useContext, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -13,9 +14,13 @@ export function FavoriteToggle({
   workspaceId,
   target,
   render,
+  disabled = false,
+  onBusy,
 }: {
   workspaceId: Id<"workspaces">;
   target: Target;
+  disabled?: boolean;
+  onBusy?: (busy: boolean) => void;
   render?: (
     state: FunctionReturnType<typeof api.favorites.index.state>,
     toggle: () => Promise<void>,
@@ -28,10 +33,15 @@ export function FavoriteToggle({
   const create = useMutation(api.favorites.index.create),
     lifecycle = useMutation(api.favorites.index.lifecycle);
   const [pending, setPending] = useState(false);
+  const confirmationId = useId();
+  const setConfirmation = useContext(ConfirmationContext);
+  if (!setConfirmation) throw new Error("Favorite operations require the root navigation owner.");
   if (!enabled || !state?.canFavorite) return null;
   const toggle = async () => {
-    if (pending || state.blockedByFolder) return;
+    if (pending || disabled || state.blockedByFolder) return;
     setPending(true);
+    setConfirmation(confirmationId, [true, "The favorite is still being saved.", undefined, true]);
+    onBusy?.(true);
     try {
       if (state.favorite)
         await lifecycle({
@@ -43,15 +53,17 @@ export function FavoriteToggle({
     } catch (failure) {
       setToast({ type: TOAST_TYPE.ERROR, title: "Unable to update favorite", message: mutationMessage(failure) });
     } finally {
+      setConfirmation(confirmationId);
       setPending(false);
+      onBusy?.(false);
     }
   };
-  if (render) return render(state, toggle, pending);
+  if (render) return render(state, toggle, pending || disabled);
   return (
     <div className="space-y-1">
       <Button
         variant="secondary"
-        disabled={pending || state.blockedByFolder}
+        disabled={pending || disabled || state.blockedByFolder}
         aria-pressed={state.isFavorite}
         onClick={() => void toggle()}
       >

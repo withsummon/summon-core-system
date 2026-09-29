@@ -110,7 +110,7 @@ function CycleLifecycle({ cycle, operation, onClose }: { cycle: Cycle; operation
     [error, setError] = useState("");
   const choice = operations[operation];
   const enabled = live?.[choice.capability] && (operation !== "delete" || !live.deleted);
-  const release = useReloadConfirmations(pending, "The cycle action is still being saved.", onClose);
+  const release = useReloadConfirmations(pending, "The cycle action is still being saved.", onClose, pending);
   return (
     <Dialog
       open

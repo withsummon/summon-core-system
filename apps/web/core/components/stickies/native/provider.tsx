@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
@@ -25,14 +25,13 @@ function useController(workspaceId: Id<"workspaces">, workspaceSlug: string) {
   const moveNote = useMutation(api.stickies.index.move);
   const rows = useRef(new Map<string, Doc<"stickies">>());
   for (const row of page.results) rows.current.set(row._id, row);
-  const drafts = useMemo(
+  const [drafts, setDrafts] = useState(
     () =>
       new StickyDrafts(async (id, expectedUpdatedAt, changes) => {
         const row = rows.current.get(id);
         if (!row) throw new Error("Sticky is no longer in this view. Your draft has not been saved.");
         return update({ workspaceId, stickyId: row._id, expectedUpdatedAt, ...changes });
-      }, redraw),
-    [workspaceId, update]
+      }, redraw)
   );
   for (const row of page.results) drafts.observe(row._id, row);
   useEffect(() => {
@@ -108,6 +107,10 @@ function useController(workspaceId: Id<"workspaces">, workspaceSlug: string) {
     allOpen,
     openAll: () => setAllOpen(true),
     closeAll: () => setAllOpen(false),
+    discardAll: () => {
+      setDrafts(drafts.discardAll());
+      setAllOpen(false);
+    },
   };
 }
 const Context = createContext<ReturnType<typeof useController> | null>(null);
@@ -123,7 +126,8 @@ export function NativeStickiesProvider({
   const value = useController(workspaceId, workspaceSlug);
   useReloadConfirmations(
     value.drafts.hasUnsaved(),
-    "Some sticky changes are unsaved. Stay on this page to keep editing or resolve a save error."
+    "Some sticky changes are unsaved. Leaving discards queued edits, but an ongoing save may still finish.",
+    value.discardAll
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

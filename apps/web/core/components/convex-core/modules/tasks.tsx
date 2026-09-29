@@ -1,3 +1,4 @@
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
@@ -163,6 +164,12 @@ function LinkTasks({ module, onClose }: { module: Module; onClose: () => void })
   const assign = useMutation(api.modules.tasks.setMany);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  useReloadConfirmations(
+    selected.length > 0 || pending,
+    "This module has unsaved work item selections.",
+    onClose,
+    pending
+  );
   return (
     <ModalCore
       isOpen
@@ -243,6 +250,7 @@ function RemoveTask({ snapshot, module, onClose }: { snapshot: Remove; module: M
   const remove = useMutation(api.modules.tasks.set);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  useReloadConfirmations(pending, "The module work item is still being removed.", onClose, pending);
   return (
     <ModalCore
       isOpen

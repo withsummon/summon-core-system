@@ -24,7 +24,7 @@ export function ModuleFormModal({
 }: {
   projectId: Id<"projects">;
   module: Module | null;
-  onDone: (id: Id<"modules">) => void;
+  onDone: (id: Id<"modules">, allowDefaultNavigation: boolean) => void;
   onClose: () => void;
   snapshot?: Module;
 }) {
@@ -32,7 +32,7 @@ export function ModuleFormModal({
   const [dirty, setDirty] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const leave = useCallback(() => onClose(), [onClose]);
-  const release = useReloadConfirmations(dirty || busy, "This module has unsaved changes.", leave);
+  const release = useReloadConfirmations(dirty || busy, "This module has unsaved changes.", leave, busy);
   const dismiss = () => {
     if (busy) return;
     if (dirty) setDiscarding(true);
@@ -47,7 +47,7 @@ export function ModuleFormModal({
         projectId={projectId}
         module={module}
         snapshot={snapshot}
-        onDone={(id) => release(() => onDone(id))}
+        onDone={(id) => release((allow) => onDone(id, allow))}
         onCancel={dismiss}
         onBusy={setBusy}
         onDirty={setDirty}
@@ -124,10 +124,13 @@ export function ModuleForm({
         onBusy?.(true);
         setError("");
         try {
+          let id: Id<"modules">;
           if (initial) {
             await update({ moduleId: initial._id, expectedUpdatedAt: initial.updatedAt, ...draft });
-            onDone(initial._id);
-          } else onDone(await create({ projectId, ...draft, memberIds: members }));
+            id = initial._id;
+          } else id = await create({ projectId, ...draft, memberIds: members });
+          onDirty?.(false);
+          onDone(id);
         } catch (failure) {
           setError(mutationMessage(failure));
         } finally {

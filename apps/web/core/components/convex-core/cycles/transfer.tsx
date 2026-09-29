@@ -131,7 +131,7 @@ function PrepareTransfer({
     destinationCapabilities?.canEdit === true &&
     destination !== null &&
     eligible.some((row) => row._id === destination._id);
-  const release = useReloadConfirmations(pending, "The cycle transfer is still being prepared.", onCancel);
+  const release = useReloadConfirmations(pending, "The cycle transfer is still being prepared.", onCancel, pending);
   return (
     <Dialog
       open
@@ -227,7 +227,7 @@ function TransferRun({
     revision: number;
     taskIds: Id<"tasks">[];
   } | null>(null);
-  useReloadConfirmations(pending, "The cycle transfer is still in progress.", onClose);
+  useReloadConfirmations(pending, "The cycle transfer is still in progress.", onClose, pending);
   if (!enabled)
     return (
       <div className="space-y-2">

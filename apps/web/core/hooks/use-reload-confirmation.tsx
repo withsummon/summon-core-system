@@ -6,12 +6,13 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useBeforeUnload, useBlocker } from "react-router";
 import { AlertModalCore } from "@plane/ui";
 
 type Confirmations = Map<string, Parameters<typeof useReloadConfirmations>>;
 type AfterRelease = (allowDefaultNavigation: boolean) => void;
-const ConfirmationContext = createContext<
+export const ConfirmationContext = createContext<
   ((id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => void) | null
 >(null);
 
@@ -23,7 +24,7 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
   const setConfirmation = useCallback(
     (id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => {
       if (confirmation) confirmations.set(id, confirmation);
-      else confirmations.delete(id);
+      else if (!confirmations.delete(id) && !afterRelease) return;
       if (afterRelease) completions.current.push(afterRelease);
       publish();
     },
@@ -48,22 +49,25 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
     if (blocker.state === "blocked" && confirmations.size === 0) blocker.proceed();
   }, [blocker, confirmations, revision]);
   const activeConfirmations = [...confirmations.values()];
+  const isSubmitting = activeConfirmations.some(([, , , pending]) => pending);
   return (
     <ConfirmationContext.Provider value={setConfirmation}>
       {children}
       {blocker.state === "blocked" && (
         <AlertModalCore
-          isSubmitting={false}
+          isSubmitting={isSubmitting}
           isOpen
           handleClose={() => blocker.reset()}
           handleSubmit={() => {
-            activeConfirmations.forEach(([, , onLeave]) => onLeave?.());
-            blocker.proceed();
+            const current = [...confirmations.values()];
+            if (current.some(([, , , pending]) => pending)) return;
+            flushSync(() => current.forEach(([, , onLeave]) => onLeave?.()));
+            if (confirmations.size > 0) blocker.proceed();
           }}
           variant="primary"
           title="Leave this page?"
           content={[...new Set(activeConfirmations.map(([, message]) => message))].join(" ")}
-          primaryButtonText={{ default: "Leave", loading: "Leaving…" }}
+          primaryButtonText={{ default: "Leave", loading: "Waiting…" }}
           secondaryButtonText="Stay"
         />
       )}
@@ -74,7 +78,8 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
 export default function useReloadConfirmations(
   active: boolean,
   message = "Changes you made may not be saved.",
-  onLeave?: () => void
+  onLeave?: () => void,
+  isSubmitting = false
 ) {
   const id = useId();
   const setConfirmation = useContext(ConfirmationContext);
@@ -84,9 +89,9 @@ export default function useReloadConfirmations(
     [id, setConfirmation]
   );
   useEffect(() => {
-    if (!active) return;
-    setConfirmation(id, [active, message, onLeave]);
+    if (!active && !isSubmitting) return;
+    setConfirmation(id, [active, message, onLeave, isSubmitting]);
     return release;
-  }, [active, id, message, onLeave, setConfirmation, release]);
+  }, [active, id, message, onLeave, isSubmitting, setConfirmation, release]);
   return release;
 }
