@@ -15,7 +15,8 @@ import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import useKeypress from "@/hooks/use-keypress";
-import { CreateProjectIssue, ProjectIssuesHeader } from "./header";
+import { CreateProjectIssue } from "@/components/convex-core/tasks/task-detail";
+import { ProjectIssuesHeader } from "./header";
 
 export default function ProjectIssuesLayout() {
   const session = useOutletContext<WorkspaceSession>();
