@@ -425,7 +425,7 @@ convex-rpc	projects/cover:remove	apps/convex/convex/projects/cover.ts:40	Convex 
 convex-rpc	projects/cover:removed	apps/convex/convex/projects/cover.ts:48	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/cover:restore	apps/convex/convex/projects/cover.ts:66	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/cover:setExternal	apps/convex/convex/projects/cover.ts:86	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/directory:members	apps/convex/convex/projects/directory.ts:10	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/directory:members	apps/convex/convex/projects/directory.ts:12	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/features:backfill	apps/convex/convex/projects/features.ts:45	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/features:get	apps/convex/convex/projects/features.ts:12	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/features:save	apps/convex/convex/projects/features.ts:26	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
@@ -444,12 +444,12 @@ convex-rpc	projects/lifecycle:setDeleted	apps/convex/convex/projects/lifecycle.t
 convex-rpc	projects/navigation:get	apps/convex/convex/projects/navigation.ts:18	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/navigation:reset	apps/convex/convex/projects/navigation.ts:39	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/navigation:save	apps/convex/convex/projects/navigation.ts:29	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/network:backfill	apps/convex/convex/projects/network.ts:154	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	projects/network:get	apps/convex/convex/projects/network.ts:61	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/network:join	apps/convex/convex/projects/network.ts:121	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/network:joinMany	apps/convex/convex/projects/network.ts:127	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/network:list	apps/convex/convex/projects/network.ts:71	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/network:save	apps/convex/convex/projects/network.ts:95	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/network:backfill	apps/convex/convex/projects/network.ts:153	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/network:get	apps/convex/convex/projects/network.ts:63	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/network:join	apps/convex/convex/projects/network.ts:120	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/network:joinMany	apps/convex/convex/projects/network.ts:126	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/network:list	apps/convex/convex/projects/network.ts:73	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/network:save	apps/convex/convex/projects/network.ts:94	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/order:backfill	apps/convex/convex/projects/order.ts:67	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/order:list	apps/convex/convex/projects/order.ts:12	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/order:move	apps/convex/convex/projects/order.ts:41	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
