@@ -61,6 +61,7 @@ const routes: RouteConfigEntry[] = [
       route(":workspaceSlug/workspace-views/subscribed", "./native-workspace-views.tsx", {
         id: "native-workspace-views-subscribed",
       }),
+      route(":workspaceSlug/workspace-views/:globalViewId", "./native-workspace-view-detail.tsx"),
       // Active and archived Projects share one directory/dialog owner.
       layout("./(all)/[workspaceSlug]/(projects)/projects/(list)/layout.tsx", [
         route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx"),

@@ -197,9 +197,7 @@ export default function WorkspaceViewsPage() {
                 initial={null}
                 onDone={(id) => {
                   setCreating(false);
-                  navigate(
-                    `/core?${new URLSearchParams({ workspace: session.workspace.slug, module: "views", savedView: id })}`
-                  );
+                  navigate(`/${session.workspace.slug}/workspace-views/${id}/`);
                 }}
                 onCancel={() => setCreating(false)}
               />
