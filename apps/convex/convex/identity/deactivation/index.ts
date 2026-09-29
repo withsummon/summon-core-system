@@ -5,8 +5,7 @@ import type { Id } from "../../_generated/dataModel";
 import { authComponent, createAuth } from "../../better_auth";
 import { requireUser } from "../session";
 import { requireNotInstanceAdmin } from "../instance/index";
-import { requireAnotherAdmin } from "../../workspaces/index";
-import { requireAnotherProjectAdmin } from "../access";
+import { requireAnotherWorkspaceAdmin, requireAnotherProjectAdmin } from "../access";
 import { clearPasswordAttempts, reservePasswordAttempt } from "../password/policy";
 
 export async function deactivateAccount(ctx: MutationCtx, userId: Id<"users">) {
@@ -21,7 +20,8 @@ export async function deactivateAccount(ctx: MutationCtx, userId: Id<"users">) {
     .take(101);
   if (workspaces.length > 100 || projects.length > 100)
     throw new ConvexError("Account exceeds the atomic deactivation budget. No changes were made.");
-  for (const row of workspaces) if (row.active && row.role === "admin") await requireAnotherAdmin(ctx, row.workspaceId);
+  for (const row of workspaces)
+    if (row.active && row.role === "admin") await requireAnotherWorkspaceAdmin(ctx, row.workspaceId);
   for (const row of projects)
     if (row.active && row.role === "admin") await requireAnotherProjectAdmin(ctx, row.projectId);
   await ctx.db.insert("accountRestrictions", { userId, deactivatedAt: Date.now() });
