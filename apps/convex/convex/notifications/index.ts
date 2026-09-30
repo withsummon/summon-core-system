@@ -1,5 +1,7 @@
 import { addSubscribers } from "./subscriptions";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
@@ -79,26 +81,22 @@ export const list = query({
       args.paginationOpts.numItems > 100
     )
       throw new ConvexError("Invalid notification page.");
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("notifications")
       .withIndex("by_receiver_workspace", (q) => q.eq("receiverId", user._id).eq("workspaceId", args.workspaceId))
       .order("desc")
-      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
-    const rows = await Promise.all(
-      result.page.map(async (row) => {
+      .map(async (row) => {
         if (args.unreadOnly && row.readAt !== null) return null;
         const task = await selectedTask(ctx, row, user._id, member.role, args);
         if (!task) return null;
-        return {
-          ...row,
+        return Object.assign({}, row, {
           isMention: row.isMention ?? false,
           taskTitle: task.title,
           destination: task.status === "triage" ? ("intake" as const) : ("task" as const),
           event: await ctx.db.get(row.eventId),
-        };
+        });
       })
-    );
-    return { ...result, page: rows.filter((row) => row !== null) };
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
   },
 });
 export const update = mutation({
