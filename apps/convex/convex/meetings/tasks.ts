@@ -1,6 +1,8 @@
 import { requireTask, taskIsReadable, taskCanRead } from "../tasks/access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -32,12 +34,10 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const { user, member, projectMember } = await requireMeeting(ctx, args.workspaceId, args.meetingId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("meetingTasks")
       .withIndex("by_meeting_task", (q) => q.eq("meetingId", args.meetingId))
-      .paginate(pageBudget(args.paginationOpts));
-    const visible = await Promise.all(
-      result.page.map(async (relationship) => {
+      .map(async (relationship) => {
         const task = await ctx.db.get(relationship.taskId);
         if (!task || !(await canReadMeetingProject(ctx, task.projectId, user._id))) return null;
         if (!taskIsReadable(task)) {
@@ -47,8 +47,7 @@ export const list = query({
         if (!(await taskCanRead(ctx, task, user._id))) return null;
         return { linkId: relationship._id, task, unavailable: false };
       })
-    );
-    return { ...result, page: visible.filter((relationship) => relationship !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const unlink = mutation({
