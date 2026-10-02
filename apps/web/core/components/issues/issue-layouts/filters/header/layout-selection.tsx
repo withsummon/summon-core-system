@@ -19,11 +19,12 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 type Props = {
   layouts: EIssueLayoutTypes[];
   onChange: (layout: EIssueLayoutTypes) => void;
-  selectedLayout: EIssueLayoutTypes | undefined;
+  selectedLayout: `${EIssueLayoutTypes}` | undefined;
+  disabled?: boolean;
 };
 
 export function LayoutSelection(props: Props) {
-  const { layouts, onChange, selectedLayout } = props;
+  const { layouts, onChange, selectedLayout, disabled } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const handleOnChange = (layoutKey: EIssueLayoutTypes) => {
@@ -40,6 +41,7 @@ export function LayoutSelection(props: Props) {
             variant="ghost"
             aria-label={t(layout.i18n_title)}
             aria-pressed={selectedLayout === layout.key}
+            disabled={disabled}
             className={cn(
               "group grid size-7 place-items-center overflow-hidden rounded-sm p-0 transition-colors hover:bg-layer-transparent-hover",
               {

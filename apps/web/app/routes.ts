@@ -53,6 +53,17 @@ const routes: RouteConfigEntry[] = [
         "./(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx"
       ),
       route(":workspaceSlug/notifications", "./(all)/[workspaceSlug]/(projects)/notifications/page.tsx"),
+      layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
+        route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),
+        route(
+          ":workspaceSlug/profile/:userId/:profileViewId",
+          "./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx"
+        ),
+        route(
+          ":workspaceSlug/profile/:userId/activity",
+          "./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx"
+        ),
+      ]),
       ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
       route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
       route(":workspaceSlug/workspace-views/all-issues", "./native-workspace-views.tsx", {

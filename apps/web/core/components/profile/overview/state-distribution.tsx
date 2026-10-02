@@ -4,74 +4,57 @@
  * See the LICENSE file for details.
  */
 
-// plane imports
-import { STATE_GROUPS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { PieChart } from "@plane/propel/charts/pie-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IUserProfileData, IUserStateDistribution } from "@plane/types";
 import { Card } from "@plane/ui";
-import { capitalizeFirstLetter } from "@plane/utils";
+import type { ProfileSummary } from "./stats";
+import { profileStateDistribution, profileStatusAppearance } from "./workload";
 
-type Props = {
-  stateDistribution: IUserStateDistribution[];
-  userProfile: IUserProfileData | undefined;
-};
-
-export function ProfileStateDistribution({ stateDistribution, userProfile }: Props) {
+export function ProfileStateDistribution({ summary }: { summary: ProfileSummary }) {
   const { t } = useTranslation();
-  if (!userProfile) return null;
+  if (summary.status !== "Exhausted") return null;
+  const distribution = profileStateDistribution(summary.results);
+  const data = distribution.map((group) => ({
+    key: group.status,
+    value: group.count,
+    name: profileStatusAppearance[group.status].label,
+    color: profileStatusAppearance[group.status].color,
+  }));
 
   return (
     <div className="flex flex-col space-y-2">
       <h3 className="text-16 font-medium">{t("profile.stats.state_distribution.title")}</h3>
       <Card className="h-full">
-        {userProfile.state_distribution.length > 0 ? (
+        {distribution.some((group) => group.count > 0) ? (
           <div className="grid h-[300px] w-full grid-cols-1 gap-x-6 md:grid-cols-2">
-            <PieChart
-              className="size-full"
-              dataKey="value"
-              margin={{
-                top: 0,
-                right: -10,
-                bottom: 12,
-                left: -10,
-              }}
-              data={
-                userProfile.state_distribution.map((group) => ({
-                  id: group.state_group,
-                  key: group.state_group,
-                  value: group.state_count,
-                  name: capitalizeFirstLetter(group.state_group),
-                  color: STATE_GROUPS[group.state_group]?.color,
-                })) ?? []
-              }
-              cells={userProfile.state_distribution.map((group) => ({
-                key: group.state_group,
-                fill: STATE_GROUPS[group.state_group]?.color,
-              }))}
-              showTooltip
-              tooltipLabel="Count"
-              paddingAngle={5}
-              cornerRadius={4}
-              innerRadius="50%"
-              showLabel={false}
-            />
+            <div role="img" aria-label={data.map((item) => `${item.name}: ${item.value}`).join(", ")}>
+              <PieChart
+                className="size-full"
+                dataKey="value"
+                margin={{ top: 0, right: -10, bottom: 12, left: -10 }}
+                data={data}
+                cells={data.map((group) => ({ key: group.key, fill: group.color }))}
+                showTooltip
+                tooltipLabel="Count"
+                paddingAngle={5}
+                cornerRadius={4}
+                innerRadius="50%"
+                showLabel={false}
+              />
+            </div>
             <div className="flex items-center">
               <div className="w-full space-y-4">
-                {stateDistribution.map((group) => (
-                  <div key={group.state_group} className="flex items-center justify-between gap-2 text-11">
+                {distribution.map((group) => (
+                  <div key={group.status} className="flex items-center justify-between gap-2 text-11">
                     <div className="flex items-center gap-1.5">
                       <div
                         className="h-2.5 w-2.5 rounded-xs"
-                        style={{
-                          backgroundColor:
-                            STATE_GROUPS[group.state_group]?.color ?? "var(--background-color-accent-primary)",
-                        }}
+                        style={{ backgroundColor: profileStatusAppearance[group.status].color }}
                       />
-                      <div className="whitespace-nowrap">{STATE_GROUPS[group.state_group].label}</div>
+                      <div className="whitespace-nowrap">{profileStatusAppearance[group.status].label}</div>
                     </div>
-                    <div>{group.state_count}</div>
+                    <div>{group.count}</div>
                   </div>
                 ))}
               </div>
@@ -81,7 +64,7 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
           <EmptyStateCompact
             assetKey="priority"
             assetClassName="size-20"
-            title={t("workspace_empty_state.your_work_by_priority.title")}
+            title={t("profile.stats.state_distribution.empty")}
           />
         )}
       </Card>

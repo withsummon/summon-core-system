@@ -1,26 +1,58 @@
 import { ActivityChanges } from "./changes";
 import { useState } from "react";
+import Link from "next/link";
 import { usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
+import { generateWorkItemLink } from "@plane/utils";
 import { taskStatusOptions } from "../options";
 type Event = FunctionReturnType<typeof api.tasks.activity.list>["page"][number];
-const labels = {
-  created: "created this task",
-  status_changed: "changed the state",
-  updated: "updated this task",
-  archived: "archived this task",
-  unarchived: "unarchived this task",
-  deleted: "deleted this task",
-  restored: "restored this task",
-  reaction_changed: "changed a reaction",
-  comment_created: "added a comment",
-  comment_updated: "edited a comment",
-  comment_deleted: "removed a comment",
-  comment_restored: "restored a comment",
+const actions = {
+  created: "created",
+  status_changed: "changed the state of",
+  updated: "updated",
+  archived: "archived",
+  unarchived: "unarchived",
+  deleted: "deleted",
+  restored: "restored",
+  reaction_changed: "changed a reaction on",
+  comment_created: "added a comment to",
+  comment_updated: "edited a comment on",
+  comment_deleted: "removed a comment from",
+  comment_restored: "restored a comment on",
 } satisfies Record<Event["kind"], string>;
+type ProfileEvent = FunctionReturnType<typeof api.tasks.activity.profile>["page"][number];
+
+// The same native event drives recent activity and the full member activity feed.
+export function ProfileActivityMessage({ event }: { event: ProfileEvent }) {
+  const title = `${event.projectIdentifier}-${event.sequence} ${event.taskTitle}`;
+  return (
+    <>
+      {actions[event.kind]}{" "}
+      {event.deletedAt !== null || event.taskStatus === "triage" ? (
+        <span className="font-medium text-primary">{title}</span>
+      ) : (
+        <Link
+          href={generateWorkItemLink({
+            workspaceSlug: event.workspaceSlug,
+            projectId: event.projectId,
+            issueId: event.taskId,
+            projectIdentifier: event.projectIdentifier,
+            sequenceId: event.sequence,
+            isArchived: event.archivedAt !== null,
+          })}
+          className="font-medium text-primary hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {title}
+        </Link>
+      )}
+    </>
+  );
+}
 export function TaskActivity({ taskId }: { taskId: Id<"tasks"> }) {
   const [open, setOpen] = useState(false);
   return (
@@ -41,7 +73,7 @@ function ActivityRows({ taskId }: { taskId: Id<"tasks"> }) {
         {rows.results.map((event) => (
           <li key={event.id} className="space-y-1 py-3 text-14">
             <p>
-              <span className="font-medium">{event.actorName || "Member"}</span> {labels[event.kind]}
+              <span className="font-medium">{event.actorName || "Member"}</span> {actions[event.kind]} this task
               {event.kind === "status_changed" &&
                 !event.changes?.length &&
                 ` to ${taskStatusOptions[event.status].label}`}

@@ -4,48 +4,41 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import useSWR from "swr";
-// ui
+import { useEffect } from "react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
 import { useTranslation } from "@plane/i18n";
 import { Avatar } from "@plane/propel/avatar";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { Loader, Card } from "@plane/ui";
-import { calculateTimeAgo, getFileURL } from "@plane/utils";
-// components
-import { ActivityMessage, IssueLink } from "@/components/core/activity";
-// constants
-import { USER_PROFILE_ACTIVITY } from "@plane/constants";
-// helpers
-// hooks
-import { useUser } from "@/hooks/store/user";
-// services
-import { UserService } from "@/services/user.service";
+import { calculateTimeAgo } from "@plane/utils";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { ProfileActivityMessage } from "@/components/convex-core/tasks/activity/activity";
+import { ActivityChanges } from "@/components/convex-core/tasks/activity/changes";
 
-const userService = new UserService();
-
-export const ProfileActivity = observer(function ProfileActivity() {
-  const { workspaceSlug, userId } = useParams();
-  // store hooks
-  const { data: currentUser } = useUser();
+export function ProfileActivity({
+  workspaceId,
+  userId,
+  currentUserId,
+}: {
+  workspaceId: Id<"workspaces">;
+  userId: Id<"users">;
+  currentUserId: Id<"users">;
+}) {
   const { t } = useTranslation();
-
-  const { data: userProfileActivity } = useSWR(
-    workspaceSlug && userId ? USER_PROFILE_ACTIVITY(workspaceSlug.toString(), userId.toString(), {}) : null,
-    workspaceSlug && userId
-      ? () =>
-          userService.getUserProfileActivity(workspaceSlug.toString(), userId.toString(), {
-            per_page: 10,
-          })
-      : null
-  );
+  const rows = usePaginatedQuery(api.tasks.activity.profile, { workspaceId, userId }, { initialNumItems: 10 });
+  const { status, loadMore } = rows;
+  const loadedCount = rows.results.length;
+  useEffect(() => {
+    if (status === "CanLoadMore" && loadedCount < 10) loadMore(10);
+  }, [status, loadMore, loadedCount]);
 
   return (
     <div className="space-y-2">
       <h3 className="text-16 font-medium">{t("profile.stats.recent_activity.title")}</h3>
       <Card>
-        {!userProfileActivity ? (
+        {status === "LoadingFirstPage" || (loadedCount === 0 && status !== "Exhausted") ? (
           <Loader className="space-y-5">
             <Loader.Item height="40px" />
             <Loader.Item height="40px" />
@@ -53,30 +46,31 @@ export const ProfileActivity = observer(function ProfileActivity() {
             <Loader.Item height="40px" />
             <Loader.Item height="40px" />
           </Loader>
-        ) : Array.isArray(userProfileActivity.results) && userProfileActivity.results.length > 0 ? (
+        ) : loadedCount > 0 ? (
           <div className="space-y-5">
-            {userProfileActivity.results.map((activity) => (
-              <div key={activity.id} className="flex gap-3">
-                <Avatar
-                  name={activity.actor_detail?.display_name}
-                  src={getFileURL(activity.actor_detail?.avatar_url)}
-                  size="base"
-                  shape="square"
-                />
+            {rows.results.slice(0, 10).map((event) => (
+              <div key={event.id} className="flex gap-3">
+                {event.avatar ? (
+                  <AuthenticatedAssetImage
+                    asset={event.avatar}
+                    alt="Member avatar"
+                    compactName={event.actorName ?? "Member"}
+                    className="font-normal size-6 rounded-sm border-0 object-cover text-13"
+                  />
+                ) : (
+                  <Avatar name={event.actorName ?? "Member"} size="base" shape="square" />
+                )}
                 <div className="-mt-1 w-4/5 break-words">
-                  <p className="inline text-13 text-secondary">
+                  <p className="text-13 text-secondary">
                     <span className="font-medium text-primary">
-                      {currentUser?.id === activity.actor_detail?.id ? "You" : activity.actor_detail?.display_name}{" "}
+                      {currentUserId === event.actorId ? "You" : (event.actorName ?? "Member")}{" "}
                     </span>
-                    {activity.field ? (
-                      <ActivityMessage activity={activity} showIssue />
-                    ) : (
-                      <span>
-                        created <IssueLink activity={activity} />
-                      </span>
-                    )}
+                    <ProfileActivityMessage event={event} />
                   </p>
-                  <p className="text-11 whitespace-nowrap text-secondary">{calculateTimeAgo(activity.created_at)}</p>
+                  {event.changes && <ActivityChanges changes={event.changes} />}
+                  <p className="text-11 whitespace-nowrap text-secondary">
+                    {calculateTimeAgo(new Date(event.at).toISOString())}
+                  </p>
                 </div>
               </div>
             ))}
@@ -87,4 +81,4 @@ export const ProfileActivity = observer(function ProfileActivity() {
       </Card>
     </div>
   );
-});
+}

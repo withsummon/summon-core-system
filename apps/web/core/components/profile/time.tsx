@@ -4,30 +4,25 @@
  * See the LICENSE file for details.
  */
 
-// hooks
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { useCurrentTime } from "@/hooks/use-current-time";
 
-type Props = {
-  timeZone: string | undefined;
-};
-
-export function ProfileSidebarTime(props: Props) {
-  const { timeZone } = props;
-  // current time hook
+export function ProfileSidebarTime({
+  timeZone,
+}: {
+  timeZone: FunctionReturnType<typeof api.tasks.profile.subject>["timezone"];
+}) {
   const { currentTime } = useCurrentTime();
-
-  // Create a date object for the current time in the specified timezone
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timeZone,
-    hour12: false, // Use 24-hour format
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
     hour: "2-digit",
     minute: "2-digit",
-  });
-  const timeString = formatter.format(currentTime);
-
+  }).format(currentTime);
   return (
     <span>
-      {timeString} <span className="text-secondary">{timeZone}</span>
+      {time} <span className="text-secondary">{timeZone}</span>
     </span>
   );
 }

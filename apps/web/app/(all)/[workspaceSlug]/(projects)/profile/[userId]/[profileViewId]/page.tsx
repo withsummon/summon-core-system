@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
+import type { FunctionArgs } from "convex/server";
+import type { api } from "@summon/convex/api";
+import { profileViewSchema } from "@summon/convex/task-schema";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { ProfileIssuesPage } from "@/components/profile/profile-issues";
@@ -14,16 +16,17 @@ const ProfilePageHeader = {
   assigned: "Profile - Assigned",
   created: "Profile - Created",
   subscribed: "Profile - Subscribed",
-};
-
-function isValidProfileViewId(viewId: string): viewId is keyof typeof ProfilePageHeader {
-  return viewId in ProfilePageHeader;
-}
+} satisfies Record<FunctionArgs<typeof api.tasks.profile.list>["view"], string>;
 
 function ProfileIssuesTypePage({ params }: Route.ComponentProps) {
-  const { profileViewId } = params;
-
-  if (!isValidProfileViewId(profileViewId)) return null;
+  const parsed = profileViewSchema.safeParse(params.profileViewId);
+  if (!parsed.success)
+    return (
+      <p role="alert" className="p-6">
+        Profile view not found.
+      </p>
+    );
+  const profileViewId = parsed.data;
 
   const header = ProfilePageHeader[profileViewId];
 

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { Paperclip } from "lucide-react";
 import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
 import { useMutation, useQuery } from "convex/react";
@@ -20,6 +22,8 @@ import {
   EstimatePropertyIcon,
   LabelFilledIcon,
   LabelPropertyIcon,
+  LinkIcon,
+  ViewsIcon,
   MembersPropertyIcon,
   PlusIcon,
   PriorityPropertyIcon,
@@ -30,7 +34,13 @@ import {
   UserCirclePropertyIcon,
 } from "@plane/propel/icons";
 import { AvatarGroup } from "@plane/ui";
-import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import {
+  cn,
+  getDate,
+  renderFormattedDate,
+  renderFormattedPayloadDate,
+  shouldHighlightIssueDueDate,
+} from "@plane/utils";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { DateDropdownView } from "@/components/dropdowns/date";
 import { PriorityDropdown } from "@/components/dropdowns/priority";
@@ -255,19 +265,12 @@ const stateGroups = {
 const propertyOptionClass =
   "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
 
-export function TaskInlineProperties({
-  task,
-  disabled: lifecyclePending,
-}: {
-  task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
-  disabled: boolean;
-}) {
+export function useTaskPropertyWriter(task: InlinePropertyProps["task"], lifecyclePending: boolean) {
   const update = useMutation(api.tasks.index.update);
-  const profile = useQuery(api.identity.profile.get, {});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const creatorName = task.creator.name || "Unavailable account";
   const disabled = !task.canEdit || pending || lifecyclePending;
+  useReloadConfirmations(pending, "Work item properties are still saving.", undefined, pending);
   const save: InlinePropertyProps["onChange"] = async (change) => {
     if (disabled) return;
     setPending(true);
@@ -280,6 +283,19 @@ export function TaskInlineProperties({
       setPending(false);
     }
   };
+  return { disabled, pending, error, save };
+}
+
+export function TaskInlineProperties({
+  task,
+  disabled: lifecyclePending,
+}: {
+  task: NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
+  disabled: boolean;
+}) {
+  const profile = useQuery(api.identity.profile.get, {});
+  const { disabled, pending, error, save } = useTaskPropertyWriter(task, lifecyclePending);
+  const creatorName = task.creator.name || "Unavailable account";
   return (
     <fieldset disabled={!task.canEdit || lifecyclePending} aria-busy={pending || lifecyclePending} className="min-w-0">
       <legend className="text-body-xs-medium">Properties</legend>
@@ -391,7 +407,7 @@ function TaskPropertyOptions({ label, children, footer }: { label: string; child
   );
 }
 
-function InlineTaskState({ task, disabled, onChange }: InlinePropertyProps) {
+export function InlineTaskState({ task, disabled, onChange }: InlinePropertyProps) {
   const states = useQuery(api.tasks.states.list, { projectId: task.projectId });
   const [search, setSearch] = useState("");
   const selected = states?.find((state) => state._id === task.stateId);
@@ -481,7 +497,7 @@ function TaskMemberAvatar({ member }: { member: InlinePropertyProps["task"]["ass
   );
 }
 
-function InlineTaskAssignees({ task, disabled, onChange }: InlinePropertyProps) {
+export function InlineTaskAssignees({ task, disabled, onChange }: InlinePropertyProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { results, status, loadMore } = usePaginatedQuery(
@@ -574,7 +590,7 @@ function InlineTaskAssignees({ task, disabled, onChange }: InlinePropertyProps) 
   );
 }
 
-function InlineTaskLabels({ task, disabled, onChange }: InlinePropertyProps) {
+export function InlineTaskLabels({ task, disabled, onChange }: InlinePropertyProps) {
   const labels = useQuery(api.tasks.labels.list, { projectId: task.projectId });
   const [search, setSearch] = useState("");
   const options = labels?.filter((label) => label.name.toLowerCase().includes(search.trim().toLowerCase()));
@@ -638,7 +654,12 @@ function InlineTaskLabels({ task, disabled, onChange }: InlinePropertyProps) {
   );
 }
 
-function InlineTaskEstimate({ task, disabled, onChange }: InlinePropertyProps) {
+export function InlineTaskEstimate({
+  task,
+  disabled,
+  onChange,
+  inline = false,
+}: InlinePropertyProps & { inline?: boolean }) {
   const choices = useQuery(api.estimates.selection.choices, { projectId: task.projectId });
   const selected = useQuery(api.estimates.selection.forTask, {
     taskId: task._id,
@@ -647,56 +668,233 @@ function InlineTaskEstimate({ task, disabled, onChange }: InlinePropertyProps) {
   const [search, setSearch] = useState("");
   if (!choices || selected === undefined || (!choices.system && !selected)) return null;
   const options = choices.points.filter((point) => point.value.toLowerCase().includes(search.trim().toLowerCase()));
-  return (
-    <SidebarPropertyListItem icon={EstimatePropertyIcon} label="Estimate">
-      <Combobox.Root<Id<"estimatePoints"> | null>
-        items={[null, ...options.map((point) => point._id)]}
-        itemToStringLabel={(value) =>
-          value === null
-            ? "No estimate"
-            : (choices.points.concat(selected ? [selected.point] : []).find((point) => point._id === value)?.value ??
-              "")
+  const content = (
+    <Combobox.Root<Id<"estimatePoints"> | null>
+      items={[null, ...options.map((point) => point._id)]}
+      itemToStringLabel={(value) =>
+        value === null
+          ? "No estimate"
+          : (choices.points.concat(selected ? [selected.point] : []).find((point) => point._id === value)?.value ?? "")
+      }
+      value={task.estimatePointId}
+      inputValue={search}
+      onInputValueChange={setSearch}
+      filter={null}
+      disabled={disabled || !choices.canAssign}
+      onValueChange={(estimatePointId) => void onChange({ estimatePointId })}
+    >
+      <Combobox.Trigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Estimate"
+            className="group font-normal h-7.5 w-full justify-start text-body-xs-regular"
+          >
+            <span className={cn("min-w-0 grow truncate text-left", !selected && "text-placeholder")}>
+              {selected?.point.value ?? "No estimate"}
+              {selected && !choices.points.some((point) => point._id === selected.point._id) && " (not active)"}
+            </span>
+            <ChevronDownIcon className="hidden size-3.5 group-hover:inline" />
+          </Button>
         }
-        value={task.estimatePointId}
-        inputValue={search}
-        onInputValueChange={setSearch}
-        filter={null}
-        disabled={disabled || !choices.canAssign}
-        onValueChange={(estimatePointId) => void onChange({ estimatePointId })}
-      >
-        <Combobox.Trigger
-          render={
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Estimate"
-              className="group font-normal h-7.5 w-full justify-start text-body-xs-regular"
-            >
-              <span className={cn("min-w-0 grow truncate text-left", !selected && "text-placeholder")}>
-                {selected?.point.value ?? "No estimate"}
-                {selected && !choices.points.some((point) => point._id === selected.point._id) && " (not active)"}
-              </span>
-              <ChevronDownIcon className="hidden size-3.5 group-hover:inline" />
-            </Button>
-          }
-        />
-        <TaskPropertyOptions label="Estimate">
-          <Combobox.Item value={null} disabled={disabled} className={propertyOptionClass}>
-            <span className="grow">No estimate</span>
+      />
+      <TaskPropertyOptions label="Estimate">
+        <Combobox.Item value={null} disabled={disabled} className={propertyOptionClass}>
+          <span className="grow">No estimate</span>
+          <Combobox.ItemIndicator>
+            <CheckIcon className="size-3.5" />
+          </Combobox.ItemIndicator>
+        </Combobox.Item>
+        {options.map((point) => (
+          <Combobox.Item key={point._id} value={point._id} disabled={disabled} className={propertyOptionClass}>
+            <span className="min-w-0 grow truncate">{point.value}</span>
             <Combobox.ItemIndicator>
               <CheckIcon className="size-3.5" />
             </Combobox.ItemIndicator>
           </Combobox.Item>
-          {options.map((point) => (
-            <Combobox.Item key={point._id} value={point._id} disabled={disabled} className={propertyOptionClass}>
-              <span className="min-w-0 grow truncate">{point.value}</span>
-              <Combobox.ItemIndicator>
-                <CheckIcon className="size-3.5" />
-              </Combobox.ItemIndicator>
-            </Combobox.Item>
-          ))}
-        </TaskPropertyOptions>
-      </Combobox.Root>
+        ))}
+      </TaskPropertyOptions>
+    </Combobox.Root>
+  );
+  return inline ? (
+    content
+  ) : (
+    <SidebarPropertyListItem icon={EstimatePropertyIcon} label="Estimate">
+      {content}
     </SidebarPropertyListItem>
+  );
+}
+
+/** List and board property controls share the detail writer and its revision. */
+export function TaskRowProperties({
+  task,
+  display,
+  disabled: lifecyclePending,
+}: {
+  task: InlinePropertyProps["task"];
+  display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
+  disabled: boolean;
+}) {
+  const profile = useQuery(api.identity.profile.get, {});
+  const { disabled, pending, error, save } = useTaskPropertyWriter(task, lifecyclePending);
+  return (
+    <fieldset disabled={disabled} aria-busy={pending} className="flex min-w-0 flex-wrap items-center gap-2">
+      <legend className="sr-only">Work item properties</legend>
+      {display.state && (
+        <div className="max-w-36">
+          <InlineTaskState task={task} disabled={disabled} onChange={save} />
+        </div>
+      )}
+      {display.priority && (
+        <PriorityDropdown
+          value={task.priority}
+          onChange={(priority) => void save({ priority })}
+          disabled={disabled}
+          buttonVariant="border-without-text"
+        />
+      )}
+      {display.assignee && (
+        <div className="max-w-36">
+          <InlineTaskAssignees task={task} disabled={disabled} onChange={save} />
+        </div>
+      )}
+      {display.labels && <InlineTaskLabels task={task} disabled={disabled} onChange={save} />}
+      {display.estimate && (
+        <div className="max-w-28">
+          <InlineTaskEstimate task={task} disabled={disabled} onChange={save} inline />
+        </div>
+      )}
+      {display.start_date && (
+        <DateDropdownView
+          value={task.startDate}
+          onChange={(value) => void save({ startDate: value ? renderFormattedPayloadDate(value) : null })}
+          maxDate={getDate(task.targetDate) ?? undefined}
+          weekStartsOn={profile?.preferences.startOfWeek}
+          disabled={disabled || !profile}
+          placeholder="Start date"
+          buttonVariant="border-with-text"
+          icon={<StartDatePropertyIcon className="size-3" />}
+        />
+      )}
+      {display.due_date && (
+        <DateDropdownView
+          value={task.targetDate}
+          onChange={(value) => void save({ targetDate: value ? renderFormattedPayloadDate(value) : null })}
+          minDate={getDate(task.startDate) ?? undefined}
+          weekStartsOn={profile?.preferences.startOfWeek}
+          disabled={disabled || !profile}
+          placeholder="Due date"
+          buttonVariant="border-with-text"
+          icon={<DueDatePropertyIcon className="size-3" />}
+        />
+      )}
+      {display.created_on && (
+        <span className="text-caption-sm-regular text-secondary" title="Created on">
+          {renderFormattedDate(new Date(task._creationTime))}
+        </span>
+      )}
+      {display.updated_on && (
+        <span className="text-caption-sm-regular text-secondary" title="Updated on">
+          {renderFormattedDate(new Date(task.updatedAt))}
+        </span>
+      )}
+      <TaskRowCounts taskId={task._id} display={display} />
+      {(display.cycle || display.modules) && <TaskRowMemberships taskId={task._id} display={display} />}
+      {error && (
+        <p role="alert" className="text-caption-sm-regular text-danger-primary">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+function TaskRowCounts({
+  taskId,
+  display,
+}: {
+  taskId: InlinePropertyProps["task"]["_id"];
+  display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
+}) {
+  const links = usePaginatedQuery(api.tasks.links.list, display.link ? { taskId, deleted: false } : "skip", {
+    initialNumItems: 100,
+  });
+  const attachments = usePaginatedQuery(
+    api.assets.taskAttachments.list,
+    display.attachment_count ? { taskId, deleted: false } : "skip",
+    { initialNumItems: 100 }
+  );
+  const children = usePaginatedQuery(api.tasks.hierarchy.children, display.sub_issue_count ? { taskId } : "skip", {
+    initialNumItems: 100,
+  });
+  const { status: linkStatus, loadMore: loadLinks } = links;
+  const { status: attachmentStatus, loadMore: loadAttachments } = attachments;
+  const { status: childStatus, loadMore: loadChildren } = children;
+  useEffect(() => {
+    if (linkStatus === "CanLoadMore") loadLinks(100);
+    if (attachmentStatus === "CanLoadMore") loadAttachments(100);
+    if (childStatus === "CanLoadMore") loadChildren(100);
+  }, [linkStatus, loadLinks, attachmentStatus, loadAttachments, childStatus, loadChildren]);
+  const counts = [
+    { label: "Links", icon: LinkIcon, page: links, visible: display.link },
+    { label: "Attachments", icon: Paperclip, page: attachments, visible: display.attachment_count },
+    { label: "Sub-work items", icon: ViewsIcon, page: children, visible: display.sub_issue_count },
+  ];
+  return (
+    <>
+      {counts.map(
+        ({ label, icon: Icon, page, visible }) =>
+          visible &&
+          page.status === "Exhausted" &&
+          page.results.length > 0 && (
+            <span
+              key={label}
+              title={label}
+              className="inline-flex items-center gap-1 rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular"
+            >
+              <Icon className="size-3.5" aria-hidden />
+              <span className="sr-only">{label}: </span>
+              {page.results.length}
+            </span>
+          )
+      )}
+    </>
+  );
+}
+
+function TaskRowMemberships({
+  taskId,
+  display,
+}: {
+  taskId: InlinePropertyProps["task"]["_id"];
+  display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
+}) {
+  const cycle = useQuery(api.cycles.tasks.current, display.cycle ? { taskId } : "skip");
+  const modules = usePaginatedQuery(api.modules.tasks.forTask, display.modules ? { taskId } : "skip", {
+    initialNumItems: 100,
+  });
+  const { status, loadMore } = modules;
+  useEffect(() => {
+    if (status === "CanLoadMore") loadMore(100);
+  }, [status, loadMore]);
+  return (
+    <>
+      {display.cycle && cycle && (
+        <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular" title="Cycle">
+          {cycle.name}
+        </span>
+      )}
+      {display.modules &&
+        modules.results.map((module) => (
+          <span
+            key={module._id}
+            className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular"
+            title="Module"
+          >
+            {module.name}
+          </span>
+        ))}
+    </>
   );
 }

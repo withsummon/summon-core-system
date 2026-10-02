@@ -4,67 +4,45 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { observer } from "mobx-react";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useOutletContext } from "react-router";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-// components
 import { PageHead } from "@/components/core/page-title";
+import { ActivityList } from "@/components/profile/activity/activity-list";
 import { DownloadActivityButton } from "@/components/profile/activity/download-button";
-import { WorkspaceActivityListPage } from "@/components/profile/activity/workspace-activity-list";
-// hooks
-import { useUserPermissions } from "@/hooks/store/user";
+import { ActivitySettingsLoader } from "@/components/ui/loader/settings/activity";
+import type { ProfileSession } from "../layout";
 
-const PER_PAGE = 100;
-
-function ProfileActivityPage() {
-  // states
-  const [pageCount, setPageCount] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [resultsCount, setResultsCount] = useState(0);
-  // router
-  const { allowPermissions } = useUserPermissions();
-  //hooks
+export default function ProfileActivityPage() {
+  const { user, workspace, subject } = useOutletContext<ProfileSession>();
   const { t } = useTranslation();
-
-  const updateTotalPages = (count: number) => setTotalPages(count);
-
-  const updateResultsCount = (count: number) => setResultsCount(count);
-
-  const handleLoadMore = () => setPageCount((prev) => prev + 1);
-
-  const activityPages: React.ReactNode[] = [];
-  for (let i = 0; i < pageCount; i++)
-    activityPages.push(
-      <WorkspaceActivityListPage
-        key={i}
-        cursor={`${PER_PAGE}:${i}:0`}
-        perPage={PER_PAGE}
-        updateResultsCount={updateResultsCount}
-        updateTotalPages={updateTotalPages}
-      />
-    );
-
-  const canDownloadActivity = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
+  const rows = usePaginatedQuery(
+    api.tasks.activity.profile,
+    { workspaceId: workspace._id, userId: subject.userId },
+    { initialNumItems: 100 }
   );
-
   return (
     <>
       <PageHead title="Profile - Activity" />
       <div className="flex h-full w-full flex-col overflow-hidden py-5">
         <div className="flex items-center justify-between gap-2 px-5 md:px-9">
           <h3 className="text-16 font-medium">{t("profile.stats.recent_activity.title")}</h3>
-          {canDownloadActivity && <DownloadActivityButton />}
+          {subject.canExportActivity && <DownloadActivityButton workspaceId={workspace._id} userId={subject.userId} />}
         </div>
         <div className="vertical-scrollbar flex scrollbar-md h-full flex-col overflow-y-auto px-5 md:px-9">
-          {activityPages}
-          {pageCount < totalPages && resultsCount !== 0 && (
+          {rows.status === "LoadingFirstPage" ? (
+            <ActivitySettingsLoader />
+          ) : (
+            <ActivityList activity={rows.results} currentUserId={user.id} />
+          )}
+          {rows.status === "Exhausted" && rows.results.length === 0 && (
+            <p className="py-5 text-secondary">{t("no_data_yet")}</p>
+          )}
+          {rows.status !== "LoadingFirstPage" && rows.status !== "Exhausted" && (
             <div className="flex w-full items-center justify-center text-11">
-              <Button variant="secondary" onClick={handleLoadMore}>
+              <Button variant="secondary" loading={rows.status === "LoadingMore"} onClick={() => rows.loadMore(100)}>
                 {t("common.load_more")}
               </Button>
             </div>
@@ -74,5 +52,3 @@ function ProfileActivityPage() {
     </>
   );
 }
-
-export default observer(ProfileActivityPage);

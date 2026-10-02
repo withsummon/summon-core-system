@@ -136,6 +136,10 @@ export const taskProperties = {
   ...nonStateTaskProperties,
   stateId: v.union(v.id("taskStates"), v.null()),
 };
+export const taskPosition = v.object({
+  previous: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
+  next: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
+});
 export const stateFields = {
   name: v.string(),
   description: v.string(),

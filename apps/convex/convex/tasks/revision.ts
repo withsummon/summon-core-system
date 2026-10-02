@@ -1,6 +1,6 @@
 import { taskPropertyChanges } from "./activity_changes";
 import { recordTaskEvent } from "../notifications/delivery";
-import { ConvexError } from "convex/values";
+import { compareValues, ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { priority } from "./schema";
@@ -28,6 +28,13 @@ export async function taskChanged(
     startDateMissing: current.startDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === current.priority),
   });
+  // Manual reordering advances the revision without creating a subscriber activity.
+  if (
+    !event &&
+    task.sortOrder !== current.sortOrder &&
+    compareValues({ ...task, sortOrder: current.sortOrder }, current) === 0
+  )
+    return updatedAt;
   await recordTaskEvent(ctx, {
     workspaceId: task.workspaceId,
     projectId: task.projectId,
