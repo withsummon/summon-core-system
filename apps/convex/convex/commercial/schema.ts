@@ -83,6 +83,7 @@ export const commercialTables = {
   opportunities: defineTable({ ...metadata, ...opportunityFields })
     .index("by_workspace_title", ["workspaceId", "deleted", "title"])
     .index("by_workspace", ["workspaceId", "deleted"])
+    .index("by_workspace_updated", ["workspaceId", "deleted", "updatedAt"])
     .index("by_client", ["clientId", "deleted"]),
   projectProfiles: defineTable({
     ...metadata,

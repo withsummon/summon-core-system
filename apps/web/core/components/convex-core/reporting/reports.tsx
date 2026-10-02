@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useConvex, usePaginatedQuery, useQuery } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";

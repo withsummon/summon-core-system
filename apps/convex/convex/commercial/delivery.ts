@@ -137,10 +137,10 @@ export const getForOpportunity = query({
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", profile.projectId).eq("userId", user._id))
       .unique();
-    if (!membership?.active) return null;
+    if (!membership?.active) return { project: null };
     const project = await ctx.db.get(profile.projectId);
     if (!project || project.archived || project.deletedAt != null || project.workspaceId !== args.workspaceId)
-      return null;
-    return { profile, project };
+      return { project: null };
+    return { project };
   },
 });

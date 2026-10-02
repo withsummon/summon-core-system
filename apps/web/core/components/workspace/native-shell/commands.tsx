@@ -73,6 +73,40 @@ export function WorkspaceCommands({
           },
         },
         {
+          label: t("power_k.creation_actions.create_summon_client"),
+          icon: Briefcase,
+          isDisabled: workspace.membershipRole === "guest",
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/clients/`);
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_summon_clients"),
+          icon: Briefcase,
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/clients/`);
+          },
+        },
+        {
+          label: t("power_k.creation_actions.create_summon_opportunity"),
+          icon: Briefcase,
+          isDisabled: workspace.membershipRole === "guest",
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/opportunities/`);
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_summon_opportunities"),
+          icon: Briefcase,
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/opportunities/`);
+          },
+        },
+        {
           label: t("power_k.creation_actions.create_summon_meeting"),
           icon: CalendarDays,
           isDisabled: workspace.membershipRole === "guest",

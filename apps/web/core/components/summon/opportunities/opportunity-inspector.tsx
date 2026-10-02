@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
-import { observer } from "mobx-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { Controller, useForm } from "react-hook-form";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Doc } from "@summon/convex/data-model";
+import { generateWorkItemLink } from "@plane/utils";
+import { OpportunityForm } from "@/components/convex-core/commercial/opportunity-form";
+import { Delivery } from "@/components/convex-core/commercial/delivery";
+import { memberLabel } from "@summon/convex/member-label";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   ArrowLeft,
   Building2,
-  Check,
   FileText,
   Mail,
   MessageSquare,
@@ -17,16 +26,11 @@ import {
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
-import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
-import { summonErrorMessage } from "@/components/summon/screen";
-import { useMember } from "@/hooks/store/use-member";
-import { summonService } from "@/services/summon.service";
-import { DeliveryHandoffCard } from "./delivery-handoff-card";
 import { OPPORTUNITY_STAGES, OPPORTUNITY_STAGE_LABEL, OPPORTUNITY_STAGE_TONE } from "./opportunity-pipeline";
 import { Select } from "@plane/propel/select";
 
-const formatDate = (value?: string | null) =>
+const formatDate = (value?: string | number | null) =>
   value
     ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
     : "Not set";
@@ -39,27 +43,24 @@ export const initials = (value: string) =>
     .join("")
     .toUpperCase();
 
-export function useOpportunityMoney(workspaceSlug: string) {
-  const { data: settings } = useSWR(["summon-opportunity-settings", workspaceSlug], () =>
-    summonService.getWorkspaceSettings(workspaceSlug)
-  );
-  return (value: string | null) => {
-    if (!value) return "Not set";
-    const amount = Number(value);
-    if (!Number.isFinite(amount)) return value;
-    try {
-      return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: settings?.currency || "IDR",
-        maximumFractionDigits: 0,
-      }).format(amount);
-    } catch {
-      return value;
-    }
-  };
+export function opportunityMoney(
+  currency: string,
+  value: FunctionReturnType<typeof api.commercial.opportunities.get>["input"]["value"]
+) {
+  if (value === null) return "Not set";
+  const [integer, fraction] = value.split(".");
+  const formatted = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .formatToParts(BigInt(integer))
+    .map((part) => (part.type === "fraction" ? fraction : part.value))
+    .join("");
+  return integer === "-0" ? `-${formatted}` : formatted;
 }
-
-export function StageChip({ stage }: { stage: TSummonOpportunityStage }) {
+export function StageChip({ stage }: { stage: Doc<"opportunities">["stage"] }) {
   const tone = OPPORTUNITY_STAGE_TONE[stage];
   return (
     <span
@@ -71,24 +72,23 @@ export function StageChip({ stage }: { stage: TSummonOpportunityStage }) {
   );
 }
 
-export const OpportunityInspector = observer(function OpportunityInspector(props: {
-  workspaceSlug: string;
-  detail: ISummonOpportunityDetail;
-  onChanged: () => Promise<unknown>;
+export function OpportunityInspector(props: {
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+  context: FunctionReturnType<typeof api.commercial.opportunities.get>;
   backHref?: string;
   backClassName?: string;
 }) {
-  const { workspaceSlug, detail, onChanged } = props;
-  const { getUserDetails } = useMember();
-  const money = useOpportunityMoney(workspaceSlug);
-  const owner = detail.owner ? getUserDetails(detail.owner)?.display_name : undefined;
+  const { workspace, context } = props;
+  const workspaceSlug = workspace.slug;
+  const detail = context.record;
+  const [editing, setEditing] = useState(false);
+  if (!detail) throw new Error("Opportunity inspector requires an existing opportunity.");
+  const owner = context.owner ? memberLabel(context.owner) : undefined;
   const automationQuery = new URLSearchParams({
-    opportunity: detail.id,
-    client: detail.client ?? "",
+    opportunity: detail._id,
+    client: detail.clientId ?? "",
     context: detail.title,
   }).toString();
-  const primaryContact = detail.contacts.find((contact) => contact.is_primary) ?? detail.contacts[0];
-
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {props.backHref ? (
@@ -99,7 +99,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
           <ArrowLeft className="size-4" /> Back to results
         </Link>
       ) : null}
-      <article className="@container flex min-w-0 flex-col gap-4" aria-labelledby={`opportunity-${detail.id}`}>
+      <article className="@container flex min-w-0 flex-col gap-4" aria-labelledby={`opportunity-${detail._id}`}>
         <header className="flex flex-wrap items-start gap-3">
           <span
             aria-hidden
@@ -109,34 +109,41 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
           </span>
           <div className="min-w-0 flex-1">
             <h2
-              id={`opportunity-${detail.id}`}
+              id={`opportunity-${detail._id}`}
               className="text-18 leading-snug font-semibold text-balance text-primary"
             >
               {detail.title}
             </h2>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-12 text-secondary">
-              {detail.client_detail ? (
+              {context.client && !context.client.deleted ? (
                 <Link
-                  href={`/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`}
+                  href={`/${workspaceSlug}/summon/clients/${context.client._id}/`}
                   className="inline-flex items-center gap-1 font-medium text-primary hover:text-accent-primary hover:underline"
                 >
                   <Building2 className="size-3.5" />
-                  {detail.client_detail.company_name || detail.client_detail.name}
+                  {context.client.companyName || context.client.name}
                 </Link>
               ) : (
-                <span>No client</span>
+                <span>{context.client ? context.client.companyName || context.client.name : "No client"}</span>
               )}
               <span aria-hidden>·</span>
-              <span>Updated {formatDate(detail.updated_at)}</span>
+              <span>Updated {formatDate(detail.updatedAt)}</span>
             </p>
           </div>
-          <StageChip stage={detail.stage} />
+          <div className="flex flex-wrap items-center gap-2">
+            <StageChip stage={detail.stage} />
+            {context.canWrite && (
+              <Button size="lg" variant="secondary" onClick={() => setEditing(true)}>
+                Edit opportunity
+              </Button>
+            )}
+          </div>
         </header>
 
         <StageTrack stage={detail.stage} />
 
         <dl className="grid grid-cols-2 overflow-hidden rounded-xl bg-layer-1/60 ring-1 ring-subtle @xl:grid-cols-4">
-          <Fact label="Value" value={money(detail.value)} />
+          <Fact label="Value" value={opportunityMoney(context.currency, context.input.value)} />
           <Fact label="Probability" value={`${detail.probability}%`}>
             <span className="mt-2 block h-1 overflow-hidden rounded-full bg-layer-3">
               <span
@@ -145,154 +152,23 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               />
             </span>
           </Fact>
-          <Fact label="Expected close" value={formatDate(detail.expected_close_date)} />
+          <Fact label="Expected close" value={formatDate(detail.expectedCloseDate)} />
           <Fact label="Owner" value={owner || "Not assigned"} />
         </dl>
 
-        <StageForm key={detail.id} workspaceSlug={workspaceSlug} detail={detail} onChanged={onChanged} />
+        <StageForm key={detail._id} detail={detail} canWrite={context.canWrite && !editing} />
 
-        <DeliveryHandoffCard workspaceSlug={workspaceSlug} opportunity={detail} onChanged={onChanged} />
+        <Delivery workspace={workspace} opportunity={detail} />
 
         <div className="grid gap-4 @2xl:grid-cols-2">
-          <Section title="About">
-            <p className="text-12 leading-5 text-pretty text-secondary">
-              {detail.description || "No description yet."}
-            </p>
-            <dl className="mt-3 grid gap-2">
-              <Row label="Product" value={detail.product || "Not set"} />
-              <Row label="Source" value={detail.source || "Not set"} />
-              <Row label="Primary contact" value={primaryContact?.name || "Not set"} />
-              <Row label="Created" value={formatDate(detail.created_at)} />
-            </dl>
-          </Section>
-
-          <Section
-            title="Contacts"
-            action={
-              detail.client_detail ? (
-                <InlineLink href={`/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`}>
-                  Open client
-                </InlineLink>
-              ) : undefined
-            }
-          >
-            <ul className="grid gap-1">
-              {detail.contacts.slice(0, 5).map((contact) => (
-                <li key={contact.id} className="flex items-center gap-3 py-1">
-                  <span
-                    aria-hidden
-                    className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-11 font-semibold text-secondary"
-                  >
-                    {initials(contact.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-12 font-medium text-primary">{contact.name}</span>
-                    <span className="block truncate text-11 text-secondary">{contact.title || "Contact"}</span>
-                  </span>
-                  {contact.email ? (
-                    <a
-                      href={`mailto:${contact.email}`}
-                      aria-label={`Email ${contact.name}`}
-                      className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong"
-                    >
-                      <Mail className="size-4" />
-                    </a>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-            {!detail.contacts.length ? <Empty>No client contacts.</Empty> : null}
-          </Section>
-
-          <Section title="Meeting action items">
-            <ul className="grid gap-1">
-              {detail.work_items.slice(0, 5).map((item) => (
-                <li key={item.id}>
-                  <Link
-                    href={`/${workspaceSlug}/projects/${item.issue.project.id}/issues/${item.issue.id}/`}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <span
-                      aria-hidden
-                      className={`size-3.5 flex-none rounded-full border-2 ${item.issue.completed ? "border-success-strong bg-success-primary" : "border-strong"}`}
-                    />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{item.issue.name}</span>
-                    <span className="text-11 text-secondary">
-                      {item.issue.project.identifier}-{item.issue.sequence_id}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.work_items.length ? <Empty>No action items from delivery meetings.</Empty> : null}
-          </Section>
-
-          <Section title="Pages and meetings">
-            <ul className="grid gap-1">
-              {detail.page_contexts.slice(0, 4).map((context) => {
-                const content = (
-                  <>
-                    <FileText className="size-4 flex-none text-accent-primary" />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
-                      {context.page_detail.name || "Untitled page"}
-                    </span>
-                    <span className="text-11 text-secondary">{context.category}</span>
-                  </>
-                );
-                return (
-                  <li key={context.id}>
-                    {context.project ? (
-                      <Link
-                        href={`/${workspaceSlug}/projects/${context.project}/pages/${context.page}/`}
-                        className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      <span className="flex min-h-10 items-center gap-3 px-2">{content}</span>
-                    )}
-                  </li>
-                );
-              })}
-              {detail.meetings.slice(0, 4).map((meeting) => (
-                <li key={meeting.id}>
-                  <Link
-                    href={`/${workspaceSlug}/summon/meetings/${meeting.id}/`}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <Video className="size-4 flex-none text-accent-primary" />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{meeting.title}</span>
-                    <span className="text-11 text-secondary">{formatDate(meeting.starts_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.page_contexts.length && !detail.meetings.length ? (
-              <Empty>No linked pages or meetings.</Empty>
-            ) : null}
-          </Section>
-
-          <Section title="Recent delivery activity" className="@2xl:col-span-2">
-            <ul className="grid gap-1">
-              {detail.recent_activity.slice(0, 5).map((activity) => (
-                <li key={activity.id}>
-                  <Link
-                    href={activity.href}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <MessageSquare className="size-4 flex-none text-tertiary" />
-                    <span className="min-w-0 flex-1 truncate text-12 text-primary">{activity.label}</span>
-                    <span className="text-11 text-secondary">{formatDate(activity.created_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.recent_activity.length ? <Empty>No delivery activity yet.</Empty> : null}
-          </Section>
+          <OpportunityContacts workspace={workspace} detail={detail} client={context.client} />
+          <MeetingActionItems workspace={workspace} opportunityId={detail._id} />
+          <OpportunityPagesAndMeetings workspace={workspace} opportunityId={detail._id} />
+          <DeliveryActivity workspace={workspace} opportunityId={detail._id} />
         </div>
 
-        <section aria-labelledby={`create-from-${detail.id}`} className="grid gap-2">
-          <h3 id={`create-from-${detail.id}`} className="text-12 font-semibold text-primary">
+        <section aria-labelledby={`create-from-${detail._id}`} className="grid gap-2">
+          <h3 id={`create-from-${detail._id}`} className="text-12 font-semibold text-primary">
             Create from this opportunity
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -320,15 +196,252 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
           </div>
         </section>
       </article>
+      {editing && (
+        <OpportunityForm
+          workspaceId={workspace._id}
+          context={context}
+          onCancel={() => setEditing(false)}
+          onDone={() => setEditing(false)}
+        />
+      )}
     </div>
   );
-});
+}
+
+function OpportunityContacts({
+  workspace,
+  detail,
+  client,
+}: {
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+  detail: Doc<"opportunities">;
+  client: FunctionReturnType<typeof api.commercial.opportunities.get>["client"];
+}) {
+  const workspaceSlug = workspace.slug;
+  const contactsPage = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { opportunityId: detail._id }, kind: "contacts" },
+    { initialNumItems: 5 }
+  );
+  const contacts = contactsPage.results.filter((row) => row.kind === "contact").map((row) => row.contact);
+  const primaryContact = contacts.find((contact) => contact.isPrimary) ?? contacts[0];
+  return (
+    <>
+      <Section title="About">
+        <p className="text-12 leading-5 text-pretty text-secondary">{detail.description || "No description yet."}</p>
+        <dl className="mt-3 grid gap-2">
+          <Row label="Product" value={detail.product || "Not set"} />
+          <Row label="Source" value={detail.source || "Not set"} />
+          <Row label="Primary contact" value={primaryContact?.name || "Not set"} />
+          <Row label="Created" value={formatDate(detail._creationTime)} />
+        </dl>
+      </Section>
+
+      <Section
+        query={contactsPage}
+        title="Contacts"
+        action={
+          client && !client.deleted ? (
+            <InlineLink href={`/${workspaceSlug}/summon/clients/${client._id}/`}>Open client</InlineLink>
+          ) : undefined
+        }
+      >
+        <ul className="grid gap-1">
+          {contacts.map((contact) => (
+            <li key={contact._id} className="flex items-center gap-3 py-1">
+              <span
+                aria-hidden
+                className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-11 font-semibold text-secondary"
+              >
+                {initials(contact.name)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-12 font-medium text-primary">{contact.name}</span>
+                <span className="block truncate text-11 text-secondary">{contact.title || "Contact"}</span>
+              </span>
+              {contact.email ? (
+                <a
+                  href={`mailto:${contact.email}`}
+                  aria-label={`Email ${contact.name}`}
+                  className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong"
+                >
+                  <Mail className="size-4" />
+                </a>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {contactsPage.status === "Exhausted" && !contacts.length ? <Empty>No client contacts.</Empty> : null}
+      </Section>
+    </>
+  );
+}
+function MeetingActionItems({
+  workspace,
+  opportunityId,
+}: {
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+  opportunityId: Doc<"opportunities">["_id"];
+}) {
+  const workspaceSlug = workspace.slug;
+  const workItemsPage = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { opportunityId }, kind: "workItems" },
+    { initialNumItems: 5 }
+  );
+  const workItems = workItemsPage.results.filter((row) => row.kind === "workItem");
+  return (
+    <Section title="Meeting action items" query={workItemsPage}>
+      <ul className="grid gap-1">
+        {workItems.map((item) => (
+          <li key={item.link._id}>
+            <Link
+              href={generateWorkItemLink({
+                workspaceSlug,
+                projectId: item.project._id,
+                issueId: item.task._id,
+                projectIdentifier: item.project.identifier,
+                sequenceId: item.task.sequence,
+                isArchived: item.task.archivedAt !== null,
+              })}
+              className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+            >
+              <span
+                aria-hidden
+                className={`size-3.5 flex-none rounded-full border-2 ${item.task.status === "done" ? "border-success-strong bg-success-primary" : "border-strong"}`}
+              />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{item.task.title}</span>
+              <span className="text-11 text-secondary">
+                {item.project.identifier}-{item.task.sequence}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {workItemsPage.status === "Exhausted" && !workItems.length ? (
+        <Empty>No action items from delivery meetings.</Empty>
+      ) : null}
+    </Section>
+  );
+}
+function OpportunityPagesAndMeetings({
+  workspace,
+  opportunityId,
+}: {
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+  opportunityId: Doc<"opportunities">["_id"];
+}) {
+  const workspaceSlug = workspace.slug;
+  const scope = { opportunityId };
+  const documentsPage = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope, kind: "allDocuments" },
+    { initialNumItems: 4 }
+  );
+  const meetingsPage = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope, kind: "meetings" },
+    { initialNumItems: 4 }
+  );
+  const documents = documentsPage.results.filter((row) => row.kind === "document");
+  const meetings = meetingsPage.results.filter((row) => row.kind === "meeting").map((row) => row.meeting);
+  return (
+    <Section title="Pages and meetings" query={documentsPage} secondaryQuery={meetingsPage}>
+      <ul className="grid gap-1">
+        {documents.map((row) => {
+          const content = (
+            <>
+              <FileText className="size-4 flex-none text-accent-primary" />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
+                {row.document.name || "Untitled page"}
+              </span>
+              <span className="text-11 text-secondary">{row.document.category}</span>
+            </>
+          );
+          return (
+            <li key={row.document._id}>
+              {row.project ? (
+                <Link
+                  href={`/${workspaceSlug}/projects/${row.project._id}/pages/${row.document._id}/`}
+                  className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <span className="flex min-h-10 items-center gap-3 px-2">{content}</span>
+              )}
+            </li>
+          );
+        })}
+        {meetings.map((meeting) => (
+          <li key={meeting._id}>
+            <Link
+              href={`/${workspaceSlug}/summon/meetings/${meeting._id}/`}
+              className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+            >
+              <Video className="size-4 flex-none text-accent-primary" />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{meeting.title}</span>
+              <span className="text-11 text-secondary">{formatDate(meeting.startsAt)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {documentsPage.status === "Exhausted" &&
+      meetingsPage.status === "Exhausted" &&
+      !documents.length &&
+      !meetings.length ? (
+        <Empty>No linked pages or meetings.</Empty>
+      ) : null}
+    </Section>
+  );
+}
+function DeliveryActivity({
+  workspace,
+  opportunityId,
+}: {
+  workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
+  opportunityId: Doc<"opportunities">["_id"];
+}) {
+  const workspaceSlug = workspace.slug;
+  const activityPage = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { opportunityId }, kind: "activity" },
+    { initialNumItems: 5 }
+  );
+  const activity = activityPage.results.filter((row) => row.kind === "activity");
+  return (
+    <Section title="Recent delivery activity" className="@2xl:col-span-2" query={activityPage}>
+      <ul className="grid gap-1">
+        {activity.map((row) => (
+          <li key={row.event._id}>
+            <Link
+              href={generateWorkItemLink({
+                workspaceSlug,
+                projectId: row.project._id,
+                issueId: row.task._id,
+                projectIdentifier: row.project.identifier,
+                sequenceId: row.task.sequence,
+                isArchived: row.task.archivedAt !== null,
+              })}
+              className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+            >
+              <MessageSquare className="size-4 flex-none text-tertiary" />
+              <span className="min-w-0 flex-1 truncate text-12 text-primary">{`${row.task.title}: ${row.event.kind.replaceAll("_", " ")}`}</span>
+              <span className="text-11 text-secondary">{formatDate(row.event._creationTime)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {activityPage.status === "Exhausted" && !activity.length ? <Empty>No delivery activity yet.</Empty> : null}
+    </Section>
+  );
+}
 
 /** Pipeline position at a glance; a lost deal ends the track rather than completing it. */
-function StageTrack({ stage }: { stage: TSummonOpportunityStage }) {
+function StageTrack({ stage }: { stage: Doc<"opportunities">["stage"] }) {
   const steps = OPPORTUNITY_STAGES.filter((item) => item !== "lost");
   const lost = stage === "lost";
-  const current = lost ? -1 : steps.indexOf(stage);
+  const current = lost ? -1 : steps.findIndex((item) => item === stage);
   return (
     <ol aria-label="Pipeline progress" className="grid grid-cols-5 gap-1.5">
       {steps.map((item, index) => {
@@ -350,95 +463,99 @@ function StageTrack({ stage }: { stage: TSummonOpportunityStage }) {
   );
 }
 
-function StageForm(props: {
-  workspaceSlug: string;
-  detail: ISummonOpportunityDetail;
-  onChanged: () => Promise<unknown>;
-}) {
-  const { workspaceSlug, detail, onChanged } = props;
-  const [stage, setStage] = useState<TSummonOpportunityStage>(detail.stage);
-  const [probability, setProbability] = useState(String(detail.probability));
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [error, setError] = useState("");
-  const probabilityValue = Number(probability);
-  const probabilityValid =
-    probability !== "" && Number.isInteger(probabilityValue) && probabilityValue >= 0 && probabilityValue <= 100;
-  const changed = stage !== detail.stage || probabilityValue !== detail.probability;
-
-  // Follow the persisted values after a save or refetch without remounting, so the saved status stays visible.
-  useEffect(() => {
-    setStage(detail.stage);
-    setProbability(String(detail.probability));
-  }, [detail.stage, detail.probability]);
-
-  useEffect(() => {
-    if (status !== "saved") return;
-    const timeout = window.setTimeout(() => setStatus("idle"), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [status]);
-
-  const save = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!changed || !probabilityValid || status === "saving") return;
-    setStatus("saving");
-    setError("");
-    try {
-      await summonService.transitionOpportunity(workspaceSlug, detail.id, { stage, probability: probabilityValue });
-      await onChanged();
-      setStatus("saved");
-    } catch (requestError) {
-      setError(summonErrorMessage(requestError));
-      setStatus("error");
-    }
-  };
-
+function StageForm({ detail, canWrite }: { detail: Doc<"opportunities">; canWrite: boolean }) {
+  const transition = useMutation(api.commercial.opportunities.transition);
+  const values = { stage: detail.stage, probability: detail.probability, updatedAt: detail.updatedAt };
+  const form = useForm({ defaultValues: values });
+  const continuation = useRef<
+    ((receipt: FunctionReturnType<typeof api.commercial.opportunities.transition>) => void) | null
+  >(null);
+  const leave = useCallback(() => {
+    continuation.current = null;
+  }, []);
+  const release = useReloadConfirmations(
+    form.formState.isDirty || form.formState.isSubmitting,
+    "The opportunity stage has unsaved changes or is still saving.",
+    leave,
+    form.formState.isSubmitting
+  );
+  useEffect(() => leave, [leave]);
   return (
     <form
-      onSubmit={save}
+      onSubmit={form.handleSubmit(async (data) => {
+        continuation.current = (receipt) => form.reset(receipt);
+        try {
+          const receipt = await transition({
+            workspaceId: detail.workspaceId,
+            opportunityId: detail._id,
+            expectedUpdatedAt: data.updatedAt,
+            stage: data.stage,
+            probability: data.probability,
+          });
+          release(() => {
+            const complete = continuation.current;
+            continuation.current = null;
+            complete?.(receipt);
+          });
+        } catch (failure) {
+          if (continuation.current !== null)
+            form.setError("root", { type: "server", message: mutationMessage(failure) });
+          continuation.current = null;
+        }
+      })}
       aria-label="Update stage"
       className="grid gap-3 rounded-xl p-3 ring-1 ring-subtle @sm:grid-cols-[minmax(0,1fr)_6.5rem_auto] @sm:items-end"
     >
-      <SummonField label="Stage">
-        <Select
-          value={stage}
-          onValueChange={(value) => setStage(value as TSummonOpportunityStage)}
+      <fieldset className="contents" disabled={!canWrite || form.formState.isSubmitting}>
+        <SummonField label="Stage">
+          <Controller
+            name="stage"
+            control={form.control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  const stage = OPPORTUNITY_STAGES.find((item) => item === value);
+                  if (stage) field.onChange(stage);
+                }}
+                className="h-10"
+                disabled={!canWrite || form.formState.isSubmitting}
+                options={OPPORTUNITY_STAGES.map((value) => ({ value, label: OPPORTUNITY_STAGE_LABEL[value] }))}
+              />
+            )}
+          />
+        </SummonField>
+        <SummonField label="Probability (%)">
+          <Input
+            {...form.register("probability", { valueAsNumber: true })}
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            inputMode="numeric"
+            className="h-10 tabular-nums"
+          />
+        </SummonField>
+        <Button
+          type="submit"
+          size="xl"
           className="h-10"
-          options={OPPORTUNITY_STAGES.map((item) => ({ value: item, label: OPPORTUNITY_STAGE_LABEL[item] }))}
-        />
-      </SummonField>
-      <SummonField label="Probability (%)">
-        <Input
-          type="number"
-          min="0"
-          max="100"
-          step="1"
-          inputMode="numeric"
-          value={probability}
-          onChange={(event) => setProbability(event.target.value)}
-          hasError={!probabilityValid}
-          className="h-10 tabular-nums"
-        />
-      </SummonField>
-      <Button
-        type="submit"
-        size="xl"
-        className="h-10"
-        disabled={!changed || !probabilityValid}
-        loading={status === "saving"}
-      >
-        Save stage
-      </Button>
-      <p aria-live="polite" className="min-h-4 text-12 @sm:col-span-3">
-        {status === "saved" ? (
-          <span className="inline-flex items-center gap-1 text-success-primary">
-            <Check className="size-3.5" /> Stage saved
-          </span>
-        ) : status === "error" ? (
-          <span className="text-danger-primary">{error}</span>
-        ) : !probabilityValid ? (
-          <span className="text-danger-primary">Enter a whole number from 0 to 100.</span>
-        ) : null}
-      </p>
+          disabled={!form.formState.isDirty}
+          loading={form.formState.isSubmitting}
+        >
+          Save stage
+        </Button>
+        {(form.formState.isDirty || detail.updatedAt !== form.getValues("updatedAt")) && (
+          <Button type="button" variant="secondary" onClick={() => form.reset(values)} className="@sm:col-span-3">
+            Reset stage
+          </Button>
+        )}
+      </fieldset>
+      {form.formState.errors.root?.message && (
+        <p role="alert" className="text-12 text-danger-primary @sm:col-span-3">
+          {form.formState.errors.root.message}
+        </p>
+      )}
     </form>
   );
 }
@@ -453,7 +570,14 @@ function Fact(props: { label: string; value: string; children?: React.ReactNode 
   );
 }
 
-function Section(props: { title: string; action?: React.ReactNode; className?: string; children: React.ReactNode }) {
+function Section(props: {
+  title: string;
+  action?: React.ReactNode;
+  className?: string;
+  children: React.ReactNode;
+  query?: ReturnType<typeof usePaginatedQuery<typeof api.commercial.clients.related>>;
+  secondaryQuery?: ReturnType<typeof usePaginatedQuery<typeof api.commercial.clients.related>>;
+}) {
   return (
     <section className={`min-w-0 rounded-xl p-3.5 ring-1 ring-subtle ${props.className ?? ""}`}>
       <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
@@ -461,6 +585,23 @@ function Section(props: { title: string; action?: React.ReactNode; className?: s
         {props.action}
       </header>
       {props.children}
+      {Object.entries({ primary: props.query, secondary: props.secondaryQuery }).map(
+        ([kind, query]) =>
+          query && (
+            <div key={kind} className="mt-2">
+              {(query.status === "LoadingFirstPage" || query.status === "LoadingMore") && (
+                <p role="status" className="text-11 text-secondary">
+                  Loading {kind === "secondary" ? "meetings" : props.title.toLowerCase()}…
+                </p>
+              )}
+              {query.status === "CanLoadMore" && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => query.loadMore(5)}>
+                  Load more {kind === "secondary" ? "meetings" : props.title.toLowerCase()}
+                </Button>
+              )}
+            </div>
+          )
+      )}
     </section>
   );
 }
