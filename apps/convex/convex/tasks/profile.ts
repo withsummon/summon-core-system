@@ -269,22 +269,10 @@ export const list = query({
     if (args.group && args.subgroup && args.group.by === args.subgroup.by)
       throw new ConvexError("Group and subgroup must use different properties.");
     const read = projectReader(ctx, args.workspaceId, access.user._id);
-    const labelIds = new Set(
-      conditions.flatMap((condition) =>
-        condition.property === "labelId" ? (condition.operator === "exact" ? [condition.value] : condition.value) : []
-      )
-    );
     await Promise.all(
       [args.group, args.subgroup].map(async (group) => {
-        if (group?.by === "labelId" && group.value !== null) labelIds.add(group.value);
         if (group?.by === "projectId" && !(await read(group.value)))
           throw new ConvexError("Choose a group from an accessible project.");
-      })
-    );
-    await Promise.all(
-      [...labelIds].map(async (labelId) => {
-        const label = await requireUsableLabel(ctx, labelId);
-        if (!(await read(label.projectId))) throw new ConvexError("Choose a label from an accessible project.");
       })
     );
     const selectedOrder = ordering[args.order];

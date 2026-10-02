@@ -1,5 +1,5 @@
 import { taskIsActive, taskDetail, taskCanRead, requireTask } from "./access";
-import { preparePropertyUpdate, applyPropertyUpdate } from "./property_updates";
+import { preparePropertyUpdate, applyPropertyUpdate, taskPositionOrder } from "./property_updates";
 import { syncPlainDescription } from "./description";
 import { createPreparedTask, taskCreateFields } from "./create";
 import { changeTaskStatus } from "./status";
@@ -8,7 +8,7 @@ import { stream } from "convex-helpers/server/stream";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject, requireUser } from "../identity/access";
-import { status, taskProperties } from "./schema";
+import { status, taskPosition, taskProperties } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
@@ -73,16 +73,18 @@ export const update = mutation({
   args: {
     taskId: v.id("tasks"),
     expectedUpdatedAt: v.number(),
+    position: v.optional(taskPosition),
     ...v.object({ title: v.string(), description: v.string(), status, ...taskProperties }).partial().fields,
   },
   handler: async (
     ctx,
-    { taskId, expectedUpdatedAt, title: rawTitle, description, status: requestedStatus, ...properties }
+    { taskId, expectedUpdatedAt, position, title: rawTitle, description, status: requestedStatus, ...properties }
   ) => {
     const prepared = await preparePropertyUpdate(ctx, taskId, expectedUpdatedAt, properties, requestedStatus);
     const text = parseTaskText(rawTitle ?? prepared.task.title, description ?? prepared.task.description);
+    const order = position ? { sortOrder: await taskPositionOrder(ctx, prepared.task, position) } : {};
     if (description !== undefined) await syncPlainDescription(ctx, prepared.task, description, prepared.user._id);
-    await applyPropertyUpdate(ctx, prepared, text);
+    await applyPropertyUpdate(ctx, prepared, { ...text, ...order });
     return taskId;
   },
 });

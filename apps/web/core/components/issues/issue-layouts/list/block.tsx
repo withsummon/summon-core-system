@@ -99,18 +99,12 @@ export function IssueListBlockView({
   const actions = pending ? undefined : renderActions;
 
   return (
-    <ControlLink
-      id={`issue-${issueId}`}
-      href={href}
-      aria-label={ariaLabel}
-      onClick={onOpen}
-      className="@container/list-row block w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
-      disabled={pending || disabled}
-    >
+    <div className="@container/list-row block w-full">
       <Row
+        id={`issue-${issueId}`}
         ref={rowRef}
         className={cn(
-          "group/list-block relative grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover @3xl/list-row:grid-cols-[minmax(12rem,1fr)_minmax(0,max-content)_auto] @3xl/list-row:items-center",
+          "group/list-block relative grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover @3xl/list-row:grid-cols-[minmax(12rem,1fr)_minmax(0,max-content)_auto] @3xl/list-row:items-center",
           {
             "border-accent-strong": isPeeked && isPeekedAtCurrentLevel,
             "border-strong-1": isActive,
@@ -121,28 +115,37 @@ export function IssueListBlockView({
         )}
         onDragStart={onDragStart}
       >
+        <Tooltip
+          tooltipContent={name}
+          isMobile={isMobile}
+          position="top-start"
+          disabled={isDragging}
+          renderByDefault={false}
+        >
+          <ControlLink
+            href={href}
+            aria-label={ariaLabel}
+            onClick={onOpen}
+            className="absolute inset-0 z-[1] cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+            disabled={pending || disabled}
+          >
+            <span className="sr-only">{name}</span>
+          </ControlLink>
+        </Tooltip>
         <div className="flex w-full gap-2 truncate">
           <div className="flex flex-grow items-center gap-0.5 truncate">
             <div className="flex items-center gap-1" style={{ marginLeft: indent }}>
-              {selection}
+              <div className="contents [&>*]:z-[2]">{selection}</div>
               {identifier}
-              <div className="grid size-4 flex-shrink-0 place-items-center">{expansion}</div>
+              <div className="relative z-[2] grid size-4 flex-shrink-0 place-items-center">{expansion}</div>
               {pending && (
                 <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
               )}
             </div>
-            <Tooltip
-              tooltipContent={name}
-              isMobile={isMobile}
-              position="top-start"
-              disabled={isDragging}
-              renderByDefault={false}
-            >
-              <p className="cursor-pointer truncate text-body-xs-medium text-primary">{name}</p>
-            </Tooltip>
+            <p className="cursor-pointer truncate text-body-xs-medium text-primary">{name}</p>
           </div>
         </div>
-        <div className="col-span-2 flex min-w-0 items-center gap-2 @3xl/list-row:col-span-1 @3xl/list-row:col-start-2 @3xl/list-row:row-start-1">
+        <div className="relative z-[2] col-span-2 flex min-w-0 items-center gap-2 @3xl/list-row:col-span-1 @3xl/list-row:col-start-2 @3xl/list-row:row-start-1">
           <div className="relative flex flex-wrap items-center gap-2 whitespace-nowrap">
             {pending ? <Spinner className="size-4" /> : properties}
           </div>
@@ -150,20 +153,13 @@ export function IssueListBlockView({
         {actions && (
           <fieldset
             aria-label="Work item actions"
-            className="col-start-2 row-start-1 rounded-sm border border-strong @3xl/list-row:col-start-3 @3xl/list-row:border-0"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") event.stopPropagation();
-            }}
+            className="relative z-[2] col-start-2 row-start-1 rounded-sm border border-strong @3xl/list-row:col-start-3 @3xl/list-row:border-0"
           >
             {actions(rowRef)}
           </fieldset>
         )}
       </Row>
-    </ControlLink>
+    </div>
   );
 }
 

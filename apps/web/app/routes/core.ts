@@ -43,19 +43,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
         ]),
 
-        // Profile
-        layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
-          route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),
-          route(
-            ":workspaceSlug/profile/:userId/:profileViewId",
-            "./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx"
-          ),
-          route(
-            ":workspaceSlug/profile/:userId/activity",
-            "./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx"
-          ),
-        ]),
-
         // Stickies
         ...(nativeStickiesRoute
           ? []

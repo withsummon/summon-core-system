@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { MutableRefObject } from "react";
+import type { ComponentProps, MutableRefObject, ReactElement, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
@@ -52,92 +52,113 @@ interface IssueBlockProps {
   isEpic?: boolean;
 }
 
-interface IssueDetailsBlockProps {
-  cardRef: React.RefObject<HTMLElement>;
-  issue: TIssue;
-  displayProperties: IIssueDisplayProperties | undefined;
-  updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
-  quickActions: TRenderQuickActions;
-  isReadOnly: boolean;
-  isEpic?: boolean;
+interface KanbanIssueBlockViewProps {
+  issueId: string;
+  blockId: string;
+  href: ComponentProps<typeof ControlLink>["href"];
+  name: string;
+  onOpen: ComponentProps<typeof ControlLink>["onClick"];
+  cardRef: RefObject<HTMLDivElement>;
+  onDragStart: ComponentProps<"div">["onDragStart"];
+  isPeeked: boolean;
+  isDragging: boolean;
+  isDraggingOver: boolean;
+  canDrag: boolean;
+  disabled: boolean;
+  identifier: ReactNode;
+  properties: ReactNode;
+  actions: (cardRef: RefObject<HTMLDivElement>, customActionContent: ReactElement) => ReactNode;
+  scrollableContainerRef?: ComponentProps<typeof RenderIfVisible>["root"];
+  shouldRenderByDefault?: boolean;
 }
 
-const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
-  const { cardRef, issue, updateIssue, quickActions, isReadOnly, displayProperties, isEpic = false } = props;
-  // refs
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
-  // states
-  const [isMenuActive, setIsMenuActive] = useState(false);
-  // hooks
+export function KanbanIssueBlockView({
+  issueId,
+  blockId,
+  href,
+  name,
+  onOpen,
+  cardRef,
+  onDragStart,
+  isPeeked,
+  isDragging,
+  isDraggingOver,
+  canDrag,
+  disabled,
+  identifier,
+  properties,
+  actions,
+  scrollableContainerRef,
+  shouldRenderByDefault,
+}: KanbanIssueBlockViewProps) {
   const { isMobile } = usePlatformOS();
-
-  const customActionButton = (
-    // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-    <div
-      ref={menuActionRef}
-      className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
-        isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
-      }`}
-      onClick={() => setIsMenuActive(!isMenuActive)}
-    >
-      <MoreHorizontal className="h-3.5 w-3.5" />
-    </div>
-  );
-
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
-  useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
   return (
     <>
-      <div className="relative">
-        {issue.project_id && (
-          <IssueIdentifier
-            issueId={issue.id}
-            projectId={issue.project_id}
-            size="xs"
-            variant="tertiary"
-            displayProperties={displayProperties}
-          />
-        )}
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
+      <DropIndicator isVisible={!isDragging && isDraggingOver} />
+      <div
+        id={`issue-${issueId}`}
+        // make Z-index higher at the beginning of drag, to have a issue drag image of issue block without any overlaps
+        className={cn("group/kanban-block relative mb-2", { "z-[1]": isDragging })}
+        onDragStart={onDragStart}
+      >
         <div
-          className={cn("absolute -top-1 right-0", {
-            "hidden group-hover/kanban-block:block": !isMobile,
-            "!block": isMenuActive,
-          })}
-          onClick={handleEventPropagation}
+          id={blockId}
+          ref={cardRef}
+          className={cn(
+            "relative block w-full rounded-lg border border-subtle bg-layer-2 p-3 text-13 shadow-raised-100 outline-[0.5px] outline-transparent transition-all hover:border-strong hover:shadow-raised-200",
+            { "hover:cursor-pointer": canDrag },
+            { "border border-accent-strong hover:border-accent-strong": isPeeked },
+            { "z-[100] bg-layer-1": isDragging }
+          )}
         >
-          {quickActions({
-            issue,
-            parentRef: cardRef,
-            customActionButton,
-          })}
+          <Tooltip tooltipContent={name} isMobile={isMobile} renderByDefault={false}>
+            <ControlLink
+              href={href}
+              aria-label={`Open ${name}`}
+              onClick={onOpen}
+              disabled={disabled}
+              className="absolute inset-0 z-[1] rounded-lg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+            >
+              <span className="sr-only">{name}</span>
+            </ControlLink>
+          </Tooltip>
+          <RenderIfVisible
+            classNames="space-y-2"
+            root={scrollableContainerRef}
+            defaultHeight="100px"
+            horizontalOffset={100}
+            verticalOffset={200}
+            defaultValue={shouldRenderByDefault}
+          >
+            <div className="relative">
+              {identifier}
+              <div
+                className={cn(
+                  "absolute -top-1 right-0 z-[2] group-focus-within/kanban-block:block has-[[aria-expanded=true]]:block",
+                  { "hidden group-hover/kanban-block:block": !isMobile }
+                )}
+              >
+                {actions(
+                  cardRef,
+                  <div className="flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-secondary hover:bg-layer-1 in-[[aria-expanded=true]]:bg-layer-1 in-[[aria-expanded=true]]:text-primary">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="line-clamp-1 w-full text-body-sm-medium text-primary">
+              <span>{name}</span>
+            </div>
+            <div className="relative z-[2] flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary">
+              {properties}
+            </div>
+          </RenderIfVisible>
         </div>
       </div>
-
-      <Tooltip tooltipContent={issue.name} isMobile={isMobile} renderByDefault={false}>
-        <div className="line-clamp-1 w-full text-body-sm-medium text-primary">
-          <span>{issue.name}</span>
-        </div>
-      </Tooltip>
-
-      <IssueProperties
-        className="flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary"
-        issue={issue}
-        displayProperties={displayProperties}
-        activeLayout="Kanban"
-        updateIssue={updateIssue}
-        isReadOnly={isReadOnly}
-        isEpic={isEpic}
-      />
     </>
   );
-});
+}
 
 export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueBlockProps) {
   const {
@@ -156,7 +177,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
     isEpic = false,
   } = props;
 
-  const cardRef = useRef<HTMLAnchorElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   // router
   const { workspaceSlug: routerWorkspaceSlug } = useParams();
   const workspaceSlug = routerWorkspaceSlug?.toString();
@@ -238,58 +259,55 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
   if (!issue) return null;
 
   return (
-    <>
-      <DropIndicator isVisible={!isCurrentBlockDragging && isDraggingOverBlock} />
-      <div
-        id={`issue-${issueId}`}
-        // make Z-index higher at the beginning of drag, to have a issue drag image of issue block without any overlaps
-        className={cn("group/kanban-block relative mb-2", { "z-[1]": isCurrentBlockDragging })}
-        onDragStart={() => {
-          if (isDragAllowed) setIsCurrentBlockDragging(true);
-          else {
-            setToast({
-              type: TOAST_TYPE.WARNING,
-              title: "Cannot move work item",
-              message: !canEditIssueProperties
-                ? "You are not allowed to move this work item"
-                : "Drag and drop is disabled for the current grouping",
-            });
-          }
-        }}
-      >
-        <ControlLink
-          id={getIssueBlockId(issueId, groupId, subGroupId)}
-          href={workItemLink}
-          ref={cardRef}
-          className={cn(
-            "block w-full rounded-lg border border-subtle bg-layer-2 p-3 text-13 shadow-raised-100 outline-[0.5px] outline-transparent transition-all hover:border-strong hover:shadow-raised-200",
-            { "hover:cursor-pointer": isDragAllowed },
-            { "border border-accent-strong hover:border-accent-strong": getIsIssuePeeked(issue.id) },
-            { "z-[100] bg-layer-1": isCurrentBlockDragging }
-          )}
-          onClick={() => handleIssuePeekOverview(issue)}
-          disabled={!!issue?.tempId}
-        >
-          <RenderIfVisible
-            classNames="space-y-2"
-            root={scrollableContainerRef}
-            defaultHeight="100px"
-            horizontalOffset={100}
-            verticalOffset={200}
-            defaultValue={shouldRenderByDefault}
-          >
-            <KanbanIssueDetailsBlock
-              cardRef={cardRef}
-              issue={issue}
-              displayProperties={displayProperties}
-              updateIssue={updateIssue}
-              quickActions={quickActions}
-              isReadOnly={!canEditIssueProperties}
-              isEpic={isEpic}
-            />
-          </RenderIfVisible>
-        </ControlLink>
-      </div>
-    </>
+    <KanbanIssueBlockView
+      issueId={issueId}
+      blockId={getIssueBlockId(issueId, groupId, subGroupId)}
+      href={workItemLink}
+      name={issue.name}
+      onOpen={() => handleIssuePeekOverview(issue)}
+      cardRef={cardRef}
+      onDragStart={() => {
+        if (isDragAllowed) setIsCurrentBlockDragging(true);
+        else {
+          setToast({
+            type: TOAST_TYPE.WARNING,
+            title: "Cannot move work item",
+            message: !canEditIssueProperties
+              ? "You are not allowed to move this work item"
+              : "Drag and drop is disabled for the current grouping",
+          });
+        }
+      }}
+      isPeeked={getIsIssuePeeked(issue.id)}
+      isDragging={isCurrentBlockDragging}
+      isDraggingOver={isDraggingOverBlock}
+      canDrag={isDragAllowed}
+      disabled={!!issue.tempId}
+      identifier={
+        issue.project_id && (
+          <IssueIdentifier
+            issueId={issue.id}
+            projectId={issue.project_id}
+            size="xs"
+            variant="tertiary"
+            displayProperties={displayProperties}
+          />
+        )
+      }
+      properties={
+        <IssueProperties
+          className="contents"
+          issue={issue}
+          displayProperties={displayProperties}
+          activeLayout="Kanban"
+          updateIssue={updateIssue}
+          isReadOnly={!canEditIssueProperties}
+          isEpic={isEpic}
+        />
+      }
+      actions={(parentRef, customActionButton) => quickActions({ issue, parentRef, customActionButton })}
+      scrollableContainerRef={scrollableContainerRef}
+      shouldRenderByDefault={shouldRenderByDefault}
+    />
   );
 });
