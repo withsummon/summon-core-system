@@ -145,6 +145,21 @@ const routes: RouteConfigEntry[] = [
           "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx"
         ),
       ]),
+      layout("./(all)/[workspaceSlug]/(projects)/summon/layout.tsx", [
+        route(":workspaceSlug/summon/clients", "./(all)/[workspaceSlug]/(projects)/summon/clients/page.tsx"),
+        route(
+          ":workspaceSlug/summon/clients/:clientId",
+          "./(all)/[workspaceSlug]/(projects)/summon/clients/[clientId]/page.tsx"
+        ),
+        route(
+          ":workspaceSlug/summon/opportunities",
+          "./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx"
+        ),
+        route(
+          ":workspaceSlug/summon/opportunities/:opportunityId",
+          "./(all)/[workspaceSlug]/(projects)/summon/opportunities/[opportunityId]/page.tsx"
+        ),
+      ]),
       // Project Features
       route(
         ":workspaceSlug/settings/projects/:projectId/features/cycles",

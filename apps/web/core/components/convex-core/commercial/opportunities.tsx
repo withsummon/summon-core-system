@@ -1,229 +1,367 @@
-import { useState } from "react";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { api } from "@summon/convex/api";
+import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
-import type { Doc, Id } from "@summon/convex/data-model";
+import type { Doc } from "@summon/convex/data-model";
+import { api } from "@summon/convex/api";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { Input } from "@plane/propel/input";
+import { Input } from "@plane/ui";
+import { PageHead } from "@/components/core/page-title";
+import {
+  OpportunityInspector,
+  initials,
+  opportunityMoney,
+} from "@/components/summon/opportunities/opportunity-inspector";
 import {
   OPPORTUNITY_STAGES,
   OPPORTUNITY_STAGE_LABEL,
   OPPORTUNITY_STAGE_TONE,
+  type TStageFilter,
+  groupByStage,
+  opportunitiesHref,
+  parseStageFilter,
+  stageCounts,
 } from "@/components/summon/opportunities/opportunity-pipeline";
+import { SummonRequestState } from "@/components/summon/request-state";
+import { memberLabel } from "@summon/convex/member-label";
 import { OpportunityForm } from "./opportunity-form";
-import { Delivery } from "./delivery";
-import { cardClass, DeleteRecord, mutationMessage, selectClass } from "./forms";
+
+const formatShortDate = (value: string | null) =>
+  value ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(new Date(value)) : null;
 
 export function Opportunities({
   workspace,
 }: {
   workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
 }) {
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.commercial.opportunities.list,
-    { workspaceId: workspace._id },
-    { initialNumItems: 50 }
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const stage = parseStageFilter(searchParams.get("stage"));
+  const query = searchParams.get("search") ?? "";
+  const requestedId = searchParams.get("opportunity");
+  const creating = searchParams.get("create") === "1";
+  const context = useQuery(api.commercial.opportunities.get, {
+    workspaceId: workspace._id,
+    opportunityId: null,
+    clientId: creating ? searchParams.get("client") : null,
+    ...(creating && stage !== "all" ? { createStage: stage } : {}),
+  });
+  const {
+    results: contributions,
+    status: countStatus,
+    loadMore: loadMoreCounts,
+  } = usePaginatedQuery(
+    api.commercial.opportunities.counts,
+    { workspaceId: workspace._id, search: query },
+    { initialNumItems: 100 }
   );
-  const [selected, setSelected] = useState<Id<"opportunities"> | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [search, setSearch] = useState("");
-  const [stage, setStage] = useState("");
-  const opportunity = useQuery(
-    api.commercial.opportunities.get,
-    selected ? { workspaceId: workspace._id, opportunityId: selected } : "skip"
-  );
-  if (selected && !opportunity) return <p role="status">Loading opportunity…</p>;
-  if (opportunity)
-    return (
-      <OpportunityDetail
-        key={opportunity._id}
-        opportunity={opportunity}
-        workspace={workspace}
-        onBack={() => setSelected(null)}
-      />
-    );
+  useEffect(() => {
+    if (countStatus === "CanLoadMore") loadMoreCounts(100);
+  }, [countStatus, loadMoreCounts]);
+  const counts = countStatus === "Exhausted" ? stageCounts(contributions) : null;
+  const total = contributions.reduce((sum, row) => sum + row.count, 0);
+  const hrefFor = (next: { stage?: TStageFilter; opportunity?: string | null; search?: string; create?: boolean }) =>
+    opportunitiesHref(workspace.slug, { stage, opportunity: requestedId, search: query, ...next });
+  if (!context) return <SummonRequestState loading />;
   return (
-    <section className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-secondary">{workspace.name}</p>
-          <h1 className="text-2xl font-semibold">Opportunities</h1>
+    <section className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 lg:p-5">
+      <PageHead title="Opportunities · Summon Core" />
+      <header className="flex flex-wrap items-center gap-3">
+        <div className="mr-auto">
+          <h1 className="text-20 font-semibold tracking-tight text-primary">Opportunities</h1>
+          <p className="mt-0.5 text-12 text-secondary tabular-nums">
+            {counts ? `${total} in pipeline · ${counts.get("won") ?? 0} won` : "Pipeline"}
+          </p>
         </div>
-        {workspace.membershipRole !== "guest" && <Button onClick={() => setCreating(true)}>Add opportunity</Button>}
+        <div role="search" className="relative w-full min-w-0 sm:w-80">
+          <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
+          <Input
+            type="search"
+            aria-label="Search opportunities"
+            value={query}
+            onChange={(event) => router.replace(hrefFor({ search: event.target.value }))}
+            placeholder="Search title, client, product"
+            className="h-10 w-full pl-9"
+          />
+        </div>
+        {context.canWrite && (
+          <Button size="xl" className="h-10" onClick={() => router.push(hrefFor({ create: true }))}>
+            <Plus className="size-4" />
+            New opportunity
+          </Button>
+        )}
       </header>
-      {workspace.membershipRole !== "guest" && creating && (
+      <StageFilter
+        stage={stage}
+        total={counts ? total : null}
+        counts={counts}
+        onSelect={(next) => router.replace(hrefFor({ stage: next }))}
+      />
+      <OpportunityDirectory
+        workspace={workspace}
+        context={context}
+        stage={stage}
+        query={query}
+        requestedId={requestedId}
+        counts={counts}
+        hrefFor={hrefFor}
+      />
+      {creating && context.canWrite && (
         <OpportunityForm
+          key={`${context.input.clientId}:${context.input.stage}`}
           workspaceId={workspace._id}
-          opportunity={null}
-          onDone={(id) => {
-            setCreating(false);
-            setSelected(id);
+          context={context}
+          onCancel={(allow) => {
+            if (allow) router.replace(hrefFor({}));
           }}
-          onCancel={() => setCreating(false)}
+          onDone={(receipt) =>
+            router.replace(opportunitiesHref(workspace.slug, { stage: "all", opportunity: receipt.id }))
+          }
         />
-      )}
-      <div className="flex flex-wrap gap-3">
-        <Input
-          aria-label="Filter loaded opportunities"
-          placeholder="Filter loaded opportunities"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <select
-          aria-label="Filter by stage"
-          className={selectClass}
-          value={stage}
-          onChange={(event) => setStage(event.target.value)}
-        >
-          <option value="">All stages</option>
-          {OPPORTUNITY_STAGES.map((value) => (
-            <option key={value} value={value}>
-              {OPPORTUNITY_STAGE_LABEL[value]}
-            </option>
-          ))}
-        </select>
-      </div>
-      {status === "LoadingFirstPage" && <p role="status">Loading opportunities…</p>}
-      <div className="space-y-3">
-        {results
-          .filter((item) => (!stage || item.stage === stage) && item.title.toLowerCase().includes(search.toLowerCase()))
-          .map((item) => (
-            <button
-              key={item._id}
-              className={`${cardClass} grid w-full gap-3 text-left sm:grid-cols-[minmax(0,1fr)_auto]`}
-              onClick={() => setSelected(item._id)}
-            >
-              <div className="min-w-0">
-                <h2 className="font-semibold break-words">{item.title}</h2>
-                <p className="text-sm mt-1 text-secondary">{item.product || "Product not set"}</p>
-                <p className="text-sm mt-2 text-secondary">
-                  Value: {item.value ?? "Not set"} · Probability: {item.probability}%
-                </p>
-              </div>
-              <span className={`text-xs self-start rounded-full px-3 py-1 ${OPPORTUNITY_STAGE_TONE[item.stage].chip}`}>
-                {OPPORTUNITY_STAGE_LABEL[item.stage]}
-              </span>
-            </button>
-          ))}
-      </div>
-      {status === "Exhausted" && !results.length && <p className="text-sm text-secondary">No opportunities yet.</p>}
-      {status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => loadMore(50)}>
-          Load more opportunities
-        </Button>
       )}
     </section>
   );
 }
-function OpportunityDetail({
-  opportunity,
+
+function OpportunityDirectory({
   workspace,
-  onBack,
+  context,
+  stage,
+  query,
+  requestedId,
+  counts,
+  hrefFor,
 }: {
-  opportunity: Doc<"opportunities">;
   workspace: FunctionReturnType<typeof api.workspaces.index.list>[number];
-  onBack: () => void;
+  context: FunctionReturnType<typeof api.commercial.opportunities.get>;
+  stage: TStageFilter;
+  query: string;
+  requestedId: string | null;
+  counts: ReturnType<typeof stageCounts> | null;
+  hrefFor: (next: Parameters<typeof opportunitiesHref>[1]) => string;
 }) {
-  const [editing, setEditing] = useState(false);
-  const remove = useMutation(api.commercial.opportunities.remove);
-  const canWrite = workspace.membershipRole !== "guest";
+  const router = useRouter();
+  const directory = usePaginatedQuery(
+    api.commercial.opportunities.list,
+    {
+      workspaceId: workspace._id,
+      search: query,
+      stage: stage === "all" ? null : stage,
+    },
+    { initialNumItems: 20 }
+  );
+  const groups = groupByStage(directory.results);
+  const selected = groups[0]?.items[0];
+  const explicit = Boolean(requestedId);
+  const detailId = requestedId || selected?._id;
+  const detail = useQuery(
+    api.commercial.opportunities.get,
+    detailId ? { workspaceId: workspace._id, opportunityId: detailId, clientId: null } : "skip"
+  );
   return (
-    <article className="space-y-5">
-      <Button variant="secondary" onClick={onBack}>
-        Back to opportunities
-      </Button>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{opportunity.title}</h1>
-          <p className="text-sm mt-1 text-secondary">{opportunity.product}</p>
-        </div>
-        {canWrite && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              Edit opportunity
-            </Button>
-            <DeleteRecord
-              label="opportunity"
-              onDelete={async () => {
-                await remove({ workspaceId: workspace._id, opportunityId: opportunity._id });
-                onBack();
-              }}
-            />
+    <div className="@container">
+      <div className="grid overflow-hidden rounded-2xl bg-surface-1 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_-12px_rgba(15,23,42,0.12)] ring-1 ring-subtle @3xl:h-[calc(100dvh-15.5rem)] @3xl:min-h-[34rem] @3xl:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] @5xl:grid-cols-[23rem_minmax(0,1fr)]">
+        <div
+          className={`min-h-0 flex-col border-subtle @3xl:flex @3xl:border-r ${explicit ? "hidden" : "flex"}`}
+          aria-label="Opportunity results"
+          role="region"
+        >
+          {directory.status === "LoadingFirstPage" && (
+            <div className="p-4">
+              <SummonRequestState loading />
+            </div>
+          )}
+          {directory.status === "Exhausted" && directory.results.length === 0 && (
+            <div className="grid gap-3 p-6 text-center">
+              <p className="text-13 font-medium text-primary">No opportunities match</p>
+              <p className="text-12 text-secondary">{query ? `Nothing matches “${query}”` : "This stage is empty"}.</p>
+              <Button
+                size="xl"
+                variant="secondary"
+                onClick={() => router.replace(hrefFor({ stage: "all", search: "", opportunity: null }))}
+              >
+                Clear filters
+              </Button>
+            </div>
+          )}
+          <div className="vertical-scrollbar min-h-0 flex-1 overflow-y-auto">
+            {groups.map((group) => (
+              <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
+                <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-11 font-semibold text-secondary backdrop-blur">
+                  <span aria-hidden className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`} />
+                  {OPPORTUNITY_STAGE_LABEL[group.stage]}
+                  <span className="font-normal text-tertiary tabular-nums">{counts?.get(group.stage) ?? "—"}</span>
+                </h2>
+                <ul>
+                  {group.items.map((opportunity) => (
+                    <OpportunityRow
+                      key={opportunity._id}
+                      opportunity={opportunity}
+                      clientName={opportunity.clientName}
+                      href={hrefFor({ opportunity: opportunity._id })}
+                      selected={detailId === opportunity._id}
+                      currency={context.currency}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))}
+            {directory.status === "CanLoadMore" && (
+              <Button className="m-4" variant="secondary" onClick={() => directory.loadMore(20)}>
+                Load more opportunities
+              </Button>
+            )}
+            {directory.status === "LoadingMore" && (
+              <p role="status" className="p-4 text-12 text-secondary">
+                Loading opportunities…
+              </p>
+            )}
           </div>
-        )}
-      </header>
-      {canWrite && editing && (
-        <OpportunityForm
-          workspaceId={workspace._id}
-          opportunity={opportunity}
-          onDone={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-        />
-      )}
-      <StageControl opportunity={opportunity} canWrite={canWrite} />
-      <dl className={`${cardClass} grid gap-4 sm:grid-cols-3`}>
-        <div>
-          <dt className="text-xs text-secondary">Value</dt>
-          <dd className="mt-1 font-medium break-all">{opportunity.value ?? "Not set"}</dd>
         </div>
-        <div>
-          <dt className="text-xs text-secondary">Probability</dt>
-          <dd className="mt-1 font-medium">{opportunity.probability}%</dd>
+        <div
+          className={`vertical-scrollbar min-h-0 overflow-y-auto bg-layer-1/25 p-4 lg:p-5 @3xl:block ${explicit ? "block" : "hidden"}`}
+        >
+          {detail ? (
+            <OpportunityInspector
+              key={detail.record?._id}
+              workspace={workspace}
+              context={detail}
+              backHref={hrefFor({ opportunity: null })}
+              backClassName="@3xl:hidden"
+            />
+          ) : (
+            <SummonRequestState
+              loading={Boolean(detailId)}
+              empty={!detailId}
+              emptyMessage="No opportunity to show for these filters."
+            />
+          )}
         </div>
-        <div>
-          <dt className="text-xs text-secondary">Expected close</dt>
-          <dd className="mt-1 font-medium">{opportunity.expectedCloseDate ?? "Not set"}</dd>
-        </div>
-      </dl>
-      <section className={cardClass}>
-        <h2 className="font-semibold">Description</h2>
-        <p className="text-sm mt-3 break-words whitespace-pre-wrap text-secondary">
-          {opportunity.description || "No description yet."}
-        </p>
-        <p className="text-xs mt-3 text-secondary">Source: {opportunity.source || "Not set"}</p>
-      </section>
-      <Delivery opportunity={opportunity} workspace={workspace} />
-    </article>
+      </div>
+    </div>
   );
 }
-function StageControl({ opportunity, canWrite }: { opportunity: Doc<"opportunities">; canWrite: boolean }) {
-  const transition = useMutation(api.commercial.opportunities.transition);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+
+function StageFilter(props: {
+  stage: TStageFilter;
+  total: number | null;
+  counts: Map<Doc<"opportunities">["stage"], number> | null;
+  onSelect: (stage: TStageFilter) => void;
+}) {
+  const { stage, total, counts } = props;
   return (
-    <div className="space-y-2">
-      <label className="text-sm flex max-w-xs flex-col gap-2">
-        Stage
-        <select
-          className={selectClass}
-          value={opportunity.stage}
-          disabled={!canWrite || pending}
-          onChange={async (event) => {
-            const stage = OPPORTUNITY_STAGES.find((value) => value === event.target.value);
-            if (!stage) return;
-            setPending(true);
-            setError("");
-            try {
-              await transition({ workspaceId: opportunity.workspaceId, opportunityId: opportunity._id, stage });
-            } catch (failure) {
-              setError(mutationMessage(failure));
-            } finally {
-              setPending(false);
-            }
-          }}
-        >
-          {OPPORTUNITY_STAGES.map((value) => (
-            <option key={value} value={value}>
-              {OPPORTUNITY_STAGE_LABEL[value]}
-            </option>
-          ))}
-        </select>
-      </label>
-      {error && (
-        <p role="alert" className="text-sm text-danger-primary">
-          {error}
-        </p>
-      )}
+    <div className="grid gap-2">
+      <div
+        role="group"
+        aria-label="Filter by stage"
+        className="-mx-1 scrollbar-hide flex gap-1 overflow-x-auto px-1 py-0.5"
+      >
+        <FilterChip active={stage === "all"} onClick={() => props.onSelect("all")} label="All" count={total} />
+        {OPPORTUNITY_STAGES.map((item) => (
+          <FilterChip
+            key={item}
+            active={stage === item}
+            onClick={() => props.onSelect(item)}
+            label={OPPORTUNITY_STAGE_LABEL[item]}
+            count={counts?.get(item) ?? null}
+            dot={OPPORTUNITY_STAGE_TONE[item].dot}
+          />
+        ))}
+      </div>
+      {total ? (
+        <div aria-hidden className="flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-layer-2">
+          {OPPORTUNITY_STAGES.map((item) =>
+            counts?.get(item) ? (
+              <span
+                key={item}
+                className={`h-full transition-[flex-grow,opacity] duration-300 motion-reduce:transition-none ${OPPORTUNITY_STAGE_TONE[item].bar} ${stage === "all" || stage === item ? "opacity-100" : "opacity-30"}`}
+                style={{ flexGrow: counts?.get(item) }}
+              />
+            ) : null
+          )}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function FilterChip(props: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number | null;
+  dot?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={props.active}
+      onClick={props.onClick}
+      className={`inline-flex h-10 flex-none items-center gap-2 rounded-lg px-3 text-12 font-medium transition-[background-color,color,scale] duration-150 focus-visible:outline-2 focus-visible:outline-accent-strong active:scale-[0.96] motion-reduce:transition-none ${props.active ? "bg-layer-3 text-primary ring-1 ring-strong" : "text-secondary hover:bg-layer-2 hover:text-primary"}`}
+    >
+      {props.dot ? <span aria-hidden className={`size-2 rounded-full ${props.dot}`} /> : null}
+      {props.label}
+      <span className={`tabular-nums ${props.active ? "text-secondary" : "text-tertiary"}`}>{props.count ?? "—"}</span>
+    </button>
+  );
+}
+
+function OpportunityRow(props: {
+  opportunity: FunctionReturnType<typeof api.commercial.opportunities.list>["page"][number];
+  clientName?: string;
+  href: string;
+  selected: boolean;
+  currency: string;
+}) {
+  const { opportunity } = props;
+  const owner = opportunity.owner ? memberLabel(opportunity.owner) : undefined;
+  const closeDate = formatShortDate(opportunity.expectedCloseDate);
+  return (
+    <li className="border-b border-subtle last:border-b-0">
+      <Link
+        href={props.href}
+        scroll={false}
+        aria-current={props.selected ? "true" : undefined}
+        className={`group relative flex gap-3 px-4 py-3 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none ${props.selected ? "bg-accent-subtle/60" : "hover:bg-layer-1"}`}
+      >
+        {props.selected ? (
+          <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-primary" />
+        ) : null}
+        <span
+          aria-hidden
+          className={`mt-1.5 size-2 flex-none rounded-full ${OPPORTUNITY_STAGE_TONE[opportunity.stage].dot}`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 text-13 leading-snug font-medium text-primary">{opportunity.title}</span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-12 text-secondary">
+            <span className="truncate">{props.clientName || "No client"}</span>
+            {closeDate ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="whitespace-nowrap">Close {closeDate}</span>
+              </>
+            ) : null}
+          </span>
+        </span>
+        <span className="flex flex-none flex-col items-end gap-1.5">
+          <span className="text-12 font-medium text-primary tabular-nums">
+            {opportunity.value === null ? "—" : opportunityMoney(props.currency, opportunity.value)}
+          </span>
+          <span className="flex items-center gap-1.5 text-11 text-secondary tabular-nums">
+            {opportunity.probability}%
+            <span
+              title={owner || "No owner"}
+              className="grid size-5 place-items-center rounded-full bg-layer-3 text-9 font-semibold text-secondary"
+            >
+              {owner ? initials(owner) : "–"}
+              <span className="sr-only">Owner: {owner || "not assigned"}</span>
+            </span>
+          </span>
+        </span>
+      </Link>
+    </li>
   );
 }

@@ -318,6 +318,7 @@ export const taskTables = {
     status: taskStatus,
   })
     .index("by_task", ["taskId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_workspace_actor", ["workspaceId", "actorId"]),
   taskStates: defineTable({
     ...stateFields,

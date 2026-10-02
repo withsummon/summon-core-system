@@ -11,7 +11,7 @@ import { CloseIcon } from "../icons/actions/close-icon";
 import { cn } from "../utils/classname";
 
 /** Dates travel as local calendar days in `YYYY-MM-DD`, the same format a native date input submits. */
-const toDate = (value: string) => {
+const toDate = (value = "") => {
   const [year, month, day] = value.split("-").map(Number);
   return year && month && day ? new Date(year, month - 1, day) : undefined;
 };
@@ -55,12 +55,14 @@ export const DatePicker = memo(function DatePicker({
 }: DatePickerProps) {
   const [uncontrolled, setUncontrolled] = useState(defaultValue);
   const [open, setOpen] = useState(false);
+  if (disabled && open) setOpen(false);
   const value = controlled ?? uncontrolled;
-  const selected = value ? toDate(value) : undefined;
-  const minDate = min ? toDate(min) : undefined;
-  const maxDate = max ? toDate(max) : undefined;
+  const selected = toDate(value);
+  const minDate = toDate(min);
+  const maxDate = toDate(max);
 
   const commit = (next: string) => {
+    if (disabled) return;
     if (controlled === undefined) setUncontrolled(next);
     onValueChange?.(next);
   };
@@ -116,7 +118,9 @@ export const DatePicker = memo(function DatePicker({
                 commit(date ? toValue(date) : "");
                 setOpen(false);
               }}
-              disabled={[...(minDate ? [{ before: minDate }] : []), ...(maxDate ? [{ after: maxDate }] : [])]}
+              disabled={
+                disabled || [...(minDate ? [{ before: minDate }] : []), ...(maxDate ? [{ after: maxDate }] : [])]
+              }
             />
           </BasePopover.Popup>
         </BasePopover.Positioner>

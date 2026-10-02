@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { api } from "@summon/convex/api";
 import type { Doc } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
@@ -20,18 +20,25 @@ export function Delivery({
     workspaceId: workspace._id,
     opportunityId: opportunity._id,
   });
-  const [, setParams] = useSearchParams();
+  const navigate = useNavigate();
   if (linked === undefined) return <p role="status">Loading delivery…</p>;
-  if (linked)
+  if (linked?.project)
     return (
       <section className={cardClass}>
         <h2 className="font-semibold">Delivery project</h2>
         <p className="text-sm my-3">
           {linked.project.identifier} · {linked.project.name}
         </p>
-        <Button onClick={() => setParams({ workspace: workspace.slug, project: linked.project.identifier })}>
+        <Button onClick={() => navigate(`/${workspace.slug}/projects/${linked.project._id}/issues/`)}>
           Open delivery project
         </Button>
+      </section>
+    );
+  if (linked)
+    return (
+      <section className={cardClass}>
+        <h2 className="font-semibold">Delivery project</h2>
+        <p className="text-sm mt-2 text-secondary">A project is linked but is unavailable to you.</p>
       </section>
     );
   if (opportunity.stage !== "won")

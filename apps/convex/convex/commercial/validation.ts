@@ -20,12 +20,21 @@ export function date(value: string | null) {
   return parsed.data;
 }
 // Decimal(18,2) stays a decimal string across storage and the public API. No Number conversion.
+const decimal = z
+  .string()
+  .regex(/^-?\d{1,16}(\.\d{1,2})?$/)
+  .transform((value) => {
+    const [integer, fraction = ""] = value.split(".");
+    const normalized = BigInt(integer).toString();
+    return `${normalized === "0" && value.startsWith("-") ? "-0" : normalized}.${fraction.padEnd(2, "0")}`;
+  })
+  .pipe(z.templateLiteral([z.number()]))
+  .nullable();
 export function money(value: string | null) {
-  if (value === null) return null;
-  if (!/^-?\d{1,16}(\.\d{1,2})?$/.test(value))
+  const result = decimal.safeParse(value);
+  if (!result.success)
     throw new ConvexError("Enter a decimal amount with at most 16 integer digits and two decimal places.");
-  const [integer, fraction = ""] = value.split(".");
-  return `${BigInt(integer).toString() === "0" && value.startsWith("-") ? "-0" : BigInt(integer).toString()}.${fraction.padEnd(2, "0")}`;
+  return result.data;
 }
 export function probability(value: number) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 100)
