@@ -1,17 +1,34 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { z } from "zod/v4";
+import { zodToConvexFields } from "convex-helpers/server/zod4";
 import { contextFields, citation } from "../../assistant/schema";
-export const resultFields = {
-  summary: v.string(),
-  decisions: v.array(v.string()),
-  action_suggestions: v.array(v.object({ title: v.string(), details: v.string() })),
-  discussion_topics: v.array(v.object({ topic: v.string(), details: v.array(v.string()) })),
-  todos_by_party: v.array(
-    v.object({ party: v.string(), items: v.array(v.object({ task: v.string(), notes: v.string() })) })
-  ),
-  open_items: v.array(v.string()),
-  next_actions: v.array(v.object({ action: v.string(), owner: v.string(), due_date: v.string() })),
+export const sourceArgs = { workspaceId: v.id("workspaces"), meetingId: v.id("meetings") };
+export const versionFields = {
+  expectedMeetingUpdatedAt: v.number(),
+  expectedTranscriptRevision: v.union(v.number(), v.null()),
+  expectedDocumentRevision: v.union(v.number(), v.null()),
+  expectedDocumentUpdatedAt: v.union(v.number(), v.null()),
 };
+const text = z.string().trim();
+const requiredText = text.min(1);
+export const resultSchema = z.strictObject({
+  summary: requiredText,
+  decisions: z.array(requiredText).max(200),
+  action_suggestions: z.array(z.strictObject({ title: requiredText, details: text })).max(200),
+  discussion_topics: z.array(z.strictObject({ topic: requiredText, details: z.array(requiredText).max(200) })).max(200),
+  todos_by_party: z
+    .array(
+      z.strictObject({
+        party: requiredText,
+        items: z.array(z.strictObject({ task: requiredText, notes: text })).max(200),
+      })
+    )
+    .max(200),
+  open_items: z.array(requiredText).max(200),
+  next_actions: z.array(z.strictObject({ action: requiredText, owner: text, due_date: text })).max(200),
+});
+export const resultFields = zodToConvexFields(resultSchema.shape);
 export const summaryTables = {
   meetingTranscripts: defineTable({
     meetingId: v.id("meetings"),
@@ -40,5 +57,6 @@ export const summaryTables = {
     documentId: v.id("documents"),
   })
     .index("by_request", ["requesterId", "requestId"])
-    .index("by_meeting", ["meetingId"]),
+    .index("by_meeting", ["meetingId"])
+    .index("by_meeting_status_requester", ["meetingId", "status", "requesterId"]),
 };

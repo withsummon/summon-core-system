@@ -6,20 +6,15 @@
 
 import type { HTMLAttributes, ReactNode } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { observer } from "mobx-react";
 import { PageHead } from "@/components/core/page-title";
-import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 
-export const SummonScreen = observer(function SummonScreen(props: {
+export function SummonScreen(props: {
   title: string;
   description: string;
   actions?: ReactNode;
   children: ReactNode;
   rail?: ReactNode;
 }) {
-  const { sidebarCollapsed } = useAppTheme();
-
   return (
     <>
       <PageHead title={`${props.title} · Summon Core`} />
@@ -27,7 +22,6 @@ export const SummonScreen = observer(function SummonScreen(props: {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_30%_0%,rgba(54,107,255,0.08),transparent_64%)]" />
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            {sidebarCollapsed && <AppSidebarToggleButton />}
             <div>
               <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-accent-primary uppercase">
                 <Sparkles className="size-3.5" />
@@ -50,7 +44,7 @@ export const SummonScreen = observer(function SummonScreen(props: {
       </section>
     </>
   );
-});
+}
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
   return (

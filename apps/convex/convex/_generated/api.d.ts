@@ -16,6 +16,7 @@ import type * as assets_draftAttachments from "../assets/draftAttachments.js";
 import type * as assets_draft_access from "../assets/draft_access.js";
 import type * as assets_http from "../assets/http.js";
 import type * as assets_index from "../assets/index.js";
+import type * as assets_meetingRecordings from "../assets/meetingRecordings.js";
 import type * as assets_taskAttachments from "../assets/taskAttachments.js";
 import type * as assets_task_access from "../assets/task_access.js";
 import type * as assets_upload from "../assets/upload.js";
@@ -145,6 +146,8 @@ import type * as meetings_summary_transcriptActions from "../meetings/summary/tr
 import type * as meetings_summary_transcripts from "../meetings/summary/transcripts.js";
 import type * as meetings_summary_validation from "../meetings/summary/validation.js";
 import type * as meetings_tasks from "../meetings/tasks.js";
+import type * as meetings_transcription_provider from "../meetings/transcription/provider.js";
+import type * as meetings_transcription_runs from "../meetings/transcription/runs.js";
 import type * as modules_access from "../modules/access.js";
 import type * as modules_index from "../modules/index.js";
 import type * as modules_links from "../modules/links.js";
@@ -264,6 +267,7 @@ declare const fullApi: ApiFromModules<{
   "assets/draft_access": typeof assets_draft_access;
   "assets/http": typeof assets_http;
   "assets/index": typeof assets_index;
+  "assets/meetingRecordings": typeof assets_meetingRecordings;
   "assets/taskAttachments": typeof assets_taskAttachments;
   "assets/task_access": typeof assets_task_access;
   "assets/upload": typeof assets_upload;
@@ -393,6 +397,8 @@ declare const fullApi: ApiFromModules<{
   "meetings/summary/transcripts": typeof meetings_summary_transcripts;
   "meetings/summary/validation": typeof meetings_summary_validation;
   "meetings/tasks": typeof meetings_tasks;
+  "meetings/transcription/provider": typeof meetings_transcription_provider;
+  "meetings/transcription/runs": typeof meetings_transcription_runs;
   "modules/access": typeof modules_access;
   "modules/index": typeof modules_index;
   "modules/links": typeof modules_links;

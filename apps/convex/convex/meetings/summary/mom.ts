@@ -1,53 +1,9 @@
-import type { Infer } from "convex/values";
-import { v as validator } from "convex/values";
-import { resultFields } from "./schema";
-const summaryValidator = validator.object(resultFields);
-export type MeetingSummary = Infer<typeof summaryValidator>;
-function record(value: unknown, keys: string[]): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Invalid summary object");
-  const entries = Object.entries(value);
-  if (entries.length !== keys.length || entries.some(([key]) => !keys.includes(key)))
-    throw new Error("Invalid summary fields");
-  return Object.fromEntries(entries);
-}
-function string(value: unknown, required = false): string {
-  if (typeof value !== "string" || (required && !value.trim())) throw new Error("Invalid summary text");
-  return value.trim();
-}
-function list<T>(value: unknown, read: (value: unknown) => T): T[] {
-  if (!Array.isArray(value) || value.length > 200) throw new Error("Invalid summary list");
-  return value.map(read);
-}
+import type { z } from "zod/v4";
+import { resultSchema } from "./schema";
+export type MeetingSummary = z.infer<typeof resultSchema>;
 export function parseMom(text: string): MeetingSummary {
   if (text.length > 60000) throw new Error("Summary is too large");
-  const data = record(JSON.parse(text), Object.keys(resultFields));
-  return {
-    summary: string(data.summary, true),
-    decisions: list(data.decisions, (v) => string(v, true)),
-    action_suggestions: list(data.action_suggestions, (v) => {
-      const row = record(v, ["title", "details"]);
-      return { title: string(row.title, true), details: string(row.details) };
-    }),
-    discussion_topics: list(data.discussion_topics, (v) => {
-      const row = record(v, ["topic", "details"]);
-      return { topic: string(row.topic, true), details: list(row.details, (detail) => string(detail, true)) };
-    }),
-    todos_by_party: list(data.todos_by_party, (v) => {
-      const row = record(v, ["party", "items"]);
-      return {
-        party: string(row.party, true),
-        items: list(row.items, (entry) => {
-          const item = record(entry, ["task", "notes"]);
-          return { task: string(item.task, true), notes: string(item.notes) };
-        }),
-      };
-    }),
-    open_items: list(data.open_items, (v) => string(v, true)),
-    next_actions: list(data.next_actions, (v) => {
-      const row = record(v, ["action", "owner", "due_date"]);
-      return { action: string(row.action, true), owner: string(row.owner), due_date: string(row.due_date) };
-    }),
-  };
+  return resultSchema.parse(JSON.parse(text));
 }
 const cell = (value: string) => value.replaceAll("|", "\\|").replaceAll("\n", " ");
 const time = (value: number) =>

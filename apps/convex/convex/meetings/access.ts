@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
-import { requireProject, requireWorkspace } from "../identity/access";
+import type { Doc, Id } from "../_generated/dataModel";
+import { requireProjectForUser, requireWorkspaceForUser, requireUser } from "../identity/access";
 export async function canReadMeetingProject(ctx: QueryCtx, projectId: Id<"projects"> | null, userId: Id<"users">) {
   if (!projectId) return true;
   const project = await ctx.db.get(projectId);
@@ -20,10 +20,19 @@ export async function requireMeeting(
   meetingId: Id<"meetings">,
   write = false
 ) {
-  const access = await requireWorkspace(ctx, workspaceId, write);
+  return requireMeetingForUser(ctx, workspaceId, meetingId, await requireUser(ctx), write);
+}
+export async function requireMeetingForUser(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  meetingId: Id<"meetings">,
+  user: Doc<"users">,
+  write = false
+) {
+  const access = await requireWorkspaceForUser(ctx, workspaceId, user, write);
   const meeting = await ctx.db.get(meetingId);
   if (!meeting || meeting.deleted || meeting.workspaceId !== workspaceId)
     throw new ConvexError("Meeting not found in this workspace.");
-  const projectAccess = meeting.projectId ? await requireProject(ctx, meeting.projectId, write) : null;
+  const projectAccess = meeting.projectId ? await requireProjectForUser(ctx, meeting.projectId, user, write) : null;
   return { ...access, meeting, projectMember: projectAccess?.projectMember ?? null };
 }

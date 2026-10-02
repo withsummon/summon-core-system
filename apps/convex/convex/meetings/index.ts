@@ -4,12 +4,14 @@ import { stream } from "convex-helpers/server/stream";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
+import { taskIsReadable, taskCanRead } from "../tasks/access";
 import { requireProject, requireWorkspace } from "../identity/access";
 import { requireDocument } from "../documents/access";
 import { text, pageBudget } from "../commercial/validation";
 import { meetingFields } from "./schema";
 import { requireMeeting, canReadMeetingProject } from "./access";
 import schema from "../schema";
+import { internal } from "../_generated/api";
 
 async function validateMeeting(
   ctx: MutationCtx,
@@ -98,6 +100,7 @@ export const save = mutation({
       : null;
     const data = await validateMeeting(ctx, args.workspaceId, args.data, existing);
     if (existing && existing.projectId !== data.projectId) {
+      if (existing.recordingAssetId) throw new ConvexError("Remove the recording before changing its project.");
       const linked = await ctx.db
         .query("meetingTasks")
         .withIndex("by_meeting_task", (q) => q.eq("meetingId", existing._id))
@@ -170,10 +173,67 @@ export const remove = mutation({
   args: { workspaceId: v.id("workspaces"), meetingId: v.id("meetings") },
   handler: async (ctx, args) => {
     const { user, meeting } = await requireMeeting(ctx, args.workspaceId, args.meetingId, true);
+    const run = await ctx.db
+      .query("meetingTranscriptionRuns")
+      .withIndex("by_meeting", (q) => q.eq("input.meetingId", meeting._id))
+      .order("desc")
+      .first();
+    if (run && (run.status === "queued" || run.status === "running")) {
+      await ctx.db.patch(run._id, { status: "cancelled", error: "meeting_removed" });
+      await ctx.scheduler.runAfter(0, internal.meetings.transcription.provider.cancel, { runId: run._id });
+    }
+    if (meeting.recordingAssetId)
+      await ctx.db.patch(meeting.recordingAssetId, { status: "deleted", expiresAt: Date.now() + 7 * 86400000 });
     await ctx.db.patch(args.meetingId, {
       deleted: true,
       updatedAt: Math.max(Date.now(), meeting.updatedAt + 1),
       updatedBy: user._id,
     });
+  },
+});
+
+// Full directory metrics are complete only after both authorized contribution streams finish.
+export const counts = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    kind: v.union(v.literal("meetings"), v.literal("tasks")),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    if (args.kind === "meetings")
+      return stream(ctx.db, schema)
+        .query("meetings")
+        .withIndex("by_workspace_start", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
+        .filterWith((meeting) => canReadMeetingProject(ctx, meeting.projectId, user._id))
+        .map(async (meeting) => ({
+          meetingId: meeting._id,
+          total: 1,
+          scheduled: Number(meeting.status === "scheduled"),
+          actionItems: 0,
+        }))
+        .paginate(pageBudget(args.paginationOpts));
+    return stream(ctx.db, schema)
+      .query("meetingTasks")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .filterWith(async (link) => {
+        const meeting = await ctx.db.get(link.meetingId);
+        if (
+          !meeting ||
+          meeting.deleted ||
+          meeting.workspaceId !== args.workspaceId ||
+          !(await canReadMeetingProject(ctx, meeting.projectId, user._id))
+        )
+          return false;
+        const task = await ctx.db.get(link.taskId);
+        return Boolean(
+          task &&
+          taskIsReadable(task) &&
+          (await canReadMeetingProject(ctx, task.projectId, user._id)) &&
+          (await taskCanRead(ctx, task, user._id))
+        );
+      })
+      .map(async (link) => ({ meetingId: link.meetingId, total: 0, scheduled: 0, actionItems: 1 }))
+      .paginate(pageBudget(args.paginationOpts));
   },
 });

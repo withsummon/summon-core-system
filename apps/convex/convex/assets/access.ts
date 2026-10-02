@@ -9,6 +9,8 @@ import { requireWorkspace, requireProject } from "../identity/access";
 import { requireConversation } from "../assistant/access";
 import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
+import { requireMeeting } from "../meetings/access";
+import { recordingReadMaxBytes } from "./content";
 
 async function requireProjectCoverScope(
   ctx: QueryCtx,
@@ -53,10 +55,12 @@ export async function requireAssetScope(
     | "documentCopyId"
     | "purpose"
     | "avatarUserId"
+    | "meetingId"
   > & { _id?: Id<"assets"> },
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
+  if (scope.meetingId) return requireMeetingRecordingScope(ctx, scope, scope.meetingId, write);
   if (scope.purpose === "userAvatar" || scope.purpose === "userCover")
     return requirePersonalImageScope(ctx, scope, write, readWorkspaceId);
   if (scope.workspaceId === null || scope.avatarUserId !== undefined)
@@ -95,6 +99,29 @@ export async function requireAssetScope(
   }
   return access;
 }
+async function requireMeetingRecordingScope(
+  ctx: QueryCtx,
+  scope: Parameters<typeof requireAssetScope>[1],
+  meetingId: Id<"meetings">,
+  write: boolean
+) {
+  if (
+    scope.workspaceId === null ||
+    [
+      scope.purpose,
+      scope.avatarUserId,
+      scope.documentId,
+      scope.taskId,
+      scope.draftId,
+      scope.conversationId,
+      scope.documentCopyId,
+    ].some(Boolean)
+  )
+    throw new ConvexError("Meeting recordings cannot have another scope.");
+  const access = await requireMeeting(ctx, scope.workspaceId, meetingId, write);
+  if (access.meeting.projectId !== scope.projectId) throw new ConvexError("Meeting recording scope mismatch.");
+  return access;
+}
 export async function requireAsset(
   ctx: QueryCtx,
   assetId: Id<"assets">,
@@ -117,8 +144,10 @@ export function descriptor(asset: Doc<"assets">) {
     documentId: asset.documentId,
     taskId: asset.taskId ?? null,
     draftId: asset.draftId ?? null,
+    meetingId: asset.meetingId ?? null,
     createdBy: asset.createdBy,
     downloadPath: `/assets/${asset._id}`,
+    downloadChunkBytes: asset.meetingId ? recordingReadMaxBytes : null,
   };
 }
 

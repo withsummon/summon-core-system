@@ -32,6 +32,18 @@ export const sweep = internalMutation({
             .query("assets")
             .withIndex("by_storage", (q) => q.eq("storageId", blob._id))
             .unique();
+          if (asset?.meetingId && asset.status === "ready") {
+            const meeting = await ctx.db.get(asset.meetingId);
+            if (
+              !meeting ||
+              meeting.deleted ||
+              (meeting.recordingAssetId !== asset._id && asset.expiresAt <= Date.now())
+            ) {
+              await ctx.storage.delete(blob._id);
+              await ctx.db.patch(asset._id, { status: "expired", storageId: null });
+            }
+            return;
+          }
           if (!asset || (asset.status !== "ready" && !(asset.status === "deleted" && asset.expiresAt > Date.now())))
             await ctx.storage.delete(blob._id);
         })

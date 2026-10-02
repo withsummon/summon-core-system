@@ -29,7 +29,7 @@ export async function prepareAsset(
     | { purpose: Infer<typeof personalImagePurpose>; avatarUserId: Id<"users">; avatarRevision: number }
 ) {
   const { user } = await requireAssetScope(ctx, { ...args, ...appearance }, true);
-  validateIntent(args.name, args.contentType, args.size, args.sha256);
+  validateIntent(args.name, args.contentType, args.size, args.sha256, args.meetingId !== undefined);
   const assetId = await ctx.db.insert("assets", {
     ...args,
     ...appearance,
@@ -47,6 +47,7 @@ export const prepare = mutation({
     if (args.draftId) throw new ConvexError("Prepare draft uploads through draft attachments.");
     if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
     if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
+    if (args.meetingId) throw new ConvexError("Prepare meeting recordings through meeting recording uploads.");
     return prepareAsset(ctx, args);
   },
 });
@@ -59,7 +60,7 @@ export const claim = internalMutation({
     const asset = await ctx.db.get(assetId);
     if (!asset || asset.createdBy !== user._id) throw new ConvexError("Upload not found.");
     await requireAssetScope(ctx, asset, true);
-    if (asset.status === "ready" && asset.storageId === storageId) return asset;
+    if (asset.status === "ready" && asset.storageId === storageId) return { ...asset, storageId };
     if (asset.status !== "pending" || asset.expiresAt <= Date.now())
       throw new ConvexError("Upload has expired or is closed.");
     if (asset.storageId && asset.storageId !== storageId) throw new ConvexError("Upload already claimed another file.");
@@ -140,6 +141,7 @@ export const remove = mutation({
     if (asset.draftId) throw new ConvexError("Remove draft files through draft attachments.");
     if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");
+    if (asset.meetingId) throw new ConvexError("Remove meeting recordings through their meeting.");
     await ctx.db.patch(assetId, { status: "deleted", expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   },
 });

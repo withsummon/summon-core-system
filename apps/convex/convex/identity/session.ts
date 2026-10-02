@@ -2,7 +2,7 @@ import { accountRestricted } from "./deactivation/access";
 import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { authComponent, createAuth } from "../better_auth";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
 export async function liveIdentity(ctx: QueryCtx) {
@@ -54,6 +54,12 @@ export async function requireIdentity(
 }
 export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
   return (await requireIdentity(ctx)).user;
+}
+// Durable jobs retain their initiating account, never a session or forged auth context.
+export async function requireAccountUser(ctx: QueryCtx, userId: Id<"users">) {
+  const user = await ctx.db.get(userId);
+  if (!user || (await accountRestricted(ctx, userId))) throw new ConvexError("Your account is unavailable.");
+  return user;
 }
 // This read remains available to a valid JWT whose backing session has been revoked.
 export const status = query({

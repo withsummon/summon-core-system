@@ -7,6 +7,7 @@ import { requireUser, requireWorkspace, requireProject } from "../identity/acces
 import { taskCanRead, taskDetail } from "../tasks/access";
 import { intakeCapabilities } from "../intakes/access";
 import { renderedProjectLogo } from "../projects/branding_schema";
+import { requireMeeting } from "../meetings/access";
 import { projectReader } from "../savedViews/scope";
 
 async function workspaceAddress(ctx: QueryCtx, workspaceSlug: string) {
@@ -120,3 +121,19 @@ async function taskAddress(ctx: QueryCtx, access: Awaited<ReturnType<typeof requ
   if (!(await taskCanRead(ctx, task, user._id))) return null;
   return { ...address, kind: "task" as const, task: await taskDetail(ctx, { ...task, status: task.status }) };
 }
+
+export const resolveMeetingId = query({
+  args: { workspaceId: v.id("workspaces"), meetingId: v.string() },
+  handler: async (ctx, args) => {
+    const meetingId = ctx.db.normalizeId("meetings", args.meetingId);
+    if (!meetingId) throw new ConvexError("Meeting not found.");
+    const { meeting, member, projectMember } = await requireMeeting(ctx, args.workspaceId, meetingId);
+    const organizer = await ctx.db.get(meeting.organizerId);
+    return {
+      meeting,
+      project: meeting.projectId ? await ctx.db.get(meeting.projectId) : null,
+      organizerName: organizer?.name ?? organizer?.email ?? null,
+      canWrite: member.role !== "guest" && projectMember?.role !== "guest",
+    };
+  },
+});
