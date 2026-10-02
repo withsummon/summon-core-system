@@ -10,10 +10,37 @@ export const finalize = action({
   handler: async (ctx, args): Promise<Id<"assets">> => {
     const asset = await ctx.runMutation(internal.assets.index.claim, args);
     if (asset.status === "ready") return asset._id;
-    const blob = await ctx.storage.get(asset.storageId!);
+    let blob: Blob | null;
+    if (asset.meetingId) {
+      const url = await ctx.storage.getUrl(asset.storageId);
+      if (!url) throw new ConvexError("Uploaded recording is missing.");
+      const response = await fetch(url, { headers: { Range: "bytes=0-11" } });
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !response.body || !contentType) {
+        await response.body?.cancel();
+        throw new ConvexError("Uploaded recording is unavailable.");
+      }
+      const reader = response.body.getReader();
+      const prefix = new Uint8Array(12);
+      let length = 0;
+      try {
+        while (length < prefix.length) {
+          // eslint-disable-next-line no-await-in-loop -- Stream chunks must be read sequentially and stop at the prefix budget.
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          const retained = chunk.value.subarray(0, prefix.length - length);
+          prefix.set(retained, length);
+          length += retained.length;
+        }
+      } finally {
+        // Storage can ignore Range; never accumulate the remaining recording.
+        await reader.cancel();
+      }
+      blob = new Blob([prefix.subarray(0, length)], { type: contentType });
+    } else blob = await ctx.storage.get(asset.storageId);
     if (!blob) throw new ConvexError("Uploaded file is missing.");
     try {
-      await validateContent(blob, asset.contentType);
+      await validateContent(blob, asset.contentType, asset.meetingId !== undefined);
     } catch (error) {
       await ctx.runMutation(internal.assets.index.reject, { assetId: asset._id });
       throw error;

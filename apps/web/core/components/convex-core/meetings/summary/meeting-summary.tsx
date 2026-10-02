@@ -10,7 +10,8 @@ import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { ContextFields } from "../../assistant/conversation-form";
 import { mutationMessage, selectClass } from "../../commercial/forms";
-type Source = FunctionReturnType<typeof api.meetings.summary.transcripts.get>;
+type Source = Extract<FunctionReturnType<typeof api.meetings.summary.transcripts.get>, { available: true }>;
+type LatestSummary = FunctionReturnType<typeof api.meetings.summary.runs.latest>;
 type Context = FunctionArgs<typeof api.meetings.summary.generate.summarize>["context"];
 type Scope = { workspaceId: Id<"workspaces">; meetingId: Id<"meetings">; projectId: Id<"projects"> };
 export function MeetingSummary(props: Scope) {
@@ -22,10 +23,9 @@ export function MeetingSummary(props: Scope) {
 }
 function Summary({ workspaceId, meetingId, projectId }: Scope) {
   const source = useQuery(api.meetings.summary.transcripts.get, { workspaceId, meetingId });
-  const latest = useQuery(api.meetings.summary.runs.latest, { workspaceId, meetingId });
+  const latest = useQuery(api.meetings.summary.runs.latest, source?.available ? { workspaceId, meetingId } : "skip");
   const summarize = useAction(api.meetings.summary.generate.summarize);
   const cancel = useMutation(api.meetings.summary.runs.cancel);
-  const [, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [context, setContext] = useState<Context>({ projectId, clientId: null, meetingId: null, documentIds: [] });
   const [approved, setApproved] = useState<Source | null>(null);
@@ -33,6 +33,14 @@ function Summary({ workspaceId, meetingId, projectId }: Scope) {
   const [error, setError] = useState("");
   const request = useRef<{ signature: string; requestId: string } | null>(null);
   if (!source) return <p role="status">Loading transcript…</p>;
+  if (!source.available)
+    return (
+      <p role="status">
+        {source.reason === "project_required"
+          ? "Choose a project before saving a transcript."
+          : "The meeting document is inaccessible or its link has changed."}
+      </p>
+    );
   if (editing)
     return (
       <TranscriptForm
@@ -42,94 +50,17 @@ function Summary({ workspaceId, meetingId, projectId }: Scope) {
         onClose={() => setEditing(false)}
       />
     );
-  const documentId = source.documentId;
   const running = latest?.status === "running";
+  const busy = pending || running;
   return (
     <section className="space-y-4 rounded-xl border border-subtle-1 p-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-20 font-semibold">Transcript & summary</h2>
-        <div className="flex flex-wrap gap-2">
-          {documentId && (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.set("module", "documents");
-                  next.set("document", documentId);
-                  return next;
-                })
-              }
-            >
-              Open meeting document
-            </Button>
-          )}
-          {source.canReplaceSource && (
-            <Button variant="secondary" disabled={pending || running} onClick={() => setEditing(true)}>
-              {source.transcript ? "Edit transcript" : "Add transcript"}
-            </Button>
-          )}
-        </div>
-      </header>
-      {source.transcript ? (
-        <details>
-          <summary className="cursor-pointer text-14 font-medium">
-            Source transcript{source.language ? ` · ${source.language}` : ""}
-          </summary>
-          <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-layer-1 p-4 text-14 break-words whitespace-pre-wrap">
-            {source.transcript}
-          </pre>
-        </details>
-      ) : (
-        <p className="text-14 text-secondary">
-          Add a text transcript to generate structured minutes. The transcript is stored in a private meeting document.
-        </p>
-      )}
-      {source.transcript && !source.canSummarize && (
-        <p className="text-14 text-secondary">
-          Editing or generating minutes requires write access to an unlocked, private document you own.
-        </p>
-      )}
-      {latest?.status === "failed" && (
-        <p role="alert" className="rounded-lg bg-layer-1 p-3 text-14">
-          {latest.error === "provider_unconfigured"
-            ? "An AI provider is not configured. Your transcript is saved; ask your administrator to configure a provider before trying again."
-            : latest.error === "cancelled"
-              ? "Summary cancelled. The transcript and existing document are unchanged."
-              : "The summary could not be saved. Check current source access and document changes before trying again."}
-        </p>
-      )}
-      {latest?.status === "completed" && latest.result && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-16 font-medium">Last generated summary</h3>
-            <span className="text-12 text-secondary">
-              {latest.provider} · {latest.model}
-            </span>
-          </div>
-          {(latest.transcriptRevision !== source.transcriptRevision ||
-            latest.documentRevision + 1 !== source.documentRevision) && (
-            <p className="text-14 text-secondary">The source or document has changed since this summary.</p>
-          )}
-          <p className="text-14 whitespace-pre-wrap">{latest.result.summary}</p>
-          {latest.result.decisions.length > 0 && (
-            <div>
-              <h4 className="text-14 font-medium">Decisions</h4>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-14">
-                {[...new Set(latest.result.decisions)].map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <p className="text-12 text-secondary">Action suggestions are saved in the document. No tasks were created.</p>
-        </div>
-      )}
+      <TranscriptSection source={source} busy={busy} onEdit={() => setEditing(true)} />
+      <SummaryResult latest={latest} />
       {source.canSummarize && (
         <div className="space-y-4 border-t border-subtle-1 pt-4">
           <details>
             <summary className="cursor-pointer text-14 font-medium">Additional context</summary>
-            <fieldset disabled={pending || running} className="mt-4">
+            <fieldset disabled={busy} className="mt-4">
               <ContextFields
                 workspaceId={workspaceId}
                 value={context}
@@ -145,7 +76,7 @@ function Summary({ workspaceId, meetingId, projectId }: Scope) {
             <input
               type="checkbox"
               className="mt-1"
-              disabled={pending || running}
+              disabled={busy}
               checked={approved !== null}
               onChange={(e) => setApproved(e.target.checked ? source : null)}
             />
@@ -157,13 +88,7 @@ function Summary({ workspaceId, meetingId, projectId }: Scope) {
               disabled={!approved || running}
               loading={pending}
               onClick={async () => {
-                if (
-                  !approved ||
-                  approved.transcriptRevision === null ||
-                  approved.documentRevision === null ||
-                  approved.documentUpdatedAt === null
-                )
-                  return;
+                if (!approved?.hasTranscript) return;
                 const args = {
                   workspaceId,
                   meetingId,
@@ -221,7 +146,99 @@ function Summary({ workspaceId, meetingId, projectId }: Scope) {
     </section>
   );
 }
-function TranscriptForm({
+function TranscriptSection({ source, busy, onEdit }: { source: Source; busy: boolean; onEdit: () => void }) {
+  const [, setParams] = useSearchParams();
+  return (
+    <>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-20 font-semibold">Transcript & summary</h2>
+        <div className="flex flex-wrap gap-2">
+          {source.hasTranscript && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.set("module", "documents");
+                  next.set("document", source.documentId);
+                  return next;
+                })
+              }
+            >
+              Open meeting document
+            </Button>
+          )}
+          {source.canReplaceSource && (
+            <Button variant="secondary" disabled={busy} onClick={onEdit}>
+              {source.hasTranscript ? "Edit transcript" : "Add transcript"}
+            </Button>
+          )}
+        </div>
+      </header>
+      {source.hasTranscript ? (
+        <details>
+          <summary className="cursor-pointer text-14 font-medium">
+            Source transcript{source.language ? ` · ${source.language}` : ""}
+          </summary>
+          <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-layer-1 p-4 text-14 break-words whitespace-pre-wrap">
+            {source.transcript}
+          </pre>
+        </details>
+      ) : (
+        <p className="text-14 text-secondary">
+          Add a text transcript to generate structured minutes. The transcript is stored in a private meeting document.
+        </p>
+      )}
+      {source.hasTranscript && !source.canSummarize && (
+        <p className="text-14 text-secondary">
+          Editing or generating minutes requires write access to an unlocked, private document you own.
+        </p>
+      )}
+    </>
+  );
+}
+function SummaryResult({ latest }: { latest: LatestSummary | undefined }) {
+  const published = latest?.published;
+  return (
+    <>
+      {latest?.status === "failed" && (
+        <p role="alert" className="rounded-lg bg-layer-1 p-3 text-14">
+          {latest.error === "provider_unconfigured"
+            ? "An AI provider is not configured. Your transcript is saved; ask your administrator to configure a provider before trying again."
+            : latest.error === "cancelled"
+              ? "Summary cancelled. The transcript and existing document are unchanged."
+              : "The summary could not be saved. Check current source access and document changes before trying again."}
+        </p>
+      )}
+      {published?.result && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-16 font-medium">Last generated summary</h3>
+            <span className="text-12 text-secondary">
+              {published.provider} · {published.model}
+            </span>
+          </div>
+          {latest?.publicationStale && (
+            <p className="text-14 text-secondary">The source or document has changed since this summary.</p>
+          )}
+          <p className="text-14 whitespace-pre-wrap">{published.result.summary}</p>
+          {published.result.decisions.length > 0 && (
+            <div>
+              <h4 className="text-14 font-medium">Decisions</h4>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-14">
+                {[...new Set(published.result.decisions)].map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-12 text-secondary">Action suggestions are saved in the document. No tasks were created.</p>
+        </div>
+      )}
+    </>
+  );
+}
+export function TranscriptForm({
   workspaceId,
   meetingId,
   initial,

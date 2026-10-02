@@ -5,7 +5,7 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { Command } from "cmdk";
-import { StickyNote, Plus, Briefcase, FolderPlus } from "lucide-react";
+import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { NativeProjectCreateContext } from "@/app/native-workspace";
@@ -39,7 +39,7 @@ export function WorkspaceCommands({
   }, []);
   const search = useExpandableSearch({ onClose: onSearchClose });
   const { openPanel, inputRef, isOpen, handleClose } = search;
-  const projectCommands = useMemo(
+  const workspaceCommands = useMemo(
     () =>
       [
         {
@@ -72,12 +72,29 @@ export function WorkspaceCommands({
             navigate(`/${workspace.slug}/projects/`);
           },
         },
+        {
+          label: t("power_k.creation_actions.create_summon_meeting"),
+          icon: CalendarDays,
+          isDisabled: workspace.membershipRole === "guest",
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/meetings/`);
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_summon_meetings"),
+          icon: CalendarDays,
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/meetings/`);
+          },
+        },
       ] satisfies ComponentProps<typeof PowerKModalCommandItem>[],
-    [t, createProject, handleClose, openPanel, inputRef, navigate, workspace.slug]
+    [t, createProject, handleClose, openPanel, inputRef, navigate, workspace.slug, workspace.membershipRole]
   );
   useEffect(() => {
     const sequences = new KeySequenceHandler((sequence, event) => {
-      const command = projectCommands.find((item) => item.keySequence === sequence && !item.isDisabled);
+      const command = workspaceCommands.find((item) => item.keySequence === sequence && !item.isDisabled);
       if (!command) return false;
       event.preventDefault();
       command.onSelect();
@@ -108,7 +125,7 @@ export function WorkspaceCommands({
       document.removeEventListener("keydown", handle);
       sequences.destroy();
     };
-  }, [openPanel, inputRef, isOpen, handleClose, projectCommands]);
+  }, [openPanel, inputRef, isOpen, handleClose, workspaceCommands]);
   const create = async () => {
     search.handleClose();
     try {
@@ -159,10 +176,10 @@ export function WorkspaceCommands({
       ) : (
         <>
           <Command.Empty className="p-3 text-13 text-tertiary">No commands found.</Command.Empty>
-          {projectCommands
+          {workspaceCommands
             .filter((item) => !item.isDisabled)
             .map((item) => (
-              <PowerKModalCommandItem key={item.keySequence} {...item} />
+              <PowerKModalCommandItem key={item.keySequence ?? item.label} {...item} />
             ))}
           {commands?.(search.handleClose)}
           <Command.Item

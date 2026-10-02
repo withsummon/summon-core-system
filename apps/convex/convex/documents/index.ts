@@ -5,10 +5,16 @@ import { stream } from "convex-helpers/server/stream";
 import { query, mutation, internalMutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { requireWorkspace, requireProject } from "../identity/access";
-import { canAccessDocument, requireDocument, requireMetadataVersion } from "./access";
+import {
+  requireWorkspace,
+  requireWorkspaceForUser,
+  requireProject,
+  requireProjectForUser,
+  requireUser,
+} from "../identity/access";
+import { canAccessDocument, requireDocument, requireDocumentForUser, requireMetadataVersion } from "./access";
 import { scheduleDocumentReferences } from "./references";
-import { documentFields, documentMetadata, snapshotFields, MAX_DOCUMENT_SNAPSHOT_BYTES } from "./schema";
+import { documentFields, documentMetadata, snapshotFields, validateDocumentSnapshot } from "./schema";
 import schema from "../schema";
 import { pageBudget } from "../commercial/validation";
 import { renderedProjectLogo } from "../projects/branding_schema";
@@ -18,6 +24,7 @@ export async function validateDocumentMetadata(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
   data: Pick<Doc<"documents">, keyof typeof documentFields>,
+  user: Doc<"users">,
   previous?: Doc<"documents">
 ) {
   renderedProjectLogo(data.logoProps);
@@ -37,7 +44,7 @@ export async function validateDocumentMetadata(
   await Promise.all(
     [...projectIds].map(async (projectId) => {
       if (!visibilityChanged && previous?.projectIds.includes(projectId)) return;
-      const { project } = await requireProject(ctx, projectId, true);
+      const { project } = await requireProjectForUser(ctx, projectId, user, true);
       if (project.workspaceId !== workspaceId) throw new ConvexError("Project belongs to another workspace.");
     })
   );
@@ -52,23 +59,25 @@ export async function validateDocumentMetadata(
   );
 }
 
+const createArgs = v.object({ workspaceId: v.id("workspaces"), ...documentFields });
+export async function createDocument(ctx: MutationCtx, args: Infer<typeof createArgs>, user: Doc<"users">) {
+  await requireWorkspaceForUser(ctx, args.workspaceId, user, true);
+  await validateDocumentMetadata(ctx, args.workspaceId, args, user);
+  return ctx.db.insert("documents", {
+    ...args,
+    nameOrder: args.name.toLowerCase(),
+    ownedBy: user._id,
+    revision: 0,
+    isLocked: false,
+    archived: false,
+    deleted: false,
+    updatedAt: Date.now(),
+    updatedBy: user._id,
+  });
+}
 export const create = mutation({
-  args: { workspaceId: v.id("workspaces"), ...documentFields },
-  handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId, true);
-    await validateDocumentMetadata(ctx, args.workspaceId, args);
-    return ctx.db.insert("documents", {
-      ...args,
-      nameOrder: args.name.toLowerCase(),
-      ownedBy: user._id,
-      revision: 0,
-      isLocked: false,
-      archived: false,
-      deleted: false,
-      updatedAt: Date.now(),
-      updatedBy: user._id,
-    });
-  },
+  args: createArgs.fields,
+  handler: async (ctx, args) => createDocument(ctx, args, await requireUser(ctx)),
 });
 export const get = query({
   args: { documentId: v.id("documents") },
@@ -185,28 +194,38 @@ export const list = query({
   },
 });
 
+const updateArgs = v.object({
+  documentId: v.id("documents"),
+  expectedUpdatedAt: v.number(),
+  ...documentMetadata.fields,
+});
+export async function updateDocumentMetadata(
+  ctx: MutationCtx,
+  { documentId, expectedUpdatedAt, ...metadata }: Infer<typeof updateArgs>,
+  user: Doc<"users">
+) {
+  const { document } = await requireDocumentForUser(ctx, documentId, user, true);
+  requireMetadataVersion(document, expectedUpdatedAt);
+  if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
+  const updated = { ...document, ...metadata };
+  if (
+    document.ownedBy !== user._id &&
+    (updated.access !== document.access ||
+      updated.isGlobal !== document.isGlobal ||
+      compareValues(updated.projectIds, document.projectIds) !== 0)
+  )
+    throw new ConvexError("Only the owner can change document visibility.");
+  await validateDocumentMetadata(ctx, document.workspaceId, updated, user, document);
+  if (compareValues(updated, document) === 0) return;
+  await ctx.db.patch(documentId, {
+    ...metadata,
+    updatedBy: user._id,
+    updatedAt: Math.max(Date.now(), document.updatedAt + 1),
+  });
+}
 export const update = mutation({
-  args: { documentId: v.id("documents"), expectedUpdatedAt: v.number(), ...documentMetadata.fields },
-  handler: async (ctx, { documentId, expectedUpdatedAt, ...metadata }) => {
-    const { document, user } = await requireDocument(ctx, documentId, true);
-    requireMetadataVersion(document, expectedUpdatedAt);
-    if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
-    const updated = { ...document, ...metadata };
-    if (
-      document.ownedBy !== user._id &&
-      (updated.access !== document.access ||
-        updated.isGlobal !== document.isGlobal ||
-        compareValues(updated.projectIds, document.projectIds) !== 0)
-    )
-      throw new ConvexError("Only the owner can change document visibility.");
-    await validateDocumentMetadata(ctx, document.workspaceId, updated, document);
-    if (compareValues(updated, document) === 0) return;
-    await ctx.db.patch(documentId, {
-      ...metadata,
-      updatedBy: user._id,
-      updatedAt: Math.max(Date.now(), document.updatedAt + 1),
-    });
-  },
+  args: updateArgs.fields,
+  handler: async (ctx, args) => updateDocumentMetadata(ctx, args, await requireUser(ctx)),
 });
 export const setLifecycle = mutation({
   args: {
@@ -235,11 +254,15 @@ const snapshotWrite = v.object({
   name: v.optional(v.string()),
   ...snapshotFields,
 });
-export async function saveDocumentSnapshot(
+export async function saveDocumentSnapshot(ctx: MutationCtx, args: Infer<typeof snapshotWrite>) {
+  return saveDocumentSnapshotForUser(ctx, args, await requireUser(ctx));
+}
+export async function saveDocumentSnapshotForUser(
   ctx: MutationCtx,
-  { documentId, expectedRevision, name, ...snapshot }: Infer<typeof snapshotWrite>
+  { documentId, expectedRevision, name, ...snapshot }: Infer<typeof snapshotWrite>,
+  user: Doc<"users">
 ) {
-  const { document, user } = await requireDocument(ctx, documentId, true);
+  const { document } = await requireDocumentForUser(ctx, documentId, user, true);
   if (document.isLocked || document.archived) throw new ConvexError("Document is locked or archived.");
   if (name !== undefined && name.length > 255) throw new ConvexError("Document name must be at most 255 characters.");
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== document.revision)
@@ -247,13 +270,7 @@ export async function saveDocumentSnapshot(
       code: "DOCUMENT_REVISION_CONFLICT",
       message: "Document revision conflict. Reload and merge before retrying.",
     });
-  if (
-    snapshot.descriptionBinary.byteLength === 0 ||
-    snapshot.descriptionBinary.byteLength > MAX_DOCUMENT_SNAPSHOT_BYTES ||
-    snapshot.descriptionHtml.length > 100000 ||
-    JSON.stringify(snapshot.descriptionJson).length > 100000
-  )
-    throw new ConvexError("Document snapshot exceeds the supported size.");
+  validateDocumentSnapshot(snapshot);
   const revision = expectedRevision + 1;
   const snapshotId = await ctx.db.insert("documentRevisions", {
     ...snapshot,

@@ -1,12 +1,13 @@
-import { ConvexError, v } from "convex/values";
+import { compareValues, ConvexError, v } from "convex/values";
 import { query, mutation, internalMutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireUser } from "../../identity/access";
 import { contextFields } from "../../assistant/schema";
 import { authorizedContext } from "../../assistant/context";
 import { snapshotFields } from "../../documents/schema";
-import { summaryAccess } from "./access";
-import { sourceArgs } from "./transcripts";
+import { summaryAccess, summaryAccessForUser } from "./access";
+import { requireMeeting } from "../access";
+import { sourceArgs, requireTranscriptVersion } from "./transcripts";
 import { resultFields } from "./schema";
 import { meetingDocumentTitle } from "./title";
 import { writeCanonicalDocument } from "./document";
@@ -22,13 +23,17 @@ export const runArgs = {
 export const begin = internalMutation({
   args: runArgs,
   handler: async (ctx, args) => {
-    const { meeting, source, document, user } = await summaryAccess(ctx, args.workspaceId, args.meetingId, true);
-    if (!source || !document || !meeting.projectId)
-      throw new ConvexError("Supply an accessible text transcript before summarizing.");
+    const { meeting, projectId, source, document, user } = await summaryAccess(
+      ctx,
+      args.workspaceId,
+      args.meetingId,
+      true
+    );
+    if (!source || !document) throw new ConvexError("Supply an accessible text transcript before summarizing.");
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(args.requestId)) throw new ConvexError("Invalid request identifier.");
-    if (args.context.projectId && args.context.projectId !== meeting.projectId)
+    if (args.context.projectId && args.context.projectId !== projectId)
       throw new ConvexError("Context project must match the meeting project.");
-    const selection = { ...args.context, projectId: meeting.projectId };
+    const selection = { ...args.context, projectId };
     const context = await authorizedContext(ctx, args.workspaceId, selection);
     const previous = await ctx.db
       .query("meetingSummaryRuns")
@@ -36,20 +41,16 @@ export const begin = internalMutation({
       .unique();
     if (previous) {
       if (
-        previous.meetingId !== meeting._id ||
-        previous.transcriptRevision !== args.expectedTranscriptRevision ||
-        JSON.stringify(previous.context) !== JSON.stringify(selection)
+        compareValues(
+          [previous.meetingId, previous.transcriptRevision, previous.context],
+          [meeting._id, args.expectedTranscriptRevision, selection]
+        ) !== 0
       )
         throw new ConvexError("Request identifier was used for different summary inputs.");
       return { runId: previous._id, generate: false, prompt: "", metadata: null, binary: null };
     }
-    if (
-      meeting.updatedAt !== args.expectedMeetingUpdatedAt ||
-      source.revision !== args.expectedTranscriptRevision ||
-      document.revision !== args.expectedDocumentRevision ||
-      document.updatedAt !== args.expectedDocumentUpdatedAt
-    )
-      throw new ConvexError("Meeting or transcript changed. Reload before summarizing.");
+    // A completed request remains idempotent after its document publication advances these versions.
+    await requireTranscriptVersion(ctx, args, user);
     const existing = await ctx.db
       .query("meetingSummaryRuns")
       .withIndex("by_meeting", (q) => q.eq("meetingId", meeting._id))
@@ -80,12 +81,12 @@ export const begin = internalMutation({
       result: null,
       documentId: document._id,
     });
-    const project = await ctx.db.get(meeting.projectId);
+    const project = await ctx.db.get(projectId);
     const profile = await ctx.db
       .query("projectProfiles")
-      .withIndex("by_project", (q) => q.eq("projectId", meeting.projectId!))
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
       .unique();
-    const client = profile?.clientId ? await ctx.db.get(profile.clientId) : null;
+    const client = profile && !profile.deleted && profile.clientId ? await ctx.db.get(profile.clientId) : null;
     const participants = await ctx.db
       .query("meetingParticipants")
       .withIndex("by_meeting_user", (q) => q.eq("meetingId", meeting._id))
@@ -108,10 +109,7 @@ export const begin = internalMutation({
         endsAt: meeting.endsAt,
         location: meeting.location,
         participants: names.filter(Boolean),
-        client:
-          client && !profile?.deleted && !client.deleted && client.workspaceId === meeting.workspaceId
-            ? client.name
-            : "",
+        client: client && !client.deleted && client.workspaceId === meeting.workspaceId ? client.name : "",
       },
     };
   },
@@ -163,7 +161,8 @@ export const complete = internalMutation({
           model: args.model,
         },
       },
-      args
+      args,
+      user
     );
     await ctx.db.patch(run._id, {
       status: "completed",
@@ -194,15 +193,38 @@ export const fail = internalMutation({
 export const latest = query({
   args: sourceArgs,
   handler: async (ctx, args) => {
-    const { user } = await summaryAccess(ctx, args.workspaceId, args.meetingId);
-    const run = await ctx.db
-      .query("meetingSummaryRuns")
-      .withIndex("by_meeting", (q) => q.eq("meetingId", args.meetingId))
-      .order("desc")
-      .first();
-    if (!run || run.requesterId !== user._id) return null;
-    await authorizedContext(ctx, args.workspaceId, run.context);
-    return run;
+    const access = await requireMeeting(ctx, args.workspaceId, args.meetingId);
+    if (!access.meeting.projectId) return null;
+    try {
+      const { user, document, source } = await summaryAccessForUser(ctx, args.workspaceId, args.meetingId, access.user);
+      if (!document || !source) return null;
+      const run = await ctx.db
+        .query("meetingSummaryRuns")
+        .withIndex("by_meeting", (q) => q.eq("meetingId", args.meetingId))
+        .order("desc")
+        .first();
+      if (!run || run.requesterId !== user._id || run.documentId !== document._id) return null;
+      const published = await ctx.db
+        .query("meetingSummaryRuns")
+        .withIndex("by_meeting_status_requester", (q) =>
+          q.eq("meetingId", args.meetingId).eq("status", "completed").eq("requesterId", user._id)
+        )
+        .filter((q) => q.eq(q.field("documentId"), document._id))
+        .order("desc")
+        .first();
+      await authorizedContext(ctx, args.workspaceId, run.context);
+      if (published && published._id !== run._id) await authorizedContext(ctx, args.workspaceId, published.context);
+      return {
+        ...run,
+        published,
+        publicationStale:
+          published !== null &&
+          (published.transcriptRevision !== source.revision || published.documentRevision + 1 !== document.revision),
+      };
+    } catch (error) {
+      if (error instanceof ConvexError) return null;
+      throw error;
+    }
   },
 });
 

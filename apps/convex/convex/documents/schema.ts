@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import type { Infer } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 // Page view/logo/editor JSON are extension-owned objects, not flattened DTOs.
 export const jsonObject = v.record(v.string(), v.any());
@@ -27,6 +28,17 @@ export const snapshotFields = {
   descriptionJson: jsonObject,
 };
 export const MAX_DOCUMENT_SNAPSHOT_BYTES = 524288;
+const snapshot = v.object(snapshotFields);
+export function validateDocumentSnapshot(value: Infer<typeof snapshot>) {
+  if (
+    value.descriptionBinary.byteLength === 0 ||
+    value.descriptionBinary.byteLength > MAX_DOCUMENT_SNAPSHOT_BYTES ||
+    value.descriptionHtml.length > 100000 ||
+    JSON.stringify(value.descriptionJson).length > 100000
+  )
+    throw new ConvexError("Document snapshot exceeds the supported size.");
+}
+
 export const documentTables = {
   documentReferenceJobs: defineTable({
     documentId: v.id("documents"),

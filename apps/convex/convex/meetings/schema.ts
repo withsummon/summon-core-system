@@ -1,3 +1,4 @@
+import { transcriptionTables } from "./transcription/schema";
 import { summaryTables } from "./summary/schema";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -17,10 +18,12 @@ export const meetingFields = {
 };
 export const meetingTables = {
   ...summaryTables,
+  ...transcriptionTables,
   meetings: defineTable({
     ...meetingFields,
     workspaceId: v.id("workspaces"),
     organizerId: v.id("users"),
+    recordingAssetId: v.optional(v.id("assets")),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
     deleted: v.boolean(),
@@ -36,5 +39,7 @@ export const meetingTables = {
     meetingId: v.id("meetings"),
     taskId: v.id("tasks"),
     createdBy: v.id("users"),
-  }).index("by_meeting_task", ["meetingId", "taskId"]),
+  })
+    .index("by_meeting_task", ["meetingId", "taskId"])
+    .index("by_workspace", ["workspaceId"]),
 };

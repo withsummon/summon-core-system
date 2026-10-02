@@ -24,7 +24,7 @@ async function source(ctx: QueryCtx, documentId: Id<"documents">, revision: numb
   requireMetadataVersion(document, updatedAt);
   if (document.revision !== revision) throw new ConvexError("Document content changed. Review it before copying.");
   const name = `${document.name} (Copy)`;
-  await validateDocumentMetadata(ctx, document.workspaceId, { ...document, name });
+  await validateDocumentMetadata(ctx, document.workspaceId, { ...document, name }, user);
   const parent = await documentCopyParent(ctx, document);
   const snapshot = await ctx.db
     .query("documentRevisions")

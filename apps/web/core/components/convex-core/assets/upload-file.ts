@@ -8,7 +8,9 @@ type Prepare = (
 ) => Promise<FunctionReturnType<typeof api.assets.taskAttachments.prepare>>;
 export async function uploadFileAsset<Result>(
   file: File,
-  policy: FunctionReturnType<typeof api.assets.index.policy>,
+  policy:
+    | FunctionReturnType<typeof api.assets.index.policy>
+    | FunctionReturnType<typeof api.assets.meetingRecordings.policy>,
   prepare: Prepare,
   finalize: (args: FunctionArgs<typeof api.assets.upload.finalize>) => Promise<Result>,
   signal: AbortSignal
