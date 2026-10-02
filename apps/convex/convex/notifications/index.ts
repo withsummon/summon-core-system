@@ -89,7 +89,12 @@ export const list = query({
         if (args.unreadOnly && row.readAt !== null) return null;
         const task = await selectedTask(ctx, row, user._id, member.role, args);
         if (!task) return null;
+        const project = await ctx.db.get(task.projectId);
+        if (!project) return null;
+        const actor = await ctx.db.get(row.actorId);
         return Object.assign({}, row, {
+          actorName: actor?.name ?? null,
+          taskReference: `${project.identifier}-${task.sequence}`,
           isMention: row.isMention ?? false,
           taskTitle: task.title,
           destination: task.status === "triage" ? ("intake" as const) : ("task" as const),
