@@ -4,33 +4,27 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
+import { useOutletContext } from "react-router";
 import { useTranslation } from "@plane/i18n";
-// components
+import type { WorkspaceSession } from "@/app/native-workspace";
 import { PageHead } from "@/components/core/page-title";
-import { NotificationsRoot } from "@/components/workspace-notifications";
-// hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import type { Route } from "./+types/page";
+import { Notifications } from "@/components/convex-core/notifications/notifications";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 
-function WorkspaceDashboardPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug } = params;
-  // plane hooks
+export default function WorkspaceNotificationsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const commands = useStickiesCommands();
   const { t } = useTranslation();
-  // hooks
-  const { currentWorkspace } = useWorkspace();
-  // derived values
-  const pageTitle = currentWorkspace?.name
-    ? t("notification.page_label", { workspace: currentWorkspace?.name })
-    : undefined;
-
   return (
-    <>
-      <PageHead title={pageTitle} />
-      <NotificationsRoot workspaceSlug={workspaceSlug} />
-    </>
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <PageHead title={t("notification.page_label", { workspace: session.workspace.name })} />
+      <Notifications workspace={session.workspace} />
+    </PreservedWorkspaceShell>
   );
 }
-
-export default observer(WorkspaceDashboardPage);

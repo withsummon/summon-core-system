@@ -47,6 +47,7 @@ const routes: RouteConfigEntry[] = [
 
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
+      route(":workspaceSlug/notifications", "./(all)/[workspaceSlug]/(projects)/notifications/page.tsx"),
       ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
       route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
       route(":workspaceSlug/workspace-views/all-issues", "./native-workspace-views.tsx", {
