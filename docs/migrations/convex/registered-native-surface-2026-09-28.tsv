@@ -164,10 +164,12 @@ convex-rpc	better_auth:onCreate	apps/convex/convex/better_auth.ts:57	Convex sour
 convex-rpc	better_auth:onDelete	apps/convex/convex/better_auth.ts:57	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
 convex-rpc	better_auth:onUpdate	apps/convex/convex/better_auth.ts:57	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
 convex-rpc	better_auth:recordSignIn	apps/convex/convex/better_auth.ts:59	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	commercial/clients:get	apps/convex/convex/commercial/clients.ts:18	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
-convex-rpc	commercial/clients:list	apps/convex/convex/commercial/clients.ts:8	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
-convex-rpc	commercial/clients:remove	apps/convex/convex/commercial/clients.ts:47	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
-convex-rpc	commercial/clients:save	apps/convex/convex/commercial/clients.ts:25	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:counts	apps/convex/convex/commercial/clients.ts:51	Convex native Commercial owner; production acceptance OPEN	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:get	apps/convex/convex/commercial/clients.ts:62	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:list	apps/convex/convex/commercial/clients.ts:35	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:related	apps/convex/convex/commercial/clients.ts:86	Convex native Commercial owner; production acceptance OPEN	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:remove	apps/convex/convex/commercial/clients.ts:278	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
+convex-rpc	commercial/clients:save	apps/convex/convex/commercial/clients.ts:243	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
 convex-rpc	commercial/contacts:get	apps/convex/convex/commercial/contacts.ts:15	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/contacts:list	apps/convex/convex/commercial/contacts.ts:23	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/contacts:remove	apps/convex/convex/commercial/contacts.ts:70	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
@@ -177,11 +179,12 @@ convex-rpc	commercial/delivery:getProfile	apps/convex/convex/commercial/delivery
 convex-rpc	commercial/delivery:saveProfile	apps/convex/convex/commercial/delivery.ts:97	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
 convex-rpc	commercial/delivery:start	apps/convex/convex/commercial/delivery.ts:18	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
 convex-rpc	commercial/directory:members	apps/convex/convex/commercial/directory.ts:7	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
-convex-rpc	commercial/opportunities:get	apps/convex/convex/commercial/opportunities.ts:31	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
-convex-rpc	commercial/opportunities:list	apps/convex/convex/commercial/opportunities.ts:20	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
-convex-rpc	commercial/opportunities:remove	apps/convex/convex/commercial/opportunities.ts:97	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
-convex-rpc	commercial/opportunities:save	apps/convex/convex/commercial/opportunities.ts:38	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
-convex-rpc	commercial/opportunities:transition	apps/convex/convex/commercial/opportunities.ts:78	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:counts	apps/convex/convex/commercial/opportunities.ts:89	Convex native Commercial owner; production acceptance OPEN	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:get	apps/convex/convex/commercial/opportunities.ts:98	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:list	apps/convex/convex/commercial/opportunities.ts:68	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:remove	apps/convex/convex/commercial/opportunities.ts:218	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:save	apps/convex/convex/commercial/opportunities.ts:145	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
+convex-rpc	commercial/opportunities:transition	apps/convex/convex/commercial/opportunities.ts:193	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/burndown:frozen	apps/convex/convex/cycles/burndown.ts:44	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	cycles/burndown:page	apps/convex/convex/cycles/burndown.ts:9	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	cycles/index:address	apps/convex/convex/cycles/index.ts:130	Convex bounded Cycle directory and scoped project-bound address owner	cycles	query | public | app | direct native constructor	OPEN

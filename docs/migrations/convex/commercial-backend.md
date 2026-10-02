@@ -11,3 +11,7 @@ Review sampled the actual mutation, project creator, reference validators and be
 ## Remaining parity
 
 This is an additive replacement path; Django commercial routes remain for the legacy UI. Native saves intentionally accept the full record rather than partial REST bodies. Notes and descriptions now have a 100,000-character bound. Validation does not claim byte-for-byte Django validator equivalence. Client activity/document/meeting aggregates and the complete legacy inspector are not retired by this slice.
+
+## Superseding preserved-route receipt — 2026-10-02
+
+The [preserved Commercial journey](current-parity-checklist.md#preserved-commercial-journeys-2026-10-02) supersedes the older `/core` rendering, loaded-page search/count and missing related-panel statements for the four registered Clients/Opportunities routes. The earlier receipt remains historical. Generated native forms, exact complete scalar counts, related permission-before-pagination cohorts and the sole native delivery owner now have scoped public integration and preserved-shell Chrome evidence. External REST equivalence, full role/contact/lifecycle behavior, cross-module Automation/Assistant and production deployment remain OPEN.
