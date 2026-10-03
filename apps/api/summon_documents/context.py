@@ -5,12 +5,24 @@ from docx import Document
 from openpyxl import load_workbook
 from pptx import Presentation
 from pypdf import PdfReader
-from rest_framework import serializers
+
+class DocumentError(ValueError):
+    pass
+
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_EXPANDED_BYTES = 50 * 1024 * 1024
 MAX_CONTEXT_CHARS = 30000
-SUPPORTED_EXTENSIONS = {".csv", ".docx", ".md", ".pdf", ".pptx", ".txt", ".xlsx"}
+DOCUMENT_TYPES = {
+    ".csv": {"text/csv"},
+    ".docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+    ".md": {"text/markdown"},
+    ".pdf": {"application/pdf"},
+    ".pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+    ".txt": {"text/plain"},
+    ".xlsx": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+}
+SUPPORTED_EXTENSIONS = set(DOCUMENT_TYPES)
 
 
 def _bounded_text(lines):
@@ -31,9 +43,9 @@ def _validate_office_archive(upload):
         upload.seek(0)
         with ZipFile(upload) as archive:
             if sum(item.file_size for item in archive.infolist()) > MAX_EXPANDED_BYTES:
-                raise serializers.ValidationError({"file": "Expanded document is too large."})
+                raise DocumentError("Expanded document is too large.")
     except BadZipFile:
-        raise serializers.ValidationError({"file": "Document is invalid or corrupted."}) from None
+        raise DocumentError("Document is invalid or corrupted.") from None
     finally:
         upload.seek(0)
 
@@ -67,26 +79,33 @@ def _pptx_lines(upload):
 def extract_context_document(upload):
     extension = Path(upload.name).suffix.lower()
     if extension not in SUPPORTED_EXTENSIONS:
-        raise serializers.ValidationError({"file": "Use PDF, DOCX, XLSX, PPTX, TXT, Markdown, or CSV."})
+        raise DocumentError("Use PDF, DOCX, XLSX, PPTX, TXT, Markdown, or CSV.")
     if upload.size > MAX_UPLOAD_BYTES:
-        raise serializers.ValidationError({"file": "Document must not exceed 10 MB."})
+        raise DocumentError("Document must not exceed 10 MB.")
 
+    upload.seek(0)
+    signature = upload.read(1024)
+    upload.seek(0)
+    if extension == ".pdf" and b"%PDF-" not in signature:
+        raise DocumentError("Document is invalid or corrupted.")
+    if extension in {".docx", ".xlsx", ".pptx"} and not signature.startswith(b"PK\x03\x04"):
+        raise DocumentError("Document is invalid or corrupted.")
     try:
         if extension in {".txt", ".md", ".csv"}:
             text, truncated = _bounded_text(upload.read().decode("utf-8-sig", errors="replace").splitlines())
         elif extension == ".pdf":
             reader = PdfReader(upload)
             if reader.is_encrypted:
-                raise serializers.ValidationError({"file": "Password-protected PDF is not supported."})
+                raise DocumentError("Password-protected PDF is not supported.")
             text, truncated = _bounded_text(page.extract_text() for page in reader.pages[:200])
         else:
             _validate_office_archive(upload)
             lines = {".docx": _docx_lines, ".xlsx": _xlsx_lines, ".pptx": _pptx_lines}[extension](upload)
             text, truncated = _bounded_text(lines)
-    except serializers.ValidationError:
+    except DocumentError:
         raise
     except Exception:
-        raise serializers.ValidationError({"file": "Document could not be read."}) from None
+        raise DocumentError("Document could not be read.") from None
     if not text:
-        raise serializers.ValidationError({"file": "Document does not contain readable text."})
+        raise DocumentError("Document does not contain readable text.")
     return {"name": Path(upload.name).name, "text": text, "truncated": truncated}
