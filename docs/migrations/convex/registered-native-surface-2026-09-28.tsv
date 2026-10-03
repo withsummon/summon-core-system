@@ -141,8 +141,8 @@ convex-rpc	assistant/index:remove	apps/convex/convex/assistant/index.ts:95	Conve
 convex-rpc	assistant/index:resolve	apps/convex/convex/assistant/index.ts:116	Convex source candidate	assistant	query | public | app | direct native constructor	OPEN
 convex-rpc	assistant/index:save	apps/convex/convex/assistant/index.ts:13	Convex source candidate	assistant	mutation | public | app | direct native constructor	OPEN
 convex-rpc	assistant/messages:begin	apps/convex/convex/assistant/messages.ts:9	Convex source candidate	assistant	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assistant/messages:fail	apps/convex/convex/assistant/messages.ts:159	Convex source candidate	assistant	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assistant/messages:publish	apps/convex/convex/assistant/messages.ts:142	Convex source candidate	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/messages:fail	apps/convex/convex/assistant/messages.ts:160	Convex source candidate	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/messages:publish	apps/convex/convex/assistant/messages.ts:143	Convex source candidate	assistant	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	auth:isAuthenticated	apps/convex/convex/auth.ts:10	Convex source candidate	identity	query | public | app | convexAuth native factory	OPEN
 convex-rpc	auth:signIn	apps/convex/convex/auth.ts:10	Convex source candidate	identity	action | public | app | convexAuth native factory	OPEN
 convex-rpc	auth:signOut	apps/convex/convex/auth.ts:10	Convex source candidate	identity	action | public | app | convexAuth native factory	OPEN

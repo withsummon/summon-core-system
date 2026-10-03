@@ -40,30 +40,8 @@ publication returns the same currently accessible document. Metadata retains
 `viewProps.summon_document.kind` and `markdown`, and additionally records provider,
 model, and citations. Generated content never invokes tools or executes writes.
 
-## Verification
+## Verification and remaining acceptance
 
-- Nine module behavior tests cover default preservation, duplicate names/stale
-  revisions and stale generation instructions, missing provider, mock transport generation, explicit/idempotent
-  publication, canonical binary/JSON/HTML roundtrip, transactional rollback,
-  post-provider revocation, requester isolation, and revoked-page continuation.
-- Actual local selfhost Node probe on 2026-09-27 returned Node v22.22.2.
-  Pinned backend image:
-  `ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8`.
-- Actual local canonical editor probe produced 96 bytes with matching decoded
-  JSON. Its first invocation logged a Yjs duplicate-import warning; the immediate
-  repeat was clean. The inspected Node bundle contained one Yjs implementation.
-  No cross-invocation Y.Doc objects are shared. The temporary probe was removed.
-- The revision contract was deployed locally at 07:07:41 on 2026-09-27. Primary Chrome QA verified the current missing-provider persisted failure without preview or publication. Native UI acceptance covers default installation, custom templates, destination selection, reload persistence, and desktop/narrow failure layouts.
-- Live provider generation is unverified: the local Convex backend has no
-  configured provider key. Provider tests use synthetic fetch responses at the
-  genuine adapter boundary. Remote deployment and browser acceptance are separate.
+The [current parity receipt](../../../../docs/migrations/convex/current-parity-checklist.md#openrouter-provider-acceptance--2026-10-04) owns the current source, deployment and browser evidence. On isolated selfhost, actual OpenRouter `openai/gpt-4.1-mini` generated a source-bound invoice preview, rendered private DOCX/PDF through the independent document worker, and published one canonical Yjs document. A repeated publication returned the same document. Authenticated downloads matched file signatures and hashes; unauthenticated and unrelated-member requests were denied. The browser confirmed the completed job and downloaded the same PDF bytes.
 
-## Remaining parity
-
-This slice does not migrate PDF/DOCX/XLSX/PPTX export, OCR/attachments, generated
-artifact external downloads, automatic assistant planning, or meeting transcript
-summarization. Source context includes explicitly selected project/client/meeting/
-documents, not arbitrary external retrieval. Interrupted generation can remain
-running; no automatic provider retry occurs. Publication is explicit and only
-supports the native editable document format. Existing Django callers remain until
-their native UI and acceptance checks are completed.
+Publication retains verbatim Markdown, as described above; the preview label now calls it Markdown source. Rich document conversion is separate product work. Full template/format/context/lifecycle acceptance, permitted real MCP execution, remote workers and activation, scheduled backup/restore and inherited route/API parity remain OPEN. Interrupted preview generation uses its existing scheduled expiration; provider requests are not automatically retried. Existing Django services remain until the retirement gates pass.
