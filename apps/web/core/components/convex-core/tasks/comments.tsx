@@ -4,10 +4,13 @@ import { CommentMentions } from "./comment-mentions";
 import { FocusedComment } from "./focused-comment";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
+import { GlobeIcon, LockIcon } from "@plane/propel/icons";
+import { CustomMenu } from "@plane/ui";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
 import { TaskRichEditor } from "./rich-editor";
 type Comment = FunctionReturnType<typeof api.tasks.comments.list>["page"][number];
@@ -41,7 +44,9 @@ export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
           }
         />
       )}
-      {composing && access?.canCreate && <CommentForm taskId={taskId} onDone={() => setComposing(false)} />}
+      {composing && (
+        <CommentForm taskId={taskId} canEdit={access?.canCreate === true} onDone={() => setComposing(false)} />
+      )}
       <ul className="space-y-4">
         {results.map((comment) => (
           <CommentRow key={comment._id} comment={comment} />
@@ -91,12 +96,14 @@ function DeletedComments({ taskId }: { taskId: Id<"tasks"> }) {
   );
 }
 function CommentRow({ comment }: { comment: Comment }) {
+  const update = useMutation(api.tasks.comments.update);
   const remove = useMutation(api.tasks.comments.remove);
   const restore = useMutation(api.tasks.comments.restore);
   const [editing, setEditing] = useState(false);
   const [deleteRevision, setDeleteRevision] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  useReloadConfirmations(pending, "A comment command is still running.", undefined, pending);
   return (
     <li className="space-y-3 rounded-xl border border-subtle-1 p-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
@@ -104,6 +111,10 @@ function CommentRow({ comment }: { comment: Comment }) {
           <span className="font-medium text-primary">{comment.authorName || "Member"}</span> ·{" "}
           {new Date(comment._creationTime).toLocaleString()}
           {comment.editedAt ? " · Edited" : ""}
+          <span className="ml-2 inline-flex items-center gap-1">
+            {comment.audience === "INTERNAL" ? <LockIcon className="size-3" /> : <GlobeIcon className="size-3" />}
+            {comment.audience === "INTERNAL" ? "Private" : "Public"}
+          </span>
         </p>
         {comment.canRestore && (
           <Button
@@ -125,24 +136,45 @@ function CommentRow({ comment }: { comment: Comment }) {
           </Button>
         )}
         {comment.canEdit && !editing && deleteRevision === null && (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              Edit comment
-            </Button>
-            <Button
-              variant="secondary"
+          <CustomMenu placement="bottom-end" ellipsis closeOnSelect disabled={pending} ariaLabel="Comment actions">
+            <CustomMenu.MenuItem onClick={() => setEditing(true)}>Edit comment</CustomMenu.MenuItem>
+            <CustomMenu.MenuItem
+              onClick={async () => {
+                setPending(true);
+                setError("");
+                try {
+                  await update({
+                    commentId: comment._id,
+                    expectedUpdatedAt: comment.updatedAt,
+                    audience: comment.audience === "INTERNAL" ? "EXTERNAL" : "INTERNAL",
+                  });
+                } catch (failure) {
+                  setError(mutationMessage(failure));
+                } finally {
+                  setPending(false);
+                }
+              }}
+            >
+              {comment.audience === "INTERNAL" ? "Switch to public" : "Switch to private"}
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem
               onClick={() => {
                 setError("");
                 setDeleteRevision(comment.updatedAt);
               }}
             >
               Delete comment
-            </Button>
-          </div>
+            </CustomMenu.MenuItem>
+          </CustomMenu>
         )}
       </header>
-      {editing && comment.canEdit ? (
-        <CommentForm taskId={comment.taskId} comment={comment} onDone={() => setEditing(false)} />
+      {editing ? (
+        <CommentForm
+          taskId={comment.taskId}
+          comment={comment}
+          canEdit={comment.canEdit}
+          onDone={() => setEditing(false)}
+        />
       ) : (
         <TaskRichEditor
           key={comment.updatedAt}
@@ -198,28 +230,55 @@ function CommentRow({ comment }: { comment: Comment }) {
     </li>
   );
 }
-function CommentForm({ taskId, comment, onDone }: { taskId: Id<"tasks">; comment?: Comment; onDone: () => void }) {
+function CommentForm({
+  taskId,
+  comment,
+  canEdit,
+  onDone,
+}: {
+  taskId: Id<"tasks">;
+  comment?: Comment;
+  canEdit: boolean;
+  onDone: () => void;
+}) {
   const create = useMutation(api.tasks.comments.create);
   const update = useMutation(api.tasks.comments.update);
   // Capture the revision with the draft. Reactive remote edits must not bless a stale draft.
   const [initial] = useState(comment);
   const [html, setHtml] = useState(comment?.html ?? "<p></p>");
   const [mentionedUserIds, setMentionedUserIds] = useState(comment?.mentionedUserIds ?? []);
+  const [audience, setAudience] = useState<FunctionArgs<typeof api.tasks.comments.create>["audience"]>(
+    comment?.audience ?? "INTERNAL"
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const changed = initial !== undefined && comment?.updatedAt !== initial.updatedAt;
+  const initialMentions = initial?.mentionedUserIds ?? [];
+  const dirty =
+    html !== (initial?.html ?? "<p></p>") ||
+    audience !== (initial?.audience ?? "INTERNAL") ||
+    mentionedUserIds.length !== initialMentions.length ||
+    mentionedUserIds.some((id) => !initialMentions.includes(id));
+  const release = useReloadConfirmations(dirty || pending, "This comment has unsaved changes.", onDone, pending);
   return (
     <form
       className="space-y-3"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (pending || !canEdit) return;
         setPending(true);
         setError("");
         try {
           if (initial)
-            await update({ commentId: initial._id, expectedUpdatedAt: initial.updatedAt, html, mentionedUserIds });
-          else await create({ taskId, html, mentionedUserIds });
-          onDone();
+            await update({
+              commentId: initial._id,
+              expectedUpdatedAt: initial.updatedAt,
+              html,
+              mentionedUserIds,
+              audience,
+            });
+          else await create({ taskId, html, mentionedUserIds, audience });
+          release(onDone);
         } catch (failure) {
           setError(mutationMessage(failure));
         } finally {
@@ -238,15 +297,52 @@ function CommentForm({ taskId, comment, onDone }: { taskId: Id<"tasks">; comment
         label={initial ? "Edit comment" : "New comment"}
         placeholder="Write a comment…"
         html={initial?.html ?? "<p></p>"}
-        editable={!pending}
+        editable={!pending && canEdit}
         onChange={setHtml}
       />
-      <CommentMentions taskId={taskId} selected={mentionedUserIds} onChange={setMentionedUserIds} disabled={pending} />
+      {!canEdit && (
+        <p role="status" className="text-14 text-secondary">
+          You can no longer change this comment. Your draft is preserved; copy it before cancelling.
+        </p>
+      )}
+      <CommentMentions
+        taskId={taskId}
+        selected={mentionedUserIds}
+        onChange={setMentionedUserIds}
+        disabled={pending || !canEdit}
+      />
+      <div role="group" aria-label="Comment audience" className="flex gap-2">
+        <Button
+          variant="secondary"
+          prependIcon={<LockIcon />}
+          aria-pressed={audience === "INTERNAL"}
+          disabled={pending || !canEdit}
+          onClick={() => setAudience("INTERNAL")}
+        >
+          Private
+        </Button>
+        <Button
+          variant="secondary"
+          prependIcon={<GlobeIcon />}
+          aria-pressed={audience === "EXTERNAL"}
+          disabled={pending || !canEdit}
+          onClick={() => setAudience("EXTERNAL")}
+        >
+          Public
+        </Button>
+      </div>
       <div className="flex gap-2">
-        <Button type="submit" loading={pending}>
+        <Button type="submit" loading={pending} disabled={!canEdit}>
           {initial ? "Save comment" : "Post comment"}
         </Button>
-        <Button variant="secondary" disabled={pending} onClick={onDone}>
+        <Button
+          variant="secondary"
+          disabled={pending}
+          onClick={() => {
+            release();
+            onDone();
+          }}
+        >
           Cancel
         </Button>
       </div>

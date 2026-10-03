@@ -9,14 +9,16 @@ import type { Doc } from "../_generated/dataModel";
 export async function recordTaskEvent(
   ctx: MutationCtx,
   event: Omit<Doc<"taskEvents">, "_id" | "_creationTime">,
-  mentionedUserIds: Id<"users">[] = []
+  mentionedUserIds: Id<"users">[] = [],
+  delivery: "subscribers" | "activity" = "subscribers"
 ) {
   const task = await ctx.db.get(event.taskId);
   if (!task || task.workspaceId !== event.workspaceId || task.projectId !== event.projectId)
     throw new ConvexError("Task event scope does not match its task.");
+  const eventId = await ctx.db.insert("taskEvents", event);
+  if (delivery === "activity") return eventId;
   await addSubscribers(ctx, task._id, mentionedUserIds);
   const mentions = new Set(mentionedUserIds);
-  const eventId = await ctx.db.insert("taskEvents", event);
   const subscriptions = await ctx.db
     .query("taskSubscriptions")
     .withIndex("by_task_user", (q) => q.eq("taskId", task._id))
