@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
+import { viewFilters } from "../savedViews/schema";
 export const intakeStatus = v.union(
   v.literal("pending"),
   v.literal("rejected"),
@@ -7,6 +8,35 @@ export const intakeStatus = v.union(
   v.literal("accepted"),
   v.literal("duplicate")
 );
+export const intakeView = v.union(...intakeStatus.members, v.literal("open"), v.literal("closed"));
+export const intakeSelection = v.object({
+  statuses: v.array(intakeStatus),
+  priorities: viewFilters.fields.priorities,
+  creatorIds: viewFilters.fields.creatorIds,
+  assigneeIds: viewFilters.fields.assigneeIds,
+  labelIds: viewFilters.fields.labelIds,
+  createdAt: viewFilters.fields.startDate,
+  updatedAt: viewFilters.fields.targetDate,
+  order: v.union(v.literal("createdAt"), v.literal("updatedAt"), v.literal("sequence")),
+  direction: v.union(v.literal("asc"), v.literal("desc")),
+});
+export const defaultIntakeSelection = {
+  statuses: [],
+  priorities: [],
+  creatorIds: [],
+  assigneeIds: [],
+  labelIds: [],
+  createdAt: null,
+  updatedAt: null,
+  order: "createdAt",
+  direction: "desc",
+} satisfies Infer<typeof intakeSelection>;
+export function intakeDefaults(view: Infer<typeof intakeView>) {
+  return {
+    ...defaultIntakeSelection,
+    statuses: view === "open" ? ["pending"] : view === "closed" ? ["accepted", "rejected", "duplicate"] : [view],
+  } satisfies Infer<typeof intakeSelection>;
+}
 export const intakeTables = {
   intakes: defineTable({
     projectId: v.id("projects"),

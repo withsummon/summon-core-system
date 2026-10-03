@@ -6,7 +6,7 @@ import { date } from "../commercial/validation";
 import { projectReader } from "./scope";
 import { viewFilters } from "./schema";
 type Filters = Infer<typeof viewFilters>;
-function checkRange(range: Filters["startDate"]) {
+export function checkRange(range: Filters["startDate"]) {
   if (!range) return;
   date(range.from);
   date(range.to);
@@ -14,7 +14,7 @@ function checkRange(range: Filters["startDate"]) {
     throw new ConvexError("Choose at least one date boundary or remove the date filter.");
   if (range.from && range.to && range.from > range.to) throw new ConvexError("Date range is reversed.");
 }
-function validateShape(filters: Filters) {
+export function validateShape(filters: Filters) {
   const selections = [
     filters.statuses,
     filters.stateIds,
@@ -59,7 +59,7 @@ export async function validateFilters(ctx: QueryCtx, projectId: Id<"projects">, 
   );
   return filters;
 }
-function inRange(value: string | null, range: NonNullable<Filters["startDate"]>) {
+export function inRange(value: string | null, range: NonNullable<Filters["startDate"]>) {
   return value !== null && (!range.from || value >= range.from) && (!range.to || value <= range.to);
 }
 export function matchesFilters(task: Doc<"tasks">, filters: Filters) {
