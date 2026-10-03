@@ -39,3 +39,22 @@ export async function requirePublishedTask(ctx: QueryCtx, anchor: string, taskId
   if (!task || !publishedTask(task, access)) throw new ConvexError("Work item is not published.");
   return { ...access, task };
 }
+
+export async function requirePublishedDiscussion(ctx: QueryCtx, anchor: string, taskId: Id<"tasks">) {
+  const access = await requirePublishedTask(ctx, anchor, taskId);
+  if (!access.publication.settings.commentsEnabled) throw new ConvexError("Public comments are disabled.");
+  return access;
+}
+
+export async function requirePublishedComment(
+  ctx: QueryCtx,
+  anchor: string,
+  taskId: Id<"tasks">,
+  commentId: Id<"taskComments">
+) {
+  const access = await requirePublishedDiscussion(ctx, anchor, taskId);
+  const comment = await ctx.db.get(commentId);
+  if (!comment || comment.taskId !== taskId || comment.audience !== "EXTERNAL" || comment.deletedAt != null)
+    throw new ConvexError("Comment not found.");
+  return { ...access, comment };
+}

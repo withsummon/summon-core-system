@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
+import { GlobeIcon, LockIcon } from "@plane/propel/icons";
 import { TaskRichEditor } from "./rich-editor";
 export function FocusedComment({
   taskId,
@@ -43,6 +44,10 @@ function CommentPreview({ taskId, commentId }: { taskId: Id<"tasks">; commentId:
       <p className="text-12 text-secondary">
         {comment.authorName ?? "Member"} · {new Date(comment._creationTime).toLocaleString()}
         {comment.editedAt ? " · Edited" : ""}
+        <span className="ml-2 inline-flex items-center gap-1">
+          {comment.audience === "INTERNAL" ? <LockIcon className="size-3" /> : <GlobeIcon className="size-3" />}
+          {comment.audience === "INTERNAL" ? "Private" : "Public"}
+        </span>
       </p>
       <TaskRichEditor
         key={comment.updatedAt}

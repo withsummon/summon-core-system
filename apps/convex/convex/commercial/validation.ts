@@ -137,8 +137,8 @@ export function parseProfile(data: Infer<typeof profileData>) {
   return { ...parsed, phase: text(parsed.phase, "Phase", 80), startDate, targetDate, budget: money(parsed.budget) };
 }
 
-export function pageBudget(options: PaginationOptions) {
-  if (!Number.isSafeInteger(options.numItems) || options.numItems < 1 || options.numItems > 100)
-    throw new ConvexError("Page size must be an integer between 1 and 100.");
-  return { ...options, maximumRowsRead: 100, maximumBytesRead: 1000000 };
+export function pageBudget(options: PaginationOptions, maxItems = 100) {
+  if (!Number.isSafeInteger(options.numItems) || options.numItems < 1 || options.numItems > maxItems)
+    throw new ConvexError(`Page size must be an integer between 1 and ${maxItems}.`);
+  return { ...options, maximumRowsRead: maxItems, maximumBytesRead: 1000000 };
 }

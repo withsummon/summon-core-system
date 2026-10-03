@@ -11,6 +11,7 @@ export const status = v.union(
   v.literal("cancelled")
 );
 export const taskStatus = v.union(...status.members, v.literal("triage"));
+export const commentAudience = v.union(v.literal("INTERNAL"), v.literal("EXTERNAL"));
 export const priority = v.union(
   v.literal("urgent"),
   v.literal("high"),
@@ -243,6 +244,7 @@ export const taskTables = {
     .index("by_task_deleted", ["taskId", "deletedAt"])
     .index("by_task_url_deleted", ["taskId", "url", "deletedAt"]),
   taskComments: defineTable({
+    audience: commentAudience,
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     taskId: v.id("tasks"),
     authorId: v.id("users"),
@@ -251,7 +253,9 @@ export const taskTables = {
     updatedAt: v.number(),
     editedAt: v.union(v.number(), v.null()),
     deletedAt: v.optional(v.union(v.number(), v.null())),
-  }).index("by_task", ["taskId"]),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_task_audience", ["taskId", "audience"]),
   taskDescriptionVersions: defineTable({
     taskId: v.id("tasks"),
     actorId: v.id("users"),
