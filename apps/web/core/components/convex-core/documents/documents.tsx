@@ -2,7 +2,7 @@ import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
 import { Component, useState } from "react";
 import type { ReactNode } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
@@ -16,7 +16,7 @@ import { DocumentEditor } from "./editor";
 import { DocumentHierarchy } from "./hierarchy";
 import { DocumentLabels } from "./labels";
 import { DocumentHistory } from "./history";
-import { DuplicateDocument } from "./duplicate";
+import { DuplicateDocument, DuplicateDocumentDialog } from "./duplicate";
 import { DocumentTrash } from "./trash";
 import { CustomMenu } from "@plane/ui";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
@@ -197,8 +197,11 @@ export function DocumentActions({
   disabled?: boolean;
 }) {
   const lifecycle = useMutation(api.documents.index.setLifecycle);
+  const availability = useQuery(api.documents.copy.availability, { documentId: document._id });
+  const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [error, setError] = useState("");
   useReloadConfirmations(pending, "A page command is still running.", undefined, pending);
   const href = `/${workspaceSlug}/projects/${projectId}/pages/${document._id}`;
@@ -238,6 +241,9 @@ export function DocumentActions({
         >
           Copy link
         </CustomMenu.MenuItem>
+        {availability?.canCopy && (
+          <CustomMenu.MenuItem onClick={() => setCopying(true)}>Make a copy</CustomMenu.MenuItem>
+        )}
         {canManage && (
           <>
             <CustomMenu.MenuItem onClick={() => void toggle("isLocked")}>
@@ -265,6 +271,13 @@ export function DocumentActions({
           onDone={() => setSettings(false)}
           onCancel={() => setSettings(false)}
           dialog
+        />
+      )}
+      {copying && (
+        <DuplicateDocumentDialog
+          document={document}
+          onClose={() => setCopying(false)}
+          onCopied={(id) => navigate(`/${workspaceSlug}/projects/${projectId}/pages/${id}/`)}
         />
       )}
     </>
