@@ -11,6 +11,7 @@ import { stickyTables } from "./stickies/schema";
 import { savedViewTables } from "./savedViews/schema";
 import { identityTables } from "./identity/schema";
 import { intakeTables } from "./intakes/schema";
+import { publicationTables } from "./publicSharing/schema";
 import { quickLinkTables } from "./quickLinks/schema";
 import { moduleTables } from "./modules/schema";
 import { cycleTables } from "./cycles/schema";
@@ -57,6 +58,7 @@ export default defineSchema({
   ...documentTables,
   ...resourceTables,
   ...intakeTables,
+  ...publicationTables,
   workspaces: defineTable({
     name: v.string(),
     slug: v.string(),
