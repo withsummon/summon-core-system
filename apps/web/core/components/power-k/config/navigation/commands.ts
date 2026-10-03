@@ -16,6 +16,7 @@ import { handlePowerKNavigate } from "@/components/power-k/utils/navigation";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
+import { useWorkspaceNavigation } from "@/hooks/workspace-navigation/use-workspace-navigation";
 
 export type TPowerKNavigationCommandKeys =
   | "open_workspace"
@@ -76,6 +77,7 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
     permission: { allowPermissions },
   } = useUser();
   const { getPartialProjectById } = useProject();
+  const navigateWorkspace = useWorkspaceNavigation();
   // derived values
   const hasWorkspaceMemberLevelPermissions = (ctx: TPowerKContext) =>
     allowPermissions(
@@ -107,13 +109,13 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       icon: Briefcase,
       keySequence: "ow",
       page: "open-workspace",
-      onSelect: (data, ctx) => {
+      onSelect: async (data, ctx) => {
         const workspaceDetails = data as IWorkspace;
-        handlePowerKNavigate(ctx, [workspaceDetails.slug]);
+        if (await navigateWorkspace(workspaceDetails)) ctx.closePalette();
       },
       isEnabled: (ctx) => baseWorkspaceConditions(ctx),
       isVisible: (ctx) => baseWorkspaceConditions(ctx),
-      closeOnSelect: true,
+      closeOnSelect: false,
     },
     nav_home: {
       id: "nav_home",

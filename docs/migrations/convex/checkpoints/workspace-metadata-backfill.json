@@ -1,0 +1,31 @@
+{
+  "artifact": "36f7406b6d",
+  "localUrl": "http://127.0.0.1:3210",
+  "remoteUrl": "https://convex-core.withsummon.com",
+  "passes": {
+    "local": [
+      {
+        "changed": 12,
+        "isDone": true,
+        "processed": 13
+      },
+      {
+        "changed": 0,
+        "isDone": true,
+        "processed": 13
+      }
+    ],
+    "remote": [
+      {
+        "changed": 2,
+        "isDone": true,
+        "processed": 2
+      },
+      {
+        "changed": 0,
+        "isDone": true,
+        "processed": 2
+      }
+    ]
+  }
+}

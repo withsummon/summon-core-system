@@ -21,6 +21,7 @@ import { createRoot } from "react-dom/client";
 // plane types
 import type { InstructionType } from "@plane/types";
 // components
+import { StickyGridItem } from "./grid";
 import { StickyNote } from "../sticky";
 // helpers
 import { getInstructionFromPayload } from "./sticky.helpers";
@@ -33,7 +34,7 @@ type Props = {
   isInFirstRow: boolean;
   isInLastRow: boolean;
   handleDrop: (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => void;
-  handleLayout: () => void;
+  handleLayout?: () => void;
 };
 
 export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props) {
@@ -90,7 +91,7 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         dropTargetForElements({
           element,
           canDrop: ({ source }) => source.data?.type === "sticky",
-          getData: ({ input, element }) => {
+          getData: ({ input, element: dropElement }) => {
             const blockedStates: InstructionType[] = ["make-child"];
             if (!isLastChild) {
               blockedStates.push("reorder-below");
@@ -98,7 +99,7 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
 
             return attachInstruction(initialData, {
               input,
-              element,
+              element: dropElement,
               currentLevel: 1,
               indentPerLevel: 0,
               mode: isLastChild ? "last-in-group" : "standard",
@@ -121,12 +122,7 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
   }, [handleDrop, isDragging, isLastChild, pathname, stickyId, workspaceSlug]);
 
   return (
-    <div
-      className="box-border flex flex-col p-[8px]"
-      style={{
-        width: itemWidth,
-      }}
-    >
+    <StickyGridItem width={itemWidth}>
       {/* {!isInFirstRow && <DropIndicator isVisible={instruction === "reorder-above"} />} */}
       <StickyNote
         key={stickyId || "new"}
@@ -135,6 +131,6 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         handleLayout={handleLayout}
       />
       {/* {!isInLastRow && <DropIndicator isVisible={instruction === "reorder-below"} />} */}
-    </div>
+    </StickyGridItem>
   );
 });

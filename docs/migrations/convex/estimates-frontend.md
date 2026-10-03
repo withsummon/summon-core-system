@@ -1,0 +1,11 @@
+# Native estimate configuration and assignment
+
+The project settings owner now exposes systems, point values/descriptions/order, and active system selection. Existing shared task properties supplies the same generated point selector for task edits and private drafts. Estimates remain project scoped; changing a draft project asks for confirmation when an estimate would be cleared, then preserves content and unrelated properties.
+
+System and point editors capture their revisions at opening; configuration selection captures its approval revision. Conflicts remain visible without replacing the draft. Permissions come from the generated estimate list/selection projections. Historical task and private draft estimates read the canonical point/system rather than guessing from current choices. Missing selections remain explicit and removable. No client model duplicates the estimate schema.
+
+Removal requires an explicit source/replacement confirmation. Clear assignments is a visible option; whole-system replacement requires selecting the destination system first. After begin, each Continue replacement action commits one bounded server page and reports the canonical changed-reference count. Leaving pauses progress. There is no rollback promise or cancel button after committed changes. Server-owned job locking prevents competing configuration changes.
+
+Native web gates and browser acceptance are recorded separately. Native web TS7 passed; scoped Oxc reported zero findings across eleven files; all 37 native frontend behavior tests passed. The estimate-only draft project-change regression verifies confirmation, scoped reference clearing, and retained content/revision. The required estimate reference cutover also passes backend TS7, web TS7, and all 393 backend tests. Primary browser acceptance and activation of the tightened schema remain separate follow-ups. Primary Chrome should cover system create/edit/select, point create/edit, task selection, active-system switch preserving historical labels, private draft selection/project change, competing form conflict, point replacement over task/draft pages, guest controls, and 390px layout.
+
+This does not claim inherited estimate analytics, clone/template mapping, workspace directory, imported IDs, or deleted-system recovery. The inherited routes remain available.

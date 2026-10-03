@@ -4,59 +4,38 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
-import { observer } from "mobx-react";
-import { Controller, useForm } from "react-hook-form";
-// plane imports
+import { useState } from "react";
+import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUserEmailNotificationSettings } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
-// components
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { SettingsControlItem } from "@/components/settings/control-item";
-// services
-import { UserService } from "@/services/user.service";
 
-type Props = {
-  data: IUserEmailNotificationSettings;
-};
+type Preferences = FunctionReturnType<typeof api.notifications.index.preferences>;
 
-// services
-const userService = new UserService();
-
-export const NotificationsProfileSettingsForm = observer(function NotificationsProfileSettingsForm(props: Props) {
-  const { data } = props;
-  // translation
+export function NotificationsProfileSettingsForm({ data }: { data: Preferences }) {
   const { t } = useTranslation();
-  // form data
-  const { control, reset } = useForm<IUserEmailNotificationSettings>({
-    defaultValues: {
-      ...data,
-    },
-  });
+  const save = useMutation(api.notifications.index.savePreferences);
+  const [pending, setPending] = useState(false);
 
-  const handleSettingChange = async (key: keyof IUserEmailNotificationSettings, value: boolean) => {
+  const handleSettingChange = async (key: keyof Preferences["settings"], value: boolean) => {
+    setPending(true);
     try {
-      await userService.updateCurrentUserEmailNotificationSettings({
-        [key]: value,
-      });
+      await save({ expectedRevision: data.revision, settings: { ...data.settings, [key]: value } });
       setToast({
         title: t("success"),
         type: TOAST_TYPE.SUCCESS,
         message: t("email_notification_setting_updated_successfully"),
       });
-    } catch (_error) {
-      setToast({
-        title: t("error"),
-        type: TOAST_TYPE.ERROR,
-        message: t("failed_to_update_email_notification_setting"),
-      });
+    } catch (error) {
+      setToast({ title: t("error"), type: TOAST_TYPE.ERROR, message: mutationMessage(error) });
+    } finally {
+      setPending(false);
     }
   };
-
-  useEffect(() => {
-    reset(data);
-  }, [reset, data]);
 
   return (
     <div className="flex flex-col gap-y-1">
@@ -64,19 +43,12 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
         title={t("property_changes")}
         description={t("property_changes_description")}
         control={
-          <Controller
-            control={control}
-            name="property_change"
-            render={({ field: { value, onChange } }) => (
-              <ToggleSwitch
-                value={value}
-                onChange={(newValue) => {
-                  onChange(newValue);
-                  handleSettingChange("property_change", newValue);
-                }}
-                size="sm"
-              />
-            )}
+          <ToggleSwitch
+            value={data.settings.propertyChange}
+            label={t("property_changes")}
+            onChange={(value) => void handleSettingChange("propertyChange", value)}
+            disabled={pending}
+            size="sm"
           />
         }
       />
@@ -84,19 +56,12 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
         title={t("state_change")}
         description={t("state_change_description")}
         control={
-          <Controller
-            control={control}
-            name="state_change"
-            render={({ field: { value, onChange } }) => (
-              <ToggleSwitch
-                value={value}
-                onChange={(newValue) => {
-                  onChange(newValue);
-                  handleSettingChange("state_change", newValue);
-                }}
-                size="sm"
-              />
-            )}
+          <ToggleSwitch
+            value={data.settings.stateChange}
+            label={t("state_change")}
+            onChange={(value) => void handleSettingChange("stateChange", value)}
+            disabled={pending}
+            size="sm"
           />
         }
       />
@@ -105,19 +70,12 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
           title={t("issue_completed")}
           description={t("issue_completed_description")}
           control={
-            <Controller
-              control={control}
-              name="issue_completed"
-              render={({ field: { value, onChange } }) => (
-                <ToggleSwitch
-                  value={value}
-                  onChange={(newValue) => {
-                    onChange(newValue);
-                    handleSettingChange("issue_completed", newValue);
-                  }}
-                  size="sm"
-                />
-              )}
+            <ToggleSwitch
+              value={data.settings.issueCompleted}
+              label={t("issue_completed")}
+              onChange={(value) => void handleSettingChange("issueCompleted", value)}
+              disabled={pending}
+              size="sm"
             />
           }
         />
@@ -126,19 +84,12 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
         title={t("comments")}
         description={t("comments_description")}
         control={
-          <Controller
-            control={control}
-            name="comment"
-            render={({ field: { value, onChange } }) => (
-              <ToggleSwitch
-                value={value}
-                onChange={(newValue) => {
-                  onChange(newValue);
-                  handleSettingChange("comment", newValue);
-                }}
-                size="sm"
-              />
-            )}
+          <ToggleSwitch
+            value={data.settings.comment}
+            label={t("comments")}
+            onChange={(value) => void handleSettingChange("comment", value)}
+            disabled={pending}
+            size="sm"
           />
         }
       />
@@ -146,22 +97,15 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
         title={t("mentions")}
         description={t("mentions_description")}
         control={
-          <Controller
-            control={control}
-            name="mention"
-            render={({ field: { value, onChange } }) => (
-              <ToggleSwitch
-                value={value}
-                onChange={(newValue) => {
-                  onChange(newValue);
-                  handleSettingChange("mention", newValue);
-                }}
-                size="sm"
-              />
-            )}
+          <ToggleSwitch
+            value={data.settings.mention}
+            label={t("mentions")}
+            onChange={(value) => void handleSettingChange("mention", value)}
+            disabled={pending}
+            size="sm"
           />
         }
       />
     </div>
   );
-});
+}

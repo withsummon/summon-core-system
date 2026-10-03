@@ -1,6 +1,6 @@
 {
   "$schema": "https://v2-8-12.turborepo.dev/schema.json",
-  "globalDependencies": [".npmrc", ".oxfmtrc.json", ".oxlintrc.json"],
+  "globalDependencies": [".npmrc", ".oxfmtrc.json", ".oxlintrc.json", "tools/check-toolchain.mjs"],
   "globalEnv": [
     "APP_VERSION",
     "DEV",
@@ -9,11 +9,15 @@
     "SENTRY_DSN",
     "SENTRY_ENVIRONMENT",
     "SENTRY_TRACES_SAMPLE_RATE",
+    "SUMMON_STICKIES_ROUTE_OWNER",
     "VITE_ADMIN_BASE_PATH",
     "VITE_ADMIN_BASE_URL",
     "VITE_API_BASE_PATH",
     "VITE_API_BASE_URL",
     "VITE_APP_VERSION",
+    "VITE_CONVEX_URL",
+    "VITE_CONVEX_SITE_URL",
+    "VITE_CONVEX_LIVE_URL",
     "VITE_ENABLE_SESSION_RECORDER",
     "VITE_LIVE_BASE_PATH",
     "VITE_LIVE_BASE_URL",

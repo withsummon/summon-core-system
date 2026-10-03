@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "903cee21243acfacb92950ef7615b55513d80a84",
+  "files": 1239,
+  "treeSha256": "b4c8c31849f0a1f29df1f9a7acaac40cd2037daa78662786eaa5146cbff312c7",
+  "indexSha256": "80048119595d08fbf794cdcf9865c8eff5189bf99b79ad86206f0596941a68fc",
+  "backend": "https://convex-core.withsummon.com",
+  "actions": "https://convex-site.withsummon.com",
+  "frontend": "http://127.0.0.1:3016/core",
+  "dependencyNote": "Existing uncommitted editor/ui manifests and lockfile preserved; this build includes those pre-existing installed dependencies.",
+  "servedIndexMatches": true,
+  "browserVerification": [
+    "Synthetic signup",
+    "Workspace and project creation",
+    "Task creation",
+    "Second tab received task without reload",
+    "No captured browser errors"
+  ],
+  "verifiedDeepLink": "http://127.0.0.1:3016/core?workspace=remote-browser-check-20260927&project=RQA"
+}

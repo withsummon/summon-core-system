@@ -72,7 +72,7 @@ export function ProjectDetailTab(props: {
     return (
       <TabPanel title="Documents" manageHref={`/${workspaceSlug}/projects/${projectId}/pages/`}>
         {overview.pages.map((page) => (
-          <Row key={page.id} href={page.href} title={page.name} detail="Document" />
+          <Row key={page.id} href={page.href} title={page.name} detail="Plane page" />
         ))}
         {!overview.pages.length && <Empty text="No project documents yet." />}
       </TabPanel>
@@ -115,12 +115,12 @@ export function ProjectDetailTab(props: {
           key={file.id}
           href={file.url}
           download
-          className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0 hover:bg-layer-1"
         >
           <FileText className="size-4 shrink-0 text-accent-primary" />
           <span className="min-w-0 flex-1">
-            <strong className="text-sm block font-medium break-words text-primary">{file.name}</strong>
-            <small className="text-xs text-secondary">
+            <strong className="text-xs block truncate font-medium text-primary">{file.name}</strong>
+            <small className="text-[10px] text-secondary">
               {file.content_type || file.entity_type} · {formatBytes(file.size)} · {formatDate(file.created_at)}
             </small>
           </span>
@@ -134,8 +134,8 @@ export function ProjectDetailTab(props: {
 
 function TabPanel({ title, manageHref, children }: { title: string; manageHref?: string; children: React.ReactNode }) {
   return (
-    <section className="min-w-0">
-      <header className="flex items-center justify-between border-b border-subtle py-3">
+    <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+      <header className="flex items-center justify-between border-b border-subtle px-4 py-3">
         <h2 className="text-sm font-semibold text-primary">{title}</h2>
         {manageHref && (
           <Link href={manageHref} className="text-xs text-accent-primary">
@@ -152,13 +152,13 @@ function Row({ href, title, detail, badge }: { href: string; title: string; deta
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0 hover:bg-layer-1"
     >
       <span className="min-w-0 flex-1">
-        <strong className="text-sm block font-medium break-words text-primary">{title}</strong>
-        <small className="text-xs text-secondary">{detail}</small>
+        <strong className="text-xs block truncate font-medium text-primary">{title}</strong>
+        <small className="text-[10px] text-secondary">{detail}</small>
       </span>
-      {badge && <span className="text-xs rounded-full bg-layer-1 px-2 py-1 text-secondary">{badge}</span>}
+      {badge && <span className="rounded-full bg-layer-1 px-2 py-1 text-[10px] text-secondary">{badge}</span>}
     </Link>
   );
 }
@@ -169,11 +169,11 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0 hover:bg-layer-1"
     >
       <span className="min-w-0 flex-1">
-        <strong className="text-sm block font-medium break-words text-primary">{title}</strong>
-        <small className="text-xs text-secondary">{detail}</small>
+        <strong className="text-xs block truncate font-medium text-primary">{title}</strong>
+        <small className="text-[10px] text-secondary">{detail}</small>
       </span>
       <ArrowUpRight className="size-4 text-secondary" />
     </a>

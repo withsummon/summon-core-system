@@ -14,6 +14,16 @@ type Props = {
   isSubmitting: TNameDescriptionLoader;
 };
 
+export function nameDescriptionStatus(
+  title: TNameDescriptionLoader,
+  description: TNameDescriptionLoader
+): TNameDescriptionLoader {
+  if (title === "failed" || description === "failed") return "failed";
+  if (title === "submitting" || description === "submitting") return "submitting";
+  if (title === "submitted" || description === "submitted") return "submitted";
+  return "saved";
+}
+
 export const NameDescriptionUpdateStatus = observer(function NameDescriptionUpdateStatus(props: Props) {
   const { isSubmitting } = props;
 
@@ -24,10 +34,10 @@ export const NameDescriptionUpdateStatus = observer(function NameDescriptionUpda
           isSubmitting === "saved" ? "fade-out" : "fade-in"
         }`}
       >
-        {isSubmitting !== "submitted" && isSubmitting !== "saved" && (
-          <RefreshCw className="size-3.5 animate-spin stroke-tertiary" />
-        )}
-        <span className="text-13 text-tertiary">{isSubmitting === "submitting" ? "Saving..." : "Saved"}</span>
+        {isSubmitting === "submitting" && <RefreshCw className="size-3.5 animate-spin stroke-tertiary" />}
+        <span className="text-13 text-tertiary">
+          {isSubmitting === "failed" ? "Not saved" : isSubmitting === "submitting" ? "Saving..." : "Saved"}
+        </span>
       </div>
     </>
   );

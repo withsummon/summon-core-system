@@ -4,60 +4,54 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { observer } from "mobx-react";
 import Link from "next/link";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { PlaneLogo } from "@plane/propel/icons";
-import type { IWorkspace } from "@plane/types";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import { Navigate } from "react-router";
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
+import { LogoSpinner } from "@/components/common/logo-spinner";
 // assets
 import WorkspaceCreationDisabled from "@/app/assets/workspace/workspace-creation-disabled.png?url";
 // components
 import { CreateWorkspaceForm } from "@/components/workspace/create-workspace-form";
 // hooks
-import { useUser, useUserProfile } from "@/hooks/store/user";
-import { useInstance } from "@/hooks/store/use-instance";
 import { useAppRouter } from "@/hooks/use-app-router";
 // wrappers
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 
-const CreateWorkspacePage = observer(function CreateWorkspacePage() {
+function CreateWorkspaceContent() {
   const { t } = useTranslation();
   // router
   const router = useAppRouter();
   // store hooks
-  const { config } = useInstance();
-  const { data: currentUser } = useUser();
-  const { updateUserProfile } = useUserProfile();
-  // states
-  const [defaultValues, setDefaultValues] = useState<Pick<IWorkspace, "name" | "slug" | "organization_size">>({
-    name: "",
-    slug: "",
-    organization_size: "",
-  });
-  // derived values
-  const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
+  const config = useQuery(api.identity.instance.configuration.availability);
+  const profile = useQuery(api.identity.profile.get);
+  if (!config || !profile)
+    return (
+      <div className="grid size-full place-items-center">
+        <LogoSpinner />
+      </div>
+    );
+  if (!profile.preferences.isOnboarded) return <Navigate to="/onboarding" replace />;
+  const isWorkspaceCreationDisabled = config.isWorkspaceCreationDisabled;
 
   // methods
   const getMailtoHref = () => {
     const subject = t("workspace_creation.request_email.subject");
     const body = t("workspace_creation.request_email.body", {
-      firstName: currentUser?.first_name || "",
-      lastName: currentUser?.last_name || "",
-      email: currentUser?.email || "",
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email ?? "",
     });
 
     return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  const onSubmit = async (workspace: IWorkspace) => {
-    await updateUserProfile({ last_workspace_id: workspace.id }).then(() => router.push(`/${workspace.slug}`));
-  };
-
   return (
-    <AuthenticationWrapper>
+    <>
       <div className="flex h-full flex-col gap-y-2 overflow-hidden bg-surface-1 sm:flex-row sm:gap-y-0">
         <div className="relative h-1/6 flex-shrink-0 sm:w-2/12 md:w-3/12 lg:w-1/5">
           <div className="absolute top-1/2 left-0 h-[0.5px] w-full -translate-y-1/2 border-b-[0.5px] border-subtle sm:top-0 sm:left-1/2 sm:h-screen sm:w-[0.5px] sm:-translate-x-1/2 sm:translate-y-0 sm:border-r-[0.5px] md:left-1/3" />
@@ -68,7 +62,7 @@ const CreateWorkspacePage = observer(function CreateWorkspacePage() {
             <PlaneLogo className="h-9 w-auto text-primary" />
           </Link>
           <div className="absolute top-1/4 right-4 -translate-y-1/2 text-13 text-primary sm:fixed sm:top-12 sm:right-16 sm:translate-y-0 sm:py-5">
-            {currentUser?.email}
+            {profile.email}
           </div>
         </div>
         <div className="relative flex h-full justify-center px-8 pb-8 sm:w-10/12 sm:items-center sm:justify-start sm:p-0 sm:pr-[8.33%] md:w-9/12 lg:w-4/5">
@@ -98,18 +92,20 @@ const CreateWorkspacePage = observer(function CreateWorkspacePage() {
             <div className="w-full space-y-7 sm:space-y-10">
               <h4 className="text-20 font-semibold">{t("workspace_creation.heading")}</h4>
               <div className="sm:w-3/4 md:w-2/5">
-                <CreateWorkspaceForm
-                  onSubmit={onSubmit}
-                  defaultValues={defaultValues}
-                  setDefaultValues={setDefaultValues}
-                />
+                <CreateWorkspaceForm onSubmit={(_workspaceId, slug) => router.push(`/${slug}/stickies`)} />
               </div>
             </div>
           )}
         </div>
       </div>
-    </AuthenticationWrapper>
+    </>
   );
-});
+}
 
-export default CreateWorkspacePage;
+export default function CreateWorkspacePage() {
+  return (
+    <SessionBoundary>
+      <CreateWorkspaceContent />
+    </SessionBoundary>
+  );
+}

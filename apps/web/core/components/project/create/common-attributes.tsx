@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 import { Controller, useFormContext } from "react-hook-form";
 import { InfoIcon } from "@plane/propel/icons";
@@ -55,79 +55,83 @@ function ProjectCommonAttributes(props: Props) {
     handleFormOnChange?.();
   };
   return (
-    <div className="grid grid-cols-1 gap-x-2 gap-y-3 md:grid-cols-4">
-      <div className="md:col-span-3">
-        <Controller
-          control={control}
-          name="name"
-          rules={{
-            required: t("name_is_required"),
-            maxLength: {
-              value: 255,
-              message: t("title_should_be_less_than_255_characters"),
-            },
-          }}
-          render={({ field: { value, onChange } }) => (
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              value={value}
-              onChange={handleNameChange(onChange)}
-              hasError={Boolean(errors.name)}
-              placeholder={t("project_name")}
-              className="focus:border-blue-400 w-full"
-              tabIndex={getIndex("name")}
-            />
-          )}
-        />
-        <span className="text-11 text-danger-primary">{errors?.name?.message}</span>
-      </div>
-      <div className="relative">
-        <Controller
-          control={control}
-          name="identifier"
-          rules={{
-            required: t("project_id_is_required"),
-            // allow only alphanumeric & non-latin characters
-            validate: (value) =>
-              /^[ÇŞĞIİÖÜA-Z0-9]+$/.test(value.toUpperCase()) || t("only_alphanumeric_non_latin_characters_allowed"),
-            minLength: {
-              value: 1,
-              message: t("project_id_min_char"),
-            },
-            maxLength: {
-              value: 10,
-              message: t("project_id_max_char"),
-            },
-          }}
-          render={({ field: { value, onChange } }) => (
-            <Input
-              id="identifier"
-              name="identifier"
-              type="text"
-              value={value}
-              onChange={handleIdentifierChange(onChange)}
-              hasError={Boolean(errors.identifier)}
-              placeholder={t("project_id")}
-              className={cn("focus:border-blue-400 w-full pr-7 text-11", {
-                uppercase: value,
-              })}
-              tabIndex={getIndex("identifier")}
-            />
-          )}
-        />
-        <Tooltip
-          isMobile={isMobile}
-          tooltipContent={t("project_id_tooltip_content")}
-          className="text-13"
-          position="right-start"
-        >
-          <InfoIcon className="absolute top-2.5 right-2 h-3 w-3 text-placeholder" />
-        </Tooltip>
-        <span className="text-11 text-danger-primary">{errors?.identifier?.message}</span>
-      </div>
-      <div className="md:col-span-4">
+    <ProjectCommonAttributesView
+      name={
+        <>
+          <Controller
+            control={control}
+            name="name"
+            rules={{
+              required: t("name_is_required"),
+              maxLength: {
+                value: 255,
+                message: t("title_should_be_less_than_255_characters"),
+              },
+            }}
+            render={({ field: { value, onChange } }) => (
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                value={value}
+                onChange={handleNameChange(onChange)}
+                hasError={Boolean(errors.name)}
+                placeholder={t("project_name")}
+                className="focus:border-blue-400 w-full"
+                tabIndex={getIndex("name")}
+              />
+            )}
+          />
+          <span className="text-11 text-danger-primary">{errors?.name?.message}</span>
+        </>
+      }
+      identifier={
+        <>
+          <Controller
+            control={control}
+            name="identifier"
+            rules={{
+              required: t("project_id_is_required"),
+              // allow only alphanumeric & non-latin characters
+              validate: (value) =>
+                /^[ÇŞĞIİÖÜA-Z0-9]+$/.test(value.toUpperCase()) || t("only_alphanumeric_non_latin_characters_allowed"),
+              minLength: {
+                value: 1,
+                message: t("project_id_min_char"),
+              },
+              maxLength: {
+                value: 10,
+                message: t("project_id_max_char"),
+              },
+            }}
+            render={({ field: { value, onChange } }) => (
+              <Input
+                id="identifier"
+                name="identifier"
+                type="text"
+                value={value}
+                onChange={handleIdentifierChange(onChange)}
+                hasError={Boolean(errors.identifier)}
+                placeholder={t("project_id")}
+                className={cn("focus:border-blue-400 w-full pr-7 text-11", {
+                  uppercase: value,
+                })}
+                tabIndex={getIndex("identifier")}
+              />
+            )}
+          />
+          <Tooltip
+            isMobile={isMobile}
+            tooltipContent={t("project_id_tooltip_content")}
+            className="text-13"
+            position="right-start"
+          >
+            <InfoIcon className="absolute top-2.5 right-2 h-3 w-3 text-placeholder" />
+          </Tooltip>
+          <span className="text-11 text-danger-primary">{errors?.identifier?.message}</span>
+        </>
+      }
+      description={
         <Controller
           name="description"
           control={control}
@@ -147,9 +151,27 @@ function ProjectCommonAttributes(props: Props) {
             />
           )}
         />
-      </div>
-    </div>
+      }
+    />
   );
 }
 
 export default ProjectCommonAttributes;
+
+export function ProjectCommonAttributesView({
+  name,
+  identifier,
+  description,
+}: {
+  name: ReactNode;
+  identifier: ReactNode;
+  description: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-x-2 gap-y-3 md:grid-cols-4">
+      <div className="md:col-span-3">{name}</div>
+      <div className="relative">{identifier}</div>
+      <div className="md:col-span-4">{description}</div>
+    </div>
+  );
+}

@@ -4,292 +4,213 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef } from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useRef } from "react";
+import Link from "next/link";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { CollapsiblePrimitive } from "@plane/propel/collapsible";
-// plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import { IconButton } from "@plane/propel/icon-button";
-import { EditIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { EditIcon, ChevronDownIcon, CloseIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { IUserProfileProjectSegregation } from "@plane/types";
 import { Loader } from "@plane/ui";
-import { cn, renderFormattedDate, getFileURL } from "@plane/utils";
-// components
+import { cn, renderFormattedDate } from "@plane/utils";
 import { CoverImage } from "@/components/common/cover-image";
-// hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useProject } from "@/hooks/store/use-project";
-import { useUser } from "@/hooks/store/user";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// components
+import type { ProfileSummary } from "./overview/stats";
 import { ProfileSidebarTime } from "./time";
 
-type TProfileSidebar = {
-  userProjectsData: IUserProfileProjectSegregation | undefined;
-  className?: string;
-};
+const projectMetrics = [
+  { key: "createdCount", label: "Created", color: "#203b80" },
+  { key: "assignedCount", label: "Assigned", color: "#3f76ff" },
+  { key: "pendingCount", label: "Pending", color: "#f59e0b" },
+  { key: "completedByTimestamp", label: "Completed", color: "#16a34a" },
+] as const;
 
-export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSidebar) {
-  const { userProjectsData, className = "" } = props;
-  // refs
-  const ref = useRef<HTMLDivElement>(null);
-  // router
-  const { userId } = useParams();
-  // store hooks
-  const { data: currentUser } = useUser();
-  const { profileSidebarCollapsed, toggleProfileSidebar } = useAppTheme();
-  const { getProjectById } = useProject();
-  const { toggleProfileSettingsModal } = useCommandPalette();
+export function ProfileSidebar({
+  subject,
+  summary,
+  collapsed,
+  onClose,
+  className,
+}: {
+  subject: FunctionReturnType<typeof api.tasks.profile.subject>;
+  summary: ProfileSummary;
+  collapsed: boolean;
+  onClose: () => void;
+  className?: string;
+}) {
+  const ref = useRef<HTMLElement>(null);
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
-  // derived values
-  const userData = userProjectsData?.user_data;
-
-  useOutsideClickDetector(ref, () => {
-    if (profileSidebarCollapsed === false) {
-      if (window.innerWidth < 768) {
-        toggleProfileSidebar();
-      }
-    }
-  });
-
-  const userDetails = [
-    {
-      i18n_label: "profile.details.joined_on",
-      value: renderFormattedDate(userData?.date_joined ?? ""),
-    },
-    {
-      i18n_label: "profile.details.time_zone",
-      value: <ProfileSidebarTime timeZone={userData?.user_timezone} />,
-    },
-  ];
-
-  useEffect(() => {
-    const handleToggleProfileSidebar = () => {
-      if (window && window.innerWidth < 768) {
-        toggleProfileSidebar(true);
-      }
-      if (window && profileSidebarCollapsed && window.innerWidth >= 768) {
-        toggleProfileSidebar(false);
-      }
-    };
-
-    window.addEventListener("resize", handleToggleProfileSidebar);
-    handleToggleProfileSidebar();
-    return () => window.removeEventListener("resize", handleToggleProfileSidebar);
-  }, []);
+  useOutsideClickDetector(ref, onClose);
 
   return (
-    <div
+    <aside
+      ref={ref}
+      id="profile-details"
+      aria-label="Profile details"
       className={cn(
-        `vertical-scrollbar fixed z-5 scrollbar-md h-full w-full shrink-0 overflow-hidden overflow-y-auto border-l border-subtle bg-surface-1 shadow-raised-200 transition-all md:relative md:w-[300px]`,
+        "vertical-scrollbar fixed z-5 scrollbar-md h-full w-full shrink-0 overflow-hidden overflow-y-auto border-l border-subtle bg-surface-1 shadow-raised-200 transition-all md:relative md:block md:w-[300px]",
+        collapsed ? "hidden" : "block",
         className
       )}
-      style={profileSidebarCollapsed ? { marginLeft: `${window?.innerWidth || 0}px` } : {}}
     >
-      {userProjectsData ? (
-        <>
-          <div className="relative h-[110px]">
-            {currentUser?.id === userId && (
-              <div className="absolute top-3.5 right-3.5">
-                <IconButton
-                  variant="secondary"
-                  icon={EditIcon}
-                  onClick={() =>
-                    toggleProfileSettingsModal({
-                      activeTab: "general",
-                      isOpen: true,
-                    })
-                  }
-                />
-              </div>
-            )}
-            <CoverImage
-              src={userData?.cover_image_url ?? undefined}
-              alt={userData?.display_name}
-              className="h-[110px] w-full"
-              showDefaultWhenEmpty
+      <div className="relative h-[110px]">
+        <IconButton
+          icon={CloseIcon}
+          variant="secondary"
+          aria-label="Close profile details"
+          className="absolute top-3.5 left-3.5 z-1 md:hidden"
+          onClick={onClose}
+        />
+        {subject.canEditProfile && (
+          <Link
+            href="/settings/profile/general"
+            aria-label={t("profile_settings")}
+            className={cn("absolute top-3.5 right-3.5 z-1", getIconButtonStyling("secondary", "base"))}
+          >
+            <EditIcon className="size-4" />
+          </Link>
+        )}
+        {subject.cover ? (
+          <AuthenticatedAssetImage
+            asset={subject.cover}
+            alt="Profile cover"
+            className="h-[110px] w-full object-cover"
+          />
+        ) : (
+          <CoverImage
+            src={subject.externalCoverUrl}
+            alt="Profile cover"
+            className="h-[110px] w-full"
+            showDefaultWhenEmpty
+          />
+        )}
+        <div className="absolute -bottom-[26px] left-5 h-[52px] w-[52px] rounded-sm">
+          {subject.avatar ? (
+            <AuthenticatedAssetImage
+              asset={subject.avatar}
+              alt="Profile avatar"
+              className="h-full w-full rounded-sm object-cover"
             />
-            <div className="absolute -bottom-[26px] left-5 h-[52px] w-[52px] rounded-sm">
-              {userData?.avatar_url && userData?.avatar_url !== "" ? (
-                <img
-                  src={getFileURL(userData?.avatar_url)}
-                  alt={userData?.display_name}
-                  className="h-full w-full rounded-sm object-cover"
-                />
-              ) : (
-                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-sm bg-accent-primary text-on-color capitalize">
-                  {userData?.first_name?.[0]}
-                </div>
-              )}
+          ) : (
+            <div className="flex h-[52px] w-[52px] items-center justify-center rounded-sm bg-accent-primary text-on-color capitalize">
+              {subject.firstName[0]}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="px-5">
+        <div className="mt-[38px]">
+          <h4 className="text-16 font-semibold">
+            {subject.firstName} {subject.lastName}
+          </h4>
+          <h6 className="text-13 text-secondary">({subject.displayName})</h6>
+        </div>
+        <div className="mt-6 space-y-5">
+          <div className="flex items-center gap-4 text-13">
+            <div className="w-2/5 shrink-0 text-secondary">{t("profile.details.joined_on")}</div>
+            <div className="w-3/5 font-medium break-words">
+              {renderFormattedDate(new Date(subject.accountCreatedAt))}
             </div>
           </div>
-          <div className="px-5">
-            <div className="mt-[38px]">
-              <h4 className="text-16 font-semibold">
-                {userData?.first_name} {userData?.last_name}
-              </h4>
-              <h6 className="text-13 text-secondary">({userData?.display_name})</h6>
+          <div className="flex items-center gap-4 text-13">
+            <div className="w-2/5 shrink-0 text-secondary">{t("profile.details.time_zone")}</div>
+            <div className="w-3/5 font-medium break-words">
+              <ProfileSidebarTime timeZone={subject.timezone} />
             </div>
-            <div className="mt-6 space-y-5">
-              {userDetails.map((detail) => (
-                <div key={detail.i18n_label} className="flex items-center gap-4 text-13">
-                  <div className="w-2/5 flex-shrink-0 text-secondary">{t(detail.i18n_label)}</div>
-                  <div className="w-3/5 font-medium break-words">{detail.value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-9 divide-y divide-subtle">
-              {userProjectsData.project_data.map((project, index) => {
-                const projectDetails = getProjectById(project.id);
-
-                const totalIssues =
-                  project.created_issues + project.assigned_issues + project.pending_issues + project.completed_issues;
-
-                const completedIssuePercentage =
-                  project.assigned_issues === 0
+          </div>
+        </div>
+        {subject.canViewTaskTabs && (
+          <div className="mt-9 divide-y divide-subtle">
+            {summary.status === "Exhausted" ? (
+              summary.results.map((project, index) => {
+                const total = projectMetrics.reduce((count, metric) => count + project[metric.key], 0);
+                const completion =
+                  project.assignedCount === 0
                     ? 0
-                    : Math.round((project.completed_issues / project.assigned_issues) * 100);
-
-                if (!projectDetails) return null;
-
+                    : Math.round((project.completedByTimestamp / project.assignedCount) * 100);
                 return (
-                  <CollapsiblePrimitive.Root
-                    key={project.id}
-                    className={`${index === 0 ? "pb-3" : "py-3"}`}
-                    render={(rootProps, { open }) => (
-                      <div {...rootProps}>
-                        {
-                          <div className="w-full">
-                            <CollapsiblePrimitive.Trigger className="flex w-full items-center justify-between gap-2">
-                              <div className="flex w-3/4 items-center gap-2">
-                                <span className="grid h-7 w-7 flex-shrink-0 place-items-center">
-                                  <Logo logo={projectDetails.logo_props} />
-                                </span>
-                                <div className="truncate text-13 font-medium break-words">{projectDetails.name}</div>
-                              </div>
-                              <div className="flex flex-shrink-0 items-center gap-2">
-                                {project.assigned_issues > 0 && (
-                                  <Tooltip tooltipContent="Completion percentage" position="left" isMobile={isMobile}>
-                                    <div
-                                      className={`rounded-sm px-1 py-0.5 text-11 font-medium ${
-                                        completedIssuePercentage <= 35
-                                          ? "bg-danger-subtle text-danger-primary"
-                                          : completedIssuePercentage <= 70
-                                            ? "bg-yellow-500/10 text-yellow-500"
-                                            : "bg-success-subtle text-success-primary"
-                                      }`}
-                                    >
-                                      {completedIssuePercentage}%
-                                    </div>
-                                  </Tooltip>
-                                )}
-                                <ChevronDownIcon className="h-4 w-4" />
-                              </div>
-                            </CollapsiblePrimitive.Trigger>
-                            {open && (
-                              <>
-                                <CollapsiblePrimitive.Panel className="mt-5 pl-9">
-                                  {totalIssues > 0 && (
-                                    <div className="flex items-center gap-0.5">
-                                      <div
-                                        className="h-1 rounded-sm"
-                                        style={{
-                                          backgroundColor: "#203b80",
-                                          width: `${(project.created_issues / totalIssues) * 100}%`,
-                                        }}
-                                      />
-                                      <div
-                                        className="h-1 rounded-sm"
-                                        style={{
-                                          backgroundColor: "#3f76ff",
-                                          width: `${(project.assigned_issues / totalIssues) * 100}%`,
-                                        }}
-                                      />
-                                      <div
-                                        className="h-1 rounded-sm"
-                                        style={{
-                                          backgroundColor: "#f59e0b",
-                                          width: `${(project.pending_issues / totalIssues) * 100}%`,
-                                        }}
-                                      />
-                                      <div
-                                        className="h-1 rounded-sm"
-                                        style={{
-                                          backgroundColor: "#16a34a",
-                                          width: `${(project.completed_issues / totalIssues) * 100}%`,
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                  <div className="mt-7 space-y-5 text-13 text-secondary">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-xs bg-[#203b80]" />
-                                        Created
-                                      </div>
-                                      <div className="font-medium">
-                                        {project.created_issues} {t("issues")}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-xs bg-[#3f76ff]" />
-                                        Assigned
-                                      </div>
-                                      <div className="font-medium">
-                                        {project.assigned_issues} {t("issues")}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-xs bg-[#f59e0b]" />
-                                        Due
-                                      </div>
-                                      <div className="font-medium">
-                                        {project.pending_issues} {t("issues")}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-xs bg-[#16a34a]" />
-                                        Completed
-                                      </div>
-                                      <div className="font-medium">
-                                        {project.completed_issues} {t("issues")}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CollapsiblePrimitive.Panel>
-                              </>
-                            )}
-                          </div>
-                        }
+                  <CollapsiblePrimitive.Root key={project.projectId} className={index === 0 ? "pb-3" : "py-3"}>
+                    <CollapsiblePrimitive.Trigger className="flex w-full items-center justify-between gap-2">
+                      <div className="flex w-3/4 items-center gap-2">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center">
+                          <Logo logo={project.logo ?? undefined} />
+                        </span>
+                        <div className="truncate text-13 font-medium break-words">{project.name}</div>
                       </div>
-                    )}
-                  ></CollapsiblePrimitive.Root>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {project.assignedCount > 0 && (
+                          <Tooltip tooltipContent="Completion percentage" position="left" isMobile={isMobile}>
+                            <span
+                              className={cn(
+                                "rounded-sm px-1 py-0.5 text-11 font-medium",
+                                completion <= 35
+                                  ? "bg-danger-subtle text-danger-primary"
+                                  : completion <= 70
+                                    ? "bg-yellow-500/10 text-yellow-500"
+                                    : "bg-success-subtle text-success-primary"
+                              )}
+                            >
+                              {completion}%
+                            </span>
+                          </Tooltip>
+                        )}
+                        <ChevronDownIcon className="h-4 w-4" aria-hidden />
+                      </div>
+                    </CollapsiblePrimitive.Trigger>
+                    <CollapsiblePrimitive.Panel className="mt-5 pl-9">
+                      {total > 0 && (
+                        <div className="flex items-center gap-0.5" aria-hidden>
+                          {projectMetrics.map((metric) => (
+                            <div
+                              key={metric.key}
+                              className="h-1 rounded-sm"
+                              style={{
+                                backgroundColor: metric.color,
+                                width: `${(project[metric.key] / total) * 100}%`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <dl className="mt-7 space-y-5 text-13 text-secondary">
+                        {projectMetrics.map((metric) => (
+                          <div key={metric.key} className="flex items-center justify-between gap-2">
+                            <dt className="flex items-center gap-2">
+                              <span
+                                className="h-2.5 w-2.5 rounded-xs"
+                                style={{ backgroundColor: metric.color }}
+                                aria-hidden
+                              />
+                              {metric.label}
+                            </dt>
+                            <dd className="font-medium">
+                              {project[metric.key]} {t("issues")}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </CollapsiblePrimitive.Panel>
+                  </CollapsiblePrimitive.Root>
                 );
-              })}
-            </div>
+              })
+            ) : (
+              <Loader className="space-y-5">
+                <span className="sr-only">{t("loading")}</span>
+                <Loader.Item height="28px" />
+                <Loader.Item height="28px" />
+                <Loader.Item height="28px" />
+              </Loader>
+            )}
           </div>
-        </>
-      ) : (
-        <Loader className="space-y-7 px-5">
-          <Loader.Item height="130px" />
-          <div className="space-y-5">
-            <Loader.Item height="20px" />
-            <Loader.Item height="20px" />
-            <Loader.Item height="20px" />
-            <Loader.Item height="20px" />
-            <Loader.Item height="20px" />
-          </div>
-        </Loader>
-      )}
-    </div>
+        )}
+      </div>
+    </aside>
   );
-});
+}

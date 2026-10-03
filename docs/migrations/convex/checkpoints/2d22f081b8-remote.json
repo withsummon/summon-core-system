@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "2d22f081b881db95638452b4b2cbf6bc7fc3bd3c",
+  "files": 1242,
+  "treeSha256": "cb66f0f8f4af1f7933ed2c6a5d32ea8e8111800f9169ab9d3fcd133921d1fb59",
+  "indexSha256": "a75a107cddc89d0f930bc492410082adce68d4efe9d087a9996d66815ba5d276",
+  "backend": "https://convex-core.withsummon.com",
+  "actions": "https://convex-site.withsummon.com",
+  "frontend": "http://127.0.0.1:3019/core",
+  "dependencyNote": "Pre-existing editor/ui manifests and installed lockfile state included; unrelated edits preserved.",
+  "servedIndexMatches": true,
+  "verifiedDeepLink": "http://127.0.0.1:3019/core?workspace=remote-browser-check-20260927&module=views&savedView=s9779rt48rfexh125bdkx7qjfn8f6zjt",
+  "browserVerification": [
+    "Existing account sign-in",
+    "Create workspace To do saved view",
+    "Canonical task/project result displayed",
+    "Peer task change excluded and reincluded result live without reload",
+    "Synthetic task restored to To do",
+    "No captured browser errors"
+  ],
+  "limitations": [
+    "Locally served production frontend against remote backend; no public frontend cutover",
+    "Cross-project and restricted-account browser checks performed locally; remote fixture has one project",
+    "Full inherited rich filters and layouts remain staged",
+    "No new performance delta claimed"
+  ]
+}

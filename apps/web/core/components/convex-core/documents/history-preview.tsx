@@ -1,0 +1,67 @@
+import { useMemo } from "react";
+import { DocumentEditorWithRef } from "@plane/editor";
+import type { IEditorProps, TFileHandler } from "@plane/editor";
+import type { Id } from "@summon/convex/data-model";
+import { DocumentMentionsProvider, useDocumentMentions } from "./mentions";
+import { useDocumentAssetReader } from "./use-document-asset-reader";
+
+const disabledExtensions: IEditorProps["disabledExtensions"] = ["ai", "issue-embed"];
+const flaggedExtensions: IEditorProps["flaggedExtensions"] = [];
+const extendedEditorProps = {};
+const metadata = () => ({ file_assets: [], user_mentions: [] });
+const editorProps = {
+  attributes: {
+    role: "textbox",
+    "aria-label": "Historical document content",
+    "aria-readonly": "true",
+    "aria-multiline": "true",
+  },
+};
+async function readOnly(): Promise<never> {
+  throw new Error("Historical preview cannot change document files.");
+}
+export function DocumentHistoryPreview({
+  documentId,
+  html,
+  versionId,
+}: {
+  documentId: Id<"documents">;
+  html: string;
+  versionId: Id<"documentRevisions">;
+}) {
+  const mentionHandler = useDocumentMentions(documentId);
+  const { resolve, source, transfers } = useDocumentAssetReader(documentId);
+  const fileHandler = useMemo(
+    () =>
+      ({
+        assetsUploadStatus: {},
+        cancel: () => transfers.cancel(),
+        checkIfAssetExists: async (assetId) => (await resolve(assetId)) !== null,
+        getAssetSrc: (assetId) => source(assetId, false),
+        getAssetDownloadSrc: (assetId) => source(assetId, true),
+        delete: readOnly,
+        restore: readOnly,
+        upload: readOnly,
+        duplicate: readOnly,
+        validation: { maxFileSize: 0 },
+      }) satisfies TFileHandler,
+    [resolve, source, transfers]
+  );
+  return (
+    <DocumentMentionsProvider documentId={documentId}>
+      <DocumentEditorWithRef
+        id={`document-history-${versionId}`}
+        value={html}
+        editable={false}
+        disabledExtensions={disabledExtensions}
+        flaggedExtensions={flaggedExtensions}
+        fileHandler={fileHandler}
+        mentionHandler={mentionHandler}
+        getEditorMetaData={metadata}
+        extendedEditorProps={extendedEditorProps}
+        editorProps={editorProps}
+        containerClassName="min-h-36 rounded-md border border-subtle-1 p-3"
+      />
+    </DocumentMentionsProvider>
+  );
+}

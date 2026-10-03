@@ -1,0 +1,19 @@
+services:
+  deploy:
+    build:
+      context: ../../..
+      dockerfile: deployments/convex/runner/Dockerfile
+      args:
+        SOURCE_REVISION: ${SOURCE_REVISION:?Set the reviewed immutable source revision}
+    restart: "no"
+    environment:
+      CONVEX_SELF_HOSTED_URL: ${CONVEX_SELF_HOSTED_URL:?Set the approved deployment URL}
+      CONVEX_SELF_HOSTED_ADMIN_KEY: ${CONVEX_SELF_HOSTED_ADMIN_KEY:?Set privately at runtime}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node/.cache
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

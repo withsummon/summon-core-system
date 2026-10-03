@@ -1,0 +1,989 @@
+surface	pattern-or-id	source-line	current-owner	acceptance-family	registered-detail	status
+command	Create new sticky	apps/web/core/components/workspace/native-shell/commands.tsx:248	Convex shared workspace shell	stickies	Registered native workspace routes share Stickies commands; acceptance: create/open with keyboard and preserve drafts across route leave; inherited Power K IDs remain legacy	OPEN
+command	Open all stickies	apps/web/core/components/workspace/native-shell/commands.tsx:256	Convex shared workspace shell	stickies	Registered native workspace routes share Stickies commands; acceptance: create/open with keyboard and preserve drafts across route leave; inherited Power K IDs remain legacy	OPEN
+command	add_remove_module_members	apps/web/core/components/power-k/ui/pages/context-based/module/commands.tsx:104	Django-backed Power K	workspace		OPEN
+command	add_work_item_labels	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:367	Django-backed Power K	tasks		OPEN
+command	add_work_item_to_cycle	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:295	Django-backed Power K	tasks		OPEN
+command	add_work_item_to_modules	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:335	Django-backed Power K	tasks		OPEN
+command	assign_work_item_to_me	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:257	Django-backed Power K	tasks		OPEN
+command	change_module_status	apps/web/core/components/power-k/ui/pages/context-based/module/commands.tsx:121	Django-backed Power K	modules		OPEN
+command	change_work_item_assignees	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:240	Django-backed Power K	tasks		OPEN
+command	change_work_item_estimate	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:275	Django-backed Power K	tasks		OPEN
+command	change_work_item_priority	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:220	Django-backed Power K	tasks		OPEN
+command	change_work_item_state	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:200	Django-backed Power K	tasks		OPEN
+command	copy_current_page_url	apps/web/core/components/power-k/config/miscellaneous-commands.ts:68	Django-backed Power K	documents		OPEN
+command	copy_cycle_url	apps/web/core/components/power-k/ui/pages/context-based/cycle/commands.ts:88	Django-backed Power K	cycles		OPEN
+command	copy_module_url	apps/web/core/components/power-k/ui/pages/context-based/module/commands.tsx:153	Django-backed Power K	modules		OPEN
+command	copy_page_url	apps/web/core/components/power-k/ui/pages/context-based/page/commands.ts:167	Django-backed Power K	documents		OPEN
+command	copy_work_item_id	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:418	Django-backed Power K	tasks		OPEN
+command	copy_work_item_title	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:431	Django-backed Power K	tasks		OPEN
+command	copy_work_item_url	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:444	Django-backed Power K	tasks		OPEN
+command	create_cycle	apps/web/core/components/power-k/config/creation/command.ts:119	Django-backed Power K	cycles		OPEN
+command	create_module	apps/web/core/components/power-k/config/creation/command.ts:132	Django-backed Power K	modules		OPEN
+command	create_page	apps/web/core/components/power-k/config/creation/command.ts:91	Django-backed Power K	documents		OPEN
+command	create_project	apps/web/core/components/workspace/native-shell/commands.tsx:75	Convex shared native workspace commands	workspace	np; native workspace project-creation context; member-only; full production command parity OPEN	OPEN
+command	create_summon_client	apps/web/core/components/workspace/native-shell/commands.tsx:105	Convex shared workspace commands	commercial	Preserved translated label and directory navigation; creation hidden for Guest; production command parity OPEN	OPEN
+command	create_summon_meeting	apps/web/core/components/workspace/native-shell/commands.tsx:139	Convex shared workspace commands	meetings	Preserved translated label and directory navigation; creation hidden for Guest; Chrome command selection locally verified	OPEN
+command	create_summon_opportunity	apps/web/core/components/workspace/native-shell/commands.tsx:122	Convex shared workspace commands	commercial	Preserved translated label and directory navigation; creation hidden for Guest; production command parity OPEN	OPEN
+command	create_view	apps/web/core/components/power-k/config/creation/command.ts:104	Django-backed Power K	views-search		OPEN
+command	create_work_item	apps/web/core/components/workspace/native-shell/commands.tsx:47	Convex shared native workspace commands	tasks	ni; canonical writable project proof opens workspace-held ProjectChoice and CreateProjectIssue; dirty/pending recovery and production command parity OPEN	OPEN
+command	create_workspace	apps/web/core/components/power-k/config/creation/command.ts:157	Django-backed Power K	workspace		OPEN
+command	delete_work_item	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:405	Django-backed Power K	tasks		OPEN
+command	focus_top_nav_search	apps/web/core/components/power-k/config/miscellaneous-commands.ts:80	Django-backed Power K	views-search		OPEN
+command	join_forum	apps/web/core/components/power-k/config/help-commands.ts:47	Django-backed Power K	shared-shell		OPEN
+command	nav_account_settings	apps/web/core/components/power-k/config/navigation/commands.ts:322	Django-backed Power K	shared-shell		OPEN
+command	nav_all_workspace_work_items	apps/web/core/components/power-k/config/navigation/commands.ts:361	Django-backed Power K	tasks		OPEN
+command	nav_assigned_workspace_work_items	apps/web/core/components/power-k/config/navigation/commands.ts:373	Django-backed Power K	tasks		OPEN
+command	nav_created_workspace_work_items	apps/web/core/components/power-k/config/navigation/commands.ts:384	Django-backed Power K	tasks		OPEN
+command	nav_home	apps/web/core/components/power-k/config/navigation/commands.ts:121	Django-backed Power K	shared-shell		OPEN
+command	nav_inbox	apps/web/core/components/power-k/config/navigation/commands.ts:298	Django-backed Power K	intake		OPEN
+command	nav_project_archives	apps/web/core/components/power-k/config/navigation/commands.ts:655	Django-backed Power K	projects		OPEN
+command	nav_project_cycles	apps/web/core/components/power-k/config/navigation/commands.ts:515	Django-backed Power K	cycles		OPEN
+command	nav_project_intake	apps/web/core/components/power-k/config/navigation/commands.ts:637	Django-backed Power K	intake		OPEN
+command	nav_project_modules	apps/web/core/components/power-k/config/navigation/commands.ts:559	Django-backed Power K	modules		OPEN
+command	nav_project_pages	apps/web/core/components/power-k/config/navigation/commands.ts:619	Django-backed Power K	documents		OPEN
+command	nav_project_settings	apps/web/core/components/power-k/config/navigation/commands.ts:696	Django-backed Power K	projects		OPEN
+command	nav_project_views	apps/web/core/components/power-k/config/navigation/commands.ts:601	Django-backed Power K	views-search		OPEN
+command	nav_project_work_items	apps/web/core/components/power-k/config/navigation/commands.ts:473	Django-backed Power K	tasks		OPEN
+command	nav_projects_list	apps/web/core/components/workspace/native-shell/commands.tsx:96	Convex shared native workspace commands	workspace	gp; preserved native Projects directory navigation; full production command parity OPEN	OPEN
+command	nav_subscribed_workspace_work_items	apps/web/core/components/power-k/config/navigation/commands.ts:395	Django-backed Power K	tasks		OPEN
+command	nav_summon_assistant	apps/web/core/components/power-k/config/navigation/commands.ts:254	Django-backed Power K	assistant		OPEN
+command	nav_summon_automation	apps/web/core/components/power-k/config/navigation/commands.ts:243	Django-backed Power K	automation		OPEN
+command	nav_summon_clients	apps/web/core/components/workspace/native-shell/commands.tsx:114	Convex shared workspace commands	commercial	Preserved translated label and directory navigation; creation hidden for Guest; production command parity OPEN	OPEN
+command	nav_summon_credentials	apps/web/core/components/power-k/config/navigation/commands.ts:265	Django-backed Power K	resources-mcp		OPEN
+command	nav_summon_documents	apps/web/core/components/power-k/config/navigation/commands.ts:188	Django-backed Power K	documents		OPEN
+command	nav_summon_home	apps/web/core/components/power-k/config/navigation/commands.ts:133	Django-backed Power K	shared-shell		OPEN
+command	nav_summon_knowledge	apps/web/core/components/power-k/config/navigation/commands.ts:199	Django-backed Power K	documents		OPEN
+command	nav_summon_meetings	apps/web/core/components/workspace/native-shell/commands.tsx:148	Convex shared workspace commands	meetings	Preserved translated label and directory navigation; creation hidden for Guest; Chrome command selection locally verified	OPEN
+command	nav_summon_notifications	apps/web/core/components/power-k/config/navigation/commands.ts:276	Django-backed Power K	notifications		OPEN
+command	nav_summon_opportunities	apps/web/core/components/workspace/native-shell/commands.tsx:131	Convex shared workspace commands	commercial	Preserved translated label and directory navigation; creation hidden for Guest; production command parity OPEN	OPEN
+command	nav_summon_projects	apps/web/core/components/power-k/config/navigation/commands.ts:144	Django-backed Power K	projects		OPEN
+command	nav_summon_reports	apps/web/core/components/power-k/config/navigation/commands.ts:210	Django-backed Power K	reporting		OPEN
+command	nav_summon_resources	apps/web/core/components/power-k/config/navigation/commands.ts:221	Django-backed Power K	resources-mcp		OPEN
+command	nav_summon_settings	apps/web/core/components/power-k/config/navigation/commands.ts:287	Django-backed Power K	shared-shell		OPEN
+command	nav_summon_tasks	apps/web/core/components/workspace/native-shell/commands.tsx:57	Convex shared native workspace commands	tasks	Preserved translated Task Center navigation; native dashboard/table owner; production command parity OPEN	OPEN
+command	nav_workspace_analytics	apps/web/core/components/power-k/config/navigation/commands.ts:407	Django-backed Power K	workspace		OPEN
+command	nav_workspace_archives	apps/web/core/components/power-k/config/navigation/commands.ts:431	Django-backed Power K	workspace		OPEN
+command	nav_workspace_drafts	apps/web/core/components/workspace/native-shell/commands.tsx:65	Convex shared native workspace commands	tasks	gj; member-only preserved Drafts navigation; native private draft owner; production command parity OPEN	OPEN
+command	nav_workspace_settings	apps/web/core/components/power-k/config/navigation/commands.ts:461	Django-backed Power K	workspace		OPEN
+command	nav_your_work	apps/web/core/components/power-k/config/navigation/commands.ts:310	Django-backed Power K	tasks		OPEN
+command	open_keyboard_shortcuts	apps/web/core/components/power-k/config/help-commands.ts:22	Django-backed Power K	shared-shell		OPEN
+command	open_plane_documentation	apps/web/core/components/power-k/config/help-commands.ts:34	Django-backed Power K	documents		OPEN
+command	open_project	apps/web/core/components/workspace/native-shell/commands.tsx:85	Convex shared native workspace commands	workspace	op; native paginated projects.network joined-project chooser; full chooser and production command acceptance OPEN	OPEN
+command	open_project_cycle	apps/web/core/components/power-k/config/navigation/commands.ts:491	Django-backed Power K	cycles		OPEN
+command	open_project_module	apps/web/core/components/power-k/config/navigation/commands.ts:535	Django-backed Power K	modules		OPEN
+command	open_project_setting	apps/web/core/components/power-k/config/navigation/commands.ts:674	Django-backed Power K	projects		OPEN
+command	open_project_view	apps/web/core/components/power-k/config/navigation/commands.ts:579	Django-backed Power K	views-search		OPEN
+command	open_summon_automation	apps/web/core/components/power-k/config/creation/command.ts:201	Django-backed Power K	automation		OPEN
+command	open_workspace	apps/web/core/components/power-k/config/navigation/commands.ts:105	Django-backed Power K	workspace		OPEN
+command	open_workspace_setting	apps/web/core/components/power-k/config/navigation/commands.ts:445	Django-backed Power K	workspace		OPEN
+command	report_bug	apps/web/core/components/power-k/config/help-commands.ts:60	Django-backed Power K	reporting		OPEN
+command	sign_out	apps/web/core/components/power-k/config/account-commands.ts:53	Django-backed Power K	identity		OPEN
+command	subscribe_work_item	apps/web/core/components/power-k/ui/pages/context-based/work-item/commands.ts:390	Django-backed Power K	tasks		OPEN
+command	toggle_app_sidebar	apps/web/core/components/power-k/config/miscellaneous-commands.ts:56	Django-backed Power K	shared-shell		OPEN
+command	toggle_cycle_favorite	apps/web/core/components/power-k/ui/pages/context-based/cycle/commands.ts:73	Django-backed Power K	cycles		OPEN
+command	toggle_module_favorite	apps/web/core/components/power-k/ui/pages/context-based/module/commands.tsx:138	Django-backed Power K	modules		OPEN
+command	toggle_page_access	apps/web/core/components/power-k/ui/pages/context-based/page/commands.ts:105	Django-backed Power K	documents		OPEN
+command	toggle_page_archive	apps/web/core/components/power-k/ui/pages/context-based/page/commands.ts:130	Django-backed Power K	documents		OPEN
+command	toggle_page_favorite	apps/web/core/components/power-k/ui/pages/context-based/page/commands.ts:152	Django-backed Power K	documents		OPEN
+command	toggle_page_lock	apps/web/core/components/power-k/ui/pages/context-based/page/commands.ts:81	Django-backed Power K	documents		OPEN
+command	update_interface_language	apps/web/core/components/power-k/config/preferences-commands.ts:152	Django-backed Power K	account		OPEN
+command	update_interface_theme	apps/web/core/components/power-k/config/preferences-commands.ts:107	Django-backed Power K	account		OPEN
+command	update_start_of_week	apps/web/core/components/power-k/config/preferences-commands.ts:137	Django-backed Power K	account		OPEN
+command	update_timezone	apps/web/core/components/power-k/config/preferences-commands.ts:122	Django-backed Power K	account		OPEN
+command	workspace_invites	apps/web/core/components/power-k/config/account-commands.ts:42	Legacy Power K; Convex invitations destination	workspace		OPEN
+dialog-mount	AddResourceModal	apps/web/core/components/summon/resources/resources-root.tsx:627	Django-backed web	resources-mcp		OPEN
+dialog-mount	AlertModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:219	Convex native-session preserved directory	views-search	Soft delete uses savedViews.workspace.lifecycle; verify confirmation, live removal, failure recovery and Trash restore	OPEN
+dialog-mount	AlertModalCore	apps/web/app/native-workspace-view-detail.tsx:187	Convex native-session custom Views lifecycle dialog	workspace	Restore/delete confirmation with saved revision and recoverable conflict; broader Views parity OPEN	OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/api-token/delete-token-modal.tsx:59	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/convex-core/documents/metadata-form.tsx:216	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:655	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/cycles/delete-modal.tsx:80	Django-backed web	cycles		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/decline-issue-modal.tsx:44	Django-backed web	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/delete-issue-modal.tsx:71	Django-backed web	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/issues/attachment/delete-attachment-modal.tsx:60	Django-backed web	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/issues/delete-issue-modal.tsx:112	Django-backed web	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/issues/workspace-draft/delete-modal.tsx:46	Convex private Drafts dialog composition; generated owner and revision proof	tasks	Preserved Drafts modal owner; private actor scope, revisioned delete/editor and dirty/pending recovery; full production acceptance OPEN	OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/issues/workspace-draft/root.tsx:221	Convex private Drafts dialog composition; generated owner and revision proof	tasks	Preserved Drafts modal owner; private actor scope, revisioned delete/editor and dirty/pending recovery; full production acceptance OPEN	OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/labels/delete-label-modal.tsx:59	Django-backed web	projects		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/modules/delete-module-modal.tsx:74	Django-backed web	modules		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/pages/modals/delete-page-modal.tsx:77	Django-backed web	documents		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/project-states/options/delete.tsx:67	Django-backed web	projects		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/project-states/state-delete-modal.tsx:67	Django-backed web	projects		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/stickies/delete-modal.tsx:43	Django-backed web	stickies		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/views/delete-view-modal.tsx:63	Django-backed web	views-search		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/web-hooks/delete-webhook-modal.tsx:58	Django-backed web	external-api		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/workspace/views/delete-view-modal.tsx:56	Django-backed web	workspace		OPEN
+dialog-mount	AlertModalCore	apps/web/core/hooks/use-reload-confirmation.tsx:57	Shared router navigation confirmation source owner; native and legacy draft/selection policies	shared-shell	Acceptance: Stay preserves drafts; Leave invokes active policy callbacks and continues SPA/POP navigation; hard reload warns; local legacy Peek dismissal remains OPEN	OPEN
+dialog-mount	AllStickiesModal	apps/web/core/components/stickies/action-bar.tsx:145	Django-backed web	stickies		OPEN
+dialog-mount	ArchiveCycleModal	apps/web/core/components/cycles/quick-actions.tsx:124	Django-backed web	cycles		OPEN
+dialog-mount	ArchiveIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/all-issue.tsx:102	Django-backed web	tasks		OPEN
+dialog-mount	ArchiveIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/cycle-issue.tsx:114	Django-backed web	tasks		OPEN
+dialog-mount	ArchiveIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/issue-detail.tsx:194	Django-backed web	tasks		OPEN
+dialog-mount	ArchiveIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/module-issue.tsx:114	Django-backed web	tasks		OPEN
+dialog-mount	ArchiveIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/project-issue.tsx:116	Django-backed web	tasks		OPEN
+dialog-mount	ArchiveModuleModal	apps/web/core/components/modules/quick-actions.tsx:125	Django-backed web	modules		OPEN
+dialog-mount	ArchiveRestoreDialog	apps/web/core/components/project/archive-restore-modal.tsx:90	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ArchiveRestoreDialog	apps/web/core/components/project/native/operations.tsx:149	Convex project native composition in the preserved shell; full dialog acceptance OPEN	projects		OPEN
+dialog-mount	ArchiveRestoreProjectModal	apps/web/core/components/project/card.tsx:191	Django-backed web	projects		OPEN
+dialog-mount	ArchiveRestoreProjectModal	apps/web/core/components/project/settings/control-section.tsx:45	Django-backed web	projects		OPEN
+dialog-mount	BulkDeleteIssuesModal	apps/web/core/components/modals/work-item-level.tsx:104	Django-backed web	tasks		OPEN
+dialog-mount	ChangeEmailModal	apps/web/core/components/settings/profile/content/pages/general/form.tsx:111	Better Auth account UI	account		OPEN
+dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/gitea/form.tsx:171	Django-backed admin	instance		OPEN
+dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/github/form.tsx:192	Django-backed admin	instance		OPEN
+dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/gitlab/form.tsx:174	Django-backed admin	instance		OPEN
+dialog-mount	ConfirmDiscardModal	apps/admin/app/(all)/(dashboard)/authentication/google/form.tsx:184	Django-backed admin	instance		OPEN
+dialog-mount	CreateApiTokenModal	apps/web/core/components/settings/profile/content/pages/api-tokens.tsx:36	Convex/Better Auth PAT management; external transport open	account	Account Settings management; acceptance: create/copy-once/revoke/expiry and denied roles; secondary external-api transport /api/v1/ remains Django and OPEN	OPEN
+dialog-mount	CreateEstimateModal	apps/web/core/components/estimates/root.tsx:130	Django-backed web	projects		OPEN
+dialog-mount	CreatePageModal	apps/web/core/components/modals/project-level.tsx:57	Django-backed web	documents		OPEN
+dialog-mount	CreateProjectModal	apps/web/app/(all)/[workspaceSlug]/(projects)/extended-project-sidebar.tsx:99	Django-backed web	projects		OPEN
+dialog-mount	CreateProjectModal	apps/web/core/components/modals/workspace-level.tsx:27	Django-backed web	projects		OPEN
+dialog-mount	CreateProjectModal	apps/web/core/components/workspace/sidebar/projects-list.tsx:159	Django-backed web	projects		OPEN
+dialog-mount	CreateUpdateEpicModal	apps/web/core/components/issues/issue-detail-widgets/relations/content.tsx:209	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateEpicModal	apps/web/core/components/issues/issue-layouts/kanban/headers/group-by-card.tsx:90	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateEpicModal	apps/web/core/components/issues/issue-layouts/list/headers/group-by-card.tsx:173	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:253	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:167	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-detail-widgets/relations/content.tsx:222	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-detail-widgets/sub-issues/content.tsx:153	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/kanban/headers/group-by-card.tsx:92	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/list/headers/group-by-card.tsx:175	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/all-issue.tsx:114	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/cycle-issue.tsx:126	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/issue-detail.tsx:212	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/module-issue.tsx:126	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/project-issue.tsx:128	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/modals/work-item-level.tsx:86	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateIssueModal	apps/web/core/components/workspace/sidebar/quick-actions.tsx:72	Django-backed web	tasks		OPEN
+dialog-mount	CreateUpdateModuleLinkModal	apps/web/core/components/modules/analytics-sidebar/root.tsx:173	Django-backed web	modules		OPEN
+dialog-mount	CreateUpdateModuleModal	apps/web/core/components/modals/project-level.tsx:45	Django-backed web	modules		OPEN
+dialog-mount	CreateUpdateModuleModal	apps/web/core/components/modules/quick-actions.tsx:118	Django-backed web	modules		OPEN
+dialog-mount	CreateUpdateProjectViewModal	apps/web/core/components/modals/project-level.tsx:51	Django-backed web	views-search		OPEN
+dialog-mount	CreateUpdateProjectViewModal	apps/web/core/components/views/quick-actions.tsx:91	Django-backed web	views-search		OPEN
+dialog-mount	CreateUpdateProjectViewModal	apps/web/core/components/views/view-list-item-action.tsx:84	Django-backed web	views-search		OPEN
+dialog-mount	CreateUpdateProjectViewModal	apps/web/core/components/work-item-filters/filters-hoc/project-level.tsx:192	Django-backed web	views-search		OPEN
+dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/work-item-filters/filters-hoc/workspace-level.tsx:181	Django-backed web	workspace		OPEN
+dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/header.tsx:94	Django-backed web	workspace		OPEN
+dialog-mount	CreateUpdateWorkspaceViewModal	apps/web/core/components/workspace/views/quick-action.tsx:65	Django-backed web	workspace		OPEN
+dialog-mount	CreateWebhookModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx:68	Django-backed web	external-api		OPEN
+dialog-mount	CreateWorkspaceIssue	apps/web/app/native-workspace.tsx:86	Convex native workspace-held task/draft dialog owner; full acceptance OPEN	tasks	Primitive/wrapper source mount; native creation, draft save/cancel/publish and current permission recovery; full production acceptance OPEN	OPEN
+dialog-mount	CustomizeNavigationDialog	apps/web/core/components/sidebar/sidebar-wrapper.tsx:46	Django-backed web	shared-shell		OPEN
+dialog-mount	CycleCreateUpdateModal	apps/web/core/components/cycles/quick-actions.tsx:117	Django-backed web	cycles		OPEN
+dialog-mount	CycleCreateUpdateModal	apps/web/core/components/modals/project-level.tsx:39	Django-backed web	cycles		OPEN
+dialog-mount	CycleDeleteModal	apps/web/core/components/cycles/quick-actions.tsx:131	Django-backed web	cycles		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/common/filters/created-at.tsx:48	Django-backed web	views-search		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/cycles/dropdowns/filters/end-date.tsx:48	Django-backed web	cycles		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/cycles/dropdowns/filters/start-date.tsx:49	Django-backed web	cycles		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/inbox/inbox-filter/filters/date.tsx:63	Django-backed web	intake		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/issues/issue-layouts/filters/header/filters/due-date.tsx:47	Django-backed web	tasks		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/issues/issue-layouts/filters/header/filters/start-date.tsx:46	Django-backed web	tasks		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/modules/dropdowns/filters/start-date.tsx:50	Django-backed web	modules		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/modules/dropdowns/filters/target-date.tsx:49	Django-backed web	modules		OPEN
+dialog-mount	DateFilterModal	apps/web/core/components/project/dropdowns/filters/created-at.tsx:49	Django-backed web	projects		OPEN
+dialog-mount	DeactivateAccountModal	apps/web/core/components/settings/profile/content/pages/general/form.tsx:110	Convex account UI	account		OPEN
+dialog-mount	DeclineIssueModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:269	Django-backed web	tasks		OPEN
+dialog-mount	DeleteApiTokenModal	apps/web/core/components/api-token/token-list-item.tsx:35	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
+dialog-mount	DeleteEstimateModal	apps/web/core/components/estimates/root.tsx:136	Django-backed web	projects		OPEN
+dialog-mount	DeleteGlobalViewModal	apps/web/core/components/workspace/views/quick-action.tsx:66	Django-backed web	views-search		OPEN
+dialog-mount	DeleteInboxIssueModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:275	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-detail-widgets/relations/content.tsx:164	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-detail-widgets/sub-issues/content.tsx:133	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/kanban/base-kanban-root.tsx:238	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/all-issue.tsx:108	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/archived-issue.tsx:80	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/cycle-issue.tsx:120	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/issue-detail.tsx:203	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/module-issue.tsx:120	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/issues/issue-layouts/quick-action-dropdowns/project-issue.tsx:122	Django-backed web	tasks		OPEN
+dialog-mount	DeleteIssueModal	apps/web/core/components/modals/work-item-level.tsx:94	Django-backed web	tasks		OPEN
+dialog-mount	DeleteLabelModal	apps/web/core/components/labels/project-setting-label-list.tsx:78	Django-backed web	projects		OPEN
+dialog-mount	DeleteModuleModal	apps/web/core/components/modules/quick-actions.tsx:132	Django-backed web	modules		OPEN
+dialog-mount	DeletePageModal	apps/web/core/components/pages/dropdowns/actions.tsx:181	Django-backed web	documents		OPEN
+dialog-mount	DeleteProjectDialog	apps/web/core/components/project/delete-project-modal.tsx:40	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	DeleteProjectDialog	apps/web/core/components/project/native/operations.tsx:124	Convex project native composition in the preserved shell; full dialog acceptance OPEN	projects		OPEN
+dialog-mount	DeleteProjectModal	apps/web/core/components/project/card.tsx:175	Django-backed web	projects		OPEN
+dialog-mount	DeleteProjectModal	apps/web/core/components/project/settings/control-section.tsx:53	Django-backed web	projects		OPEN
+dialog-mount	DeleteProjectViewModal	apps/web/core/components/views/quick-actions.tsx:98	Django-backed web	views-search		OPEN
+dialog-mount	DeleteProjectViewModal	apps/web/core/components/views/view-list-item-action.tsx:92	Django-backed web	views-search		OPEN
+dialog-mount	DeleteWebhookModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx:100	Django-backed web	external-api		OPEN
+dialog-mount	DeleteWorkspaceModal	apps/web/core/components/workspace/delete-workspace-section.tsx:22	Convex workspace lifecycle; retained data	workspace	Flush shared note drafts before revisioned soft deletion	OPEN
+dialog-mount	DescriptionVersionsModal	apps/web/core/components/core/description-versions/root.tsx:75	Django-backed web	documents		OPEN
+dialog-mount	Dialog	apps/admin/app/(all)/(dashboard)/email/test-email-modal.tsx:70	Django-backed admin composition; shared UI primitive	instance	Acceptance: Send a real test email, verify delivery/failure and retry, then dismiss; Resend-only native replacement remains OPEN	OPEN
+dialog-mount	Dialog	apps/admin/components/common/confirm-discard-modal.tsx:23	Django-backed admin composition; shared UI primitive	instance	Acceptance: Keep editing retains unsaved settings; Go back follows the intended destination and discards; pending saves, focus and dismissal	OPEN
+dialog-mount	Dialog	apps/space/components/issues/peek-overview/layout.tsx:66	Django-backed public space composition; shared UI primitive	public-sharing	Acceptance: Open authorized public issue side Peek, preserve board/filter URL on close and validate hidden/denied issue recovery	OPEN
+dialog-mount	Dialog	apps/space/components/issues/peek-overview/layout.tsx:79	Django-backed public space composition; shared UI primitive	public-sharing	Acceptance: Switch modal/full Peek, preserve board/filter URL on close and validate public scope, responsive layout and dismissal	OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx:680	Django-backed web composition; shared UI primitive	resources-mcp	Acceptance: Create/edit credential, preserve secret exposure policy, pending dismissal, permission denial and retry	OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx:192	Convex native Meeting transcript/minutes dialog	meetings	Captured current source/document revisions; Chrome cancel/save/confirm; production OPEN	OPEN
+dialog-mount	Dialog	apps/web/app/(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx:233	Convex native Meeting transcript/minutes dialog	meetings	Captured current source/document revisions; Chrome cancel/save/confirm; production OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/automation/document-generator/document-preview-modal.tsx:49	Django-backed web composition; shared UI primitive	automation	Acceptance: Open generated output, verify content/provenance, acknowledged clipboard copy and actual exported bytes; current download toast is not an export	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/commercial/client-form.tsx:95	Convex native Commercial form; production acceptance OPEN	commercial	Acceptance: Edit/save/cancel client, verify persisted fields, role denial and failure recovery in the deployed layout	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/commercial/opportunity-form.tsx:54	Convex native Commercial form; production acceptance OPEN	commercial	Acceptance: Create opportunity with exact money/client fields, verify selected-route result, validation, cancellation and failure recovery	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/credentials/sensitive-operation.tsx:59	Convex mcp.stepUp/sensitive source candidate	resources-mcp	Acceptance: Password step-up, then authorized reveal/rotate/revoke/remove; denied/replayed proof, pending dismissal and retry; real provider acceptance OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/actions.tsx:115	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/forms.tsx:158	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/forms.tsx:68	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/route.tsx:163	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:157	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:251	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:350	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:136	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:258	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/documents/editor.tsx:260	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/documents/hierarchy.tsx:96	Convex documents.hierarchy.move source candidate	documents	Acceptance: Choose an authorized parent and move with revision proof; cycle/stale/denied recovery, cancel and reactive hierarchy update	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/documents/metadata-form.tsx:202	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:231	Convex favorites.index.create folder source candidate	shared-shell	Acceptance: Create named folder, verify ordered tree publication, permissions, validation, cancellation and retry	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:37	Convex favorites.index.update/lifecycle and reorder.move source candidate	shared-shell	Acceptance: Edit/move/remove favorite with authoritative revision; reject stale/denied writes, preserve pending/error state and navigation target	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/intakes/forms.tsx:201	Convex source candidate; mounting route and full dialog acceptance OPEN	intake		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/modules/overview.tsx:29	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/description-history.tsx:22	Convex tasks.history scoped task/Intake source candidate	tasks	Acceptance: Page versions, preview canonical HTML and restore with revision/capability proof; secondary intake; stale/denied recovery and dismissal	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/lifecycle.tsx:208	Convex tasks.lifecycle.change revisioned source candidate	tasks	Acceptance: Confirm archive/unarchive/delete/restore with canonical receipt; protect dirty drafts and pending navigation, reject stale/denied writes and retry	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/task-detail.tsx:122	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/knowledge/knowledge-detail-modal.tsx:48	Django-backed web composition; shared UI primitive	documents	Acceptance: Open knowledge content/provenance, verify acknowledged clipboard copy and actual download bytes; current download toast is not an export	OPEN
+dialog-mount	Dialog	apps/web/core/components/onboarding/switch-account-modal.tsx:55	Django-backed web composition; shared UI primitive	identity	Acceptance: Cancel retains current account; confirm sign-out revokes backing session, resets appearance and enters another verified account; failed sign-out recovery	OPEN
+dialog-mount	Dialog	apps/web/core/components/power-k/ui/modal/shortcuts-root.tsx:39	Django-backed web composition; shared UI primitive	shared-shell	Acceptance: Open shortcuts from keyboard/menu, read command catalog and restore focus on Escape/backdrop/close; native command parity remains OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/power-k/ui/modal/wrapper.tsx:120	Django-backed web composition; shared UI primitive	shared-shell	Acceptance: Search/select/execute all registered commands, validate permission/navigation and keyboard focus; native command migration remains OPEN	OPEN
+dialog-mount	Dialog	apps/web/core/components/summon/credential-drawer.tsx:145	Django-backed web composition; shared UI primitive	resources-mcp	Acceptance: Read grants/audit, step-up reveal/rotate/delete and grant/revoke; verify denied operations, pending dismissal and error recovery	OPEN
+dialog-mount	Dialog	apps/web/core/components/summon/resources/add-resource-modal.tsx:55	Django-backed web composition; shared UI primitive	resources-mcp	Acceptance: Submit title/URL/project through actual parent save, verify persisted link, validation, cancellation and provider/permission failure	OPEN
+dialog-mount	Dialog	apps/web/core/components/workspace/confirm-workspace-member-remove.tsx:42	Django-backed web composition; shared UI primitive	workspace	Acceptance: Confirm member/invitation removal or self leave; await caller acknowledgement and draft flush, last-admin/denied/failure recovery; secondary projects remain staged	OPEN
+dialog-mount	Dialog	apps/web/core/components/workspace/members/invite-modal.tsx:76	Django-backed web composition; shared UI primitive	workspace	Acceptance: Bulk invite with authoritative roles/max batch, truthful mail availability, per-recipient delivery failure and guarded close; secondary projects and real mail acceptance OPEN	OPEN
+dialog-mount	DocumentPreviewModal	apps/web/core/components/automation/document-generator/automation-root.tsx:133	Django-backed web	views-search		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:177	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:188	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-detail/relation-select.tsx:84	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-layouts/calendar/quick-add-issue-actions.tsx:87	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-layouts/empty-states/cycle.tsx:76	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-layouts/empty-states/module.tsx:70	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-layouts/kanban/headers/group-by-card.tsx:101	Django-backed web	tasks		OPEN
+dialog-mount	ExistingIssuesListModal	apps/web/core/components/issues/issue-layouts/list/headers/group-by-card.tsx:184	Django-backed web	tasks		OPEN
+dialog-mount	ExportPageModal	apps/web/core/components/pages/editor/toolbar/options-dropdown.tsx:129	Django-backed web	documents		OPEN
+dialog-mount	InboxIssueSnoozeModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:281	Django-backed web	tasks		OPEN
+dialog-mount	IssueAttachmentDeleteModal	apps/web/core/components/issues/attachment/attachment-detail.tsx:67	Django-backed web	tasks		OPEN
+dialog-mount	IssueAttachmentDeleteModal	apps/web/core/components/issues/attachment/attachment-item-list.tsx:121	Django-backed web	tasks		OPEN
+dialog-mount	IssueLinkCreateUpdateModal	apps/web/core/components/issues/issue-detail-widgets/issue-detail-widget-modals.tsx:158	Django-backed web	tasks		OPEN
+dialog-mount	IssueLinkCreateUpdateModal	apps/web/core/components/issues/issue-detail/links/root.tsx:116	Django-backed web	tasks		OPEN
+dialog-mount	JoinProjectDialog	apps/web/core/components/project/join-project-modal.tsx:52	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	JoinProjectDialog	apps/web/core/components/project/native/operations.tsx:138	Convex project native composition in the preserved shell; full dialog acceptance OPEN	projects		OPEN
+dialog-mount	JoinProjectModal	apps/web/core/components/project/card.tsx:182	Django-backed web	projects		OPEN
+dialog-mount	KnowledgeDetailModal	apps/web/core/components/knowledge/knowledge-root.tsx:276	Django-backed web	documents		OPEN
+dialog-mount	LeaveProjectModal	apps/web/core/components/navigation/tab-navigation-root.tsx:171	Django-backed web	projects		OPEN
+dialog-mount	LeaveProjectModal	apps/web/core/components/workspace/sidebar/projects-list-item.tsx:281	Django-backed web	projects		OPEN
+dialog-mount	LinkCreateUpdateModal	apps/web/core/components/home/widgets/links/root.tsx:43	Django-backed web	shared-shell		OPEN
+dialog-mount	ManageWidgetsModal	apps/web/core/components/home/home-dashboard-widgets.tsx:84	Django-backed web	shared-shell		OPEN
+dialog-mount	MemberDialog	apps/web/core/components/convex-core/modules/members.tsx:60	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	MemberDialog	apps/web/core/components/convex-core/modules/members.tsx:62	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	ModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx:184	Convex native-session preserved directory	workspace	WorkspaceViewForm uses the generated savedViews workspace create/update owner; verify create, edit, cancel and revision conflicts	OPEN
+dialog-mount	ModalCore	apps/web/app/native-workspace-view-detail.tsx:130	Convex native-session custom Views Add/Edit form	workspace	Generated savedViews.workspace create/update; rich editor parity OPEN	OPEN
+dialog-mount	ModalCore	apps/web/app/native-workspace-views.tsx:205	Convex native-session built-in Views mode	workspace	WorkspaceViewForm Add dialog; full inherited view editor and global commands OPEN	OPEN
+dialog-mount	ModalCore	apps/web/core/components/account/deactivate-account-modal.tsx:76	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/api-token/modal/create-token-modal.tsx:71	Django-backed web composition; shared UI primitive	external-api		OPEN
+dialog-mount	ModalCore	apps/web/core/components/automation/select-month-modal.tsx:48	Django-backed web composition; shared UI primitive	automation		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/actions.tsx:125	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/actions.tsx:133	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/actions.tsx:142	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/actions.tsx:304	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/actions.tsx:88	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/forms.tsx:42	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/links.tsx:101	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/links.tsx:169	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/members.tsx:95	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/properties.tsx:148	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/route-shell.tsx:171	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:173	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:254	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/notifications/notifications.tsx:476	Convex notification mutation; shared dialog primitive	notifications	Custom snooze: future date, failure retained, cancel, accessible title; isolated 2026-10-02 receipt	OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:490	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:720	Convex shared workspace-held native work item project chooser	tasks	Canonical writable project choice and acknowledged address/states open existing CreateProjectIssue; retained dirty form and local project-resource recovery; production parity OPEN	OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:790	Convex native workspace-held task composer; full dialog acceptance OPEN	tasks	Primitive/wrapper mount only; acceptance: staged copy Save/Cancel, atomic Edit, source conflict and current permission recovery; list-row unmount must preserve workspace-held modal	OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/description-versions/modal.tsx:79	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/filters/date-filter-modal.tsx:54	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/modals/bulk-delete-issues-modal.tsx:159	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/modals/change-email-modal.tsx:89	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/modals/existing-issues-list-modal.tsx:139	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/core/modals/user-image-upload-dialog.tsx:94	Django-backed web composition; shared UI primitive	assets		OPEN
+dialog-mount	ModalCore	apps/web/core/components/cycles/archived-cycles/modal.tsx:65	Django-backed web composition; shared UI primitive	cycles		OPEN
+dialog-mount	ModalCore	apps/web/core/components/cycles/modal.tsx:181	Django-backed web composition; shared UI primitive	cycles		OPEN
+dialog-mount	ModalCore	apps/web/core/components/cycles/transfer-issues-modal.tsx:80	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/estimates/create/modal.tsx:145	Django-backed web composition; shared UI primitive	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/estimates/delete/modal.tsx:62	Django-backed web composition; shared UI primitive	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/exporter/export-modal.tsx:107	Django-backed web composition; shared UI primitive	reporting		OPEN
+dialog-mount	ModalCore	apps/web/core/components/global/product-updates/modal.tsx:25	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/home/widgets/links/create-update-link-modal.tsx:71	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/home/widgets/manage/index.tsx:26	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/inbox/modals/create-modal/modal.tsx:34	Django-backed web composition; shared UI primitive	intake		OPEN
+dialog-mount	ModalCore	apps/web/core/components/inbox/modals/select-duplicate.tsx:133	Django-backed web composition; shared UI primitive	intake		OPEN
+dialog-mount	ModalCore	apps/web/core/components/inbox/modals/snooze-issue-modal.tsx:29	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/archive-issue-modal.tsx:71	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/confirm-issue-discard.tsx:37	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/issue-detail/links/create-update-link-modal.tsx:78	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/issue-modal/base.tsx:447	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/issue-modal/draft-issue-layout.tsx:131	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/parent-issues-list-modal.tsx:93	Django-backed web composition; shared UI primitive	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/issues/workspace-draft/root.tsx:184	Convex private Drafts dialog composition; generated owner and revision proof	tasks	Preserved Drafts modal owner; private actor scope, revisioned delete/editor and dirty/pending recovery; full production acceptance OPEN	OPEN
+dialog-mount	ModalCore	apps/web/core/components/license/modal/upgrade-modal.tsx:52	Django-backed web composition; shared UI primitive	instance		OPEN
+dialog-mount	ModalCore	apps/web/core/components/modules/archived-modules/modal.tsx:65	Django-backed web composition; shared UI primitive	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/modules/links/create-update-modal.tsx:86	Django-backed web composition; shared UI primitive	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/modules/modal.tsx:132	Django-backed web composition; shared UI primitive	modules		OPEN
+dialog-mount	ModalCore	apps/web/core/components/navigation/customize-navigation-dialog.tsx:184	Django-backed web composition; shared UI primitive	shared-shell		OPEN
+dialog-mount	ModalCore	apps/web/core/components/pages/modals/create-page-modal.tsx:79	Django-backed web composition; shared UI primitive	documents		OPEN
+dialog-mount	ModalCore	apps/web/core/components/pages/modals/export-page-modal.tsx:206	Django-backed web composition; shared UI primitive	documents		OPEN
+dialog-mount	ModalCore	apps/web/core/components/profile/profile-issues.tsx:87	Convex native Profile task creation project choice; production acceptance OPEN	tasks	Preserved create work item project-choice dialog; generated project address, states and CreateProjectIssue owner; full journey acceptance OPEN	OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/archive-restore-modal.tsx:125	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/confirm-project-member-remove.tsx:56	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/create-project-modal.tsx:80	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/delete-project-modal.tsx:110	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/join-project-modal.tsx:83	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/leave-project-modal.tsx:98	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/multi-select-modal.tsx:90	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/native/create-project-modal.tsx:147	Convex project native composition in the preserved shell; full dialog acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/publish-project/modal.tsx:177	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/project/send-project-invitation-modal.tsx:175	Shared preserved project dialog composition; native Convex and retained legacy consumers; route-wide acceptance OPEN	projects		OPEN
+dialog-mount	ModalCore	apps/web/core/components/settings/profile/modal.tsx:29	Django-backed web composition; shared UI primitive	account		OPEN
+dialog-mount	ModalCore	apps/web/core/components/stickies/modal/index.tsx:17	Django-backed web composition; shared UI primitive	stickies		OPEN
+dialog-mount	ModalCore	apps/web/core/components/stickies/native/surfaces.tsx:156	Convex source candidate; mounting route and full dialog acceptance OPEN	stickies		OPEN
+dialog-mount	ModalCore	apps/web/core/components/views/modal.tsx:86	Django-backed web composition; shared UI primitive	views-search		OPEN
+dialog-mount	ModalCore	apps/web/core/components/web-hooks/create-webhook-modal.tsx:103	Django-backed web composition; shared UI primitive	external-api		OPEN
+dialog-mount	ModalCore	apps/web/core/components/workspace/delete-workspace-modal.tsx:55	Django-backed web composition; shared UI primitive	workspace		OPEN
+dialog-mount	ModalCore	apps/web/core/components/workspace/views/modal.tsx:107	Django-backed web composition; shared UI primitive	workspace		OPEN
+dialog-mount	ModuleActionDialog	apps/web/core/components/convex-core/modules/actions.tsx:101	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModuleFormModal	apps/web/core/components/convex-core/modules/actions.tsx:162	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModuleFormModal	apps/web/core/components/convex-core/modules/actions.tsx:73	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModuleLifecycleDialog	apps/web/core/components/convex-core/modules/actions.tsx:170	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	ModuleLifecycleDialog	apps/web/core/components/convex-core/modules/modules.tsx:233	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
+dialog-mount	ModulePickerDialog	apps/web/core/components/convex-core/modules/route-shell.tsx:89	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	ModuleStatusDialog	apps/web/core/components/convex-core/modules/actions.tsx:160	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
+dialog-mount	NativeCreateProjectModal	apps/web/app/native-workspace.tsx:116	Convex project native composition in the preserved shell; full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:101	Convex project native composition in the preserved shell; full dialog acceptance OPEN	stickies	Mounted once for registered native workspace routes; acceptance: create/open/edit, dirty-draft navigation and flush before leave; cross-route legacy destinations remain OPEN	OPEN
+dialog-mount	PaidPlanUpgradeModal	apps/web/core/components/workspace/edition-badge.tsx:29	Django-backed web	workspace		OPEN
+dialog-mount	ParentIssuesListModal	apps/web/core/components/inbox/modals/create-modal/issue-properties.tsx:223	Django-backed web	tasks		OPEN
+dialog-mount	ParentIssuesListModal	apps/web/core/components/issues/issue-detail/parent-select.tsx:71	Django-backed web	tasks		OPEN
+dialog-mount	ParentIssuesListModal	apps/web/core/components/issues/issue-modal/components/default-properties.tsx:326	Django-backed web	tasks		OPEN
+dialog-mount	ProductUpdatesModal	apps/web/core/components/workspace/sidebar/help-section/root.tsx:24	Django-backed web	workspace		OPEN
+dialog-mount	ProfileAvatarDialog	apps/web/core/components/account/native-entry/profile.tsx:74	Convex account UI	account		OPEN
+dialog-mount	ProfileAvatarDialog	apps/web/core/components/settings/profile/content/pages/general/form.tsx:113	Convex account UI	account		OPEN
+dialog-mount	ProfileSettingsModal	apps/web/core/components/common/modal/global.tsx:34	Convex account UI and Better Auth PAT management	account		OPEN
+dialog-mount	ProfileSettingsModal	apps/web/core/components/workspace/native-shell/account-menu.tsx:47	Convex account UI and Better Auth PAT management	account		OPEN
+dialog-mount	PublishProjectModal	apps/web/core/components/navigation/tab-navigation-root.tsx:170	Django-backed web	projects		OPEN
+dialog-mount	PublishProjectModal	apps/web/core/components/workspace/sidebar/projects-list-item.tsx:280	Django-backed web	projects		OPEN
+dialog-mount	SelectDuplicateInboxIssueModal	apps/web/core/components/inbox/content/inbox-issue-header.tsx:247	Django-backed web	tasks		OPEN
+dialog-mount	SelectMonthModal	apps/web/core/components/automation/auto-archive-automation.tsx:63	Django-backed web	automation		OPEN
+dialog-mount	SelectMonthModal	apps/web/core/components/automation/auto-close-automation.tsx:81	Django-backed web	automation		OPEN
+dialog-mount	SendProjectInvitationModal	apps/web/core/components/project/member-list.tsx:84	Django-backed web	projects		OPEN
+dialog-mount	SendTestEmailModal	apps/admin/app/(all)/(dashboard)/email/email-config-form.tsx:150	Django-backed admin	instance		OPEN
+dialog-mount	SendWorkspaceInvitationModal	apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx:55	Convex workspace invitations source owner in preserved Members screen	workspace	Acceptance: authorized bulk create/send, unavailable-mail manual links, per-recipient delivery failures and pending-close guard; source-only owner, real mail remains OPEN	OPEN
+dialog-mount	SendWorkspaceInvitationModal	apps/web/core/components/convex-core/invitations/manage.tsx:53	Convex generic workspace/project invitation management source owner	workspace	Acceptance: same preserved bulk invitation form in both scopes, authoritative roles, create/manual copy/resend/revoke and truthful delivery failures; secondary projects, real mail remains OPEN	OPEN
+dialog-mount	ShortcutsModal	apps/web/core/components/power-k/global-shortcuts.tsx:82	Django-backed web	shared-shell		OPEN
+dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/native/note.tsx:57	Convex UI	stickies		OPEN
+dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/sticky/root.tsx:77	Django-backed web	stickies		OPEN
+dialog-mount	SwitchAccountModal	apps/web/core/components/onboarding/switch-account-dropdown.tsx:27	Better Auth entry UI	identity		OPEN
+dialog-mount	TaskActionComposer	apps/web/app/native-workspace.tsx:92	Convex native workspace-held task composer; full dialog acceptance OPEN	tasks	Primitive/wrapper mount only; acceptance: staged copy Save/Cancel, atomic Edit, source conflict and current permission recovery; list-row unmount must preserve workspace-held modal	OPEN
+dialog-mount	TransferIssuesModal	apps/web/core/components/cycles/list/cycle-list-item-action.tsx:176	Django-backed web	tasks		OPEN
+dialog-mount	TransferIssuesModal	apps/web/core/components/issues/issue-layouts/roots/cycle-layout-root.tsx:101	Django-backed web	tasks		OPEN
+dialog-mount	UserImageUploadDialog	apps/web/core/components/account/native-entry/avatar.tsx:27	Convex account UI	assets		OPEN
+dialog-mount	UserImageUploadDialog	apps/web/core/components/core/modals/user-image-upload-modal.tsx:26	Django-backed web	assets		OPEN
+dialog-mount	UserImageUploadDialog	apps/web/core/components/core/modals/workspace-image-upload-modal.tsx:37	Convex workspace logo/private assets	workspace	Shared uploader presentation; assets secondary	OPEN
+dialog-mount	ViewLifecycleDialog	apps/web/app/native-workspace-view-detail.tsx:163	Convex native-session custom Views lifecycle composition	workspace	Saved revision snapshot before confirmation; full route acceptance OPEN	OPEN
+dialog-mount	WorkItemsModal	apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/header.tsx:131	Django-backed web	cycles		OPEN
+dialog-mount	WorkItemsModal	apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/mobile-header.tsx:93	Django-backed web	cycles		OPEN
+dialog-mount	WorkItemsModal	apps/web/core/components/issues/filters.tsx:91	Django-backed web	tasks		OPEN
+dialog-mount	WorkspaceDraftEditorModal	apps/web/core/components/issues/workspace-draft/root.tsx:121	Convex private Drafts dialog composition; generated owner and revision proof	tasks	Preserved Drafts modal owner; private actor scope, revisioned delete/editor and dirty/pending recovery; full production acceptance OPEN	OPEN
+dialog-mount	WorkspaceDraftIssueDeleteIssueModal	apps/web/core/components/issues/workspace-draft/root.tsx:112	Convex private Drafts dialog composition; generated owner and revision proof	tasks	Preserved Drafts modal owner; private actor scope, revisioned delete/editor and dirty/pending recovery; full production acceptance OPEN	OPEN
+dialog-mount	WorkspaceImageUploadModal	apps/web/core/components/workspace/settings/workspace-details.tsx:82	Convex workspace logo CAS/private assets	workspace	Own publication receipt; assets secondary	OPEN
+django-conditional-url	/api/schema/	apps/api/plane/urls.py:41	Django	operations	schema | SpectacularAPIView.as_view()	OPEN
+django-conditional-url	/api/schema/redoc/	apps/api/plane/urls.py:47	Django	operations	redoc | SpectacularRedocView.as_view(url_name='schema')	OPEN
+django-conditional-url	/api/schema/swagger-ui/	apps/api/plane/urls.py:42	Django	operations	swagger-ui | SpectacularSwaggerView.as_view(url_name='schema')	OPEN
+django-mount	/	apps/api/plane/urls.py:36	Django	operations	 | include('plane.web.urls')	OPEN
+django-mount	/^__debug__/	apps/api/plane/urls.py:58	Django	operations	 | include(debug_toolbar.urls)	OPEN
+django-mount	/api/	apps/api/plane/urls.py:31	Django	operations	 | include('plane.app.urls')	OPEN
+django-mount	/api/instances/	apps/api/plane/urls.py:33	Django	instance	 | include('plane.license.urls')	OPEN
+django-mount	/api/public/	apps/api/plane/urls.py:32	Django	public-sharing	 | include('plane.space.urls')	OPEN
+django-mount	/api/summon/	apps/api/plane/urls.py:30	Django	operations	 | include('plane.summon.urls')	OPEN
+django-mount	/api/v1/	apps/api/plane/urls.py:34	Django	external-api	 | include('plane.api.urls')	OPEN
+django-mount	/api/v1/workspaces/<str:slug>/	apps/api/plane/api/urls/invite.py:21	Django	external-api	 | include(router.urls)	OPEN
+django-mount	/api/v1/workspaces/<str:slug>/	apps/api/plane/api/urls/sticky.py:15	Django	external-api	 | include(router.urls)	OPEN
+django-mount	/auth/	apps/api/plane/urls.py:35	Django	identity	 | include('plane.authentication.urls')	OPEN
+django-url	/	apps/api/plane/web/urls.py:8	Django	operations	 | health_check	OPEN
+django-url	/api/assets/v2/static/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:74	Django	assets	static-file-asset | StaticFileAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/user-assets/	apps/api/plane/app/urls/asset.py:59	Django	assets	user-file-assets | UserAssetsV2Endpoint.as_view()	OPEN
+django-url	/api/assets/v2/user-assets/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:64	Django	assets	user-file-assets | UserAssetsV2Endpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/	apps/api/plane/app/urls/asset.py:49	Django	assets	workspace-file-assets | WorkspaceFileAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:54	Django	assets	workspace-file-assets | WorkspaceFileAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/check/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:94	Django	assets	asset-check | AssetCheckEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/download/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:104	Django	assets	workspace-asset-download | WorkspaceAssetDownloadEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/duplicate-assets/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:99	Django	assets	duplicate-assets | DuplicateAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/	apps/api/plane/app/urls/asset.py:79	Django	assets	bulk-asset-update | ProjectAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:entity_id>/bulk/	apps/api/plane/app/urls/asset.py:89	Django	assets	bulk-asset-update | ProjectBulkAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:pk>/	apps/api/plane/app/urls/asset.py:84	Django	assets	bulk-asset-update | ProjectAssetEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/download/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:109	Django	assets	project-asset-download | ProjectAssetDownloadEndpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/	apps/api/plane/app/urls/issue.py:137	Django	assets	project-issue-attachments | IssueAttachmentV2Endpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/	apps/api/plane/app/urls/issue.py:142	Django	assets	project-issue-attachments | IssueAttachmentV2Endpoint.as_view()	OPEN
+django-url	/api/assets/v2/workspaces/<str:slug>/restore/<uuid:asset_id>/	apps/api/plane/app/urls/asset.py:69	Django	assets	asset-restore | AssetRestoreEndpoint.as_view()	OPEN
+django-url	/api/instances/	apps/api/plane/license/urls.py:25	Django	instance	instance | InstanceEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/	apps/api/plane/license/urls.py:26	Django	instance	instance-admins | InstanceAdminEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/<uuid:pk>/	apps/api/plane/license/urls.py:38	Django	instance	instance-admins | InstanceAdminEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/me/	apps/api/plane/license/urls.py:27	Django	instance	instance-admins | InstanceAdminUserMeEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/session/	apps/api/plane/license/urls.py:28	Django	instance	instance-admin-session | InstanceAdminUserSessionEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/sign-in/	apps/api/plane/license/urls.py:54	Django	identity	instance-admin-sign-in | InstanceAdminSignInEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/sign-out/	apps/api/plane/license/urls.py:33	Django	instance	instance-admins | InstanceAdminSignOutEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/sign-up-screen-visited/	apps/api/plane/license/urls.py:64	Django	identity	instance-sign-up | SignUpScreenVisitedEndpoint.as_view()	OPEN
+django-url	/api/instances/admins/sign-up/	apps/api/plane/license/urls.py:59	Django	identity	instance-admin-sign-in | InstanceAdminSignUpEndpoint.as_view()	OPEN
+django-url	/api/instances/configurations/	apps/api/plane/license/urls.py:39	Django	instance	instance-configuration | InstanceConfigurationEndpoint.as_view()	OPEN
+django-url	/api/instances/configurations/disable-email-feature/	apps/api/plane/license/urls.py:49	Django	instance	disable-email-configuration | DisableEmailFeatureEndpoint.as_view()	OPEN
+django-url	/api/instances/configurations/test-llm/	apps/api/plane/license/urls.py:44	Django	instance	test-llm-configuration | LLMConnectionTestEndpoint.as_view()	OPEN
+django-url	/api/instances/email-credentials-check/	apps/api/plane/license/urls.py:69	Django	instance	email-credential-check | EmailCredentialCheckEndpoint.as_view()	OPEN
+django-url	/api/instances/workspace-slug-check/	apps/api/plane/license/urls.py:74	Django	instance	instance-workspace-availability | InstanceWorkSpaceAvailabilityCheckEndpoint.as_view()	OPEN
+django-url	/api/instances/workspaces/	apps/api/plane/license/urls.py:79	Django	instance	instance-workspace | InstanceWorkSpaceEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/comments/<uuid:comment_id>/reactions/	apps/api/plane/space/urls/issue.py:42	Django	public-sharing	comment-reactions-project-board | CommentReactionPublicViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/comments/<uuid:comment_id>/reactions/<str:reaction_code>/	apps/api/plane/space/urls/issue.py:47	Django	public-sharing	comment-reactions-project-board | CommentReactionPublicViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/cycles/	apps/api/plane/space/urls/project.py:41	Django	public-sharing	project-cycles | ProjectCyclesEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/intakes/<uuid:intake_id>/inbox-issues/	apps/api/plane/space/urls/intake.py:20	Django	public-sharing	inbox-issue | IntakeIssuePublicViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/intakes/<uuid:intake_id>/intake-issues/	apps/api/plane/space/urls/intake.py:15	Django	public-sharing	intake-issue | IntakeIssuePublicViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/intakes/<uuid:intake_id>/intake-issues/<uuid:pk>/	apps/api/plane/space/urls/intake.py:25	Django	public-sharing	intake-issue | IntakeIssuePublicViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/	apps/api/plane/space/urls/project.py:31	Django	public-sharing	project-deploy-board | ProjectIssuesPublicEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/	apps/api/plane/space/urls/issue.py:17	Django	public-sharing	workspace-project-boards | IssueRetrievePublicEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/comments/	apps/api/plane/space/urls/issue.py:22	Django	public-sharing	issue-comments-project-board | IssueCommentPublicViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/comments/<uuid:pk>/	apps/api/plane/space/urls/issue.py:27	Django	public-sharing	issue-comments-project-board | IssueCommentPublicViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/reactions/	apps/api/plane/space/urls/issue.py:32	Django	public-sharing	issue-reactions-project-board | IssueReactionPublicViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/reactions/<str:reaction_code>/	apps/api/plane/space/urls/issue.py:37	Django	public-sharing	issue-reactions-project-board | IssueReactionPublicViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/issues/<uuid:issue_id>/votes/	apps/api/plane/space/urls/issue.py:52	Django	public-sharing	issue-vote-project-board | IssueVotePublicViewSet.as_view({'get': 'list', 'post': 'create', 'delete': 'destroy'})	OPEN
+django-url	/api/public/anchor/<str:anchor>/labels/	apps/api/plane/space/urls/project.py:56	Django	public-sharing	project-labels | ProjectLabelsEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/members/	apps/api/plane/space/urls/project.py:61	Django	public-sharing	project-members | ProjectMembersEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/meta/	apps/api/plane/space/urls/project.py:21	Django	public-sharing	project-meta | ProjectMetaDataEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/modules/	apps/api/plane/space/urls/project.py:46	Django	public-sharing	project-modules | ProjectModulesEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/settings/	apps/api/plane/space/urls/project.py:26	Django	public-sharing	project-deploy-board-settings | ProjectDeployBoardPublicSettingsEndpoint.as_view()	OPEN
+django-url	/api/public/anchor/<str:anchor>/states/	apps/api/plane/space/urls/project.py:51	Django	public-sharing	project-states | ProjectStatesEndpoint.as_view()	OPEN
+django-url	/api/public/assets/v2/anchor/<str:anchor>/	apps/api/plane/space/urls/asset.py:16	Django	public-sharing	entity-asset | EntityAssetEndpoint.as_view()	OPEN
+django-url	/api/public/assets/v2/anchor/<str:anchor>/<uuid:entity_id>/bulk/	apps/api/plane/space/urls/asset.py:31	Django	public-sharing	entity-bulk-asset | EntityBulkAssetEndpoint.as_view()	OPEN
+django-url	/api/public/assets/v2/anchor/<str:anchor>/<uuid:pk>/	apps/api/plane/space/urls/asset.py:21	Django	public-sharing	entity-asset | EntityAssetEndpoint.as_view()	OPEN
+django-url	/api/public/assets/v2/anchor/<str:anchor>/restore/<uuid:pk>/	apps/api/plane/space/urls/asset.py:26	Django	public-sharing	asset-restore | AssetRestoreEndpoint.as_view()	OPEN
+django-url	/api/public/workspaces/<str:slug>/project-boards/	apps/api/plane/space/urls/intake.py:30	Django	public-sharing	workspace-project-boards | WorkspaceProjectDeployBoardEndpoint.as_view()	OPEN
+django-url	/api/public/workspaces/<str:slug>/projects/<uuid:project_id>/anchor/	apps/api/plane/space/urls/project.py:36	Django	public-sharing	project-deploy-board | WorkspaceProjectAnchorEndpoint.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/	apps/api/plane/summon/urls.py:73	Django	assistant	summon-assistant-conversation-list | assistant_conversation_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/cancel/	apps/api/plane/summon/urls.py:116	Django	assistant	summon-assistant-action-cancel | AssistantActionView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/confirm/	apps/api/plane/summon/urls.py:98	Django	assistant	summon-assistant-action-confirm | AssistantActionView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/retry/	apps/api/plane/summon/urls.py:110	Django	assistant	summon-assistant-action-retry | AssistantActionView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/actions/<uuid:action_id>/select/	apps/api/plane/summon/urls.py:104	Django	assistant	summon-assistant-action-select | AssistantActionView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/attachments/	apps/api/plane/summon/urls.py:88	Django	assistant	summon-assistant-attachment-list | AssistantAttachmentView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/attachments/<uuid:attachment_id>/	apps/api/plane/summon/urls.py:93	Django	assistant	summon-assistant-attachment-detail | AssistantAttachmentDetailView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/messages/	apps/api/plane/summon/urls.py:83	Django	assistant	summon-assistant-message-list | AssistantMessageView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/conversations/<uuid:pk>/	apps/api/plane/summon/urls.py:78	Django	assistant	summon-assistant-conversation-detail | assistant_conversation_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/assistant/query/	apps/api/plane/summon/urls.py:241	Django	assistant	summon-assistant-query | AssistantQueryView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/context/extract/	apps/api/plane/summon/urls.py:211	Django	automation	summon-automation-context-extract | AutomationContextExtractView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/jobs/	apps/api/plane/summon/urls.py:216	Django	automation	summon-automation-job-list | AutomationJobView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/jobs/<uuid:job_id>/	apps/api/plane/summon/urls.py:221	Django	automation	summon-automation-job-detail | AutomationJobDetailView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/jobs/<uuid:job_id>/publish/	apps/api/plane/summon/urls.py:226	Django	automation	summon-automation-job-publish | AutomationPublishView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/templates/	apps/api/plane/summon/urls.py:201	Django	automation	summon-automation-template-list | automation_template_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/automation/templates/<uuid:pk>/	apps/api/plane/summon/urls.py:206	Django	automation	summon-automation-template-detail | automation_template_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/clients/	apps/api/plane/summon/urls.py:138	Django	commercial	summon-client-list | client_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/clients/<uuid:client_id>/contacts/	apps/api/plane/summon/urls.py:140	Django	commercial	summon-client-contact-list | contact_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/clients/<uuid:client_id>/contacts/<uuid:pk>/	apps/api/plane/summon/urls.py:145	Django	commercial	summon-client-contact-detail | contact_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/clients/<uuid:pk>/	apps/api/plane/summon/urls.py:139	Django	commercial	summon-client-detail | client_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/	apps/api/plane/summon/urls.py:246	Django	resources-mcp	summon-credential-list | credential_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:credential_id>/audit/	apps/api/plane/summon/urls.py:272	Django	resources-mcp	summon-credential-audit | CredentialAuditView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/	apps/api/plane/summon/urls.py:262	Django	resources-mcp	summon-credential-grant-list | CredentialGrantView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:credential_id>/grants/<uuid:pk>/	apps/api/plane/summon/urls.py:267	Django	resources-mcp	summon-credential-grant-detail | CredentialGrantDetailView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:credential_id>/reveal/	apps/api/plane/summon/urls.py:252	Django	resources-mcp	summon-credential-reveal | CredentialRevealView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:credential_id>/rotate/	apps/api/plane/summon/urls.py:257	Django	resources-mcp	summon-credential-rotate | CredentialRotateView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/credentials/<uuid:pk>/	apps/api/plane/summon/urls.py:247	Django	resources-mcp	summon-credential-detail | credential_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/home/summary/	apps/api/plane/summon/urls.py:122	Django	shared-shell	summon-home-summary | HomeSummaryView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/meetings/	apps/api/plane/summon/urls.py:176	Django	meetings	summon-meeting-list | meeting_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/meetings/<uuid:meeting_id>/summary/	apps/api/plane/summon/urls.py:178	Django	meetings	summon-meeting-summary | MeetingSummaryView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/meetings/<uuid:meeting_id>/work-items/	apps/api/plane/summon/urls.py:183	Django	tasks	summon-meeting-work-item-list | MeetingWorkItemView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/meetings/<uuid:meeting_id>/work-items/<uuid:pk>/	apps/api/plane/summon/urls.py:188	Django	tasks	summon-meeting-work-item-detail | MeetingWorkItemDetailView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/meetings/<uuid:pk>/	apps/api/plane/summon/urls.py:177	Django	meetings	summon-meeting-detail | meeting_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/opportunities/	apps/api/plane/summon/urls.py:150	Django	commercial	summon-opportunity-list | opportunity_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/opportunities/<uuid:pk>/	apps/api/plane/summon/urls.py:151	Django	commercial	summon-opportunity-detail | opportunity_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/opportunities/<uuid:pk>/delivery/	apps/api/plane/summon/urls.py:161	Django	commercial	summon-opportunity-delivery | OpportunityDeliveryView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/opportunities/<uuid:pk>/transitions/	apps/api/plane/summon/urls.py:156	Django	commercial	summon-opportunity-transition | OpportunityTransitionView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/page-contexts/	apps/api/plane/summon/urls.py:193	Django	documents	summon-page-context-list | page_context_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/page-contexts/<uuid:pk>/	apps/api/plane/summon/urls.py:194	Django	documents	summon-page-context-detail | page_context_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/projects/<uuid:project_id>/overview/	apps/api/plane/summon/urls.py:171	Django	views-search	summon-project-overview | ProjectOverviewView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/projects/<uuid:project_id>/profile/	apps/api/plane/summon/urls.py:166	Django	commercial	summon-project-profile | SummonProjectProfileView.as_view(); projects secondary	OPEN
+django-url	/api/summon/workspaces/<str:slug>/reports/export.csv	apps/api/plane/summon/urls.py:236	Django	reporting	summon-report-export | ReportExportView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/reports/summary/	apps/api/plane/summon/urls.py:231	Django	reporting	summon-report-summary | ReportSummaryView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/resources/	apps/api/plane/summon/urls.py:199	Django	resources-mcp	summon-resource-list | resource_list	OPEN
+django-url	/api/summon/workspaces/<str:slug>/resources/<uuid:pk>/	apps/api/plane/summon/urls.py:200	Django	resources-mcp	summon-resource-detail | resource_detail	OPEN
+django-url	/api/summon/workspaces/<str:slug>/settings/ai-status/	apps/api/plane/summon/urls.py:123	Django	shared-shell	summon-ai-status | LLMStatusView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/settings/mcp-status/	apps/api/plane/summon/urls.py:133	Django	resources-mcp	summon-mcp-status | MCPStatusView.as_view()	OPEN
+django-url	/api/summon/workspaces/<str:slug>/settings/workspace/	apps/api/plane/summon/urls.py:128	Django	workspace	summon-workspace-settings | SummonWorkspaceSettingsView.as_view()	OPEN
+django-url	/api/timezones/	apps/api/plane/app/urls/timezone.py:11	Django	shared-shell	timezone-list | TimezoneEndpoint.as_view()	OPEN
+django-url	/api/unsplash/	apps/api/plane/app/urls/external.py:13	Django	assets	unsplash | UnsplashEndpoint.as_view()	OPEN
+django-url	/api/users/api-tokens/	apps/api/plane/app/urls/api.py:10	Django	external-api	api-tokens | ApiTokenEndpoint.as_view()	OPEN
+django-url	/api/users/api-tokens/<uuid:pk>/	apps/api/plane/app/urls/api.py:15	Django	external-api	api-tokens-details | ApiTokenEndpoint.as_view()	OPEN
+django-url	/api/users/file-assets/	apps/api/plane/app/urls/asset.py:37	Django	assets	user-file-assets | UserAssetsEndpoint.as_view()	OPEN
+django-url	/api/users/file-assets/<str:asset_key>/	apps/api/plane/app/urls/asset.py:38	Django	assets	user-file-assets | UserAssetsEndpoint.as_view()	OPEN
+django-url	/api/users/last-visited-workspace/	apps/api/plane/app/urls/workspace.py:107	Django	workspace	workspace-project-details | UserLastProjectWithWorkspaceEndpoint.as_view()	OPEN
+django-url	/api/users/me/	apps/api/plane/app/urls/user.py:26	Django	account	users | UserEndpoint.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'deactivate'})	OPEN
+django-url	/api/users/me/accounts/	apps/api/plane/app/urls/user.py:51	Django	identity	accounts | AccountEndpoint.as_view()	OPEN
+django-url	/api/users/me/accounts/<uuid:pk>/	apps/api/plane/app/urls/user.py:52	Django	identity	accounts | AccountEndpoint.as_view()	OPEN
+django-url	/api/users/me/activities/	apps/api/plane/app/urls/user.py:65	Django	account	user-activities | UserActivityEndpoint.as_view()	OPEN
+django-url	/api/users/me/email/	apps/api/plane/app/urls/user.py:42	Django	account	user-email-update | UserEndpoint.as_view({'patch': 'update_email'})	OPEN
+django-url	/api/users/me/email/generate-code/	apps/api/plane/app/urls/user.py:37	Django	account	user-email-verify-code | UserEndpoint.as_view({'post': 'generate_email_verification_code'})	OPEN
+django-url	/api/users/me/instance-admin/	apps/api/plane/app/urls/user.py:54	Django	account	users | UserEndpoint.as_view({'get': 'retrieve_instance_admin'})	OPEN
+django-url	/api/users/me/notification-preferences/	apps/api/plane/app/urls/notification.py:47	Django	account	user-notification-preferences | UserNotificationPreferenceEndpoint.as_view()	OPEN
+django-url	/api/users/me/onboard/	apps/api/plane/app/urls/user.py:59	Django	account	user-onboard | UpdateUserOnBoardedEndpoint.as_view()	OPEN
+django-url	/api/users/me/profile/	apps/api/plane/app/urls/user.py:48	Django	account	accounts | ProfileEndpoint.as_view()	OPEN
+django-url	/api/users/me/settings/	apps/api/plane/app/urls/user.py:32	Django	account	users | UserEndpoint.as_view({'get': 'retrieve_user_settings'})	OPEN
+django-url	/api/users/me/tour-completed/	apps/api/plane/app/urls/user.py:60	Django	account	user-tour | UpdateUserTourCompletedEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/	apps/api/plane/app/urls/user.py:67	Django	account	user-workspace | UserWorkSpacesEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/<str:slug>/activity-graph/	apps/api/plane/app/urls/user.py:69	Django	account	user-activity-graph | UserActivityGraphEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/<str:slug>/dashboard/	apps/api/plane/app/urls/user.py:79	Django	account	user-workspace-dashboard | UserWorkspaceDashboardEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/<str:slug>/issues-completed-graph/	apps/api/plane/app/urls/user.py:74	Django	account	completed-graph | UserIssueCompletedGraphEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/<str:slug>/project-roles/	apps/api/plane/app/urls/project.py:67	Django	account	user-project-roles | UserProjectRolesEndpoint.as_view()	OPEN
+django-url	/api/users/me/workspaces/<str:slug>/projects/invitations/	apps/api/plane/app/urls/project.py:62	Django	account	user-project-invitations | UserProjectInvitationsViewset.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/users/me/workspaces/invitations/	apps/api/plane/app/urls/workspace.py:76	Django	account	user-workspace-invitations | UserWorkspaceInvitationsViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/users/session/	apps/api/plane/app/urls/user.py:31	Django	shared-shell	user-session | UserSessionEndpoint.as_view()	OPEN
+django-url	/api/v1/assets/user-assets/	apps/api/plane/api/urls/asset.py:14	Django	external-api	user-assets | UserAssetEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/assets/user-assets/<uuid:asset_id>/	apps/api/plane/api/urls/asset.py:19	Django	external-api	user-assets-detail | UserAssetEndpoint.as_view(http_method_names=['patch', 'delete'])	OPEN
+django-url	/api/v1/assets/user-assets/<uuid:asset_id>/server/	apps/api/plane/api/urls/asset.py:29	Django	external-api	user-server-assets-detail | UserServerAssetEndpoint.as_view(http_method_names=['patch', 'delete'])	OPEN
+django-url	/api/v1/assets/user-assets/server/	apps/api/plane/api/urls/asset.py:24	Django	external-api	user-server-assets | UserServerAssetEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/schema/	apps/api/plane/api/urls/schema.py:13	Django	external-api	schema | SpectacularAPIView.as_view()	OPEN
+django-url	/api/v1/schema/redoc/	apps/api/plane/api/urls/schema.py:19	Django	external-api	redoc | SpectacularRedocView.as_view(url_name='schema')	OPEN
+django-url	/api/v1/schema/swagger-ui/	apps/api/plane/api/urls/schema.py:14	Django	external-api	swagger-ui | SpectacularSwaggerView.as_view(url_name='schema')	OPEN
+django-url	/api/v1/users/me/	apps/api/plane/api/urls/user.py:10	Django	external-api	users | UserEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/assets/	apps/api/plane/api/urls/asset.py:34	Django	external-api	generic-asset | GenericAssetEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/assets/<uuid:asset_id>/	apps/api/plane/api/urls/asset.py:39	Django	external-api	generic-asset-detail | GenericAssetEndpoint.as_view(http_method_names=['get', 'patch'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/issues/<str:project_identifier>-<str:issue_identifier>/	apps/api/plane/api/urls/work_item.py:30	Django	external-api	issue-by-identifier | WorkspaceIssueAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/issues/search/	apps/api/plane/api/urls/work_item.py:25	Django	external-api	issue-search | IssueSearchEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/members-lite/	apps/api/plane/api/urls/member.py:47	Django	external-api	workspace-members-lite | WorkspaceMemberLiteAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/members/	apps/api/plane/api/urls/member.py:42	Django	external-api	workspace-members | WorkspaceMemberAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects-lite/	apps/api/plane/api/urls/project.py:21	Django	external-api	project-lite | ProjectListLiteAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/	apps/api/plane/api/urls/project.py:16	Django	external-api	project | ProjectListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:pk>/	apps/api/plane/api/urls/project.py:26	Django	external-api	project | ProjectDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/archive/	apps/api/plane/api/urls/project.py:31	Django	external-api	project-archive-unarchive | ProjectArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['post', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/	apps/api/plane/api/urls/cycle.py:53	Django	external-api	cycle-archive-unarchive | CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:cycle_id>/unarchive/	apps/api/plane/api/urls/cycle.py:58	Django	external-api	cycle-archive-unarchive | CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/	apps/api/plane/api/urls/module.py:47	Django	external-api	module-archive-list | ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/unarchive/	apps/api/plane/api/urls/module.py:52	Django	external-api	module-unarchive | ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles-lite/	apps/api/plane/api/urls/cycle.py:23	Django	external-api	cycles-lite | CycleListLiteAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/	apps/api/plane/api/urls/cycle.py:18	Django	external-api	cycles | CycleListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/archive/	apps/api/plane/api/urls/cycle.py:48	Django	external-api	cycle-archive-unarchive | CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/	apps/api/plane/api/urls/cycle.py:33	Django	external-api	cycle-issues | CycleIssueListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/<uuid:issue_id>/	apps/api/plane/api/urls/cycle.py:38	Django	external-api	cycle-issues | CycleIssueDetailAPIEndpoint.as_view(http_method_names=['get', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/transfer-issues/	apps/api/plane/api/urls/cycle.py:43	Django	external-api	transfer-issues | TransferCycleIssueAPIEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:pk>/	apps/api/plane/api/urls/cycle.py:28	Django	external-api	cycles | CycleDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/	apps/api/plane/api/urls/estimate.py:14	Django	external-api	project-estimate | ProjectEstimateAPIEndpoint.as_view(http_method_names=['get', 'post', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/	apps/api/plane/api/urls/estimate.py:19	Django	external-api	estimate-point-list-create | EstimatePointListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/<uuid:estimate_point_id>/	apps/api/plane/api/urls/estimate.py:24	Django	external-api	estimate-point-detail | EstimatePointDetailAPIEndpoint.as_view(http_method_names=['patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/	apps/api/plane/api/urls/intake.py:14	Django	external-api	intake-issue | IntakeIssueListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/<uuid:issue_id>/	apps/api/plane/api/urls/intake.py:19	Django	external-api	intake-issue | IntakeIssueDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/	apps/api/plane/api/urls/work_item.py:35	Django	external-api	issue | IssueListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/activities/	apps/api/plane/api/urls/work_item.py:65	Django	external-api	activity | IssueActivityListAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/activities/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:70	Django	external-api	activity | IssueActivityDetailAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/	apps/api/plane/api/urls/work_item.py:55	Django	external-api	comment | IssueCommentListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:60	Django	external-api	comment | IssueCommentDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/	apps/api/plane/api/urls/work_item.py:75	Django	external-api	attachment | IssueAttachmentListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:80	Django	external-api	issue-attachment | IssueAttachmentDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/	apps/api/plane/api/urls/work_item.py:45	Django	external-api	link | IssueLinkListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:50	Django	external-api	link | IssueLinkDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:40	Django	external-api	issue | IssueDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/labels/	apps/api/plane/api/urls/label.py:11	Django	external-api	label | LabelListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/labels/<uuid:pk>/	apps/api/plane/api/urls/label.py:16	Django	external-api	label | LabelDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/members/	apps/api/plane/api/urls/member.py:17	Django	external-api	project-members | ProjectMemberListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/members/<uuid:pk>/	apps/api/plane/api/urls/member.py:22	Django	external-api	project-member | ProjectMemberDetailAPIEndpoint.as_view(http_method_names=['patch', 'delete', 'get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules-lite/	apps/api/plane/api/urls/module.py:22	Django	external-api	modules-lite | ModuleListLiteAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules/	apps/api/plane/api/urls/module.py:17	Django	external-api	modules | ModuleListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-issues/	apps/api/plane/api/urls/module.py:32	Django	external-api	module-issues | ModuleIssueListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-issues/<uuid:issue_id>/	apps/api/plane/api/urls/module.py:37	Django	external-api	module-issues-detail | ModuleIssueDetailAPIEndpoint.as_view(http_method_names=['delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/	apps/api/plane/api/urls/module.py:27	Django	external-api	modules-detail | ModuleDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/archive/	apps/api/plane/api/urls/module.py:42	Django	external-api	module-archive | ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=['post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/project-members-lite/	apps/api/plane/api/urls/member.py:32	Django	external-api	project-members-lite | ProjectMemberLiteAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/project-members/	apps/api/plane/api/urls/member.py:27	Django	external-api	project-members | ProjectMemberListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/project-members/<uuid:pk>/	apps/api/plane/api/urls/member.py:37	Django	external-api	project-member | ProjectMemberDetailAPIEndpoint.as_view(http_method_names=['patch', 'delete', 'get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/states/	apps/api/plane/api/urls/state.py:13	Django	external-api	states | StateListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:state_id>/	apps/api/plane/api/urls/state.py:18	Django	external-api	states | StateDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/summary/	apps/api/plane/api/urls/project.py:36	Django	external-api	project-summary | ProjectSummaryAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/	apps/api/plane/api/urls/work_item.py:99	Django	external-api	work-item-list | IssueListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/activities/	apps/api/plane/api/urls/work_item.py:129	Django	external-api	work-item-activity-list | IssueActivityListAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/activities/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:134	Django	external-api	work-item-activity-detail | IssueActivityDetailAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/attachments/	apps/api/plane/api/urls/work_item.py:139	Django	external-api	work-item-attachment-list | IssueAttachmentListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/attachments/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:144	Django	external-api	work-item-attachment-detail | IssueAttachmentDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/comments/	apps/api/plane/api/urls/work_item.py:119	Django	external-api	work-item-comment-list | IssueCommentListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/comments/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:124	Django	external-api	work-item-comment-detail | IssueCommentDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/links/	apps/api/plane/api/urls/work_item.py:109	Django	external-api	work-item-link-list | IssueLinkListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/links/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:114	Django	external-api	work-item-link-detail | IssueLinkDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/relations/	apps/api/plane/api/urls/work_item.py:149	Django	external-api	work-item-relation-list | IssueRelationListCreateAPIEndpoint.as_view(http_method_names=['get', 'post'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:pk>/	apps/api/plane/api/urls/work_item.py:104	Django	external-api	work-item-detail | IssueDetailAPIEndpoint.as_view(http_method_names=['get', 'patch', 'delete'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/	apps/api/plane/api/urls/work_item.py:94	Django	external-api	work-item-by-identifier | WorkspaceIssueAPIEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/v1/workspaces/<str:slug>/work-items/search/	apps/api/plane/api/urls/work_item.py:89	Django	external-api	work-item-search | IssueSearchEndpoint.as_view(http_method_names=['get'])	OPEN
+django-url	/api/workspace-slug-check/	apps/api/plane/app/urls/workspace.py:43	Django	workspace	workspace-availability | WorkSpaceAvailabilityCheckEndpoint.as_view()	OPEN
+django-url	/api/workspaces/	apps/api/plane/app/urls/workspace.py:48	Django	workspace	workspace | WorkSpaceViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/	apps/api/plane/app/urls/workspace.py:53	Django	workspace	workspace | WorkSpaceViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/advance-analytics-charts/	apps/api/plane/app/urls/analytic.py:70	Django	reporting	advance-analytics-chart | AdvanceAnalyticsChartEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/advance-analytics-stats/	apps/api/plane/app/urls/analytic.py:65	Django	reporting	advance-analytics-stats | AdvanceAnalyticsStatsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/advance-analytics/	apps/api/plane/app/urls/analytic.py:60	Django	reporting	advance-analytics | AdvanceAnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/ai-assistant/	apps/api/plane/app/urls/external.py:19	Django	assistant	importer | WorkspaceGPTIntegrationEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/analytic-view/	apps/api/plane/app/urls/analytic.py:30	Django	views-search	analytic-view | AnalyticViewViewset.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/analytic-view/<uuid:pk>/	apps/api/plane/app/urls/analytic.py:35	Django	views-search	analytic-view | AnalyticViewViewset.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/analytics/	apps/api/plane/app/urls/analytic.py:25	Django	reporting	plane-analytics | AnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/cycles/	apps/api/plane/app/urls/workspace.py:182	Django	cycles	workspace-cycles | WorkspaceCyclesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/default-analytics/	apps/api/plane/app/urls/analytic.py:50	Django	reporting	default-analytics | DefaultAnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/draft-issues/	apps/api/plane/app/urls/workspace.py:202	Django	tasks	workspace-draft-issues | WorkspaceDraftIssueViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/draft-issues/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:207	Django	tasks	workspace-drafts-issues | WorkspaceDraftIssueViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/draft-to-issue/<uuid:draft_id>/	apps/api/plane/app/urls/workspace.py:212	Django	tasks	workspace-drafts-issues | WorkspaceDraftIssueViewSet.as_view({'post': 'create_draft_to_issue'})	OPEN
+django-url	/api/workspaces/<str:slug>/entity-search/	apps/api/plane/app/urls/search.py:22	Django	views-search	entity-search | SearchEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/estimates/	apps/api/plane/app/urls/workspace.py:172	Django	projects	workspace-estimate | WorkspaceEstimatesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/export-analytics/	apps/api/plane/app/urls/analytic.py:45	Django	reporting	export-analytics | ExportAnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/export-issues/	apps/api/plane/app/urls/exporter.py:11	Django	tasks	export-issues | ExportIssuesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/file-assets/	apps/api/plane/app/urls/asset.py:27	Django	assets	file-assets | FileAssetEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/home-preferences/	apps/api/plane/app/urls/workspace.py:229	Django	account	workspace-home-preference | WorkspaceHomePreferenceViewSet.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/home-preferences/<str:key>/	apps/api/plane/app/urls/workspace.py:234	Django	account	workspace-home-preference | WorkspaceHomePreferenceViewSet.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/invitations/	apps/api/plane/app/urls/workspace.py:65	Django	workspace	workspace-invitations | WorkspaceInvitationsViewset.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/invitations/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:70	Django	workspace	workspace-invitations | WorkspaceInvitationsViewset.as_view({'delete': 'destroy', 'get': 'retrieve', 'patch': 'partial_update'})	OPEN
+django-url	/api/workspaces/<str:slug>/invitations/<uuid:pk>/join/	apps/api/plane/app/urls/workspace.py:81	Django	workspace	workspace-join | WorkspaceJoinEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/issues/	apps/api/plane/app/urls/views.py:51	Django	tasks	global-view-issues | WorkspaceViewIssuesViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/labels/	apps/api/plane/app/urls/workspace.py:157	Django	projects	workspace-labels | WorkspaceLabelsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/members/	apps/api/plane/app/urls/workspace.py:87	Django	workspace	workspace-member | WorkSpaceMemberViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/members/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:97	Django	workspace	workspace-member | WorkSpaceMemberViewSet.as_view({'patch': 'partial_update', 'delete': 'destroy', 'get': 'retrieve'})	OPEN
+django-url	/api/workspaces/<str:slug>/members/leave/	apps/api/plane/app/urls/workspace.py:102	Django	workspace	leave-workspace-members | WorkSpaceMemberViewSet.as_view({'post': 'leave'})	OPEN
+django-url	/api/workspaces/<str:slug>/modules/	apps/api/plane/app/urls/workspace.py:177	Django	modules	workspace-modules | WorkspaceModulesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/project-identifiers/	apps/api/plane/app/urls/project.py:47	Django	projects	project-identifiers | ProjectIdentifierEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/project-members/	apps/api/plane/app/urls/workspace.py:92	Django	workspace	workspace-member-roles | WorkspaceProjectMemberEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/project-stats/	apps/api/plane/app/urls/analytic.py:55	Django	projects	project-analytics | ProjectStatsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/	apps/api/plane/app/urls/project.py:25	Django	projects	project | ProjectViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:pk>/	apps/api/plane/app/urls/project.py:35	Django	projects	project | ProjectViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics-charts/	apps/api/plane/app/urls/analytic.py:85	Django	reporting	project-advance-analytics-chart | ProjectAdvanceAnalyticsChartEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics-stats/	apps/api/plane/app/urls/analytic.py:80	Django	reporting	project-advance-analytics-stats | ProjectAdvanceAnalyticsStatsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics/	apps/api/plane/app/urls/analytic.py:75	Django	reporting	project-advance-analytics | ProjectAdvanceAnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/ai-assistant/	apps/api/plane/app/urls/external.py:14	Django	assistant	importer | GPTIntegrationEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archive/	apps/api/plane/app/urls/project.py:122	Django	projects	project-archive-unarchive | ProjectArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/	apps/api/plane/app/urls/cycle.py:86	Django	cycles	cycle-archive-unarchive | CycleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:pk>/	apps/api/plane/app/urls/cycle.py:91	Django	cycles	cycle-archive-unarchive | CycleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archived-issues/	apps/api/plane/app/urls/issue.py:223	Django	tasks	project-issue-archive | IssueArchiveViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/	apps/api/plane/app/urls/module.py:95	Django	modules	module-archive-unarchive | ModuleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/	apps/api/plane/app/urls/module.py:100	Django	modules	module-archive-unarchive | ModuleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/bulk-archive-issues/	apps/api/plane/app/urls/issue.py:98	Django	tasks	bulk-archive-issues | BulkArchiveIssuesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/bulk-create-labels/	apps/api/plane/app/urls/issue.py:88	Django	projects	project-bulk-labels | BulkCreateIssueLabelsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/bulk-delete-issues/	apps/api/plane/app/urls/issue.py:93	Django	tasks	project-issues-bulk | BulkDeleteIssuesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/comments/<uuid:comment_id>/reactions/	apps/api/plane/app/urls/issue.py:204	Django	projects	project-issue-comment-reactions | CommentReactionViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/comments/<uuid:comment_id>/reactions/<str:reaction_code>/	apps/api/plane/app/urls/issue.py:209	Django	projects	project-issue-comment-reactions | CommentReactionViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/	apps/api/plane/app/urls/cycle.py:22	Django	cycles	project-cycle | CycleViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/analytics/	apps/api/plane/app/urls/cycle.py:101	Django	cycles	project-cycle | CycleAnalyticsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/archive/	apps/api/plane/app/urls/cycle.py:81	Django	cycles	cycle-archive-unarchive | CycleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/	apps/api/plane/app/urls/cycle.py:39	Django	tasks	project-issue-cycle | CycleIssueViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/<uuid:issue_id>/	apps/api/plane/app/urls/cycle.py:44	Django	tasks	project-issue-cycle | CycleIssueViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/progress/	apps/api/plane/app/urls/cycle.py:96	Django	cycles	project-cycle | CycleProgressEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/transfer-issues/	apps/api/plane/app/urls/cycle.py:71	Django	tasks	transfer-issues | TransferCycleIssueEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/user-properties/	apps/api/plane/app/urls/cycle.py:76	Django	cycles	cycle-user-filters | CycleUserPropertiesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:pk>/	apps/api/plane/app/urls/cycle.py:27	Django	cycles	project-cycle | CycleViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/cycles/date-check/	apps/api/plane/app/urls/cycle.py:56	Django	cycles	project-cycle-date | CycleDateCheckEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/deleted-issues/	apps/api/plane/app/urls/issue.py:246	Django	tasks	deleted-issues | DeletedIssuesListViewSet.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/	apps/api/plane/app/urls/estimate.py:21	Django	projects	bulk-create-estimate-points | BulkEstimatePointEndpoint.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/	apps/api/plane/app/urls/estimate.py:26	Django	projects	bulk-create-estimate-points | BulkEstimatePointEndpoint.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/	apps/api/plane/app/urls/estimate.py:31	Django	projects	estimate-points | EstimatePointEndpoint.as_view({'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/<estimate_point_id>/	apps/api/plane/app/urls/estimate.py:36	Django	projects	estimate-points | EstimatePointEndpoint.as_view({'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/favorite-pages/<uuid:page_id>/	apps/api/plane/app/urls/page.py:33	Django	documents	user-favorite-pages | PageFavoriteViewSet.as_view({'post': 'create', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/inbox-issues/	apps/api/plane/app/urls/intake.py:46	Django	tasks	inbox-issue | IntakeIssueViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/inbox-issues/<uuid:pk>/	apps/api/plane/app/urls/intake.py:51	Django	tasks	inbox-issue | IntakeIssueViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/inboxes/	apps/api/plane/app/urls/intake.py:36	Django	intake	inbox | IntakeViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/inboxes/<uuid:pk>/	apps/api/plane/app/urls/intake.py:41	Django	intake	inbox | IntakeViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/	apps/api/plane/app/urls/intake.py:26	Django	tasks	intake-issue | IntakeIssueViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/<uuid:pk>/	apps/api/plane/app/urls/intake.py:31	Django	tasks	intake-issue | IntakeIssueViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intake-state/	apps/api/plane/app/urls/state.py:22	Django	intake	intake-state | IntakeStateEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intake-work-items/<uuid:work_item_id>/description-versions/	apps/api/plane/app/urls/intake.py:56	Django	tasks	intake-work-item-versions | IntakeWorkItemDescriptionVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intake-work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/	apps/api/plane/app/urls/intake.py:61	Django	tasks	intake-work-item-versions | IntakeWorkItemDescriptionVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intakes/	apps/api/plane/app/urls/intake.py:16	Django	intake	intake | IntakeViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/intakes/<uuid:pk>/	apps/api/plane/app/urls/intake.py:21	Django	intake	intake | IntakeViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/invitations/	apps/api/plane/app/urls/project.py:52	Django	workspace	project-member-invite | ProjectInvitationsViewset.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/invitations/<uuid:pk>/	apps/api/plane/app/urls/project.py:57	Django	workspace	project-member-invite | ProjectInvitationsViewset.as_view({'get': 'retrieve', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issue-dates/	apps/api/plane/app/urls/issue.py:251	Django	tasks	project-issue-dates | IssueBulkUpdateDateEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/	apps/api/plane/app/urls/issue.py:71	Django	tasks	project-issue-labels | LabelViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/<uuid:pk>/	apps/api/plane/app/urls/issue.py:76	Django	tasks	project-issue-labels | LabelViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues-detail/	apps/api/plane/app/urls/issue.py:47	Django	tasks	project-issue-detail | IssueDetailEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/	apps/api/plane/app/urls/issue.py:42	Django	tasks	project-issue | IssueViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/	apps/api/plane/app/urls/issue.py:156	Django	tasks	project-issue-comment | IssueCommentViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/<uuid:pk>/	apps/api/plane/app/urls/issue.py:161	Django	tasks	project-issue-comment | IssueCommentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/history/	apps/api/plane/app/urls/issue.py:149	Django	tasks	project-issue-history | IssueActivityEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/	apps/api/plane/app/urls/issue.py:126	Django	tasks	project-issue-attachments | IssueAttachmentEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/<uuid:pk>/	apps/api/plane/app/urls/issue.py:131	Django	tasks	project-issue-attachments | IssueAttachmentEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/	apps/api/plane/app/urls/issue.py:109	Django	tasks	project-issue-links | IssueLinkViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/<uuid:pk>/	apps/api/plane/app/urls/issue.py:114	Django	tasks	project-issue-links | IssueLinkViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-relation/	apps/api/plane/app/urls/issue.py:235	Django	tasks	issue-relation | IssueRelationViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-subscribers/	apps/api/plane/app/urls/issue.py:175	Django	tasks	project-issue-subscribers | IssueSubscriberViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-subscribers/<uuid:subscriber_id>/	apps/api/plane/app/urls/issue.py:180	Django	tasks	project-issue-subscribers | IssueSubscriberViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/meta/	apps/api/plane/app/urls/issue.py:276	Django	tasks	issue-meta | IssueMetaEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/modules/	apps/api/plane/app/urls/module.py:36	Django	tasks	issue-module | ModuleIssueViewSet.as_view({'post': 'create_issue_modules'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/	apps/api/plane/app/urls/issue.py:192	Django	tasks	project-issue-reactions | IssueReactionViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/<str:reaction_code>/	apps/api/plane/app/urls/issue.py:197	Django	tasks	project-issue-reactions | IssueReactionViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/remove-relation/	apps/api/plane/app/urls/issue.py:240	Django	tasks	issue-relation | IssueRelationViewSet.as_view({'post': 'remove_relation'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/sub-issues/	apps/api/plane/app/urls/issue.py:104	Django	tasks	sub-issues | SubIssuesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/subscribe/	apps/api/plane/app/urls/issue.py:185	Django	tasks	project-issue-subscribers | IssueSubscriberViewSet.as_view({'get': 'subscription_status', 'post': 'subscribe', 'delete': 'unsubscribe'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/versions/	apps/api/plane/app/urls/issue.py:256	Django	tasks	issue-versions | IssueVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/versions/<uuid:pk>/	apps/api/plane/app/urls/issue.py:261	Django	tasks	issue-versions | IssueVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/	apps/api/plane/app/urls/issue.py:59	Django	tasks	project-issue | IssueViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/archive/	apps/api/plane/app/urls/issue.py:228	Django	tasks	project-issue-archive-unarchive | IssueArchiveViewSet.as_view({'get': 'retrieve', 'post': 'archive', 'delete': 'unarchive'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/issues/list/	apps/api/plane/app/urls/issue.py:37	Django	tasks	project-issue | IssueListEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/join/<uuid:pk>/	apps/api/plane/app/urls/project.py:72	Django	projects	project-join | ProjectJoinEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/members/	apps/api/plane/app/urls/project.py:77	Django	workspace	project-member | ProjectMemberViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/members/<uuid:pk>/	apps/api/plane/app/urls/project.py:82	Django	workspace	project-member | ProjectMemberViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/members/leave/	apps/api/plane/app/urls/project.py:87	Django	workspace	project-member | ProjectMemberViewSet.as_view({'post': 'leave'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/	apps/api/plane/app/urls/module.py:19	Django	modules	project-modules | ModuleViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/archive/	apps/api/plane/app/urls/module.py:90	Django	modules	module-archive-unarchive | ModuleArchiveUnarchiveEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/issues/	apps/api/plane/app/urls/module.py:41	Django	tasks	project-module-issues | ModuleIssueViewSet.as_view({'post': 'create_module_issues', 'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/issues/<uuid:issue_id>/	apps/api/plane/app/urls/module.py:46	Django	tasks	project-module-issues | ModuleIssueViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-links/	apps/api/plane/app/urls/module.py:58	Django	modules	project-issue-module-links | ModuleLinkViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-links/<uuid:pk>/	apps/api/plane/app/urls/module.py:63	Django	modules	project-issue-module-links | ModuleLinkViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/user-properties/	apps/api/plane/app/urls/module.py:85	Django	modules	cycle-user-filters | ModuleUserPropertiesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/	apps/api/plane/app/urls/module.py:24	Django	modules	project-modules | ModuleViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages-summary/	apps/api/plane/app/urls/page.py:17	Django	documents	project-pages-summary | PageViewSet.as_view({'get': 'summary'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/	apps/api/plane/app/urls/page.py:22	Django	documents	project-pages | PageViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/	apps/api/plane/app/urls/page.py:27	Django	documents	project-pages | PageViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/access/	apps/api/plane/app/urls/page.py:51	Django	documents	project-pages-access | PageViewSet.as_view({'post': 'access'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/archive/	apps/api/plane/app/urls/page.py:39	Django	documents	project-page-archive-unarchive | PageViewSet.as_view({'post': 'archive', 'delete': 'unarchive'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/description/	apps/api/plane/app/urls/page.py:56	Django	documents	page-description | PagesDescriptionViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/	apps/api/plane/app/urls/page.py:71	Django	documents	page-duplicate | PageDuplicateEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/lock/	apps/api/plane/app/urls/page.py:45	Django	documents	project-pages-lock-unlock | PageViewSet.as_view({'post': 'lock', 'delete': 'unlock'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/versions/	apps/api/plane/app/urls/page.py:61	Django	documents	page-versions | PageVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/versions/<uuid:pk>/	apps/api/plane/app/urls/page.py:66	Django	documents	page-versions | PageVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/preferences/member/<uuid:member_id>/	apps/api/plane/app/urls/project.py:127	Django	account	project-member-preference | ProjectMemberPreferenceEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/project-deploy-boards/	apps/api/plane/app/urls/project.py:112	Django	projects	project-deploy-board | DeployBoardViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/project-deploy-boards/<uuid:pk>/	apps/api/plane/app/urls/project.py:117	Django	projects	project-deploy-board | DeployBoardViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/project-estimates/	apps/api/plane/app/urls/estimate.py:16	Django	projects	project-estimate-points | ProjectEstimatePointEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/project-members/me/	apps/api/plane/app/urls/project.py:97	Django	workspace	project-member-view | ProjectMemberUserEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/project-views/	apps/api/plane/app/urls/project.py:92	Django	views-search	project-view | ProjectUserViewsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/search-issues/	apps/api/plane/app/urls/search.py:17	Django	tasks	project-issue-search | IssueSearchEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/states/	apps/api/plane/app/urls/state.py:12	Django	projects	project-states | StateViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:pk>/	apps/api/plane/app/urls/state.py:17	Django	projects	project-state | StateViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:pk>/mark-default/	apps/api/plane/app/urls/state.py:27	Django	projects	project-state | StateViewSet.as_view({'post': 'mark_as_default'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-cycles/	apps/api/plane/app/urls/cycle.py:61	Django	cycles	user-favorite-cycle | CycleFavoriteViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-cycles/<uuid:cycle_id>/	apps/api/plane/app/urls/cycle.py:66	Django	cycles	user-favorite-cycle | CycleFavoriteViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-modules/	apps/api/plane/app/urls/module.py:75	Django	modules	user-favorite-module | ModuleFavoriteViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-modules/<uuid:module_id>/	apps/api/plane/app/urls/module.py:80	Django	modules	user-favorite-module | ModuleFavoriteViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-views/	apps/api/plane/app/urls/views.py:56	Django	views-search	user-favorite-view | IssueViewFavoriteViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-views/<uuid:view_id>/	apps/api/plane/app/urls/views.py:61	Django	views-search	user-favorite-view | IssueViewFavoriteViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/user-properties/	apps/api/plane/app/urls/issue.py:216	Django	projects	project-issue-display-properties | ProjectUserDisplayPropertyEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/v2/issues/	apps/api/plane/app/urls/issue.py:54	Django	tasks	project-issues-paginated | IssuePaginatedViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/views/	apps/api/plane/app/urls/views.py:17	Django	views-search	project-view | IssueViewViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/views/<uuid:pk>/	apps/api/plane/app/urls/views.py:22	Django	views-search	project-view | IssueViewViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/	apps/api/plane/app/urls/issue.py:266	Django	tasks	work-item-versions | WorkItemDescriptionVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/	apps/api/plane/app/urls/issue.py:271	Django	tasks	work-item-versions | WorkItemDescriptionVersionEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/projects/details/	apps/api/plane/app/urls/project.py:30	Django	projects	project | ProjectViewSet.as_view({'get': 'list_detail'})	OPEN
+django-url	/api/workspaces/<str:slug>/quick-links/	apps/api/plane/app/urls/workspace.py:218	Django	workspace	workspace-quick-links | QuickLinkViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/quick-links/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:223	Django	workspace	workspace-quick-links | QuickLinkViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/recent-visits/	apps/api/plane/app/urls/workspace.py:239	Django	workspace	workspace-recent-visits | UserRecentVisitViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/saved-analytic-view/<uuid:analytic_id>/	apps/api/plane/app/urls/analytic.py:40	Django	views-search	saved-analytic-view | SavedAnalyticEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/search/	apps/api/plane/app/urls/search.py:12	Django	views-search	global-search | GlobalSearchEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/sidebar-preferences/	apps/api/plane/app/urls/workspace.py:255	Django	account	workspace-user-preference | WorkspaceUserPreferenceViewSet.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/states/	apps/api/plane/app/urls/workspace.py:167	Django	projects	workspace-state | WorkspaceStatesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/stickies/	apps/api/plane/app/urls/workspace.py:244	Django	stickies	workspace-sticky | WorkspaceStickyViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/stickies/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:249	Django	stickies	workspace-sticky | WorkspaceStickyViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/summon/automation-jobs/<uuid:job_id>/render/	apps/api/plane/urls.py:20	Django	automation	summon-automation-job-render | AutomationRenderView.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/summon/generated-artifacts/<uuid:artifact_id>/download/	apps/api/plane/urls.py:25	Django	automation	summon-generated-artifact-download | GeneratedArtifactDownloadView.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-activity/<uuid:user_id>/	apps/api/plane/app/urls/workspace.py:137	Django	workspace	workspace-user-activity | WorkspaceUserActivityEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-activity/<uuid:user_id>/export/	apps/api/plane/app/urls/workspace.py:142	Django	reporting	export-workspace-user-activity | ExportWorkspaceUserActivityEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-favorite-projects/	apps/api/plane/app/urls/project.py:102	Django	projects	project-favorite | ProjectFavoritesViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/user-favorite-projects/<uuid:project_id>/	apps/api/plane/app/urls/project.py:107	Django	projects	project-favorite | ProjectFavoritesViewSet.as_view({'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/user-favorites/	apps/api/plane/app/urls/workspace.py:187	Django	workspace	workspace-user-favorites | WorkspaceFavoriteEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-favorites/<uuid:favorite_id>/	apps/api/plane/app/urls/workspace.py:192	Django	workspace	workspace-user-favorites | WorkspaceFavoriteEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-favorites/<uuid:favorite_id>/group/	apps/api/plane/app/urls/workspace.py:197	Django	workspace	workspace-user-favorites-groups | WorkspaceFavoriteGroupEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-issues/<uuid:user_id>/	apps/api/plane/app/urls/workspace.py:152	Django	tasks	workspace-user-profile-issues | WorkspaceUserProfileIssuesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-profile/<uuid:user_id>/	apps/api/plane/app/urls/workspace.py:147	Django	account	workspace-user-profile-page | WorkspaceUserProfileEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-properties/	apps/api/plane/app/urls/workspace.py:162	Django	workspace	workspace-user-filters | WorkspaceUserPropertiesEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/user-stats/<uuid:user_id>/	apps/api/plane/app/urls/workspace.py:132	Django	workspace	workspace-user-stats | WorkspaceUserProfileStatsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/	apps/api/plane/app/urls/notification.py:17	Django	notifications	notifications | NotificationViewSet.as_view({'get': 'list'})	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/<uuid:pk>/	apps/api/plane/app/urls/notification.py:22	Django	notifications	notifications | NotificationViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/<uuid:pk>/archive/	apps/api/plane/app/urls/notification.py:32	Django	notifications	notifications | NotificationViewSet.as_view({'post': 'archive', 'delete': 'unarchive'})	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/<uuid:pk>/read/	apps/api/plane/app/urls/notification.py:27	Django	notifications	notifications | NotificationViewSet.as_view({'post': 'mark_read', 'delete': 'mark_unread'})	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/mark-all-read/	apps/api/plane/app/urls/notification.py:42	Django	notifications	mark-all-read-notifications | MarkAllReadNotificationViewSet.as_view({'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/users/notifications/unread/	apps/api/plane/app/urls/notification.py:37	Django	notifications	unread-notifications | UnreadNotificationEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/views/	apps/api/plane/app/urls/views.py:34	Django	views-search	global-view | WorkspaceViewViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/views/<uuid:pk>/	apps/api/plane/app/urls/views.py:39	Django	views-search	global-view | WorkspaceViewViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/webhook-logs/<uuid:webhook_id>/	apps/api/plane/app/urls/webhook.py:26	Django	external-api	webhooks | WebhookLogsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/webhooks/	apps/api/plane/app/urls/webhook.py:15	Django	external-api	webhooks | WebhookEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/webhooks/<uuid:pk>/	apps/api/plane/app/urls/webhook.py:16	Django	external-api	webhooks | WebhookEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/webhooks/<uuid:pk>/regenerate/	apps/api/plane/app/urls/webhook.py:21	Django	external-api	webhooks | WebhookSecretRegenerateEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/	apps/api/plane/app/urls/issue.py:281	Django	tasks	issue-detail-identifier | IssueDetailIdentifierEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/workspace-members/me/	apps/api/plane/app/urls/workspace.py:112	Django	workspace	workspace-member-details | WorkspaceMemberUserEndpoint.as_view()	OPEN
+django-url	/api/workspaces/<str:slug>/workspace-themes/	apps/api/plane/app/urls/workspace.py:122	Django	workspace	workspace-themes | WorkspaceThemeViewSet.as_view({'get': 'list', 'post': 'create'})	OPEN
+django-url	/api/workspaces/<str:slug>/workspace-themes/<uuid:pk>/	apps/api/plane/app/urls/workspace.py:127	Django	workspace	workspace-themes | WorkspaceThemeViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})	OPEN
+django-url	/api/workspaces/<str:slug>/workspace-views/	apps/api/plane/app/urls/workspace.py:117	Django	workspace	workspace-member-views-details | WorkspaceMemberUserViewsEndpoint.as_view()	OPEN
+django-url	/api/workspaces/file-assets/<uuid:workspace_id>/<str:asset_key>/	apps/api/plane/app/urls/asset.py:32	Django	workspace	file-assets | FileAssetEndpoint.as_view()	OPEN
+django-url	/api/workspaces/file-assets/<uuid:workspace_id>/<str:asset_key>/restore/	apps/api/plane/app/urls/asset.py:43	Django	workspace	file-assets-restore | FileAssetViewSet.as_view({'post': 'restore'})	OPEN
+django-url	/auth/change-password/	apps/api/plane/authentication/urls.py:138	Django	identity	forgot-password | ChangePasswordEndpoint.as_view()	OPEN
+django-url	/auth/email-check/	apps/api/plane/authentication/urls.py:119	Django	identity	email-check | EmailCheckEndpoint.as_view()	OPEN
+django-url	/auth/forgot-password/	apps/api/plane/authentication/urls.py:122	Django	identity	forgot-password | ForgotPasswordEndpoint.as_view()	OPEN
+django-url	/auth/get-csrf-token/	apps/api/plane/authentication/urls.py:59	Django	identity	get_csrf_token | CSRFTokenEndpoint.as_view()	OPEN
+django-url	/auth/gitea/	apps/api/plane/authentication/urls.py:141	Django	identity	gitea-initiate | GiteaOauthInitiateEndpoint.as_view()	OPEN
+django-url	/auth/gitea/callback/	apps/api/plane/authentication/urls.py:142	Django	identity	gitea-callback | GiteaCallbackEndpoint.as_view()	OPEN
+django-url	/auth/github/	apps/api/plane/authentication/urls.py:93	Django	identity	github-initiate | GitHubOauthInitiateEndpoint.as_view()	OPEN
+django-url	/auth/github/callback/	apps/api/plane/authentication/urls.py:94	Django	identity	github-callback | GitHubCallbackEndpoint.as_view()	OPEN
+django-url	/auth/gitlab/	apps/api/plane/authentication/urls.py:106	Django	identity	gitlab-initiate | GitLabOauthInitiateEndpoint.as_view()	OPEN
+django-url	/auth/gitlab/callback/	apps/api/plane/authentication/urls.py:107	Django	identity	gitlab-callback | GitLabCallbackEndpoint.as_view()	OPEN
+django-url	/auth/google/	apps/api/plane/authentication/urls.py:80	Django	identity	google-initiate | GoogleOauthInitiateEndpoint.as_view()	OPEN
+django-url	/auth/google/callback/	apps/api/plane/authentication/urls.py:81	Django	identity	google-callback | GoogleCallbackEndpoint.as_view()	OPEN
+django-url	/auth/magic-generate/	apps/api/plane/authentication/urls.py:61	Django	identity	magic-generate | MagicGenerateEndpoint.as_view()	OPEN
+django-url	/auth/magic-sign-in/	apps/api/plane/authentication/urls.py:62	Django	identity	magic-sign-in | MagicSignInEndpoint.as_view()	OPEN
+django-url	/auth/magic-sign-up/	apps/api/plane/authentication/urls.py:63	Django	identity	magic-sign-up | MagicSignUpEndpoint.as_view()	OPEN
+django-url	/auth/reset-password/<uidb64>/<token>/	apps/api/plane/authentication/urls.py:123	Django	identity	forgot-password | ResetPasswordEndpoint.as_view()	OPEN
+django-url	/auth/set-password/	apps/api/plane/authentication/urls.py:139	Django	identity	set-password | SetUserPasswordEndpoint.as_view()	OPEN
+django-url	/auth/sign-in/	apps/api/plane/authentication/urls.py:51	Django	identity	sign-in | SignInAuthEndpoint.as_view()	OPEN
+django-url	/auth/sign-out/	apps/api/plane/authentication/urls.py:56	Django	identity	sign-out | SignOutAuthEndpoint.as_view()	OPEN
+django-url	/auth/sign-up/	apps/api/plane/authentication/urls.py:52	Django	identity	sign-up | SignUpAuthEndpoint.as_view()	OPEN
+django-url	/auth/spaces/email-check/	apps/api/plane/authentication/urls.py:120	Django	identity	email-check | EmailCheckSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/forgot-password/	apps/api/plane/authentication/urls.py:128	Django	identity	space-forgot-password | ForgotPasswordSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/gitea/	apps/api/plane/authentication/urls.py:143	Django	identity	space-gitea-initiate | GiteaOauthInitiateSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/gitea/callback/	apps/api/plane/authentication/urls.py:148	Django	identity	space-gitea-callback | GiteaCallbackSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/github/	apps/api/plane/authentication/urls.py:95	Django	identity	space-github-initiate | GitHubOauthInitiateSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/github/callback/	apps/api/plane/authentication/urls.py:100	Django	identity	space-github-callback | GitHubCallbackSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/gitlab/	apps/api/plane/authentication/urls.py:108	Django	identity	space-gitlab-initiate | GitLabOauthInitiateSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/gitlab/callback/	apps/api/plane/authentication/urls.py:113	Django	identity	space-gitlab-callback | GitLabCallbackSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/google/	apps/api/plane/authentication/urls.py:82	Django	identity	space-google-initiate | GoogleOauthInitiateSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/google/callback/	apps/api/plane/authentication/urls.py:87	Django	identity	space-google-callback | GoogleCallbackSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/magic-generate/	apps/api/plane/authentication/urls.py:64	Django	identity	space-magic-generate | MagicGenerateSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/magic-sign-in/	apps/api/plane/authentication/urls.py:69	Django	identity	space-magic-sign-in | MagicSignInSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/magic-sign-up/	apps/api/plane/authentication/urls.py:74	Django	identity	space-magic-sign-up | MagicSignUpSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/reset-password/<uidb64>/<token>/	apps/api/plane/authentication/urls.py:133	Django	identity	space-forgot-password | ResetPasswordSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/sign-in/	apps/api/plane/authentication/urls.py:53	Django	identity	space-sign-in | SignInAuthSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/sign-out/	apps/api/plane/authentication/urls.py:57	Django	identity	space-sign-out | SignOutAuthSpaceEndpoint.as_view()	OPEN
+django-url	/auth/spaces/sign-up/	apps/api/plane/authentication/urls.py:54	Django	identity	space-sign-up | SignUpAuthSpaceEndpoint.as_view()	OPEN
+django-url	/robots.txt	apps/api/plane/web/urls.py:8	Django	operations	 | robots_txt	OPEN
+native-action-mount	ContextMenu | Private draft actions	apps/web/core/components/issues/workspace-draft/quick-action.tsx:39	Convex private Drafts generated command owner; full menu acceptance OPEN	tasks	Edit, Copy, Move and Delete share native private-draft actions; keyboard/context menu and retained dirty editor acceptance OPEN	OPEN
+native-action-mount	ContextMenu | Work item actions	apps/web/core/components/convex-core/tasks/lifecycle.tsx:198	Convex preserved task action composition; full menu acceptance OPEN	tasks	Menu and ContextMenu share canonical action items: Edit, Make a copy, Open in new tab, Copy link and permission-gated lifecycle choices; generated task capability and workspace action context own availability; secondary Profile/Cycle/Module consumers. Acceptance: keyboard/right-click choice, dirty modal recovery and inaccessible/stale source denial.	OPEN
+native-action-mount	Menu | Peek layout	apps/web/core/components/convex-core/tasks/task-detail.tsx:151	Convex preserved task action composition; full menu acceptance OPEN	tasks	Preserved task peek layout selector; acceptance: keyboard choice and modal layout persistence. Static menu mount, not a global command identifier.	OPEN
+native-action-mount	Menu | Private draft actions	apps/web/core/components/issues/workspace-draft/quick-action.tsx:34	Convex private Drafts generated command owner; full menu acceptance OPEN	tasks	Edit, Copy, Move and Delete share native private-draft actions; keyboard/context menu and retained dirty editor acceptance OPEN	OPEN
+native-action-mount	Menu | Work item actions	apps/web/core/components/convex-core/tasks/lifecycle.tsx:190	Convex preserved task action composition; full menu acceptance OPEN	tasks	Menu and ContextMenu share canonical action items: Edit, Make a copy, Open in new tab, Copy link and permission-gated lifecycle choices; generated task capability and workspace action context own availability; secondary Profile/Cycle/Module consumers. Acceptance: keyboard/right-click choice, dirty modal recovery and inaccessible/stale source denial.	OPEN
+native-command-mount	Implicit cmdk labels from workspaceCommands[].label: create_work_item, nav_summon_tasks, nav_workspace_drafts, create_project, open_project, nav_projects_list, create_summon_client, nav_summon_clients, create_summon_opportunity, nav_summon_opportunities, create_summon_meeting, nav_summon_meetings	apps/web/core/components/workspace/native-shell/commands.tsx:245	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	shared-shell	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: ""Load more modules"""	apps/web/core/components/convex-core/modules/route-shell.tsx:195	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Literal value	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t( state.isFavorite ? ""power_k.contextual_actions.module.remove_from_favorites"" : ""power_k.contextual_actions.module.add_to_favorites"" )}"	apps/web/core/components/convex-core/modules/actions.tsx:257	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t(""power_k.contextual_actions.module.add_remove_members"")}"	apps/web/core/components/convex-core/modules/actions.tsx:234	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t(""power_k.contextual_actions.module.change_status"")}"	apps/web/core/components/convex-core/modules/actions.tsx:242	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t(""power_k.contextual_actions.module.copy_url"")}"	apps/web/core/components/convex-core/modules/actions.tsx:273	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t(""power_k.creation_actions.create_module"")}"	apps/web/core/components/convex-core/modules/route-shell.tsx:120	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"Implicit cmdk rendered label: {t(""power_k.navigation_actions.open_project_module"")}"	apps/web/core/components/convex-core/modules/route-shell.tsx:129	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	Native chooser | items: {cycles.results} | label: {(item) => item.name} | value: {(item) => `${item._id}-${item.name}`}	apps/web/core/components/convex-core/cycles/route.tsx:187	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	cycles	PowerKMenuBuilder | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	Native chooser | items: {results.filter((project) => project.joined)} | label: {(project) => project.name} | value: {(project) => project.name}	apps/web/core/components/workspace/native-shell/commands.tsx:291	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	shared-shell	PowerKMenuBuilder | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"{`copy_cycle_url ${t(""power_k.contextual_actions.cycle.copy_url"")}`}"	apps/web/core/components/convex-core/cycles/overview.tsx:61	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	cycles	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"{`create_cycle ${t(""power_k.creation_actions.create_cycle"")}`}"	apps/web/core/components/convex-core/cycles/route.tsx:60	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	cycles	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"{`open_project_cycle ${t(""power_k.navigation_actions.open_project_cycle"")}`}"	apps/web/core/components/convex-core/cycles/route.tsx:70	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	cycles	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	"{`toggle_cycle_favorite ${t(state.isFavorite ? ""power_k.contextual_actions.cycle.remove_from_favorites"" : ""power_k.contextual_actions.cycle.add_to_favorites"")}`}"	apps/web/core/components/convex-core/cycles/overview.tsx:44	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	cycles	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+native-command-mount	{module.name}	apps/web/core/components/convex-core/modules/route-shell.tsx:186	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
+scheduled-job	Delete expired native authentication rate limits	apps/convex/convex/crons.ts:8	Convex	identity	internal.better_auth.expireRateLimits	OPEN
+scheduled-job	Delete expired notification read batches	apps/convex/convex/crons.ts:6	Convex	notifications		OPEN
+scheduled-job	Delete unclaimed storage blobs	apps/convex/convex/crons.ts:5	Convex	operations		OPEN
+scheduled-job	Expire unfinished asset uploads	apps/convex/convex/crons.ts:4	Convex	assets		OPEN
+scheduled-job	Prune document history	apps/convex/convex/crons.ts:15	Convex	documents	internal.documents.history.prune	OPEN
+scheduled-job	Prune task description history	apps/convex/convex/crons.ts:16	Convex	tasks	internal.tasks.history.prune	OPEN
+scheduled-job	check-every-day-to-archive-and-close	apps/api/plane/celery.py:59	Celery/Django	tasks	plane.bgtasks.issue_automation_task.archive_and_close_old_issues	OPEN
+scheduled-job	check-every-day-to-delete-api-logs	apps/api/plane/celery.py:71	Celery/Django	operations	plane.bgtasks.cleanup_task.delete_api_logs	OPEN
+scheduled-job	check-every-day-to-delete-email-notification-logs	apps/api/plane/celery.py:75	Celery/Django	notifications	plane.bgtasks.cleanup_task.delete_email_notification_logs	OPEN
+scheduled-job	check-every-day-to-delete-exporter-history	apps/api/plane/celery.py:91	Celery/Django	reporting	plane.bgtasks.exporter_expired_task.delete_old_s3_link	OPEN
+scheduled-job	check-every-day-to-delete-file-asset	apps/api/plane/celery.py:67	Celery/Django	assets	plane.bgtasks.file_asset_task.delete_unuploaded_file_asset	OPEN
+scheduled-job	check-every-day-to-delete-hard-delete	apps/api/plane/celery.py:55	Celery/Django	operations	plane.bgtasks.deletion_task.hard_delete	OPEN
+scheduled-job	check-every-day-to-delete-issue-description-versions	apps/api/plane/celery.py:83	Celery/Django	tasks	plane.bgtasks.cleanup_task.delete_issue_description_versions	OPEN
+scheduled-job	check-every-day-to-delete-page-versions	apps/api/plane/celery.py:79	Celery/Django	documents	plane.bgtasks.cleanup_task.delete_page_versions	OPEN
+scheduled-job	check-every-day-to-delete-webhook-logs	apps/api/plane/celery.py:87	Celery/Django	external-api	plane.bgtasks.cleanup_task.delete_webhook_logs	OPEN
+scheduled-job	check-every-day-to-delete_exporter_history	apps/api/plane/celery.py:63	Celery/Django	reporting	plane.bgtasks.exporter_expired_task.delete_old_s3_link	OPEN
+scheduled-job	check-every-five-minutes-to-send-email-notifications	apps/api/plane/celery.py:46	Celery/Django	notifications	plane.bgtasks.email_notification_task.stack_email_notification	OPEN
+scheduled-job	push-instance-metrics	apps/api/plane/celery.py:50	Celery/Django	instance	plane.license.bgtasks.telemetry_metrics.push_instance_metrics	OPEN
+web-index	/	apps/admin/app/routes.ts:11	Django-backed admin	instance	./(all)/(home)/page.tsx	OPEN
+web-index	/	apps/space/app/routes.ts:11	Django-backed public space	public-sharing	./page.tsx	OPEN
+web-index	/	apps/web/app/routes.ts:24	Better Auth/Convex entry	identity	./(home)/page.tsx	OPEN
+web-route	/*	apps/admin/app/routes.ts:26	Django-backed admin	instance	./components/404.tsx	OPEN
+web-route	/*	apps/space/app/routes.ts:15	Django-backed public space	public-sharing	./not-found.tsx	OPEN
+web-route	/*	apps/web/app/routes.ts:209	Django-backed web	operations	./not-found.tsx	OPEN
+web-route	/:workspaceSlug	apps/web/app/routes/core.ts:29	Django-backed web	workspace	./(all)/[workspaceSlug]/(projects)/page.tsx	OPEN
+web-route	/:workspaceSlug/:projectId	apps/space/app/routes.ts:12	Django-backed public space	public-sharing	./[workspaceSlug]/[projectId]/page.tsx	OPEN
+web-route	/:workspaceSlug/active-cycles	apps/web/app/routes/core.ts:33	Django-backed web	cycles	./(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx	OPEN
+web-route	/:workspaceSlug/analytics	apps/web/app/routes/core.ts:189	Django-backed web	reporting	routes/redirects/core/analytics.tsx	OPEN
+web-route	/:workspaceSlug/analytics/:tabId	apps/web/app/routes/core.ts:38	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx	OPEN
+web-route	/:workspaceSlug/browse/:workItem	apps/web/app/routes.ts:95	Convex task/address source candidate in preserved shell; legacy profile/project destinations remain OPEN	views-search	./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx	OPEN
+web-route	/:workspaceSlug/drafts	apps/web/app/routes.ts:52	Convex native-session preserved private Drafts list, inline properties and modal editor	tasks	./(all)/[workspaceSlug]/(projects)/drafts/page.tsx; native workspace/session owner; generated task/draft journeys and global commands; full production parity OPEN	OPEN
+web-route	/:workspaceSlug/notifications	apps/web/app/routes.ts:59	Convex shared session; preserved Inbox shell	notifications	./(all)/[workspaceSlug]/(projects)/notifications/page.tsx; isolated 2026-10-02 receipt, broader notifications acceptance OPEN	OPEN
+web-route	/:workspaceSlug/profile/:userId	apps/web/app/routes.ts:61	Convex native-session preserved Profile shell; production acceptance OPEN	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx; generated subject, exact authorized summaries, viewer filters and native task controls; five journeys: overview/assigned/created/subscribed/activity; production parity OPEN	OPEN
+web-route	/:workspaceSlug/profile/:userId/:profileViewId	apps/web/app/routes.ts:62	Convex native-session preserved Profile shell; production acceptance OPEN	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx; generated subject, exact authorized summaries, viewer filters and native task controls; five journeys: overview/assigned/created/subscribed/activity; production parity OPEN	OPEN
+web-route	/:workspaceSlug/profile/:userId/activity	apps/web/app/routes.ts:66	Convex native-session preserved Profile shell; production acceptance OPEN	account	./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx; generated subject, exact authorized summaries, viewer filters and native task controls; five journeys: overview/assigned/created/subscribed/activity; production parity OPEN	OPEN
+web-route	/:workspaceSlug/projects	apps/web/app/routes.ts:88	Convex preserved Projects active/archive/Trash directory, captured creation/lifecycle and scoped commands; full inherited parity OPEN	projects	./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/cycles	apps/web/app/routes.ts:141	Convex registered Cycles list/detail/archive, native forms/assignments/transfer/recovery and scoped commands in preserved shell; full inherited parity OPEN	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/issues	apps/web/app/routes/core.ts:84	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/issues/:archivedIssueId	apps/web/app/routes/core.ts:92	Django-backed web	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/archives/modules	apps/web/app/routes.ts:148	Convex registered Modules list/detail/archive, native forms/assignments/roster/links/recovery and scoped commands in preserved shell; full inherited parity OPEN	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/automation	apps/web/app/routes/core.ts:74	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/cycles	apps/web/app/routes.ts:120	Convex registered Cycles list/detail/archive, native forms/assignments/transfer/recovery and scoped commands in preserved shell; full inherited parity OPEN	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/cycles/:cycleId	apps/web/app/routes.ts:113	Convex registered Cycles list/detail/archive, native forms/assignments/transfer/recovery and scoped commands in preserved shell; full inherited parity OPEN	cycles	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/inbox	apps/web/app/routes/core.ts:197	Django-backed web	intake	routes/redirects/core/inbox.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/intake	apps/web/app/routes.ts:97	Convex scoped Intake source candidate in preserved shell; feature settings destination remains Django	intake	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/issues	apps/web/app/routes.ts:102	Convex project task list/create/Peek/canonical row lifecycle actions and scoped raw-ID alias in preserved shell; broader layouts/dialogs/commands OPEN	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/issues/:issueId	apps/web/app/routes.ts:107	Convex project task list/create/Peek/canonical row lifecycle actions and scoped raw-ID alias in preserved shell; broader layouts/dialogs/commands OPEN	tasks	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/modules	apps/web/app/routes.ts:134	Convex registered Modules list/detail/archive, native forms/assignments/roster/links/recovery and scoped commands in preserved shell; full inherited parity OPEN	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/modules/:moduleId	apps/web/app/routes.ts:127	Convex registered Modules list/detail/archive, native forms/assignments/roster/links/recovery and scoped commands in preserved shell; full inherited parity OPEN	modules	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/pages	apps/web/app/routes.ts:154	Convex preserved Pages list/editor, native canonical snapshots/history and scoped address owner; remaining dialogs/commands/roles OPEN	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/pages/:pageId	apps/web/app/routes.ts:158	Convex preserved Pages list/editor, native canonical snapshots/history and scoped address owner; remaining dialogs/commands/roles OPEN	documents	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/settings/*	apps/web/app/routes/core.ts:186	Django-backed web	projects	routes/redirects/core/project-settings.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/views	apps/web/app/routes/core.ts:66	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/:projectId/views/:viewId	apps/web/app/routes/core.ts:58	Django-backed web	views-search	./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx	OPEN
+web-route	/:workspaceSlug/projects/archives	apps/web/app/routes.ts:89	Convex preserved Projects active/archive/Trash directory, captured creation/lifecycle and scoped commands; full inherited parity OPEN	projects	./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx	OPEN
+web-route	/:workspaceSlug/settings	apps/web/app/routes.ts:199	Convex workspace General in preserved shell	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/account/*	apps/web/app/routes/core.ts:214	Django shell; redirect to Convex account UI	shared-shell	routes/redirects/core/workspace-account-settings.tsx	OPEN
+web-route	/:workspaceSlug/settings/api-tokens	apps/web/app/routes/core.ts:193	Django shell; redirect to Convex account UI	external-api	routes/redirects/core/api-tokens.tsx	OPEN
+web-route	/:workspaceSlug/settings/billing	apps/web/app/routes/core.ts:108	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/exports	apps/web/app/routes/core.ts:112	Django-backed web	reporting	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/members	apps/web/app/routes.ts:200	Convex Members/invitations source owner in preserved settings shell; profile destination remains Django	workspace	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects	apps/web/app/routes/core.ts:132	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId	apps/web/app/routes/core.ts:135	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/automations	apps/web/app/routes/core.ts:161	Django-backed web	automation	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/estimates	apps/web/app/routes/core.ts:155	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/cycles	apps/web/app/routes.ts:179	Convex preserved project feature settings, generated address/CAS owner and scoped Chrome recovery; full project/feature family OPEN	cycles	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/cycles/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/intake	apps/web/app/routes.ts:195	Convex preserved project feature settings, generated address/CAS owner and scoped Chrome recovery; full project/feature family OPEN	intake	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/modules	apps/web/app/routes.ts:183	Convex preserved project feature settings, generated address/CAS owner and scoped Chrome recovery; full project/feature family OPEN	modules	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/pages	apps/web/app/routes.ts:191	Convex preserved project feature settings, generated address/CAS owner and scoped Chrome recovery; full project/feature family OPEN	documents	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/features/views	apps/web/app/routes.ts:187	Convex preserved project feature settings, generated address/CAS owner and scoped Chrome recovery; full project/feature family OPEN	views-search	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/views/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/labels	apps/web/app/routes/core.ts:150	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/labels/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/members	apps/web/app/routes/core.ts:140	Django-backed web	workspace	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/projects/:projectId/states	apps/web/app/routes/core.ts:145	Django-backed web	projects	./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/webhooks	apps/web/app/routes/core.ts:116	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx	OPEN
+web-route	/:workspaceSlug/settings/webhooks/:webhookId	apps/web/app/routes/core.ts:120	Django-backed web	external-api	./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx	OPEN
+web-route	/:workspaceSlug/stickies	apps/web/app/routes.ts:71	Convex (SUMMON_STICKIES_ROUTE_OWNER=convex)	stickies	./native-stickies.tsx	OPEN
+web-route	/:workspaceSlug/stickies	apps/web/app/routes/core.ts:46	Django (SUMMON_STICKIES_ROUTE_OWNER=legacy)	stickies	./(all)/[workspaceSlug]/(projects)/stickies/page.tsx	OPEN
+web-route	/:workspaceSlug/summon	apps/web/app/routes/extended.ts:17	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/assistant	apps/web/app/routes/extended.ts:27	Django-backed web	assistant	./(all)/[workspaceSlug]/(projects)/summon/assistant/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/automation	apps/web/app/routes/extended.ts:25	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/automation/:jobId	apps/web/app/routes/extended.ts:26	Django-backed web	automation	./(all)/[workspaceSlug]/(projects)/summon/automation/[jobId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/clients	apps/web/app/routes.ts:164	Convex native-session preserved Commercial directory/detail; production acceptance OPEN	commercial	./(all)/[workspaceSlug]/(projects)/summon/clients/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/clients/:clientId	apps/web/app/routes.ts:165	Convex native-session preserved Commercial directory/detail; production acceptance OPEN	commercial	./(all)/[workspaceSlug]/(projects)/summon/clients/[clientId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/credentials	apps/web/app/routes/extended.ts:28	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/documents	apps/web/app/routes/extended.ts:20	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/documents/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/knowledge	apps/web/app/routes/extended.ts:21	Django-backed web	documents	./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/meetings	apps/web/app/routes.ts:54	Convex native session in preserved Meeting shell; scoped local acceptance	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/page.tsx | directory schedule/task linking; detail recording/transcript/minutes; production OPEN	OPEN
+web-route	/:workspaceSlug/summon/meetings/:meetingId	apps/web/app/routes.ts:55	Convex native session in preserved Meeting shell; scoped local acceptance	meetings	./(all)/[workspaceSlug]/(projects)/summon/meetings/[meetingId]/page.tsx | directory schedule/task linking; detail recording/transcript/minutes; production OPEN	OPEN
+web-route	/:workspaceSlug/summon/notifications	apps/web/app/routes/extended.ts:24	Django-backed web	notifications	./(all)/[workspaceSlug]/(projects)/summon/notifications/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/opportunities	apps/web/app/routes.ts:169	Convex native-session preserved Commercial directory/detail; production acceptance OPEN	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/opportunities/:opportunityId	apps/web/app/routes.ts:173	Convex native-session preserved Commercial directory/detail; production acceptance OPEN	commercial	./(all)/[workspaceSlug]/(projects)/summon/opportunities/[opportunityId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/projects	apps/web/app/routes/extended.ts:18	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/projects/:projectId	apps/web/app/routes/extended.ts:19	Django-backed web	projects	./(all)/[workspaceSlug]/(projects)/summon/projects/[projectId]/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/reports	apps/web/app/routes/extended.ts:22	Django-backed web	reporting	./(all)/[workspaceSlug]/(projects)/summon/reports/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/resources	apps/web/app/routes/extended.ts:23	Django-backed web	resources-mcp	./(all)/[workspaceSlug]/(projects)/summon/resources/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/settings	apps/web/app/routes/extended.ts:29	Django-backed web	shared-shell	./(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx	OPEN
+web-route	/:workspaceSlug/summon/tasks	apps/web/app/routes.ts:50	Convex native-session preserved Task Center dashboard/table	tasks	./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx; native workspace/session owner; generated task/draft journeys and global commands; full production parity OPEN	OPEN
+web-route	/:workspaceSlug/workspace-views	apps/web/app/routes.ts:72	Convex native-session preserved directory; custom detail, complete commands and Trash restore remain OPEN	workspace	./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/:globalViewId	apps/web/app/routes.ts:85	Convex native-session preserved custom Views detail; rich layouts/filters, project Views and global commands OPEN	workspace	./native-workspace-view-detail.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/all-issues	apps/web/app/routes.ts:73	Convex native-session preserved All Issues; other inherited Views paths and full commands remain OPEN	workspace	./native-workspace-views.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/assigned	apps/web/app/routes.ts:76	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/created	apps/web/app/routes.ts:79	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
+web-route	/:workspaceSlug/workspace-views/subscribed	apps/web/app/routes.ts:82	Convex native-session built-in Views mode; rich layout/filter/detail and global-command parity OPEN	workspace	./native-workspace-views.tsx	OPEN
+web-route	/accounts/forgot-password	apps/web/app/routes.ts:31	Better Auth/Convex entry	identity	./(all)/accounts/forgot-password/page.tsx	OPEN
+web-route	/accounts/reset-password	apps/web/app/routes.ts:34	Better Auth/Convex entry	identity	./(all)/accounts/reset-password/page.tsx	OPEN
+web-route	/accounts/set-password	apps/web/app/routes.ts:37	Better Auth/Convex entry	identity	./(all)/accounts/set-password/page.tsx	OPEN
+web-route	/accounts/sign-up	apps/web/app/routes/core.ts:200	Django shell; redirect to Convex entry	identity	routes/redirects/core/accounts-signup.tsx	OPEN
+web-route	/ai	apps/admin/app/routes.ts:22	Django-backed admin	instance	./(all)/(dashboard)/ai/page.tsx	OPEN
+web-route	/authentication	apps/admin/app/routes.ts:17	Django-backed admin	instance	./(all)/(dashboard)/authentication/page.tsx	OPEN
+web-route	/authentication/gitea	apps/admin/app/routes.ts:21	Django-backed admin	instance	./(all)/(dashboard)/authentication/gitea/page.tsx	OPEN
+web-route	/authentication/github	apps/admin/app/routes.ts:18	Django-backed admin	instance	./(all)/(dashboard)/authentication/github/page.tsx	OPEN
+web-route	/authentication/gitlab	apps/admin/app/routes.ts:19	Django-backed admin	instance	./(all)/(dashboard)/authentication/gitlab/page.tsx	OPEN
+web-route	/authentication/google	apps/admin/app/routes.ts:20	Django-backed admin	instance	./(all)/(dashboard)/authentication/google/page.tsx	OPEN
+web-route	/core	apps/web/app/routes.ts:48	Convex	shared-shell	./core.tsx	OPEN
+web-route	/create-workspace	apps/web/app/routes.ts:42	Better Auth/Convex entry	workspace	./(all)/create-workspace/page.tsx	OPEN
+web-route	/email	apps/admin/app/routes.ts:16	Django-backed admin	instance	./(all)/(dashboard)/email/page.tsx	OPEN
+web-route	/general	apps/admin/app/routes.ts:13	Django-backed admin	instance	./(all)/(dashboard)/general/page.tsx	OPEN
+web-route	/image	apps/admin/app/routes.ts:23	Django-backed admin	instance	./(all)/(dashboard)/image/page.tsx	OPEN
+web-route	/invitations	apps/web/app/routes.ts:43	Better Auth/Convex entry	workspace	./(all)/invitations/page.tsx	OPEN
+web-route	/issues/:anchor	apps/space/app/routes.ts:13	Django-backed public space	public-sharing	./issues/[anchor]/page.tsx	OPEN
+web-route	/login	apps/web/app/routes/core.ts:205	Django shell; redirect to Convex entry	identity	routes/redirects/core/login.tsx	OPEN
+web-route	/onboarding	apps/web/app/routes.ts:41	Better Auth/Convex entry	identity	./(all)/onboarding/page.tsx	OPEN
+web-route	/profile/*	apps/web/app/routes/core.ts:211	Django shell; redirect to Convex account UI	account	routes/redirects/core/profile-settings.tsx	OPEN
+web-route	/register	apps/web/app/routes/core.ts:208	Django shell; redirect to Convex entry	identity	routes/redirects/core/register.tsx	OPEN
+web-route	/settings/profile/:profileTabId	apps/web/app/routes.ts:206	Convex account UI and Better Auth PAT management	account	./(all)/settings/profile/[profileTabId]/page.tsx	OPEN
+web-route	/sign-in	apps/web/app/routes/core.ts:203	Django shell; redirect to Convex entry	identity	routes/redirects/core/sign-in.tsx	OPEN
+web-route	/sign-up	apps/web/app/routes.ts:27	Better Auth/Convex entry	identity	./(all)/sign-up/page.tsx	OPEN
+web-route	/signin	apps/web/app/routes/core.ts:204	Django shell; redirect to Convex entry	identity	routes/redirects/core/signin.tsx	OPEN
+web-route	/workspace	apps/admin/app/routes.ts:14	Django-backed admin	instance	./(all)/(dashboard)/workspace/page.tsx	OPEN
+web-route	/workspace-invitations	apps/web/app/routes.ts:45	Better Auth/Convex entry	workspace	./(all)/workspace-invitations/page.tsx	OPEN
+web-route	/workspace/create	apps/admin/app/routes.ts:15	Django-backed admin	instance	./(all)/(dashboard)/workspace/create/page.tsx	OPEN

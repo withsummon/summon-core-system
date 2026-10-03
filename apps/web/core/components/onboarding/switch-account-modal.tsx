@@ -13,7 +13,7 @@ import { Dialog } from "@plane/propel/dialog";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { authClient } from "@/components/convex-core/provider";
 import { useAppRouter } from "@/hooks/use-app-router";
 
 type Props = {
@@ -28,32 +28,27 @@ export function SwitchAccountModal(props: Props) {
   // router
   const router = useAppRouter();
   // store hooks
-  const { data: userData, signOut } = useUser();
+  const { data: session } = authClient.useSession();
 
   const { setTheme } = useTheme();
 
   const handleClose = () => {
-    setSwitchingAccount(false);
-    onClose();
+    if (!switchingAccount) onClose();
   };
 
   const handleSwitchAccount = async () => {
     setSwitchingAccount(true);
 
-    await signOut()
-      .then(() => {
-        setTheme("system");
-        router.push("/");
-        handleClose();
-      })
-      .catch(() =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Failed to sign out. Please try again.",
-        })
-      )
-      .finally(() => setSwitchingAccount(false));
+    try {
+      await authClient.signOut({ fetchOptions: { throw: true } });
+      setTheme("system");
+      router.push("/");
+      onClose();
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: "Failed to sign out. Please try again." });
+    } finally {
+      setSwitchingAccount(false);
+    }
   };
 
   return (
@@ -72,12 +67,10 @@ export function SwitchAccountModal(props: Props) {
               </div>
             </div>
             <div className="flex flex-col gap-y-6 py-3">
-              <Dialog.Title className="text-20 leading-6 font-medium text-primary">
-                Switch account
-              </Dialog.Title>
-              {userData?.email && (
+              <Dialog.Title className="text-20 leading-6 font-medium text-primary">Switch account</Dialog.Title>
+              {session?.user.email && (
                 <div className="text-14 font-regular text-secondary">
-                  If you have signed up via <span className="text-accent-primary">{userData.email}</span>{" "}
+                  If you have signed up via <span className="text-accent-primary">{session.user.email}</span>{" "}
                   un-intentionally, you can switch your account to a different one from here.
                 </div>
               )}

@@ -12,7 +12,6 @@ import type { EditorRefApi } from "@plane/editor";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { TrashIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TSticky } from "@plane/types";
 // constants
 import { cn } from "@plane/utils";
 import type { ToolbarMenuItem } from "@plane/editor";
@@ -23,7 +22,7 @@ import { ColorPalette } from "./color-palette";
 type Props = {
   executeCommand: (item: ToolbarMenuItem) => void;
   editorRef: EditorRefApi | null;
-  handleColorChange: (data: Partial<TSticky>) => Promise<void>;
+  handleColorChange: (data: { background_color?: string }) => Promise<void>;
   handleDelete: () => void;
 };
 
@@ -32,11 +31,9 @@ const toolbarItems = TOOLBAR_ITEMS.sticky;
 export function StickyEditorToolbar(props: Props) {
   const { executeCommand, editorRef, handleColorChange, handleDelete } = props;
 
-  // State to manage active states of toolbar items
   const [activeStates, setActiveStates] = useState<Record<string, boolean>>({});
   const [showColorPalette, setShowColorPalette] = useState(false);
   const colorPaletteRef = React.useRef<HTMLDivElement>(null);
-  // Function to update active states
   const updateActiveStates = useCallback(() => {
     if (!editorRef) return;
     const newActiveStates: Record<string, boolean> = {};
@@ -53,7 +50,6 @@ export function StickyEditorToolbar(props: Props) {
     setActiveStates(newActiveStates);
   }, [editorRef]);
 
-  // useEffect to call updateActiveStates when isActive prop changes
   useEffect(() => {
     if (!editorRef) return;
     const unsubscribe = editorRef.onStateChange(updateActiveStates);
@@ -66,7 +62,6 @@ export function StickyEditorToolbar(props: Props) {
   return (
     <div className="flex h-full w-full justify-between">
       <div className="my-auto flex gap-4" ref={colorPaletteRef}>
-        {/* color palette */}
         {showColorPalette && <ColorPalette handleUpdate={handleColorChange} />}
         <Tooltip
           tooltipContent={
@@ -75,7 +70,12 @@ export function StickyEditorToolbar(props: Props) {
             </p>
           }
         >
-          <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="flex text-primary/50">
+          <button
+            type="button"
+            aria-label="Background color"
+            onClick={() => setShowColorPalette(!showColorPalette)}
+            className="flex text-primary/50"
+          >
             <Palette className="my-auto size-4" />
           </button>
         </Tooltip>
@@ -99,6 +99,7 @@ export function StickyEditorToolbar(props: Props) {
                     >
                       <button
                         type="button"
+                        aria-label={item.name}
                         onClick={() => executeCommand(item)}
                         className={cn("grid aspect-square place-items-center rounded-xs p-0.5 text-primary/50", {})}
                       >
@@ -117,7 +118,6 @@ export function StickyEditorToolbar(props: Props) {
           </div>
         </div>
       </div>
-      {/* delete action */}
       <Tooltip
         tooltipContent={
           <p className="flex flex-col gap-1 text-center text-11">
@@ -125,7 +125,7 @@ export function StickyEditorToolbar(props: Props) {
           </p>
         }
       >
-        <button type="button" onClick={handleDelete} className="my-auto text-primary/50">
+        <button type="button" aria-label="Delete sticky" onClick={handleDelete} className="my-auto text-primary/50">
           <TrashIcon className="size-4" />
         </button>
       </Tooltip>

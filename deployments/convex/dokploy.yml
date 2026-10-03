@@ -1,0 +1,40 @@
+services:
+  backend:
+    image: ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8
+    restart: unless-stopped
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    expose: ["3210", "3211"]
+    volumes:
+      - data:/convex/data
+    environment:
+      CONVEX_CLOUD_ORIGIN: ${CONVEX_CLOUD_ORIGIN:?Set the HTTPS API origin}
+      CONVEX_SITE_ORIGIN: ${CONVEX_SITE_ORIGIN:?Set the HTTPS actions origin}
+      DISABLE_BEACON: "true"
+      DISABLE_METRICS_ENDPOINT: "true"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard@sha256:4ebaebfd300c203753e5016be459a2408d1655b81beeb2b793229a6878f1ac45
+    restart: unless-stopped
+    expose: ["6791"]
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: ${CONVEX_CLOUD_ORIGIN:?Set the HTTPS API origin}
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  data:
+
+# The Dokploy host has exhausted its automatic pools. This subnet was checked
+# against its Docker network inventory before the first deployment.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.77.2.0/28

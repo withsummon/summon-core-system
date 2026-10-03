@@ -10,7 +10,14 @@ export function SummonFilterRow({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-2">{children}</div>;
 }
 
-export function SummonField({ label, children }: { label: string; children: ReactNode }) {
+export function SummonField({ label, children, htmlFor }: { label: string; children: ReactNode; htmlFor?: string }) {
+  if (htmlFor)
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5 text-12 font-medium text-secondary">
+        <label htmlFor={htmlFor}>{label}</label>
+        {children}
+      </div>
+    );
   return (
     <label className="flex min-w-0 flex-col gap-1.5 text-12 font-medium text-secondary">
       {label}

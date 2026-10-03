@@ -5,10 +5,11 @@
  */
 
 import { Buffer } from "buffer";
+import { CORE_EXTENSIONS } from "@/constants/extension";
 import type { Extensions, JSONContent } from "@tiptap/core";
 import { getSchema } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html";
-import { prosemirrorJSONToYDoc, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import { prosemirrorJSONToYDoc, prosemirrorJSONToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
 import * as Y from "yjs";
 // extensions
 import type { TDocumentPayload } from "@plane/types";
@@ -123,6 +124,27 @@ export const getBinaryDataFromDocumentEditorHTMLString = (descriptionHTML: strin
   return encodedData;
 };
 
+/** Replace content inside the existing CRDT, retaining deletions for connected editors. */
+export const replaceDocumentEditorHTML = (document: Uint8Array, descriptionHTML: string, title: string): Uint8Array => {
+  const yDoc = new Y.Doc();
+  try {
+    Y.applyUpdate(yDoc, document);
+    const contentJSON = generateJSON(descriptionHTML, DOCUMENT_EDITOR_EXTENSIONS);
+    const titleJSON = generateTitleProsemirrorJson(title);
+    yDoc.transact(() => {
+      const content = yDoc.getXmlFragment("default");
+      const titleFragment = yDoc.getXmlFragment("title");
+      content.delete(0, content.length);
+      titleFragment.delete(0, titleFragment.length);
+      prosemirrorJSONToYXmlFragment(documentEditorSchema, contentJSON, content);
+      prosemirrorJSONToYXmlFragment(documentEditorSchema, titleJSON, titleFragment);
+    });
+    return Y.encodeStateAsUpdate(yDoc);
+  } finally {
+    yDoc.destroy();
+  }
+};
+
 /**
  * @description this function generates all document formats for the provided binary data for the rich text editor
  * @param {Uint8Array} description
@@ -158,25 +180,21 @@ export const getAllDocumentFormatsFromRichTextEditorBinaryData = (
  * @returns
  */
 export const getAllDocumentFormatsFromDocumentEditorBinaryData = (
-  description: Uint8Array,
-  updateTitle: boolean
+  description: Uint8Array
 ): {
   contentBinaryEncoded: string;
-  contentJSON: object;
+  contentJSON: JSONContent;
   contentHTML: string;
-  titleHTML?: string;
+  titleHTML: string;
 } => {
   // encode binary description data
   const base64Data = convertBinaryDataToBase64String(description);
   const yDoc = new Y.Doc();
-  Y.applyUpdate(yDoc, description);
-  // convert to JSON
-  const type = yDoc.getXmlFragment("default");
-  const contentJSON = yXmlFragmentToProseMirrorRootNode(type, documentEditorSchema).toJSON();
-  // convert to HTML
-  const contentHTML = generateHTML(contentJSON, DOCUMENT_EDITOR_EXTENSIONS);
-
-  if (updateTitle) {
+  try {
+    Y.applyUpdate(yDoc, description);
+    const type = yDoc.getXmlFragment("default");
+    const contentJSON = yXmlFragmentToProseMirrorRootNode(type, documentEditorSchema).toJSON();
+    const contentHTML = generateHTML(contentJSON, DOCUMENT_EDITOR_EXTENSIONS);
     const title = yDoc.getXmlFragment("title");
     const titleJSON = yXmlFragmentToProseMirrorRootNode(title, documentEditorSchema).toJSON();
     const titleHTML = extractTextFromHTML(generateHTML(titleJSON, DOCUMENT_EDITOR_EXTENSIONS));
@@ -187,12 +205,8 @@ export const getAllDocumentFormatsFromDocumentEditorBinaryData = (
       contentHTML,
       titleHTML,
     };
-  } else {
-    return {
-      contentBinaryEncoded: base64Data,
-      contentJSON,
-      contentHTML,
-    };
+  } finally {
+    yDoc.destroy();
   }
 };
 
@@ -229,10 +243,8 @@ export const convertHTMLDocumentToAllFormats = (args: TConvertHTMLDocumentToAllF
     // Convert HTML to binary format for document editor
     const contentBinary = getBinaryDataFromDocumentEditorHTMLString(document_html);
     // Generate all document formats from the binary data
-    const { contentBinaryEncoded, contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(
-      contentBinary,
-      false
-    );
+    const { contentBinaryEncoded, contentHTML, contentJSON } =
+      getAllDocumentFormatsFromDocumentEditorBinaryData(contentBinary);
     allFormats = {
       description_json: contentJSON,
       description_html: contentHTML,
@@ -250,5 +262,41 @@ export const extractTextFromHTML = (html: string): string => {
   // This is more secure than regex as it handles edge cases and prevents injection
   // Note: sanitizeHTML trims whitespace, which is acceptable for title extraction
   const sanitizedText = sanitizeHTML(html); // sanitize the string to remove all HTML tags
-  return sanitizedText.trim() || ""; // trim the string to remove leading and trailing whitespaces
+  return sanitizedText.trim();
 };
+
+/** Document copies get fresh CRDT identities and independently owned image sources. */
+export function documentEditorAssetSources(binary: Uint8Array): string[] {
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
+  const document = documentEditorSchema.nodeFromJSON(contentJSON);
+  const sources = new Set<string>();
+  document.descendants((node) => {
+    if (node.type.name === CORE_EXTENSIONS.CUSTOM_IMAGE) {
+      if (typeof node.attrs.src !== "string" || !node.attrs.src)
+        throw new Error("Finish uploading document images before copying.");
+      sources.add(node.attrs.src);
+    }
+  });
+  return [...sources];
+}
+export function duplicateDocumentEditorBinary(
+  binary: Uint8Array,
+  title: string,
+  sources: Record<string, string>
+): Uint8Array {
+  const { contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(binary);
+  const document = documentEditorSchema.nodeFromJSON(contentJSON);
+  function remap(node: JSONContent): JSONContent {
+    const result = { ...node, ...(node.content ? { content: node.content.map(remap) } : {}) };
+    if (node.type === CORE_EXTENSIONS.CUSTOM_IMAGE && typeof node.attrs?.src === "string") {
+      const source = sources[node.attrs.src];
+      if (!source) throw new Error("Document image source was not copied.");
+      result.attrs = { ...node.attrs, src: source };
+    }
+    return result;
+  }
+  return getBinaryDataFromDocumentEditorHTMLString(
+    generateHTML(remap(document.toJSON()), DOCUMENT_EDITOR_EXTENSIONS),
+    title
+  );
+}

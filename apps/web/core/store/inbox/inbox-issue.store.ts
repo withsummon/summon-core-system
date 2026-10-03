@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { clone, set } from "lodash-es";
+import { clone, set, pick } from "lodash-es";
 import { makeObservable, observable, runInAction, action } from "mobx";
 import type {
   TInboxIssue,
@@ -25,7 +25,7 @@ export interface IInboxIssueStore {
   isLoading: boolean;
   id: string;
   status: TInboxIssueStatus;
-  issue: Partial<TIssue>;
+  issue: TInboxIssue["issue"];
   snoozed_till: Date | undefined;
   source: EInboxIssueSource | undefined;
   duplicate_to: string | undefined;
@@ -35,7 +35,7 @@ export interface IInboxIssueStore {
   updateInboxIssueStatus: (status: TInboxIssueStatus) => Promise<void>; // accept, decline
   updateInboxIssueDuplicateTo: (issueId: string) => Promise<void>; // connecting the inbox issue to the project existing issue
   updateInboxIssueSnoozeTill: (date: Date | undefined) => Promise<void>; // snooze the issue
-  updateIssue: (issue: Partial<TIssue>) => Promise<void>; // updating the issue
+  updateIssue: (issue: Partial<TIssue>) => ReturnType<IssueService["patchIssue"]>; // updating the issue
   updateProjectIssue: (issue: Partial<TIssue>) => Promise<void>; // updating the issue
   fetchIssueActivity: () => Promise<void>; // fetching the issue activity
 }
@@ -45,7 +45,7 @@ export class InboxIssueStore implements IInboxIssueStore {
   isLoading: boolean = false;
   id: string;
   status: TInboxIssueStatus = EInboxIssueStatus.PENDING;
-  issue: Partial<TIssue> = {};
+  issue: TInboxIssue["issue"];
   snoozed_till: Date | undefined;
   source: EInboxIssueSource | undefined;
   duplicate_to: string | undefined;
@@ -219,19 +219,25 @@ export class InboxIssueStore implements IInboxIssueStore {
   updateIssue = async (issue: Partial<TIssue>) => {
     const inboxIssue = clone(this.issue);
     try {
-      if (!this.issue.id) return;
-      Object.keys(issue).forEach((key) => {
-        const issueKey = key as keyof TIssue;
-        set(this.issue, issueKey, issue[issueKey]);
+      if (!this.issue.id) throw new Error("This intake work item is unavailable.");
+      Object.assign(this.issue, issue);
+      const response = await this.inboxIssueService.updateIssue(
+        this.workspaceSlug,
+        this.projectId,
+        this.issue.id,
+        issue
+      );
+      runInAction(() => {
+        Object.assign(this.issue, pick(response.issue, Object.keys(issue)));
       });
-      await this.inboxIssueService.updateIssue(this.workspaceSlug, this.projectId, this.issue.id, issue);
       // fetching activity
       this.fetchIssueActivity();
-    } catch {
-      Object.keys(issue).forEach((key) => {
-        const issueKey = key as keyof TIssue;
-        set(this.issue, issueKey, inboxIssue[issueKey]);
+      return response.issue;
+    } catch (error) {
+      runInAction(() => {
+        Object.assign(this.issue, pick(inboxIssue, Object.keys(issue)));
       });
+      throw error;
     }
   };
 

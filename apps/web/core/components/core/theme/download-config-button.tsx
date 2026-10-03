@@ -4,19 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import type { UseFormGetValues } from "react-hook-form";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { IUserTheme } from "@plane/types";
+import type { CustomTheme } from "./custom-theme-selector";
 
 type Props = {
-  getValues: UseFormGetValues<IUserTheme>;
+  getValues: UseFormGetValues<CustomTheme>;
 };
 
-export const CustomThemeDownloadConfigButton = observer(function CustomThemeDownloadConfigButton(props: Props) {
+export function CustomThemeDownloadConfigButton(props: Props) {
   const { getValues } = props;
   // translation
   const { t } = useTranslation();
@@ -62,4 +61,4 @@ export const CustomThemeDownloadConfigButton = observer(function CustomThemeDown
       Download config
     </Button>
   );
-});
+}

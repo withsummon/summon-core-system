@@ -5,7 +5,9 @@
  */
 
 import { useTheme } from "next-themes";
-import { redirect } from "react-router";
+import { Navigate, useNavigate, useOutletContext } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 // assets
 import emptyIssueDark from "@/app/assets/empty-state/search/issues-dark.webp?url";
@@ -14,59 +16,52 @@ import emptyIssueLight from "@/app/assets/empty-state/search/issues-light.webp?u
 import { EmptyState } from "@/components/common/empty-state";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // hooks
-import { useAppRouter } from "@/hooks/use-app-router";
-// services
-import { IssueService } from "@/services/issue/issue.service";
+import type { WorkspaceSession } from "@/app/native-workspace";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 // types
 import type { Route } from "./+types/page";
 
-const issueService = new IssueService();
-
-export async function clientLoader({ params }: Route.ClientLoaderArgs) {
-  const { workspaceSlug, projectId, issueId } = params;
-
-  try {
-    const data = await issueService.getIssueMetaFromURL(workspaceSlug, projectId, issueId);
-
-    if (data) {
-      throw redirect(`/${workspaceSlug}/browse/${data.project_identifier}-${data.sequence_id}`);
-    }
-
-    return { error: true, workspaceSlug };
-  } catch (error) {
-    // If it's a redirect, rethrow it
-    if (error instanceof Response) {
-      throw error;
-    }
-    // Otherwise return error state
-    return { error: true, workspaceSlug };
-  }
-}
-
-export default function IssueDetailsPage({ loaderData }: Route.ComponentProps) {
-  const router = useAppRouter();
+export default function IssueDetailsPage({ params }: Route.ComponentProps) {
+  const session = useOutletContext<WorkspaceSession>();
+  const commands = useStickiesCommands();
+  const navigate = useNavigate();
+  const address = useQuery(api.navigation.address.resolveTaskId, {
+    workspaceId: session.workspace._id,
+    projectId: params.projectId,
+    taskId: params.issueId,
+  });
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
-
-  if (loaderData.error) {
-    return (
-      <div className="flex size-full items-center justify-center">
-        <EmptyState
-          image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
-          title={t("issue.empty_state.issue_detail.title")}
-          description={t("issue.empty_state.issue_detail.description")}
-          primaryButton={{
-            text: t("issue.empty_state.issue_detail.primary_button.text"),
-            onClick: () => router.push(`/${loaderData.workspaceSlug}/workspace-views/all-issues/`),
-          }}
-        />
-      </div>
-    );
+  if (address) {
+    const destination =
+      address.kind === "task"
+        ? `/${address.workspace.slug}/browse/${address.workItem}/`
+        : `/${address.workspace.slug}/projects/${address.project._id}/intake/?currentTab=${address.intake.status === "pending" || address.intake.status === "snoozed" ? "open" : "closed"}&inboxIssueId=${address.intake.taskId}`;
+    return <Navigate replace to={destination} />;
   }
-
   return (
-    <div className="flex size-full items-center justify-center">
-      <LogoSpinner />
-    </div>
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <div className="flex size-full items-center justify-center" aria-busy={address === undefined}>
+        {address === undefined ? (
+          <LogoSpinner />
+        ) : (
+          <EmptyState
+            image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
+            title={t("issue.empty_state.issue_detail.title")}
+            description={t("issue.empty_state.issue_detail.description")}
+            primaryButton={{
+              text: t("issue.empty_state.issue_detail.primary_button.text"),
+              onClick: () => navigate(`/${session.workspace.slug}/projects/${params.projectId}/issues/`),
+            }}
+          />
+        )}
+      </div>
+    </PreservedWorkspaceShell>
   );
 }

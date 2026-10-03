@@ -5,6 +5,7 @@
  */
 
 import { useTranslation } from "@plane/i18n";
+import type { ReactNode } from "react";
 import { CloseIcon } from "@plane/propel/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
@@ -28,10 +29,26 @@ type Props = {
   totalProjects: number;
 };
 
-const MEMBERS_FILTERS = ["lead", "members"];
-const DATE_FILTERS = ["created_at"];
-
 export function ProjectAppliedFiltersList(props: Props) {
+  return (
+    <ProjectAppliedFiltersListView
+      {...props}
+      renderMembers={(key, values, editable) => (
+        <AppliedMembersFilters
+          editable={editable}
+          handleRemove={(value) => props.handleRemoveFilter(key, value)}
+          values={values}
+        />
+      )}
+    />
+  );
+}
+
+export function ProjectAppliedFiltersListView(
+  props: Props & {
+    renderMembers: (key: "lead" | "members", values: string[], editable: boolean | undefined) => ReactNode;
+  }
+) {
   const { t } = useTranslation();
   const {
     appliedFilters,
@@ -42,6 +59,7 @@ export function ProjectAppliedFiltersList(props: Props) {
     alwaysAllowEditing,
     filteredProjects,
     totalProjects,
+    renderMembers,
   } = props;
 
   if (!appliedFilters && !appliedDisplayFilters) return null;
@@ -69,20 +87,14 @@ export function ProjectAppliedFiltersList(props: Props) {
                   values={value}
                 />
               )}
-              {DATE_FILTERS.includes(filterKey) && (
+              {filterKey === "created_at" && (
                 <AppliedDateFilters
                   editable={isEditingAllowed}
                   handleRemove={(val) => handleRemoveFilter(filterKey, val)}
                   values={value}
                 />
               )}
-              {MEMBERS_FILTERS.includes(filterKey) && (
-                <AppliedMembersFilters
-                  editable={isEditingAllowed}
-                  handleRemove={(val) => handleRemoveFilter(filterKey, val)}
-                  values={value}
-                />
-              )}
+              {(filterKey === "lead" || filterKey === "members") && renderMembers(filterKey, value, isEditingAllowed)}
               {isEditingAllowed && (
                 <button
                   type="button"

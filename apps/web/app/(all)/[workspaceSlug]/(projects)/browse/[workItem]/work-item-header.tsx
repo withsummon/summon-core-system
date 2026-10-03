@@ -4,70 +4,63 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// plane ui
-import { WorkItemsIcon } from "@plane/propel/icons";
+import type { ComponentProps } from "react";
+import { useNavigate } from "react-router";
 import { Breadcrumbs, Header } from "@plane/ui";
-// components
+import { WorkItemsIcon } from "@plane/propel/icons";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { IssueDetailQuickActions } from "@/components/issues/issue-detail/issue-detail-quick-actions";
-// hooks
-import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useProject } from "@/hooks/store/use-project";
-import { useAppRouter } from "@/hooks/use-app-router";
-// plane web imports
-import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
+import { TaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
+import { TaskSubscription } from "@/components/convex-core/notifications/task-subscription";
+import { CopyWorkItemLink } from "@/components/convex-core/tasks/task-detail";
+import type { BrowseAddress } from "./layout";
 
-export const WorkItemDetailsHeader = observer(function WorkItemDetailsHeader() {
-  // router
-  const router = useAppRouter();
-  const { workspaceSlug, workItem } = useParams();
-  // store hooks
-  const { getProjectById, loader } = useProject();
-  const {
-    issue: { getIssueById, getIssueIdByIdentifier },
-  } = useIssueDetail();
-  // derived values
-  const issueId = getIssueIdByIdentifier(workItem?.toString());
-  const issueDetails = issueId ? getIssueById(issueId.toString()) : undefined;
-  const projectId = issueDetails ? issueDetails?.project_id : undefined;
-  const projectDetails = projectId ? getProjectById(projectId?.toString()) : undefined;
-
-  if (!workspaceSlug || !projectId || !issueId) return null;
+export function WorkItemDetailsHeader({
+  address,
+  disabled,
+  lifecycle,
+}: {
+  address: Extract<BrowseAddress, { kind: "task" }>;
+  disabled: boolean;
+  lifecycle: ComponentProps<typeof TaskLifecycle>["lifecycle"];
+}) {
+  const navigate = useNavigate();
+  const projectHref = `/${address.workspace.slug}/projects/${address.project._id}/issues/`;
   return (
-    <Header>
+    <Header className="h-11 shrink-0 border-b border-subtle">
       <Header.LeftItem>
-        <Breadcrumbs onBack={router.back} isLoading={loader === "init-loader"}>
-          <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
+        <Breadcrumbs onBack={() => navigate(-1)}>
+          <Breadcrumbs.Item
+            component={
+              <BreadcrumbLink
+                label={address.project.name}
+                href={projectHref}
+                icon={<Logo logo={address.projectLogo ?? undefined} size={16} />}
+              />
+            }
+          />
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
                 label="Work Items"
-                href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-                icon={<WorkItemsIcon className="h-4 w-4 text-tertiary" />}
+                href={projectHref}
+                icon={<WorkItemsIcon className="size-4 text-tertiary" />}
               />
             }
           />
-          <Breadcrumbs.Item
-            component={
-              <BreadcrumbLink
-                label={projectDetails && issueDetails ? `${projectDetails.identifier}-${issueDetails.sequence_id}` : ""}
-              />
-            }
-          />
+          <Breadcrumbs.Item component={<BreadcrumbLink label={address.workItem} />} />
         </Breadcrumbs>
       </Header.LeftItem>
       <Header.RightItem>
-        {projectId && issueId && (
-          <IssueDetailQuickActions
-            workspaceSlug={workspaceSlug?.toString()}
-            projectId={projectId?.toString()}
-            issueId={issueId?.toString()}
-          />
-        )}
+        <TaskSubscription taskId={address.task._id} />
+        <CopyWorkItemLink href={`/${address.workspace.slug}/browse/${address.workItem}/`} />
+        <TaskLifecycle
+          task={address.task}
+          href={`/${address.workspace.slug}/browse/${address.workItem}/`}
+          disabled={disabled}
+          lifecycle={lifecycle}
+        />
       </Header.RightItem>
     </Header>
   );
-});
+}

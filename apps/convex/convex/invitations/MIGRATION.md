@@ -1,0 +1,33 @@
+# Workspace and project invitations
+
+## Traced owner
+
+Legacy WorkspaceInvitationsViewset uses WorkSpaceAdminPermission, whose actual implementation admits both workspace admin and member. Creation rejects roles above issuer rank. ProjectInvitationsViewset.create has ADMIN decorator. Acceptance requires token and current authenticated case-insensitive email; project acceptance creates missing workspace membership capped at member for project-admin invitations. Native uses exact project lookup rather than legacy's erroneous workspace-only project-member lookup.
+
+Native invitations table owns requested scope/email/role, issuer, SHA256 token hash, seven-day expiry, revision and response state. `tokens.create` and `tokens.rotate` generate 32 random bytes in Node actions and return the manual-sharing token once. `tokens.respond` hashes input before calling the internal atomic consumption owner. Public queries omit hash; no raw token persists. Context7 runtime documentation confirms mutation determinism and seeded Math.random: secure randomness therefore belongs to Node action `node:crypto`, not mutation Math.random. Reference: https://docs.convex.dev/functions/runtimes . No Mintlify tool was available; Context7 was used.
+
+## Authority and membership
+
+Issuance permits active workspace admin/member up to own workspace rank; project issuance additionally requires active project admin and non-guest workspace role. Acceptance rechecks original issuer's current authority, exact nonarchived project/workspace scope, current verified recipient email (`emailVerificationTime`), token, pending state and expiry. No email-based identity lookup/link/create occurs; only the authenticated user ID receives membership. Wrong/unverified/changed email, stale/revoked authority, expired/rotated/consumed token grants nothing.
+
+Workspace and project index grant mutations now delegate to extracted internal canonical membership writers; their public admin gates are unchanged. Invitations invoke those writers after capability authorization, with no impersonated administrator. Existing active memberships retain role (including administrator); invitations do not silently promote/demote them. Project invitations can create missing workspace membership because issuer is an active workspace writer authorized to invite at that capped role. Existing active/inactive workspace guests cannot gain writer access through a project invitation. This preserves native guest restrictions and protects final-admin/demotion behavior through the canonical owner.
+
+Queries are bounded with canonical pagination budgets. Scope lists require current issuance permission; incoming lists require verified matching current email. Expiry is enforced at response time; query Date.now is not a promised scheduled reactive disappearance. Rotate captures revision, replaces hash and issuer, extends expiry; revoke captures revision. Already consumed invitations cannot replay. Existing pending invitations require rotation/revocation rather than silently overwriting capability.
+
+## Evidence and staged work
+
+Eight invitation behavior tests pass. The immutable a495f8ee3d artifact also passed 29 invitation/workspace/project tests. Coverage includes hash-only persistence, response replay/concurrency, rotation/expiry, current issuer revocation, exact recipient verification, member rank, guest denial, crossscope forgery, project-to-workspace role cap, no active-admin downgrade, guest rollback and decline without grants. TS7 and scoped Oxc/format pass. Backend a495f8ee3d and UI-context 255773a113 were deployed from exact Git archives to local 3210 and https://convex-core.withsummon.com. The latter archive passed native TS7. Deployment logs are invitations-255773a113-{local,remote}-deploy.txt under /tmp/summon-migration-control. No email send or browser access grant was performed.
+
+Manual sharing is the only delivery implemented; availability explicitly returns emailDelivery:false even if account email is configured. This avoids a false sent state. Email dispatch/retry delivery owner, recipient deep-link route, public legacy preview wire contracts, bulk email issuance, invitation role editing and inherited REST routes remain separate work. Explicit native policies differ from legacy raw JWT behavior: seven-day expiry, verified-email requirement, issuer reauthorization and preservation of active member roles. Full invitation parity is not claimed by this backend checkpoint.
+
+## Native manual UI
+
+Projects exposes workspace and selected-project invitation management, using `access.roles` from the backend instead of a second rank policy. Creation shows the token once in component memory, with explicit manual-sharing copy; closing the panel discards it. Replacement and revoke confirmations capture the displayed invitation revision. Pending operations disable duplicate writes; failure preserves the form and captured intent. Tokens never enter browser URLs or persistent storage.
+
+Account details exposes incoming invitations, guarded by `recipientAccess`; unverified users see a verification recovery message rather than triggering an unauthorized list. Incoming scope names are projected only for the authenticated matching verified email. Acceptance/decline requires pasting the private token and uses the canonical action; existing active membership roles stay unchanged. Lists retain bounded cursor pagination and no total claims. Scope-keyed management panels reset drafts across workspace/project navigation, and query failures stay inside a local invitation boundary.
+
+Frontend native TS7, five-file Oxc (195 rules), and three-file complexity gate pass. Parent Chrome visual assessment passed for workspace/project forms and recipient recovery; mutation security acceptance remains the backend BDD evidence above. No runtime claim about invitation delivery or real membership changes is made.
+
+### Chrome visual acceptance, 2026-09-27
+
+Local development UI on port3010 exposes workspace and project invitation forms with recipient email, guest/member/admin choices for the QA administrator, explicit manual-sharing/no-email copy and empty history. Workspace form controls fit at 390×844; override was cleared afterward. Account details → Invitations correctly shows verification recovery for the existing unverified QA email. No token was issued and no membership was granted. Successful incoming acceptance, token rotation/revocation and security boundaries remain BDD evidence; this is not live email or immutable public frontend acceptance.

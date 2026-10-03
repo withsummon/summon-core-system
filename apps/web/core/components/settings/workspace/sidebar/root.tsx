@@ -5,6 +5,7 @@
  */
 
 // plane imports
+import type { ReactNode } from "react";
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
 // local imports
@@ -13,11 +14,28 @@ import { WorkspaceSettingsSidebarItemCategories } from "./item-categories";
 
 type Props = {
   className?: string;
+  onNavigate?: () => void;
 };
 
 export function WorkspaceSettingsSidebarRoot(props: Props) {
-  const { className } = props;
+  const { className, onNavigate } = props;
 
+  return (
+    <WorkspaceSettingsSidebarView className={className} header={<WorkspaceSettingsSidebarHeader />}>
+      <WorkspaceSettingsSidebarItemCategories onNavigate={onNavigate} />
+    </WorkspaceSettingsSidebarView>
+  );
+}
+
+export function WorkspaceSettingsSidebarView({
+  className,
+  header,
+  children,
+}: {
+  className?: string;
+  header: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <ScrollArea
       scrollType="hover"
@@ -28,8 +46,8 @@ export function WorkspaceSettingsSidebarRoot(props: Props) {
         className
       )}
     >
-      <WorkspaceSettingsSidebarHeader />
-      <WorkspaceSettingsSidebarItemCategories />
+      {header}
+      {children}
     </ScrollArea>
   );
 }

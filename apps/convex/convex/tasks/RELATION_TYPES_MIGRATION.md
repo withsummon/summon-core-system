@@ -1,0 +1,33 @@
+# Task relation type closure
+
+Legacy owners: `plane/db/models/issue.py:IssueRelationChoices`, `utils/issue_relation_mapper.py`, app `views/issue/relation.py`, PAT `api/views/issue.py`. The model declares blocked_by/blocking, start_before/start_after, finish_before/finish_after, implemented_by/implements and symmetric duplicate/relates_to. The app list/create implementation does not completely handle implemented_by/implements despite the model/mapping declaring it. Native implements that declared pair explicitly; it does not reproduce an accidental wrong inverse.
+
+Native `tasks.relationships` remains the sole edge writer. Stored kinds add start_before, finish_before and implemented_by to existing blocks/duplicate/relates_to. Public add accepts each inverse, normalizes direction on the server and projects the correct view from either endpoint. Symmetric pairs alone use stable ID ordering. Existing blocks storage remains unchanged, avoiding a stored-data reinterpretation. Both endpoints require current writable task/project access and captured revisions; existing lifecycle cleanup and guest privacy remain intact.
+
+One relation per unordered task pair remains the explicit native uniqueness policy. Legacy DB uniqueness is ordered-pair based and bulk creation ignores conflicts; native instead reports an existing relation conflict. Only blocking edges enforce the existing bounded DAG rule. Scheduling and implementation labels do not invent date scheduling or DAG behavior absent from their legacy owners. Self edges remain rejected. Canonical taskChanged updates both endpoints atomically.
+
+Six new behavior tests cover every directed pair/inverse, reverse duplicate prevention, removal from either direction, inverse blocking-cycle detection, scheduling coexistence, anonymous rejection and stale CAS. Together with lifecycle tests: 12 passing. Native TS7 and scoped Oxlint/format pass. No deployment/browser claim.
+
+Remaining coordinated follow-up: legacy permits cross-project relations within one workspace, while this first additive type checkpoint retains same-project restriction and 1000-edge project bound. Workspace graph indexing/backfill and both-project ACL/list/cleanup tests must land before relation-family parity is claimed. Native per-pair API also does not replace legacy bulk/PAT response/activity/notification wire contracts. Root owns frontend activation; bulk task actions are outside this checkpoint.
+
+## Additive workspace-owner checkpoint
+
+`taskRelations.workspaceId` is temporarily optional with `by_workspace_kind` index. New writes always persist the canonical task workspace. Existing same-project restriction and project-scoped blocking scan remain active, so omitted legacy workspace fields cannot disappear from cycle checks during rollout. Internal `tasks.relation_migrations.workspace({cursor})` reads at most100 rows/1MiB, validates both endpoints and originating project share the same workspace, fills only absent ownership, and reports processed/changed/isDone/continueCursor. Inconsistent stored ownership is an explicit failure, not repaired by assumption. No relation or task revision/identity changes.
+
+Removal condition: complete scans and zero-change repeat scans on both hosts, followed by coordinated required-field and cross-project owner activation. Eight type/migration tests pass including identity/revision preservation and rejection of foreign-workspace edges; native TS7/Oxc/format pass. Parent owns deployment/backfill; this receipt makes no executed backfill claim.
+
+## Final cross-project owner
+
+Parent verified additive `30c80109e6` deployed on both hosts. Local backfill processed1/changed1, repeat processed1/changed0; remote both zero. Receipts `/tmp/summon-migration-control/relations-{local,remote}-workspace-{1,2}.json`. New writers continued storing workspace ownership after the scan. Schema now requires workspaceId; the migration endpoint and two legacy-fixture tests are removed.
+
+Relations now permit distinct projects in the same workspace. Both endpoint task access and both project write roles are checked on creation; removal also requires both current project writers, including cleanup of retained deleted endpoints. Related-project revocation hides the entire row, including unavailable placeholders. List includes an authorized project summary and canRemove projection for cross-project navigation. Same-workspace consistency is checked on removal. Exact by_pair probes in both directions replace scanning project edges for uniqueness. Blocking DAG checks now read the workspace's blocking-only index, so paths spanning projects cannot evade cycle detection.
+
+Explicit capacity: at most1000 blocking edges per workspace for graph validation; other edge kinds do not consume that graph cap. Endpoint reads detect more than1000 rows in either direction and fail explicitly rather than returning a truncated graph. This bounded API is not a claim of unbounded legacy list parity. Ten relation behavior tests plus six lifecycle tests pass, including multi-project cycles/direction/dedup, cross-workspace rejection, revocation privacy, deleted endpoint cleanup, capacity failure and stale CAS. TS7 and scoped Oxc pass. Frontend consumer activation and deployment remain owned by root; REST bulk/activity wire parity remains staged.
+
+Root Chrome acceptance after d10ef09c2b deployment: local3010 NSTAR7 selected
+QADEL as Related project and created Implemented by to QADEL1. The persisted
+row linked using project=QADEL, and following it showed Implements back to
+NSTAR7. The synthetic edge remains. This is cross-project creation/navigation
+and inverse proof; revoked-project picker recovery is source-reviewed and
+backend-authorized, not newly exercised in Chrome. Root independently reran
+16 relation/lifecycle tests before deployment.

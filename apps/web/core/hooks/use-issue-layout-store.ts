@@ -5,13 +5,16 @@
  */
 
 import { createContext, useContext } from "react";
+import type { ContextType } from "react";
 import { useParams } from "next/navigation";
 import { EIssuesStoreType } from "@plane/types";
 import { useIssues } from "./store/use-issues";
 
-export const IssuesStoreContext = createContext<EIssuesStoreType | undefined>(undefined);
+export const IssuesStoreContext = createContext<
+  Exclude<EIssuesStoreType, EIssuesStoreType.WORKSPACE_DRAFT> | undefined
+>(undefined);
 
-export const useIssueStoreType = () => {
+export const useIssueStoreType = (): NonNullable<ContextType<typeof IssuesStoreContext>> => {
   const storeType = useContext(IssuesStoreContext);
   const { globalViewId, viewId, projectId, cycleId, moduleId, userId, epicId, teamspaceId } = useParams();
 

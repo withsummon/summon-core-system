@@ -4,45 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { index, layout, route } from "@react-router/dev/routes";
+import { nativeStickiesRoute } from "./ownership";
+import { layout, route } from "@react-router/dev/routes";
 import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 
 export const coreRoutes: RouteConfigEntry[] = [
-  // ========================================================================
-  // USER MANAGEMENT ROUTES
-  // ========================================================================
-
-  // Home - Sign In
-  layout("./(home)/layout.tsx", [index("./(home)/page.tsx")]),
-
-  // Sign Up
-  layout("./(all)/sign-up/layout.tsx", [route("sign-up", "./(all)/sign-up/page.tsx")]),
-
-  // Account Routes - Password Management
-  layout("./(all)/accounts/forgot-password/layout.tsx", [
-    route("accounts/forgot-password", "./(all)/accounts/forgot-password/page.tsx"),
-  ]),
-  layout("./(all)/accounts/reset-password/layout.tsx", [
-    route("accounts/reset-password", "./(all)/accounts/reset-password/page.tsx"),
-  ]),
-  layout("./(all)/accounts/set-password/layout.tsx", [
-    route("accounts/set-password", "./(all)/accounts/set-password/page.tsx"),
-  ]),
-
-  // Create Workspace
-  layout("./(all)/create-workspace/layout.tsx", [route("create-workspace", "./(all)/create-workspace/page.tsx")]),
-
-  // Onboarding
-  layout("./(all)/onboarding/layout.tsx", [route("onboarding", "./(all)/onboarding/page.tsx")]),
-
-  // Invitations
-  layout("./(all)/invitations/layout.tsx", [route("invitations", "./(all)/invitations/page.tsx")]),
-
-  // Workspace Invitations
-  layout("./(all)/workspace-invitations/layout.tsx", [
-    route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
-  ]),
-
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================
@@ -72,112 +38,21 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
         ]),
 
-        // Browse
-        layout("./(all)/[workspaceSlug]/(projects)/browse/[workItem]/layout.tsx", [
-          route(":workspaceSlug/browse/:workItem", "./(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx"),
-        ]),
-
-        // Drafts
-        layout("./(all)/[workspaceSlug]/(projects)/drafts/layout.tsx", [
-          route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
-        ]),
-
-        // Notifications
-        layout("./(all)/[workspaceSlug]/(projects)/notifications/layout.tsx", [
-          route(":workspaceSlug/notifications", "./(all)/[workspaceSlug]/(projects)/notifications/page.tsx"),
-        ]),
-
-        // Profile
-        layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
-          route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),
-          route(
-            ":workspaceSlug/profile/:userId/:profileViewId",
-            "./(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx"
-          ),
-          route(
-            ":workspaceSlug/profile/:userId/activity",
-            "./(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx"
-          ),
-        ]),
-
         // Stickies
-        layout("./(all)/[workspaceSlug]/(projects)/stickies/layout.tsx", [
-          route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
-        ]),
-
-        // Workspace Views
-        layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [
-          route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
-          route(
-            ":workspaceSlug/workspace-views/:globalViewId",
-            "./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx"
-          ),
-        ]),
-
-        // Archived Projects
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/archives",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx"
-          ),
-        ]),
+        ...(nativeStickiesRoute
+          ? []
+          : [
+              layout("./(all)/[workspaceSlug]/(projects)/stickies/layout.tsx", [
+                route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
+              ]),
+            ]),
 
         // --------------------------------------------------------------------
         // PROJECT LEVEL ROUTES
         // --------------------------------------------------------------------
 
-        // Project List
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(list)/layout.tsx", [
-          route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx"),
-        ]),
-
         // Project Detail
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/layout.tsx", [
-          // Project Issues List
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/issues",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx"
-            ),
-          ]),
-          // Issue Detail
-          route(
-            ":workspaceSlug/projects/:projectId/issues/:issueId",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx"
-          ),
-
-          // Cycle Detail
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/cycles/:cycleId",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx"
-            ),
-          ]),
-
-          // Cycles List
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/cycles",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx"
-            ),
-          ]),
-
-          // Module Detail
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/modules/:moduleId",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx"
-            ),
-          ]),
-
-          // Modules List
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/modules",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx"
-            ),
-          ]),
-
           // View Detail
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/layout.tsx", [
             route(
@@ -194,28 +69,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             ),
           ]),
 
-          // Page Detail
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/pages/:pageId",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx"
-            ),
-          ]),
-
-          // Pages List
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/pages",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx"
-            ),
-          ]),
-          // Intake list
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/intake",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx"
-            ),
-          ]),
           // Automation
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/layout.tsx", [
             route(
@@ -241,22 +94,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx"
           ),
         ]),
-
-        // Project Archives - Cycles
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/:projectId/archives/cycles",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx"
-          ),
-        ]),
-
-        // Project Archives - Modules
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/:projectId/archives/modules",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx"
-          ),
-        ]),
       ]),
 
       // ====================================================================
@@ -268,11 +105,6 @@ export const coreRoutes: RouteConfigEntry[] = [
         // --------------------------------------------------------------------
 
         layout("./(all)/[workspaceSlug]/(settings)/settings/(workspace)/layout.tsx", [
-          route(":workspaceSlug/settings", "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx"),
-          route(
-            ":workspaceSlug/settings/members",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx"
-          ),
           route(
             ":workspaceSlug/settings/billing",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx"
@@ -309,27 +141,6 @@ export const coreRoutes: RouteConfigEntry[] = [
               ":workspaceSlug/settings/projects/:projectId/members",
               "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx"
             ),
-            // Project Features
-            route(
-              ":workspaceSlug/settings/projects/:projectId/features/cycles",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/cycles/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/settings/projects/:projectId/features/modules",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/settings/projects/:projectId/features/views",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/views/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/settings/projects/:projectId/features/pages",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx"
-            ),
-            route(
-              ":workspaceSlug/settings/projects/:projectId/features/intake",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx"
-            ),
             // Project States
             route(
               ":workspaceSlug/settings/projects/:projectId/states",
@@ -359,14 +170,6 @@ export const coreRoutes: RouteConfigEntry[] = [
     // ======================================================================
     // STANDALONE ROUTES (outside workspace context)
     // ======================================================================
-
-    // --------------------------------------------------------------------
-    // PROFILE SETTINGS
-    // --------------------------------------------------------------------
-
-    layout("./(all)/settings/profile/layout.tsx", [
-      route("settings/profile/:profileTabId", "./(all)/settings/profile/[profileTabId]/page.tsx"),
-    ]),
   ]),
 
   // ========================================================================

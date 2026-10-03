@@ -1,0 +1,39 @@
+{
+  "candidateArtifact": "c6484ec885",
+  "route": "/core?workspace=migration-bench-1790460237&project=BENCH",
+  "environment": "Chrome, local production build, loopback backend, no CPU/network throttling, 500 stored tasks / 50 rendered first page",
+  "warmClickToTwoAnimationFramesAfterTaskRowsMs": [
+    39, 31.69999998807907, 38.5, 28.400000005960464, 30.30000001192093, 31.899999976158146, 30.200000017881393,
+    30.099999994039536, 28.900000005960464, 30.399999976158146
+  ],
+  "cacheDisabledReloads": [
+    {
+      "fcpMs": 260,
+      "dclMs": 124.1,
+      "loadMs": 211.6
+    },
+    {
+      "fcpMs": 100,
+      "dclMs": 34.9,
+      "loadMs": 55.3
+    },
+    {
+      "fcpMs": 108,
+      "dclMs": 34.1,
+      "loadMs": 49.4
+    }
+  ],
+  "observedEachReload": {
+    "renderedRows": 50,
+    "resourceEntries": 36,
+    "scriptInitiatedResources": 16,
+    "resourceTransferBytes": 363163
+  },
+  "limits": [
+    "Candidate-only browser result; no equivalent legacy product route comparison.",
+    "FCP measures first text paint, not permission-gated task readiness or LCP/INP.",
+    "Warm timing uses temporary DOM observer starting at captured click and ending two animation frames after 50 task rows exist.",
+    "Cache disabled for HTTP reloads only; backend caches, session, and local OS stay warm.",
+    "Temporary probes were removed and browser cache settings restored."
+  ]
+}

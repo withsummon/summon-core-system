@@ -44,7 +44,7 @@ export interface IProjectIssues extends IBaseIssuesStore {
   ) => Promise<TIssuesResponse | undefined>;
 
   createIssue: (workspaceSlug: string, projectId: string, data: Partial<TIssue>) => Promise<TIssue>;
-  updateIssue: (workspaceSlug: string, projectId: string, issueId: string, data: Partial<TIssue>) => Promise<void>;
+  updateIssue: BaseIssuesStore["issueUpdate"];
   archiveIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
   quickAddIssue: (workspaceSlug: string, projectId: string, data: TIssue) => Promise<TIssue | undefined>;
   removeBulkIssues: (workspaceSlug: string, projectId: string, issueIds: string[]) => Promise<void>;
@@ -83,7 +83,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
    * @param projectId
    */
   fetchParentStats = async (workspaceSlug: string, projectId?: string) => {
-    projectId && this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
+    if (projectId) this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
   };
 
   /** */

@@ -1,0 +1,22 @@
+/** A saved-view result opens the task's own project, independent of the originating view scope. */
+export function savedViewTaskLink(params: URLSearchParams, projectIdentifier: string, taskId: string) {
+  const next = new URLSearchParams(params);
+  next.set("module", "projects");
+  next.set("project", projectIdentifier);
+  next.delete("comment");
+  next.set("task", taskId);
+  next.set("projectView", "tasks");
+  for (const key of [
+    "savedView",
+    "savedViewTab",
+    "taskView",
+    "cycle",
+    "cycleView",
+    "projectModule",
+    "moduleView",
+    "intake",
+    "intakeStatus",
+  ])
+    next.delete(key);
+  return `?${next}`;
+}

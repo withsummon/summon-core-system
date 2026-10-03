@@ -4,64 +4,94 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useReducer, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
+import { useBeforeUnload, useBlocker } from "react-router";
+import { AlertModalCore } from "@plane/ui";
 
-//TODO: remove temp flag isActive later and use showAlert as the source of truth
-const useReloadConfirmations = (isActive = true, message?: string, defaultShowAlert = false, onLeave?: () => void) => {
-  const [showAlert, setShowAlert] = useState(defaultShowAlert);
+type Confirmations = Map<string, Parameters<typeof useReloadConfirmations>>;
+type AfterRelease = (allowDefaultNavigation: boolean) => void;
+export const ConfirmationContext = createContext<
+  ((id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => void) | null
+>(null);
 
-  const alertMessage = message ?? "Are you sure you want to leave? Changes you made may not be saved.";
-
-  const handleBeforeUnload = useCallback(
-    (event: BeforeUnloadEvent) => {
-      if (!isActive || !showAlert) return;
-      event.preventDefault();
-      event.returnValue = "";
+/** React Router supports one blocker; the root composes all active editor and selection policies. */
+export function ReloadConfirmations({ children }: { children: ReactNode }) {
+  const [confirmations] = useState<Confirmations>(() => new Map());
+  const completions = useRef<AfterRelease[]>([]);
+  const [revision, publish] = useReducer((current) => current + 1, 0);
+  const setConfirmation = useCallback(
+    (id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => {
+      if (confirmation) confirmations.set(id, confirmation);
+      else if (!confirmations.delete(id) && !afterRelease) return;
+      if (afterRelease) completions.current.push(afterRelease);
+      publish();
     },
-    [isActive, showAlert]
+    [confirmations]
   );
-
-  const handleAnchorClick = useCallback(
-    (event: MouseEvent) => {
-      if (!isActive || !showAlert) return;
-      // Skip if event target is not available or defaultPrevented
-      if (!event.target || event.defaultPrevented) return;
-      // Skip control/command/option/alt+click
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      // check if the event target is an anchor or a child of an anchor tag
-      const eventTarget = event.target as HTMLElement;
-      if (!eventTarget.closest("a")) return; // This is intentionally not type safe
-      // check if anchor target is _blank
-      const anchorElement = eventTarget.closest("a") as HTMLAnchorElement;
-      const isAnchorTargetBlank = anchorElement.getAttribute("target") === "_blank";
-      if (isAnchorTargetBlank) return;
-      // show confirm dialog
-      const isLeaving = confirm(alertMessage);
-      if (isLeaving) {
-        onLeave && onLeave();
-      } else {
+  const blocker = useBlocker(useCallback(() => confirmations.size > 0, [confirmations]));
+  useBeforeUnload(
+    useCallback(
+      (event) => {
+        if (confirmations.size === 0) return;
         event.preventDefault();
-        event.stopPropagation();
-      }
-    },
-    [isActive, showAlert]
+        event.returnValue = "";
+      },
+      [confirmations]
+    ),
+    { capture: true }
   );
-
   useEffect(() => {
-    // handle browser refresh
-    window.addEventListener("beforeunload", handleBeforeUnload, true);
-    // handle anchor tag click
-    window.addEventListener("click", handleAnchorClick, true);
-    // TODO: handle back / forward button click
+    const completed = completions.current;
+    completions.current = [];
+    completed.forEach((afterRelease) => afterRelease(blocker.state === "unblocked"));
+    if (blocker.state === "blocked" && confirmations.size === 0) blocker.proceed();
+  }, [blocker, confirmations, revision]);
+  const activeConfirmations = [...confirmations.values()];
+  const isSubmitting = activeConfirmations.some(([, , , pending]) => pending);
+  return (
+    <ConfirmationContext.Provider value={setConfirmation}>
+      {children}
+      {blocker.state === "blocked" && (
+        <AlertModalCore
+          isSubmitting={isSubmitting}
+          isOpen
+          handleClose={() => blocker.reset()}
+          handleSubmit={() => {
+            const current = [...confirmations.values()];
+            if (current.some(([, , , pending]) => pending)) return;
+            flushSync(() => current.forEach(([, , onLeave]) => onLeave?.()));
+            if (confirmations.size > 0) blocker.proceed();
+          }}
+          variant="primary"
+          title="Leave this page?"
+          content={[...new Set(activeConfirmations.map(([, message]) => message))].join(" ")}
+          primaryButtonText={{ default: "Leave", loading: "Waiting…" }}
+          secondaryButtonText="Stay"
+        />
+      )}
+    </ConfirmationContext.Provider>
+  );
+}
 
-    return () => {
-      // cleanup
-      window.removeEventListener("beforeunload", handleBeforeUnload, true);
-      window.removeEventListener("click", handleAnchorClick, true);
-    };
-  }, [handleAnchorClick, handleBeforeUnload]);
-
-  return { setShowAlert };
-};
-
-export default useReloadConfirmations;
+export default function useReloadConfirmations(
+  active: boolean,
+  message = "Changes you made may not be saved.",
+  onLeave?: () => void,
+  isSubmitting = false
+) {
+  const id = useId();
+  const setConfirmation = useContext(ConfirmationContext);
+  if (!setConfirmation) throw new Error("Reload confirmation requires the root navigation owner.");
+  const release = useCallback(
+    (afterRelease?: AfterRelease) => setConfirmation(id, undefined, afterRelease),
+    [id, setConfirmation]
+  );
+  useEffect(() => {
+    if (!active && !isSubmitting) return;
+    setConfirmation(id, [active, message, onLeave, isSubmitting]);
+    return release;
+  }, [active, id, message, onLeave, isSubmitting, setConfirmation, release]);
+  return release;
+}

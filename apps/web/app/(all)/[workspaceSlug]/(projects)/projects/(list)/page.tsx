@@ -4,10 +4,4 @@
  * See the LICENSE file for details.
  */
 
-import { ProjectPageRoot } from "@/components/projects/page";
-
-function ProjectsPage() {
-  return <ProjectPageRoot />;
-}
-
-export default ProjectsPage;
+export { ProjectDirectoryPage as default } from "@/components/project/native/route";

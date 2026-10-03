@@ -7,6 +7,7 @@ import copy
 import json
 
 # Django imports
+from django.db import transaction
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
 from django.core.serializers.json import DjangoJSONEncoder
@@ -36,6 +37,7 @@ from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import (
     IssueCreateSerializer,
     IssueDetailSerializer,
+    IssueFlatSerializer,
     IssueListDetailSerializer,
     IssueSerializer,
     ProjectUserPropertySerializer,
@@ -625,7 +627,12 @@ class IssueViewSet(BaseViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], creator=True, model=Issue)
+    @transaction.atomic
     def partial_update(self, request, slug, project_id, pk=None):
+        # Lock the plain row before reading the aggregate snapshot.
+        Issue.objects.select_for_update(of=("self",)).filter(
+            pk=pk, project_id=project_id, workspace__slug=slug
+        ).values_list("pk", flat=True).first()
         queryset = self.get_queryset()
         queryset = self.apply_annotations(queryset)
 
@@ -684,33 +691,42 @@ class IssueViewSet(BaseViewSet):
             is_migration_description_update = skip_activity and is_description_update
             # Log all the updates
             if not is_migration_description_update:
-                issue_activity.delay(
-                    type="issue.activity.updated",
-                    requested_data=requested_data,
-                    actor_id=str(request.user.id),
-                    issue_id=str(pk),
-                    project_id=str(project_id),
-                    current_instance=current_instance,
-                    epoch=int(timezone.now().timestamp()),
-                    notification=True,
-                    origin=base_host(request=request, is_app=True),
+                transaction.on_commit(
+                    lambda: issue_activity.delay(
+                        type="issue.activity.updated",
+                        requested_data=requested_data,
+                        actor_id=str(request.user.id),
+                        issue_id=str(pk),
+                        project_id=str(project_id),
+                        current_instance=current_instance,
+                        epoch=int(timezone.now().timestamp()),
+                        notification=True,
+                        origin=base_host(request=request, is_app=True),
+                    ),
+                    robust=True,
                 )
-                model_activity.delay(
-                    model_name="issue",
-                    model_id=str(serializer.data.get("id", None)),
-                    requested_data=request.data,
-                    current_instance=current_instance,
-                    actor_id=request.user.id,
-                    slug=slug,
-                    origin=base_host(request=request, is_app=True),
+                transaction.on_commit(
+                    lambda: model_activity.delay(
+                        model_name="issue",
+                        model_id=str(serializer.data.get("id", None)),
+                        requested_data=request.data,
+                        current_instance=current_instance,
+                        actor_id=request.user.id,
+                        slug=slug,
+                        origin=base_host(request=request, is_app=True),
+                    ),
+                    robust=True,
                 )
                 # updated issue description version
-                issue_description_version_task.delay(
-                    updated_issue=current_instance,
-                    issue_id=str(serializer.data.get("id", None)),
-                    user_id=request.user.id,
+                transaction.on_commit(
+                    lambda: issue_description_version_task.delay(
+                        updated_issue=current_instance,
+                        issue_id=str(serializer.data.get("id", None)),
+                        user_id=request.user.id,
+                    ),
+                    robust=True,
                 )
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(IssueFlatSerializer(serializer.instance).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @allow_permission([ROLE.ADMIN], creator=True, model=Issue)

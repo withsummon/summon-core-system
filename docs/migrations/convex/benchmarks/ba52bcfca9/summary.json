@@ -1,0 +1,22 @@
+{
+  "djangoRead": {
+    "medianTrialP50": 38.738124999999854,
+    "trialP95Range": [76.81879200000003, 77.26679100000001]
+  },
+  "convexRead": {
+    "medianTrialP50": 1.3186249999998836,
+    "trialP95Range": [1.6622500000000855, 1.9184159999999792]
+  },
+  "djangoWrite": {
+    "medianTrialP50": 30.68724999999995,
+    "trialP95Range": [32.66691600000013, 35.39274999999998]
+  },
+  "convexWrite": {
+    "medianTrialP50": 13.213917000000038,
+    "trialP95Range": [15.944290999999794, 17.94316699999945]
+  },
+  "convexPropagation": {
+    "medianTrialP50": 19.895166999999674,
+    "trialP95Range": [21.64337499999965, 22.43804199999977]
+  }
+}

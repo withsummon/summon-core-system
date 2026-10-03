@@ -39,10 +39,8 @@ const fetchDocument = async ({ context, documentName: pageId, instance }: FetchP
       if (convertedBinaryData) {
         // save the converted binary data back to the database
         try {
-          const { contentBinaryEncoded, contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(
-            convertedBinaryData,
-            true
-          );
+          const { contentBinaryEncoded, contentHTML, contentJSON } =
+            getAllDocumentFormatsFromDocumentEditorBinaryData(convertedBinaryData);
           const payload: TDocumentPayload = {
             description_binary: contentBinaryEncoded,
             description_html: contentHTML,
@@ -78,10 +76,8 @@ const storeDocument = async ({
   try {
     const service = getPageService(context.documentType, context);
     // convert binary data to all formats
-    const { contentBinaryEncoded, contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(
-      pageBinaryData,
-      true
-    );
+    const { contentBinaryEncoded, contentHTML, contentJSON } =
+      getAllDocumentFormatsFromDocumentEditorBinaryData(pageBinaryData);
     // create payload
     const payload: TDocumentPayload = {
       description_binary: contentBinaryEncoded,

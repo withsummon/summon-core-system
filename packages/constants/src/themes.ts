@@ -18,7 +18,7 @@ export interface I_THEME_OPTION {
   };
 }
 
-export const THEME_OPTIONS: I_THEME_OPTION[] = [
+export const THEME_OPTIONS = [
   {
     key: "system_preference",
     value: "system",
@@ -85,4 +85,4 @@ export const THEME_OPTIONS: I_THEME_OPTION[] = [
       color2: "#FF5151",
     },
   },
-];
+] as const satisfies readonly I_THEME_OPTION[];

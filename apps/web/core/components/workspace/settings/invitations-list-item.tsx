@@ -5,224 +5,157 @@
  */
 
 import { useState } from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// plane imports
-import { ROLE, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useAction, useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TContextMenuItem } from "@plane/ui";
 import { CustomSelect, CustomMenu } from "@plane/ui";
-import { cn, copyTextToClipboard } from "@plane/utils";
-// components
+import { copyTextToClipboard } from "@plane/utils";
 import { ConfirmWorkspaceMemberRemove } from "@/components/workspace/confirm-workspace-member-remove";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useUserPermissions } from "@/hooks/store/user";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
+type Invitation = FunctionReturnType<typeof api.invitations.index.pending>[number];
 type Props = {
-  invitationId: string;
+  invitation: Invitation;
+  roles: FunctionReturnType<typeof api.invitations.index.access>["roles"];
+  emailDelivery: FunctionReturnType<typeof api.invitations.index.availability>["emailDelivery"];
 };
 
-export const WorkspaceInvitationsListItem = observer(function WorkspaceInvitationsListItem(props: Props) {
-  const { invitationId } = props;
-  // router
-  const { workspaceSlug } = useParams();
-  // states
-  const [removeMemberModal, setRemoveMemberModal] = useState(false);
-  // plane hooks
+export function WorkspaceInvitationsListItem({ invitation, roles, emailDelivery }: Props) {
   const { t } = useTranslation();
-  // store hooks
-  const { allowPermissions, workspaceInfoBySlug } = useUserPermissions();
-  const {
-    workspace: { updateMemberInvitation, deleteMemberInvitation, getWorkspaceInvitationDetails },
-  } = useMember();
-  // derived values
-  const invitationDetails = getWorkspaceInvitationDetails(invitationId);
-  const currentWorkspaceMemberInfo = workspaceInfoBySlug(workspaceSlug.toString());
-  const currentWorkspaceRole = currentWorkspaceMemberInfo?.role;
-  // is the current logged in user admin
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  // role change access-
-  // 1. user cannot change their own role
-  // 2. only admin or member can change role
-  // 3. user cannot change role of higher role
-  const hasRoleChangeAccess = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-
-  const handleRemoveInvitation = async () => {
+  const updateRole = useMutation(api.invitations.index.updateRole);
+  const revoke = useMutation(api.invitations.index.revoke);
+  const resend = useAction(api.invitations.email.resend);
+  const [selection, setSelection] = useState<Invitation | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const canManage = roles.includes(invitation.role);
+  const copy = async () => {
+    const url = new URL("/workspace-invitations/", window.location.origin);
+    url.searchParams.set("invitation_id", invitation._id);
     try {
-      if (!workspaceSlug || !invitationDetails) return;
-
-      await deleteMemberInvitation(workspaceSlug.toString(), invitationDetails.id);
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Invitation removed successfully.",
-      });
-    } catch (err: unknown) {
-      const error = err as { error?: string };
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: error?.error || "Something went wrong. Please try again.",
-      });
-    }
-  };
-
-  if (!invitationDetails || !currentWorkspaceMemberInfo) return null;
-
-  const handleCopyText = async () => {
-    try {
-      const inviteLink = new URL(invitationDetails.invite_link, window.location.origin).href;
-      await copyTextToClipboard(inviteLink);
+      await copyTextToClipboard(url.href);
+      setError("");
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("common.link_copied"),
         message: t("entity.link_copied_to_clipboard", { entity: t("common.invite") }),
       });
-    } catch (error) {
-      console.error("Error generating invite link:", error);
+    } catch {
+      setError("The link could not be copied. Allow clipboard access and try again.");
     }
   };
-
-  const MENU_ITEMS: TContextMenuItem[] = [
-    {
-      key: "copy-link",
-      action: () => void handleCopyText(),
-      title: t("common.actions.copy_link"),
-      icon: LinkIcon,
-      shouldRender: !!invitationDetails.invite_link,
-    },
-    {
-      key: "remove",
-      action: () => {
-        setRemoveMemberModal(true);
-      },
-      title: t("common.remove"),
-      icon: TrashIcon,
-      shouldRender: isAdmin,
-      className: "text-danger-primary",
-      iconClassName: "text-danger-primary",
-    },
-  ];
-
+  const send = async () => {
+    setPending(true);
+    setError("");
+    try {
+      const result = await resend({ invitationId: invitation._id, expectedRevision: invitation.revision });
+      if (result.delivery === "sent")
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Invitation email sent", message: invitation.email });
+      else
+        setError(
+          result.delivery === "failed"
+            ? "Email delivery failed. Copy the invitation link or resend it."
+            : "This invitation changed during delivery. Check its current status before resending."
+        );
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  };
   return (
     <>
-      <ConfirmWorkspaceMemberRemove
-        isOpen={removeMemberModal}
-        onClose={() => setRemoveMemberModal(false)}
-        userDetails={{
-          id: invitationDetails.id,
-          display_name: `${invitationDetails.email}`,
-        }}
-        onSubmit={handleRemoveInvitation}
-      />
-      <div className="group flex h-full w-full items-center justify-between px-3 py-4 hover:bg-layer-transparent-hover">
-        <div className="flex items-center gap-x-4 gap-y-2">
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-sm bg-layer-3 p-4 text-tertiary capitalize">
-            {(invitationDetails.email ?? "?")[0]}
+      {selection && (
+        <ConfirmWorkspaceMemberRemove
+          kind="invitation"
+          displayName={selection.email}
+          onClose={() => setSelection(null)}
+          onSubmit={async () => {
+            await revoke({ invitationId: selection._id, expectedRevision: selection.revision });
+          }}
+        />
+      )}
+      <div className="group flex h-full w-full flex-col items-start justify-between gap-3 px-3 py-4 hover:bg-layer-transparent-hover sm:flex-row sm:items-center">
+        <div className="flex min-w-0 items-center gap-x-4 gap-y-2">
+          <span
+            className="relative flex size-10 shrink-0 items-center justify-center rounded-sm bg-layer-3 p-4 text-tertiary capitalize"
+            aria-hidden="true"
+          >
+            {invitation.email[0]}
           </span>
-          <div>
-            <h4 className="cursor-default text-body-xs-regular">{invitationDetails.email}</h4>
+          <div className="min-w-0">
+            <h4 className="cursor-default text-body-xs-regular break-all">{invitation.email}</h4>
+            {invitation.delivery === "failed" && (
+              <p role="status" className="text-caption-sm-regular text-danger-primary">
+                Email delivery failed. Copy the link or resend.
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="text-caption-sm-regular text-danger-primary">
+                {error}
+              </p>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-11">
-          <div className="flex items-center justify-center rounded-sm bg-label-yellow-bg-strong/20 px-2.5 py-1 text-center text-caption-sm-medium text-label-yellow-text">
-            <p>{t("common.pending")}</p>
-          </div>
-          <CustomSelect
+        <div className="flex shrink-0 items-center gap-2 self-end text-11 sm:self-auto">
+          <span className="rounded-sm bg-label-yellow-bg-strong/20 px-2.5 py-1 text-caption-sm-medium text-label-yellow-text">
+            {t("common.pending")}
+          </span>
+          <CustomSelect<Invitation["role"]>
+            value={invitation.role}
+            disabled={!canManage || pending}
+            ariaLabel={`Invitation role for ${invitation.email}`}
             customButton={
-              <div className="item-center flex gap-1 rounded-sm px-2 py-0.5">
-                <span
-                  className={`flex items-center rounded-sm text-caption-sm-medium ${
-                    hasRoleChangeAccess ? "" : "text-placeholder"
-                  }`}
-                >
-                  {ROLE[invitationDetails.role]}
-                </span>
-                {hasRoleChangeAccess && (
-                  <span className="grid place-items-center">
-                    <ChevronDownIcon className="h-3 w-3" />
-                  </span>
-                )}
-              </div>
+              <span className="flex items-center gap-1 rounded-sm px-2 py-0.5 text-caption-sm-medium">
+                {t(`role_details.${invitation.role}.title`)}
+                <ChevronDownIcon className="size-3" aria-hidden="true" />
+              </span>
             }
-            value={invitationDetails.role}
-            onChange={(value: EUserPermissions) => {
-              if (!workspaceSlug || !value) return;
-
-              updateMemberInvitation(workspaceSlug.toString(), invitationDetails.id, {
-                role: value,
-              }).catch((err: unknown) => {
-                const error = err as { error?: string };
-                setToast({
-                  type: TOAST_TYPE.ERROR,
-                  title: "Error!",
-                  message: error?.error || "An error occurred while updating member role. Please try again.",
-                });
-              });
+            onChange={async (role) => {
+              setPending(true);
+              setError("");
+              try {
+                await updateRole({ invitationId: invitation._id, expectedRevision: invitation.revision, role });
+              } catch (failure) {
+                setError(mutationMessage(failure));
+              } finally {
+                setPending(false);
+              }
             }}
-            disabled={!hasRoleChangeAccess}
             placement="bottom-end"
           >
-            {Object.keys(ROLE).map((key) => {
-              if (
-                currentWorkspaceRole &&
-                Number(currentWorkspaceRole) !== 20 &&
-                Number(currentWorkspaceRole) < parseInt(key)
-              )
-                return null;
-
-              return (
-                <CustomSelect.Option key={key} value={parseInt(key, 10)}>
-                  <>{ROLE[parseInt(key) as keyof typeof ROLE]}</>
-                </CustomSelect.Option>
-              );
-            })}
+            {roles.map((role) => (
+              <CustomSelect.Option key={role} value={role}>
+                {t(`role_details.${role}.title`)}
+              </CustomSelect.Option>
+            ))}
           </CustomSelect>
-          {isAdmin && (
-            <CustomMenu ellipsis placement="bottom-end" closeOnSelect>
-              {MENU_ITEMS.map((item) => {
-                if (item.shouldRender === false) return null;
-                return (
-                  <CustomMenu.MenuItem
-                    key={item.key}
-                    onClick={() => {
-                      item.action();
-                    }}
-                    className={cn(
-                      "flex items-center gap-2",
-                      {
-                        "text-placeholder": item.disabled,
-                      },
-                      item.className
-                    )}
-                    disabled={item.disabled}
-                  >
-                    {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
-                    <div>
-                      <h5>{item.title}</h5>
-                      {item.description && (
-                        <p
-                          className={cn("whitespace-pre-line text-tertiary", {
-                            "text-placeholder": item.disabled,
-                          })}
-                        >
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                  </CustomMenu.MenuItem>
-                );
-              })}
-            </CustomMenu>
-          )}
+          <CustomMenu
+            ellipsis
+            ariaLabel={`Invitation actions for ${invitation.email}`}
+            placement="bottom-end"
+            closeOnSelect
+            disabled={pending}
+          >
+            <CustomMenu.MenuItem onClick={() => void copy()}>
+              <LinkIcon className="size-3.5" aria-hidden="true" />
+              {t("common.actions.copy_link")}
+            </CustomMenu.MenuItem>
+            {canManage && emailDelivery && (
+              <CustomMenu.MenuItem onClick={() => void send()}>Resend email</CustomMenu.MenuItem>
+            )}
+            {canManage && (
+              <CustomMenu.MenuItem onClick={() => setSelection(invitation)} className="text-danger-primary">
+                <TrashIcon className="size-3.5" aria-hidden="true" />
+                {t("common.remove")}
+              </CustomMenu.MenuItem>
+            )}
+          </CustomMenu>
         </div>
       </div>
     </>
   );
-});
+}

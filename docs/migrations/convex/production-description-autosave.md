@@ -1,0 +1,25 @@
+# Existing production description autosave owner
+
+This is a nonvisual repair under the existing Plane/Summon task and intake screens. The deployed production appearance remains the baseline; `/core` is a temporary migration QA surface. No Convex transport was wired into these production screens in this change.
+
+## Owner and invariant
+
+`DescriptionInput` owns a draft for one entity. The public component keys the inner observer by entity ID; its `DescriptionAutosave` instance retains that entity's submit callback. A pending old-entity flush cannot dereference a newly selected entity's callback. Clean remote values are accepted through the existing editor `value` synchronization (`setContent` without emitting an update); dirty/in-flight drafts are retained. The initial editor value also comes from the retained draft, preserving it if editability recreates the editor.
+
+The existing 1500ms debounce remains. Saves serialize; acknowledging one submitted snapshot cannot acknowledge text entered later. A due save or unmount flush queues newer dirty content behind the active request, without duplicating the same snapshot. Failure retains dirty content, rejects queued automatic retries and does not retry on unmount. Another edit owns the next attempt. The shared status contract now includes `failed`: the existing indicator shows `Not saved` without a spinner, the input surfaces an error, and task/full-page/peek/intake reload warnings remain active.
+
+Task-detail, peek and intake operation wrappers now rethrow after their existing error toast. `InboxIssueStore.updateIssue` rethrows after its existing optimistic rollback. The redundant React Hook Form controller was removed from the input: it had no independent validation or rendered DOM, and its duplicate form/dirty refs were replaced by the actual autosave owner. Editor composition, file/mention handlers, toolbar, classes and responsive structure are retained.
+
+## Verification
+
+Six module-local Node behavior tests exercise clean/dirty remote updates, edits during in-flight saves, serialization, failure with no automatic retry, entity switching and duplicate unmount flush avoidance. Native web TypeScript passes after rebuilding the changed shared types package. Oxc reports no warnings in the autosave/status/type owners. Four inherited operation/store files have the same30 `no-shadow` warnings in a HEAD-source baseline and the changed source; no new diagnostics. One baseline lint invocation outside its working directory triggered an Oxc ignore-path panic; rerunning with the isolated baseline as its working directory completed and produced the comparison.
+
+The existing Django API still lacks the native content-token contract: this repair prevents local draft replacement/false acknowledgement, but does not itself add server-side concurrent-write protection. Root review sampled the keyed owner and shared failure state before commit.
+
+## Local Chrome acceptance
+
+Primary exercised the restored Task Center at `http://localhost:3010/summon-local-qa-20260926/summon/tasks/` using its existing synthetic QA session. The desktop table, ownership/date filters, pagination and summary/calendar/project panels rendered in the deployed presentation. The existing New Task modal created NDBC-3, **Preserved UI autosave QA 20260927**, and its normal View work item link opened `/summon-local-qa-20260926/browse/NDBC-3/`. Typing `Preserved production editor autosave acceptance.` into the actual rich-text description visibly transitioned Saving… → Saved. A full reload retained the exact text and task properties. The synthetic task remains available for follow-up verification; no production data was mutated.
+
+This was the existing dev checkout with committed restoration `206a6952f3` and autosave `94bcc46686`, against local Django8000, not a frozen production artifact or Convex route. A subsequent advanced-browser screenshot verified task detail at390×844: title and description wrap, relation/link/attachment actions wrap, and properties follow the editor. The viewport was reset. The earlier native screenshot did not reflect the requested viewport and is not responsive evidence. Browser concurrent-writer/intake coverage and constrained-width Task Center acceptance remain open. Native autosave owner behavior tests cover the separately named concurrency cases; they do not substitute for those browser gates.
+
+Primary also blocked only this synthetic task's local API requests in the task tab and edited its description. After debounce the actual screen showed **Not saved** and **Description could not be saved. Your changes are retained.**, with the dirty text still visible. Clearing the block and making a new edit transitioned to Saved. The description was then restored to its original acceptance text and Saved was observed again. No network block or dirty draft was left in place. This establishes the rendered failure/recovery contract in the preserved task screen, without claiming Django concurrent-write protection.

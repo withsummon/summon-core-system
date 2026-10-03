@@ -1,0 +1,94 @@
+import { ConvexError, v } from "convex/values";
+import { mutation, query } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import type { Infer } from "convex/values";
+import { preferences } from "./preferences_fields";
+import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
+import { requireWorkspace } from "./access";
+function validatePreferences(value: Infer<typeof preferences>) {
+  if (!value.language.trim() || value.language.length > 255)
+    throw new ConvexError("Language must contain 1–255 characters.");
+  if (value.useCase !== null && value.useCase.length > 20000)
+    throw new ConvexError("Use case must be at most 20,000 characters.");
+  if (value.jobRole !== null && value.jobRole.length > 300)
+    throw new ConvexError("Job role must be at most 300 characters.");
+  validateTheme(value.theme);
+}
+function validateTheme(theme: Infer<typeof preferences>["theme"]) {
+  for (const color of [theme.primary, theme.background]) {
+    if (color !== undefined && !/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i.test(color))
+      throw new ConvexError("Custom theme colors must be hexadecimal colors.");
+  }
+}
+export const save = mutation({
+  args: { expectedRevision: v.number(), preferences },
+  handler: async (ctx, args) => {
+    const owner = await ownProfile(ctx);
+    const revision = profileRevision(owner.profile, args.expectedRevision);
+    validatePreferences(args.preferences);
+    if (
+      args.preferences.lastWorkspaceId &&
+      args.preferences.lastWorkspaceId !== (owner.profile ?? defaultProfile).preferences.lastWorkspaceId
+    )
+      await requireWorkspace(ctx, args.preferences.lastWorkspaceId);
+    await writeProfile(ctx, owner, { preferences: args.preferences, revision });
+    return { revision };
+  },
+});
+
+// Workspace selection is a field-level action, not a full preference form save.
+export const selectWorkspace = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: (ctx, { workspaceId }) => selectWorkspaceForUser(ctx, workspaceId),
+});
+
+export async function selectWorkspaceForUser(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
+  const owner = await ownProfile(ctx);
+  const { workspace } = await requireWorkspace(ctx, workspaceId);
+  const profile = owner.profile ?? defaultProfile;
+  if (profile.preferences.lastWorkspaceId !== workspaceId)
+    await writeProfile(ctx, owner, {
+      revision: profile.revision + 1,
+      preferences: { ...profile.preferences, lastWorkspaceId: workspaceId },
+    });
+  return { workspaceId: workspace._id, slug: workspace.slug };
+}
+
+export const destination = query({
+  args: {},
+  handler: async (ctx) => {
+    const { user, profile } = await ownProfile(ctx);
+    const currentPreferences = (profile ?? defaultProfile).preferences;
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .take(1001);
+    if (memberships.length > 1000)
+      throw new ConvexError("Workspace destination exceeds the 1000-membership lookup limit.");
+    const candidates = await Promise.all(
+      memberships.filter((member) => member.active).map((member) => ctx.db.get(member.workspaceId))
+    );
+    const workspaces = candidates
+      .filter((workspace) => workspace !== null)
+      .filter((workspace) => workspace.deletedAt == null);
+    const selected = workspaces.find((workspace) => workspace._id === currentPreferences.lastWorkspaceId);
+    const oldest = workspaces.reduce<(typeof workspaces)[number] | null>(
+      (current, workspace) =>
+        !current ||
+        workspace._creationTime < current._creationTime ||
+        (workspace._creationTime === current._creationTime && workspace._id < current._id)
+          ? workspace
+          : current,
+      null
+    );
+    const workspace = selected ?? oldest;
+    const steps = currentPreferences.onboarding;
+    return {
+      onboardingComplete:
+        currentPreferences.isOnboarded ||
+        (steps.profileComplete && steps.workspaceCreate && steps.workspaceInvite && steps.workspaceJoin),
+      workspace: workspace ? { id: workspace._id, slug: workspace.slug } : null,
+    };
+  },
+});

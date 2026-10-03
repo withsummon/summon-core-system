@@ -54,10 +54,11 @@ export const useTitleEditor = (props: TUseTitleEditorProps) => {
 
   const editor = useEditor(
     {
-      onUpdate: ({ editor }) => {
-        updatePageProperties?.(id, "property_updated", { name: editor?.getText() });
+      onUpdate: ({ editor: updatedEditor }) => {
+        updatePageProperties?.(id, "property_updated", { name: updatedEditor.getText() });
       },
       editable,
+      editorProps: { attributes: { role: "textbox", "aria-label": "Document title" } },
       immediatelyRender: false,
       shouldRerenderOnTransaction: false,
       extensions: [

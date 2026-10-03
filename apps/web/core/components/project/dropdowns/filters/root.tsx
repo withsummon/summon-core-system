@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { observer } from "mobx-react";
 import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 // plane imports
@@ -29,10 +29,53 @@ type Props = {
 
 export const ProjectFiltersSelection = observer(function ProjectFiltersSelection(props: Props) {
   const { displayFilters, filters, handleFiltersUpdate, handleDisplayFiltersUpdate, memberIds } = props;
+  return (
+    <ProjectFiltersSelectionView
+      displayFilters={displayFilters}
+      filters={filters}
+      handleFiltersUpdate={handleFiltersUpdate}
+      handleDisplayFiltersUpdate={handleDisplayFiltersUpdate}
+      lead={(searchQuery) => (
+        <FilterLead
+          appliedFilters={filters.lead ?? null}
+          handleUpdate={(value) => handleFiltersUpdate("lead", value)}
+          searchQuery={searchQuery}
+          memberIds={memberIds}
+        />
+      )}
+      members={(searchQuery) => (
+        <FilterMembers
+          appliedFilters={filters.members ?? null}
+          handleUpdate={(value) => handleFiltersUpdate("members", value)}
+          searchQuery={searchQuery}
+          memberIds={memberIds}
+        />
+      )}
+    />
+  );
+});
+
+export function ProjectFiltersSelectionView({
+  displayFilters,
+  filters,
+  handleFiltersUpdate,
+  handleDisplayFiltersUpdate,
+  lead,
+  members,
+}: Omit<Props, "memberIds"> & {
+  lead: (searchQuery: string) => ReactNode;
+  members: (searchQuery: string) => ReactNode;
+}) {
   // states
   const [filtersSearchQuery, setFiltersSearchQuery] = useState("");
   // store
   const { isMobile } = usePlatformOS();
+  const focusInput = useCallback(
+    (input: HTMLInputElement | null) => {
+      if (!isMobile) input?.focus();
+    },
+    [isMobile]
+  );
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -45,7 +88,7 @@ export const ProjectFiltersSelection = observer(function ProjectFiltersSelection
             placeholder="Search"
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}
-            autoFocus={!isMobile}
+            ref={focusInput}
           />
           {filtersSearchQuery !== "" && (
             <button type="button" className="grid place-items-center" onClick={() => setFiltersSearchQuery("")}>
@@ -77,24 +120,10 @@ export const ProjectFiltersSelection = observer(function ProjectFiltersSelection
         </div>
 
         {/* lead */}
-        <div className="py-2">
-          <FilterLead
-            appliedFilters={filters.lead ?? null}
-            handleUpdate={(val) => handleFiltersUpdate("lead", val)}
-            searchQuery={filtersSearchQuery}
-            memberIds={memberIds}
-          />
-        </div>
+        <div className="py-2">{lead(filtersSearchQuery)}</div>
 
         {/* members */}
-        <div className="py-2">
-          <FilterMembers
-            appliedFilters={filters.members ?? null}
-            handleUpdate={(val) => handleFiltersUpdate("members", val)}
-            searchQuery={filtersSearchQuery}
-            memberIds={memberIds}
-          />
-        </div>
+        <div className="py-2">{members(filtersSearchQuery)}</div>
 
         {/* created date */}
         <div className="py-2">
@@ -107,4 +136,4 @@ export const ProjectFiltersSelection = observer(function ProjectFiltersSelection
       </div>
     </div>
   );
-});
+}

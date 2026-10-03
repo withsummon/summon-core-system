@@ -39,8 +39,6 @@ import CoverImage9 from "@/app/assets/cover-images/image_9.jpg?url";
 
 import { FileService } from "@/services/file.service";
 
-const fileService = new FileService();
-
 /**
  * Map of all available static cover images
  * These are pre-loaded images available in the assets/cover-images folder
@@ -206,6 +204,7 @@ export const uploadCoverImage = async (
   }
 ): Promise<string> => {
   const { workspaceSlug, entityIdentifier, entityType, isUserAsset = false } = uploadConfig;
+  const fileService = new FileService();
 
   // Fetch the local image
   const response = await fetch(imageUrl);

@@ -56,6 +56,7 @@ export const truncateText = (str: string, length: number) => {
 export const createSimilarString = (str: string) => {
   const shuffled = str
     .split("")
+    // oxlint-disable-next-line unicorn/no-array-sort -- Shuffle this newly created private character array in place.
     .sort(() => Math.random() - 0.5)
     .join("");
 
@@ -153,7 +154,7 @@ export const checkEmailValidity = (email: string): boolean => {
   if (!email) return false;
 
   const isEmailValid =
-    /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
       email
     );
 
@@ -236,7 +237,7 @@ export const isCommentEmpty = (comment: Content | undefined): boolean => {
 
   // Handle JSONContent[] (array)
   if (Array.isArray(comment)) {
-    return comment.length === 0 || comment.every(isJSONContentEmpty);
+    return comment.every(isJSONContentEmpty);
   }
 
   // Handle JSONContent (object)
@@ -342,42 +343,7 @@ export const substringMatch = (text: string, searchQuery: string): boolean => {
  * @example
  * await copyTextToClipboard("Hello, World!") // copies "Hello, World!" to clipboard
  */
-const fallbackCopyTextToClipboard = (text: string) => {
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-
-  // Avoid scrolling to bottom
-  textArea.style.top = "0";
-  textArea.style.left = "0";
-  textArea.style.position = "fixed";
-
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-
-  try {
-    // FIXME: Even though we are using this as a fallback, execCommand is deprecated 👎. We should find a better way to do this.
-    // https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
-    document.execCommand("copy");
-  } catch (_err) {
-    // catch fallback error
-  }
-
-  document.body.removeChild(textArea);
-};
-
-/**
- * @description Copies text to clipboard
- * @param {string} text - Text to copy
- * @returns {Promise<void>} Promise that resolves when copying is complete
- * @example
- * await copyTextToClipboard("Hello, World!") // copies "Hello, World!" to clipboard
- */
 export const copyTextToClipboard = async (text: string): Promise<void> => {
-  if (!navigator.clipboard) {
-    fallbackCopyTextToClipboard(text);
-    return;
-  }
   await navigator.clipboard.writeText(text);
 };
 

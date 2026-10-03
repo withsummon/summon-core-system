@@ -6,8 +6,11 @@
 
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
+import { useLocation } from "react-router";
+import { isValidNextPath } from "@plane/utils";
+import { authReturnUrl } from "@/helpers/auth-return";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // helpers
@@ -24,13 +27,9 @@ type TAuthenticationWrapper = {
   pageType?: TPageType;
 };
 
-const isValidURL = (url: string): boolean => {
-  const disallowedSchemes = /^(https?|ftp):\/\//i;
-  return !disallowedSchemes.test(url);
-};
-
 export const AuthenticationWrapper = observer(function AuthenticationWrapper(props: TAuthenticationWrapper) {
-  const pathname = usePathname();
+  const location = useLocation();
+  const signInUrl = authReturnUrl("/", `${location.pathname}${location.search}${location.hash}`);
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next_path");
@@ -59,8 +58,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     let redirectionRoute = "/create-workspace";
 
     // validating the nextPath from the router query
-    if (nextPath && isValidURL(nextPath.toString())) {
-      redirectionRoute = nextPath.toString();
+    if (nextPath && isValidNextPath(nextPath)) {
+      redirectionRoute = nextPath.trim();
       return redirectionRoute;
     }
 
@@ -103,7 +102,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.ONBOARDING) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(signInUrl);
       return <></>;
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
@@ -116,7 +115,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.SET_PASSWORD) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(signInUrl);
       return <></>;
     } else {
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
@@ -135,7 +134,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         return <></>;
       }
     } else {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(signInUrl);
       return <></>;
     }
   }
