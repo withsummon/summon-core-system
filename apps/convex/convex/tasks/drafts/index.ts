@@ -9,7 +9,7 @@ import { requireWorkspace, requireProject } from "../../identity/access";
 import { pageBudget } from "../../commercial/validation";
 import { boundedJson } from "../../../shared/json";
 import { initialProperties } from "../properties";
-import { taskRichContent } from "../rich_content";
+import { boundDescriptionContent } from "../description_images";
 import { createPreparedTask } from "../create";
 import { requireTask } from "../access";
 import { draftFields } from "./fields";
@@ -92,9 +92,11 @@ export const save = mutation({
       throw new ConvexError("Restore an unpublished draft before editing.");
     if (draft.contentRevision !== args.expectedContentRevision)
       throw new ConvexError("Draft content changed. Reopen it before saving.");
+    if (draft.copySource && args.projectId !== draft.copySource.projectId)
+      throw new ConvexError("A copied work item must stay in its source project.");
     const updatedAt = Math.max(Date.now(), draft.updatedAt + 1);
     await validateDraft(ctx, draft.workspaceId, args);
-    const content = taskRichContent(args.html);
+    const content = await boundDescriptionContent(ctx, { draftId: draft._id }, args.html);
     const htmlChanged = content.html !== draft.html;
     const json =
       args.descriptionJson === undefined
@@ -108,12 +110,14 @@ export const save = mutation({
     const { draftId, expectedContentRevision, descriptionJson, descriptionBinary, ...fields } = args;
     await ctx.db.patch(draftId, {
       ...fields,
-      ...content,
+      html: content.html,
+      description: content.description,
       descriptionJson: json,
       descriptionBinary: binary,
       contentRevision: draft.contentRevision + 1,
       updatedAt,
     });
+    return { updatedAt, contentRevision: draft.contentRevision + 1 };
   },
 });
 export const lifecycle = mutation({
@@ -139,12 +143,13 @@ export const publish = mutation({
     draftRevision(draft.updatedAt, args.expectedUpdatedAt);
     if (draft.deletedAt !== null) throw new ConvexError("Restore the draft before publishing.");
     await validateDraft(ctx, draft.workspaceId, draft);
+    const content = await boundDescriptionContent(ctx, { draftId: draft._id }, draft.html);
     const taskId = await createPreparedTask(
       ctx,
       {
         projectId: project._id,
         title: draft.title,
-        description: draft.description,
+        description: content.description,
         status: draft.status ?? undefined,
         properties: draft.properties,
         useDefaultState: draft.status === null && draft.properties.stateId === null,
@@ -152,10 +157,11 @@ export const publish = mutation({
         cycle: draft.cycle,
         modules: draft.modules,
       },
-      draft.html
+      content.html
     );
-    await preserveDescriptionRepresentations(ctx, taskId, draft.descriptionJson, draft.descriptionBinary);
     await transferDraftAttachments(ctx, draft, taskId);
+    await boundDescriptionContent(ctx, taskId, content.html);
+    await preserveDescriptionRepresentations(ctx, taskId, draft.descriptionJson, draft.descriptionBinary);
     await ctx.db.patch(draft._id, { publishedTaskId: taskId, updatedAt: Math.max(Date.now(), draft.updatedAt + 1) });
     return { taskId, projectId: project._id, identifier: project.identifier };
   },

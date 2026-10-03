@@ -5,15 +5,19 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { SummonField } from "@/components/summon/forms";
 import { selectClass } from "../../commercial/forms";
-type Draft = FunctionArgs<typeof api.tasks.drafts.index.save>;
-export function DraftRelationships({
+type Draft = Pick<FunctionArgs<typeof api.tasks.drafts.index.save>, "parent" | "cycle" | "modules">;
+export function DraftRelationships<T extends Draft>({
   projectId,
   draft,
   onChange,
+  parentDisabled = false,
+  taskId,
 }: {
   projectId: Id<"projects">;
-  draft: Draft;
-  onChange: (draft: Draft) => void;
+  draft: T;
+  onChange: (draft: T) => void;
+  parentDisabled?: boolean;
+  taskId?: Id<"tasks">;
 }) {
   const tasks = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 30 });
   const cycles = usePaginatedQuery(api.cycles.index.list, { projectId, deleted: false }, { initialNumItems: 30 });
@@ -22,11 +26,12 @@ export function DraftRelationships({
     <section className="space-y-4 border-t border-subtle-1 pt-4">
       <h3 className="text-16 font-medium">Project relationships</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <SummonField label="Parent task" htmlFor="draft-parent">
             <select
               id="draft-parent"
-              className={selectClass}
+              disabled={parentDisabled}
+              className={`${selectClass} w-full min-w-0`}
               value={draft.parent?.taskId ?? ""}
               onChange={(event) => {
                 const task = tasks.results.find((item) => item._id === event.target.value);
@@ -38,11 +43,13 @@ export function DraftRelationships({
               {draft.parent && !tasks.results.some((task) => task._id === draft.parent?.taskId) && (
                 <option value={draft.parent.taskId}>Selected parent unavailable or not loaded</option>
               )}
-              {tasks.results.map((task) => (
-                <option key={task._id} value={task._id}>
-                  #{task.sequence} · {task.title}
-                </option>
-              ))}
+              {tasks.results
+                .filter((task) => task._id !== taskId)
+                .map((task) => (
+                  <option key={task._id} value={task._id}>
+                    #{task.sequence} · {task.title}
+                  </option>
+                ))}
             </select>
           </SummonField>
           {tasks.status === "CanLoadMore" && (
@@ -51,11 +58,11 @@ export function DraftRelationships({
             </Button>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <SummonField label="Cycle" htmlFor="draft-cycle">
             <select
               id="draft-cycle"
-              className={selectClass}
+              className={`${selectClass} w-full min-w-0`}
               value={draft.cycle?.cycleId ?? ""}
               onChange={(event) => {
                 const cycle = cycles.results.find((item) => item._id === event.target.value);

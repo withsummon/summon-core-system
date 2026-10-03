@@ -106,6 +106,7 @@ export function ProfileIssuesPage({ type }: { type: ProfileListArgs["view"] }) {
           states={states}
           onClose={closeCreate}
           initialValues={creation.initialValues}
+          canCreate={writableProjects?.some((project) => project._id === address.project._id) === true}
         />
       )}
     </div>
@@ -549,51 +550,60 @@ function ProfileTaskRow({
   const propertyControls = (
     <TaskRowProperties task={task} display={properties} disabled={lifecycle.pending || drag.pending} />
   );
-  const actions = () => <TaskLifecycle task={task} disabled={drag.pending} lifecycle={lifecycle} />;
-  return board ? (
-    <>
-      <KanbanIssueBlockView
-        issueId={row.task._id}
-        blockId={`issue-${row.task._id}`}
-        href={href}
-        name={row.task.title}
-        onOpen={open}
-        cardRef={cardRef}
-        onDragStart={undefined}
-        isPeeked={peeked}
-        isDragging={drag.dragged === task._id}
-        isDraggingOver={over === "before"}
-        canDrag={drag.enabled && task.canEdit && !lifecycle.pending}
-        disabled={lifecycle.pending || drag.pending}
-        identifier={properties.key ? identifier : null}
-        properties={propertyControls}
-        actions={actions}
-        shouldRenderByDefault
-      />
-      {over === "after" && <DropIndicator isVisible />}
-    </>
-  ) : (
-    <IssueListBlockView
-      issueId={row.task._id}
+  return (
+    <TaskLifecycle
+      task={task}
       href={href}
-      name={row.task.title}
-      ariaLabel={`${row.project.identifier}-${row.task.sequence}: ${row.task.title}`}
-      onOpen={open}
-      rowRef={rowRef}
-      onDragStart={undefined}
-      isPeeked={peeked}
-      isPeekedAtCurrentLevel={peeked}
-      isActive={false}
-      isSelected={false}
-      isDragging={false}
-      disabled={false}
-      pending={lifecycle.pending}
-      identifier={properties.key ? identifier : null}
-      indent={0}
-      selection={null}
-      expansion={null}
-      properties={propertyControls}
-      actions={actions}
+      disabled={drag.pending}
+      lifecycle={lifecycle}
+      row={(menu) =>
+        board ? (
+          <>
+            <KanbanIssueBlockView
+              issueId={row.task._id}
+              blockId={`issue-${row.task._id}`}
+              href={href}
+              name={row.task.title}
+              onOpen={open}
+              cardRef={cardRef}
+              onDragStart={undefined}
+              isPeeked={peeked}
+              isDragging={drag.dragged === task._id}
+              isDraggingOver={over === "before"}
+              canDrag={drag.enabled && task.canEdit && !lifecycle.pending}
+              disabled={lifecycle.pending || drag.pending}
+              identifier={properties.key ? identifier : null}
+              properties={propertyControls}
+              actions={() => menu}
+              shouldRenderByDefault
+            />
+            {over === "after" && <DropIndicator isVisible />}
+          </>
+        ) : (
+          <IssueListBlockView
+            issueId={row.task._id}
+            href={href}
+            name={row.task.title}
+            ariaLabel={`${row.project.identifier}-${row.task.sequence}: ${row.task.title}`}
+            onOpen={open}
+            rowRef={rowRef}
+            onDragStart={undefined}
+            isPeeked={peeked}
+            isPeekedAtCurrentLevel={peeked}
+            isActive={false}
+            isSelected={false}
+            isDragging={false}
+            disabled={false}
+            pending={lifecycle.pending}
+            identifier={properties.key ? identifier : null}
+            indent={0}
+            selection={null}
+            expansion={null}
+            properties={propertyControls}
+            actions={() => menu}
+          />
+        )
+      }
     />
   );
 }

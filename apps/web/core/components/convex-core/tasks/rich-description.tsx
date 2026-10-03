@@ -92,7 +92,7 @@ function DescriptionContent({
   return (
     <section className="space-y-3">
       <TaskDescriptionEditor
-        taskId={description.taskId}
+        target={{ taskId: description.taskId }}
         id={`task-description-${description.taskId}`}
         label="Task description"
         placeholder="Describe the work…"

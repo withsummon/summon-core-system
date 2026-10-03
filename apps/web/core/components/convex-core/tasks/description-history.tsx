@@ -115,7 +115,7 @@ function VersionPreview({
         Saved {new Date(confirmation?.lastSavedAt ?? version.lastSavedAt).toLocaleString()}
       </h3>
       <TaskDescriptionEditor
-        taskId={scope.taskId}
+        target={{ taskId: scope.taskId }}
         key={confirmation ? "confirmation" : version.revision}
         id={`history-${versionId}`}
         label="Saved description preview"

@@ -72,22 +72,29 @@ export const duplicate = action({
   },
 });
 
-/** Same-task image duplication has independent byte ownership and the existing orphan cleanup. */
-export const duplicateTaskImage = action({
-  args: { taskId: v.id("tasks"), assetId: v.string() },
-  handler: async (ctx, { taskId, assetId }): Promise<Id<"assets">> => {
+/** Editor node duplication stays within its task or private draft and owns independent bytes. */
+export const duplicateDescriptionImage = action({
+  args: {
+    target: v.union(v.object({ taskId: v.id("tasks") }), v.object({ draftId: v.id("taskDrafts") })),
+    assetId: v.string(),
+  },
+  handler: async (ctx, { target, assetId }): Promise<Id<"assets">> => {
     const source = await ctx.runQuery(internal.assets.index.download, { assetId });
-    if (source.taskId !== taskId || !source.contentType.startsWith("image/"))
-      throw new ConvexError("Image belongs to another task or is not an image.");
+    const bound = "taskId" in target ? source.taskId === target.taskId : source.draftId === target.draftId;
+    if (!bound || !source.contentType.startsWith("image/"))
+      throw new ConvexError("Image belongs to another work item or is not an image.");
     const blob = source.storageId ? await ctx.storage.get(source.storageId) : null;
     if (!blob) throw new ConvexError("Image bytes are missing.");
-    const ticket = await ctx.runMutation(api.assets.taskAttachments.prepare, {
-      taskId,
+    const metadata = {
       name: source.name,
       contentType: source.contentType,
       size: source.size,
       sha256: source.sha256,
-    });
+    };
+    const ticket =
+      "taskId" in target
+        ? await ctx.runMutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
+        : await ctx.runMutation(api.assets.draftAttachments.prepare, { ...target, ...metadata });
     const storageId = await ctx.storage.store(blob);
     return ctx.runAction(api.assets.upload.finalize, { assetId: ticket.assetId, storageId });
   },

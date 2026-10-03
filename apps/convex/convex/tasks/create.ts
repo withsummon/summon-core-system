@@ -104,7 +104,7 @@ export const taskCreateFields = {
   description: v.optional(v.string()),
   status: v.optional(status),
   properties: v.optional(v.object(taskProperties)),
-  parent: v.optional(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() })),
+  parent: v.optional(draftFields.parent),
   cycle: v.optional(draftFields.cycle),
   modules: v.optional(draftFields.modules),
 };

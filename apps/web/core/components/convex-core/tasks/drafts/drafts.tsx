@@ -8,7 +8,7 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../../commercial/forms";
-import { TaskRichEditor } from "../rich-editor";
+import { TaskDescriptionEditor } from "../description-editor";
 import { DraftAttachments } from "./draft-attachments";
 import { DraftForm } from "./form";
 type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
@@ -168,37 +168,13 @@ function DraftDetail({
               <h1 className="text-28 font-semibold break-words">{draft.title || "Untitled draft"}</h1>
               <p className="mt-2 text-14 text-secondary">{draft.project?.name ?? "No project selected"}</p>
             </div>
-            <dl className="grid gap-3 text-14 sm:grid-cols-2">
-              <div>
-                <dt className="text-12 text-secondary">State</dt>
-                <dd>
-                  {draft.properties.stateId
-                    ? "Selected project state"
-                    : (draft.status?.replaceAll("_", " ") ?? "Project default at publication")}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-12 text-secondary">Priority</dt>
-                <dd>{draft.properties.priority}</dd>
-              </div>
-              <div>
-                <dt className="text-12 text-secondary">Dates</dt>
-                <dd>
-                  {draft.properties.startDate ?? "No start date"} · {draft.properties.targetDate ?? "No due date"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-12 text-secondary">Saved selections</dt>
-                <dd>
-                  {draft.properties.assigneeIds.length} assignees · {draft.properties.labelIds.length} labels ·{" "}
-                  {draft.modules.length} modules{draft.parent ? " · Parent task" : ""}
-                  {draft.cycle ? " · Cycle" : ""}
-                </dd>
-              </div>
-            </dl>
+            <DraftSummary draft={draft} />
             <DraftEstimate draftId={draft._id} />
-            {draft.description.trim() && (
-              <TaskRichEditor
+            {draft.deletedAt !== null ? (
+              <p className="text-14 text-secondary">Restore this draft to preview its description and images.</p>
+            ) : (
+              <TaskDescriptionEditor
+                target={draft.publishedTaskId ? { taskId: draft.publishedTaskId } : { draftId: draft._id }}
                 id={`draft-preview-${draft._id}`}
                 label="Draft description"
                 placeholder="Describe the task…"
@@ -342,4 +318,37 @@ class DraftBoundary extends Component<{ children: ReactNode; onBack: () => void 
       this.props.children
     );
   }
+}
+
+function DraftSummary({ draft }: { draft: Draft }) {
+  return (
+    <dl className="grid gap-3 text-14 sm:grid-cols-2">
+      <div>
+        <dt className="text-12 text-secondary">State</dt>
+        <dd>
+          {draft.properties.stateId
+            ? "Selected project state"
+            : (draft.status?.replaceAll("_", " ") ?? "Project default at publication")}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-12 text-secondary">Priority</dt>
+        <dd>{draft.properties.priority}</dd>
+      </div>
+      <div>
+        <dt className="text-12 text-secondary">Dates</dt>
+        <dd>
+          {draft.properties.startDate ?? "No start date"} · {draft.properties.targetDate ?? "No due date"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-12 text-secondary">Saved selections</dt>
+        <dd>
+          {draft.properties.assigneeIds.length} assignees · {draft.properties.labelIds.length} labels ·{" "}
+          {draft.modules.length} modules{draft.parent ? " · Parent task" : ""}
+          {draft.cycle ? " · Cycle" : ""}
+        </dd>
+      </div>
+    </dl>
+  );
 }

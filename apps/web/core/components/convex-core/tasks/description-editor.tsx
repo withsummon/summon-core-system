@@ -3,28 +3,31 @@ import type { ComponentProps } from "react";
 import { useConvex, useQuery } from "convex/react";
 import type { TFileHandler } from "@plane/editor";
 import { api } from "@summon/convex/api";
-import type { Id } from "@summon/convex/data-model";
+import type { FunctionArgs } from "convex/server";
 import { TaskRichEditor } from "./rich-editor";
 import { useEditorAssetReader } from "../assets/use-editor-asset-reader";
 import { uploadFileAsset } from "../assets/upload-file";
 
 type Props = Omit<ComponentProps<typeof TaskRichEditor>, "imageFileHandler"> & {
-  taskId: Id<"tasks">;
+  target: FunctionArgs<typeof api.assets.upload.duplicateDescriptionImage>["target"];
   onUploadingChange?: (uploading: boolean) => void;
 };
 export function TaskDescriptionEditor(props: Props) {
-  return <BoundEditor key={props.taskId} {...props} />;
+  return <BoundEditor key={"taskId" in props.target ? props.target.taskId : props.target.draftId} {...props} />;
 }
-function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
+function BoundEditor({ target, onUploadingChange, ...editor }: Props) {
   const client = useConvex();
   const policy = useQuery(api.assets.index.policy, {});
   const resolve = useCallback(
     async (assetId: string) => {
-      const asset = await client.query(api.assets.taskAttachments.get, { taskId, assetId });
-      if (asset.status !== "ready") throw new Error("This image was removed. Restore it from task attachments first.");
+      const asset =
+        "taskId" in target
+          ? await client.query(api.assets.taskAttachments.get, { ...target, assetId })
+          : await client.query(api.assets.draftAttachments.get, { ...target, assetId });
+      if (asset.status !== "ready") throw new Error("This image was removed. Restore it from attachments first.");
       return asset;
     },
-    [client, taskId]
+    [client, target]
   );
   const { source, transfers } = useEditorAssetReader(resolve);
   const [assetsUploadStatus, setStatus] = useState<Record<string, number>>({});
@@ -53,7 +56,7 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
         const operation = `duplicate:${crypto.randomUUID()}`;
         setStatus((current) => ({ ...current, [operation]: 0 }));
         try {
-          return await client.action(api.assets.upload.duplicateTaskImage, { taskId, assetId: id });
+          return await client.action(api.assets.upload.duplicateDescriptionImage, { target, assetId: id });
         } finally {
           setStatus((current) => {
             const next = { ...current };
@@ -69,7 +72,10 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
             return await uploadFileAsset(
               file,
               policy,
-              (metadata) => client.mutation(api.assets.taskAttachments.prepare, { taskId, ...metadata }),
+              (metadata) =>
+                "taskId" in target
+                  ? client.mutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
+                  : client.mutation(api.assets.draftAttachments.prepare, { ...target, ...metadata }),
               (args) => client.action(api.assets.upload.finalize, args),
               signal
             );
@@ -84,7 +90,7 @@ function BoundEditor({ taskId, onUploadingChange, ...editor }: Props) {
         }),
       validation: { maxFileSize: policy.imageMaxBytes },
     } satisfies TFileHandler;
-  }, [policy, assetsUploadStatus, transfers, resolve, source, client, taskId]);
+  }, [policy, assetsUploadStatus, transfers, resolve, source, client, target]);
   if (!fileHandler) return <p role="status">Loading description editor…</p>;
   return <TaskRichEditor {...editor} imageFileHandler={fileHandler} />;
 }

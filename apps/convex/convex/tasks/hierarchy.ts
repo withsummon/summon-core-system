@@ -1,13 +1,15 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { projectReader, projectSummary } from "../savedViews/scope";
 import { requireTask, taskCanRead, readableTasks, taskIsActive } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
+import { draftFields } from "./drafts/fields";
+import type { Infer } from "convex/values";
 
 export async function requireParent(
   ctx: MutationCtx,
@@ -23,30 +25,30 @@ export async function requireParent(
   requireTaskRevision(parent, expectedUpdatedAt);
   return parent;
 }
+export async function readTaskParent(ctx: QueryCtx, task: Doc<"tasks">) {
+  const { user, member, projectMember } = await requireProject(ctx, task.projectId);
+  const link = await ctx.db
+    .query("taskParents")
+    .withIndex("by_child", (q) => q.eq("childId", task._id))
+    .unique();
+  const parentTask = link ? await ctx.db.get(link.parentId) : null;
+  const access = parentTask ? await projectReader(ctx, task.workspaceId, user._id)(parentTask.projectId) : null;
+  const visible = parentTask && access && (await taskCanRead(ctx, parentTask, user._id));
+  const relationship = {
+    hasParent: link !== null,
+    canUnlink:
+      taskIsActive(task) &&
+      member.role !== "guest" &&
+      projectMember.role !== "guest" &&
+      access !== null &&
+      access.member.role !== "guest",
+  };
+  if (visible) return { ...relationship, task: parentTask, project: projectSummary(access.project) };
+  return { ...relationship, task: null, project: null };
+}
 export const parent = query({
   args: { taskId: v.id("tasks") },
-  handler: async (ctx, { taskId }) => {
-    const task = await requireTask(ctx, taskId, "read");
-    const { user, member, projectMember } = await requireProject(ctx, task.projectId);
-    const link = await ctx.db
-      .query("taskParents")
-      .withIndex("by_child", (q) => q.eq("childId", taskId))
-      .unique();
-    const parentTask = link ? await ctx.db.get(link.parentId) : null;
-    const access = parentTask ? await projectReader(ctx, task.workspaceId, user._id)(parentTask.projectId) : null;
-    const visible = parentTask && access && (await taskCanRead(ctx, parentTask, user._id));
-    const relationship = {
-      hasParent: link !== null,
-      canUnlink:
-        taskIsActive(task) &&
-        member.role !== "guest" &&
-        projectMember.role !== "guest" &&
-        access !== null &&
-        access.member.role !== "guest",
-    };
-    if (visible) return { ...relationship, task: parentTask, project: projectSummary(access.project) };
-    return { ...relationship, task: null, project: null };
-  },
+  handler: async (ctx, { taskId }) => readTaskParent(ctx, await requireTask(ctx, taskId, "read")),
 });
 export const children = query({
   args: { taskId: v.id("tasks"), paginationOpts: paginationOptsValidator },
@@ -100,40 +102,51 @@ export async function checkAncestors(ctx: MutationCtx, childId: Id<"tasks">, par
     ancestor = link?.parentId ?? null;
   }
 }
+export async function prepareParentChange(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  requestedParent: Infer<typeof draftFields.parent>
+) {
+  const { user } = await requireProject(ctx, task.projectId, true);
+  const next = requestedParent
+    ? await requireParent(ctx, task.projectId, requestedParent.taskId, requestedParent.expectedUpdatedAt)
+    : null;
+  if (next) await checkAncestors(ctx, task._id, next);
+  const existing = await ctx.db
+    .query("taskParents")
+    .withIndex("by_child", (q) => q.eq("childId", task._id))
+    .unique();
+  if ((existing?.parentId ?? null) === (next?._id ?? null)) return null;
+  const previous = existing ? await ctx.db.get(existing.parentId) : null;
+  if (existing) {
+    if (!previous || previous.workspaceId !== task.workspaceId)
+      throw new ConvexError("Previous parent task not found in this workspace.");
+    await requireProject(ctx, previous.projectId, true);
+  }
+  return { task, user, next, previous, existing };
+}
+export async function applyParentChange(
+  ctx: MutationCtx,
+  prepared: NonNullable<Awaited<ReturnType<typeof prepareParentChange>>>
+) {
+  const { task, user, next, previous, existing } = prepared;
+  if (existing) await ctx.db.delete(existing._id);
+  if (next) await ctx.db.insert("taskParents", { projectId: task.projectId, childId: task._id, parentId: next._id });
+  if (next) await taskChanged(ctx, next, user._id);
+  if (previous && previous._id !== next?._id) await taskChanged(ctx, previous, user._id);
+}
 export const setParent = mutation({
   args: {
     taskId: v.id("tasks"),
     expectedUpdatedAt: v.number(),
-    parent: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
+    parent: draftFields.parent,
   },
   handler: async (ctx, args) => {
     const task = await requireTask(ctx, args.taskId);
-    const { user } = await requireProject(ctx, task.projectId, true);
     requireTaskRevision(task, args.expectedUpdatedAt);
-    const next = args.parent
-      ? await requireParent(ctx, task.projectId, args.parent.taskId, args.parent.expectedUpdatedAt)
-      : null;
-    if (next) await checkAncestors(ctx, task._id, next);
-    const existing = await ctx.db
-      .query("taskParents")
-      .withIndex("by_child", (q) => q.eq("childId", task._id))
-      .unique();
-    if ((existing?.parentId ?? null) === (next?._id ?? null)) return;
-    const previous = existing ? await ctx.db.get(existing.parentId) : null;
-    if (existing) {
-      if (!previous || previous.workspaceId !== task.workspaceId)
-        throw new ConvexError("Previous parent task not found in this workspace.");
-      await requireProject(ctx, previous.projectId, true);
-      await ctx.db.delete(existing._id);
-    }
-    if (next)
-      await ctx.db.insert("taskParents", {
-        projectId: task.projectId,
-        childId: task._id,
-        parentId: next._id,
-      });
-    await taskChanged(ctx, task, user._id);
-    if (next) await taskChanged(ctx, next, user._id);
-    if (previous && previous._id !== next?._id) await taskChanged(ctx, previous, user._id);
+    const prepared = await prepareParentChange(ctx, task, args.parent);
+    if (!prepared) return;
+    await applyParentChange(ctx, prepared);
+    await taskChanged(ctx, task, prepared.user._id);
   },
 });
