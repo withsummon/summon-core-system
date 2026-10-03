@@ -122,7 +122,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle pb-3">
               <div>
                 <p className="text-xs font-semibold text-primary">Document preview</p>
-                <p className="mt-1 text-[10px] text-secondary">Rendered Markdown · full document</p>
+                <p className="mt-1 text-[10px] text-secondary">Markdown source · full document</p>
               </div>
               <Badge
                 variant={data.status === "completed" ? "success" : data.status === "failed" ? "danger" : "neutral"}
