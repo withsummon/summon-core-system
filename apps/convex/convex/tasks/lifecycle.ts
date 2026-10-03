@@ -4,7 +4,7 @@ import type { Infer } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import { requireProject, requireUser } from "../identity/access";
+import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { requireTask, taskDetail, taskCanRead, taskRoleCanRead } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
@@ -114,6 +114,6 @@ export const get = query({
     if (args.view === "deleted" ? task.deletedAt == null : task.deletedAt != null || task.archivedAt == null)
       return null;
     if (!(await taskCanRead(ctx, task, user._id, args.view === "deleted" ? "recovery" : "read"))) return null;
-    return taskDetail(ctx, { ...task, status: task.status });
+    return taskDetail(ctx, { ...task, status: task.status }, await requireProjectForUser(ctx, task.projectId, user));
   },
 });

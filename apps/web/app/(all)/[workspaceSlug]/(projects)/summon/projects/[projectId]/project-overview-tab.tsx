@@ -18,7 +18,21 @@ export function ProjectOverviewTab(props: {
   projectId: Id<"projects">;
 }) {
   const { overview, workspaceSlug, projectId } = props;
-  const tasks = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 100 });
+  const today = new Date().toLocaleDateString("en-CA");
+  const tasks = usePaginatedQuery(
+    api.reporting.tasks.page,
+    {
+      scope: {
+        workspaceId: overview.project.workspaceId,
+        projectId,
+        clientId: null,
+        dateFrom: null,
+        dateTo: null,
+        today,
+      },
+    },
+    { initialNumItems: 100 }
+  );
   const modules = usePaginatedQuery(api.modules.index.list, { projectId, deleted: false }, { initialNumItems: 100 });
   const cycles = usePaginatedQuery(api.cycles.index.list, { projectId, deleted: false }, { initialNumItems: 100 });
   const resources = usePaginatedQuery(api.reporting.overview.resources, { projectId }, { initialNumItems: 20 });
@@ -45,11 +59,16 @@ export function ProjectOverviewTab(props: {
   useEffect(() => {
     if (activityStatus === "CanLoadMore" && activityCount < 6) loadActivity(20);
   }, [activityStatus, activityCount, loadActivity]);
-  const completedIssues = tasks.results.filter((task) => task.status === "done");
-  const openIssues = tasks.results.filter((task) => task.status !== "done" && task.status !== "cancelled");
-  const today = new Date().toLocaleDateString("en-CA");
-  const overdue = openIssues.filter((task) => task.targetDate && task.targetDate < today).length;
-  const total = tasks.results.length;
+  const counts = tasks.results.reduce(
+    (sum, page) => ({
+      total: sum.total + page.total,
+      completed: sum.completed + page.completed,
+      open: sum.open + page.overdue + page.dueInSevenDays + page.later + page.noDueDate,
+      overdue: sum.overdue + page.overdue,
+    }),
+    { total: 0, completed: 0, open: 0, overdue: 0 }
+  );
+  const { total, completed, open, overdue } = counts;
   const complete = tasks.status === "Exhausted";
   const milestoneModules = modules.results.filter((row) => !row.archived);
   const milestoneCycles = cycles.results.filter((row) => !row.archived);
@@ -61,9 +80,9 @@ export function ProjectOverviewTab(props: {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           label="Overall Progress"
-          value={`${total ? Math.round((completedIssues.length * 100) / total) : 0}%`}
+          value={`${total ? Math.round((completed * 100) / total) : 0}%`}
           loading={!complete}
-          detail={`${completedIssues.length} of ${total} completed`}
+          detail={`${completed} of ${total} completed`}
           icon={Gauge}
         />
         <Metric
@@ -81,7 +100,7 @@ export function ProjectOverviewTab(props: {
         />
         <Metric
           label="Open Tasks"
-          value={String(openIssues.length)}
+          value={String(open)}
           loading={!complete}
           detail={overdue ? `${overdue} overdue` : "No overdue tasks"}
           icon={ListChecks}
@@ -134,8 +153,8 @@ export function ProjectOverviewTab(props: {
         <Panel title="Tasks Overview" href={`/${workspaceSlug}/projects/${projectId}/issues/`}>
           <div className="grid grid-cols-2 gap-2">
             <Stat label="Total" value={total} loading={!complete} />
-            <Stat label="Completed" value={completedIssues.length} loading={!complete} />
-            <Stat label="Open" value={openIssues.length} loading={!complete} />
+            <Stat label="Completed" value={completed} loading={!complete} />
+            <Stat label="Open" value={open} loading={!complete} />
             <Stat label="Overdue" value={overdue} loading={!complete} />
           </div>
         </Panel>

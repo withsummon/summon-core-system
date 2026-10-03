@@ -318,7 +318,10 @@ export const list = query({
             .unique())
         )
           return null;
-        return { task: await taskDetail(ctx, task), project: projectSummary(scope.project) };
+        return {
+          task: await taskDetail(ctx, task, { ...access, project: scope.project, projectMember: scope.member }),
+          project: projectSummary(scope.project),
+        };
       })
       .paginate(pageBudget(args.paginationOpts));
   },

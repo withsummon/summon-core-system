@@ -90,8 +90,17 @@ export async function taskAssignee(
   };
 }
 
-export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof requireTask>>) {
-  const { user, member, projectMember, project } = await requireProject(ctx, task.projectId);
+export async function taskDetail(
+  ctx: QueryCtx,
+  task: Awaited<ReturnType<typeof requireTask>>,
+  { user, member, projectMember, project }: Awaited<ReturnType<typeof requireProject>>
+) {
+  if (
+    task.projectId !== project._id ||
+    task.workspaceId !== project.workspaceId ||
+    !taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures)
+  )
+    throw new ConvexError("Task not found.");
   const writer = member.role !== "guest" && projectMember.role !== "guest";
   const recovery = task.createdBy === user._id || projectMember.role === "admin";
   const [creator, creatorMembership] = await Promise.all([
@@ -112,8 +121,6 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
           : null,
     },
     assignees,
-    archivedAt: task.archivedAt ?? null,
-    deletedAt: task.deletedAt ?? null,
     canEdit: writer && taskIsActive(task),
     canArchive: writer && taskIsActive(task) && (task.status === "done" || task.status === "cancelled"),
     canDelete: recovery && task.deletedAt === null,

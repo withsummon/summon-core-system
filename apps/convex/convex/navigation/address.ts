@@ -119,7 +119,7 @@ async function taskAddress(ctx: QueryCtx, access: Awaited<ReturnType<typeof requ
     return { ...address, kind: "intake" as const, intake: { taskId: intake.taskId, status: intake.status } };
   }
   if (!(await taskCanRead(ctx, task, user._id))) return null;
-  return { ...address, kind: "task" as const, task: await taskDetail(ctx, { ...task, status: task.status }) };
+  return { ...address, kind: "task" as const, task: await taskDetail(ctx, { ...task, status: task.status }, access) };
 }
 
 export const resolveMeetingId = query({

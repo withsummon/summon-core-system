@@ -58,7 +58,8 @@ const centerArgs = v.object({
   today: v.string(),
 });
 async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs> & { attention?: boolean }) {
-  const { user, member } = await requireWorkspace(ctx, args.workspaceId);
+  const workspaceAccess = await requireWorkspace(ctx, args.workspaceId);
+  const { user, member } = workspaceAccess;
   date(args.today);
   const read = projectReader(ctx, args.workspaceId, user._id);
   const tasks = stream(ctx.db, schema).query("tasks");
@@ -82,7 +83,11 @@ async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs> & { att
       !taskRoleCanRead(task, user._id, member.role, access.member.role, !!access.project.guestViewAllFeatures)
     )
       return null;
-    return { task, project: access.project };
+    return {
+      task,
+      project: access.project,
+      access: { ...workspaceAccess, project: access.project, projectMember: access.member },
+    };
   });
 }
 export const list = query({
@@ -97,7 +102,7 @@ export const list = query({
   handler: async (ctx, args) => {
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
     return (await scopedTasks(ctx, args))
-      .map(async ({ task, project }) => {
+      .map(async ({ task, project, access }) => {
         const matches = [
           !args.projectId || task.projectId === args.projectId,
           !args.attention ||
@@ -110,7 +115,7 @@ export const list = query({
         if (!matches.every(Boolean)) return null;
         const state = task.stateId ? await ctx.db.get(task.stateId) : null;
         return {
-          task: await taskDetail(ctx, task),
+          task: await taskDetail(ctx, task, access),
           project: projectSummary(project),
           state,
         };
