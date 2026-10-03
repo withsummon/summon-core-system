@@ -1,5 +1,5 @@
 import { DraftEstimate } from "../../estimates/selection";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -7,8 +7,9 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../../commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { TaskProperties } from "../task-properties";
-import { TaskRichEditor } from "../rich-editor";
+import { TaskDescriptionEditor } from "../description-editor";
 import { DraftRelationships } from "./relationships";
 import { changeDraftProject, hasScopedDraftSelections } from "./project-change";
 type Detail = FunctionReturnType<typeof api.tasks.drafts.index.resolve>;
@@ -30,20 +31,45 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
   const projects = useQuery(api.projects.index.list, { workspaceId: initial.workspaceId });
   const [nextProject, setNextProject] = useState<{ id: Save["projectId"]; name: string } | null>(null);
   const save = useMutation(api.tasks.drafts.index.save);
+  const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
+  const completion = useRef<(() => void) | null>(null);
+  const leave = useCallback(() => {
+    completion.current = null;
+    onDone();
+  }, [onDone]);
+  const release = useReloadConfirmations(
+    pending || uploading,
+    "This draft is still saving or uploading.",
+    leave,
+    pending || uploading
+  );
+  useEffect(
+    () => () => {
+      completion.current = null;
+    },
+    []
+  );
   return (
     <form
       className="max-w-4xl space-y-5"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (uploading || pending) return;
+        completion.current = onDone;
         setPending(true);
         setError("");
         try {
           await save(draft);
-          onDone();
+          release((allow) => {
+            const done = completion.current;
+            completion.current = null;
+            if (allow) done?.();
+          });
         } catch (failure) {
-          setError(mutationMessage(failure));
+          if (completion.current !== null) setError(mutationMessage(failure));
+          completion.current = null;
         } finally {
           setPending(false);
         }
@@ -67,6 +93,7 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
         <SummonField label="Project" htmlFor="draft-project">
           <select
             id="draft-project"
+            disabled={!!initial.copySource}
             className={selectClass}
             value={draft.projectId ?? ""}
             onChange={(event) => {
@@ -120,11 +147,13 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           />
         </SummonField>
-        <TaskRichEditor
+        <TaskDescriptionEditor
+          target={{ draftId: snapshot._id }}
+          onUploadingChange={setUploading}
           id={`draft-${snapshot._id}`}
           label="Draft description"
           placeholder="Describe the task…"
-          html={snapshot.html}
+          html={draft.html}
           editable={!pending}
           onChange={(html) => setDraft((current) => ({ ...current, html }))}
         />
@@ -138,10 +167,10 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
           <DraftRelationships key={draft.projectId} projectId={draft.projectId} draft={draft} onChange={setDraft} />
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" loading={pending} disabled={nextProject !== null}>
+          <Button type="submit" loading={pending} disabled={nextProject !== null || uploading}>
             Save draft
           </Button>
-          <Button variant="secondary" onClick={onDone}>
+          <Button variant="secondary" disabled={uploading} onClick={onDone}>
             Cancel edits
           </Button>
         </div>

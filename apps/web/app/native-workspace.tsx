@@ -1,7 +1,9 @@
 import { Outlet, Link, useParams } from "react-router";
-import { createContext, useMemo, useState } from "react";
+import { createContext, lazy, Suspense, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
+import type { ComponentProps } from "react";
+import type { Id } from "@summon/convex/data-model";
 import { NativeCreateProjectModal } from "@/components/project/create-project-modal";
 import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 import { NativeStickiesProvider } from "@/components/stickies/native/provider";
@@ -13,6 +15,12 @@ export type WorkspaceSession = {
   workspace: NativeWorkspace;
   workspaces: NativeWorkspace[];
 };
+const TaskActionComposer = lazy(() =>
+  import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.TaskActionComposer }))
+);
+export const NativeTaskActionContext = createContext<((taskId: Id<"tasks">, kind: "edit" | "copy") => void) | null>(
+  null
+);
 export const NativeProjectCreateContext = createContext<(() => void) | null>(null);
 
 export default function NativeWorkspaceLayout() {
@@ -30,6 +38,12 @@ function WorkspaceOutlet() {
     workspaceId: NativeWorkspace["_id"];
     workspaceSlug: string;
   } | null>(null);
+  const [taskAction, setTaskAction] = useState<ComponentProps<typeof TaskActionComposer>["request"] | null>(null);
+  const taskCommands = useMemo(
+    () => (taskId: Id<"tasks">, kind: "edit" | "copy") =>
+      setTaskAction({ taskId, kind, requestId: crypto.randomUUID() }),
+    []
+  );
   const user = useQuery(api.identity.profile.get, {});
   const workspaces = useQuery(api.workspaces.index.list, {});
   const workspace = workspaces?.find((row) => row.slug === workspaceSlug);
@@ -55,7 +69,19 @@ function WorkspaceOutlet() {
           workspaceId={context.workspace._id}
           workspaceSlug={context.workspace.slug}
         >
-          <Outlet context={context} />
+          <NativeTaskActionContext.Provider value={taskCommands}>
+            <Outlet context={context} />
+            {taskAction && (
+              <Suspense fallback={<p role="status">Opening work item composer…</p>}>
+                <TaskActionComposer
+                  key={taskAction.requestId}
+                  request={taskAction}
+                  workspaceId={context.workspace._id}
+                  onClose={() => setTaskAction(null)}
+                />
+              </Suspense>
+            )}
+          </NativeTaskActionContext.Provider>
           <NativeStickiesModal />
         </NativeStickiesProvider>
       ) : (

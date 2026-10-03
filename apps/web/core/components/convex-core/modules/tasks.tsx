@@ -7,7 +7,6 @@ import { api } from "@summon/convex/api";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { Dialog } from "@plane/propel/dialog";
-import { Menu } from "@plane/propel/menu";
 import { ModalCore } from "@plane/ui";
 import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
 import { ProjectIssueRow } from "../tasks/lifecycle";
@@ -135,7 +134,7 @@ function ModuleTaskRow({
           stateName={stateName}
           href={"/" + address.workspace.slug + "/browse/" + identifier + "/"}
         >
-          {module.canEdit && <Menu.MenuItem onClick={onRemove}>Remove from module</Menu.MenuItem>}
+          {(Item) => module.canEdit && <Item onClick={onRemove}>Remove from module</Item>}
         </ProjectIssueRow>
       ) : (
         <li className="flex flex-wrap items-center justify-between gap-2 px-page-x py-3">

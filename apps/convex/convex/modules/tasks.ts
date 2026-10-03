@@ -1,6 +1,6 @@
-import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
-import { v, ConvexError } from "convex/values";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { v, ConvexError, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
@@ -10,6 +10,7 @@ import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
 import { requireModule, requireModuleRevision, requireEditableModule } from "./access";
+import { draftFields, validateModuleReferences } from "../tasks/drafts/fields";
 export const set = mutation({
   args: {
     moduleId: v.id("modules"),
@@ -85,7 +86,22 @@ export const forTask = query({
   },
 });
 
-export async function setModuleTask(
+export async function readTaskModules(ctx: QueryCtx, task: Doc<"tasks">) {
+  const memberships = await ctx.db
+    .query("moduleTasks")
+    .withIndex("by_task", (q) => q.eq("taskId", task._id))
+    .take(101);
+  if (memberships.length > 100) throw new ConvexError("A work item can edit at most 100 module memberships at once.");
+  return Promise.all(
+    memberships.map(async (membership) => {
+      const module = await ctx.db.get(membership.moduleId);
+      if (!module || module.projectId !== task.projectId || module.workspaceId !== task.workspaceId)
+        throw new ConvexError("Module reference not found in this project.");
+      return { membership, module };
+    })
+  );
+}
+export async function prepareModuleTask(
   ctx: MutationCtx,
   args: {
     moduleId: Id<"modules">;
@@ -105,18 +121,69 @@ export async function setModuleTask(
     .query("moduleTasks")
     .withIndex("by_module_task", (q) => q.eq("moduleId", module._id).eq("taskId", task._id))
     .unique();
-  if (Boolean(previous) === args.assigned) return;
+  if (Boolean(previous) === args.assigned) return null;
   requireTaskRevision(task, args.expectedTaskUpdatedAt);
-  if (args.assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
+  return { task, user, module, previous, assigned: args.assigned };
+}
+export async function prepareModuleChanges(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  previous: Infer<typeof draftFields.modules>,
+  next: Infer<typeof draftFields.modules>
+) {
+  validateModuleReferences(previous);
+  validateModuleReferences(next);
+  const source = await readTaskModules(ctx, task);
+  if (
+    source.length !== previous.length ||
+    source.some(({ module }) => !previous.some((ref) => ref.moduleId === module._id))
+  )
+    throw new ConvexError("Module memberships changed. Reopen the work item before saving.");
+  await Promise.all(
+    previous.map(async (ref) => {
+      const { module } = await requireModule(ctx, ref.moduleId, true, true);
+      requireModuleRevision(module, ref.expectedModuleUpdatedAt);
+    })
+  );
+  await Promise.all(
+    next.map(async (ref) => {
+      const { module } = await requireModule(ctx, ref.moduleId, true, true);
+      if (module.projectId !== task.projectId) throw new ConvexError("Task belongs to another project.");
+      requireModuleRevision(module, ref.expectedModuleUpdatedAt);
+    })
+  );
+  const added = next.filter((ref) => !previous.some((old) => old.moduleId === ref.moduleId));
+  const removed = previous.filter((ref) => !next.some((chosen) => chosen.moduleId === ref.moduleId));
+  const prepared = await Promise.all([
+    ...added.map((ref) =>
+      prepareModuleTask(ctx, { ...ref, taskId: task._id, expectedTaskUpdatedAt: task.updatedAt, assigned: true })
+    ),
+    ...removed.map((ref) =>
+      prepareModuleTask(ctx, { ...ref, taskId: task._id, expectedTaskUpdatedAt: task.updatedAt, assigned: false })
+    ),
+  ]);
+  return prepared.filter((change) => change !== null);
+}
+export async function applyModuleTask(
+  ctx: MutationCtx,
+  prepared: NonNullable<Awaited<ReturnType<typeof prepareModuleTask>>>
+): Promise<NonNullable<Doc<"taskEvents">["changes"]>> {
+  const { module, task, previous, assigned } = prepared;
+  if (assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
   else if (previous) await ctx.db.delete(previous._id);
-  await taskChanged(ctx, task, user._id, {
-    kind: "updated",
-    changes: [
-      {
-        field: "modules",
-        added: args.assigned ? [{ id: module._id, name: module.name }] : [],
-        removed: args.assigned ? [] : [{ id: module._id, name: module.name }],
-      },
-    ],
-  });
+  return [
+    {
+      field: "modules",
+      added: assigned ? [{ id: module._id, name: module.name }] : [],
+      removed: assigned ? [] : [{ id: module._id, name: module.name }],
+    },
+  ];
+}
+export async function setModuleTask(ctx: MutationCtx, args: Parameters<typeof prepareModuleTask>[1]) {
+  const prepared = await prepareModuleTask(ctx, args);
+  if (prepared)
+    await taskChanged(ctx, prepared.task, prepared.user._id, {
+      kind: "updated",
+      changes: await applyModuleTask(ctx, prepared),
+    });
 }

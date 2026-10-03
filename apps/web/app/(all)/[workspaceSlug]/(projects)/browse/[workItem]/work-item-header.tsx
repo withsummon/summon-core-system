@@ -9,7 +9,6 @@ import { useNavigate } from "react-router";
 import { Breadcrumbs, Header } from "@plane/ui";
 import { WorkItemsIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { Menu } from "@plane/propel/menu";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { TaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
 import { TaskSubscription } from "@/components/convex-core/notifications/task-subscription";
@@ -55,15 +54,12 @@ export function WorkItemDetailsHeader({
       <Header.RightItem>
         <TaskSubscription taskId={address.task._id} />
         <CopyWorkItemLink href={`/${address.workspace.slug}/browse/${address.workItem}/`} />
-        <TaskLifecycle task={address.task} disabled={disabled} lifecycle={lifecycle}>
-          <Menu.MenuItem
-            onClick={() =>
-              window.open(`/${address.workspace.slug}/browse/${address.workItem}/`, "_blank", "noopener,noreferrer")
-            }
-          >
-            Open in new tab
-          </Menu.MenuItem>
-        </TaskLifecycle>
+        <TaskLifecycle
+          task={address.task}
+          href={`/${address.workspace.slug}/browse/${address.workItem}/`}
+          disabled={disabled}
+          lifecycle={lifecycle}
+        />
       </Header.RightItem>
     </Header>
   );

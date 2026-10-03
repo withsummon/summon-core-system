@@ -5,13 +5,17 @@ import { IssueListBlockView } from "@/components/issues/issue-layouts/list/block
 import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { BulkLifecycle } from "./bulk-lifecycle";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { NativeTaskActionContext } from "@/app/native-workspace";
+import { ContextMenu } from "@plane/propel/context-menu";
+import { copyUrlToClipboard } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Menu } from "@plane/propel/menu";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
@@ -99,12 +103,18 @@ export function TaskLifecycle({
   disabled,
   lifecycle,
   children,
+  href,
+  row,
 }: {
   task: Task;
   disabled: boolean;
   lifecycle: ReturnType<typeof useTaskLifecycle>;
-  children?: ReactNode;
+  children?: (Item: typeof Menu.MenuItem | typeof ContextMenu.Item) => ReactNode;
+  href?: string;
+  row?: (actions: ReactNode) => ReactNode;
 }) {
+  const openComposer = useContext(NativeTaskActionContext);
+  const [copying, setCopying] = useState(false);
   const { confirmation, pending, error } = lifecycle;
   const available = {
     archive: task.canArchive,
@@ -112,36 +122,88 @@ export function TaskLifecycle({
     delete: task.canDelete,
     restore: task.canRestore,
   };
-  if (!children && !task.canArchive && !task.canUnarchive && !task.canRestore && !task.canDelete) return null;
+  const copyLink = async () => {
+    if (!href || copying) return;
+    setCopying(true);
+    try {
+      await copyUrlToClipboard(href);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Link copied", message: "Copied to clipboard." });
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Could not copy the link" });
+    } finally {
+      setCopying(false);
+    }
+  };
+  const items = (Item: typeof Menu.MenuItem | typeof ContextMenu.Item) => (
+    <>
+      {href && openComposer && task.canEdit && (
+        <>
+          <Item disabled={disabled || pending} onClick={() => openComposer(task._id, "edit")}>
+            Edit
+          </Item>
+          <Item disabled={disabled || pending} onClick={() => openComposer(task._id, "copy")}>
+            Make a copy
+          </Item>
+        </>
+      )}
+      {href && (
+        <>
+          <Item onClick={() => window.open(href, "_blank", "noopener,noreferrer")}>Open in new tab</Item>
+          <Item disabled={copying} onClick={() => void copyLink()}>
+            Copy link
+          </Item>
+        </>
+      )}
+      {children?.(Item)}
+      {(task.canArchive || (href && task.canEdit)) && (
+        <Item disabled={disabled || pending || !task.canArchive} onClick={() => lifecycle.choose(task, "archive")}>
+          <span>
+            Archive
+            {!task.canArchive && (
+              <span className="block text-11 text-secondary">Only completed or canceled work items</span>
+            )}
+          </span>
+        </Item>
+      )}
+      {task.canUnarchive && (
+        <Item disabled={disabled || pending} onClick={() => lifecycle.choose(task, "unarchive")}>
+          Restore
+        </Item>
+      )}
+      {task.canRestore && (
+        <Item disabled={disabled || pending} onClick={() => lifecycle.choose(task, "restore")}>
+          Restore
+        </Item>
+      )}
+      {task.canDelete && (
+        <Item
+          disabled={disabled || pending}
+          onClick={() => lifecycle.choose(task, "delete")}
+          className="text-danger-primary"
+        >
+          Delete
+        </Item>
+      )}
+    </>
+  );
+  const menu = (
+    <Menu ellipsis placement="bottom-end" ariaLabel="Work item actions" disabled={pending}>
+      {items(Menu.MenuItem)}
+    </Menu>
+  );
+  if (!children && !href && !task.canArchive && !task.canUnarchive && !task.canRestore && !task.canDelete) return null;
   return (
     <>
-      <Menu ellipsis placement="bottom-end" ariaLabel="Work item actions" disabled={pending}>
-        {children}
-        {task.canArchive && (
-          <Menu.MenuItem disabled={disabled} onClick={() => lifecycle.choose(task, "archive")}>
-            Archive
-          </Menu.MenuItem>
-        )}
-        {task.canUnarchive && (
-          <Menu.MenuItem disabled={disabled} onClick={() => lifecycle.choose(task, "unarchive")}>
-            Restore
-          </Menu.MenuItem>
-        )}
-        {task.canRestore && (
-          <Menu.MenuItem disabled={disabled} onClick={() => lifecycle.choose(task, "restore")}>
-            Restore
-          </Menu.MenuItem>
-        )}
-        {task.canDelete && (
-          <Menu.MenuItem
-            disabled={disabled}
-            onClick={() => lifecycle.choose(task, "delete")}
-            className="text-danger-primary"
-          >
-            Delete
-          </Menu.MenuItem>
-        )}
-      </Menu>
+      {row ? (
+        <ContextMenu>
+          <ContextMenu.Trigger className="contents">{row(menu)}</ContextMenu.Trigger>
+          <ContextMenu.Portal>
+            <ContextMenu.Content positionerClassName="z-[120]">{items(ContextMenu.Item)}</ContextMenu.Content>
+          </ContextMenu.Portal>
+        </ContextMenu>
+      ) : (
+        menu
+      )}
       {confirmation && confirmation.task._id === task._id && (
         <Dialog
           open
@@ -231,7 +293,7 @@ export function ProjectIssueRow({
   identifierWidth: number;
   href: string;
   stateName: string;
-  children?: ReactNode;
+  children?: (Item: typeof Menu.MenuItem | typeof ContextMenu.Item) => ReactNode;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -241,54 +303,57 @@ export function ProjectIssueRow({
   const peeked = params.get("peek") === identifier;
   return (
     <li>
-      <IssueListBlockView
-        issueId={task._id}
+      <TaskLifecycle
+        task={task}
         href={href}
-        name={task.title}
-        ariaLabel={`${identifier}: ${task.title}`}
-        onOpen={() => {
-          if (isMobile) navigate(href);
-          else
-            setParams((current) => {
-              const next = new URLSearchParams(current);
-              next.set("peek", identifier);
-              return next;
-            });
-        }}
-        rowRef={rowRef}
-        onDragStart={undefined}
-        isPeeked={peeked}
-        isPeekedAtCurrentLevel={peeked}
-        isActive={false}
-        isSelected={false}
-        isDragging={false}
         disabled={false}
-        pending={lifecycle.pending}
-        identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}
-        indent={0}
-        selection={null}
-        expansion={null}
-        properties={
-          <>
-            <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular">{stateName}</span>
-            <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular capitalize">
-              <PriorityIcon priority={task.priority} className="size-3.5" />
-              {task.priority}
-            </span>
-            {task.targetDate && (
-              <span className="text-caption-sm-regular text-secondary">{renderFormattedDate(task.targetDate)}</span>
-            )}
-          </>
-        }
-        actions={() => (
-          <TaskLifecycle task={task} disabled={false} lifecycle={lifecycle}>
-            <Menu.MenuItem onClick={() => window.open(href, "_blank", "noopener,noreferrer")}>
-              Open in new tab
-            </Menu.MenuItem>
-            {children}
-          </TaskLifecycle>
+        lifecycle={lifecycle}
+        row={(menu) => (
+          <IssueListBlockView
+            issueId={task._id}
+            href={href}
+            name={task.title}
+            ariaLabel={`${identifier}: ${task.title}`}
+            onOpen={() => {
+              if (isMobile) navigate(href);
+              else
+                setParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.set("peek", identifier);
+                  return next;
+                });
+            }}
+            rowRef={rowRef}
+            onDragStart={undefined}
+            isPeeked={peeked}
+            isPeekedAtCurrentLevel={peeked}
+            isActive={false}
+            isSelected={false}
+            isDragging={false}
+            disabled={false}
+            pending={lifecycle.pending}
+            identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}
+            indent={0}
+            selection={null}
+            expansion={null}
+            properties={
+              <>
+                <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular">{stateName}</span>
+                <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular capitalize">
+                  <PriorityIcon priority={task.priority} className="size-3.5" />
+                  {task.priority}
+                </span>
+                {task.targetDate && (
+                  <span className="text-caption-sm-regular text-secondary">{renderFormattedDate(task.targetDate)}</span>
+                )}
+              </>
+            }
+            actions={() => menu}
+          />
         )}
-      />
+      >
+        {children}
+      </TaskLifecycle>
     </li>
   );
 }

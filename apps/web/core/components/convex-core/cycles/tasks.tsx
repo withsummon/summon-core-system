@@ -3,7 +3,6 @@ import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { Select } from "@plane/propel/select";
-import { Menu } from "@plane/propel/menu";
 import { ProjectIssueRow } from "../tasks/lifecycle";
 import { TaskPeek, CreateProjectIssue } from "../tasks/task-detail";
 import { taskStatusOptions } from "../tasks/options";
@@ -80,12 +79,16 @@ export function CycleTasks({
                 taskStatusOptions[row.task.status].label
               }
             >
-              <Menu.MenuItem disabled={!canEdit} onClick={() => setMoving(row.task)}>
-                Move to another cycle
-              </Menu.MenuItem>
-              <Menu.MenuItem disabled={!canEdit} onClick={() => setRemoving(row)}>
-                Remove from cycle
-              </Menu.MenuItem>
+              {(Item) => (
+                <>
+                  <Item disabled={!canEdit} onClick={() => setMoving(row.task)}>
+                    Move to another cycle
+                  </Item>
+                  <Item disabled={!canEdit} onClick={() => setRemoving(row)}>
+                    Remove from cycle
+                  </Item>
+                </>
+              )}
             </ProjectIssueRow>
           ) : (
             <li key={row.taskId} className="flex items-center justify-between gap-3 px-5 py-3">

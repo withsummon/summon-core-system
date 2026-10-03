@@ -6,7 +6,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { pageBudget } from "../commercial/validation";
 import { requireDraftAttachmentAccess, draftAttachmentChanged, liveDraftAssets } from "./draft_access";
 import { prepareAsset } from "./index";
-import { descriptor } from "./access";
+import { descriptor, requireAsset } from "./access";
 import { attachmentRevision } from "./task_access";
 import { changeAttachmentState } from "./attachment_lifecycle";
 export const access = query({
@@ -14,6 +14,17 @@ export const access = query({
   handler: async (ctx, args) => {
     const { draft } = await requireDraftAttachmentAccess(ctx, args.draftId);
     return { draftId: draft._id, workspaceId: draft.workspaceId, canUpload: true };
+  },
+});
+export const get = query({
+  args: { draftId: v.id("taskDrafts"), assetId: v.string() },
+  handler: async (ctx, args) => {
+    await requireDraftAttachmentAccess(ctx, args.draftId);
+    const assetId = ctx.db.normalizeId("assets", args.assetId);
+    if (!assetId) throw new ConvexError("Draft attachment not found.");
+    const { asset } = await requireAsset(ctx, assetId);
+    if (asset.draftId !== args.draftId) throw new ConvexError("Draft attachment belongs to another work item.");
+    return { ...descriptor(asset), status: asset.status };
   },
 });
 export const prepare = mutation({

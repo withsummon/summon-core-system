@@ -2,12 +2,12 @@ import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import type { DefaultValues } from "react-hook-form";
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "@summon/convex/api";
-import type { Doc } from "@summon/convex/data-model";
+import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { Button } from "@plane/propel/button";
@@ -28,9 +28,14 @@ import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import useSize from "@/hooks/use-window-size";
 import { TaskInlineProperties, TaskProperties } from "./task-properties";
 import { TaskLifecycle, useTaskLifecycle } from "./lifecycle";
+import { DraftRelationships } from "./drafts/relationships";
 import { TaskSubscription } from "../notifications/task-subscription";
 import { peekOptions } from "./options";
 import type { TaskPeekMode } from "./options";
+
+const TaskDescriptionEditor = lazy(() =>
+  import("./description-editor").then((module) => ({ default: module.TaskDescriptionEditor }))
+);
 
 const TaskRichEditor = lazy(() => import("./rich-editor").then((module) => ({ default: module.TaskRichEditor })));
 
@@ -51,7 +56,7 @@ type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 type CreateValues = Required<
   Pick<FunctionArgs<typeof api.tasks.index.create>, "title" | "html" | "status" | "properties">
 > &
-  Pick<FunctionArgs<typeof api.tasks.index.create>, "cycle" | "modules">;
+  Required<Pick<FunctionArgs<typeof api.tasks.drafts.index.save>, "parent" | "cycle" | "modules">>;
 
 export function CopyWorkItemLink({
   href,
@@ -155,19 +160,12 @@ export function TaskPeek({ workspaceSlug }: { workspaceSlug: string }) {
                 <div className="flex shrink-0 items-center gap-2">
                   <TaskSubscription taskId={address.task._id} />
                   <CopyWorkItemLink href={`/${address.workspace.slug}/browse/${address.workItem}/`} />
-                  <TaskLifecycle task={address.task} disabled={hasUnsavedText} lifecycle={lifecycle}>
-                    <Menu.MenuItem
-                      onClick={() =>
-                        window.open(
-                          `/${address.workspace.slug}/browse/${address.workItem}/`,
-                          "_blank",
-                          "noopener,noreferrer"
-                        )
-                      }
-                    >
-                      Open in new tab
-                    </Menu.MenuItem>
-                  </TaskLifecycle>
+                  <TaskLifecycle
+                    task={address.task}
+                    href={`/${address.workspace.slug}/browse/${address.workItem}/`}
+                    disabled={hasUnsavedText}
+                    lifecycle={lifecycle}
+                  />
                 </div>
               </header>
             )}
@@ -385,37 +383,63 @@ export function CreateProjectIssue({
   address,
   states,
   onClose,
-  initialValues = {},
-  canCreate = true,
+  initialValues,
+  canCreate,
+  source,
 }: {
   address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
   states: FunctionReturnType<typeof api.tasks.states.list>;
   onClose: () => void;
-  initialValues?: DefaultValues<Pick<CreateValues, "status" | "properties">> & Pick<CreateValues, "cycle" | "modules">;
-  canCreate?: boolean;
+  initialValues?: Partial<Pick<CreateValues, "status" | "parent" | "cycle" | "modules">> & {
+    properties?: Partial<CreateValues["properties"]>;
+  };
+  source?:
+    | { kind: "edit"; value: FunctionReturnType<typeof api.tasks.index.editSnapshot> }
+    | { kind: "copy"; value: FunctionReturnType<typeof api.tasks.drafts.index.resolve> };
+  canCreate: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const client = useConvex();
   const create = useMutation(api.tasks.index.create);
-  const { properties: initialProperties, ...fields } = initialValues;
-  const defaultState = states.find((state) =>
-    fields.status === undefined ? state.isDefault : state.status === fields.status
+  const update = useMutation(api.tasks.index.update);
+  const saveDraft = useMutation(api.tasks.drafts.index.save);
+  const publish = useMutation(api.tasks.drafts.index.publish);
+  const [opened] = useState(source);
+  const copyReceipt = useRef(
+    opened?.kind === "copy"
+      ? { contentRevision: opened.value.contentRevision, updatedAt: opened.value.updatedAt }
+      : null
   );
-  const {
-    register,
-    watch,
-    setValue,
-    handleSubmit,
-    reset,
-    clearErrors,
-    setError,
-    formState: { isDirty, isSubmitting, errors },
-  } = useForm<CreateValues>({
-    defaultValues: {
+  const [copySaved, setCopySaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const onUploadingChange = useCallback((next: boolean) => {
+    setUploading(next);
+    if (next) setCopySaved(false);
+  }, []);
+  const [defaults] = useState<CreateValues>(() => {
+    if (opened)
+      return {
+        title: opened.value.title,
+        html: opened.value.html,
+        status: opened.value.status ?? "todo",
+        properties: opened.value.properties,
+        parent: opened.value.parent,
+        cycle: opened.value.cycle,
+        modules: opened.value.modules,
+      };
+    const { properties, ...fields } = initialValues ?? {};
+    const defaultState = states.find((state) =>
+      fields.status === undefined ? state.isDefault : state.status === fields.status
+    );
+    return {
       title: "",
       html: "<p></p>",
       status: defaultState?.status ?? "todo",
       ...fields,
+      parent: fields.parent ?? null,
+      cycle: fields.cycle ?? null,
+      modules: fields.modules ?? [],
       properties: {
         stateId: defaultState?._id ?? null,
         priority: "none",
@@ -424,10 +448,23 @@ export function CreateProjectIssue({
         labelIds: [],
         startDate: null,
         targetDate: null,
-        ...initialProperties,
+        ...properties,
       },
-    },
+    };
   });
+  const {
+    register,
+    watch,
+    setValue,
+    handleSubmit,
+    reset,
+    clearErrors,
+    setError,
+    formState: { isDirty, isSubmitting, errors, dirtyFields },
+  } = useForm<CreateValues>({ defaultValues: defaults });
+  const busy = isSubmitting || uploading;
+  const mode = opened ? opened.kind : "create";
+  const titles = { create: t("create_new_issue"), edit: "Edit work item", copy: "Make a copy" };
   const [createMore, setCreateMore] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const continuation = useRef<(() => void) | null>(null);
@@ -435,12 +472,7 @@ export function CreateProjectIssue({
     continuation.current = null;
     onClose();
   }, [onClose]);
-  const release = useReloadConfirmations(
-    isDirty || isSubmitting,
-    "This work item has unsaved changes.",
-    leave,
-    isSubmitting
-  );
+  const release = useReloadConfirmations(isDirty || busy, "This work item has unsaved changes.", leave, busy);
   useEffect(
     () => () => {
       continuation.current = null;
@@ -448,7 +480,7 @@ export function CreateProjectIssue({
     []
   );
   const dismiss = () => {
-    if (isSubmitting) return;
+    if (busy) return;
     if (isDirty) setDiscarding(true);
     else onClose();
   };
@@ -462,17 +494,53 @@ export function CreateProjectIssue({
     >
       <form
         className="flex w-full flex-col rounded-lg bg-surface-1"
-        aria-busy={isSubmitting}
+        aria-busy={busy}
         onSubmit={handleSubmit(async (values) => {
-          if (!canCreate) return;
+          if (!canCreate || uploading) return;
           continuation.current = () => {
-            if (createMore) reset();
+            if (createMore && !opened) reset();
             else onClose();
           };
           clearErrors("root");
           let taskId: FunctionReturnType<typeof api.tasks.index.create>;
           try {
-            taskId = await create({ projectId: address.project._id, ...values });
+            if (opened?.kind === "edit") {
+              taskId = await update({
+                taskId: opened.value.task._id,
+                expectedUpdatedAt: opened.value.task.updatedAt,
+                expectedEdit: opened.value.expectedEdit,
+                title: values.title,
+                status: values.status,
+                ...values.properties,
+                content: { html: values.html, expectedVersion: opened.value.contentVersion },
+                ...(dirtyFields.parent ? { parent: { previous: opened.value.parent, next: values.parent } } : {}),
+                ...(dirtyFields.cycle ? { cycle: { previous: opened.value.cycle, next: values.cycle } } : {}),
+                ...(dirtyFields.modules ? { modules: { previous: opened.value.modules, next: values.modules } } : {}),
+              });
+            } else if (opened?.kind === "copy") {
+              if (!copyReceipt.current) throw new Error("The copy acknowledgment is missing. Reopen this draft.");
+              const current = await client.query(api.tasks.drafts.index.resolve, {
+                workspaceId: address.workspace._id,
+                draftId: opened.value._id,
+              });
+              if (
+                current.publishedTaskId &&
+                (isDirty || current.contentRevision !== copyReceipt.current.contentRevision)
+              )
+                throw new ConvexError("This draft was published elsewhere. Your unsaved changes are still here.");
+              if (!current.publishedTaskId && (!copySaved || isDirty)) {
+                copyReceipt.current = await saveDraft({
+                  draftId: opened.value._id,
+                  expectedContentRevision: copyReceipt.current.contentRevision,
+                  projectId: address.project._id,
+                  ...values,
+                });
+                reset(values);
+                setCopySaved(true);
+              }
+              taskId = (await publish({ draftId: opened.value._id, expectedUpdatedAt: copyReceipt.current.updatedAt }))
+                .taskId;
+            } else taskId = await create({ projectId: address.project._id, ...values });
           } catch (failure) {
             if (continuation.current !== null) setError("root", { type: "server", message: mutationMessage(failure) });
             continuation.current = null;
@@ -482,13 +550,13 @@ export function CreateProjectIssue({
             const complete = continuation.current;
             continuation.current = null;
             complete?.();
-            if (allow && complete && !createMore)
+            if (allow && complete && !(createMore && !opened))
               navigate(`/${address.workspace.slug}/projects/${address.project._id}/issues/${taskId}/`);
           });
         })}
       >
         <div className="p-5">
-          <Dialog.Title className="pb-2 text-h4-medium text-secondary">{t("create_new_issue")}</Dialog.Title>
+          <Dialog.Title className="pb-2 text-h4-medium text-secondary">{titles[mode]}</Dialog.Title>
           <p className="pt-2 pb-4 text-body-sm-medium text-secondary">{address.project.name}</p>
           <label className="sr-only" htmlFor="new-work-item-title">
             {t("title")}
@@ -505,18 +573,32 @@ export function CreateProjectIssue({
         </div>
         <div className="px-5 pb-4">
           <Suspense fallback={<p role="status">Loading work item editor…</p>}>
-            <TaskRichEditor
-              id={`create-work-item-${address.project._id}`}
-              label="Work item description"
-              placeholder={t("description")}
-              html="<p></p>"
-              value={watch("html")}
-              editable={!isSubmitting}
-              onChange={(html) => setValue("html", html, { shouldDirty: true })}
-            />
+            {opened ? (
+              <TaskDescriptionEditor
+                target={opened.kind === "edit" ? { taskId: opened.value.task._id } : { draftId: opened.value._id }}
+                onUploadingChange={onUploadingChange}
+                id={`compose-work-item-${address.project._id}`}
+                label="Work item description"
+                placeholder={t("description")}
+                html={watch("html")}
+                value={watch("html")}
+                editable={!isSubmitting}
+                onChange={(html) => setValue("html", html, { shouldDirty: true })}
+              />
+            ) : (
+              <TaskRichEditor
+                id={`create-work-item-${address.project._id}`}
+                label="Work item description"
+                placeholder={t("description")}
+                html={watch("html")}
+                value={watch("html")}
+                editable={!isSubmitting}
+                onChange={(html) => setValue("html", html, { shouldDirty: true })}
+              />
+            )}
           </Suspense>
         </div>
-        <fieldset disabled={isSubmitting} className="border-t border-subtle px-5 py-3">
+        <fieldset disabled={isSubmitting} className="min-w-0 border-t border-subtle px-5 py-3">
           <TaskProperties
             projectId={address.project._id}
             draft={{ ...watch("properties"), status: watch("status") }}
@@ -525,10 +607,21 @@ export function CreateProjectIssue({
               setValue("properties", properties, { shouldDirty: true });
             }}
           />
+          <DraftRelationships
+            projectId={address.project._id}
+            taskId={opened?.kind === "edit" ? opened.value.task._id : undefined}
+            draft={{ parent: watch("parent"), cycle: watch("cycle"), modules: watch("modules") }}
+            parentDisabled={opened?.kind === "edit" && opened.value.hasParent && !opened.value.canUnlinkParent}
+            onChange={(next) => {
+              setValue("parent", next.parent, { shouldDirty: true });
+              setValue("cycle", next.cycle, { shouldDirty: true });
+              setValue("modules", next.modules, { shouldDirty: true });
+            }}
+          />
         </fieldset>
         {!canCreate && (
           <p role="alert" className="px-5 text-14 text-danger-primary">
-            You can no longer create a work item here. Your unsaved changes are retained.
+            You can no longer save this work item here. Your unsaved changes are retained.
           </p>
         )}
         {errors.root && (
@@ -537,17 +630,19 @@ export function CreateProjectIssue({
           </p>
         )}
         <div className="flex flex-wrap items-center justify-end gap-4 border-t border-subtle px-4 py-3">
-          <ToggleSwitch
-            value={createMore}
-            onChange={setCreateMore}
-            label={t("create_more")}
-            size="sm"
-            disabled={isSubmitting}
-          />
-          <Button variant="secondary" size="lg" type="button" disabled={isSubmitting} onClick={dismiss}>
+          {!opened && (
+            <ToggleSwitch
+              value={createMore}
+              onChange={setCreateMore}
+              label={t("create_more")}
+              size="sm"
+              disabled={isSubmitting}
+            />
+          )}
+          <Button variant="secondary" size="lg" type="button" disabled={busy} onClick={dismiss}>
             {t("discard")}
           </Button>
-          <Button size="lg" type="submit" loading={isSubmitting} disabled={isSubmitting || !canCreate}>
+          <Button size="lg" type="submit" loading={isSubmitting} disabled={busy || !canCreate}>
             {isSubmitting ? t("saving") : t("save")}
           </Button>
         </div>
@@ -560,11 +655,89 @@ export function CreateProjectIssue({
           handleSubmit={leave}
           variant="primary"
           title="Discard this work item?"
-          content="Your unsaved work item changes will be lost."
+          content={
+            mode === "copy"
+              ? "Your unsubmitted changes will be lost. The unpublished copy remains in your private drafts."
+              : "Your unsaved work item changes will be lost."
+          }
           primaryButtonText={{ default: t("discard"), loading: t("discard") }}
           secondaryButtonText={t("cancel")}
         />
       )}
+    </ModalCore>
+  );
+}
+
+/** The workspace owns this operation so changing a source row never destroys its composer. */
+export function TaskActionComposer({
+  request,
+  workspaceId,
+  onClose,
+}: {
+  request: { taskId: Id<"tasks">; kind: "edit" | "copy"; requestId: string };
+  workspaceId: Id<"workspaces">;
+  onClose: () => void;
+}) {
+  const client = useConvex();
+  const loading = useRef<Promise<
+    Required<Pick<ComponentProps<typeof CreateProjectIssue>, "source" | "address" | "states" | "canCreate">>
+  > | null>(null);
+  const [opened, setOpened] = useState<Awaited<NonNullable<typeof loading.current>> | null>(null);
+  const [error, setError] = useState("");
+  useReloadConfirmations(!opened && !error, "This work item composer is still opening.", onClose, !opened && !error);
+  useEffect(() => {
+    let active = true;
+    loading.current ??= (async () => {
+      const snapshot = await client.query(api.tasks.index.editSnapshot, { taskId: request.taskId });
+      const [address, states] = await Promise.all([
+        client.query(api.navigation.address.resolveProjectId, { workspaceId, projectId: snapshot.task.projectId }),
+        client.query(api.tasks.states.list, { projectId: snapshot.task.projectId }),
+      ]);
+      if (request.kind === "edit")
+        return { source: { kind: "edit", value: snapshot }, address, states, canCreate: snapshot.task.canEdit };
+      const draftId = await client.action(api.tasks.drafts.copy.fromTask, {
+        taskId: snapshot.task._id,
+        expectedUpdatedAt: snapshot.task.updatedAt,
+        expectedContentVersion: snapshot.contentVersion,
+        requestId: request.requestId,
+      });
+      const draft = await client.query(api.tasks.drafts.index.resolve, { workspaceId, draftId });
+      return { source: { kind: "copy", value: draft }, address, states, canCreate: draft.canPublish };
+    })();
+    void loading.current.then(
+      (result) => {
+        if (active) setOpened(result);
+        return;
+      },
+      (failure) => {
+        if (active) setError(mutationMessage(failure));
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [client, request, workspaceId]);
+  if (opened) return <CreateProjectIssue {...opened} onClose={onClose} />;
+  return (
+    <ModalCore
+      isOpen
+      handleClose={() => {
+        if (error) onClose();
+      }}
+    >
+      <section className="space-y-4 rounded-lg bg-surface-1 p-5">
+        <Dialog.Title>{request.kind === "copy" ? "Make a copy" : "Edit work item"}</Dialog.Title>
+        {error ? (
+          <>
+            <p role="alert">{error}</p>
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+          </>
+        ) : (
+          <p role="status">Preparing work item…</p>
+        )}
+      </section>
     </ModalCore>
   );
 }

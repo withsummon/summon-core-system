@@ -39,7 +39,7 @@ export function IntakeDescription({
       ) : (
         <TaskDescriptionEditor
           key={`${content.contentVersion?.versionId}:${content.contentVersion?.revision}`}
-          taskId={taskId}
+          target={{ taskId }}
           id={`intake-content-${taskId}`}
           label="Submission description"
           placeholder="No description"
@@ -94,7 +94,7 @@ function DescriptionForm({ initial, onDone }: { initial: Content; onDone: () => 
       })}
     >
       <TaskDescriptionEditor
-        taskId={snapshot.taskId}
+        target={{ taskId: snapshot.taskId }}
         id={`intake-content-edit-${snapshot.taskId}`}
         label="Edit submission description"
         placeholder="Describe the work…"
