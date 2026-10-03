@@ -187,6 +187,8 @@ import type * as projects_order from "../projects/order.js";
 import type * as projects_order_owner from "../projects/order_owner.js";
 import type * as projects_settings from "../projects/settings.js";
 import type * as projects_timezone from "../projects/timezone.js";
+import type * as publicSharing_access from "../publicSharing/access.js";
+import type * as publicSharing_index from "../publicSharing/index.js";
 import type * as quickLinks_index from "../quickLinks/index.js";
 import type * as quickLinks_validation from "../quickLinks/validation.js";
 import type * as reporting_commercial from "../reporting/commercial.js";
@@ -438,6 +440,8 @@ declare const fullApi: ApiFromModules<{
   "projects/order_owner": typeof projects_order_owner;
   "projects/settings": typeof projects_settings;
   "projects/timezone": typeof projects_timezone;
+  "publicSharing/access": typeof publicSharing_access;
+  "publicSharing/index": typeof publicSharing_index;
   "quickLinks/index": typeof quickLinks_index;
   "quickLinks/validation": typeof quickLinks_validation;
   "reporting/commercial": typeof reporting_commercial;
