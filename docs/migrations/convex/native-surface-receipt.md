@@ -1,6 +1,6 @@
 # Native registered surfaces
 
-Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **635 distinct rows, all OPEN** after removal of the unconsumed `savedViews/workspace:access` query and addition of three public Commercial queries. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **640 distinct rows, all OPEN** after the Task Edit/Copy scoped refresh below, following removal of the unconsumed `savedViews/workspace:access` query and addition of three public Commercial queries. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in nine changed query files against committed `2a9b29a2aaf1d559a37f07864440900e388ac7f6` and corrected 36 source anchors. It changes no registration, visibility or acceptance status. 2026-09-30 ledger SHA-256: `2acccf4998fbc24383b897c17afeebb45d9d146772c880ad49e7be1ca26ced99`. Receipt: `/tmp/summon-paging-20260930-native-anchor-refresh.json`. This scoped refresh does not rerun the historical SDK/factory/HTTP inventory audit.
 
@@ -8,15 +8,15 @@ On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in 
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     552 | 470 public and 82 internal declarations across generated app modules.                                               |
+| App RPC                     |     557 | 473 public and 84 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **635** | **All OPEN.**                                                                                                       |
+| **Total**                   | **640** | **All OPEN.**                                                                                                       |
 
-The current ledger records 564 declarations: 556 app exports and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The current ledger records 569 declarations: 561 app exports (557 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
 This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
 
@@ -37,11 +37,11 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 | Identity       |           23 | Account       |           27 |
 | Instance       |            7 | Workspace     |           39 |
 | Shared shell   |           22 | Projects      |           58 |
-| Tasks          |           73 | Cycles        |           22 |
+| Tasks          |           77 | Cycles        |           22 |
 | Modules        |           23 | Intake        |           13 |
-| Views/search   |           23 | Documents     |           38 |
-| Assets         |           28 | Commercial    |           21 |
-| Meetings       |           18 | Resources/MCP |           37 |
+| Views/search   |           22 | Documents     |           38 |
+| Assets         |           33 | Commercial    |           21 |
+| Meetings       |           32 | Resources/MCP |           37 |
 | Assistant      |           28 | Automation    |           15 |
 | Reporting      |            7 | Notifications |           13 |
 | Public sharing |            0 | External API  |            1 |
@@ -85,10 +85,22 @@ The inherited ledger moves four Client/Opportunity routes and their four existin
 
 Static receipts: `/tmp/summon-commercial-qa-20261002/{registrations,route-registrations,ledger-refresh}.json`. This scoped walk does not rerun the historical SDK/factory/HTTP inventory audit or establish browser acceptance. The current checklist owns the separate runtime and acceptance receipt.
 
-Current 635-row native ledger SHA-256: `73bdfcad6cf133236e46e914aefb29c91b22d9614ad62c186c964dcf9aefdbc4`. Current 978-row inherited ledger SHA-256: `c49a026b4159ca9e2e1a708bcd04690a0514b36bb92330b560a71dccbb4946ab`.
+Commercial refresh 635-row native ledger SHA-256: `73bdfcad6cf133236e46e914aefb29c91b22d9614ad62c186c964dcf9aefdbc4`. Commercial refresh 978-row inherited ledger SHA-256: `c49a026b4159ca9e2e1a708bcd04690a0514b36bb92330b560a71dccbb4946ab`.
 
 ## Registered Profile owner delta (2026-10-03)
 
 The [Profile implementation receipt](current-parity-checklist.md#registered-profile-journeys-2026-10-03) records committed `caa5f666b3ffafc8b62c3683f399b0b02fead50d`. Native registration remains 635 rows; 11 scoped direct declarations match their actual source, with four updated anchors/owner descriptions. Generated API module files are unchanged after formatting the deploy-generated output: the existing `tasks/index:update` validator extends with canonical neighbor receipts rather than adding a second RPC/DTO. Profile preference, subject, list and summary reuse their existing schema/generated owners.
 
 The inherited ledger refreshes 65 shifted route anchors and adds one native project-selection `ModalCore` mount, yielding 979 entries and 292 dialog roots. Three registered route patterns cover five Profile journeys. All 95 inspected route anchors and the scoped primitive mount match frozen AST/source; all rows remain OPEN. Static registration establishes no remote deployment or production acceptance.
+
+## Registered Task Edit/Copy owner delta (2026-10-03)
+
+The scoped frozen source is based on committed `ee0d3beae687f97fd8bfb0ebee574bc66626f7b0`, with 26 explicit source paths in `/tmp/summon-task-actions-qa-20261003/scope.json`. An independent installed Babel `7.29.7` AST walk reconciled all **40 direct native declarations in 12 changed backend files** and refreshed **27 existing declaration anchors**. Five declarations are added: public `assets/draftAttachments:get`, `tasks/index:editSnapshot`, `tasks/drafts/copy:fromTask`, and internal `tasks/drafts/copy:{taskSnapshot,taskCommit}`. `assets/upload:duplicateTaskImage` is replaced by `assets/upload:duplicateDescriptionImage`; the old name is not retained as a registration. Plain shared schemas and relation/content helpers are excluded.
+
+The canonical task Edit owner provides property, rich-content and relationship receipts to one atomic writer. Copy stages independent image bytes in an existing private draft, with source CAS and actor/request idempotency; final task creation remains the existing draft publication transaction. Existing generated API module imports and schema inference carry those changed contracts. The six deploy-generated formatting changes normalize identically to HEAD with installed Oxfmt; no generated API/model contract delta is hidden by the scoped source export. This is static owner evidence only.
+
+The inherited ledger refreshes **11 shifted dialog/wrapper anchors** and adds two dialog roots: the workspace-held `TaskActionComposer` mount and its canonical `ModalCore` composition. Three task `Menu`/`ContextMenu` call sites are recorded separately as `native-action-mount`, including the preserved peek-layout selector. They do not add global command identifiers: the prior 93 command IDs and 15 cmdk/chooser mount expressions are unchanged and remain OPEN. The task action composition records Edit, Make a copy, Open in new tab, Copy link and capability-gated lifecycle choices; it does not retire inherited Power K registrations.
+
+Current totals are **640 native rows** (557 app RPCs: 473 public, 84 internal; eight component exports; four HTTP handlers; 13 HTTP mounts; 51 HTTP SDK descriptors; seven server APIs) and **984 inherited rows**, including **294 dialog roots and three native action mounts**. Every row remains **OPEN**. The family table above was stale relative to previous Meeting and Commercial owner deltas; its current values are recomputed from the ledger, including HTTP handler declarations. These are registration counts, not additional journey acceptance or a historical SDK/factory/HTTP re-audit.
+
+Both frozen and working source hashes match the 26-path scope. Static receipts: `/tmp/summon-task-actions-qa-20261003/{ledger-ast,ledger-refresh,generated-proof}.json`. Scope SHA-256: `f964758cb8b575f46f8545499f697d89f02d0c707ba44c1099a9ab44432e9f7c`. Native ledger SHA-256: `26c1fa7a4e0f7ee75e703d074d5bb7fbcf42297d49a6a6b327fb5dcc16a6087a`. Inherited ledger SHA-256: `05f25d97f4ddebfdc240271802db5a4355426959b1a8820dcfc77ed9496ce063`. No family acceptance, runtime response, deployment identity or Django retirement is asserted by this refresh.
