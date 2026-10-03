@@ -50,7 +50,8 @@ export const setMany = mutation({
 export const list = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { module, user, member, projectMember } = await requireModule(ctx, args.moduleId);
+    const access = await requireModule(ctx, args.moduleId);
+    const { module, user, member, projectMember } = access;
     const canDetach = member.role !== "guest" && projectMember.role !== "guest" && !module.archived;
     return stream(ctx.db, schema)
       .query("moduleTasks")
@@ -63,7 +64,7 @@ export const list = query({
         return {
           taskId: task._id,
           updatedAt: task.updatedAt,
-          task: readable ? await taskDetail(ctx, task) : null,
+          task: readable ? await taskDetail(ctx, task, access) : null,
           unavailable: !taskIsActive(task),
         };
       })

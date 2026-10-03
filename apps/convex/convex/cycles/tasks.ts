@@ -41,7 +41,8 @@ export const current = query({
 export const list = query({
   args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { cycle, user, member, projectMember } = await requireCycle(ctx, args.cycleId);
+    const access = await requireCycle(ctx, args.cycleId);
+    const { cycle, user, member, projectMember } = access;
     const canDetach =
       member.role !== "guest" && projectMember.role !== "guest" && !cycle.archived && cyclePhase(cycle) !== "completed";
     if (
@@ -61,7 +62,7 @@ export const list = query({
         return {
           taskId: task._id,
           updatedAt: task.updatedAt,
-          task: readable ? await taskDetail(ctx, task) : null,
+          task: readable ? await taskDetail(ctx, task, access) : null,
           unavailable: !taskIsActive(task),
         };
       })

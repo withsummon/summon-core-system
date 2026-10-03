@@ -1,4 +1,4 @@
-import { taskIsActive, taskDetail, taskCanRead, requireTask } from "./access";
+import { taskIsActive, taskDetail, taskCanRead, taskRoleCanRead, requireTask } from "./access";
 import {
   preparePropertyUpdate,
   applyPropertyUpdate,
@@ -17,7 +17,7 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
-import { requireProject, requireUser } from "../identity/access";
+import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
 import { status, taskPosition, taskProperties } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
@@ -35,7 +35,8 @@ const MAX_PAGE_BYTES = 1_048_576;
 export const list = query({
   args: { projectId: v.id("projects"), openOnly: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { user } = await requireProject(ctx, args.projectId);
+    const access = await requireProject(ctx, args.projectId);
+    const { user, member, projectMember, project } = access;
     if (
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
       args.paginationOpts.numItems < 1 ||
@@ -50,10 +51,11 @@ export const list = query({
         if (
           !taskIsActive(task) ||
           (args.openOnly && (task.status === "done" || task.status === "cancelled")) ||
-          !(await taskCanRead(ctx, task, user._id))
+          task.workspaceId !== project.workspaceId ||
+          !taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures)
         )
           return null;
-        return taskDetail(ctx, task);
+        return taskDetail(ctx, task, access);
       })
       .paginate({
         ...args.paginationOpts,
@@ -86,7 +88,7 @@ export const get = query({
     const id = ctx.db.normalizeId("tasks", args.taskId);
     const task = id ? await ctx.db.get(id) : null;
     if (!task || task.status === "triage" || !(await taskCanRead(ctx, task, user._id))) return null;
-    return taskDetail(ctx, { ...task, status: task.status });
+    return taskDetail(ctx, { ...task, status: task.status }, await requireProjectForUser(ctx, task.projectId, user));
   },
 });
 export async function taskEditSource(ctx: QueryCtx, task: Awaited<ReturnType<typeof requireTask>>) {
@@ -121,7 +123,10 @@ export const editSnapshot = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await requireTask(ctx, taskId, "read");
-    return { task: await taskDetail(ctx, task), ...(await taskEditSource(ctx, task)) };
+    return {
+      task: await taskDetail(ctx, task, await requireProject(ctx, task.projectId)),
+      ...(await taskEditSource(ctx, task)),
+    };
   },
 });
 export const update = mutation({
