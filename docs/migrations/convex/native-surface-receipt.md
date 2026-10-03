@@ -1,6 +1,6 @@
 # Native registered surfaces
 
-Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **640 distinct rows, all OPEN** after the Task Edit/Copy scoped refresh below, following removal of the unconsumed `savedViews/workspace:access` query and addition of three public Commercial queries. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **679 distinct rows, all OPEN** after the 2026-10-04 committed-source refresh against `d8d8bb684ab4fee4da9b59552045e45ada0c0610`. This adds 11 public-sharing RPC candidates to the prior 668 rows; the historical SDK and owner receipts below retain their original coverage. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in nine changed query files against committed `2a9b29a2aaf1d559a37f07864440900e388ac7f6` and corrected 36 source anchors. It changes no registration, visibility or acceptance status. 2026-09-30 ledger SHA-256: `2acccf4998fbc24383b897c17afeebb45d9d146772c880ad49e7be1ca26ced99`. Receipt: `/tmp/summon-paging-20260930-native-anchor-refresh.json`. This scoped refresh does not rerun the historical SDK/factory/HTTP inventory audit.
 
@@ -8,15 +8,15 @@ On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in 
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     557 | 473 public and 84 internal declarations across generated app modules.                                               |
+| App RPC                     |     596 | 498 public and 98 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **640** | **All OPEN.**                                                                                                       |
+| **Total**                   | **679** | **All OPEN.**                                                                                                       |
 
-The current ledger records 569 declarations: 561 app exports (557 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The current ledger records 608 declarations: 600 app exports (596 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
 This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
 
@@ -36,15 +36,15 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 | -------------- | -----------: | ------------- | -----------: |
 | Identity       |           23 | Account       |           27 |
 | Instance       |            7 | Workspace     |           39 |
-| Shared shell   |           22 | Projects      |           58 |
-| Tasks          |           77 | Cycles        |           22 |
+| Shared shell   |           24 | Projects      |           58 |
+| Tasks          |           78 | Cycles        |           22 |
 | Modules        |           23 | Intake        |           13 |
-| Views/search   |           22 | Documents     |           38 |
+| Views/search   |           22 | Documents     |           39 |
 | Assets         |           33 | Commercial    |           21 |
 | Meetings       |           32 | Resources/MCP |           37 |
-| Assistant      |           28 | Automation    |           15 |
-| Reporting      |            7 | Notifications |           13 |
-| Public sharing |            0 | External API  |            1 |
+| Assistant      |           40 | Automation    |           22 |
+| Reporting      |           11 | Notifications |           14 |
+| Public sharing |           11 | External API  |            1 |
 | Stickies       |            9 | Operations    |            2 |
 
 ## Seven concrete owner mappings
@@ -101,6 +101,20 @@ The canonical task Edit owner provides property, rich-content and relationship r
 
 The inherited ledger refreshes **11 shifted dialog/wrapper anchors** and adds two dialog roots: the workspace-held `TaskActionComposer` mount and its canonical `ModalCore` composition. Three task `Menu`/`ContextMenu` call sites are recorded separately as `native-action-mount`, including the preserved peek-layout selector. They do not add global command identifiers: the prior 93 command IDs and 15 cmdk/chooser mount expressions are unchanged and remain OPEN. The task action composition records Edit, Make a copy, Open in new tab, Copy link and capability-gated lifecycle choices; it does not retire inherited Power K registrations.
 
-Current totals are **640 native rows** (557 app RPCs: 473 public, 84 internal; eight component exports; four HTTP handlers; 13 HTTP mounts; 51 HTTP SDK descriptors; seven server APIs) and **984 inherited rows**, including **294 dialog roots and three native action mounts**. Every row remains **OPEN**. The family table above was stale relative to previous Meeting and Commercial owner deltas; its current values are recomputed from the ledger, including HTTP handler declarations. These are registration counts, not additional journey acceptance or a historical SDK/factory/HTTP re-audit.
+At that slice, totals were **640 native rows** (557 app RPCs: 473 public, 84 internal; eight component exports; four HTTP handlers; 13 HTTP mounts; 51 HTTP SDK descriptors; seven server APIs) and **984 inherited rows**, including **294 dialog roots and three native action mounts**. Every row remains **OPEN**. The Task Edit/Copy refresh recomputed family counts from its ledger, including HTTP handler declarations, after previous Meeting and Commercial owner deltas. These are registration counts, not additional journey acceptance or a historical SDK/factory/HTTP re-audit.
 
 Both frozen and working source hashes match the 26-path scope. Static receipts: `/tmp/summon-task-actions-qa-20261003/{ledger-ast,ledger-refresh,generated-proof}.json`. Scope SHA-256: `f964758cb8b575f46f8545499f697d89f02d0c707ba44c1099a9ab44432e9f7c`. Native ledger SHA-256: `26c1fa7a4e0f7ee75e703d074d5bb7fbcf42297d49a6a6b327fb5dcc16a6087a`. Inherited ledger SHA-256: `05f25d97f4ddebfdc240271802db5a4355426959b1a8820dcfc77ed9496ce063`. No family acceptance, runtime response, deployment identity or Django retirement is asserted by this refresh.
+
+## Committed source and public-sharing candidate refresh (2026-10-04)
+
+This refresh freezes committed `d8d8bb684ab4fee4da9b59552045e45ada0c0610` with `git archive` and independently verifies all **6,151 tracked file hashes**, including the tracked locale symlink. The AST scope contains **574 TypeScript/TSX paths** and compares source changes after committed `c346b1fd3f62b5ceaf55e4ea6fa23861bf639e4e` with the current 668-row native and 991-row inherited ledgers. Unrelated dirty `apps/convex/shared/project-navigation.ts` and `.claude/launch.json` are excluded. Historical temporary receipts remain untouched.
+
+The native delta adds **11 public application RPC candidates** in the generated `publicSharing/index` module: `get`, `save`, `revoke`, `settings`, `resolveProject`, `list`, `getTask`, `catalog`, `members`, `cycles` and `modules`. Their primary family is `public-sharing`; all remain **OPEN**. The management boundary reuses current project-writer access and publication CAS; anonymous reads require the current publication and live workspace/project, with canonical task lifecycle and exact project/workspace scope. Public data uses an explicit projection rather than internal task detail, discussion, events or account email. This is a source candidate receipt, not equivalent public Space behavior or deployment acceptance. There is no new application HTTP mount.
+
+Eight existing Intake RPC source anchors move; their registrations and visibility are unchanged. Independent AST set comparison reconciles **594 direct declarations and 14 retained factory exports**, matching all **608 application/component declarations**, plus **95 scoped web routes, 293 scoped dialog roots, six native cron registrations and four direct HTTP mounts**. The installed SDK descriptor inventory is not rerun.
+
+The inherited delta adds **three dialog source mounts**: one canonical `Dialog` in `documents/duplicate.tsx` and its two `DuplicateDocumentDialog` entry callers in the document selector and preserved `DocumentActions`. These are shared composition call sites, not three distinct dialogs or journeys. One `CustomMenu | Page actions` source mount records the existing preserved menu, generated copy availability, CAS/request owner and shared copy dialog. It adds **no global command identifier**: the 93 identifiers and 15 command/chooser mount expressions are unchanged. Current totals are **679 native rows** and **995 inherited rows**, including **302 dialog roots and six native action mounts**. Every row remains **OPEN**.
+
+The frozen scope does not re-audit the 51 SDK HTTP descriptors, seven SDK server APIs, 435 Django URLs, three conditional Django URLs, ten Django mounts, 12 Python job registrations, 15 Admin/Space routes, two Admin/Space index registrations or nine Admin/Space dialog mounts. Their existing policy, family and OPEN status are preserved. Current route reachability, dialogs/commands, external HTTP compatibility, runtime behavior, remote deployment, performance, backup/restore and retirement remain separate gates.
+
+Static receipts: `/tmp/summon-ledger-refresh-d8d8bb68-20261004/{source-identity,scope,ledger-ast,ledger-refresh,ledger-verification}.json`. Source identity SHA-256: `4b787a138ec83a707833ac0268dbf9b1a6083ef5a6c1478eef68cb47987cb2b4`. Scope SHA-256: `a646109ce47295f52f1ef690703160eb0f64b27bd8b2fdf3c9274449b2babe9b`. Native ledger SHA-256: `6fdbb01f678b3b00f0c8b933dc14468d234f0f12740049da967f8e212ff0dfb5`. Inherited ledger SHA-256: `ca6c6c0ecc64e6466c20a73ca36aa7f73d714304448be6b867c0205149b4f2eb`.
