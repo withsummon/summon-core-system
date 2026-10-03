@@ -1,4 +1,3 @@
-import { requireUser } from "../identity/access";
 import { taskCanRead } from "../tasks/access";
 import { taskIsActive } from "../tasks/access";
 import { query } from "../_generated/server";
@@ -14,8 +13,7 @@ function dueBucket(targetDate: string | null, today: string, sevenDays: string) 
 export const page = query({
   args: pageArgs,
   handler: async (ctx, { scope, paginationOpts }) => {
-    const user = await requireUser(ctx);
-    const { visibleProject } = await scopeAccess(ctx, scope);
+    const { user, visibleProject } = await scopeAccess(ctx, scope);
     const source = scope.projectId
       ? ctx.db.query("tasks").withIndex("by_project", (q) => q.eq("projectId", scope.projectId!))
       : ctx.db.query("tasks").withIndex("by_workspace", (q) => q.eq("workspaceId", scope.workspaceId));

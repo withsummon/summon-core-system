@@ -2,7 +2,7 @@ import { paginationOptsValidator, type PaginationOptions } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { requireProject, requireWorkspace } from "../identity/access";
+import { requireProjectForUser, requireWorkspace } from "../identity/access";
 import { projectReader } from "../savedViews/scope";
 import { calendarDate, date, requireClient } from "../commercial/validation";
 
@@ -28,7 +28,7 @@ export async function scopeAccess(ctx: QueryCtx, scope: ReportScope) {
   date(scope.today);
   if (scope.dateFrom && scope.dateTo && scope.dateFrom > scope.dateTo) throw new ConvexError("Date range is reversed.");
   if (scope.projectId) {
-    const { project } = await requireProject(ctx, scope.projectId);
+    const { project } = await requireProjectForUser(ctx, scope.projectId, access.user);
     if (project.workspaceId !== scope.workspaceId) throw new ConvexError("Project belongs to another workspace.");
   }
   if (scope.clientId) await requireClient(ctx, scope.workspaceId, scope.clientId);
