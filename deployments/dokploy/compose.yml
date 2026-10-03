@@ -65,6 +65,11 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile.web
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
+        VITE_CONVEX_LIVE_URL: ${VITE_CONVEX_LIVE_URL:-}
+        SUMMON_STICKIES_ROUTE_OWNER: ${SUMMON_STICKIES_ROUTE_OWNER:-legacy}
     restart: unless-stopped
     depends_on:
       api:
