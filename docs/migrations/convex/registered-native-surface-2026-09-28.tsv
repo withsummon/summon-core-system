@@ -557,7 +557,8 @@ convex-rpc	tasks/activity:profile	apps/convex/convex/tasks/activity.ts:117	Conve
 convex-rpc	tasks/assignees:list	apps/convex/convex/tasks/assignees.ts:9	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_memberships:change	apps/convex/convex/tasks/bulk_memberships.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/bulk_properties:update	apps/convex/convex/tasks/bulk_properties.ts:9	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/center:list	apps/convex/convex/tasks/center.ts:55	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/center:list	apps/convex/convex/tasks/center.ts:88	Convex readable Task Center table; canonical task capabilities and native assignees	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/center:summary	apps/convex/convex/tasks/center.ts:120	Convex bounded authorized ownership-scope dashboard contributions; exact only after exhaustion	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:access	apps/convex/convex/tasks/commentReactions.ts:18	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:list	apps/convex/convex/tasks/commentReactions.ts:24	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:set	apps/convex/convex/tasks/commentReactions.ts:36	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
@@ -576,12 +577,12 @@ convex-rpc	tasks/drafts/copy:run	apps/convex/convex/tasks/drafts/copy.ts:127	Con
 convex-rpc	tasks/drafts/copy:snapshot	apps/convex/convex/tasks/drafts/copy.ts:41	Convex source candidate	tasks	query | internal | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/copy:taskCommit	apps/convex/convex/tasks/drafts/copy.ts:171	Convex internal source CAS and independent private draft/image commit	tasks	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/copy:taskSnapshot	apps/convex/convex/tasks/drafts/copy.ts:170	Convex internal source/task/content/image snapshot owner	tasks	query | internal | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:create	apps/convex/convex/tasks/drafts/index.ts:18	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:lifecycle	apps/convex/convex/tasks/drafts/index.ts:123	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:list	apps/convex/convex/tasks/drafts/index.ts:44	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:publish	apps/convex/convex/tasks/drafts/index.ts:133	Convex atomic draft publication, canonical task creation and image binding transfer	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:resolve	apps/convex/convex/tasks/drafts/index.ts:59	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:save	apps/convex/convex/tasks/drafts/index.ts:81	Convex private draft content/property/relationship save and acknowledgment	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:create	apps/convex/convex/tasks/drafts/index.ts:33	Convex authenticated private draft creation	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:lifecycle	apps/convex/convex/tasks/drafts/index.ts:127	Convex authenticated private draft lifecycle with revision proof	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:list	apps/convex/convex/tasks/drafts/index.ts:59	Convex authenticated owner draft list; permission-aware project/priority/search before pagination	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:publish	apps/convex/convex/tasks/drafts/index.ts:137	Convex atomic draft publication, canonical task creation and image binding transfer	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:resolve	apps/convex/convex/tasks/drafts/index.ts:75	Convex canonical private draft read and publication capability	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:save	apps/convex/convex/tasks/drafts/index.ts:85	Convex private draft content/property/relationship save and acknowledgment	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/hierarchy:children	apps/convex/convex/tasks/hierarchy.ts:53	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/hierarchy:parent	apps/convex/convex/tasks/hierarchy.ts:49	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/hierarchy:setParent	apps/convex/convex/tasks/hierarchy.ts:138	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
