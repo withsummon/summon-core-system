@@ -56,11 +56,15 @@ export async function* streamProvider(
       if (next.done) break;
       buffer += decoder.decode(next.value, { stream: true });
       if (buffer.length > 1_048_576) throw new Error("Provider event exceeded its size limit.");
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() ?? "";
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const data = line.slice(5).trim();
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() ?? "";
+      for (const event of events) {
+        const fields = event.split(/\r?\n/).filter((line) => line.startsWith("data:"));
+        if (!fields.length) continue;
+        const data = fields
+          .map((line) => line.slice(5).replace(/^ /, ""))
+          .join("\n")
+          .trim();
         if (data === "[DONE]") {
           done = true;
           break;

@@ -1,6 +1,5 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation } from "../_generated/server";
-import { requireUser } from "../identity/access";
 import { requireConversation } from "./access";
 import { selectedAttachments } from "./attachments";
 import { conversationResult } from "../mcp/invocations";
@@ -159,16 +158,14 @@ export const publish = internalMutation({
 export const fail = internalMutation({
   args: { messageId: v.id("assistantMessages") },
   handler: async (ctx, { messageId }) => {
-    const user = await requireUser(ctx);
     const message = await ctx.db.get(messageId);
-    if (!message) return;
+    if (!message || message.status !== "streaming") return;
     const conversation = await ctx.db.get(message.conversationId);
-    if (!conversation || conversation.ownerId !== user._id) throw new ConvexError("Conversation access denied.");
-    if (message.status !== "streaming") return;
+    if (!conversation || conversation.activeMessageId !== messageId) return;
     await ctx.db.patch(messageId, {
       status: "failed",
       error: "Reply could not be completed. Check access and provider configuration before retrying.",
     });
-    if (conversation.activeMessageId === messageId) await ctx.db.patch(conversation._id, { activeMessageId: null });
+    await ctx.db.patch(conversation._id, { activeMessageId: null });
   },
 });
