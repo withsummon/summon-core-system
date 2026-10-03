@@ -1,5 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -35,18 +37,15 @@ export const list = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const page = await ctx.db
+    return stream(ctx.db, schema)
       .query("workspaceMembers")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .paginate(pageBudget(args.paginationOpts));
-    const rows = await Promise.all(
-      page.page.map(async (member) => {
+      .map(async (member) => {
         if (!member.active || member.role !== "admin") return null;
         const workspace = await ctx.db.get(member.workspaceId);
         return workspace && workspace.deletedAt != null ? projection(workspace) : null;
       })
-    );
-    return { ...page, page: rows.filter((row) => row !== null) };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const setDeleted = mutation({
