@@ -1,5 +1,7 @@
 # Native task drafts frontend
 
+Current registered route: see the [preserved Task Center/Drafts receipt](current-parity-checklist.md#preserved-task-center-and-drafts-2026-10-03). The earlier prototype notes below are historical; they do not describe current route registration or establish production parity.
+
 ## Inherited owner and bounded composition
 
 Inherited `issues/issue-modal/draft-issue-layout.tsx` prompts to save a draft when dismissing a changed create form. `issues/workspace-draft` lists private workspace drafts and offers edit, copy, remove, and move-to-project. The inherited properties include parent, cycle, modules, and estimates in addition to status, priority, assignees, labels, and dates.

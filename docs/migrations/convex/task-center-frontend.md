@@ -1,5 +1,7 @@
 # Workspace Tasks frontend closure
 
+Current registered route: see the [preserved Task Center/Drafts receipt](current-parity-checklist.md#preserved-task-center-and-drafts-2026-10-03). The earlier prototype notes below are historical; they do not describe current route registration or establish production parity.
+
 The native Tasks module now consumes the existing bounded `tasks.center.list` owner. It retains the legacy Summon task center's My tasks, Team tasks, Created by me, All tasks, due date, priority, project, and text search controls. Filters are explicit form submissions and live in the URL. Team tasks means tasks with any assignee, matching the existing owner; it does not invent a separate team-membership rule.
 
 The existing legacy route delegates to `components/summon/tasks/tasks-root.tsx`, which fetches accessible issues then filters/groups in the browser. This native route makes one workspace task query plus the authorized project directory; it does not fetch every project's task list. A flat responsive result list avoids implying complete group counts while scanning bounded pages. Each row carries canonical project identity, task identifier, custom state, priority, and due date. No page size is presented as a workspace total.
