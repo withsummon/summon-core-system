@@ -97,7 +97,7 @@ dialog-mount	AlertModalCore	apps/web/app/(all)/[workspaceSlug]/(projects)/worksp
 dialog-mount	AlertModalCore	apps/web/app/native-workspace-view-detail.tsx:187	Convex native-session custom Views lifecycle dialog	workspace	Restore/delete confirmation with saved revision and recoverable conflict; broader Views parity OPEN	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/api-token/delete-token-modal.tsx:59	Convex/Better Auth PAT management; external transport open	external-api	Account Settings management; /api/v1/ remains Django	OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/convex-core/documents/metadata-form.tsx:216	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
-dialog-mount	AlertModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:556	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	AlertModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:651	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/cycles/delete-modal.tsx:80	Django-backed web	cycles		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/decline-issue-modal.tsx:44	Django-backed web	tasks		OPEN
 dialog-mount	AlertModalCore	apps/web/core/components/inbox/modals/delete-issue-modal.tsx:71	Django-backed web	tasks		OPEN
@@ -224,9 +224,9 @@ dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/actions.tsx:115	
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/forms.tsx:158	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/forms.tsx:68	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/route.tsx:163	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:154	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:248	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:347	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:157	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:251	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:350	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:136	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:258	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/documents/editor.tsx:260	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
@@ -237,8 +237,8 @@ dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:37
 dialog-mount	Dialog	apps/web/core/components/convex-core/intakes/forms.tsx:201	Convex source candidate; mounting route and full dialog acceptance OPEN	intake		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/modules/overview.tsx:29	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/description-history.tsx:22	Convex tasks.history scoped task/Intake source candidate	tasks	Acceptance: Page versions, preview canonical HTML and restore with revision/capability proof; secondary intake; stale/denied recovery and dismissal	OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/lifecycle.tsx:146	Convex tasks.lifecycle.change revisioned source candidate	tasks	Acceptance: Confirm archive/unarchive/delete/restore with canonical receipt; protect dirty drafts and pending navigation, reject stale/denied writes and retry	OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/task-detail.tsx:115	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/lifecycle.tsx:208	Convex tasks.lifecycle.change revisioned source candidate	tasks	Acceptance: Confirm archive/unarchive/delete/restore with canonical receipt; protect dirty drafts and pending navigation, reject stale/denied writes and retry	OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/tasks/task-detail.tsx:120	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	Dialog	apps/web/core/components/knowledge/knowledge-detail-modal.tsx:48	Django-backed web composition; shared UI primitive	documents	Acceptance: Open knowledge content/provenance, verify acknowledged clipboard copy and actual download bytes; current download toast is not an export	OPEN
 dialog-mount	Dialog	apps/web/core/components/onboarding/switch-account-modal.tsx:55	Django-backed web composition; shared UI primitive	identity	Acceptance: Cancel retains current account; confirm sign-out revokes backing session, resets appearance and enters another verified account; failed sign-out recovery	OPEN
 dialog-mount	Dialog	apps/web/core/components/power-k/ui/modal/shortcuts-root.tsx:39	Django-backed web composition; shared UI primitive	shared-shell	Acceptance: Open shortcuts from keyboard/menu, read command catalog and restore focus on Escape/backdrop/close; native command parity remains OPEN	OPEN
@@ -289,10 +289,11 @@ dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/links.tsx:16
 dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/members.tsx:95	Convex source candidate; mounting route and full dialog acceptance OPEN	workspace		OPEN
 dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/properties.tsx:148	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
 dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/route-shell.tsx:171	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
-dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:174	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
-dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:255	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:173	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/modules/tasks.tsx:254	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
 dialog-mount	ModalCore	apps/web/core/components/convex-core/notifications/notifications.tsx:476	Convex notification mutation; shared dialog primitive	notifications	Custom snooze: future date, failure retained, cancel, accessible title; isolated 2026-10-02 receipt	OPEN
-dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:456	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:488	Convex source candidate; mounting route and full dialog acceptance OPEN	tasks		OPEN
+dialog-mount	ModalCore	apps/web/core/components/convex-core/tasks/task-detail.tsx:722	Convex native workspace-held task composer; full dialog acceptance OPEN	tasks	Primitive/wrapper mount only; acceptance: staged copy Save/Cancel, atomic Edit, source conflict and current permission recovery; list-row unmount must preserve workspace-held modal	OPEN
 dialog-mount	ModalCore	apps/web/core/components/core/description-versions/modal.tsx:79	Django-backed web composition; shared UI primitive	shared-shell		OPEN
 dialog-mount	ModalCore	apps/web/core/components/core/filters/date-filter-modal.tsx:54	Django-backed web composition; shared UI primitive	shared-shell		OPEN
 dialog-mount	ModalCore	apps/web/core/components/core/modals/bulk-delete-issues-modal.tsx:159	Django-backed web composition; shared UI primitive	tasks		OPEN
@@ -349,8 +350,8 @@ dialog-mount	ModuleLifecycleDialog	apps/web/core/components/convex-core/modules/
 dialog-mount	ModuleLifecycleDialog	apps/web/core/components/convex-core/modules/modules.tsx:233	Convex source candidate; mounting route and full dialog acceptance OPEN	cycles		OPEN
 dialog-mount	ModulePickerDialog	apps/web/core/components/convex-core/modules/route-shell.tsx:89	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
 dialog-mount	ModuleStatusDialog	apps/web/core/components/convex-core/modules/actions.tsx:160	Convex source candidate; mounting route and full dialog acceptance OPEN	modules		OPEN
-dialog-mount	NativeCreateProjectModal	apps/web/app/native-workspace.tsx:74	Convex project native composition in the preserved shell; full dialog acceptance OPEN	workspace		OPEN
-dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:59	Convex project native composition in the preserved shell; full dialog acceptance OPEN	stickies	Mounted once for registered native workspace routes; acceptance: create/open/edit, dirty-draft navigation and flush before leave; cross-route legacy destinations remain OPEN	OPEN
+dialog-mount	NativeCreateProjectModal	apps/web/app/native-workspace.tsx:100	Convex project native composition in the preserved shell; full dialog acceptance OPEN	workspace		OPEN
+dialog-mount	NativeStickiesModal	apps/web/app/native-workspace.tsx:85	Convex project native composition in the preserved shell; full dialog acceptance OPEN	stickies	Mounted once for registered native workspace routes; acceptance: create/open/edit, dirty-draft navigation and flush before leave; cross-route legacy destinations remain OPEN	OPEN
 dialog-mount	PaidPlanUpgradeModal	apps/web/core/components/workspace/edition-badge.tsx:29	Django-backed web	workspace		OPEN
 dialog-mount	ParentIssuesListModal	apps/web/core/components/inbox/modals/create-modal/issue-properties.tsx:223	Django-backed web	tasks		OPEN
 dialog-mount	ParentIssuesListModal	apps/web/core/components/issues/issue-detail/parent-select.tsx:71	Django-backed web	tasks		OPEN
@@ -373,6 +374,7 @@ dialog-mount	ShortcutsModal	apps/web/core/components/power-k/global-shortcuts.ts
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/native/note.tsx:57	Convex UI	stickies		OPEN
 dialog-mount	StickyDeleteModal	apps/web/core/components/stickies/sticky/root.tsx:77	Django-backed web	stickies		OPEN
 dialog-mount	SwitchAccountModal	apps/web/core/components/onboarding/switch-account-dropdown.tsx:27	Better Auth entry UI	identity		OPEN
+dialog-mount	TaskActionComposer	apps/web/app/native-workspace.tsx:76	Convex native workspace-held task composer; full dialog acceptance OPEN	tasks	Primitive/wrapper mount only; acceptance: staged copy Save/Cancel, atomic Edit, source conflict and current permission recovery; list-row unmount must preserve workspace-held modal	OPEN
 dialog-mount	TransferIssuesModal	apps/web/core/components/cycles/list/cycle-list-item-action.tsx:176	Django-backed web	tasks		OPEN
 dialog-mount	TransferIssuesModal	apps/web/core/components/issues/issue-layouts/roots/cycle-layout-root.tsx:101	Django-backed web	tasks		OPEN
 dialog-mount	UserImageUploadDialog	apps/web/core/components/account/native-entry/avatar.tsx:27	Convex account UI	assets		OPEN
@@ -832,6 +834,9 @@ django-url	/auth/spaces/sign-in/	apps/api/plane/authentication/urls.py:53	Django
 django-url	/auth/spaces/sign-out/	apps/api/plane/authentication/urls.py:57	Django	identity	space-sign-out | SignOutAuthSpaceEndpoint.as_view()	OPEN
 django-url	/auth/spaces/sign-up/	apps/api/plane/authentication/urls.py:54	Django	identity	space-sign-up | SignUpAuthSpaceEndpoint.as_view()	OPEN
 django-url	/robots.txt	apps/api/plane/web/urls.py:8	Django	operations	 | robots_txt	OPEN
+native-action-mount	ContextMenu | Work item actions	apps/web/core/components/convex-core/tasks/lifecycle.tsx:198	Convex preserved task action composition; full menu acceptance OPEN	tasks	Menu and ContextMenu share canonical action items: Edit, Make a copy, Open in new tab, Copy link and permission-gated lifecycle choices; generated task capability and workspace action context own availability; secondary Profile/Cycle/Module consumers. Acceptance: keyboard/right-click choice, dirty modal recovery and inaccessible/stale source denial.	OPEN
+native-action-mount	Menu | Peek layout	apps/web/core/components/convex-core/tasks/task-detail.tsx:149	Convex preserved task action composition; full menu acceptance OPEN	tasks	Preserved task peek layout selector; acceptance: keyboard choice and modal layout persistence. Static menu mount, not a global command identifier.	OPEN
+native-action-mount	Menu | Work item actions	apps/web/core/components/convex-core/tasks/lifecycle.tsx:190	Convex preserved task action composition; full menu acceptance OPEN	tasks	Menu and ContextMenu share canonical action items: Edit, Make a copy, Open in new tab, Copy link and permission-gated lifecycle choices; generated task capability and workspace action context own availability; secondary Profile/Cycle/Module consumers. Acceptance: keyboard/right-click choice, dirty modal recovery and inaccessible/stale source denial.	OPEN
 native-command-mount	Implicit cmdk labels from workspaceCommands[].label: create_project, open_project, nav_projects_list, create_summon_client, nav_summon_clients, create_summon_opportunity, nav_summon_opportunities, create_summon_meeting, nav_summon_meetings	apps/web/core/components/workspace/native-shell/commands.tsx:216	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	shared-shell	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
 native-command-mount	"Implicit cmdk rendered label: ""Load more modules"""	apps/web/core/components/convex-core/modules/route-shell.tsx:195	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Literal value	OPEN
 native-command-mount	"Implicit cmdk rendered label: {t( state.isFavorite ? ""power_k.contextual_actions.module.remove_from_favorites"" : ""power_k.contextual_actions.module.add_to_favorites"" )}"	apps/web/core/components/convex-core/modules/actions.tsx:257	Convex native command composition; expression or result-backed chooser; full global catalog OPEN	modules	PowerKModalCommandItem | Dynamic value expression; real choice list requires runtime capture	OPEN
