@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useEffect, useState, useRef } from "react";
+import { useMemo, useEffect, useLayoutEffect, useState, useRef } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 // plane imports
@@ -118,7 +118,9 @@ const DescriptionInputContent = observer(function DescriptionInputContent(props:
   const [localDescription, setLocalDescription] = useState(normalizedValue);
   const [saveError, setSaveError] = useState<string>();
   const statusCallback = useRef(setIsSubmitting);
-  statusCallback.current = setIsSubmitting;
+  useLayoutEffect(() => {
+    statusCallback.current = setIsSubmitting;
+  }, [setIsSubmitting]);
   const { getWorkspaceBySlug } = useWorkspace();
   const { uploadEditorAsset, duplicateEditorAsset } = useEditorAsset();
   const workspaceDetails = getWorkspaceBySlug(workspaceSlug);
