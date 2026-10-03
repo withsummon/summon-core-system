@@ -3,24 +3,19 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-// components
+import { useOutletContext } from "react-router";
+import type { WorkspaceDraftSession } from "./layout";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceDraftIssuesRoot } from "@/components/issues/workspace-draft";
-import type { Route } from "./+types/page";
 
-function WorkspaceDraftPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug } = params;
-  const pageTitle = "Workspace Draft";
-
+export default function WorkspaceDraftPage() {
+  const session = useOutletContext<WorkspaceDraftSession>();
   return (
     <>
-      <PageHead title={pageTitle} />
+      <PageHead title="Workspace Draft" />
       <div className="relative h-full w-full overflow-hidden overflow-y-auto">
-        <WorkspaceDraftIssuesRoot workspaceSlug={workspaceSlug} />
+        <WorkspaceDraftIssuesRoot session={session} />
       </div>
     </>
   );
 }
-
-export default WorkspaceDraftPage;

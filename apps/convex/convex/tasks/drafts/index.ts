@@ -3,7 +3,8 @@ import { preserveDescriptionRepresentations } from "../description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { mutation, query } from "../../_generated/server";
+import { mutation, query, type QueryCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import schema from "../../schema";
 import { requireWorkspace, requireProject } from "../../identity/access";
 import { pageBudget } from "../../commercial/validation";
@@ -15,6 +16,20 @@ import { requireTask } from "../access";
 import { draftFields } from "./fields";
 import { requireDraft, draftRevision, draftProjectReadable } from "./access";
 import { validateDraft } from "./validate";
+import { projectSummary } from "../../savedViews/scope";
+async function draftDetail(ctx: QueryCtx, draft: Doc<"taskDrafts">, role: Doc<"workspaceMembers">["role"]) {
+  const permission = draft.projectId ? await requireProject(ctx, draft.projectId) : null;
+  return {
+    ...draft,
+    project: permission ? projectSummary(permission.project) : null,
+    canPublish:
+      draft.deletedAt === null &&
+      !draft.publishedTaskId &&
+      role !== "guest" &&
+      permission !== null &&
+      permission.projectMember.role !== "guest",
+  };
+}
 export const create = mutation({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
@@ -44,7 +59,7 @@ export const create = mutation({
 export const list = query({
   args: { workspaceId: v.id("workspaces"), deleted: v.boolean(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const { user, member } = await requireWorkspace(ctx, args.workspaceId);
     return stream(ctx.db, schema)
       .query("taskDrafts")
       .withIndex("by_author_workspace", (q) => q.eq("authorId", user._id).eq("workspaceId", args.workspaceId))
@@ -53,6 +68,7 @@ export const list = query({
         async (row) =>
           !row.publishedTaskId && (row.deletedAt !== null) === args.deleted && draftProjectReadable(ctx, row, user._id)
       )
+      .map((draft) => draftDetail(ctx, draft, member.role))
       .paginate(pageBudget(args.paginationOpts));
   },
 });
@@ -63,19 +79,7 @@ export const resolve = query({
     if (!id) throw new ConvexError("Draft not found.");
     const { draft, member } = await requireDraft(ctx, id);
     if (draft.workspaceId !== args.workspaceId) throw new ConvexError("Draft not found.");
-    const project = draft.projectId ? await ctx.db.get(draft.projectId) : null;
-    const permission = project ? await requireProject(ctx, project._id) : null;
-    return {
-      ...draft,
-      contentRevision: draft.contentRevision,
-      project: project ? { id: project._id, name: project.name, identifier: project.identifier } : null,
-      canPublish:
-        !draft.deletedAt &&
-        !draft.publishedTaskId &&
-        member.role !== "guest" &&
-        permission?.projectMember.role !== "guest" &&
-        !!project,
-    };
+    return draftDetail(ctx, draft, member.role);
   },
 });
 export const save = mutation({

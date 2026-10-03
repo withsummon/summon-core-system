@@ -483,7 +483,7 @@ export function InlineTaskState({ task, disabled, onChange }: InlinePropertyProp
   );
 }
 
-function TaskMemberAvatar({ member }: { member: InlinePropertyProps["task"]["assignees"][number] }) {
+export function TaskMemberAvatar({ member }: { member: InlinePropertyProps["task"]["assignees"][number] }) {
   const name = memberLabel(member);
   return member.avatar ? (
     <AuthenticatedAssetImage

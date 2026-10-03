@@ -3,107 +3,89 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-import { useEffect, useState } from "react";
-// types
-import { PROJECT_ERROR_MESSAGES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TWorkspaceDraftIssue } from "@plane/types";
-// ui
+import { useCallback, useState } from "react";
+import { useAction, useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { AlertModalCore } from "@plane/ui";
-// constants
-// hooks
-import { useIssues } from "@/hooks/store/use-issues";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-
-type Props = {
-  isOpen: boolean;
-  handleClose: () => void;
-  dataId?: string | null | undefined;
-  data?: TWorkspaceDraftIssue;
-  onSubmit?: () => Promise<void>;
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+const draftActions = {
+  copy: {
+    title: "Make a copy",
+    description: "Copy this private draft and its ready files? The copy remains unpublished.",
+    action: "Make a copy",
+  },
+  remove: {
+    title: "Delete draft",
+    description: "Move this private draft to Trash? You can restore it later.",
+    action: "Delete",
+  },
+  restore: { title: "Restore draft", description: "Restore this private draft to your collection?", action: "Restore" },
 };
 
-export function WorkspaceDraftIssueDeleteIssueModal(props: Props) {
-  const { dataId, data, isOpen, handleClose, onSubmit } = props;
-  // states
-  const [isDeleting, setIsDeleting] = useState(false);
-  // store hooks
-  const { issueMap } = useIssues();
-  const { allowPermissions } = useUserPermissions();
-  const { t } = useTranslation();
-  const { data: currentUser } = useUser();
-
-  // derived values
-  const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
-
-  useEffect(() => {
-    setIsDeleting(false);
-  }, [isOpen]);
-
-  if (!dataId && !data) return null;
-
-  // derived values
-  const issue = data ? data : issueMap[dataId!];
-  const isIssueCreator = issue?.created_by === currentUser?.id;
-  const authorized = isIssueCreator || canPerformProjectAdminActions;
-
-  const onClose = () => {
-    setIsDeleting(false);
-    handleClose();
-  };
-
-  const handleIssueDelete = async () => {
-    setIsDeleting(true);
-
-    if (!authorized) {
-      setToast({
-        title: t(PROJECT_ERROR_MESSAGES.permissionError.i18n_title),
-        type: TOAST_TYPE.ERROR,
-        message:
-          PROJECT_ERROR_MESSAGES.permissionError.i18n_message && t(PROJECT_ERROR_MESSAGES.permissionError.i18n_message),
-      });
-      onClose();
-      return;
-    }
-    if (onSubmit)
-      await onSubmit()
-        .then(() => {
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: `${t("success")}!`,
-            message: t("workspace_draft_issues.toasts.deleted.success"),
-          });
-          onClose();
-        })
-        .catch((errors) => {
-          const isPermissionError = errors?.error === "Only admin or creator can delete the work item";
-          const currentError = isPermissionError
-            ? PROJECT_ERROR_MESSAGES.permissionError
-            : PROJECT_ERROR_MESSAGES.issueDeleteError;
-          setToast({
-            title: t(currentError.i18n_title),
-            type: TOAST_TYPE.ERROR,
-            message: currentError.i18n_message && t(currentError.i18n_message),
-          });
-        })
-        .finally(() => onClose());
-  };
-
+export function WorkspaceDraftIssueDeleteIssueModal({
+  draft,
+  operation,
+  onClose,
+  onCopy,
+}: {
+  draft: FunctionReturnType<typeof api.tasks.drafts.index.list>["page"][number];
+  operation: keyof typeof draftActions;
+  onClose: () => void;
+  onCopy: (id: FunctionReturnType<typeof api.tasks.drafts.copy.run>) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const copy = useAction(api.tasks.drafts.copy.run);
+  const lifecycle = useMutation(api.tasks.drafts.index.lifecycle);
+  const leave = useCallback(onClose, [onClose]);
+  const release = useReloadConfirmations(pending, "The draft operation is still in progress.", leave, pending);
+  const labels = draftActions[operation];
   return (
     <AlertModalCore
-      handleClose={onClose}
-      handleSubmit={handleIssueDelete}
-      isSubmitting={isDeleting}
-      isOpen={isOpen}
-      title={t("workspace_draft_issues.delete_modal.title")}
-      content={<>{t("workspace_draft_issues.delete_modal.description")}</>}
-      primaryButtonText={{
-        loading: t("deleting"),
-        default: t("delete"),
+      isOpen
+      isSubmitting={pending}
+      variant={operation === "remove" ? "danger" : "primary"}
+      handleClose={() => {
+        if (!pending) onClose();
       }}
-      secondaryButtonText={t("cancel")}
+      handleSubmit={async () => {
+        if (pending) return;
+        setPending(true);
+        setError("");
+        try {
+          const receipt = { draftId: draft._id, expectedUpdatedAt: draft.updatedAt };
+          if (operation === "copy") {
+            const copiedId = await copy(receipt);
+            release((allow) => {
+              if (allow) onCopy(copiedId);
+            });
+          } else {
+            await lifecycle({ ...receipt, deleted: operation === "remove" });
+            release((allow) => {
+              if (allow) onClose();
+            });
+          }
+        } catch (failure) {
+          setError(mutationMessage(failure));
+        } finally {
+          setPending(false);
+        }
+      }}
+      title={labels.title}
+      content={
+        <>
+          {labels.description}
+          {error && (
+            <span role="alert" className="mt-3 block text-danger-primary">
+              {error}
+            </span>
+          )}
+        </>
+      }
+      primaryButtonText={{ default: labels.action, loading: "Working…" }}
+      secondaryButtonText="Cancel"
     />
   );
 }

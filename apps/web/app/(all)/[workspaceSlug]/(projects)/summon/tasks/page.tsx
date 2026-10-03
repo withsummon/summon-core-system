@@ -4,9 +4,7 @@
  */
 
 import { TasksRoot } from "@/components/summon/tasks";
-import type { Route } from "./+types/page";
 
-export default function SummonTasksPage({ params }: Route.ComponentProps) {
-  const workspaceSlug = params.workspaceSlug;
-  return <TasksRoot workspaceSlug={workspaceSlug} />;
+export default function SummonTasksPage() {
+  return <TasksRoot />;
 }

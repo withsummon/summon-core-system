@@ -23,12 +23,14 @@ import { MoveDiagonal } from "lucide-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn, copyUrlToClipboard } from "@plane/utils";
 import { IssueTitleInput } from "@/components/issues/title-input";
+import { LayoutErrorBoundary } from "@/components/common/layout-error-boundary";
 import { NameDescriptionUpdateStatus, nameDescriptionStatus } from "@/components/issues/issue-update-status";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import useSize from "@/hooks/use-window-size";
 import { TaskInlineProperties, TaskProperties } from "./task-properties";
 import { TaskLifecycle, useTaskLifecycle } from "./lifecycle";
 import { DraftRelationships } from "./drafts/relationships";
+import { ProjectChoice } from "./task-structure";
 import { TaskSubscription } from "../notifications/task-subscription";
 import { peekOptions } from "./options";
 import type { TaskPeekMode } from "./options";
@@ -599,25 +601,27 @@ export function CreateProjectIssue({
           </Suspense>
         </div>
         <fieldset disabled={isSubmitting} className="min-w-0 border-t border-subtle px-5 py-3">
-          <TaskProperties
-            projectId={address.project._id}
-            draft={{ ...watch("properties"), status: watch("status") }}
-            onChange={({ status, ...properties }) => {
-              setValue("status", status, { shouldDirty: true });
-              setValue("properties", properties, { shouldDirty: true });
-            }}
-          />
-          <DraftRelationships
-            projectId={address.project._id}
-            taskId={opened?.kind === "edit" ? opened.value.task._id : undefined}
-            draft={{ parent: watch("parent"), cycle: watch("cycle"), modules: watch("modules") }}
-            parentDisabled={opened?.kind === "edit" && opened.value.hasParent && !opened.value.canUnlinkParent}
-            onChange={(next) => {
-              setValue("parent", next.parent, { shouldDirty: true });
-              setValue("cycle", next.cycle, { shouldDirty: true });
-              setValue("modules", next.modules, { shouldDirty: true });
-            }}
-          />
+          <LayoutErrorBoundary>
+            <TaskProperties
+              projectId={address.project._id}
+              draft={{ ...watch("properties"), status: watch("status") }}
+              onChange={({ status, ...properties }) => {
+                setValue("status", status, { shouldDirty: true });
+                setValue("properties", properties, { shouldDirty: true });
+              }}
+            />
+            <DraftRelationships
+              projectId={address.project._id}
+              taskId={opened?.kind === "edit" ? opened.value.task._id : undefined}
+              draft={{ parent: watch("parent"), cycle: watch("cycle"), modules: watch("modules") }}
+              parentDisabled={opened?.kind === "edit" && opened.value.hasParent && !opened.value.canUnlinkParent}
+              onChange={(next) => {
+                setValue("parent", next.parent, { shouldDirty: true });
+                setValue("cycle", next.cycle, { shouldDirty: true });
+                setValue("modules", next.modules, { shouldDirty: true });
+              }}
+            />
+          </LayoutErrorBoundary>
         </fieldset>
         {!canCreate && (
           <p role="alert" className="px-5 text-14 text-danger-primary">
@@ -664,6 +668,70 @@ export function CreateProjectIssue({
           secondaryButtonText={t("cancel")}
         />
       )}
+    </ModalCore>
+  );
+}
+
+export function CreateWorkspaceIssue({ workspaceId, onClose }: { workspaceId: Id<"workspaces">; onClose: () => void }) {
+  const client = useConvex();
+  const [projectId, setProjectId] = useState<Id<"projects"> | null>(null);
+  const [prepared, setPrepared] = useState<Pick<
+    ComponentProps<typeof CreateProjectIssue>,
+    "address" | "states"
+  > | null>(null);
+  const [error, setError] = useState("");
+  const projects = useQuery(api.projects.index.list, { workspaceId });
+  useEffect(() => {
+    if (!projectId) return;
+    let active = true;
+    setError("");
+    void Promise.all([
+      client.query(api.navigation.address.resolveProjectId, { workspaceId, projectId }),
+      client.query(api.tasks.states.list, { projectId }),
+    ]).then(
+      ([address, states]) => {
+        if (active) setPrepared({ address, states });
+        return;
+      },
+      (failure) => {
+        if (active) setError(mutationMessage(failure));
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [client, projectId, workspaceId]);
+  if (prepared)
+    return (
+      <CreateProjectIssue
+        {...prepared}
+        onClose={onClose}
+        canCreate={
+          projects?.some(
+            (project) =>
+              project._id === prepared.address.project._id &&
+              project.membershipRole !== "guest" &&
+              project.workspaceRole !== "guest"
+          ) === true
+        }
+      />
+    );
+  return (
+    <ModalCore isOpen handleClose={onClose}>
+      <div className="space-y-4 rounded-lg bg-surface-1 p-5">
+        <Dialog.Title className="text-h4-medium">Create work item</Dialog.Title>
+        <ProjectChoice workspaceId={workspaceId} value={projectId} label="Project" onChange={setProjectId} />
+        {error ? (
+          <p role="alert" className="text-danger-primary">
+            {error}
+          </p>
+        ) : (
+          projectId && <p role="status">Opening work item composer…</p>
+        )}
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
     </ModalCore>
   );
 }

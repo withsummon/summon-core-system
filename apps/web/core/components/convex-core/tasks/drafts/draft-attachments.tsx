@@ -1,4 +1,4 @@
-import { Component, useState } from "react";
+import { Component, useLayoutEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useConvex, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { Id } from "@summon/convex/data-model";
@@ -8,21 +8,38 @@ import { AttachmentRows } from "../attachments/attachments";
 import { FileAttachmentUpload } from "../attachments/upload";
 import { FileAttachmentDownload } from "../attachments/download";
 import { mutationMessage } from "../../commercial/forms";
-export function DraftAttachments({ draftId }: { draftId: Id<"taskDrafts"> }) {
+export function DraftAttachments({
+  draftId,
+  onPendingChange,
+}: {
+  draftId: Id<"taskDrafts">;
+  onPendingChange?: (pending: boolean) => void;
+}) {
   return (
     <AttachmentBoundary key={draftId}>
-      <DraftAttachmentContent draftId={draftId} />
+      <DraftAttachmentContent draftId={draftId} onPendingChange={onPendingChange} />
     </AttachmentBoundary>
   );
 }
-function DraftAttachmentContent({ draftId }: { draftId: Id<"taskDrafts"> }) {
+function DraftAttachmentContent({
+  draftId,
+  onPendingChange,
+}: {
+  draftId: Id<"taskDrafts">;
+  onPendingChange?: (pending: boolean) => void;
+}) {
   const access = useQuery(api.assets.draftAttachments.access, { draftId });
   const [deleted, setDeleted] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const files = usePaginatedQuery(api.assets.draftAttachments.list, { draftId, deleted }, { initialNumItems: 30 });
   const uploads = useQuery(api.assets.draftAttachments.pending, { draftId });
   const prepare = useMutation(api.assets.draftAttachments.prepare),
     change = useMutation(api.assets.draftAttachments.change);
   const client = useConvex();
+  useLayoutEffect(() => {
+    onPendingChange?.(uploading || uploads === undefined || uploads.length > 0);
+    return () => onPendingChange?.(false);
+  }, [uploading, uploads, onPendingChange]);
   return (
     <section className="space-y-3 border-t border-subtle-1 pt-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -38,7 +55,11 @@ function DraftAttachmentContent({ draftId }: { draftId: Id<"taskDrafts"> }) {
       </header>
       {access?.canUpload && (
         <div hidden={deleted}>
-          <FileAttachmentUpload key={draftId} prepare={(file) => prepare({ draftId, ...file })} />
+          <FileAttachmentUpload
+            key={draftId}
+            onPendingChange={setUploading}
+            prepare={(file) => prepare({ draftId, ...file })}
+          />
         </div>
       )}
       {uploads && uploads.length > 0 && (

@@ -38,11 +38,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
         ]),
 
-        // Drafts
-        layout("./(all)/[workspaceSlug]/(projects)/drafts/layout.tsx", [
-          route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
-        ]),
-
         // Stickies
         ...(nativeStickiesRoute
           ? []

@@ -1,5 +1,8 @@
+import { LayoutErrorBoundary } from "@/components/common/layout-error-boundary";
 import { DraftEstimate } from "../../estimates/selection";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { isEqual } from "lodash-es";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -14,7 +17,25 @@ import { DraftRelationships } from "./relationships";
 import { changeDraftProject, hasScopedDraftSelections } from "./project-change";
 type Detail = FunctionReturnType<typeof api.tasks.drafts.index.resolve>;
 type Save = FunctionArgs<typeof api.tasks.drafts.index.save>;
-export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => void }) {
+export function DraftForm({
+  initial,
+  onDone,
+  onStateChange,
+  onSaved,
+  onCancel,
+  submitLabel,
+  attachmentsPending = false,
+  children,
+}: {
+  initial: Detail;
+  onDone: () => void;
+  onCancel?: () => void;
+  submitLabel?: string;
+  attachmentsPending?: boolean;
+  onStateChange?: (state: { dirty: boolean; busy: boolean }) => void;
+  children?: ReactNode;
+  onSaved?: (receipt: FunctionReturnType<typeof api.tasks.drafts.index.save>) => Promise<void> | void;
+}) {
   const [snapshot] = useState(initial);
   const [draft, setDraft] = useState<Save>(() => ({
     draftId: initial._id,
@@ -28,23 +49,29 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
     cycle: initial.cycle,
     modules: initial.modules,
   }));
+  const [saved, setSaved] = useState(draft);
+  const dirty = !isEqual(draft, saved);
   const projects = useQuery(api.projects.index.list, { workspaceId: initial.workspaceId });
   const [nextProject, setNextProject] = useState<{ id: Save["projectId"]; name: string } | null>(null);
   const save = useMutation(api.tasks.drafts.index.save);
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
+  const busy = pending || uploading || attachmentsPending;
   const completion = useRef<(() => void) | null>(null);
   const leave = useCallback(() => {
     completion.current = null;
     onDone();
   }, [onDone]);
   const release = useReloadConfirmations(
-    pending || uploading,
-    "This draft is still saving or uploading.",
+    dirty || busy,
+    "Your draft has unsaved changes or an upload is still in progress.",
     leave,
-    pending || uploading
+    busy
   );
+  useLayoutEffect(() => {
+    onStateChange?.({ dirty, busy });
+  }, [dirty, busy, onStateChange]);
   useEffect(
     () => () => {
       completion.current = null;
@@ -56,12 +83,16 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
       className="max-w-4xl space-y-5"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (uploading || pending) return;
+        if (busy) return;
         completion.current = onDone;
         setPending(true);
         setError("");
         try {
-          await save(draft);
+          const receipt = await save(draft);
+          const acknowledged = { ...draft, expectedContentRevision: receipt.contentRevision };
+          setDraft(acknowledged);
+          setSaved(acknowledged);
+          await onSaved?.(receipt);
           release((allow) => {
             const done = completion.current;
             completion.current = null;
@@ -79,7 +110,7 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
         <p className="text-12 text-secondary">Only you · Unpublished</p>
         <h2 className="text-24 font-semibold">Edit task draft</h2>
       </header>
-      {initial.contentRevision !== snapshot.contentRevision && (
+      {initial.contentRevision !== draft.expectedContentRevision && (
         <p role="status" className="text-14 text-secondary">
           This draft changed elsewhere. Your edits are preserved; saving checks the revision you opened.
         </p>
@@ -88,7 +119,9 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
       {initial.publishedTaskId && (
         <p role="status">This draft was published elsewhere. Your unsaved edits are preserved.</p>
       )}
-      <DraftEstimate draftId={initial._id} />
+      <LayoutErrorBoundary>
+        <DraftEstimate draftId={initial._id} />
+      </LayoutErrorBoundary>
       <fieldset disabled={pending} className="space-y-5">
         <SummonField label="Project" htmlFor="draft-project">
           <select
@@ -107,6 +140,11 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
             }}
           >
             <option value="">No project yet</option>
+            {draft.projectId && projects && !projects.some((project) => project._id === draft.projectId) && (
+              <option value={draft.projectId} disabled>
+                Selected project unavailable
+              </option>
+            )}
             {projects?.map((project) => (
               <option key={project._id} value={project._id}>
                 {project.name}
@@ -157,23 +195,26 @@ export function DraftForm({ initial, onDone }: { initial: Detail; onDone: () => 
           editable={!pending}
           onChange={(html) => setDraft((current) => ({ ...current, html }))}
         />
-        <TaskProperties
-          projectId={draft.projectId}
-          allowDefaultState
-          draft={{ ...draft.properties, status: draft.status }}
-          onChange={({ status, ...properties }) => setDraft({ ...draft, status, properties })}
-        />
-        {draft.projectId && (
-          <DraftRelationships key={draft.projectId} projectId={draft.projectId} draft={draft} onChange={setDraft} />
-        )}
+        <LayoutErrorBoundary>
+          <TaskProperties
+            projectId={draft.projectId}
+            allowDefaultState
+            draft={{ ...draft.properties, status: draft.status }}
+            onChange={({ status, ...properties }) => setDraft({ ...draft, status, properties })}
+          />
+          {draft.projectId && (
+            <DraftRelationships key={draft.projectId} projectId={draft.projectId} draft={draft} onChange={setDraft} />
+          )}
+        </LayoutErrorBoundary>
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" loading={pending} disabled={nextProject !== null || uploading}>
-            Save draft
+          <Button type="submit" loading={pending} disabled={nextProject !== null || busy}>
+            {submitLabel ?? "Save draft"}
           </Button>
-          <Button variant="secondary" disabled={uploading} onClick={onDone}>
+          <Button variant="secondary" disabled={busy} onClick={onCancel ?? onDone}>
             Cancel edits
           </Button>
         </div>
+        {children}
       </fieldset>
       {error && (
         <p role="alert" className="text-14 text-danger-primary">

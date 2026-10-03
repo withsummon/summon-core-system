@@ -18,10 +18,14 @@ export type WorkspaceSession = {
 const TaskActionComposer = lazy(() =>
   import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.TaskActionComposer }))
 );
+const CreateWorkspaceIssue = lazy(() =>
+  import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.CreateWorkspaceIssue }))
+);
 export const NativeTaskActionContext = createContext<((taskId: Id<"tasks">, kind: "edit" | "copy") => void) | null>(
   null
 );
 export const NativeProjectCreateContext = createContext<(() => void) | null>(null);
+export const NativeTaskCreateContext = createContext<(() => void) | null>(null);
 
 export default function NativeWorkspaceLayout() {
   const { workspaceSlug } = useParams();
@@ -39,6 +43,7 @@ function WorkspaceOutlet() {
     workspaceSlug: string;
   } | null>(null);
   const [taskAction, setTaskAction] = useState<ComponentProps<typeof TaskActionComposer>["request"] | null>(null);
+  const [creatingTask, setCreatingTask] = useState(false);
   const taskCommands = useMemo(
     () => (taskId: Id<"tasks">, kind: "edit" | "copy") =>
       setTaskAction({ taskId, kind, requestId: crypto.randomUUID() }),
@@ -47,6 +52,10 @@ function WorkspaceOutlet() {
   const user = useQuery(api.identity.profile.get, {});
   const workspaces = useQuery(api.workspaces.index.list, {});
   const workspace = workspaces?.find((row) => row.slug === workspaceSlug);
+  const projects = useQuery(api.projects.index.list, workspace ? { workspaceId: workspace._id } : "skip");
+  const canCreateTask =
+    projects?.some((project) => project.membershipRole !== "guest" && project.workspaceRole !== "guest") === true;
+  const createTask = useMemo(() => (canCreateTask ? () => setCreatingTask(true) : null), [canCreateTask]);
   const createProject = useMemo(
     () =>
       workspace && workspace.membershipRole !== "guest"
@@ -70,7 +79,14 @@ function WorkspaceOutlet() {
           workspaceSlug={context.workspace.slug}
         >
           <NativeTaskActionContext.Provider value={taskCommands}>
-            <Outlet context={context} />
+            <NativeTaskCreateContext.Provider value={createTask}>
+              <Outlet context={context} />
+              {creatingTask && (
+                <Suspense fallback={<p role="status">Opening work item composer…</p>}>
+                  <CreateWorkspaceIssue workspaceId={context.workspace._id} onClose={() => setCreatingTask(false)} />
+                </Suspense>
+              )}
+            </NativeTaskCreateContext.Provider>
             {taskAction && (
               <Suspense fallback={<p role="status">Opening work item composer…</p>}>
                 <TaskActionComposer
