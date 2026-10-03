@@ -57,5 +57,5 @@ export async function requireDocumentForUser(
 
 export function requireMetadataVersion(document: Doc<"documents">, expectedUpdatedAt: number) {
   if (expectedUpdatedAt !== document.updatedAt)
-    throw new ConvexError("This document changed while you were editing. Reopen its latest settings before saving.");
+    throw new ConvexError("This document changed. Reopen it to review the latest version before trying again.");
 }
