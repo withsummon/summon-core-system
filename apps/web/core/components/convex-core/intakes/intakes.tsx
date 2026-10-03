@@ -484,8 +484,8 @@ function IntakeSelectionControls({
         </form>
       </FiltersDropdown>
       <CustomMenu
-        customButton={
-          <span className="flex items-center gap-1.5">
+        render={
+          <Button variant="secondary" size="lg">
             {appliedSelection.direction === "asc" ? (
               <ArrowUpWideNarrow className="size-3" />
             ) : (
@@ -495,7 +495,7 @@ function IntakeSelectionControls({
               Order by {orders[appliedSelection.order].label},{" "}
               {appliedSelection.direction === "asc" ? "ascending" : "descending"}
             </span>
-          </span>
+          </Button>
         }
         placement="bottom-end"
         closeOnSelect
