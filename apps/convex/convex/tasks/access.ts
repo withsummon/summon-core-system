@@ -55,6 +55,41 @@ export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "act
   return { ...task, status: task.status };
 }
 
+export async function taskAssignee(
+  ctx: QueryCtx,
+  project: Pick<Doc<"projects">, "_id" | "workspaceId">,
+  id: Id<"users">
+) {
+  const [person, projectMembership, workspaceMembership] = await Promise.all([
+    ctx.db.get(id),
+    ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", id))
+      .unique(),
+    ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
+      .unique(),
+  ]);
+  const selectable = Boolean(
+    person &&
+    projectMembership?.active &&
+    projectMembership.role !== "guest" &&
+    workspaceMembership?.active &&
+    workspaceMembership.role !== "guest"
+  );
+  return {
+    id,
+    name: person?.name ?? null,
+    email: selectable ? (person?.email ?? null) : null,
+    avatar:
+      person && workspaceMembership?.active
+        ? await personalImageDescriptor(ctx, await userAppearance(ctx, id), "avatar", project.workspaceId)
+        : null,
+    selectable,
+  };
+}
+
 export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof requireTask>>) {
   const { user, member, projectMember, project } = await requireProject(ctx, task.projectId);
   const writer = member.role !== "guest" && projectMember.role !== "guest";
@@ -66,38 +101,7 @@ export async function taskDetail(ctx: QueryCtx, task: Awaited<ReturnType<typeof 
       .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", task.createdBy))
       .unique(),
   ]);
-  const assignees = await Promise.all(
-    task.assigneeIds.map(async (id) => {
-      const [person, projectMembership, workspaceMembership] = await Promise.all([
-        ctx.db.get(id),
-        ctx.db
-          .query("projectMembers")
-          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", id))
-          .unique(),
-        ctx.db
-          .query("workspaceMembers")
-          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
-          .unique(),
-      ]);
-      const selectable = Boolean(
-        person &&
-        projectMembership?.active &&
-        projectMembership.role !== "guest" &&
-        workspaceMembership?.active &&
-        workspaceMembership.role !== "guest"
-      );
-      return {
-        id,
-        name: person?.name ?? null,
-        email: selectable ? (person?.email ?? null) : null,
-        avatar:
-          person && workspaceMembership?.active
-            ? await personalImageDescriptor(ctx, await userAppearance(ctx, id), "avatar", project.workspaceId)
-            : null,
-        selectable,
-      };
-    })
-  );
+  const assignees = await Promise.all(task.assigneeIds.map((id) => taskAssignee(ctx, project, id)));
   return {
     ...task,
     creator: {

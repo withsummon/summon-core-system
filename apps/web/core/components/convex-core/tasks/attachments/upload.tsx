@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
@@ -15,9 +15,11 @@ export function FileAttachmentUpload({
   prepare,
   label = "Attach a file",
   supportedTypes,
+  onPendingChange,
 }: {
   label?: string;
   supportedTypes?: readonly string[];
+  onPendingChange?: (pending: boolean) => void;
   prepare: (
     file: Omit<FunctionArgs<typeof api.assets.taskAttachments.prepare>, "taskId">
   ) => Promise<FunctionReturnType<typeof api.assets.taskAttachments.prepare>>;
@@ -28,6 +30,10 @@ export function FileAttachmentUpload({
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   useEffect(() => () => transfers.dispose(), [transfers]);
+  useLayoutEffect(() => {
+    onPendingChange?.(pending);
+    return () => onPendingChange?.(false);
+  }, [pending, onPendingChange]);
   return (
     <div className="space-y-2">
       <label className="flex flex-wrap items-center gap-2 text-14">

@@ -4,10 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { observer } from "mobx-react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { priority as prioritySchema } from "@summon/convex/task-schema";
+import { memberLabel } from "@summon/convex/member-label";
+import { NativeTaskCreateContext, type WorkspaceSession } from "@/app/native-workspace";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   AlertCircle,
   ArrowDown,
@@ -26,43 +32,30 @@ import {
   Folder,
   LayoutGrid,
   List,
-  MoreHorizontal,
   Plus,
   Search,
 } from "lucide-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { EIssuesStoreType } from "@plane/types";
 import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useMember } from "@/hooks/store/use-member";
-import { useProject } from "@/hooks/store/use-project";
-import { useProjectState } from "@/hooks/store/use-project-state";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { listAccessiblePlaneIssues } from "@/services/summon-plane.service";
-import {
-  filterTaskCenterItems,
-  isTaskCompleted,
-  summarizeTaskCenterItems,
-  type TTaskCenterDue,
-  type TTaskCenterScope,
-} from "./task-center";
+import { taskStatusOptions } from "@/components/convex-core/tasks/options";
+import { TaskMemberAvatar } from "@/components/convex-core/tasks/task-properties";
+import { TaskLifecycle, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { Select } from "@plane/propel/select";
 
-interface ITasksRootProps {
-  workspaceSlug: string;
-}
+type CenterArgs = FunctionArgs<typeof api.tasks.center.list>;
+type CenterSummary = FunctionReturnType<typeof api.tasks.center.summary>["page"];
 
-const scopeTabs: Array<{ id: TTaskCenterScope; label: string }> = [
+const scopeTabs: Array<{ id: CenterArgs["scope"]; label: string }> = [
   { id: "mine", label: "My Tasks" },
   { id: "team", label: "Team Tasks" },
   { id: "created", label: "Assigned by Me" },
   { id: "all", label: "All Tasks" },
 ];
 
-const dueTabs: Array<{ id: TTaskCenterDue; label: string }> = [
+const dueTabs: Array<{ id: CenterArgs["due"]; label: string }> = [
   { id: "all", label: "All" },
   { id: "today", label: "Today" },
   { id: "overdue", label: "Overdue" },
@@ -101,7 +94,7 @@ const dueTone = (value: string | null, today: string) => {
   return days <= 3 ? "text-amber-600" : "text-secondary";
 };
 
-const priorityStyle = (priority?: string | null) => {
+const priorityStyle = (priority: NonNullable<CenterArgs["priority"]>) => {
   if (priority === "urgent" || priority === "high")
     return { label: priority === "urgent" ? "Urgent" : "High", tone: "bg-red-50 text-red-600", Icon: ArrowUp };
   if (priority === "medium") return { label: "Medium", tone: "bg-amber-50 text-amber-600", Icon: ArrowUp };
@@ -109,9 +102,9 @@ const priorityStyle = (priority?: string | null) => {
   return { label: "None", tone: "bg-layer-1 text-tertiary", Icon: Circle };
 };
 
-const stateStyle = (group?: string | null) => {
-  if (group === "completed" || group === "cancelled") return "bg-emerald-50 text-emerald-700";
-  if (group === "started") return "bg-blue-50 text-blue-700";
+const stateStyle = (group: CenterSummary[number]["status"]) => {
+  if (group === "done" || group === "cancelled") return "bg-emerald-50 text-emerald-700";
+  if (group === "in_progress") return "bg-blue-50 text-blue-700";
   return "bg-layer-1 text-secondary";
 };
 
@@ -127,172 +120,199 @@ function Panel(props: { title: string; action?: React.ReactNode; children: React
   );
 }
 
-export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRootProps) {
-  const { data: currentUser } = useUser();
-  const { joinedProjectIds } = useProject();
-  const { allowPermissions } = useUserPermissions();
-  const { getUserDetails, workspace: workspaceMembers } = useMember();
-  const projectStates = useProjectState();
-  const { toggleCreateIssueModal } = useCommandPalette();
-  const {
-    data: records = [],
-    error,
-    isLoading,
-    mutate,
-  } = useSWR(["summon-plane-issues", workspaceSlug], () => listAccessiblePlaneIssues(workspaceSlug));
-  const [today, setToday] = useState("");
-  const [scope, setScope] = useState<TTaskCenterScope>("mine");
-  const [due, setDue] = useState<TTaskCenterDue>("all");
+export function TasksRoot() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { workspace } = session;
+  const workspaceSlug = workspace.slug;
+  const commands = useStickiesCommands();
+  const projects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
+  const [today, setToday] = useState(localDateKey);
+  const [scope, setScope] = useState<CenterArgs["scope"]>("mine");
+  const [due, setDue] = useState<CenterArgs["due"]>("all");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [projectFilter, setProjectFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState<CenterArgs["projectId"] | "all">("all");
+  const [priorityFilter, setPriorityFilter] = useState<CenterArgs["priority"] | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const canCreateTask =
-    joinedProjectIds.length > 0 &&
-    allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.WORKSPACE);
-
-  useEffect(() => setToday(localDateKey()), []);
-  useEffect(() => {
-    if (!workspaceMembers.workspaceMemberMap[workspaceSlug]) void workspaceMembers.fetchWorkspaceMembers(workspaceSlug);
-    if (!projectStates.fetchedMap[workspaceSlug]) void projectStates.fetchWorkspaceStates(workspaceSlug);
-  }, [projectStates, workspaceMembers, workspaceSlug]);
-
-  const tasks = records.map(({ issue, project }) => {
-    const state = projectStates.getStateById(issue.state_id);
-    return {
-      ...issue,
-      project,
-      stateGroup: state?.group ?? issue.state__group,
-      stateName: state?.name ?? (issue.completed_at ? "Completed" : "To Do"),
-      assignees: issue.assignee_ids.map((id) => getUserDetails(id)).filter(Boolean),
-    };
-  });
-  const scopedTasks = filterTaskCenterItems(tasks, {
-    scope,
-    due: "all",
-    currentUserId: currentUser?.id,
-    today,
-  });
-  const filteredTasks = filterTaskCenterItems(tasks, { scope, due, currentUserId: currentUser?.id, today }).filter(
-    (task) =>
-      `${task.name} ${task.project.name}`.toLowerCase().includes(query.trim().toLowerCase()) &&
-      (projectFilter === "all" || task.project.id === projectFilter) &&
-      (priorityFilter === "all" || (task.priority ?? "none") === priorityFilter)
+  const createTask = useContext(NativeTaskCreateContext);
+  const canCreateTask = createTask !== null;
+  const lifecycle = useTaskLifecycle(() => {});
+  const {
+    results: filteredTasks,
+    status: tableStatus,
+    loadMore: loadTable,
+  } = usePaginatedQuery(
+    api.tasks.center.list,
+    {
+      workspaceId: workspace._id,
+      scope,
+      due,
+      today,
+      projectId: projectFilter === "all" ? undefined : projectFilter,
+      priority: priorityFilter === "all" ? undefined : priorityFilter,
+      search: query,
+    },
+    { initialNumItems: 100 }
   );
-  const projects = Array.from(new Map(records.map(({ project }) => [project.id, project])).values());
-  const summary = summarizeTaskCenterItems(scopedTasks, today);
-  const counts = Object.fromEntries(
-    dueTabs.map((tab) => [
-      tab.id,
-      filterTaskCenterItems(tasks, { scope, due: tab.id, currentUserId: currentUser?.id, today }).length,
-    ])
-  ) as Record<TTaskCenterDue, number>;
+  const {
+    results: scopedTasks,
+    status: summaryStatus,
+    loadMore: loadSummary,
+  } = usePaginatedQuery(
+    api.tasks.center.summary,
+    { workspaceId: workspace._id, scope, today },
+    { initialNumItems: 100 }
+  );
+  useEffect(() => {
+    if (tableStatus === "CanLoadMore") loadTable(100);
+    if (summaryStatus === "CanLoadMore") loadSummary(100);
+  }, [tableStatus, loadTable, summaryStatus, loadSummary]);
+  useEffect(() => {
+    const refresh = () => setToday(localDateKey());
+    const timer = setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  const tableReady = tableStatus === "Exhausted";
+  const summaryReady = summaryStatus === "Exhausted";
+  const ready = tableReady && summaryReady;
+  const summary = {
+    total: scopedTasks.length,
+    inProgress: scopedTasks.filter((task) => !task.due.completed && task.status === "in_progress").length,
+    toDo: scopedTasks.filter((task) => !task.due.completed && task.status !== "in_progress").length,
+    completed: scopedTasks.filter((task) => task.due.completed).length,
+    overdue: scopedTasks.filter((task) => task.due.overdue).length,
+  };
+  const counts = scopedTasks.reduce(
+    (totals, task) => {
+      for (const tab of dueTabs) if (task.due[tab.id]) totals[tab.id] += 1;
+      return totals;
+    },
+    { all: 0, today: 0, overdue: 0, week: 0, next7: 0, completed: 0 }
+  );
   const pageCount = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pagedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const upcoming = scopedTasks
-    .filter((task) => !isTaskCompleted(task) && task.target_date && (!today || task.target_date >= today))
-    // eslint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array and this target excludes ES2023 toSorted.
-    .sort((left, right) => (left.target_date ?? "").localeCompare(right.target_date ?? ""))
+    .filter((task) => !task.due.completed && task.targetDate && task.targetDate >= today)
+    // eslint-disable-next-line unicorn/no-array-sort -- the preceding producer returns a fresh array; target excludes ES2023 toSorted.
+    .sort((left, right) => (left.targetDate ?? "").localeCompare(right.targetDate ?? ""))
     .slice(0, 4);
   const overdue = scopedTasks
-    .filter((task) => !isTaskCompleted(task) && task.target_date && today && task.target_date < today)
-    // eslint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array and this target excludes ES2023 toSorted.
-    .sort((left, right) => (left.target_date ?? "").localeCompare(right.target_date ?? ""))
+    .filter((task) => task.due.overdue)
+    // eslint-disable-next-line unicorn/no-array-sort -- the preceding producer returns a fresh array; target excludes ES2023 toSorted.
+    .sort((left, right) => (left.targetDate ?? "").localeCompare(right.targetDate ?? ""))
     .slice(0, 4);
-  const byProject = Array.from(
-    scopedTasks.reduce(
-      (groups, task) => groups.set(task.project.id, (groups.get(task.project.id) ?? 0) + 1),
-      new Map<string, number>()
-    )
-  )
-    .map(([id, count]) => ({ id, count, project: records.find(({ project }) => project.id === id)?.project }))
-    // eslint-disable-next-line unicorn/no-array-sort -- map returns a fresh array and this target excludes ES2023 toSorted.
+  const projectGroups = scopedTasks.reduce((groups, task) => {
+    const group = groups.get(task.project.id);
+    if (group) group.count += 1;
+    else groups.set(task.project.id, { project: task.project, count: 1 });
+    return groups;
+  }, new Map<CenterSummary[number]["project"]["id"], { project: CenterSummary[number]["project"]; count: number }>());
+  const byProject = Array.from(projectGroups.values())
+    // eslint-disable-next-line unicorn/no-array-sort -- the preceding producer returns a fresh array; target excludes ES2023 toSorted.
     .sort((left, right) => right.count - left.count)
     .slice(0, 5);
   const maxProjectTasks = Math.max(...byProject.map(({ count }) => count), 1);
   const completedWithDates = scopedTasks.filter(
-    (task) => isTaskCompleted(task) && task.completed_at && task.target_date
+    (task) => task.due.completed && task.completedAt !== null && task.targetDate !== null
   );
-  const onTimeCount = completedWithDates.filter((task) => task.completed_at!.slice(0, 10) <= task.target_date!).length;
+  const onTimeCount = completedWithDates.filter(
+    (task) =>
+      task.completedAt !== null &&
+      task.targetDate !== null &&
+      new Date(task.completedAt).toISOString().slice(0, 10) <= task.targetDate
+  ).length;
   const onTimeRate = completedWithDates.length ? Math.round((onTimeCount / completedWithDates.length) * 100) : null;
-
+  const priorities = prioritySchema.members.map((member) => member.value);
   useEffect(() => setPage(1), [due, pageSize, priorityFilter, projectFilter, query, scope]);
 
   return (
-    <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
-      <PageHead title="Task Center · Summon Core" />
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-primary">Task Center</h1>
-          <p className="text-xs mt-1 text-secondary">Manage your tasks, stay on track, and get things done.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={!canCreateTask}
-            onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT)}
-            className="text-xs shadow-sm inline-flex h-10 items-center gap-2 rounded-xl bg-accent-primary px-4 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="size-4" /> New Task <ChevronDown className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchOpen((open) => !open)}
-            aria-label="Search tasks"
-            className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
-          >
-            <Search className="size-4" />
-          </button>
-          <Link
-            href={`/${workspaceSlug}/summon/notifications/`}
-            aria-label="Notifications"
-            className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
-          >
-            <Bell className="size-4" />
-          </Link>
-          <Link
-            href={`/${workspaceSlug}/summon/knowledge/`}
-            aria-label="Help"
-            className="hidden size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary sm:grid"
-          >
-            <CircleHelp className="size-4" />
-          </Link>
-        </div>
-      </header>
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
+        <PageHead title="Task Center · Summon Core" />
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">Task Center</h1>
+            <p className="text-xs mt-1 text-secondary">Manage your tasks, stay on track, and get things done.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!canCreateTask}
+              onClick={() => createTask?.()}
+              className="text-xs shadow-sm inline-flex h-10 items-center gap-2 rounded-xl bg-accent-primary px-4 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="size-4" /> New Task <ChevronDown className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((open) => !open)}
+              aria-label="Search tasks"
+              className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
+            >
+              <Search className="size-4" />
+            </button>
+            <Link
+              href={`/${workspaceSlug}/summon/notifications/`}
+              aria-label="Notifications"
+              className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
+            >
+              <Bell className="size-4" />
+            </Link>
+            <Link
+              href={`/${workspaceSlug}/summon/knowledge/`}
+              aria-label="Help"
+              className="hidden size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary sm:grid"
+            >
+              <CircleHelp className="size-4" />
+            </Link>
+          </div>
+        </header>
 
-      <nav className="mt-7 flex gap-6 overflow-x-auto border-b border-subtle" aria-label="Task ownership">
-        {scopeTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setScope(tab.id)}
-            className={`text-xs shrink-0 border-b-2 px-1 pb-3 font-medium ${scope === tab.id ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+        <nav className="mt-7 flex gap-6 overflow-x-auto border-b border-subtle" aria-label="Task ownership">
+          {scopeTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setScope(tab.id)}
+              className={`text-xs shrink-0 border-b-2 px-1 pb-3 font-medium ${scope === tab.id ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-      {searchOpen && (
-        <label className="relative mt-3 block max-w-md">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tasks or projects..."
-            className="text-xs h-10 w-full rounded-xl border border-subtle bg-surface-1 pr-3 pl-9 text-primary outline-none focus:border-accent-strong"
-          />
-        </label>
-      )}
+        {searchOpen && (
+          <label className="relative mt-3 block max-w-md">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search tasks or projects..."
+              aria-label="Search tasks or projects"
+              maxLength={255}
+              className="text-xs h-10 w-full rounded-xl border border-subtle bg-surface-1 pr-3 pl-9 text-primary outline-none focus:border-accent-strong"
+            />
+          </label>
+        )}
 
-      <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
+        <SummonRequestState loading={!ready} />
 
-      {!isLoading && !error && (
-        <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div
+          style={{ display: summaryReady ? undefined : "none" }}
+          className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]"
+        >
           <main className="min-w-0 space-y-4">
             <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3">
@@ -306,7 +326,9 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                     >
                       {tab.label}
                       {tab.id !== "completed" && (
-                        <span className="rounded-md bg-layer-1 px-1.5 py-0.5 text-[10px]">{counts[tab.id]}</span>
+                        <span className="rounded-md bg-layer-1 px-1.5 py-0.5 text-[10px]">
+                          {summaryReady ? counts[tab.id] : "—"}
+                        </span>
                       )}
                     </button>
                   ))}
@@ -346,26 +368,35 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                 <div className="flex flex-wrap gap-2 border-b border-subtle bg-layer-1/40 px-4 py-2.5">
                   <Select
                     value={projectFilter}
-                    onValueChange={(value) => setProjectFilter(value)}
+                    onValueChange={(value) => {
+                      if (value === "all") setProjectFilter("all");
+                      else {
+                        const project = projects?.find((item) => item._id === value);
+                        if (project) setProjectFilter(project._id);
+                      }
+                    }}
                     aria-label="Filter by project"
+                    placeholder="Selected project unavailable"
                     className="h-8 w-auto min-w-32"
                     options={[
                       { value: "all", label: "All Projects" },
-                      ...projects.map((project) => ({ value: project.id, label: project.name })),
+                      ...(projects ?? []).map((project) => ({ value: project._id, label: project.name })),
                     ]}
                   />
                   <Select
                     value={priorityFilter}
-                    onValueChange={(value) => setPriorityFilter(value)}
+                    onValueChange={(value) => {
+                      if (value === "all") setPriorityFilter("all");
+                      else {
+                        const priority = priorities.find((item) => item === value);
+                        if (priority) setPriorityFilter(priority);
+                      }
+                    }}
                     aria-label="Filter by priority"
                     className="h-8 w-auto min-w-32"
                     options={[
                       { value: "all", label: "All Priorities" },
-                      { value: "urgent", label: "Urgent" },
-                      { value: "high", label: "High" },
-                      { value: "medium", label: "Medium" },
-                      { value: "low", label: "Low" },
-                      { value: "none", label: "None" },
+                      ...priorities.map((value) => ({ value, label: priorityStyle(value).label })),
                     ]}
                   />
                 </div>
@@ -385,56 +416,46 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-subtle">
-                    {pagedTasks.map((task) => {
+                    {(tableReady ? pagedTasks : []).map(({ task, project, state }) => {
                       const priority = priorityStyle(task.priority);
                       return (
-                        <tr key={task.id} className="hover:bg-layer-1/60">
+                        <tr key={task._id} className="hover:bg-layer-1/60">
                           <td className="px-5 py-3">
                             <div className="flex items-start gap-3">
                               <span
-                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${isTaskCompleted(task) ? "border-emerald-500 bg-emerald-500 text-white" : "border-subtle text-transparent"}`}
+                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${task.status === "done" || task.status === "cancelled" ? "border-emerald-500 bg-emerald-500 text-white" : "border-subtle text-transparent"}`}
                               >
                                 <Check className="size-3" />
                               </span>
                               <div className="min-w-0">
                                 <Link
-                                  href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
+                                  href={`/${workspaceSlug}/projects/${project.id}/issues/${task._id}/`}
                                   className="text-xs block truncate font-semibold text-primary hover:text-accent-primary"
                                 >
-                                  {task.name}
+                                  {task.title}
                                 </Link>
                                 <p className="mt-1 truncate text-[10px] text-tertiary">
-                                  {task.project.identifier}-{task.sequence_id}
+                                  {project.identifier}-{task.sequence}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <p className="truncate text-[11px] font-medium text-primary">{task.project.name}</p>
+                            <p className="truncate text-[11px] font-medium text-primary">{project.name}</p>
                             <span className="bg-blue-50 text-blue-600 mt-1 inline-block rounded-md px-2 py-0.5 text-[9px] font-medium">
-                              {task.project.identifier}
+                              {project.identifier}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             {task.assignees.length ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex -space-x-1.5">
-                                  {task.assignees
-                                    .slice(0, 2)
-                                    .map(
-                                      (assignee) =>
-                                        assignee && (
-                                          <Avatar
-                                            key={assignee.id}
-                                            size={24}
-                                            name={assignee.display_name}
-                                            src={getFileURL(assignee.avatar_url)}
-                                          />
-                                        )
-                                    )}
+                                  {task.assignees.slice(0, 2).map((assignee) => (
+                                    <TaskMemberAvatar key={assignee.id} member={assignee} />
+                                  ))}
                                 </div>
                                 <span className="truncate text-[11px] text-primary">
-                                  {task.assignees[0]?.display_name}
+                                  {memberLabel(task.assignees[0])}
                                   {task.assignees.length > 1 ? ` +${task.assignees.length - 1}` : ""}
                                 </span>
                               </div>
@@ -442,8 +463,8 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                               <span className="text-[11px] text-tertiary">Unassigned</span>
                             )}
                           </td>
-                          <td className={`px-4 py-3 text-[11px] font-medium ${dueTone(task.target_date, today)}`}>
-                            {dueLabel(task.target_date, today)}
+                          <td className={`px-4 py-3 text-[11px] font-medium ${dueTone(task.targetDate, today)}`}>
+                            {dueLabel(task.targetDate, today)}
                           </td>
                           <td className="px-4 py-3">
                             <span
@@ -454,19 +475,18 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-block max-w-full truncate rounded-md px-2 py-1 text-[10px] font-medium ${stateStyle(task.stateGroup)}`}
+                              className={`inline-block max-w-full truncate rounded-md px-2 py-1 text-[10px] font-medium ${stateStyle(task.status)}`}
                             >
-                              {task.stateName}
+                              {state?.name ?? taskStatusOptions[task.status].label}
                             </span>
                           </td>
                           <td className="px-2 py-3">
-                            <Link
-                              href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
-                              aria-label={`Open ${task.name}`}
-                              className="grid size-7 place-items-center rounded-lg border border-subtle text-tertiary"
-                            >
-                              <MoreHorizontal className="size-3.5" />
-                            </Link>
+                            <TaskLifecycle
+                              task={task}
+                              disabled={false}
+                              lifecycle={lifecycle}
+                              href={`/${workspaceSlug}/projects/${project.id}/issues/${task._id}/`}
+                            />
                           </td>
                         </tr>
                       );
@@ -475,7 +495,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                 </table>
               </div>
 
-              {!pagedTasks.length && (
+              {tableReady && !pagedTasks.length && (
                 <div className="grid min-h-52 place-items-center px-4 text-center">
                   <div>
                     <CheckCircle2 className="mx-auto size-7 text-tertiary" />
@@ -485,50 +505,52 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                 </div>
               )}
 
-              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3 text-[10px] text-secondary">
-                <span>
-                  Showing {filteredTasks.length ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
-                  {Math.min(currentPage * pageSize, filteredTasks.length)} of {filteredTasks.length} tasks
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setPage((value) => Math.max(1, value - 1))}
-                    className="grid size-7 place-items-center rounded-lg border border-subtle disabled:opacity-40"
-                  >
-                    <ChevronLeft className="size-3.5" />
-                  </button>
-                  {Array.from({ length: Math.min(pageCount, 3) }, (_, index) => index + 1).map((value) => (
+              {tableReady && (
+                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3 text-[10px] text-secondary">
+                  <span>
+                    Showing {filteredTasks.length ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
+                    {Math.min(currentPage * pageSize, filteredTasks.length)} of {filteredTasks.length} tasks
+                  </span>
+                  <div className="flex items-center gap-2">
                     <button
-                      key={value}
                       type="button"
-                      onClick={() => setPage(value)}
-                      className={`grid size-7 place-items-center rounded-lg border ${currentPage === value ? "border-accent-primary bg-accent-primary text-white" : "border-subtle"}`}
+                      disabled={currentPage === 1}
+                      onClick={() => setPage((value) => Math.max(1, value - 1))}
+                      className="grid size-7 place-items-center rounded-lg border border-subtle disabled:opacity-40"
                     >
-                      {value}
+                      <ChevronLeft className="size-3.5" />
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    disabled={currentPage === pageCount}
-                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                    className="grid size-7 place-items-center rounded-lg border border-subtle disabled:opacity-40"
-                  >
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  Rows per page:
-                  <Select
-                    aria-label="Rows per page"
-                    value={String(pageSize)}
-                    onValueChange={(value) => setPageSize(Number(value))}
-                    className="h-8 w-20"
-                    options={["8", "12", "24"].map((size) => ({ value: size, label: size }))}
-                  />
-                </div>
-              </footer>
+                    {Array.from({ length: Math.min(pageCount, 3) }, (_, index) => index + 1).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setPage(value)}
+                        className={`grid size-7 place-items-center rounded-lg border ${currentPage === value ? "border-accent-primary bg-accent-primary text-white" : "border-subtle"}`}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={currentPage === pageCount}
+                      onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                      className="grid size-7 place-items-center rounded-lg border border-subtle disabled:opacity-40"
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    Rows per page:
+                    <Select
+                      aria-label="Rows per page"
+                      value={String(pageSize)}
+                      onValueChange={(value) => setPageSize(Number(value))}
+                      className="h-8 w-20"
+                      options={["8", "12", "24"].map((size) => ({ value: size, label: size }))}
+                    />
+                  </div>
+                </footer>
+              )}
             </section>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -590,21 +612,17 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                 <div className="space-y-2 px-4 pb-4">
                   {overdue.map((task) => (
                     <Link
-                      key={task.id}
-                      href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
+                      key={task.taskId}
+                      href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.taskId}/`}
                       className="bg-red-50/70 flex items-center gap-3 rounded-xl px-3 py-2"
                     >
-                      <Avatar
-                        size={24}
-                        name={task.assignees[0]?.display_name ?? "?"}
-                        src={getFileURL(task.assignees[0]?.avatar_url ?? "")}
-                      />
+                      {task.assignee ? <TaskMemberAvatar member={task.assignee} /> : <Avatar size={24} name="?" />}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] font-medium text-primary">{task.name}</span>
+                        <span className="block truncate text-[11px] font-medium text-primary">{task.title}</span>
                         <span className="block truncate text-[9px] text-secondary">{task.project.name}</span>
                       </span>
                       <span className="text-red-600 shrink-0 text-[10px] font-medium">
-                        {dueLabel(task.target_date, today)}
+                        {dueLabel(task.targetDate, today)}
                       </span>
                     </Link>
                   ))}
@@ -618,20 +636,17 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
             <Panel title="Task Summary" action={<span className="text-[10px] text-accent-primary">Current view</span>}>
               <div className="grid grid-cols-4 gap-2 px-4 pb-4">
                 {[
-                  ["Total Tasks", summary.total, CheckCircle2, "text-blue-600"],
-                  ["In Progress", summary.inProgress, Clock3, "text-blue-600"],
-                  ["To Do", summary.toDo, Circle, "text-secondary"],
-                  ["Overdue", summary.overdue, AlertCircle, "text-red-600"],
-                ].map(([label, value, Icon, tone]) => {
-                  const SummaryIcon = Icon as typeof CheckCircle2;
-                  return (
-                    <div key={String(label)} className="rounded-xl border border-subtle px-2 py-3 text-center">
-                      <SummaryIcon className={`mx-auto size-4 ${tone}`} />
-                      <p className="text-base mt-2 font-semibold text-primary">{String(value)}</p>
-                      <p className="mt-1 text-[8px] text-tertiary">{String(label)}</p>
-                    </div>
-                  );
-                })}
+                  { label: "Total Tasks", value: summary.total, Icon: CheckCircle2, tone: "text-blue-600" },
+                  { label: "In Progress", value: summary.inProgress, Icon: Clock3, tone: "text-blue-600" },
+                  { label: "To Do", value: summary.toDo, Icon: Circle, tone: "text-secondary" },
+                  { label: "Overdue", value: summary.overdue, Icon: AlertCircle, tone: "text-red-600" },
+                ].map(({ label, value, Icon, tone }) => (
+                  <div key={label} className="rounded-xl border border-subtle px-2 py-3 text-center">
+                    <Icon className={`mx-auto size-4 ${tone}`} />
+                    <p className="text-base mt-2 font-semibold text-primary">{value}</p>
+                    <p className="mt-1 text-[8px] text-tertiary">{label}</p>
+                  </div>
+                ))}
               </div>
             </Panel>
 
@@ -650,17 +665,17 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
               <div className="space-y-3 px-4 pb-4">
                 {upcoming.map((task) => (
                   <Link
-                    key={task.id}
-                    href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
+                    key={task.taskId}
+                    href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.taskId}/`}
                     className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2"
                   >
                     <span className="bg-amber-500 mt-1.5 size-1.5 rounded-full" />
                     <span className="min-w-0">
-                      <span className="block truncate text-[11px] font-medium text-primary">{task.name}</span>
+                      <span className="block truncate text-[11px] font-medium text-primary">{task.title}</span>
                       <span className="block truncate text-[9px] text-tertiary">{task.project.name}</span>
                     </span>
-                    <span className={`text-[9px] font-medium ${dueTone(task.target_date, today)}`}>
-                      {dueLabel(task.target_date, today)}
+                    <span className={`text-[9px] font-medium ${dueTone(task.targetDate, today)}`}>
+                      {dueLabel(task.targetDate, today)}
                     </span>
                   </Link>
                 ))}
@@ -675,7 +690,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
               action={<span className="text-[10px] text-accent-primary">Current data</span>}
             >
               <div className="px-4 pb-4">
-                <p className="text-[11px] font-medium text-primary">Based on your accessible Plane work items</p>
+                <p className="text-[11px] font-medium text-primary">Based on your accessible work items</p>
                 <div className="mt-4 grid grid-cols-2 divide-x divide-subtle">
                   <div className="pr-3">
                     <p className="text-[10px] text-secondary">Tasks Completed</p>
@@ -695,18 +710,18 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: ITasksRo
                   </div>
                 </div>
                 <p className="mt-4 border-t border-subtle pt-3 text-[9px] text-tertiary">
-                  Historical comparison is not available from the current Plane API.
+                  Historical comparison is not available.
                 </p>
               </div>
             </Panel>
           </aside>
         </div>
-      )}
-    </section>
+      </section>
+    </PreservedWorkspaceShell>
   );
-});
+}
 
-function TaskCalendar(props: { today: string; tasks: Array<{ id: string; target_date: string | null }> }) {
+function TaskCalendar(props: { today: string; tasks: CenterSummary }) {
   const [offset, setOffset] = useState(0);
   const calendar = useMemo(() => {
     if (!props.today) return null;
@@ -750,7 +765,7 @@ function TaskCalendar(props: { today: string; tasks: Array<{ id: string; target_
         </div>
         <div className="grid grid-cols-7 text-center text-[10px]">
           {calendar?.days.map((day) => {
-            const count = props.tasks.filter((task) => task.target_date === day.key).length;
+            const count = props.tasks.filter((task) => task.targetDate === day.key).length;
             return (
               <span
                 key={day.key}

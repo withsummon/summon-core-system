@@ -5,10 +5,10 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { Command } from "cmdk";
-import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays } from "lucide-react";
+import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquare } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { NativeProjectCreateContext } from "@/app/native-workspace";
+import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/app/native-workspace";
 import { CommandSearchView } from "@/components/navigation/command-search-view";
 import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
 import { PowerKModalCommandItem } from "@/components/power-k/ui/modal/command-item";
@@ -33,6 +33,7 @@ export function WorkspaceCommands({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const createProject = useContext(NativeProjectCreateContext);
+  const createTask = useContext(NativeTaskCreateContext);
   const onSearchClose = useCallback(() => {
     setSearchTerm("");
     setChoosingProject(false);
@@ -42,6 +43,34 @@ export function WorkspaceCommands({
   const workspaceCommands = useMemo(
     () =>
       [
+        {
+          label: t("power_k.creation_actions.create_work_item"),
+          icon: Layers,
+          keySequence: "ni",
+          isDisabled: createTask === null,
+          onSelect: () => {
+            handleClose();
+            createTask?.();
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_summon_tasks"),
+          icon: Layers,
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/summon/tasks/`);
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_workspace_drafts"),
+          icon: PenSquare,
+          keySequence: "gj",
+          isDisabled: workspace.membershipRole === "guest",
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/drafts/`);
+          },
+        },
         {
           label: t("power_k.creation_actions.create_project"),
           icon: FolderPlus,
@@ -124,7 +153,7 @@ export function WorkspaceCommands({
           },
         },
       ] satisfies ComponentProps<typeof PowerKModalCommandItem>[],
-    [t, createProject, handleClose, openPanel, inputRef, navigate, workspace.slug, workspace.membershipRole]
+    [t, createProject, createTask, handleClose, openPanel, inputRef, navigate, workspace.slug, workspace.membershipRole]
   );
   useEffect(() => {
     const sequences = new KeySequenceHandler((sequence, event) => {

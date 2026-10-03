@@ -47,6 +47,10 @@ const routes: RouteConfigEntry[] = [
 
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
+      route(":workspaceSlug/summon/tasks", "./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx"),
+      layout("./(all)/[workspaceSlug]/(projects)/drafts/layout.tsx", [
+        route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
+      ]),
       route(":workspaceSlug/summon/meetings", "./(all)/[workspaceSlug]/(projects)/summon/meetings/page.tsx"),
       route(
         ":workspaceSlug/summon/meetings/:meetingId",
