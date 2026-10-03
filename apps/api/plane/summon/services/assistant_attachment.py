@@ -6,17 +6,8 @@ from rest_framework import serializers
 
 from plane.db.models import FileAsset
 from plane.summon.models import AssistantAttachment, AssistantConversation
-from plane.summon.services.context_document import MAX_UPLOAD_BYTES, extract_context_document
+from summon_documents.context import DOCUMENT_TYPES, MAX_UPLOAD_BYTES, extract_context_document
 
-DOCUMENT_TYPES = {
-    ".csv": {"text/csv"},
-    ".docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-    ".md": {"text/markdown"},
-    ".pdf": {"application/pdf"},
-    ".pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation"},
-    ".txt": {"text/plain"},
-    ".xlsx": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
-}
 AUDIO_TYPES = {
     ".m4a": {"audio/mp4", "audio/m4a", "audio/x-m4a"},
     ".mp3": {"audio/mpeg", "audio/mp3"},
@@ -64,6 +55,8 @@ def create_attachment(conversation, actor, asset):
         asset.asset.open("rb")
         try:
             extracted_text = extract_context_document(asset.asset)["text"]
+        except ValueError as error:
+            raise serializers.ValidationError({"file": str(error)}) from None
         finally:
             asset.asset.close()
         status = AssistantAttachment.Status.READY

@@ -5,7 +5,7 @@
 from django.db.models import Q
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
@@ -32,7 +32,7 @@ from plane.summon.services.automation import (
     render_job_files,
 )
 from plane.summon.services.automation_templates import refresh_default_templates
-from plane.summon.services.context_document import extract_context_document
+from summon_documents.context import extract_context_document
 from plane.summon.services.reports import report_csv, report_summary, visible_project_ids
 from plane.summon.views.commercial import WorkspaceContextMixin
 
@@ -108,7 +108,10 @@ class AutomationContextExtractView(WorkspaceContextMixin, BaseAPIView):
         upload = request.FILES.get("file")
         if not upload:
             return Response({"file": "Select a document."}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(extract_context_document(upload))
+        try:
+            return Response(extract_context_document(upload))
+        except ValueError as error:
+            raise serializers.ValidationError({"file": str(error)}) from None
 
 
 class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):

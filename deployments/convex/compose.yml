@@ -33,5 +33,19 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+  document-worker:
+    build:
+      context: ../..
+      dockerfile: apps/document-worker/Dockerfile
+    restart: unless-stopped
+    expose: ["8092"]
+    environment:
+      DOCUMENT_WORKER_TOKEN: ${DOCUMENT_WORKER_TOKEN:?Set a private document worker token}
+    mem_limit: 768m
+    pids_limit: 128
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 volumes:
   data:

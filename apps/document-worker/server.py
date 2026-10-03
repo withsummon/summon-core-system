@@ -1,0 +1,164 @@
+import base64
+import hmac
+import json
+import multiprocessing
+import os
+import socket
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import BytesIO
+from pathlib import Path
+from urllib.parse import unquote
+
+from summon_documents.context import DOCUMENT_TYPES, MAX_UPLOAD_BYTES, extract_context_document
+from summon_documents.renderer import render_document_files
+
+MAX_RESPONSE_BYTES = 20 * 1024 * 1024
+TIMEOUT_SECONDS = 30
+_slots = threading.BoundedSemaphore(2)
+
+
+def execute(path, data, name, connection):
+    try:
+        if sys.platform == "linux":
+            import resource
+
+            resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024,) * 2)
+            resource.setrlimit(resource.RLIMIT_CPU, (TIMEOUT_SECONDS,) * 2)
+        if path == "/extract":
+            upload = BytesIO(data)
+            upload.name = name
+            upload.size = len(data)
+            result = extract_context_document(upload)
+        else:
+            result = {
+                "artifacts": [
+                    {
+                        "name": file.filename,
+                        "contentType": file.content_type,
+                        "format": file.format,
+                        "base64": base64.b64encode(file.data).decode("ascii"),
+                    }
+                    for file in render_document_files(data["document_type"], data["title"], data["content"])
+                ]
+            }
+        encoded = json.dumps(result, ensure_ascii=False).encode("utf-8")
+        if len(encoded) > MAX_RESPONSE_BYTES:
+            raise ValueError("Generated document exceeds the output limit.")
+        connection.send((200, encoded))
+    except ValueError as error:
+        connection.send((400, json.dumps({"error": str(error)}).encode("utf-8")))
+    except Exception:
+        connection.send((422, b'{"error":"Document could not be processed."}'))
+    finally:
+        connection.close()
+
+
+def process_document(path, data, name):
+    runtime = multiprocessing.get_context("spawn")
+    receiver, sender = runtime.Pipe(duplex=False)
+    process = runtime.Process(target=execute, args=(path, data, name, sender))
+    process.start()
+    sender.close()
+    try:
+        if not receiver.poll(TIMEOUT_SECONDS):
+            return 504, b'{"error":"Document processing timed out."}'
+        try:
+            return receiver.recv()
+        except EOFError:
+            return 422, b'{"error":"Document could not be processed."}'
+    finally:
+        if process.is_alive():
+            process.terminate()
+        process.join(timeout=5)
+        if process.is_alive():
+            process.kill()
+            process.join()
+        receiver.close()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(10)
+
+    def reply(self, status, data):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def authenticated(self):
+        expected = f"Bearer {self.server.token}".encode("utf-8")
+        if not hmac.compare_digest(self.headers.get("Authorization", "").encode("utf-8"), expected):
+            self.reply(401, b'{"error":"Authentication required."}')
+            return False
+        return True
+
+    def do_GET(self):
+        if self.authenticated():
+            self.reply(200 if self.path == "/healthz" else 404, b'{"status":"ok"}' if self.path == "/healthz" else b'{}')
+
+    def do_POST(self):
+        if not self.authenticated():
+            return
+        if self.path not in {"/extract", "/render"}:
+            self.reply(404, b'{"error":"Endpoint not found."}')
+            return
+        if not _slots.acquire(blocking=False):
+            self.reply(429, b'{"error":"Document worker is busy. Try again."}')
+            return
+        try:
+            lengths = self.headers.get_all("Content-Length", [])
+            if self.headers.get("Transfer-Encoding") or len(lengths) != 1 or not lengths[0].isdigit():
+                self.reply(400, b'{"error":"One Content-Length header is required."}')
+                return
+            length = int(lengths[0])
+            if not 0 < length <= MAX_UPLOAD_BYTES:
+                self.reply(413, b'{"error":"Document must not exceed 10 MB."}')
+                return
+            data = self.rfile.read(length)
+            if len(data) != length:
+                self.reply(400, b'{"error":"Incomplete document upload."}')
+                return
+            name = None
+            media_type = self.headers.get_content_type()
+            if self.path == "/extract":
+                name = unquote(self.headers.get("X-Document-Name", ""), errors="strict")
+                extension = Path(name).suffix.lower()
+                if not name or len(name) > 255 or "/" in name or "\\" in name or any(ord(char) < 32 or ord(char) == 127 for char in name):
+                    raise ValueError("Invalid document filename.")
+                if media_type not in DOCUMENT_TYPES.get(extension, set()):
+                    self.reply(415, b'{"error":"Unsupported document type."}')
+                    return
+            else:
+                if media_type != "application/json":
+                    self.reply(415, b'{"error":"Use application/json."}')
+                    return
+                data = json.loads(data)
+                if not isinstance(data, dict) or set(data) != {"document_type", "title", "content"}:
+                    raise ValueError("Invalid document render request.")
+                for field, limit in {"document_type": 80, "title": 255, "content": 100000}.items():
+                    if not isinstance(data[field], str) or not 0 < len(data[field]) <= limit:
+                        raise ValueError("Invalid document render request.")
+            status, result = process_document(self.path, data, name)
+            self.reply(status, result)
+        except ValueError:
+            self.reply(400, b'{"error":"Invalid document request."}')
+        except (socket.timeout, TimeoutError):
+            self.reply(408, b'{"error":"Document upload timed out."}')
+        finally:
+            _slots.release()
+
+
+if __name__ == "__main__":
+    token = os.environ.get("DOCUMENT_WORKER_TOKEN", "")
+    if len(token) < 32:
+        raise ValueError("Configure DOCUMENT_WORKER_TOKEN with at least 32 characters.")
+    server = ThreadingHTTPServer((os.environ.get("DOCUMENT_WORKER_HOST", "0.0.0.0"), int(os.environ.get("PORT", "8092"))), Handler)
+    server.token = token
+    server.serve_forever()

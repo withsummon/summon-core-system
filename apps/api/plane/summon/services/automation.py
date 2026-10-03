@@ -15,7 +15,7 @@ from plane.app.services.llm import LLMError, LLMRequest, generate
 from plane.db.models import FileAsset, Page, ProjectMember, ProjectPage
 from plane.summon.models import AutomationJob, GeneratedArtifact
 from plane.summon.services.context import build_context
-from plane.summon.services.document_renderer import render_document_files
+from summon_documents.renderer import render_document_files
 from plane.summon.services.page_document import write_page_document
 
 
