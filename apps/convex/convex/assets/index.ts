@@ -13,7 +13,7 @@ import { requireUser } from "../identity/access";
 import { assetScope, fileMetadataFields } from "./schema";
 import type { personalImagePurpose } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
-import { validateIntent, supportedAssetTypes, assetSizeLimit, assetTypesByExtension } from "./content";
+import { isAudioAsset, validateIntent, supportedAssetTypes, assetSizeLimit, assetTypesByExtension } from "./content";
 
 export const uploadFields = {
   ...assetScope,
@@ -29,7 +29,7 @@ export async function prepareAsset(
     | { purpose: Infer<typeof personalImagePurpose>; avatarUserId: Id<"users">; avatarRevision: number }
 ) {
   const { user } = await requireAssetScope(ctx, { ...args, ...appearance }, true);
-  validateIntent(args.name, args.contentType, args.size, args.sha256, args.meetingId !== undefined);
+  validateIntent(args.name, args.contentType, args.size, args.sha256, isAudioAsset(args));
   const assetId = await ctx.db.insert("assets", {
     ...args,
     ...appearance,
@@ -44,6 +44,7 @@ export async function prepareAsset(
 export const prepare = mutation({
   args: uploadFields,
   handler: async (ctx, args) => {
+    if (args.automationJobId) throw new ConvexError("Generated files are created by their generation job.");
     if (args.draftId) throw new ConvexError("Prepare draft uploads through draft attachments.");
     if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
     if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
@@ -138,6 +139,7 @@ export const remove = mutation({
     if (asset.purpose === "workspaceLogo")
       throw new ConvexError("Remove workspace logos through workspace appearance.");
     if (asset.purpose === "projectCover") throw new ConvexError("Remove project covers through project appearance.");
+    if (asset.automationJobId) throw new ConvexError("Generated files belong to their generation job.");
     if (asset.draftId) throw new ConvexError("Remove draft files through draft attachments.");
     if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");

@@ -8,7 +8,7 @@ import { Outlet, useNavigate, useOutletContext, useParams } from "react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";

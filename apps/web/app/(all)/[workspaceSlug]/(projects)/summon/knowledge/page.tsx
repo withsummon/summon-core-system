@@ -3,9 +3,15 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   ArrowRight,
   BookOpen,
@@ -22,73 +28,77 @@ import {
   Users,
 } from "lucide-react";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { useMember } from "@/hooks/store/use-member";
-import { listAccessiblePlanePages } from "@/services/summon-plane.service";
-import { summonService } from "@/services/summon.service";
-import type { Route } from "./+types/page";
 
-const formatDate = (value?: Date) => {
+const formatDate = (value?: number) => {
   if (!value) return "Unknown";
   return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 };
 
-export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
-  const { workspaceSlug } = params;
-  const { getUserDetails } = useMember();
+export default function SummonKnowledgePage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const commands = useStickiesCommands();
+  return (
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <Knowledge workspaceSlug={session.workspace.slug} />
+    </PreservedWorkspaceShell>
+  );
+}
+function Knowledge({ workspaceSlug }: { workspaceSlug: string }) {
+  const { workspace } = useOutletContext<WorkspaceSession>();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All");
+  const availableProjects = useQuery(api.projects.index.list, { workspaceId: workspace._id });
   const {
-    data: pages = [],
-    error,
-    isLoading,
-    mutate,
-  } = useSWR(["summon-knowledge-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
-  const { data: contexts = [] } = useSWR(["summon-knowledge-contexts", workspaceSlug], () =>
-    summonService.listPageContexts(workspaceSlug)
+    results: filteredPages,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.documents.index.list,
+    {
+      workspaceId: workspace._id,
+      contextualSearch: true,
+      search: query,
+      category: tab === "All" ? undefined : tab === "Documents" ? "document" : tab.toLowerCase().replaceAll(" ", "_"),
+      sortKey: "updated_at",
+      sortBy: "desc",
+    },
+    { initialNumItems: 50 }
   );
-  const { data: home } = useSWR(["summon-knowledge-home", workspaceSlug], () =>
-    summonService.getHomeSummary(workspaceSlug)
+  const summary = usePaginatedQuery(
+    api.documents.index.list,
+    { workspaceId: workspace._id, sortKey: "updated_at", sortBy: "desc" },
+    { initialNumItems: 100 }
   );
-
-  const contextByPage = useMemo(() => new Map(contexts.map((context) => [context.page, context])), [contexts]);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredPages = useMemo(
-    () =>
-      pages.filter(({ page, project }) => {
-        const context = page.id ? contextByPage.get(page.id) : undefined;
-        const matchesQuery = `${page.name || ""} ${project.name} ${context?.category || ""}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-        if (!matchesQuery || tab === "All") return matchesQuery;
-        if (tab === "Documents") return context?.category === "document" || !context?.category;
-        return context?.category?.toLowerCase() === tab.toLowerCase().replace(" ", "_");
-      }),
-    [contextByPage, normalizedQuery, pages, tab]
-  );
-  const recentPages = useMemo(() => {
-    // oxlint-disable-next-line unicorn/no-array-sort -- ES2023 toSorted is unavailable in the app's current TypeScript target.
-    return [...pages].sort(
-      (left, right) =>
-        (Date.parse(String(right.page.updated_at ?? "")) || 0) - (Date.parse(String(left.page.updated_at ?? "")) || 0)
-    );
-  }, [pages]);
-  const uniqueContributors = new Set(pages.flatMap(({ page }) => [page.created_by, page.updated_by]).filter(Boolean));
+  const { status: summaryStatus, loadMore: loadSummary } = summary;
+  useEffect(() => {
+    if (summaryStatus === "CanLoadMore") loadSummary(100);
+  }, [summaryStatus, loadSummary]);
+  const pages = summary.results;
+  const contexts = pages.map(({ document }) => document);
+  const isLoading = status === "LoadingFirstPage";
+  const recentPages = pages;
+  const uniqueContributors = new Set(pages.flatMap(({ document }) => [document.ownedBy, document.updatedBy]));
   const contextCards = [
     {
       label: "Projects",
-      count: new Set(pages.map(({ project }) => project.id)).size,
+      count: new Set(pages.flatMap(({ projects }) => projects.map((project) => project.id))).size,
       icon: FolderKanban,
       detail: "Project pages and delivery knowledge",
     },
     {
       label: "Clients",
-      count: contexts.filter((item) => item.client).length,
+      count: contexts.filter((item) => item.clientId).length,
       icon: Users,
       detail: "Client-linked notes and requirements",
     },
     {
       label: "Opportunities",
-      count: contexts.filter((item) => item.opportunity).length,
+      count: contexts.filter((item) => item.opportunityId).length,
       icon: BriefcaseBusiness,
       detail: "Commercial and proposal knowledge",
     },
@@ -100,12 +110,12 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
     },
     {
       label: "Company",
-      count: contexts.filter((item) => !item.project && !item.client && !item.opportunity).length,
+      count: contexts.filter((item) => !item.projectIds.length && !item.clientId && !item.opportunityId).length,
       icon: Building2,
       detail: "Workspace-wide knowledge",
     },
   ];
-  const firstProject = home?.projects[0];
+  const firstProject = availableProjects?.[0];
 
   return (
     <div className="mx-auto min-h-full w-full max-w-[1600px] bg-surface-1 p-4 lg:p-5">
@@ -120,7 +130,9 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
             <input
               value={query}
+              maxLength={255}
               onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search knowledge"
               placeholder="Search knowledge, notes, topics, or ask anything..."
               className="text-xs shadow-xs focus:border-accent-primary h-11 w-full rounded-xl border border-subtle bg-surface-1 pr-12 pl-10 text-primary outline-none"
             />
@@ -173,7 +185,9 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                     <span className="grid size-8 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                       <Icon className="size-4" />
                     </span>
-                    <span className="rounded-full bg-layer-1 px-2 py-1 text-[10px] text-secondary">{count}</span>
+                    <span className="rounded-full bg-layer-1 px-2 py-1 text-[10px] text-secondary">
+                      {summary.status === "Exhausted" ? count : "…"}
+                    </span>
                   </div>
                   <h3 className="text-xs mt-4 font-semibold text-primary">{label}</h3>
                   <p className="mt-1 text-[10px] leading-relaxed text-secondary">{detail}</p>
@@ -199,14 +213,22 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                   ))}
                 </div>
               </div>
-              <span className="text-[10px] text-secondary">{filteredPages.length} accessible items</span>
+              <span className="text-[10px] text-secondary">{filteredPages.length} accessible items loaded</span>
             </div>
+            {status === "CanLoadMore" && (
+              <button
+                type="button"
+                className="text-xs mt-3 rounded-xl border border-subtle px-4 py-2"
+                onClick={() => loadMore(50)}
+              >
+                Load more knowledge
+              </button>
+            )}
+            {status === "LoadingMore" && <p role="status">Loading more knowledge…</p>}
             <SummonRequestState
               loading={isLoading}
-              error={error}
-              empty={!isLoading && filteredPages.length === 0}
+              empty={status === "Exhausted" && filteredPages.length === 0}
               emptyMessage="No accessible knowledge matches this filter."
-              onRetry={() => void mutate()}
             />
             {!!filteredPages.length && (
               <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
@@ -221,28 +243,28 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-subtle">
-                    {filteredPages.slice(0, 8).map(({ page, project }) => {
-                      const context = page.id ? contextByPage.get(page.id) : undefined;
-                      const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
+                    {filteredPages.map(({ document, projects, updatedByName }) => {
                       return (
-                        <tr key={page.id} className="hover:bg-layer-1">
+                        <tr key={document._id} className="hover:bg-layer-1">
                           <td className="px-4 py-3">
                             <Link
-                              href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                              href={`/${workspaceSlug}/summon/documents/?document=${document._id}`}
                               className="flex items-center gap-2 font-medium text-primary"
                             >
                               <FileText className="size-4 shrink-0 text-accent-primary" />
-                              <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
+                              <span className="max-w-64 truncate">{document.name || "Untitled Page"}</span>
                             </Link>
                           </td>
-                          <td className="px-4 py-3 text-secondary">{project.name}</td>
+                          <td className="px-4 py-3 text-secondary">
+                            {projects.map((project) => project.name).join(", ") || "Workspace"}
+                          </td>
                           <td className="px-4 py-3">
                             <span className="rounded-full bg-accent-subtle px-2 py-1 text-[10px] text-accent-primary">
-                              {context?.category || "Page"}
+                              {document.category || "Page"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
-                          <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
+                          <td className="px-4 py-3 text-secondary">{formatDate(document.updatedAt)}</td>
+                          <td className="px-4 py-3 text-secondary">{updatedByName || "Unknown"}</td>
                         </tr>
                       );
                     })}
@@ -261,7 +283,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                 label="Create New Note"
                 href={
                   firstProject
-                    ? `/${workspaceSlug}/projects/${firstProject.id}/pages/`
+                    ? `/${workspaceSlug}/projects/${firstProject._id}/pages/`
                     : `/${workspaceSlug}/summon/projects/`
                 }
               />
@@ -276,22 +298,24 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
           </SidePanel>
           <SidePanel title="Recent Notes" href={`/${workspaceSlug}/summon/documents/`}>
             <div className="space-y-3">
-              {recentPages.slice(0, 5).map(({ page, project }) => (
+              {recentPages.slice(0, 5).map(({ document }) => (
                 <Link
-                  key={page.id}
-                  href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                  key={document._id}
+                  href={`/${workspaceSlug}/summon/documents/?document=${document._id}`}
                   className="flex gap-2"
                 >
                   <FileText className="mt-0.5 size-4 shrink-0 text-accent-primary" />
                   <span className="min-w-0">
                     <strong className="block truncate text-[11px] font-medium text-primary">
-                      {page.name || "Untitled Page"}
+                      {document.name || "Untitled Page"}
                     </strong>
-                    <small className="text-[10px] text-secondary">{formatDate(page.updated_at)}</small>
+                    <small className="text-[10px] text-secondary">{formatDate(document.updatedAt)}</small>
                   </span>
                 </Link>
               ))}
-              {!recentPages.length && <Empty text="No accessible notes." />}
+              {!recentPages.length && (
+                <Empty text={summary.status === "Exhausted" ? "No accessible notes." : "Loading notes…"} />
+              )}
             </div>
           </SidePanel>
           <SidePanel title="Popular Knowledge">
@@ -299,9 +323,19 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
           </SidePanel>
           <SidePanel title="Knowledge Stats">
             <div className="grid grid-cols-2 gap-2">
-              <Stat label="Total Pages" value={String(pages.length)} />
-              <Stat label="Projects" value={String(new Set(pages.map(({ project }) => project.id)).size)} />
-              <Stat label="Contributors" value={String(uniqueContributors.size)} />
+              <Stat label="Total Pages" value={summary.status === "Exhausted" ? String(pages.length) : "…"} />
+              <Stat
+                label="Projects"
+                value={
+                  summary.status === "Exhausted"
+                    ? String(new Set(pages.flatMap(({ projects }) => projects.map((project) => project.id))).size)
+                    : "…"
+                }
+              />
+              <Stat
+                label="Contributors"
+                value={summary.status === "Exhausted" ? String(uniqueContributors.size) : "…"}
+              />
               <Stat label="Total Views" value="Unavailable" />
             </div>
           </SidePanel>

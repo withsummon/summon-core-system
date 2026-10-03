@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { validateContent } from "./content";
+import { isAudioAsset, validateContent } from "./content";
 
 export const finalize = action({
   args: { assetId: v.id("assets"), storageId: v.string() },
@@ -11,7 +11,7 @@ export const finalize = action({
     const asset = await ctx.runMutation(internal.assets.index.claim, args);
     if (asset.status === "ready") return asset._id;
     let blob: Blob | null;
-    if (asset.meetingId) {
+    if (isAudioAsset(asset)) {
       const url = await ctx.storage.getUrl(asset.storageId);
       if (!url) throw new ConvexError("Uploaded recording is missing.");
       const response = await fetch(url, { headers: { Range: "bytes=0-11" } });
@@ -40,7 +40,7 @@ export const finalize = action({
     } else blob = await ctx.storage.get(asset.storageId);
     if (!blob) throw new ConvexError("Uploaded file is missing.");
     try {
-      await validateContent(blob, asset.contentType, asset.meetingId !== undefined);
+      await validateContent(blob, asset.contentType, isAudioAsset(asset));
     } catch (error) {
       await ctx.runMutation(internal.assets.index.reject, { assetId: asset._id });
       throw error;

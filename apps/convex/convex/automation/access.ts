@@ -12,12 +12,14 @@ export async function requireJob(ctx: QueryCtx, jobId: Id<"automationJobs">, wri
   if (access.user._id !== job.requesterId) throw new ConvexError("Generation job access denied.");
   await requireProject(ctx, job.projectId, write);
   await authorizedContext(ctx, job.workspaceId, job.context);
+  if (!(await canReadJob(ctx, job, access.user._id))) throw new ConvexError("Generation sources are unavailable.");
   return { ...access, job };
 }
 
 // Workspace membership and requester identity are established by the indexed list owner.
 export async function canReadJob(ctx: QueryCtx, job: Doc<"automationJobs">, userId: Id<"users">) {
   if (!(await canReadMeetingProject(ctx, job.projectId, userId))) return false;
+  if (!(await canReadJobAttachments(ctx, job, userId))) return false;
   if (job.context.clientId) {
     const client = await ctx.db.get(job.context.clientId);
     if (!client || client.deleted || client.workspaceId !== job.workspaceId) return false;
@@ -31,6 +33,14 @@ export async function canReadJob(ctx: QueryCtx, job: Doc<"automationJobs">, user
       !(await canReadMeetingProject(ctx, meeting.projectId, userId))
     )
       return false;
+    const transcript = await ctx.db
+      .query("meetingTranscripts")
+      .withIndex("by_meeting", (q) => q.eq("meetingId", meeting._id))
+      .unique();
+    if (transcript) {
+      const document = await ctx.db.get(transcript.documentId);
+      if (!document || document.archived || !(await canAccessDocument(ctx, document, userId))) return false;
+    }
   }
   const documents = await Promise.all(
     job.context.documentIds.map(async (id) => {
@@ -44,4 +54,32 @@ export async function canReadJob(ctx: QueryCtx, job: Doc<"automationJobs">, user
     })
   );
   return documents.every(Boolean);
+}
+
+async function canReadJobAttachments(ctx: QueryCtx, job: Doc<"automationJobs">, userId: Id<"users">) {
+  if (job.sourceConversationId) {
+    const conversation = await ctx.db.get(job.sourceConversationId);
+    if (
+      !conversation ||
+      conversation.deleted ||
+      conversation.ownerId !== userId ||
+      conversation.workspaceId !== job.workspaceId
+    )
+      return false;
+  }
+  const files = await Promise.all(
+    (job.sourceAttachmentIds ?? []).map(async (id) => {
+      const file = await ctx.db.get(id);
+      const asset = file ? await ctx.db.get(file.assetId) : null;
+      return Boolean(
+        file &&
+        !file.deleted &&
+        file.status === "ready" &&
+        file.conversationId === job.sourceConversationId &&
+        asset?.status === "ready"
+      );
+    })
+  );
+  if (!files.every(Boolean)) return false;
+  return true;
 }

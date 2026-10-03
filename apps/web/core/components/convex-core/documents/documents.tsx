@@ -43,6 +43,7 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
     return (
       <DocumentAccessBoundary key={selected} onBack={() => setSelected(null)}>
         <DocumentDetail
+          workspaceId={workspace._id}
           documentId={selected}
           workspaceSlug={workspace.slug}
           workspaceRole={workspace.membershipRole}
@@ -126,19 +127,22 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
     </section>
   );
 }
-function DocumentDetail({
+export function DocumentDetail({
+  workspaceId,
   documentId,
   workspaceSlug,
   workspaceRole,
   onBack,
 }: {
+  workspaceId: Id<"workspaces">;
   documentId: string;
   workspaceSlug: string;
   workspaceRole: Doc<"workspaceMembers">["role"];
   onBack: () => void;
 }) {
-  const context = useQuery(api.documents.index.collaborationContext, { documentId });
-  const document = useQuery(api.documents.index.get, context ? { documentId: context.documentId } : "skip");
+  const resolved = useQuery(api.documents.index.resolveWorkspace, { workspaceId, documentId });
+  const context = resolved?.context;
+  const document = resolved?.document;
   const [settings, setSettings] = useState(false);
   if (!document || !context) return <p role="status">Opening document…</p>;
   const owner = document.ownedBy === context.userId && workspaceRole !== "guest";
@@ -321,7 +325,10 @@ function Lifecycle({ document, onDeleted }: { document: Doc<"documents">; onDele
   );
 }
 
-class DocumentAccessBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
+export class DocumentAccessBoundary extends Component<
+  { children: ReactNode; onBack: () => void },
+  { failed: boolean }
+> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };

@@ -150,3 +150,28 @@ export const subscriptionAccess = query({
     };
   },
 });
+
+export const summary = query({
+  args: { workspaceId: v.id("workspaces"), now: v.number(), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const { user, member } = await requireWorkspace(ctx, args.workspaceId);
+    if (
+      !Number.isSafeInteger(args.now) ||
+      !Number.isSafeInteger(args.paginationOpts.numItems) ||
+      args.paginationOpts.numItems < 1 ||
+      args.paginationOpts.numItems > 100
+    )
+      throw new ConvexError("Invalid notification page.");
+    const result = await stream(ctx.db, schema)
+      .query("notifications")
+      .withIndex("by_receiver_workspace", (q) => q.eq("receiverId", user._id).eq("workspaceId", args.workspaceId))
+      .order("desc")
+      .map(async (row) =>
+        (await selectedTask(ctx, row, user._id, member.role, { view: "inbox", now: args.now }))
+          ? { unread: row.readAt === null }
+          : null
+      )
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
+    return { ...result, page: [{ total: result.page.length, unread: result.page.filter((row) => row.unread).length }] };
+  },
+});

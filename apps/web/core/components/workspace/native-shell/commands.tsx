@@ -8,7 +8,7 @@ import { Command } from "cmdk";
 import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquare } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/app/native-workspace";
+import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/components/workspace/native-shell/session";
 import { CommandSearchView } from "@/components/navigation/command-search-view";
 import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
 import { PowerKModalCommandItem } from "@/components/power-k/ui/modal/command-item";
@@ -16,7 +16,7 @@ import { PowerKMenuBuilder } from "@/components/power-k/menus/builder";
 import { KeySequenceHandler, isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import { useExpandableSearch } from "@/hooks/use-expandable-search";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { NativeWorkspace } from "./types";
+import type { NativeWorkspace } from "./session";
 export function WorkspaceCommands({
   workspace,
   onCreateSticky,

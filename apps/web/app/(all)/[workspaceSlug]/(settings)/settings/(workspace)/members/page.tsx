@@ -22,7 +22,7 @@ import { MembersSettingsLoader } from "@/components/ui/loader/settings/members";
 import { PreservedWorkspaceSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
-import type { WorkspaceSession } from "../../../../../../native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import type { Route } from "./+types/page";
 import { MembersWorkspaceSettingsHeader } from "./header";
 

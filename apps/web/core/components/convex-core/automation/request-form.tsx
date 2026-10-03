@@ -14,7 +14,9 @@ export function RequestForm({
   template,
   onDone,
   onCancel,
+  initialContext,
 }: {
+  initialContext?: Context;
   workspaceId: Id<"workspaces">;
   template: Doc<"automationTemplates">;
   onDone: (id: Id<"automationJobs">) => void;
@@ -24,12 +26,14 @@ export function RequestForm({
   const preview = useAction(api.automation.generate.preview);
   const [title, setTitle] = useState("");
   const [input, setInput] = useState<Record<string, string>>({});
-  const [context, setContext] = useState<Context>({
-    projectId: null,
-    clientId: null,
-    meetingId: null,
-    documentIds: [],
-  });
+  const [context, setContext] = useState<Context>(
+    initialContext ?? {
+      projectId: null,
+      clientId: null,
+      meetingId: null,
+      documentIds: [],
+    }
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const request = useRef<{ signature: string; requestId: string } | null>(null);

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getAuthToken } from "@/components/convex-core/provider";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
@@ -30,13 +29,13 @@ export function Attachments({
   return (
     <div className="space-y-2 border-b border-subtle-1 pb-3">
       <label className="flex cursor-pointer flex-wrap items-center gap-2 text-14">
-        <span>Attach text files</span>
+        <span>Attach files</span>
         <input
           type="file"
           multiple
-          accept={policy ? Object.keys(policy.types).join(",") : ".txt,.md,.csv"}
+          accept={policy?.files.map((file) => file.extension).join(",")}
           disabled={disabled || uploading || !policy || files.length >= policy.maxAttachments}
-          aria-label="Attach text files"
+          aria-label="Attach files"
           className="max-w-full text-12"
           onChange={async (event) => {
             const selected = Array.from(event.target.files ?? []);
@@ -48,19 +47,18 @@ export function Attachments({
               if (files.length + selected.length > policy.maxAttachments)
                 throw new Error("Attach up to five files per message.");
               const batch = selected.map((file) => {
-                const contentType = Object.entries(policy.types).find(([extension]) =>
-                  file.name.toLowerCase().endsWith(extension)
-                )?.[1];
-                if (!contentType || file.size < 1 || file.size > policy.maxBytes)
-                  throw new Error("Choose nonempty TXT, Markdown, or CSV files up to 10 MB.");
-                return { file, contentType };
+                const type = policy.files.find(({ extension }) => file.name.toLowerCase().endsWith(extension));
+                if (!type || file.size < 1 || file.size > type.maxBytes)
+                  throw new Error("Choose documents up to 10 MB or MP3/M4A recordings up to 250 MB.");
+                return { file, contentType: type.contentType };
               });
-              const results = await Promise.allSettled(
-                batch.map(({ file, contentType }) =>
-                  transfers.run(async (signal) => {
-                    const bytes = await file.arrayBuffer();
+              const failures: string[] = [];
+              for (const { file, contentType } of batch) {
+                try {
+                  // eslint-disable-next-line no-await-in-loop -- Hash and upload one recording at a time to bound browser memory.
+                  await transfers.run(async (signal) => {
                     signal.throwIfAborted();
-                    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+                    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
                     const sha256 = btoa(String.fromCharCode(...digest));
                     const ticket = await prepare({
                       conversationId,
@@ -79,13 +77,14 @@ export function Attachments({
                     const storageId = await uploadedStorageId(response);
                     signal.throwIfAborted();
                     await finalize({ attachmentId: ticket.attachmentId, storageId });
-                  })
-                )
-              );
-              const failures = results.filter((result) => result.status === "rejected");
+                  });
+                } catch (failure) {
+                  failures.push(mutationMessage(failure));
+                }
+              }
               if (failures.length)
                 setError(
-                  `${failures.length} file upload${failures.length === 1 ? "" : "s"} failed. ${failures.map((result) => (result.reason instanceof Error ? result.reason.message : "Upload failed.")).join(" ")}`
+                  `${failures.length} file upload${failures.length === 1 ? "" : "s"} failed. ${failures.join(" ")}`
                 );
             } catch (failure) {
               setError(failure instanceof Error ? failure.message : "Upload failed.");
@@ -95,7 +94,7 @@ export function Attachments({
           }}
         />
       </label>
-      <p className="text-12 text-secondary">TXT, Markdown, or CSV · 10 MB per file · up to five files</p>
+      <p className="text-12 text-secondary">Documents · 10 MB each; MP3 or M4A · 250 MB each · up to five files</p>
       <ul className="space-y-2">
         {files.map((file) => (
           <li
@@ -132,7 +131,7 @@ export function Attachments({
       </ul>
       {uploading && (
         <p role="status" className="text-12">
-          Uploading and checking text…
+          Uploading files…
         </p>
       )}
       {error && (
@@ -167,20 +166,12 @@ export function AttachmentDownload({
           setError("");
           try {
             await transfers.run(async (signal) => {
-              if (!import.meta.env.VITE_CONVEX_SITE_URL) throw new Error("Attachment download is unavailable.");
               const descriptor = await convex.query(api.assistant.attachments.download, {
                 conversationId,
                 attachmentId,
               });
               signal.throwIfAborted();
-              const response = await fetch(new URL(descriptor.downloadPath, import.meta.env.VITE_CONVEX_SITE_URL), {
-                headers: { Authorization: `Bearer ${await getAuthToken()}` },
-                cache: "no-store",
-                credentials: "omit",
-                signal,
-              });
-              if (!response.ok) throw new Error("File is unavailable or access changed.");
-              const url = transfers.objectUrl(await response.blob(), signal);
+              const url = transfers.objectUrl(await transfers.download(descriptor, signal), signal);
               const anchor = document.createElement("a");
               anchor.href = url;
               anchor.download = descriptor.name;

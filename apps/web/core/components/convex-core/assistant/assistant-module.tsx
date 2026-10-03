@@ -1,12 +1,11 @@
-import { Component, useState } from "react";
-import type { ReactNode } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { ConversationForm } from "./conversation-form";
-import { Conversation } from "./conversation";
+import { Conversation, ConversationBoundary } from "./conversation";
 export function Assistant({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
   const { results, status, loadMore } = usePaginatedQuery(
     api.assistant.index.list,
@@ -76,6 +75,7 @@ export function Assistant({ workspace }: { workspace: FunctionReturnType<typeof 
           ) : selected ? (
             <ConversationBoundary key={selected} onBack={() => select(null)}>
               <Conversation
+                workspaceSlug={workspace.slug}
                 conversationId={selected}
                 workspaceId={workspace._id}
                 onRemoved={() => select(null)}
@@ -94,24 +94,4 @@ export function Assistant({ workspace }: { workspace: FunctionReturnType<typeof 
       </div>
     </section>
   );
-}
-class ConversationBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    if (!this.state.failed) return this.props.children;
-    return (
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">This conversation is unavailable</h2>
-        <p role="alert" className="text-sm text-secondary">
-          It may have been removed, or access to its sources may have changed.
-        </p>
-        <Button variant="secondary" onClick={this.props.onBack}>
-          Back to conversations
-        </Button>
-      </section>
-    );
-  }
 }

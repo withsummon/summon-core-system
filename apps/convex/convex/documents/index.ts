@@ -16,7 +16,8 @@ import { canAccessDocument, requireDocument, requireDocumentForUser, requireMeta
 import { scheduleDocumentReferences } from "./references";
 import { documentFields, documentMetadata, snapshotFields, validateDocumentSnapshot } from "./schema";
 import schema from "../schema";
-import { pageBudget } from "../commercial/validation";
+import { pageBudget, text } from "../commercial/validation";
+import { projectReader, projectSummary } from "../savedViews/scope";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 
@@ -111,6 +112,16 @@ export const collaborationContext = query({
     return documentContext(ctx, await requireDocument(ctx, documentId));
   },
 });
+export const resolveWorkspace = query({
+  args: { workspaceId: v.id("workspaces"), documentId: v.string() },
+  handler: async (ctx, args) => {
+    const documentId = ctx.db.normalizeId("documents", args.documentId);
+    if (!documentId) throw new ConvexError("Document not found.");
+    const access = await requireDocument(ctx, documentId);
+    if (access.workspace._id !== args.workspaceId) throw new ConvexError("Document not found in this workspace.");
+    return { document: access.document, context: await documentContext(ctx, access) };
+  },
+});
 export const resolve = query({
   args: { workspaceId: v.id("workspaces"), projectId: v.string(), documentId: v.string() },
   handler: async (ctx, args) => {
@@ -136,6 +147,8 @@ export const list = query({
     projectId: v.optional(v.id("projects")),
     pageType: v.optional(v.union(v.literal("public"), v.literal("private"), v.literal("archived"))),
     search: v.optional(v.string()),
+    category: v.optional(v.string()),
+    contextualSearch: v.optional(v.boolean()),
     sortKey: v.optional(v.union(v.literal("name"), v.literal("created_at"), v.literal("updated_at"))),
     sortBy: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     paginationOpts: paginationOptsValidator,
@@ -144,7 +157,8 @@ export const list = query({
     const access = await requireWorkspace(ctx, args.workspaceId);
     const project = args.projectId ? await requireProject(ctx, args.projectId) : null;
     if (project && project.workspace._id !== args.workspaceId) throw new ConvexError("Project not found.");
-    const search = (args.search ?? "").toLowerCase();
+    const search = text(args.search ?? "", "Search", 255).toLowerCase();
+    const readProject = projectReader(ctx, args.workspaceId, access.user._id);
     const index = {
       name: "by_workspace_name",
       created_at: "by_workspace",
@@ -162,11 +176,21 @@ export const list = query({
             : args.pageType && (document.archived || document.access !== args.pageType)
         )
           return false;
-        if (!(document.name.trim() ? document.name : "Untitled").toLowerCase().includes(search)) return false;
+        if (args.category && document.category !== args.category) return false;
+        let searchable = document.name.trim() || "Untitled";
+        if (args.contextualSearch) {
+          const projects = await Promise.all(document.projectIds.map(readProject));
+          searchable += ` ${document.category} ${projects.flatMap((row) => (row ? [row.project.name, row.project.identifier] : [])).join(" ")}`;
+        }
+        if (!searchable.toLowerCase().includes(search)) return false;
         return canAccessDocument(ctx, document, access.user._id, false, args.projectId);
       })
       .map(async (document) => {
-        const owner = await ctx.db.get(document.ownedBy);
+        const [owner, updatedBy, linkedProjects] = await Promise.all([
+          ctx.db.get(document.ownedBy),
+          ctx.db.get(document.updatedBy),
+          Promise.all(document.projectIds.map(readProject)),
+        ]);
         const membership = await ctx.db
           .query("workspaceMembers")
           .withIndex("by_workspace_user", (q) =>
@@ -175,6 +199,8 @@ export const list = query({
           .unique();
         return {
           document,
+          projects: linkedProjects.flatMap((row) => (row ? [projectSummary(row.project)] : [])),
+          updatedByName: updatedBy?.name ?? null,
           canManage: access.member.role !== "guest" && document.ownedBy === access.user._id,
           logo: renderedProjectLogo(document.logoProps),
           owner: {

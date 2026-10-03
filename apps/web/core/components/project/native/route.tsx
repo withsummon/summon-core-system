@@ -1,6 +1,6 @@
 import { useState, useContext, type ReactNode, type Dispatch, type SetStateAction } from "react";
 import { Outlet, useOutletContext, useLocation } from "react-router";
-import { NativeProjectCreateContext, type WorkspaceSession } from "@/app/native-workspace";
+import { NativeProjectCreateContext, type WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

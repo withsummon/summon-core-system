@@ -7,6 +7,8 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { requireDocument, canAccessDocument } from "../documents/access";
 import { resourceFields } from "./schema";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 
 async function requireLinks(
   ctx: QueryCtx,
@@ -135,25 +137,32 @@ export const remove = mutation({
   },
 });
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
+    if (args.projectId) {
+      const { project } = await requireProject(ctx, args.projectId);
+      if (project.workspaceId !== args.workspaceId) throw new ConvexError("Project belongs to another workspace.");
+    }
     if (
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
       args.paginationOpts.numItems < 1 ||
       args.paginationOpts.numItems > 100
     )
       throw new ConvexError("Choose 1–100 resources.");
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("resources")
       .withIndex("by_workspace_updated", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
       .order("desc")
-      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
-    const visible = await Promise.all(
-      result.page.map(async (resource) => {
+      .map(async (resource) => {
+        if (args.projectId && resource.projectId !== args.projectId) return null;
         const projectId = resource.projectId;
+        const project = projectId ? await ctx.db.get(projectId) : null;
         if (projectId) {
-          const project = await ctx.db.get(projectId);
           const member = await ctx.db
             .query("projectMembers")
             .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", user._id))
@@ -168,10 +177,13 @@ export const list = query({
           const client = await ctx.db.get(resource.clientId);
           if (!client || client.deleted) return null;
         }
-        return resourceProjection(ctx, resource, user._id);
+        const updatedBy = await ctx.db.get(resource.updatedBy);
+        return Object.assign(await resourceProjection(ctx, resource, user._id), {
+          projectName: project?.name ?? null,
+          updatedByName: updatedBy?.name ?? null,
+        });
       })
-    );
-    return { ...result, page: visible.filter((resource) => resource !== null) };
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1_048_576 });
   },
 });
 

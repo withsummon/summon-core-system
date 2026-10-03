@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
+import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 import { Button } from "@plane/propel/button";
 import { shouldSubmitAssistantComposer } from "@/app/(all)/[workspaceSlug]/(projects)/summon/assistant/composer-keyboard.js";
 import { DeleteRecord, mutationMessage } from "../commercial/forms";
@@ -15,7 +16,9 @@ export function Conversation({
   workspaceId,
   onRemoved,
   canWrite,
+  workspaceSlug,
 }: {
+  workspaceSlug: string;
   conversationId: string;
   workspaceId: Id<"workspaces">;
   onRemoved: () => void;
@@ -26,14 +29,22 @@ export function Conversation({
     throw new Error("Conversation belongs to another workspace.");
   if (!conversation) return <p role="status">Opening conversation…</p>;
   return (
-    <ConversationContent key={conversation._id} conversation={conversation} onRemoved={onRemoved} canWrite={canWrite} />
+    <ConversationContent
+      key={conversation._id}
+      conversation={conversation}
+      onRemoved={onRemoved}
+      canWrite={canWrite}
+      workspaceSlug={workspaceSlug}
+    />
   );
 }
 function ConversationContent({
   conversation,
   onRemoved,
   canWrite,
+  workspaceSlug,
 }: {
+  workspaceSlug: string;
   conversation: Doc<"assistantConversations">;
   onRemoved: () => void;
   canWrite: boolean;
@@ -103,7 +114,7 @@ function ConversationContent({
       {canWrite && (
         <>
           <Composer conversation={conversation} />
-          <ConversationActions conversation={conversation} />
+          <ConversationActions conversation={conversation} workspaceSlug={workspaceSlug} />
         </>
       )}
     </section>
@@ -120,7 +131,9 @@ function Message({ message }: { message: Doc<"assistantMessages"> }) {
           <span role={message.status === "streaming" ? "status" : undefined}>{message.status}</span>
         )}
       </div>
-      <div className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.content}</div>
+      <div className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+        {message.role === "assistant" ? <MarkdownRenderer markdown={message.content} /> : message.content}
+      </div>
       {message.error && (
         <p role="alert" className="text-sm mt-3 text-danger-primary">
           {message.error}
@@ -265,4 +278,25 @@ function Composer({ conversation }: { conversation: Doc<"assistantConversations"
       )}
     </form>
   );
+}
+
+export class ConversationBoundary extends Component<{ children: ReactNode; onBack: () => void }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">This conversation is unavailable</h2>
+        <p role="alert" className="text-sm text-secondary">
+          It may have been removed, or access to its sources may have changed.
+        </p>
+        <Button variant="secondary" onClick={this.props.onBack}>
+          Back to conversations
+        </Button>
+      </section>
+    );
+  }
 }

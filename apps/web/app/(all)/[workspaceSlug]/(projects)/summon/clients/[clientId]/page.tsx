@@ -14,7 +14,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { memberLabel } from "@summon/convex/member-label";
 import { generateWorkItemLink } from "@plane/utils";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { ClientForm } from "@/components/convex-core/commercial/client-form";
 import Link from "next/link";
 import {

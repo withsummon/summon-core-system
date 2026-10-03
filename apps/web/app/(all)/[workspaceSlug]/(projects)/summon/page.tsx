@@ -4,13 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { PageHead } from "@/components/core/page-title";
 import { HomeRoot } from "@/components/summon/home";
-import type { Route } from "./+types/page";
 
-function SummonOverviewPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug } = params;
-  return <HomeRoot workspaceSlug={workspaceSlug} />;
+export default function SummonOverviewPage() {
+  return (
+    <>
+      <PageHead title="Home · Summon Core" />
+      <HomeRoot />
+    </>
+  );
 }
-
-export default observer(SummonOverviewPage);

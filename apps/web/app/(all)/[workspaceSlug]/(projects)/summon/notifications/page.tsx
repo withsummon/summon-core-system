@@ -3,13 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import { observer } from "mobx-react";
 import { NotificationsRoot } from "@/components/summon/notifications";
-import type { Route } from "./+types/page";
 
-function SummonNotificationsPage({ params }: Route.ComponentProps) {
-  const workspaceSlug = params.workspaceSlug;
-  return <NotificationsRoot workspaceSlug={workspaceSlug} />;
+export default function SummonNotificationsPage() {
+  return <NotificationsRoot />;
 }
-
-export default observer(SummonNotificationsPage);

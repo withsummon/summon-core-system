@@ -12,7 +12,7 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { priority as prioritySchema } from "@summon/convex/task-schema";
 import { memberLabel } from "@summon/convex/member-label";
-import { NativeTaskCreateContext, type WorkspaceSession } from "@/app/native-workspace";
+import { NativeTaskCreateContext, type WorkspaceSession } from "@/components/workspace/native-shell/session";
 import Link from "next/link";
 import {
   AlertCircle,

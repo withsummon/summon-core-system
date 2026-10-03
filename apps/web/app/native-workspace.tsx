@@ -1,5 +1,5 @@
 import { Outlet, Link, useParams } from "react-router";
-import { createContext, lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import type { ComponentProps } from "react";
@@ -8,25 +8,19 @@ import { NativeCreateProjectModal } from "@/components/project/create-project-mo
 import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 import { NativeStickiesProvider } from "@/components/stickies/native/provider";
 import { NativeStickiesModal } from "@/components/stickies/native/surfaces";
-import type { NativeProfile, NativeWorkspace } from "@/components/workspace/native-shell/types";
+import {
+  NativeTaskActionContext,
+  NativeProjectCreateContext,
+  NativeTaskCreateContext,
+} from "@/components/workspace/native-shell/session";
+import type { NativeWorkspace, WorkspaceSession } from "@/components/workspace/native-shell/session";
 
-export type WorkspaceSession = {
-  user: NativeProfile;
-  workspace: NativeWorkspace;
-  workspaces: NativeWorkspace[];
-};
 const TaskActionComposer = lazy(() =>
   import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.TaskActionComposer }))
 );
 const CreateWorkspaceIssue = lazy(() =>
   import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.CreateWorkspaceIssue }))
 );
-export const NativeTaskActionContext = createContext<((taskId: Id<"tasks">, kind: "edit" | "copy") => void) | null>(
-  null
-);
-export const NativeProjectCreateContext = createContext<(() => void) | null>(null);
-export const NativeTaskCreateContext = createContext<(() => void) | null>(null);
-
 export default function NativeWorkspaceLayout() {
   const { workspaceSlug } = useParams();
   return (

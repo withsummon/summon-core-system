@@ -33,7 +33,7 @@ const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
 
 export const list = query({
-  args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
+  args: { projectId: v.id("projects"), openOnly: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { user } = await requireProject(ctx, args.projectId);
     if (
@@ -47,7 +47,12 @@ export const list = query({
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .order("desc")
       .map(async (task) => {
-        if (!taskIsActive(task) || !(await taskCanRead(ctx, task, user._id))) return null;
+        if (
+          !taskIsActive(task) ||
+          (args.openOnly && (task.status === "done" || task.status === "cancelled")) ||
+          !(await taskCanRead(ctx, task, user._id))
+        )
+          return null;
         return taskDetail(ctx, task);
       })
       .paginate({

@@ -5,15 +5,16 @@
  */
 
 import React from "react";
-import type { ISummonResourceLink } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { ResourceIcon } from "./resource-icon";
 
 interface IRecentFilesCardProps {
-  resources: ISummonResourceLink[];
+  resources: FunctionReturnType<typeof api.resources.index.list>["page"];
   onSelectCategory?: (category: string) => void;
 }
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: number): string {
   try {
     const date = new Date(dateString);
     const now = new Date();
@@ -51,7 +52,7 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
         {recentFiles.length > 0 ? (
           recentFiles.map((file) => (
             <a
-              key={file.id}
+              key={file._id}
               href={file.url}
               target="_blank"
               rel="noreferrer"
@@ -62,7 +63,7 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
                 <h4 className="text-xs truncate font-semibold text-primary group-hover:text-accent-primary">
                   {file.title}
                 </h4>
-                <p className="mt-0.5 text-[10px] text-tertiary">{formatRelativeTime(file.updated_at)}</p>
+                <p className="mt-0.5 text-[10px] text-tertiary">{formatRelativeTime(file.updatedAt)}</p>
               </div>
             </a>
           ))

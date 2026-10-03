@@ -4,13 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import type { ISummonReportFilters } from "@plane/types";
-
 export type TReportFilterParam = "project_id" | "client_id" | "date_from" | "date_to";
 
 export const percentage = (value: number, total: number) => (total > 0 ? Math.round((value / total) * 100) : 0);
 
-export function readReportFilters(searchParams: URLSearchParams): ISummonReportFilters {
+export function readReportFilters(searchParams: URLSearchParams) {
   return {
     projectId: searchParams.get("project_id") || undefined,
     clientId: searchParams.get("client_id") || undefined,
@@ -25,16 +23,6 @@ export function updateReportFilter(searchParams: URLSearchParams, name: TReportF
   else next.delete(name);
   return next;
 }
-
-export const reportRequestKey = (workspaceSlug: string, filters: ISummonReportFilters) =>
-  [
-    "summon-report",
-    workspaceSlug,
-    filters.projectId ?? "",
-    filters.clientId ?? "",
-    filters.dateFrom ?? "",
-    filters.dateTo ?? "",
-  ] as const;
 
 export function reportLabel(value: string) {
   if (value === "not_assessed") return "Belum dinilai";

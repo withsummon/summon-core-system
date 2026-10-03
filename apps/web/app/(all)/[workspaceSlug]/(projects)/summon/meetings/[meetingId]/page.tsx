@@ -10,7 +10,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { Button } from "@plane/propel/button";
 import { Dialog } from "@plane/propel/dialog";
 import { MeetingDetailWorkspace } from "@/components/summon/meetings/meeting-detail-workspace";

@@ -19,44 +19,47 @@ import {
   ShieldCheck,
   Plus,
 } from "lucide-react";
-import { projectHealthLabel, projectHealthTone } from "./project-workspace";
 import { Select } from "@plane/propel/select";
 
-export type PortfolioProject = { id: string; name: string; identifier: string; health: string; completion: number };
-type Props = { workspaceSlug: string; allProjects: PortfolioProject[]; onCreateProject: () => void };
+import type { Doc } from "@summon/convex/data-model";
+import { projectHealth } from "@summon/convex/commercial-schema";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+type Props = {
+  workspaceSlug: string;
+  allProjects: FunctionReturnType<typeof api.projects.index.list>;
+  progress: FunctionReturnType<typeof api.reporting.tasks.page>["contribution"]["projects"];
+  totalsReady: boolean;
+  onCreateProject: (() => void) | null;
+};
 
-const getHealthBadge = (health: string) => {
-  const h = health.toLowerCase();
-  if (h.includes("good") || h.includes("on_track")) {
-    return (
-      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-        <CheckCircle className="size-3" />
-        On Track
-      </span>
-    );
-  }
-  if (h.includes("risk") || h.includes("delayed")) {
-    return (
-      <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-        <AlertCircle className="size-3" />
-        At Risk
-      </span>
-    );
-  }
-  const tone = projectHealthTone(health);
+const healthLabels = {
+  not_assessed: {
+    label: "Belum dinilai",
+    icon: Clock,
+    className: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+  },
+  on_track: {
+    label: "On Track",
+    icon: CheckCircle,
+    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  at_risk: { label: "At Risk", icon: AlertCircle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  off_track: { label: "Off Track", icon: AlertCircle, className: "bg-danger-subtle text-danger-primary" },
+} satisfies Record<Doc<"projectProfiles">["health"], { label: string; icon: typeof Clock; className: string }>;
+const getHealthBadge = (health: Doc<"projectProfiles">["health"]) => {
+  const { label, icon: Icon, className } = healthLabels[health];
   return (
-    <span
-      className={`${tone === "neutral" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"} inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold`}
-    >
-      <Clock className="size-3" />
-      {projectHealthLabel(health)}
+    <span className={`${className} inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold`}>
+      <Icon className="size-3" />
+      {label}
     </span>
   );
 };
 
-export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject }: Props) {
+export function ProjectsPortfolio({ workspaceSlug, allProjects, progress, totalsReady, onCreateProject }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [healthFilter, setHealthFilter] = useState("all");
+  const [healthFilter, setHealthFilter] = useState<Doc<"projectProfiles">["health"] | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const projects = useMemo(() => {
     let list = [...allProjects];
@@ -67,17 +70,21 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
     }
 
     if (healthFilter !== "all") {
-      list = list.filter((p) => p.health === healthFilter);
+      list = list.filter((p) => (p.profile?.health ?? "not_assessed") === healthFilter);
     }
 
     return list;
   }, [allProjects, searchQuery, healthFilter]);
 
-  const onTrackCount = allProjects.filter((p) => p.health === "on_track" || p.health === "good").length;
-  const atRiskCount = allProjects.filter((p) => p.health === "at_risk" || p.health === "delayed").length;
+  const completion = (id: string) =>
+    progress[id]?.total ? Math.round((progress[id].completed * 100) / progress[id].total) : 0;
+  const onTrackCount = allProjects.filter((p) => (p.profile?.health ?? "not_assessed") === "on_track").length;
+  const atRiskCount = allProjects.filter(
+    (p) => p.profile?.health === "at_risk" || p.profile?.health === "off_track"
+  ).length;
   const avgCompletion =
     allProjects.length > 0
-      ? Math.round(allProjects.reduce((acc, p) => acc + (p.completion || 0), 0) / allProjects.length)
+      ? Math.round(allProjects.reduce((acc, p) => acc + completion(p._id), 0) / allProjects.length)
       : 0;
 
   return (
@@ -94,7 +101,8 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
         <div className="flex items-center gap-2.5">
           <button
             type="button"
-            onClick={onCreateProject}
+            disabled={!onCreateProject}
+            onClick={() => onCreateProject?.()}
             className="text-xs shadow-xs flex items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 py-2 font-bold text-white hover:bg-accent-primary/90"
           >
             <Plus className="size-3.5" />
@@ -154,7 +162,9 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-primary">{avgCompletion}%</div>
+            <div className="text-2xl font-bold tracking-tight text-primary">
+              {totalsReady ? `${avgCompletion}%` : "…"}
+            </div>
             <div className="mt-1 text-[11px] font-medium text-tertiary">Across active portfolio</div>
           </div>
         </div>
@@ -168,6 +178,7 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search projects"
             placeholder="Search projects by name or identifier..."
             className="text-xs placeholder-tertiary shadow-xs focus:border-accent-primary w-full rounded-xl border border-subtle bg-surface-1 py-2 pr-4 pl-9 text-primary focus:outline-none"
           />
@@ -176,14 +187,14 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
         <div className="flex items-center gap-2.5">
           <Select
             value={healthFilter}
-            onValueChange={(value) => setHealthFilter(value)}
+            onValueChange={(value) => {
+              const health = projectHealth.members.find((entry) => entry.value === value);
+              if (value === "all" || health) setHealthFilter(health?.value ?? "all");
+            }}
             className="w-auto min-w-40"
             options={[
               { value: "all", label: "All Health Status" },
-              { value: "not_assessed", label: "Belum dinilai" },
-              { value: "on_track", label: "On Track" },
-              { value: "at_risk", label: "At Risk" },
-              { value: "off_track", label: "Off Track" },
+              ...projectHealth.members.map(({ value }) => ({ value, label: healthLabels[value].label })),
             ]}
           />
 
@@ -194,7 +205,8 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
               className={`flex size-8 items-center justify-center rounded-lg transition-all ${
                 viewMode === "grid" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
               }`}
-              title="Grid View"
+              aria-label="Grid View"
+              aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="size-4" />
             </button>
@@ -204,7 +216,8 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
               className={`flex size-8 items-center justify-center rounded-lg transition-all ${
                 viewMode === "list" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
               }`}
-              title="List View"
+              aria-label="List View"
+              aria-pressed={viewMode === "list"}
             >
               <List className="size-4" />
             </button>
@@ -218,8 +231,8 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
           {projects.length > 0 ? (
             projects.map((project) => (
               <Link
-                key={project.id}
-                href={`/${workspaceSlug}/summon/projects/${project.id}/`}
+                key={project._id}
+                href={`/${workspaceSlug}/summon/projects/${project._id}/`}
                 className="group shadow-sm hover:border-accent-primary/40 hover:shadow-md flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-5 transition-all"
               >
                 <div>
@@ -235,19 +248,19 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
                         <span className="text-[11px] text-tertiary">Plane Project</span>
                       </div>
                     </div>
-                    {getHealthBadge(project.health)}
+                    {getHealthBadge(project.profile?.health ?? "not_assessed")}
                   </div>
                 </div>
 
                 <div className="mt-6 border-t border-subtle pt-4">
                   <div className="text-xs flex items-center justify-between font-medium text-secondary">
                     <span>Completion</span>
-                    <span className="font-bold text-primary">{project.completion}%</span>
+                    <span className="font-bold text-primary">{totalsReady ? `${completion(project._id)}%` : "…"}</span>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-layer-2">
                     <div
                       className="h-full rounded-full bg-accent-primary transition-all duration-500"
-                      style={{ width: `${Math.max(4, project.completion)}%` }}
+                      style={{ width: `${totalsReady ? completion(project._id) : 0}%` }}
                     />
                   </div>
                   <div className="mt-3 flex items-center justify-between text-[11px] font-semibold text-accent-primary">
@@ -278,24 +291,26 @@ export function ProjectsPortfolio({ workspaceSlug, allProjects, onCreateProject 
             <tbody className="divide-y divide-subtle">
               {projects.length > 0 ? (
                 projects.map((project) => (
-                  <tr key={project.id} className="group transition-colors hover:bg-layer-1">
+                  <tr key={project._id} className="group transition-colors hover:bg-layer-1">
                     <td className="px-5 py-3.5 font-bold text-accent-primary">{project.identifier}</td>
                     <td className="px-5 py-3.5 font-semibold text-primary">{project.name}</td>
-                    <td className="px-5 py-3.5">{getHealthBadge(project.health)}</td>
+                    <td className="px-5 py-3.5">{getHealthBadge(project.profile?.health ?? "not_assessed")}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex max-w-[160px] items-center gap-2">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-layer-2">
                           <div
                             className="h-full rounded-full bg-accent-primary"
-                            style={{ width: `${project.completion}%` }}
+                            style={{ width: `${totalsReady ? `${completion(project._id)}%` : "…"}` }}
                           />
                         </div>
-                        <span className="text-[11px] font-bold text-primary">{project.completion}%</span>
+                        <span className="text-[11px] font-bold text-primary">
+                          {totalsReady ? `${completion(project._id)}%` : "…"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link
-                        href={`/${workspaceSlug}/summon/projects/${project.id}/`}
+                        href={`/${workspaceSlug}/summon/projects/${project._id}/`}
                         className="inline-flex items-center gap-1 font-semibold text-accent-primary hover:underline"
                       >
                         View <ArrowRight className="size-3" />

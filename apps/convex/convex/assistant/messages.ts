@@ -3,6 +3,8 @@ import { internalMutation } from "../_generated/server";
 import { requireUser } from "../identity/access";
 import { requireConversation } from "./access";
 import { selectedAttachments } from "./attachments";
+import { conversationResult } from "../mcp/invocations";
+import { documentProposal } from "./actions";
 import { authorizedContext } from "./context";
 export const begin = internalMutation({
   args: {
@@ -52,10 +54,11 @@ export const begin = internalMutation({
       .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
       .order("desc")
       .take(101);
-    const sources = [
+    const availableSources = [
       ...selected,
-      ...historyFiles.slice(0, 100).filter((file) => file.messageId && !file.deleted && file.status === "ready"),
+      ...historyFiles.filter((file) => file.messageId && !file.deleted && file.status === "ready"),
     ];
+    const sources = availableSources.slice(0, 100);
     const context = await authorizedContext(
       ctx,
       conversation.workspaceId,
@@ -65,7 +68,8 @@ export const begin = internalMutation({
         citation: { kind: "attachment" as const, id: file._id, label: file.name },
       }))
     );
-    context.truncated ||= historyFiles.length > 100 || sources.some((file) => file.truncated);
+    context.truncated ||=
+      historyFiles.length > 100 || availableSources.length > 100 || sources.some((file) => file.truncated);
     if (conversation.activeMessageId) throw new ConvexError("A reply is already in progress.");
     const history = await ctx.db
       .query("assistantMessages")
@@ -93,15 +97,31 @@ export const begin = internalMutation({
       citations: selected.map((file) => ({ kind: "attachment" as const, id: file._id, label: file.name })),
     });
     await Promise.all(selected.map((file) => ctx.db.patch(file._id, { messageId: userMessageId })));
+    const proposal = await documentProposal(
+      ctx,
+      conversation,
+      args.content,
+      sources.map((file) => file._id)
+    );
     const messageId = await ctx.db.insert("assistantMessages", {
       ...shared,
       role: "assistant",
-      status: "streaming",
-      content: "",
+      status: proposal ? "completed" : "streaming",
+      content: proposal ?? "",
+      provider: proposal ? "summon-document-preview" : shared.provider,
     });
-    await ctx.db.patch(conversationId, { activeMessageId: messageId, lastActivityAt: Date.now() });
+    await ctx.db.patch(conversationId, { activeMessageId: proposal ? null : messageId, lastActivityAt: Date.now() });
+    const authorizedHistory = await Promise.all(
+      history.map(async (message) => {
+        if (message.mcpInvocationId) {
+          const result = await conversationResult(ctx, message.mcpInvocationId, conversationId, conversation.ownerId);
+          if (result) message.content = result;
+        }
+        return message;
+      })
+    );
     let remaining = 60000;
-    const messages = history
+    const messages = authorizedHistory
       .filter((m) => m.status === "completed")
       .filter((m) => {
         remaining -= m.content.length;
@@ -113,7 +133,7 @@ export const begin = internalMutation({
       .map((m) => ({ role: m.role, content: m.content }));
     return {
       messageId,
-      alreadyAccepted: false,
+      alreadyAccepted: Boolean(proposal),
       context: context.text,
       messages: [...messages, { role: "user" as const, content: args.content }],
     };

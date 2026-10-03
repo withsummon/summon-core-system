@@ -6,7 +6,7 @@
 
 import { useOutletContext } from "react-router";
 import { useTranslation } from "@plane/i18n";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
 import { Notifications } from "@/components/convex-core/notifications/notifications";
 import { useStickiesCommands } from "@/components/stickies/native/provider";

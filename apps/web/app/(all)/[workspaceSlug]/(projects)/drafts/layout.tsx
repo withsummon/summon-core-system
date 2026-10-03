@@ -10,7 +10,7 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";

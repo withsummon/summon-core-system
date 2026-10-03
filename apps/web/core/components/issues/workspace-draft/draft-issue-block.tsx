@@ -7,7 +7,7 @@ import { useContext } from "react";
 import type { ComponentProps } from "react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import { NativeTaskCreateContext } from "@/app/native-workspace";
+import { NativeTaskCreateContext } from "@/components/workspace/native-shell/session";
 import { SquareStackIcon } from "lucide-react";
 import { CopyIcon, EditIcon, TrashIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";

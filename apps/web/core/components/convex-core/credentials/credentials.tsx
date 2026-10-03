@@ -110,9 +110,9 @@ function CredentialDetail({
   if (!credential) return <p role="status">Loading credential…</p>;
   if (credential.workspaceId !== workspaceId) return <p role="alert">This credential belongs to another workspace.</p>;
   const manager = credential.canManage;
-  const canUse = credential.canUse;
+  const canUse = credential.canInvokeMcp;
   const canReveal = credential.canReveal;
-  if (editing && manager)
+  if (editing)
     return (
       <CredentialForm
         workspaceId={workspaceId}
@@ -190,7 +190,7 @@ function CredentialDetail({
           </div>
         </section>
       )}
-      {operation && (operation === "reveal" ? canReveal : manager) && (
+      {operation && { reveal: canReveal, rotate: manager, revoke: manager, delete: manager }[operation] && (
         <SensitiveOperation
           key={operation}
           credentialId={credential._id}

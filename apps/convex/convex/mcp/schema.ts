@@ -1,14 +1,31 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { z } from "zod/v4";
+import { convexToZod, zodToConvexFields } from "convex-helpers/server/zod4";
 export const operation = v.union(v.literal("reveal"), v.literal("rotate"), v.literal("revoke"), v.literal("delete"));
 export const permission = v.union(v.literal("view"), v.literal("use"), v.literal("manage"));
-export const credentialFields = {
-  name: v.string(),
-  accountIdentifier: v.string(),
-  projectId: v.union(v.id("projects"), v.null()),
-  remoteWorkspaceSlug: v.string(),
-  remoteProjectId: v.union(v.string(), v.null()),
-};
+const metadataText = z.string().trim().max(255);
+export const credentialInput = z.strictObject({
+  provider: z.string().trim().min(1).max(80).optional(),
+  metadata: z
+    .strictObject({
+      environment: metadataText,
+      description: z.string().trim().max(10000),
+      host: metadataText,
+      port: metadataText,
+      protocol: metadataText,
+      expiresAt: z.number().int().safe().nullable(),
+      tags: z.array(z.string().trim().min(1).max(80)).max(50),
+      risk: z.enum(["", "low", "high", "critical"]),
+    })
+    .optional(),
+  name: z.string().trim().min(1).max(255),
+  accountIdentifier: metadataText,
+  projectId: convexToZod(v.union(v.id("projects"), v.null())),
+  remoteWorkspaceSlug: metadataText,
+  remoteProjectId: z.string().trim().max(255).nullable(),
+});
+export const credentialFields = zodToConvexFields(credentialInput.shape);
 export const mcpTables = {
   mcpStepUps: defineTable({
     credentialId: v.id("mcpCredentials"),
@@ -48,8 +65,11 @@ export const mcpTables = {
     action: v.string(),
     invocationId: v.union(v.id("mcpInvocations"), v.null()),
     memberId: v.union(v.id("users"), v.null()),
-  }).index("by_credential", ["credentialId"]),
+  })
+    .index("by_credential", ["credentialId"])
+    .index("by_credential_action", ["credentialId", "action"]),
   mcpInvocations: defineTable({
+    conversationId: v.optional(v.id("assistantConversations")),
     workspaceId: v.id("workspaces"),
     credentialId: v.id("mcpCredentials"),
     requesterId: v.id("users"),

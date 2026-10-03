@@ -39,11 +39,11 @@ function requestBody(value: unknown) {
 export const reply = httpAction(async (ctx, request) => {
   if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers });
-  let config: ReturnType<typeof providerConfig>;
+  let config: ReturnType<typeof providerConfig> | null = null;
   try {
     config = providerConfig(process.env);
   } catch {
-    return new Response("Assistant provider is not configured.", { status: 503, headers });
+    // Deterministic document proposals do not require an LLM connection.
   }
   let body: ReturnType<typeof requestBody>;
   try {
@@ -57,8 +57,8 @@ export const reply = httpAction(async (ctx, request) => {
   try {
     started = await ctx.runMutation(internal.assistant.messages.begin, {
       ...body,
-      provider: config.provider,
-      model: config.model,
+      provider: config?.provider ?? "",
+      model: config?.model ?? "",
     });
   } catch {
     return new Response("Message could not be accepted. Check conversation access and active replies.", {
@@ -71,6 +71,10 @@ export const reply = httpAction(async (ctx, request) => {
       status: 200,
       headers: { ...headers, "Content-Type": "text/event-stream" },
     });
+  if (!config) {
+    await ctx.runMutation(internal.assistant.messages.fail, { messageId: started.messageId });
+    return new Response("Assistant provider is not configured.", { status: 503, headers });
+  }
   const messageId = started.messageId;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), config.timeout * 1000);

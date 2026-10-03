@@ -1,6 +1,9 @@
+import { api } from "../_generated/api";
+import { providerConfig } from "../assistant/provider";
+import { endpoint } from "../mcp/transport";
 import { workspaceName, workspaceSlug } from "./metadata";
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
 import { settingsFields } from "./schema";
 
@@ -73,5 +76,43 @@ export const slugAvailability = query({
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     return { available: !found || found._id === args.workspaceId };
+  },
+});
+
+export const integrationStatus = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { member } = await requireWorkspace(ctx, args.workspaceId);
+    if (member.role !== "admin") throw new ConvexError("Only workspace administrators can view integration settings.");
+    let ai: Pick<ReturnType<typeof providerConfig>, "provider" | "model"> | null = null;
+    try {
+      const { provider, model } = providerConfig(process.env);
+      ai = { provider, model };
+    } catch {
+      /* Invalid or absent provider configuration is unavailable. */
+    }
+    let mcpOrigin: string | null = null;
+    try {
+      mcpOrigin = new URL(endpoint()).origin;
+    } catch {
+      /* Never expose provider credentials, paths or query parameters. */
+    }
+    return { ai, mcpOrigin };
+  },
+});
+export const checkMcp = action({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args): Promise<{ reached: boolean; status: number | null }> => {
+    const settings = await ctx.runQuery(api.settings.index.metadata, args);
+    if (!settings.canManage) throw new ConvexError("Only workspace administrators can check integrations.");
+    const url = endpoint();
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(3000), redirect: "error" });
+      const status = response.status;
+      await response.body?.cancel();
+      return { reached: true, status };
+    } catch {
+      return { reached: false, status: null };
+    }
   },
 });

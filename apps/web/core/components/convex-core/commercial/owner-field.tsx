@@ -10,10 +10,14 @@ export function OwnerField({
   workspaceId,
   value,
   onChange,
+  label = "Owner",
+  disabled = false,
 }: {
   workspaceId: Id<"workspaces">;
   value: Id<"users"> | null;
   onChange: (value: Id<"users"> | null) => void;
+  label?: string;
+  disabled?: boolean;
 }) {
   const fieldId = useId();
   const { results, status, loadMore } = usePaginatedQuery(
@@ -23,11 +27,12 @@ export function OwnerField({
   );
   return (
     <div className="space-y-2">
-      <SummonField label="Owner" htmlFor={fieldId}>
+      <SummonField label={label} htmlFor={fieldId}>
         <select
           id={fieldId}
           className={selectClass}
           value={value ?? ""}
+          disabled={disabled}
           onChange={(event) => {
             if (!event.target.value) onChange(null);
             else {
@@ -46,7 +51,7 @@ export function OwnerField({
         </select>
       </SummonField>
       {status === "CanLoadMore" && (
-        <Button variant="secondary" onClick={() => loadMore(50)}>
+        <Button variant="secondary" disabled={disabled} onClick={() => loadMore(50)}>
           Load more owners
         </Button>
       )}

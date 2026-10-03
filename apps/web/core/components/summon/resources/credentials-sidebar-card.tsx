@@ -7,10 +7,11 @@
 import React from "react";
 import Link from "next/link";
 import { Lock, Cloud, Key, Shield } from "lucide-react";
-import type { ISummonCredential } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 
 interface ICredentialsSidebarCardProps {
-  credentials: ISummonCredential[];
+  credentials: FunctionReturnType<typeof api.mcp.credentials.list>["page"];
   workspaceSlug?: string;
 }
 
@@ -35,7 +36,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
 
             return (
               <div
-                key={cred.id}
+                key={cred._id}
                 className="text-xs flex items-center justify-between rounded-xl border border-subtle bg-layer-1 p-2.5 transition-colors hover:bg-layer-2"
               >
                 <div className="flex items-center gap-2.5 truncate">
@@ -58,9 +59,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
                   </div>
                   <div className="min-w-0 truncate">
                     <div className="truncate font-semibold text-primary">{cred.name}</div>
-                    <div className="truncate text-[10px] text-tertiary">
-                      {cred.account_identifier || cred.provider || "Authorized"}
-                    </div>
+                    <div className="truncate text-[10px] text-tertiary">{cred.accountIdentifier || "Authorized"}</div>
                   </div>
                 </div>
 

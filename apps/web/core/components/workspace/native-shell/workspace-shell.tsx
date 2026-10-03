@@ -47,7 +47,7 @@ import { SettingsMobileNav } from "@/components/settings/mobile/nav";
 import { WorkspaceSettingsSidebarView } from "@/components/settings/workspace/sidebar/root";
 import { WorkspaceSettingsSidebarHeaderView } from "@/components/settings/workspace/sidebar/header";
 import { WorkspaceSettingsSidebarItemCategoriesView } from "@/components/settings/workspace/sidebar/item-categories";
-import type { NativeWorkspace, NativeProfile } from "./types";
+import type { NativeWorkspace, NativeProfile } from "./session";
 
 const workspaceRoles = {
   admin: EUserWorkspaceRoles.ADMIN,

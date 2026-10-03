@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { requireWorkspace, requireProject } from "../identity/access";
 import { createProject } from "../projects/create";
 import { requireOpportunity } from "./opportunities";
-import { requireClient, parseProfile, validateClient } from "./validation";
+import { requireClient, parseProfile, validateClient, newProjectProfile } from "./validation";
 import { profileFields } from "./schema";
 
 // Both handoff paths and profile edits require project-admin authority, never workspace-admin bypass.
@@ -68,14 +68,9 @@ export const start = mutation({
     const profileId = await ctx.db.insert("projectProfiles", {
       workspaceId: args.workspaceId,
       projectId,
+      ...newProjectProfile,
       clientId: opportunity.clientId,
       sourceOpportunityId: opportunity._id,
-      deliveryStatus: "not_assessed",
-      phase: "",
-      health: "not_assessed",
-      startDate: null,
-      targetDate: null,
-      budget: null,
       createdBy: user._id,
       updatedBy: user._id,
       updatedAt: Date.now(),
@@ -95,7 +90,11 @@ export const getProfile = query({
   },
 });
 export const saveProfile = mutation({
-  args: { projectId: v.id("projects"), data: v.object(profileFields) },
+  args: {
+    projectId: v.id("projects"),
+    expectedUpdatedAt: v.union(v.number(), v.null()),
+    data: v.object(profileFields),
+  },
   handler: async (ctx, args) => {
     const access = await requireDeliveryAdministrator(ctx, args.projectId);
     const data = parseProfile(args.data);
@@ -104,9 +103,15 @@ export const saveProfile = mutation({
       .query("projectProfiles")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .unique();
+    if ((profile?.updatedAt ?? null) !== args.expectedUpdatedAt)
+      throw new ConvexError("This project profile changed. Reopen it before saving.");
     if (profile?.sourceOpportunityId && profile.clientId !== data.clientId)
       throw new ConvexError("Client must match the source opportunity's client.");
-    const updated = { ...data, updatedBy: access.user._id, updatedAt: Date.now() };
+    const updated = {
+      ...data,
+      updatedBy: access.user._id,
+      updatedAt: Math.max(Date.now(), (profile?.updatedAt ?? 0) + 1),
+    };
     if (profile) {
       await ctx.db.patch(profile._id, updated);
       return profile._id;

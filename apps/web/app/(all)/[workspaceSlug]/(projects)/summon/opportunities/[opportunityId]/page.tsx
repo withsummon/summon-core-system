@@ -2,7 +2,7 @@ import { useOutletContext } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import { PageHead } from "@/components/core/page-title";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { OpportunityInspector } from "@/components/summon/opportunities/opportunity-inspector";
 import { opportunitiesHref } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
