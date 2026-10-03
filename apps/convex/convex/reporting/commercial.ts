@@ -62,9 +62,11 @@ export const clients = query({
       .query("clients")
       .withIndex("by_workspace_name", (q) => q.eq("workspaceId", scope.workspaceId).eq("deleted", false))
       .paginate(pageBudget(paginationOpts));
-    const count = result.page.filter(
-      (item) => !client.excluded && (!client.id || item._id === client.id) && inRange(item._creationTime, scope)
-    ).length;
-    return pageResult(result, { count });
+    const records = result.page
+      .filter(
+        (item) => !client.excluded && (!client.id || item._id === client.id) && inRange(item._creationTime, scope)
+      )
+      .map((item) => ({ id: item._id, name: item.name, status: item.status, createdAt: item._creationTime }));
+    return pageResult(result, { count: records.length, clients: records });
   },
 });

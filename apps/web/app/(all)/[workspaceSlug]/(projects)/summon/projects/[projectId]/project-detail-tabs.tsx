@@ -1,19 +1,16 @@
+import { useEffect } from "react";
+import { useOutletContext } from "react-router";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import Link from "next/link";
-import { ArrowUpRight, Download, FileText } from "lucide-react";
-import type { ISummonProjectOverview } from "@plane/types";
-import { filterProjectResources } from "@/components/summon/projects/project-workspace";
+import { useConvex } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
+import { ArrowUpRight, FileText } from "lucide-react";
+import { FileAttachmentDownload } from "@/components/convex-core/tasks/attachments/download";
+import { summarizeTaskProgress } from "@/components/convex-core/tasks/progress/summary";
 
-export type TProjectTab =
-  | "overview"
-  | "tasks"
-  | "milestones"
-  | "documents"
-  | "repositories"
-  | "deployments"
-  | "activity"
-  | "files";
-
-export const PROJECT_TABS: Array<{ id: TProjectTab; label: string }> = [
+export const PROJECT_TABS = [
   { id: "overview", label: "Overview" },
   { id: "tasks", label: "Tasks" },
   { id: "milestones", label: "Milestones" },
@@ -22,117 +19,198 @@ export const PROJECT_TABS: Array<{ id: TProjectTab; label: string }> = [
   { id: "deployments", label: "Deployments" },
   { id: "activity", label: "Activity" },
   { id: "files", label: "Files" },
-];
-
-const formatDate = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
-    : "Not set";
-
+] as const;
+export type TProjectTab = (typeof PROJECT_TABS)[number]["id"];
 export function ProjectDetailTab(props: {
   tab: Exclude<TProjectTab, "overview">;
-  overview: ISummonProjectOverview;
   workspaceSlug: string;
-  projectId: string;
+  projectId: Id<"projects">;
 }) {
-  const { tab, overview, workspaceSlug, projectId } = props;
-  if (tab === "tasks") {
-    return (
-      <TabPanel title="Tasks" manageHref={`/${workspaceSlug}/projects/${projectId}/issues/`}>
-        {overview.issues.map((issue) => (
-          <Row
-            key={issue.id}
-            href={`/${workspaceSlug}/projects/${projectId}/issues/${issue.id}/`}
-            title={`${issue.project.identifier}-${issue.sequence_id} · ${issue.name}`}
-            detail={issue.state?.name || "State not set"}
-            badge={issue.completed ? "Completed" : "Open"}
-          />
-        ))}
-        {!overview.issues.length && <Empty text="No tasks yet." />}
-      </TabPanel>
-    );
-  }
-  if (tab === "milestones") {
-    return (
-      <TabPanel title="Milestones" manageHref={`/${workspaceSlug}/projects/${projectId}/modules/`}>
-        {overview.milestones.map((item) => (
-          <Row
-            key={item.id}
-            href={item.href}
-            title={item.name}
-            detail={`Target ${formatDate(item.target_date)}`}
-            badge={`${item.completion}%`}
-          />
-        ))}
-        {!overview.milestones.length && <Empty text="No modules or cycles yet." />}
-      </TabPanel>
-    );
-  }
-  if (tab === "documents") {
-    return (
-      <TabPanel title="Documents" manageHref={`/${workspaceSlug}/projects/${projectId}/pages/`}>
-        {overview.pages.map((page) => (
-          <Row key={page.id} href={page.href} title={page.name} detail="Plane page" />
-        ))}
-        {!overview.pages.length && <Empty text="No project documents yet." />}
-      </TabPanel>
-    );
-  }
-  if (tab === "repositories" || tab === "deployments") {
-    const category = tab === "repositories" ? "repository" : "deployment";
-    const resources = filterProjectResources(overview.resources, category);
-    return (
-      <TabPanel
-        title={tab === "repositories" ? "Repositories" : "Deployments"}
-        manageHref={`/${workspaceSlug}/summon/resources/`}
-      >
-        {resources.map((resource) => (
-          <ExternalRow
-            key={resource.id}
-            href={resource.url}
-            title={resource.title}
-            detail={resource.description || resource.category}
-          />
-        ))}
-        {!resources.length && <Empty text={`No ${tab} linked to this project.`} />}
-      </TabPanel>
-    );
-  }
-  if (tab === "activity") {
-    return (
-      <TabPanel title="Activity">
-        {overview.activity.map((item) => (
-          <Row key={item.id} href={item.href} title={item.label} detail={formatDate(item.created_at)} />
-        ))}
-        {!overview.activity.length && <Empty text="No recent project activity." />}
-      </TabPanel>
-    );
-  }
+  if (props.tab === "tasks") return <Tasks {...props} />;
+  if (props.tab === "milestones") return <Milestones {...props} />;
+  if (props.tab === "documents") return <Documents {...props} />;
+  if (props.tab === "repositories" || props.tab === "deployments")
+    return <Resources {...props} category={props.tab === "repositories" ? "repository" : "deployment"} />;
+  if (props.tab === "activity") return <Activity {...props} />;
+  return <Files {...props} />;
+}
+type Address = { workspaceSlug: string; projectId: Id<"projects"> };
+function Tasks({ workspaceSlug, projectId }: Address) {
+  const page = usePaginatedQuery(api.tasks.index.list, { projectId }, { initialNumItems: 50 });
   return (
-    <TabPanel title="Files">
-      {overview.files.map((file) => (
+    <TabPanel title="Tasks" manageHref={`/${workspaceSlug}/projects/${projectId}/issues/`}>
+      {page.results.map((task) => (
+        <Row
+          key={task._id}
+          href={`/${workspaceSlug}/projects/${projectId}/issues/${task._id}/`}
+          title={task.title}
+          detail={task.status}
+          badge={task.completedAt === null ? "Open" : "Completed"}
+        />
+      ))}
+      <PageState {...page} label="tasks" />
+    </TabPanel>
+  );
+}
+function Milestones({ workspaceSlug, projectId }: Address) {
+  const modules = usePaginatedQuery(api.modules.index.list, { projectId, deleted: false }, { initialNumItems: 50 });
+  const cycles = usePaginatedQuery(api.cycles.index.list, { projectId, deleted: false }, { initialNumItems: 50 });
+  return (
+    <TabPanel title="Milestones" manageHref={`/${workspaceSlug}/projects/${projectId}/modules/`}>
+      {modules.results
+        .filter((row) => !row.archived)
+        .map((row) => (
+          <Row
+            key={row._id}
+            href={`/${workspaceSlug}/projects/${projectId}/modules/${row._id}/`}
+            title={row.name}
+            detail={`Target ${row.targetDate || "Not set"}`}
+            badge={<MilestoneCompletion moduleId={row._id} />}
+          />
+        ))}
+      {cycles.results
+        .filter((row) => !row.archived)
+        .map((row) => (
+          <Row
+            key={row._id}
+            href={`/${workspaceSlug}/projects/${projectId}/cycles/${row._id}/`}
+            title={row.name}
+            detail={`Target ${row.endDate || "Not set"}`}
+            badge={<MilestoneCompletion cycleId={row._id} />}
+          />
+        ))}
+      <PageState {...modules} label="modules" />
+      <PageState {...cycles} label="cycles" />
+    </TabPanel>
+  );
+}
+export function MilestoneCompletion({ moduleId, cycleId }: { moduleId?: Id<"modules">; cycleId?: Id<"cycles"> }) {
+  const modules = usePaginatedQuery(api.modules.progress.page, moduleId ? { moduleId } : "skip", {
+    initialNumItems: 20,
+  });
+  const cycles = usePaginatedQuery(api.cycles.progress.page, cycleId ? { cycleId } : "skip", { initialNumItems: 20 });
+  const page = moduleId ? modules : cycles;
+  const { status: pageStatus, loadMore: loadPage } = page;
+  useEffect(() => {
+    if (pageStatus === "CanLoadMore") loadPage(20);
+  }, [pageStatus, loadPage]);
+  const totals = summarizeTaskProgress(page.results);
+  return (
+    <>
+      {page.status === "Exhausted"
+        ? `${totals.count ? Math.round((totals.completed.count * 100) / totals.count) : 0}%`
+        : "…"}
+    </>
+  );
+}
+function Documents({ workspaceSlug, projectId }: Address) {
+  const { workspace } = useOutletContext<WorkspaceSession>();
+  const page = usePaginatedQuery(
+    api.documents.index.list,
+    { workspaceId: workspace._id, projectId },
+    { initialNumItems: 50 }
+  );
+  return (
+    <TabPanel title="Documents" manageHref={`/${workspaceSlug}/projects/${projectId}/pages/`}>
+      {page.results.map(({ document }) => (
+        <Row
+          key={document._id}
+          href={`/${workspaceSlug}/projects/${projectId}/pages/${document._id}/`}
+          title={document.name || "Untitled Document"}
+          detail="Plane page"
+        />
+      ))}
+      <PageState {...page} label="documents" />
+    </TabPanel>
+  );
+}
+function Resources({ workspaceSlug, projectId, category }: Address & { category: string }) {
+  const page = usePaginatedQuery(api.reporting.overview.resources, { projectId }, { initialNumItems: 50 });
+  const { status: pageStatus, loadMore: loadPage } = page;
+  useEffect(() => {
+    if (pageStatus === "CanLoadMore") loadPage(50);
+  }, [pageStatus, loadPage]);
+  const resources = page.results.filter((row) => row.category === category);
+  return (
+    <TabPanel
+      title={category === "repository" ? "Repositories" : "Deployments"}
+      manageHref={`/${workspaceSlug}/summon/resources/`}
+    >
+      {resources.map((row) => (
         <a
-          key={file.id}
-          href={file.url}
-          download
+          key={row._id}
+          href={row.url}
+          target="_blank"
+          rel="noreferrer"
           className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0 hover:bg-layer-1"
         >
+          <span className="min-w-0 flex-1">
+            <strong className="text-xs block truncate font-medium text-primary">{row.title}</strong>
+            <small className="text-[10px] text-secondary">{row.description || row.category}</small>
+          </span>
+          <ArrowUpRight className="size-4 text-secondary" />
+        </a>
+      ))}
+      {page.status === "Exhausted" && !resources.length && (
+        <Empty text={`No ${category === "repository" ? "repositories" : "deployments"} linked to this project.`} />
+      )}
+      {page.status !== "Exhausted" && (
+        <p role="status" className="p-4">
+          Loading resources…
+        </p>
+      )}
+    </TabPanel>
+  );
+}
+function Activity({ workspaceSlug, projectId }: Address) {
+  const page = usePaginatedQuery(api.reporting.overview.activity, { projectId }, { initialNumItems: 50 });
+  return (
+    <TabPanel title="Activity">
+      {page.results.map((row) => (
+        <Row
+          key={row._id}
+          href={`/${workspaceSlug}/projects/${projectId}/issues/${row.taskId}/`}
+          title={`${row.title} · ${row.kind.replaceAll("_", " ")}`}
+          detail={new Date(row.at).toLocaleDateString()}
+        />
+      ))}
+      <PageState {...page} label="activity" />
+    </TabPanel>
+  );
+}
+function Files({ projectId }: Address) {
+  const page = usePaginatedQuery(api.reporting.overview.files, { projectId }, { initialNumItems: 50 });
+  const client = useConvex();
+  return (
+    <TabPanel title="Files">
+      {page.results.map((file) => (
+        <div key={file.id} className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0">
           <FileText className="size-4 shrink-0 text-accent-primary" />
           <span className="min-w-0 flex-1">
             <strong className="text-xs block truncate font-medium text-primary">{file.name}</strong>
             <small className="text-[10px] text-secondary">
-              {file.content_type || file.entity_type} · {formatBytes(file.size)} · {formatDate(file.created_at)}
+              {file.contentType} · {file.size} B · {new Date(file.createdAt).toLocaleDateString()}
             </small>
           </span>
-          <Download className="size-4 text-secondary" />
-        </a>
+          <FileAttachmentDownload
+            name={file.name}
+            resolveFile={() => client.query(api.assets.index.get, { assetId: file.id })}
+          />
+        </div>
       ))}
-      {!overview.files.length && <Empty text="No uploaded project files." />}
+      <PageState {...page} label="files" />
     </TabPanel>
   );
 }
-
-function TabPanel({ title, manageHref, children }: { title: string; manageHref?: string; children: React.ReactNode }) {
+export function TabPanel({
+  title,
+  manageHref,
+  children,
+}: {
+  title: string;
+  manageHref?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1">
       <header className="flex items-center justify-between border-b border-subtle px-4 py-3">
@@ -147,8 +225,17 @@ function TabPanel({ title, manageHref, children }: { title: string; manageHref?:
     </section>
   );
 }
-
-function Row({ href, title, detail, badge }: { href: string; title: string; detail: string; badge?: string }) {
+export function Row({
+  href,
+  title,
+  detail,
+  badge,
+}: {
+  href: string;
+  title: string;
+  detail: string;
+  badge?: React.ReactNode;
+}) {
   return (
     <Link
       href={href}
@@ -162,26 +249,32 @@ function Row({ href, title, detail, badge }: { href: string; title: string; deta
     </Link>
   );
 }
-
-function ExternalRow({ href, title, detail }: { href: string; title: string; detail: string }) {
+function PageState({
+  status,
+  results,
+  loadMore,
+  label,
+}: Pick<ReturnType<typeof usePaginatedQuery>, "status" | "results" | "loadMore"> & { label: string }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center gap-3 border-b border-subtle px-4 py-3 last:border-0 hover:bg-layer-1"
-    >
-      <span className="min-w-0 flex-1">
-        <strong className="text-xs block truncate font-medium text-primary">{title}</strong>
-        <small className="text-[10px] text-secondary">{detail}</small>
-      </span>
-      <ArrowUpRight className="size-4 text-secondary" />
-    </a>
+    <>
+      {status === "Exhausted" && !results.length && <Empty text={`No ${label} yet.`} />}
+      {(status === "LoadingFirstPage" || status === "LoadingMore") && (
+        <p role="status" className="p-4">
+          Loading {label}…
+        </p>
+      )}
+      {status === "CanLoadMore" && (
+        <button
+          type="button"
+          className="text-xs m-4 rounded-xl border border-subtle px-4 py-2"
+          onClick={() => loadMore(50)}
+        >
+          Load more {label}
+        </button>
+      )}
+    </>
   );
 }
-
 function Empty({ text }: { text: string }) {
   return <p className="text-xs p-10 text-center text-tertiary">{text}</p>;
 }
-
-const formatBytes = (size: number) => (size < 1024 ? `${size} B` : `${(size / 1024).toFixed(size < 10240 ? 1 : 0)} KB`);

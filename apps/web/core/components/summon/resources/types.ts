@@ -4,35 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { ISummonResourceLink, TSummonResourceType } from "@plane/types";
-
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 export type TResourceViewMode = "list" | "grid";
-
 export type TResourceSortOption = "recently_updated" | "name_asc" | "name_desc" | "project";
-
-export interface IResourceCategoryCount {
-  category: TSummonResourceType;
-  label: string;
-  count: number;
-  iconType: "document" | "repository" | "figma" | "deployment" | "drive" | "recording" | "account";
-  bgColor: string;
-  textColor: string;
-}
-
-export interface IResourceFilterState {
-  searchQuery: string;
-  selectedCategory: string;
-  selectedProject: string;
-  sortBy: TResourceSortOption;
-}
-
-export interface ICreateResourcePayload extends Record<string, unknown> {
-  title: string;
-  url: string;
-  category: string;
-  description?: string;
-  project?: string;
-  page?: string;
-  client?: string;
-  credential?: string;
-}
+export type ICreateResourcePayload = Omit<FunctionArgs<typeof api.resources.index.create>, "workspaceId">;

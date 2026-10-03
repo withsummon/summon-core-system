@@ -19,7 +19,7 @@ import { ProfileIssuesFilter, useProfileTaskControls } from "@/components/profil
 import type { ProfileSummary } from "@/components/profile/overview/stats";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import type { Route } from "./+types/layout";
 import { UserProfileHeader } from "./header";
 import { ProfileNavbar } from "./navbar";

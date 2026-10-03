@@ -28,6 +28,7 @@
     "**/build/**",
     "**/dist/**",
     "**/node_modules/**",
+    "apps/convex/convex/**/_generated/**",
     "**/out/**",
     "pnpm-lock.yaml",
     "**/storybook-static/**",

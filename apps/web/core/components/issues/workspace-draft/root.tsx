@@ -14,7 +14,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Dialog } from "@plane/propel/dialog";
 import { Button } from "@plane/propel/button";
 import { AlertModalCore, ModalCore } from "@plane/ui";
-import { NativeProjectCreateContext } from "@/app/native-workspace";
+import { NativeProjectCreateContext } from "@/components/workspace/native-shell/session";
 import type { WorkspaceDraftSession } from "@/app/(all)/[workspaceSlug]/(projects)/drafts/layout";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { LayoutErrorBoundary } from "@/components/common/layout-error-boundary";

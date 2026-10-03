@@ -7,7 +7,7 @@ import { api } from "@summon/convex/api";
 import { Command } from "cmdk";
 import { useTheme } from "next-themes";
 import { useTranslation } from "@plane/i18n";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import darkModulesAsset from "@/app/assets/empty-state/disabled-feature/modules-dark.webp?url";
 import lightModulesAsset from "@/app/assets/empty-state/disabled-feature/modules-light.webp?url";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";

@@ -6,11 +6,13 @@
 
 import React from "react";
 import { FileText, GitBranch, Globe, HardDrive, Video, Key } from "lucide-react";
-import type { ISummonResourceLink } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 
 interface ICategoryCardsRowProps {
-  resources: ISummonResourceLink[];
-  credentialCount: number;
+  resources: FunctionReturnType<typeof api.resources.index.list>["page"];
+  credentialCount: number | null;
+  loading: boolean;
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
 }
@@ -18,6 +20,7 @@ interface ICategoryCardsRowProps {
 export function CategoryCardsRow({
   resources,
   credentialCount,
+  loading,
   selectedCategory,
   onSelectCategory,
 }: ICategoryCardsRowProps) {
@@ -138,7 +141,7 @@ export function CategoryCardsRow({
               <div className="mt-3.5">
                 <div className="text-xs font-bold text-primary group-hover:text-accent-primary">{cat.label}</div>
                 <div className="mt-0.5 text-[11px] font-medium text-tertiary">
-                  {cat.count} {cat.count === 1 ? "item" : "items"}
+                  {loading || cat.count === null ? "Loading…" : `${cat.count} ${cat.count === 1 ? "item" : "items"}`}
                 </div>
               </div>
             </button>

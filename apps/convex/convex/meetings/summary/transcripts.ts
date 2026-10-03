@@ -22,17 +22,20 @@ export const get = query({
   args: sourceArgs,
   handler: async (ctx, args) => {
     const access = await requireMeeting(ctx, args.workspaceId, args.meetingId);
-    if (!access.meeting.projectId) return { available: false as const, reason: "project_required" as const };
+    if (!access.meeting.projectId)
+      return { available: false as const, reason: "project_required" as const, canGenerateDocument: false };
     let summary: Awaited<ReturnType<typeof summaryAccessForUser>>;
     try {
       summary = await summaryAccessForUser(ctx, args.workspaceId, args.meetingId, access.user);
     } catch (error) {
-      if (error instanceof ConvexError) return { available: false as const, reason: "document_unavailable" as const };
+      if (error instanceof ConvexError)
+        return { available: false as const, reason: "document_unavailable" as const, canGenerateDocument: false };
       throw error;
     }
     const { meeting, source, document, canWrite } = summary;
     return {
       available: true as const,
+      canGenerateDocument: await documentGenerationReady(ctx, summary),
       canReplaceSource: canWrite,
       canSummarize: canWrite && Boolean(source),
       meetingUpdatedAt: meeting.updatedAt,
@@ -136,3 +139,16 @@ export const prepare = internalQuery({
   args: saveArgs,
   handler: async (ctx, args) => prepareTranscript(ctx, args, await requireUser(ctx)),
 });
+
+export async function documentGenerationReady(
+  ctx: QueryCtx,
+  { meeting, source, document }: Awaited<ReturnType<typeof summaryAccessForUser>>
+) {
+  if (!source || !document) return false;
+  const latest = await ctx.db
+    .query("meetingTranscriptionRuns")
+    .withIndex("by_meeting", (q) => q.eq("input.meetingId", meeting._id))
+    .order("desc")
+    .first();
+  return !latest || !["queued", "running"].includes(latest.status);
+}

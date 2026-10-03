@@ -26,12 +26,19 @@ export const list = query({
         .filter((m) => m.active)
         .map(async (membership) => {
           const project = await ctx.db.get(membership.projectId);
-          return project
-            ? Object.assign(project, { membershipRole: membership.role, workspaceRole: member.role })
-            : null;
+          if (!project || project.archived || project.deletedAt != null) return null;
+          const profile = await ctx.db
+            .query("projectProfiles")
+            .withIndex("by_project", (q) => q.eq("projectId", project._id))
+            .unique();
+          return Object.assign(project, {
+            membershipRole: membership.role,
+            workspaceRole: member.role,
+            profile: profile && !profile.deleted ? profile : null,
+          });
         })
     );
-    return projects.filter((p) => p !== null).filter((p) => !p.archived && p.deletedAt == null);
+    return projects.filter((p) => p !== null);
   },
 });
 export const create = mutation({

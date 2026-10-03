@@ -31,7 +31,7 @@ import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-import type { WorkspaceSession } from "./native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 
 export default function NativeWorkspaceViewDetail() {
   const session = useOutletContext<WorkspaceSession>();

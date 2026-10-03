@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
@@ -7,8 +8,10 @@ import { SummonField } from "@/components/summon/forms";
 import { mutationMessage } from "../commercial/forms";
 export function CredentialInvocations({
   credential,
+  conversationId,
 }: {
   credential: FunctionReturnType<typeof api.mcp.credentials.get>;
+  conversationId?: Id<"assistantConversations">;
 }) {
   const capabilities = useQuery(api.mcp.invocations.capabilities, { credentialId: credential._id });
   const requests = usePaginatedQuery(
@@ -30,7 +33,13 @@ export function CredentialInvocations({
           setPending(true);
           setError("");
           try {
-            await propose({ credentialId: credential._id, requestId: crypto.randomUUID(), tool, argumentsJson });
+            await propose({
+              conversationId,
+              credentialId: credential._id,
+              requestId: crypto.randomUUID(),
+              tool,
+              argumentsJson,
+            });
           } catch (failure) {
             setError(mutationMessage(failure));
           } finally {

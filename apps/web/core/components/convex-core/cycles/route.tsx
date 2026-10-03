@@ -6,7 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { Command } from "cmdk";
 import { useTranslation } from "@plane/i18n";
 import { api } from "@summon/convex/api";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { ContentWrapper } from "@/components/core/content-wrapper";

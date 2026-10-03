@@ -4,12 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useMemo } from "react";
-import useSWR from "swr";
+import React, { useState, useEffect } from "react";
+import { useOutletContext, useSearchParams } from "react-router";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { api } from "@summon/convex/api";
+import { type WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { DocumentAccessBoundary, DocumentDetail } from "@/components/convex-core/documents/documents";
 import Link from "next/link";
 import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
-import { listAccessiblePlanePages } from "@/services/summon-plane.service";
-import { useProject } from "@/hooks/store/use-project";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { Select } from "@plane/propel/select";
 
@@ -18,44 +21,56 @@ interface IDocumentsRootProps {
 }
 
 export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
-  const { joinedProjectIds, getProjectById } = useProject();
-
-  const {
-    data: pages = [],
-    error,
-    isLoading,
-    mutate,
-  } = useSWR(["summon-plane-pages", workspaceSlug], () => listAccessiblePlanePages(workspaceSlug));
-
+  const { workspace } = useOutletContext<WorkspaceSession>();
+  const projectsList = useQuery(api.projects.index.list, { workspaceId: workspace._id }) ?? [];
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  const projectsList = useMemo(
-    () => joinedProjectIds.map((id) => ({ id, name: getProjectById(id)?.name || id })),
-    [joinedProjectIds, getProjectById]
+  const [params, setParams] = useSearchParams();
+  const selected = params.get("document");
+  const selectedProject = projectsList.find((row) => row._id === selectedProjectId);
+  const projectUnavailable = selectedProjectId !== "all" && !selectedProject;
+  const {
+    results: filteredPages,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.documents.index.list,
+    projectUnavailable
+      ? "skip"
+      : {
+          workspaceId: workspace._id,
+          search: searchQuery,
+          contextualSearch: true,
+          projectId: selectedProject?._id,
+          sortKey: "updated_at",
+          sortBy: "desc",
+        },
+    { initialNumItems: 100 }
   );
-
-  const filteredPages = useMemo(() => {
-    let list = [...pages];
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (item) =>
-          (item.page.name || "").toLowerCase().includes(q) ||
-          item.project.name.toLowerCase().includes(q) ||
-          item.project.identifier.toLowerCase().includes(q)
-      );
-    }
-
-    if (selectedProjectId !== "all") {
-      list = list.filter((item) => item.project.id === selectedProjectId);
-    }
-
-    return list;
-  }, [pages, searchQuery, selectedProjectId]);
-
+  const summary = usePaginatedQuery(
+    api.documents.index.list,
+    { workspaceId: workspace._id, sortKey: "updated_at", sortBy: "desc" },
+    { initialNumItems: 100 }
+  );
+  const { status: summaryStatus, loadMore: loadSummary } = summary;
+  useEffect(() => {
+    if (summaryStatus === "CanLoadMore") loadSummary(100);
+  }, [summaryStatus, loadSummary]);
+  const pages = summary.results;
+  const isLoading = status === "LoadingFirstPage";
+  if (selected)
+    return (
+      <DocumentAccessBoundary key={selected} onBack={() => setParams({})}>
+        <DocumentDetail
+          workspaceId={workspace._id}
+          documentId={selected}
+          workspaceSlug={workspaceSlug}
+          workspaceRole={workspace.membershipRole}
+          onBack={() => setParams({})}
+        />
+      </DocumentAccessBoundary>
+    );
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
       {/* Header */}
@@ -95,8 +110,10 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-primary">{pages.length}</div>
-            <div className="mt-1 text-[11px] font-medium text-tertiary">Indexed across workspaces</div>
+            <div className="text-2xl font-bold tracking-tight text-primary">
+              {summary.status === "Exhausted" ? pages.length : "…"}
+            </div>
+            <div className="mt-1 text-[11px] font-medium text-tertiary">Across accessible projects</div>
           </div>
         </div>
 
@@ -109,9 +126,11 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold tracking-tight text-primary">
-              {new Set(pages.map((p) => p.project.id)).size}
+              {summary.status === "Exhausted"
+                ? new Set(pages.flatMap((p) => p.projects.map((project) => project.id))).size
+                : "…"}
             </div>
-            <div className="mt-1 text-[11px] font-medium text-tertiary">Workspaces with documents</div>
+            <div className="mt-1 text-[11px] font-medium text-tertiary">Projects with documents</div>
           </div>
         </div>
 
@@ -136,7 +155,9 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
           <input
             type="text"
             value={searchQuery}
+            maxLength={255}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search documents"
             placeholder="Search documents by name or project..."
             className="text-xs placeholder-tertiary shadow-xs focus:border-accent-primary w-full rounded-xl border border-subtle bg-surface-1 py-2 pr-4 pl-9 text-primary focus:outline-none"
           />
@@ -149,7 +170,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             className="w-auto min-w-40"
             options={[
               { value: "all", label: "All Projects" },
-              ...projectsList.map((p) => ({ value: p.id, label: p.name })),
+              ...projectsList.map((p) => ({ value: p._id, label: p.name })),
             ]}
           />
 
@@ -160,7 +181,8 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
               className={`flex size-8 items-center justify-center rounded-lg transition-all ${
                 viewMode === "grid" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
               }`}
-              title="Grid View"
+              aria-label="Grid View"
+              aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="size-4" />
             </button>
@@ -170,7 +192,8 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
               className={`flex size-8 items-center justify-center rounded-lg transition-all ${
                 viewMode === "list" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
               }`}
-              title="List View"
+              aria-label="List View"
+              aria-pressed={viewMode === "list"}
             >
               <List className="size-4" />
             </button>
@@ -178,21 +201,37 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
         </div>
       </div>
 
+      {projectUnavailable && (
+        <div role="alert" className="text-xs flex items-center gap-3 rounded-xl border border-subtle p-4">
+          <p>This project is unavailable. Choose another project.</p>
+          <button type="button" onClick={() => setSelectedProjectId("all")}>
+            Clear project filter
+          </button>
+        </div>
+      )}
       <SummonRequestState
         loading={isLoading}
-        error={error}
-        empty={!isLoading && filteredPages.length === 0}
+        empty={!projectUnavailable && status === "Exhausted" && filteredPages.length === 0}
         emptyMessage="No documents found matching the search criteria."
-        onRetry={() => void mutate()}
       />
 
+      {status === "CanLoadMore" && (
+        <button
+          type="button"
+          className="text-xs rounded-xl border border-subtle px-4 py-2"
+          onClick={() => loadMore(100)}
+        >
+          Load more documents
+        </button>
+      )}
+      {status === "LoadingMore" && <p role="status">Loading more documents…</p>}
       {/* Documents Grid / List */}
       {viewMode === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredPages.map(({ page, project }) => (
+          {filteredPages.map(({ document, projects }) => (
             <Link
-              key={page.id}
-              href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+              key={document._id}
+              href={`/${workspaceSlug}/summon/documents/?document=${document._id}`}
               className="group shadow-sm hover:border-accent-primary/40 hover:shadow-md flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-5 transition-all"
             >
               <div>
@@ -201,14 +240,16 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
                     <FileText className="size-4.5" />
                   </div>
                   <span className="rounded-md bg-layer-2 px-2 py-0.5 text-[10px] font-bold text-secondary">
-                    {project.identifier}
+                    {projects.map((project) => project.identifier).join(", ") || "Workspace"}
                   </span>
                 </div>
 
                 <h3 className="text-sm mt-3.5 line-clamp-2 font-bold text-primary group-hover:text-accent-primary">
-                  {page.name || "Untitled Document"}
+                  {document.name || "Untitled Document"}
                 </h3>
-                <p className="text-xs mt-1 truncate text-tertiary">{project.name}</p>
+                <p className="text-xs mt-1 truncate text-tertiary">
+                  {projects.map((project) => project.name).join(", ") || "Workspace"}
+                </p>
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-subtle pt-3 text-[11px] font-semibold text-accent-primary">
@@ -229,20 +270,22 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-subtle">
-              {filteredPages.map(({ page, project }) => (
-                <tr key={page.id} className="group transition-colors hover:bg-layer-1">
+              {filteredPages.map(({ document, projects }) => (
+                <tr key={document._id} className="group transition-colors hover:bg-layer-1">
                   <td className="px-5 py-3.5 font-semibold text-primary">
                     <Link
-                      href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                      href={`/${workspaceSlug}/summon/documents/?document=${document._id}`}
                       className="hover:text-accent-primary"
                     >
-                      {page.name || "Untitled Document"}
+                      {document.name || "Untitled Document"}
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 text-secondary">{project.name}</td>
+                  <td className="px-5 py-3.5 text-secondary">
+                    {projects.map((project) => project.name).join(", ") || "Workspace"}
+                  </td>
                   <td className="px-5 py-3.5 text-right">
                     <Link
-                      href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                      href={`/${workspaceSlug}/summon/documents/?document=${document._id}`}
                       className="inline-flex items-center gap-1 font-semibold text-accent-primary hover:underline"
                     >
                       Open Editor <ExternalLink className="size-3" />

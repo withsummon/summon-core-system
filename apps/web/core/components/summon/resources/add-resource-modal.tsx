@@ -7,6 +7,9 @@
 import React, { useState } from "react";
 import { X, Plus, Link2 } from "lucide-react";
 import type { ICreateResourcePayload } from "./types";
+import type { Id } from "@summon/convex/data-model";
+import { selectedAssociation } from "@/components/convex-core/resources/associations";
+import { summonErrorMessage } from "@/components/summon/screen";
 import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 
@@ -14,7 +17,7 @@ interface IAddResourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (payload: ICreateResourcePayload) => Promise<void>;
-  projects: Array<{ id: string; name: string }>;
+  projects: Array<{ id: Id<"projects">; name: string }>;
 }
 
 export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddResourceModalProps) {
@@ -36,16 +39,19 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
         title,
         url,
         category,
-        project: project || undefined,
-        description: description || undefined,
+        projectId: selectedAssociation(project, projects),
+        documentId: null,
+        clientId: null,
+        credentialId: null,
+        description,
       });
       setTitle("");
       setUrl("");
       setDescription("");
       setProject("");
       onClose();
-    } catch (err: any) {
-      setError(err?.message || "Failed to add resource. Please check the URL.");
+    } catch (err) {
+      setError(summonErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

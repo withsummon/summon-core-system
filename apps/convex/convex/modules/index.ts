@@ -45,6 +45,7 @@ export const create = mutation({
   args: { projectId: v.id("projects"), ...moduleFields, memberIds: v.optional(v.array(v.id("users"))) },
   handler: async (ctx, args) => {
     const { project, user } = await requireProject(ctx, args.projectId, true);
+    if (!project.features?.modules) throw new ConvexError("Enable modules in project settings before creating one.");
     const data = content(args);
     await requireAvailableName(ctx, project._id, data.name);
     if (args.leadId) await requireModulePerson(ctx, project, args.leadId);

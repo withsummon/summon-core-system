@@ -10,7 +10,7 @@ import { useTranslation } from "@plane/i18n";
 import { cn } from "@plane/utils";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
-import type { NativeWorkspace, NativeProfile } from "./types";
+import type { NativeWorkspace, NativeProfile } from "./session";
 function Logo({ workspace }: { workspace: NativeWorkspace }) {
   return (
     <div className="relative grid size-7 shrink-0 place-items-center rounded-md border border-subtle bg-accent-primary text-on-color uppercase">

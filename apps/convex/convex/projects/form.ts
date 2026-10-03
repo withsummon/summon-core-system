@@ -7,33 +7,25 @@ import { projectNetwork } from "./network_schema";
 import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
 import { requireProjectTimezone } from "./timezone";
 import { validateTimezone } from "../settings/timezone";
-import { memberLabel } from "../../shared/member-label";
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const { project, user, member, membership } = await requireNetworkScope(ctx, args.projectId);
     const canManage = await canAdministerProject(ctx, project, user._id, member.role);
     if (!canManage && !membership?.active) throw new ConvexError("Project not found.");
-    const leadId = project.leadId;
-    const leadMembership = leadId
-      ? await ctx.db
-          .query("workspaceMembers")
-          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", leadId))
-          .unique()
-      : null;
-    const lead = leadMembership?.active ? await ctx.db.get(leadMembership.userId) : null;
     return {
       canManage,
-      projectId: project._id,
-      name: project.name,
-      identifier: project.identifier,
-      description: project.description,
-      network: project.network ?? 0,
-      logoProps: project.logoProps ?? {},
-      timezone: requireProjectTimezone(project),
-      leadId: project.leadId ?? null,
-      leadName: lead ? memberLabel({ id: lead._id, name: lead.name, email: lead.email }) : null,
       revision: project.metadataRevision,
+      input: {
+        projectId: project._id,
+        name: project.name,
+        identifier: project.identifier,
+        description: project.description,
+        network: project.network ?? 0,
+        logoProps: project.logoProps ?? {},
+        timezone: requireProjectTimezone(project),
+        leadId: project.leadId ?? null,
+      },
     };
   },
 });

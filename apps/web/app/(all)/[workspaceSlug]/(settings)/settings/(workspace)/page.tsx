@@ -13,7 +13,7 @@ import { PageHead } from "@/components/core/page-title";
 import { WorkspaceDetails } from "@/components/workspace/settings/workspace-details";
 import { PreservedWorkspaceSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
-import type { WorkspaceSession } from "../../../../../native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { GeneralWorkspaceSettingsHeader } from "./header";
 
 export default function GeneralWorkspaceSettingsPage() {

@@ -2,7 +2,7 @@ import { useOutletContext } from "react-router";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { NativeStickiesPage } from "@/components/stickies/native/surfaces";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
-import type { WorkspaceSession } from "./native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 
 export default function NativeStickiesRoute() {
   const { user, workspace, workspaces } = useOutletContext<WorkspaceSession>();

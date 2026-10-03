@@ -35,6 +35,7 @@ export function MetadataForm({
   onDone,
   onCancel,
   dialog = false,
+  initialProjectId,
 }: {
   workspaceId: Id<"workspaces">;
   document: Doc<"documents"> | null;
@@ -42,12 +43,13 @@ export function MetadataForm({
   onDone: (id: Id<"documents">) => void;
   onCancel: () => void;
   dialog?: boolean;
+  initialProjectId?: Id<"projects">;
 }) {
   const create = useMutation(api.documents.index.create);
   const update = useMutation(api.documents.index.update);
   const projects = useQuery(api.projects.index.list, { workspaceId });
   const [initialDocument] = useState(document);
-  const initial = initialDocument ?? newDocument;
+  const initial = initialDocument ?? { ...newDocument, projectIds: initialProjectId ? [initialProjectId] : [] };
   const {
     register,
     handleSubmit,

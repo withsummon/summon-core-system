@@ -1,3 +1,6 @@
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
+import { conversationResult } from "../mcp/invocations";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { internal } from "../_generated/api";
@@ -73,12 +76,19 @@ export const get = query({
 export const messages = query({
   args: { conversationId: v.id("assistantConversations"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { conversation } = await requireConversation(ctx, args.conversationId);
+    const { conversation, user } = await requireConversation(ctx, args.conversationId);
     await authorizedContext(ctx, conversation.workspaceId, conversation.context);
-    return ctx.db
+    return stream(ctx.db, schema)
       .query("assistantMessages")
       .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
       .order("desc")
+      .map(async (message) => {
+        if (message.mcpInvocationId) {
+          const result = await conversationResult(ctx, message.mcpInvocationId, conversation._id, user._id);
+          if (result) message.content = result;
+        }
+        return message;
+      })
       .paginate(pageBudget(args.paginationOpts));
   },
 });

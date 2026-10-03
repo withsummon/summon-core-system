@@ -5,9 +5,22 @@
  */
 
 import { ProjectsDirectoryRoot } from "@/components/summon/projects";
-import type { Route } from "./+types/page";
+import { useOutletContext } from "react-router";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 
-export default function SummonProjectsPage({ params }: Route.ComponentProps) {
-  const workspaceSlug = params.workspaceSlug;
-  return <ProjectsDirectoryRoot workspaceSlug={workspaceSlug} />;
+export default function SummonProjectsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const commands = useStickiesCommands();
+  return (
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <ProjectsDirectoryRoot workspaceSlug={session.workspace.slug} />
+    </PreservedWorkspaceShell>
+  );
 }

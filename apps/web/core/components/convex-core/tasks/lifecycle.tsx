@@ -12,7 +12,7 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
-import { NativeTaskActionContext } from "@/app/native-workspace";
+import { NativeTaskActionContext } from "@/components/workspace/native-shell/session";
 import { ContextMenu } from "@plane/propel/context-menu";
 import { copyUrlToClipboard } from "@plane/utils";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

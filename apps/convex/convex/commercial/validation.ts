@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import { z } from "zod/v4";
+import { convexToZod } from "convex-helpers/server/zod4";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { clientFields, contactFields, opportunityFields, profileFields } from "./schema";
@@ -117,12 +118,23 @@ export function parseOpportunity(data: Infer<typeof opportunityData>) {
   };
 }
 const profileData = v.object(profileFields);
+const profileInput = convexToZod(profileData);
+export const newProjectProfile = profileInput.parse({
+  clientId: null,
+  deliveryStatus: "not_assessed",
+  phase: "",
+  health: "not_assessed",
+  startDate: null,
+  targetDate: null,
+  budget: null,
+});
 export function parseProfile(data: Infer<typeof profileData>) {
-  const startDate = date(data.startDate);
-  const targetDate = date(data.targetDate);
+  const parsed = profileInput.parse(data);
+  const startDate = date(parsed.startDate);
+  const targetDate = date(parsed.targetDate);
   if (startDate && targetDate && startDate > targetDate)
     throw new ConvexError("Target date must not be before start date.");
-  return { ...data, phase: text(data.phase, "Phase", 80), startDate, targetDate, budget: money(data.budget) };
+  return { ...parsed, phase: text(parsed.phase, "Phase", 80), startDate, targetDate, budget: money(parsed.budget) };
 }
 
 export function pageBudget(options: PaginationOptions) {

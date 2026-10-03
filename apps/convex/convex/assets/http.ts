@@ -1,3 +1,4 @@
+import { isAudioAsset } from "./content";
 import { ConvexError } from "convex/values";
 import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
@@ -31,7 +32,7 @@ export const read = httpAction(async (ctx, request) => {
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "sandbox",
     };
-    if (asset.meetingId) return readRecordingRange(ctx, request, asset.storageId, asset.size, headers);
+    if (isAudioAsset(asset)) return readRecordingRange(ctx, request, asset.storageId, asset.size, headers);
     const body = await ctx.storage.get(asset.storageId);
     if (!body) return new Response("Asset not found.", { status: 404, headers: cors });
     return new Response(body, { headers });

@@ -42,7 +42,7 @@ export async function credentialMetadataAccess(ctx: QueryCtx, credential: Doc<"m
   }
   return {
     permission: granted,
-    ...credentialCapabilities(workspaceMember.role, projectRole, granted, credential.status),
+    ...credentialCapabilities(workspaceMember.role, projectRole, granted, credential.status, credential.provider),
   };
 }
 export async function requireCredential(
@@ -63,7 +63,13 @@ export async function requireCredential(
     ...scope,
     credential,
     permission: granted,
-    ...credentialCapabilities(scope.member.role, projectAccess?.projectMember.role ?? null, granted, credential.status),
+    ...credentialCapabilities(
+      scope.member.role,
+      projectAccess?.projectMember.role ?? null,
+      granted,
+      credential.status,
+      credential.provider
+    ),
   };
 }
 export async function audit(
@@ -88,12 +94,15 @@ export function credentialCapabilities(
   workspaceRole: Doc<"workspaceMembers">["role"],
   projectRole: Doc<"projectMembers">["role"] | null,
   permission: "view" | "use" | "manage",
-  status: Doc<"mcpCredentials">["status"]
+  status: Doc<"mcpCredentials">["status"],
+  provider: Doc<"mcpCredentials">["provider"]
 ) {
   const canWrite = workspaceRole !== "guest" && projectRole !== "guest";
+  const canUse = canWrite && permission !== "view" && status === "active";
   return {
     canWrite,
-    canUse: canWrite && permission !== "view" && status === "active",
+    canUse,
+    canInvokeMcp: canUse && (provider === undefined || ["plane", "plane_mcp"].includes(provider)),
     canManage: canWrite && permission === "manage",
     canReveal: workspaceRole !== "guest" && permission !== "use",
   };

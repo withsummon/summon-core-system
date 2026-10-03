@@ -1,6 +1,6 @@
 "use node";
 import { z } from "zod";
-import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import type { Doc } from "../../_generated/dataModel";
 import { internalAction } from "../../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -38,10 +38,7 @@ const providerResult = z.discriminatedUnion("status", [
   z.object({ id: z.string(), status: z.literal("cancelled"), error: z.string().nullable() }),
 ]);
 
-async function readResult(
-  response: Response,
-  document: NonNullable<FunctionReturnType<typeof internal.meetings.transcription.runs.prepare>>["document"]
-) {
+async function readResult(response: Response) {
   if (!response.body) throw new ConvexError("Invalid transcription response.");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -66,10 +63,7 @@ async function readResult(
   }
   try {
     const payload: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-    const result = providerResult.parse(payload);
-    return result.status === "completed"
-      ? Object.assign(result, convertGeneratedText(result.text, document.title, document.binary))
-      : result;
+    return providerResult.parse(payload);
   } catch (error) {
     if (error instanceof SyntaxError || error instanceof TypeError || error instanceof z.ZodError)
       throw new ConvexError("Invalid transcription response.");
@@ -84,7 +78,7 @@ async function uploadRecording(
   storageUrl: string,
   url: URL,
   headers: { Authorization: string },
-  asset: NonNullable<FunctionReturnType<typeof internal.meetings.transcription.runs.prepare>>["asset"]
+  asset: Pick<Doc<"assets">, "contentType" | "size" | "sha256">
 ) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TRANSCRIPTION_UPLOAD_TIMEOUT_MS);
@@ -116,64 +110,66 @@ async function uploadRecording(
   }
 }
 
-const permanentFailure = new Map<number, FunctionArgs<typeof internal.meetings.transcription.runs.fail>["error"]>([
-  [400, "transcription_failed"],
-  [401, "provider_unconfigured"],
-  [409, "transcription_failed"],
-  [413, "transcription_failed"],
-  [422, "transcription_failed"],
-  [503, "provider_unconfigured"],
+const permanentFailure = new Map([
+  [400, "transcription_failed" as const],
+  [401, "provider_unconfigured" as const],
+  [409, "transcription_failed" as const],
+  [413, "transcription_failed" as const],
+  [422, "transcription_failed" as const],
+  [503, "provider_unconfigured" as const],
 ]);
+// The provider owns the HTTP protocol; callers own domain authorization and durable state.
+export async function transcribe(
+  jobId: string,
+  asset: Pick<Doc<"assets">, "contentType" | "size" | "sha256">,
+  storageUrl: () => Promise<string | null>
+) {
+  const config = configuration();
+  if (!config.success) return { status: "unavailable" as const, error: "provider_unconfigured" as const };
+  const url = new URL(`/jobs/${jobId}`, config.data.origin);
+  const headers = { Authorization: `Bearer ${config.data.key}` };
+  const response = await fetch(url, { headers, redirect: "error", signal: AbortSignal.timeout(45000) });
+  if (response.status === 404) {
+    await response.body?.cancel();
+    const source = await storageUrl();
+    if (!source) throw new Error("Recording bytes are unavailable.");
+    const status = await uploadRecording(source, url, headers, asset);
+    const error = permanentFailure.get(status);
+    if (error) return { status: "unavailable" as const, error };
+    if (![200, 202, 429].includes(status)) throw new Error("Transcription upload is unavailable.");
+    return { status: "pending" as const };
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    const error = permanentFailure.get(response.status);
+    if (error) return { status: "unavailable" as const, error };
+    if (response.status === 429) return { status: "pending" as const };
+    throw new Error("Transcription provider is unavailable.");
+  }
+  try {
+    const result = await readResult(response);
+    if (result.id !== jobId) throw new ConvexError("Invalid transcription response.");
+    return result;
+  } catch (error) {
+    if (!(error instanceof ConvexError)) throw error;
+    return { status: "unavailable" as const, error: "invalid_transcript" as const };
+  }
+}
 export const step = internalAction({
   args: { runId: v.id("meetingTranscriptionRuns"), attempt: v.number() },
   handler: async (ctx, args) => {
     const prepared = await ctx.runQuery(internal.meetings.transcription.runs.prepare, args);
     if (!prepared) return;
-    const config = configuration();
-    if (!config.success) {
-      await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error: "provider_unconfigured" });
-      return;
-    }
-    const url = new URL(`/jobs/${args.runId}`, config.data.origin);
-    const headers = { Authorization: `Bearer ${config.data.key}` };
-    const response = await fetch(url, { headers, redirect: "error", signal: AbortSignal.timeout(45000) });
-    if (response.status === 404) {
-      await response.body?.cancel();
-      const storageUrl = await ctx.storage.getUrl(prepared.asset.storageId);
-      if (!storageUrl) throw new Error("Recording bytes are unavailable.");
-      const status = await uploadRecording(storageUrl, url, headers, prepared.asset);
-      const error = permanentFailure.get(status);
-      if (error) await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error });
-      else if (![200, 202, 429].includes(status)) throw new Error("Transcription upload is unavailable.");
-      await ctx.runMutation(internal.meetings.transcription.runs.poll, args);
-      return;
-    }
-    if (!response.ok) {
-      await response.body?.cancel();
-      const error = permanentFailure.get(response.status);
-      if (error) await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error });
-      else if (response.status === 429) await ctx.runMutation(internal.meetings.transcription.runs.poll, args);
-      else throw new Error("Transcription provider is unavailable.");
-      return;
-    }
-    let result: Awaited<ReturnType<typeof readResult>>;
-    try {
-      result = await readResult(response, prepared.document);
-      if (result.id !== args.runId) throw new ConvexError("Invalid transcription response.");
-    } catch (error) {
-      if (!(error instanceof ConvexError)) throw error;
-      await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error: "invalid_transcript" });
-      return;
-    }
+    const result = await transcribe(args.runId, prepared.asset, () => ctx.storage.getUrl(prepared.asset.storageId));
     if (result.status === "completed")
       await ctx.runMutation(internal.meetings.transcription.runs.complete, {
         ...args,
         transcript: result.text,
         language: result.language,
-        descriptionBinary: result.descriptionBinary,
-        descriptionHtml: result.descriptionHtml,
-        descriptionJson: result.descriptionJson,
+        ...convertGeneratedText(result.text, prepared.document.title, prepared.document.binary),
       });
+    else if (result.status === "unavailable")
+      await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error: result.error });
     else if (result.status === "failed" || result.status === "cancelled")
       await ctx.runMutation(internal.meetings.transcription.runs.fail, { ...args, error: "transcription_failed" });
     else await ctx.runMutation(internal.meetings.transcription.runs.poll, args);
@@ -181,7 +177,7 @@ export const step = internalAction({
 });
 
 export const cancel = internalAction({
-  args: { runId: v.id("meetingTranscriptionRuns") },
+  args: { runId: v.union(v.id("meetingTranscriptionRuns"), v.id("assistantAttachments")) },
   handler: async (_ctx, { runId }) => {
     const config = configuration();
     if (!config.success) return;

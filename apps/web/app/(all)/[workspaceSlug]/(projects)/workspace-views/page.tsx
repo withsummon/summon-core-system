@@ -30,7 +30,7 @@ import { WorkspaceViewForm } from "@/components/convex-core/saved-views/workspac
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { GlobalDefaultViewListItem } from "@/components/workspace/views/default-view-list-item";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
-import type { WorkspaceSession } from "../../../../native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 
 type ViewRow = FunctionReturnType<typeof api.savedViews.workspace.list>["page"][number];
 

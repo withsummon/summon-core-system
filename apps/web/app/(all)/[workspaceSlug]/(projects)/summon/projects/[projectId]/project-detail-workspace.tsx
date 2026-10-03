@@ -1,17 +1,13 @@
 import { useState } from "react";
-import { observer } from "mobx-react";
+import { useNavigate } from "react-router";
 import Link from "next/link";
-import useSWR from "swr";
+import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { ArrowLeft, CalendarPlus, FilePlus2, ListPlus, Pencil, Settings2 } from "lucide-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import type { ISummonProjectOverview, IUserLite } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useMember } from "@/hooks/store/use-member";
-import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
-import projectMemberService from "@/services/project/project-member.service";
-import { summonService } from "@/services/summon.service";
+import { CreateProjectIssue } from "@/components/convex-core/tasks/task-detail";
+import { ModuleFormModal } from "@/components/convex-core/modules/forms";
+import { MetadataForm } from "@/components/convex-core/documents/metadata-form";
 import { PROJECT_TABS, ProjectDetailTab, type TProjectTab } from "./project-detail-tabs";
 import { ProjectOverviewTab } from "./project-overview-tab";
 import { ProjectProfileEditor } from "./project-profile-editor";
@@ -21,40 +17,24 @@ const formatDate = (value?: string | null) =>
     ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
     : "Not set";
 
-export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(props: {
-  overview: ISummonProjectOverview;
-  workspaceSlug: string;
-  projectId: string;
-  onRefresh: () => Promise<void>;
+export function ProjectDetailWorkspace({
+  overview,
+  address,
+}: {
+  overview: FunctionReturnType<typeof api.reporting.overview.project>;
+  address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
 }) {
-  const { overview, workspaceSlug, projectId, onRefresh } = props;
+  const workspaceSlug = address.workspace.slug,
+    projectId = address.project._id;
   const [activeTab, setActiveTab] = useState<TProjectTab>("overview");
   const [editingProfile, setEditingProfile] = useState(false);
-  const { allowPermissions } = useUserPermissions();
-  const { getProjectById } = useProject();
-  const { getUserDetails } = useMember();
-  const { toggleCreateIssueModal, toggleCreateModuleModal, toggleCreatePageModal } = useCommandPalette();
-  const { data: memberships = [] } = useSWR(["summon-project-members", workspaceSlug, projectId], () =>
-    projectMemberService.fetchProjectMembers(workspaceSlug, projectId)
-  );
-  const { data: client } = useSWR(
-    overview.profile?.client ? ["summon-project-client", workspaceSlug, overview.profile.client] : null,
-    () => summonService.getClient(workspaceSlug, overview.profile?.client || "")
-  );
-  const sourceOpportunityId = overview.profile?.source_opportunity;
-  const { data: sourceOpportunity } = useSWR(
-    sourceOpportunityId ? ["summon-project-opportunity", workspaceSlug, sourceOpportunityId] : null,
-    () => summonService.getOpportunity(workspaceSlug, sourceOpportunityId || "")
-  );
-  const project = getProjectById(projectId);
-  const lead = project?.project_lead;
-  const leadDetails = typeof lead === "object" ? (lead as IUserLite) : lead ? getUserDetails(lead) : undefined;
-  const members = memberships.flatMap((membership) => {
-    const name = getUserDetails(membership.member)?.display_name;
-    return name ? [{ id: membership.member, name }] : [];
-  });
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
-
+  const [creating, setCreating] = useState<"task" | "module" | "document" | null>(null);
+  const states = useQuery(api.tasks.states.list, { projectId });
+  const navigate = useNavigate();
+  const client = overview.client,
+    sourceOpportunity = overview.sourceOpportunity;
+  const sourceOpportunityId = overview.profile?.sourceOpportunityId;
+  const isAdmin = overview.canManage;
   return (
     <div className="min-h-full bg-surface-1 p-4 lg:p-5">
       <header className="border-b border-subtle pb-4">
@@ -72,14 +52,14 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
               </span>
               <h1 className="text-2xl font-semibold tracking-tight text-primary">{overview.project.name}</h1>
               <span className="rounded-full bg-success-subtle px-2.5 py-1 text-[10px] text-success-primary">
-                {overview.profile?.delivery_status?.replaceAll("_", " ") || "Status not set"}
+                {overview.profile?.deliveryStatus.replaceAll("_", " ") || "Status not set"}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-[11px]">
               <Meta
                 label="Client"
-                value={client?.company_name || client?.name || "Not linked"}
-                href={client ? `/${workspaceSlug}/summon/clients/${client.id}/` : undefined}
+                value={client ? client.companyName || client.name : "Not linked"}
+                href={client ? `/${workspaceSlug}/summon/clients/${client._id}/` : undefined}
               />
               {sourceOpportunityId ? (
                 <Meta
@@ -88,16 +68,18 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
                   href={`/${workspaceSlug}/summon/opportunities/${sourceOpportunityId}/`}
                 />
               ) : null}
-              <Meta label="Project manager" value={leadDetails?.display_name || "Not assigned"} />
-              <Meta label="Start date" value={formatDate(overview.profile?.start_date)} />
-              <Meta label="Target date" value={formatDate(overview.profile?.target_date)} />
+              <Meta label="Project manager" value={overview.lead?.name} empty="Not assigned" />
+              <Meta label="Start date" value={formatDate(overview.profileForm.startDate)} />
+              <Meta label="Target date" value={formatDate(overview.profileForm.targetDate)} />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => setEditingProfile((value) => !value)}
+                onClick={() => setEditingProfile(true)}
+                disabled={editingProfile}
+                aria-expanded={editingProfile}
                 className="text-xs inline-flex items-center gap-2 rounded-xl border border-subtle px-4 py-2.5 font-medium text-primary hover:bg-layer-1"
               >
                 <Pencil className="size-4" /> Edit profile
@@ -130,10 +112,21 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
             <Action
               label="New Task"
               icon={ListPlus}
-              onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT, [projectId])}
+              onClick={() => setCreating("task")}
+              disabled={!overview.canWrite}
             />
-            <Action label="Create Milestone" icon={CalendarPlus} onClick={() => toggleCreateModuleModal(true)} />
-            <Action label="Create Document" icon={FilePlus2} onClick={() => toggleCreatePageModal({ isOpen: true })} />
+            <Action
+              label="Create Milestone"
+              icon={CalendarPlus}
+              onClick={() => setCreating("module")}
+              disabled={!overview.canWrite || !overview.project.features?.modules}
+            />
+            <Action
+              label="Create Document"
+              icon={FilePlus2}
+              onClick={() => setCreating("document")}
+              disabled={!overview.canWrite}
+            />
             <Link
               href={`/${workspaceSlug}/summon/meetings/?project=${projectId}`}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-secondary hover:bg-layer-1"
@@ -149,9 +142,9 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
               <ProjectProfileEditor
                 workspaceSlug={workspaceSlug}
                 projectId={projectId}
-                profile={overview.profile}
+                overview={overview}
                 onClose={() => setEditingProfile(false)}
-                onSaved={onRefresh}
+                onSaved={() => setEditingProfile(false)}
               />
             </div>
           )}
@@ -177,28 +170,51 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
           </nav>
           <div id="project-tab-panel" className="mt-4" role="tabpanel" aria-labelledby={`project-tab-${activeTab}`}>
             {activeTab === "overview" ? (
-              <ProjectOverviewTab
-                overview={overview}
-                workspaceSlug={workspaceSlug}
-                projectId={projectId}
-                members={members}
-              />
+              <ProjectOverviewTab overview={overview} workspaceSlug={workspaceSlug} projectId={projectId} />
             ) : (
-              <ProjectDetailTab
-                tab={activeTab}
-                overview={overview}
-                workspaceSlug={workspaceSlug}
-                projectId={projectId}
-              />
+              <ProjectDetailTab tab={activeTab} workspaceSlug={workspaceSlug} projectId={projectId} />
             )}
           </div>
         </main>
       </div>
+      {creating === "task" && states && (
+        <CreateProjectIssue
+          address={address}
+          states={states}
+          canCreate={overview.canWrite}
+          onClose={() => setCreating(null)}
+        />
+      )}
+      {creating === "module" && (
+        <ModuleFormModal
+          projectId={projectId}
+          module={null}
+          onClose={() => setCreating(null)}
+          onDone={(id, allow) => {
+            setCreating(null);
+            if (allow) navigate(`/${workspaceSlug}/projects/${projectId}/modules/${id}/`);
+          }}
+        />
+      )}
+      {creating === "document" && (
+        <MetadataForm
+          workspaceId={address.workspace._id}
+          document={null}
+          canManage
+          dialog
+          initialProjectId={projectId}
+          onCancel={() => setCreating(null)}
+          onDone={(id) => {
+            setCreating(null);
+            navigate(`/${workspaceSlug}/projects/${projectId}/pages/${id}/`);
+          }}
+        />
+      )}
     </div>
   );
-});
+}
 
-function Meta({ label, value, href }: { label: string; value: string; href?: string }) {
+function Meta({ label, value, href, empty }: { label: string; value?: string | null; href?: string; empty?: string }) {
   return (
     <div>
       <span className="text-tertiary">{label}</span>
@@ -207,17 +223,28 @@ function Meta({ label, value, href }: { label: string; value: string; href?: str
           {value}
         </Link>
       ) : (
-        <strong className="ml-2 font-medium text-primary">{value}</strong>
+        <strong className="ml-2 font-medium text-primary">{value || empty}</strong>
       )}
     </div>
   );
 }
 
-function Action({ label, icon: Icon, onClick }: { label: string; icon: typeof ListPlus; onClick: () => void }) {
+function Action({
+  label,
+  icon: Icon,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  icon: typeof ListPlus;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] text-secondary hover:bg-layer-1"
     >
       <Icon className="size-3.5" />

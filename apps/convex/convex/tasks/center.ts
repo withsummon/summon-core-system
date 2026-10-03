@@ -57,33 +57,33 @@ const centerArgs = v.object({
   scope,
   today: v.string(),
 });
-async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs>) {
+async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs> & { attention?: boolean }) {
   const { user, member } = await requireWorkspace(ctx, args.workspaceId);
   date(args.today);
   const read = projectReader(ctx, args.workspaceId, user._id);
-  return stream(ctx.db, schema)
-    .query("tasks")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-    .order("desc")
-    .map(async (task) => {
-      if (!taskIsActive(task)) return null;
-      if (args.scope === "subscribed") {
-        if (
-          !(await ctx.db
-            .query("taskSubscriptions")
-            .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
-            .unique())
-        )
-          return null;
-      } else if (!matchesScope(task, args.scope, user._id)) return null;
-      const access = await read(task.projectId);
+  const tasks = stream(ctx.db, schema).query("tasks");
+  const ordered = args.attention
+    ? tasks.withIndex("by_workspace_target", (q) => q.eq("workspaceId", args.workspaceId)).order("asc")
+    : tasks.withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId)).order("desc");
+  return ordered.map(async (task) => {
+    if (!taskIsActive(task)) return null;
+    if (args.scope === "subscribed") {
       if (
-        !access ||
-        !taskRoleCanRead(task, user._id, member.role, access.member.role, !!access.project.guestViewAllFeatures)
+        !(await ctx.db
+          .query("taskSubscriptions")
+          .withIndex("by_task_user", (q) => q.eq("taskId", task._id).eq("userId", user._id))
+          .unique())
       )
         return null;
-      return { task, project: access.project };
-    });
+    } else if (!matchesScope(task, args.scope, user._id)) return null;
+    const access = await read(task.projectId);
+    if (
+      !access ||
+      !taskRoleCanRead(task, user._id, member.role, access.member.role, !!access.project.guestViewAllFeatures)
+    )
+      return null;
+    return { task, project: access.project };
+  });
 }
 export const list = query({
   args: {
@@ -92,6 +92,7 @@ export const list = query({
     priority: v.optional(priority),
     projectId: v.optional(v.id("projects")),
     search: v.optional(v.string()),
+    attention: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
@@ -99,6 +100,9 @@ export const list = query({
       .map(async ({ task, project }) => {
         const matches = [
           !args.projectId || task.projectId === args.projectId,
+          !args.attention ||
+            (!dueEligibility(task, args.today).completed &&
+              (dueEligibility(task, args.today).today || dueEligibility(task, args.today).overdue)),
           !args.priority || task.priority === args.priority,
           dueEligibility(task, args.today)[args.due],
           `${task.title} ${project.name} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search),

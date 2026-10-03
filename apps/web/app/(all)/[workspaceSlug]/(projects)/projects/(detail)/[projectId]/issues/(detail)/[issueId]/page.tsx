@@ -16,7 +16,7 @@ import emptyIssueLight from "@/app/assets/empty-state/search/issues-light.webp?u
 import { EmptyState } from "@/components/common/empty-state";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // hooks
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 // types

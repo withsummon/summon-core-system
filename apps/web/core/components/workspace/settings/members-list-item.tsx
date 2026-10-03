@@ -17,7 +17,7 @@ import { Table } from "@plane/ui";
 import type { IProjectMemberDisplayProperties } from "@plane/constants";
 import { MemberHeaderColumn } from "@/components/project/member-header-column";
 import { ConfirmWorkspaceMemberRemove } from "@/components/workspace/confirm-workspace-member-remove";
-import type { NativeWorkspace, NativeProfile } from "@/components/workspace/native-shell/types";
+import type { NativeWorkspace, NativeProfile } from "@/components/workspace/native-shell/session";
 import { NameColumn, AccountTypeColumn } from "./member-columns";
 import type { WorkspaceMember } from "./member-columns";
 

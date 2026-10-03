@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
 
 export const assetTypesByExtension = {
@@ -7,10 +8,19 @@ export const assetTypesByExtension = {
   ".gif": "image/gif",
   ".webp": "image/webp",
   ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   ".txt": "text/plain",
   ".md": "text/markdown",
   ".csv": "text/csv",
 } as const;
+export const assistantAudioTypesByExtension = { ".mp3": "audio/mpeg", ".m4a": "audio/mp4" } as const;
+export const isAudioAsset = (asset: Pick<Doc<"assets">, "meetingId" | "conversationId" | "contentType">) =>
+  Boolean(
+    asset.meetingId ||
+    (asset.conversationId && Object.values(assistantAudioTypesByExtension).some((type) => type === asset.contentType))
+  );
 export const supportedAssetTypes = [...new Set(Object.values(assetTypesByExtension))];
 export const meetingRecordingTypes = [
   "audio/mpeg",
@@ -81,6 +91,9 @@ export async function validateContent(blob: Blob, contentType: string, meetingRe
     "image/gif": () => ["GIF87a", "GIF89a"].includes(ascii(0, 6)),
     "image/webp": () => ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP",
     "application/pdf": () => ascii(0, 5) === "%PDF-",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": () => prefix(80, 75, 3, 4),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": () => prefix(80, 75, 3, 4),
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": () => prefix(80, 75, 3, 4),
   };
   if (contentType.startsWith("text/")) {
     try {

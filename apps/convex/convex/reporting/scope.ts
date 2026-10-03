@@ -1,9 +1,10 @@
 import { paginationOptsValidator, type PaginationOptions } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
-import type { QueryCtx } from "../_generated/server";
+import { query, type QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject, requireWorkspace } from "../identity/access";
-import { date, requireClient } from "../commercial/validation";
+import { projectReader } from "../savedViews/scope";
+import { calendarDate, date, requireClient } from "../commercial/validation";
 
 export const reportScope = v.object({
   workspaceId: v.id("workspaces"),
@@ -77,3 +78,30 @@ export async function matchingRows<T>(rows: T[], matches: (row: T) => Promise<bo
   const accepted = await Promise.all(rows.map(matches));
   return rows.filter((_row, index) => accepted[index]);
 }
+
+// URL selections become opaque IDs only at the authenticated report boundary.
+export const resolve = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.union(v.string(), v.null()),
+    clientId: v.union(v.string(), v.null()),
+    dateFrom: v.union(v.string(), v.null()),
+    dateTo: v.union(v.string(), v.null()),
+    today: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const projectId = args.projectId === null ? null : ctx.db.normalizeId("projects", args.projectId);
+    const clientId = args.clientId === null ? null : ctx.db.normalizeId("clients", args.clientId);
+    if (args.projectId !== null && (!projectId || !(await projectReader(ctx, args.workspaceId, user._id)(projectId))))
+      return { scope: null, error: "Choose an accessible project." };
+    const client = clientId ? await ctx.db.get(clientId) : null;
+    if (args.clientId !== null && (!client || client.deleted || client.workspaceId !== args.workspaceId))
+      return { scope: null, error: "Choose an available client." };
+    if (![args.dateFrom, args.dateTo, args.today].every((value) => calendarDate.nullable().safeParse(value).success))
+      return { scope: null, error: "Enter valid calendar dates." };
+    if (args.dateFrom && args.dateTo && args.dateFrom > args.dateTo)
+      return { scope: null, error: "Start date cannot exceed end date." };
+    return { scope: { ...args, projectId, clientId }, error: null };
+  },
+});

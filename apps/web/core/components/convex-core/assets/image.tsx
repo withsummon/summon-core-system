@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getAuthToken } from "@/components/convex-core/provider";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { cn } from "@plane/utils";
@@ -53,37 +52,11 @@ export function useAuthenticatedAssetSource(
     setError("");
     void transfers
       .run(async (signal) => {
-        if (!import.meta.env.VITE_CONVEX_SITE_URL) throw new Error(`${alt} preview is unavailable.`);
-        const blobs: Blob[] = [];
-        const step = chunkBytes ?? size;
-        for (let offset = 0; offset < size; offset += step) {
-          const end = Math.min(offset + step, size) - 1;
-          // eslint-disable-next-line no-await-in-loop -- Each bounded private range must finish before requesting the next.
-          const response = await fetch(new URL(path, import.meta.env.VITE_CONVEX_SITE_URL), {
-            headers: {
-              // eslint-disable-next-line no-await-in-loop -- Use the native session owner for every private range.
-              Authorization: `Bearer ${await getAuthToken()}`,
-              ...(chunkBytes ? { Range: `bytes=${offset}-${end}` } : {}),
-            },
-            credentials: "omit",
-            cache: "no-store",
-            signal,
-          });
-          if (
-            !response.ok ||
-            (chunkBytes &&
-              (response.status !== 206 || response.headers.get("content-range") !== `bytes ${offset}-${end}/${size}`))
-          ) {
-            // eslint-disable-next-line no-await-in-loop -- Release the failed chunk before exiting the transfer.
-            await response.body?.cancel();
-            throw new Error(`The ${alt.toLowerCase()} could not be loaded. Your access may have changed.`);
-          }
-          // eslint-disable-next-line no-await-in-loop -- The server owns the range budget; retain only this verified chunk.
-          const blob = await response.blob();
-          if (blob.size !== end - offset + 1) throw new Error(`${alt} download is incomplete.`);
-          blobs.push(blob);
-        }
-        const url = transfers.objectUrl(new Blob(blobs, { type: blobs[0]?.type }), signal);
+        const blob = await transfers.download(
+          { downloadPath: path, size, downloadChunkBytes: chunkBytes ?? null },
+          signal
+        );
+        const url = transfers.objectUrl(blob, signal);
         if (active) setSource({ path: path, url });
       })
       .catch((failure) => {

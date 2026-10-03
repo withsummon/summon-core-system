@@ -14,7 +14,7 @@ import lightPagesAsset from "@/app/assets/empty-state/disabled-feature/pages-lig
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import type { Route } from "./+types/layout";
 
 export default function ProjectPagesLayout({ params }: Route.ComponentProps) {

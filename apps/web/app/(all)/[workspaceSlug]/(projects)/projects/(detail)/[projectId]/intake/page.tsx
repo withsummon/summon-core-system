@@ -19,7 +19,7 @@ import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-stat
 import { IntakeView } from "@/components/convex-core/intakes/intakes";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import type { Route } from "./+types/page";
 
 const selectionParams = (current: URLSearchParams, id: Id<"tasks"> | null, created = false) => {

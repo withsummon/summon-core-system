@@ -1,3 +1,4 @@
+import { personalImagePurpose } from "./schema";
 import { requireProjectDiscovery } from "../projects/network_access";
 import { requirePersonalImageScope } from "../identity/avatar_access";
 import { requireDraftAttachmentAccess } from "./draft_access";
@@ -9,8 +10,9 @@ import { requireWorkspace, requireProject } from "../identity/access";
 import { requireConversation } from "../assistant/access";
 import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
+import { requireJob } from "../automation/access";
 import { requireMeeting } from "../meetings/access";
-import { recordingReadMaxBytes } from "./content";
+import { isAudioAsset, recordingReadMaxBytes } from "./content";
 
 async function requireProjectCoverScope(
   ctx: QueryCtx,
@@ -56,12 +58,14 @@ export async function requireAssetScope(
     | "purpose"
     | "avatarUserId"
     | "meetingId"
+    | "automationJobId"
   > & { _id?: Id<"assets"> },
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
+  if (scope.automationJobId) return requireAutomationFileScope(ctx, scope, scope.automationJobId, write);
   if (scope.meetingId) return requireMeetingRecordingScope(ctx, scope, scope.meetingId, write);
-  if (scope.purpose === "userAvatar" || scope.purpose === "userCover")
+  if (personalImagePurpose.members.some((purpose) => purpose.value === scope.purpose))
     return requirePersonalImageScope(ctx, scope, write, readWorkspaceId);
   if (scope.workspaceId === null || scope.avatarUserId !== undefined)
     throw new ConvexError("Workspace asset scope is invalid.");
@@ -99,6 +103,31 @@ export async function requireAssetScope(
   }
   return access;
 }
+async function requireAutomationFileScope(
+  ctx: QueryCtx,
+  scope: Parameters<typeof requireAssetScope>[1],
+  automationJobId: Id<"automationJobs">,
+  write: boolean
+) {
+  if (
+    [
+      scope.purpose,
+      scope.avatarUserId,
+      scope.documentId,
+      scope.documentCopyId,
+      scope.taskId,
+      scope.draftId,
+      scope.conversationId,
+      scope.meetingId,
+    ].some(Boolean)
+  )
+    throw new ConvexError("Generated files cannot have another content scope.");
+  const access = await requireJob(ctx, automationJobId, write);
+  if (scope.workspaceId !== access.job.workspaceId || scope.projectId !== access.job.projectId)
+    throw new ConvexError("Generated file scope mismatch.");
+  return access;
+}
+
 async function requireMeetingRecordingScope(
   ctx: QueryCtx,
   scope: Parameters<typeof requireAssetScope>[1],
@@ -147,7 +176,7 @@ export function descriptor(asset: Doc<"assets">) {
     meetingId: asset.meetingId ?? null,
     createdBy: asset.createdBy,
     downloadPath: `/assets/${asset._id}`,
-    downloadChunkBytes: asset.meetingId ? recordingReadMaxBytes : null,
+    downloadChunkBytes: isAudioAsset(asset) ? recordingReadMaxBytes : null,
   };
 }
 

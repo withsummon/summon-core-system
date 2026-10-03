@@ -32,7 +32,21 @@ export function aggregateReport(report: LoadedReport) {
   return {
     opportunityStages,
     tasks,
-    projects: report.projects.flatMap((part) => part.projects),
+    projects: report.projects
+      .flatMap((part) => part.projects)
+      .map((project) => {
+        const counts = report.tasks.reduce(
+          (sum, part) => {
+            const count = part.projects[project.id];
+            return { total: sum.total + (count?.total ?? 0), completed: sum.completed + (count?.completed ?? 0) };
+          },
+          { total: 0, completed: 0 }
+        );
+        return Object.assign({}, project, {
+          completion: counts.total ? Math.round((counts.completed / counts.total) * 100) : 0,
+        });
+      }),
+    clientRecords: report.clients.flatMap((part) => part.clients),
     clients: report.clients.reduce((sum, part) => sum + part.count, 0),
     opportunities: report.opportunities.reduce((sum, part) => sum + part.count, 0),
     pipelineValue: sumAmounts(report.opportunities.map((part) => part.pipelineValue)),

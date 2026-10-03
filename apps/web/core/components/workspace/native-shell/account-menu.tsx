@@ -7,7 +7,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Avatar } from "@plane/ui";
 import { UserMenuView } from "../sidebar/user-menu-view";
 import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
-import type { NativeProfile } from "./types";
+import type { NativeProfile } from "./session";
 export function NativeAccountMenu({
   profile,
   onSignOut,

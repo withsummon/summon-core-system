@@ -10,7 +10,7 @@ import { Outlet, useOutletContext, useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
 import { Row } from "@plane/ui";
-import type { WorkspaceSession } from "@/app/native-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";

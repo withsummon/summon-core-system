@@ -1,18 +1,39 @@
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalQuery, internalMutation } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
-import { requireConversation } from "./access";
-import { authorizedContext } from "./context";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { requireConversation, requireConversationForUser } from "./access";
+import { authorizedContext, authorizedContextForUser } from "./context";
 import { prepareAsset } from "../assets/index";
 import { requireAsset, descriptor } from "../assets/access";
 import { internal } from "../_generated/api";
+import {
+  assetTypesByExtension,
+  assistantAudioTypesByExtension,
+  meetingRecordingMaxBytes,
+  assetSizeLimit,
+  isAudioAsset,
+} from "../assets/content";
 import { pageBudget } from "../commercial/validation";
-export const textTypes = { ".txt": "text/plain", ".md": "text/markdown", ".csv": "text/csv" } as const;
+import { requireAccountUser } from "../identity/session";
+import { TRANSCRIPTION_WATCHDOG_DELAY_MS } from "../meetings/transcription/schema";
+export const documentTypes = Object.fromEntries(
+  Object.entries(assetTypesByExtension).filter(([extension]) =>
+    [".txt", ".md", ".csv", ".pdf", ".docx", ".xlsx", ".pptx"].includes(extension)
+  )
+);
+const attachmentTypes = { ...documentTypes, ...assistantAudioTypesByExtension };
 export const policy = query({
   args: {},
-  handler: () => ({ types: textTypes, maxBytes: 10 * 1024 * 1024, maxAttachments: 5 }),
+  handler: () => ({
+    files: Object.entries(attachmentTypes).map(([extension, contentType]) => ({
+      extension,
+      contentType,
+      maxBytes: contentType.startsWith("audio/") ? meetingRecordingMaxBytes : assetSizeLimit(contentType),
+    })),
+    maxAttachments: 5,
+  }),
 });
 export const prepare = mutation({
   args: {
@@ -27,11 +48,11 @@ export const prepare = mutation({
     await authorizedContext(ctx, conversation.workspaceId, conversation.context);
     if (conversation.activeMessageId) throw new ConvexError("Wait for the current reply before attaching files.");
     if (
-      !Object.entries(textTypes).some(
+      !Object.entries(attachmentTypes).some(
         ([extension, type]) => file.name.toLowerCase().endsWith(extension) && file.contentType === type
       )
     )
-      throw new ConvexError("Choose TXT, Markdown, or CSV text files.");
+      throw new ConvexError("Choose PDF, Office, TXT, Markdown, CSV, MP3, or M4A files.");
     const pending = await ctx.db
       .query("assistantAttachments")
       .withIndex("by_pending", (q) => q.eq("conversationId", conversationId).eq("messageId", null).eq("deleted", false))
@@ -115,7 +136,7 @@ export const fail = internalMutation({
     await requireConversation(ctx, attachment.conversationId, true);
     await ctx.db.patch(attachmentId, {
       status: "failed",
-      error: "File could not be processed. Remove it and upload a valid text file.",
+      error: "File could not be processed. Remove it and upload a valid file.",
     });
   },
 });
@@ -124,10 +145,12 @@ export const remove = mutation({
   handler: async (ctx, { attachmentId }) => {
     const attachment = await ctx.db.get(attachmentId);
     if (!attachment || attachment.deleted) throw new ConvexError("Attachment is unavailable.");
-    const { conversation } = await requireConversation(ctx, attachment.conversationId, true);
-    await authorizedContext(ctx, conversation.workspaceId, conversation.context);
+    // The conversation owner may remove an unbound upload after its context access is revoked.
+    await requireConversation(ctx, attachment.conversationId, true);
     if (attachment.messageId) throw new ConvexError("Files already attached to a message cannot be removed.");
     await ctx.db.patch(attachmentId, { deleted: true, text: "" });
+    if (attachment.transcription)
+      await ctx.scheduler.runAfter(0, internal.meetings.transcription.provider.cancel, { runId: attachmentId });
     await ctx.db.patch(attachment.assetId, { status: "deleted", expiresAt: Date.now() });
   },
 });
@@ -176,6 +199,8 @@ export const purgeConversation = internalMutation({
     await Promise.all(
       page.page.map(async (file) => {
         await ctx.db.patch(file._id, { deleted: true, text: "" });
+        if (file.transcription)
+          await ctx.scheduler.runAfter(0, internal.meetings.transcription.provider.cancel, { runId: file._id });
         await ctx.db.patch(file.assetId, { status: "deleted", expiresAt: Date.now() });
       })
     );
@@ -184,5 +209,200 @@ export const purgeConversation = internalMutation({
         conversationId,
         cursor: page.continueCursor,
       });
+  },
+});
+
+export async function generationSources(
+  ctx: QueryCtx,
+  conversationId: Id<"assistantConversations">,
+  workspaceId: Id<"workspaces">,
+  attachmentIds: Id<"assistantAttachments">[]
+) {
+  const { conversation } = await requireConversation(ctx, conversationId);
+  if (
+    conversation.workspaceId !== workspaceId ||
+    attachmentIds.length > 100 ||
+    new Set(attachmentIds).size !== attachmentIds.length
+  )
+    throw new ConvexError("Invalid assistant document sources.");
+  await authorizedContext(ctx, workspaceId, conversation.context);
+  return Promise.all(
+    attachmentIds.map(async (id) => {
+      const file = await ctx.db.get(id);
+      if (!file || file.deleted || file.status !== "ready" || file.conversationId !== conversationId)
+        throw new ConvexError("Assistant source is unavailable.");
+      await requireAsset(ctx, file.assetId);
+      return {
+        text: `[Attached file: ${file.name}]\n${file.text}`,
+        citation: { kind: "attachment" as const, id: file._id, label: file.name },
+      };
+    })
+  );
+}
+
+const audioArgs = { attachmentId: v.id("assistantAttachments"), attempt: v.number() };
+async function audioSource(ctx: QueryCtx, attachment: Doc<"assistantAttachments">) {
+  if (!attachment.transcription || attachment.deleted || attachment.messageId)
+    throw new ConvexError("Audio attachment is unavailable.");
+  const user = await requireAccountUser(ctx, attachment.transcription.requesterId);
+  const { conversation } = await requireConversationForUser(ctx, attachment.conversationId, user, true);
+  await authorizedContextForUser(ctx, conversation.workspaceId, conversation.context, user);
+  const asset = await ctx.db.get(attachment.assetId);
+  if (
+    !asset ||
+    asset.status !== "ready" ||
+    !asset.storageId ||
+    !isAudioAsset(asset) ||
+    asset.conversationId !== conversation._id ||
+    asset.workspaceId !== conversation.workspaceId ||
+    asset.projectId !== null ||
+    asset.documentId !== null ||
+    asset.createdBy !== user._id
+  )
+    throw new ConvexError("Audio attachment or its access changed.");
+  if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Audio bytes are unavailable.");
+  return { ...asset, storageId: asset.storageId };
+}
+async function failAudio(ctx: MutationCtx, attachment: Doc<"assistantAttachments">, error: string) {
+  await ctx.db.patch(attachment._id, { status: "failed", error, text: "" });
+  await ctx.scheduler.runAfter(0, internal.meetings.transcription.provider.cancel, { runId: attachment._id });
+}
+export const startAudio = internalMutation({
+  args: { attachmentId: v.id("assistantAttachments") },
+  handler: async (ctx, { attachmentId }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (!attachment || attachment.deleted || attachment.messageId) throw new ConvexError("Attachment is unavailable.");
+    const { user, conversation } = await requireConversation(ctx, attachment.conversationId, true);
+    await authorizedContext(ctx, conversation.workspaceId, conversation.context);
+    const { asset } = await requireAsset(ctx, attachment.assetId, true);
+    if (!isAudioAsset(asset)) throw new ConvexError("Choose an audio attachment.");
+    if (attachment.status === "processing" || attachment.status === "ready") return attachmentId;
+    if (attachment.transcription) throw new ConvexError("Remove this failed recording and attach it again.");
+    await ctx.db.patch(attachmentId, {
+      status: "processing",
+      error: null,
+      transcription: { requesterId: user._id, attempt: 0, deadline: Date.now() + 2 * 60 * 60 * 1000 },
+    });
+    await ctx.scheduler.runAfter(0, internal.assistant.attachments.audioTick, { attachmentId, attempt: 0 });
+    return attachmentId;
+  },
+});
+export const audioTick = internalMutation({
+  args: audioArgs,
+  handler: async (ctx, { attachmentId, attempt }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (
+      !attachment ||
+      attachment.deleted ||
+      attachment.status !== "processing" ||
+      attachment.transcription?.attempt !== attempt
+    )
+      return;
+    if (Date.now() >= attachment.transcription.deadline) {
+      await failAudio(ctx, attachment, "Transcription timed out. Remove the file and attach it again.");
+      return;
+    }
+    try {
+      await audioSource(ctx, attachment);
+    } catch (error) {
+      if (!(error instanceof ConvexError)) throw error;
+      await failAudio(ctx, attachment, "The recording or its access changed. Remove the attachment to continue.");
+      return;
+    }
+    const next = { attachmentId, attempt: attempt + 1 };
+    await ctx.db.patch(attachmentId, { transcription: { ...attachment.transcription, attempt: next.attempt } });
+    // This committed watchdog recovers when the external worker action crashes or times out.
+    await ctx.scheduler.runAfter(TRANSCRIPTION_WATCHDOG_DELAY_MS, internal.assistant.attachments.audioTick, next);
+    await ctx.scheduler.runAfter(0, internal.assistant.attachment_upload.audioStep, next);
+  },
+});
+export const audioPrepare = internalQuery({
+  args: audioArgs,
+  handler: async (ctx, { attachmentId, attempt }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (
+      !attachment ||
+      attachment.deleted ||
+      attachment.status !== "processing" ||
+      attachment.transcription?.attempt !== attempt ||
+      Date.now() >= attachment.transcription.deadline
+    )
+      return null;
+    return audioSource(ctx, attachment);
+  },
+});
+export const audioPoll = internalMutation({
+  args: audioArgs,
+  handler: async (ctx, args) => {
+    const attachment = await ctx.db.get(args.attachmentId);
+    if (
+      attachment &&
+      !attachment.deleted &&
+      attachment.status === "processing" &&
+      attachment.transcription?.attempt === args.attempt
+    )
+      await ctx.scheduler.runAfter(5000, internal.assistant.attachments.audioTick, args);
+  },
+});
+export const audioComplete = internalMutation({
+  args: { ...audioArgs, text: v.string() },
+  handler: async (ctx, { attachmentId, attempt, text }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (
+      !attachment ||
+      attachment.deleted ||
+      attachment.status !== "processing" ||
+      attachment.transcription?.attempt !== attempt
+    )
+      return;
+    if (Date.now() >= attachment.transcription.deadline) {
+      await failAudio(ctx, attachment, "Transcription timed out. Remove the file and attach it again.");
+      return;
+    }
+    try {
+      await audioSource(ctx, attachment);
+    } catch (error) {
+      if (!(error instanceof ConvexError)) throw error;
+      await failAudio(ctx, attachment, "The recording or its access changed. Remove the attachment to continue.");
+      return;
+    }
+    if (!text.trim() || text.length > 120000) throw new ConvexError("Invalid audio transcript.");
+    await ctx.db.patch(attachmentId, {
+      status: "ready",
+      text: text.trim().slice(0, 30000),
+      truncated: text.trim().length > 30000,
+      error: null,
+    });
+    await ctx.scheduler.runAfter(0, internal.meetings.transcription.provider.cancel, { runId: attachmentId });
+  },
+});
+export const audioFail = internalMutation({
+  args: {
+    ...audioArgs,
+    error: v.union(
+      v.literal("provider_unconfigured"),
+      v.literal("invalid_transcript"),
+      v.literal("transcription_failed"),
+      v.literal("recording_or_access_changed")
+    ),
+  },
+  handler: async (ctx, { attachmentId, attempt, error }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (
+      !attachment ||
+      attachment.deleted ||
+      attachment.status !== "processing" ||
+      attachment.transcription?.attempt !== attempt
+    )
+      return;
+    await failAudio(
+      ctx,
+      attachment,
+      error === "provider_unconfigured"
+        ? "Audio transcription is unavailable. An administrator must configure the transcription worker. Remove this attachment to continue."
+        : error === "recording_or_access_changed"
+          ? "The recording or its access changed. Remove the attachment to continue."
+          : "Audio could not be transcribed. Remove the file and attach a readable recording again."
+    );
   },
 });

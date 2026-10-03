@@ -8,7 +8,9 @@
     "./data-model": "./convex/_generated/dataModel.d.ts",
     "./member-label": "./shared/member-label.ts",
     "./project-navigation": "./shared/project-navigation.ts",
-    "./task-schema": "./convex/tasks/schema.ts"
+    "./task-schema": "./convex/tasks/schema.ts",
+    "./commercial-schema": "./convex/commercial/schema.ts",
+    "./credential-schema": "./convex/mcp/schema.ts"
   },
   "scripts": {
     "dev": "convex dev --typecheck disable",

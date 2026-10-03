@@ -8,15 +8,11 @@ import { index, layout, route } from "@react-router/dev/routes";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 import { nativeStickiesRoute } from "./routes/ownership";
 import { coreRoutes } from "./routes/core";
-import { extendedRoutes } from "./routes/extended";
-import { mergeRoutes } from "./routes/helper";
 
 /**
  * Main Routes Configuration
  * This file serves as the entry point for the route configuration.
  */
-const mergedRoutes: RouteConfigEntry[] = mergeRoutes(coreRoutes, extendedRoutes);
-
 // Add catch-all route at the end (404 handler)
 const routes: RouteConfigEntry[] = [
   layout("./native-layout.tsx", [
@@ -47,6 +43,25 @@ const routes: RouteConfigEntry[] = [
 
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
+      route(":workspaceSlug/summon", `./(all)/[workspaceSlug]/(projects)/summon/page.tsx`),
+      route(":workspaceSlug/summon/projects", `./(all)/[workspaceSlug]/(projects)/summon/projects/page.tsx`),
+      route(
+        ":workspaceSlug/summon/projects/:projectId",
+        `./(all)/[workspaceSlug]/(projects)/summon/projects/[projectId]/page.tsx`
+      ),
+      route(":workspaceSlug/summon/documents", `./(all)/[workspaceSlug]/(projects)/summon/documents/page.tsx`),
+      route(":workspaceSlug/summon/knowledge", `./(all)/[workspaceSlug]/(projects)/summon/knowledge/page.tsx`),
+      route(":workspaceSlug/summon/reports", `./(all)/[workspaceSlug]/(projects)/summon/reports/page.tsx`),
+      route(":workspaceSlug/summon/resources", `./(all)/[workspaceSlug]/(projects)/summon/resources/page.tsx`),
+      route(":workspaceSlug/summon/notifications", `./(all)/[workspaceSlug]/(projects)/summon/notifications/page.tsx`),
+      route(":workspaceSlug/summon/automation", `./(all)/[workspaceSlug]/(projects)/summon/automation/page.tsx`),
+      route(
+        ":workspaceSlug/summon/automation/:jobId",
+        `./(all)/[workspaceSlug]/(projects)/summon/automation/[jobId]/page.tsx`
+      ),
+      route(":workspaceSlug/summon/assistant", `./(all)/[workspaceSlug]/(projects)/summon/assistant/page.tsx`),
+      route(":workspaceSlug/summon/credentials", `./(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx`),
+      route(":workspaceSlug/summon/settings", `./(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx`),
       route(":workspaceSlug/summon/tasks", "./(all)/[workspaceSlug]/(projects)/summon/tasks/page.tsx"),
       layout("./(all)/[workspaceSlug]/(projects)/drafts/layout.tsx", [
         route(":workspaceSlug/drafts", "./(all)/[workspaceSlug]/(projects)/drafts/page.tsx"),
@@ -206,7 +221,7 @@ const routes: RouteConfigEntry[] = [
       route("settings/profile/:profileTabId", "./(all)/settings/profile/[profileTabId]/page.tsx"),
     ]),
   ]),
-  layout("./legacy-layout.tsx", [...mergedRoutes, route("*", "./not-found.tsx")]),
+  layout("./legacy-layout.tsx", [...coreRoutes, route("*", "./not-found.tsx")]),
 ];
 
 export default routes;
