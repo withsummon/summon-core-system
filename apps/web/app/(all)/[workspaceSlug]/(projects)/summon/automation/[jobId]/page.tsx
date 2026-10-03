@@ -15,6 +15,7 @@ import type { Doc } from "@summon/convex/data-model";
 import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { ArrowLeft, Check, CircleAlert } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { Badge } from "@plane/propel/badge";
 import { Dialog } from "@plane/propel/dialog";
 
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -123,10 +124,18 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
                 <p className="text-xs font-semibold text-primary">Document preview</p>
                 <p className="mt-1 text-[10px] text-secondary">Rendered Markdown · full document</p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2.5 py-1 text-[10px] font-medium text-success-primary">
-                {data.status === "completed" ? <Check className="size-3" /> : <CircleAlert className="size-3" />}
+              <Badge
+                variant={data.status === "completed" ? "success" : data.status === "failed" ? "danger" : "neutral"}
+                prependIcon={
+                  data.status === "completed" ? (
+                    <Check aria-hidden />
+                  ) : data.status === "failed" ? (
+                    <CircleAlert aria-hidden />
+                  ) : undefined
+                }
+              >
                 {data.status}
-              </span>
+              </Badge>
             </div>
             {data.contextTruncated ? (
               <p className="bg-amber-50 text-amber-700 mt-3 rounded-lg px-3 py-2 text-[11px]">
