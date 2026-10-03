@@ -1,5 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { requireConversation } from "./access";
 import { selectedAttachments } from "./attachments";
 import { conversationResult } from "../mcp/invocations";
@@ -110,6 +111,7 @@ export const begin = internalMutation({
       provider: proposal ? "summon-document-preview" : shared.provider,
     });
     await ctx.db.patch(conversationId, { activeMessageId: proposal ? null : messageId, lastActivityAt: Date.now() });
+    if (!proposal) await ctx.scheduler.runAfter(240000, internal.assistant.messages.fail, { messageId });
     const authorizedHistory = await Promise.all(
       history.map(async (message) => {
         if (message.mcpInvocationId) {
