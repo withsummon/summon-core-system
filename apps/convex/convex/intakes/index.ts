@@ -1,14 +1,16 @@
 import { ensureDefaultIntake } from "./configuration_owner";
 import { boundDescriptionContent } from "../tasks/description_images";
 import { writeDescription } from "../tasks/description_content";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { mutation, query } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import type { DataModel, Doc } from "../_generated/dataModel";
 import { projectMetadata } from "../projects/settings";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
+import { checkRange, inRange, matchesFilters, validateShape } from "../savedViews/filters";
 import { createTask } from "../tasks/create";
 import { initialProperties, parseTaskText, validateNonStateProperties } from "../tasks/properties";
 import { priority, nonStateTaskProperties } from "../tasks/schema";
@@ -16,14 +18,14 @@ import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
 import { requireTask, taskCanRead } from "../tasks/access";
 import { intakeCapabilities, requireIntakeTask, requireIntakeRevision } from "./access";
-import { intakeStatus } from "./schema";
+import { defaultIntakeSelection, intakeDefaults, intakeSelection, intakeStatus, intakeView } from "./schema";
 import schema from "../schema";
 const { priority: _priority, ...intakePropertyFields } = nonStateTaskProperties;
 const intakeProperties = v.object(intakePropertyFields);
 const version = { taskId: v.id("tasks"), expectedUpdatedAt: v.number(), expectedTaskUpdatedAt: v.number() };
 export const getConfig = query({
-  args: { projectId: v.id("projects") },
-  handler: async (ctx, { projectId }) => {
+  args: { projectId: v.id("projects"), view: v.optional(intakeView), selectionJson: v.optional(v.string()) },
+  handler: async (ctx, { projectId, view, selectionJson }) => {
     const access = await requireProject(ctx, projectId);
     const intake = await ctx.db
       .query("intakes")
@@ -36,6 +38,14 @@ export const getConfig = query({
       revision: projectMetadata(access.project).revision,
       canConfigure: intakeCapabilities(access, access.user._id).canDecide,
       canEditProperties: intakeCapabilities(access, access.user._id).canEditProperties,
+      selection:
+        selectionJson === undefined
+          ? view
+            ? intakeDefaults(view)
+            : defaultIntakeSelection
+          : convexToZod(intakeSelection).parse(JSON.parse(selectionJson)),
+      emptySelection: defaultIntakeSelection,
+      priorities: priority.members.map((option) => option.value),
     };
   },
 });
@@ -168,30 +178,67 @@ export const resolve = query({
 export const list = query({
   args: {
     projectId: v.id("projects"),
-    view: v.union(intakeStatus, v.literal("open"), v.literal("closed")),
+    view: intakeView,
+    selection: v.optional(intakeSelection),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId);
-    const source = stream(ctx.db, schema).query("intakeTasks");
+    const selection = args.selection ?? intakeDefaults(args.view);
+    if (new Set(selection.statuses).size !== selection.statuses.length)
+      throw new ConvexError("Choose distinct intake statuses.");
+    const filters = {
+      ...selection,
+      match: "all",
+      statuses: [],
+      stateIds: [],
+      startDate: null,
+      targetDate: null,
+    } satisfies Parameters<typeof validateShape>[0];
+    validateShape(filters);
+    checkRange(selection.createdAt);
+    checkRange(selection.updatedAt);
+    const indexes = {
+      createdAt: "by_project",
+      updatedAt: "by_project_updated",
+      sequence: "by_project_sequence",
+    } satisfies Record<Infer<typeof intakeSelection>["order"], keyof DataModel["tasks"]["indexes"]>;
+    const now = Date.now();
     const { view } = args;
-    const rows =
-      view === "open" || view === "closed"
-        ? source.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        : source.withIndex("by_project_status", (q) => q.eq("projectId", args.projectId).eq("status", view));
+    const rows = stream(ctx.db, schema)
+      .query("tasks")
+      .withIndex(indexes[selection.order], (q) => q.eq("projectId", args.projectId));
     return rows
-      .order("desc")
-      .map(async (intake) => {
-        const open = intake.status === "pending" || intake.status === "snoozed";
+      .order(selection.direction)
+      .map(async (task) => {
+        if (task.deletedAt != null || task.archivedAt != null || task.workspaceId !== access.project.workspaceId)
+          return null;
+        const intake = await ctx.db
+          .query("intakeTasks")
+          .withIndex("by_task", (q) => q.eq("taskId", task._id))
+          .unique();
+        if (!intake || intake.projectId !== args.projectId) return null;
+        const effectiveStatus =
+          intake.status === "snoozed" && intake.snoozedUntil !== null && intake.snoozedUntil <= now
+            ? "pending"
+            : intake.status;
+        const open = effectiveStatus === "pending" || effectiveStatus === "snoozed";
         if (
           intake.deletedAt != null ||
           !intakeCapabilities(access, intake.createdBy).canRead ||
           (view === "open" && !open) ||
-          (view === "closed" && open)
+          (view === "closed" && open) ||
+          (view !== "open" && view !== "closed" && effectiveStatus !== view)
         )
           return null;
-        const task = await ctx.db.get(intake.taskId);
-        if (!task || task.deletedAt != null || task.archivedAt != null) return null;
+        if (selection.statuses.length && !selection.statuses.includes(effectiveStatus)) return null;
+        if (!matchesFilters(task, filters)) return null;
+        for (const [value, range] of [
+          [task._creationTime, selection.createdAt],
+          [task.updatedAt, selection.updatedAt],
+        ] as const) {
+          if (range && !inRange(new Date(value).toISOString().slice(0, 10), range)) return null;
+        }
         return { intake, task };
       })
       .paginate(pageBudget(args.paginationOpts));

@@ -304,6 +304,7 @@ export const taskTables = {
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
     .index("by_project_sequence", ["projectId", "sequence"])
+    .index("by_project_updated", ["projectId", "updatedAt"])
     .index("by_project_state_order", ["projectId", "stateId", "status", "deletedAt", "sortOrder"])
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_target", ["workspaceId", "targetDate"])

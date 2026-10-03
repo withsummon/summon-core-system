@@ -16,7 +16,7 @@ import darkIntakeAsset from "@/app/assets/empty-state/disabled-feature/intake-da
 import lightIntakeAsset from "@/app/assets/empty-state/disabled-feature/intake-light.webp?url";
 import { PageHead } from "@/components/core/page-title";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
-import { IntakeView } from "@/components/convex-core/intakes/intakes";
+import { IntakeBoundary, IntakeView } from "@/components/convex-core/intakes/intakes";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
@@ -57,6 +57,7 @@ export default function ProjectInboxPage({ params }: Route.ComponentProps) {
   const changeView: ComponentProps<typeof IntakeView>["onViewChange"] = (nextView) =>
     setSearchParams((current) => {
       const next = selectionParams(current, null);
+      next.delete("intakeSelection");
       if (nextView === "trash") next.set("intakeStatus", "trash");
       else {
         next.delete("intakeStatus");
@@ -104,17 +105,29 @@ export default function ProjectInboxPage({ params }: Route.ComponentProps) {
             />
           </div>
         ) : (
-          <IntakeView
-            project={address.project}
-            workspaceSlug={session.workspace.slug}
-            view={view}
-            views={[...tabs, { value: "trash", label: "Trash" }]}
-            selected={searchParams.get("inboxIssueId")}
-            selectionHref={(id) => `?${selectionParams(searchParams, id)}`}
-            onSelect={(id, created) => setSearchParams((current) => selectionParams(current, id, created))}
-            onViewChange={changeView}
-            onRestored={(status) => changeView(status === "pending" || status === "snoozed" ? "open" : "closed")}
-          />
+          <IntakeBoundary
+            key={JSON.stringify([address.project._id, view, searchParams.get("intakeSelection")])}
+            recoveryLabel="Clear filters"
+            onBack={() =>
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                next.delete("intakeSelection");
+                return next;
+              })
+            }
+          >
+            <IntakeView
+              project={address.project}
+              workspaceSlug={session.workspace.slug}
+              view={view}
+              views={[...tabs, { value: "trash", label: "Trash" }]}
+              selected={searchParams.get("inboxIssueId")}
+              selectionHref={(id) => `?${selectionParams(searchParams, id)}`}
+              onSelect={(id, created) => setSearchParams((current) => selectionParams(current, id, created))}
+              onViewChange={changeView}
+              onRestored={(status) => changeView(status === "pending" || status === "snoozed" ? "open" : "closed")}
+            />
+          </IntakeBoundary>
         )}
       </div>
     </PreservedWorkspaceShell>
