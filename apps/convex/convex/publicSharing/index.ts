@@ -1,7 +1,7 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { pageBudget } from "../commercial/validation";
@@ -124,20 +124,40 @@ function publicTask(task: Awaited<ReturnType<typeof requirePublishedTask>>["task
   };
 }
 
+const listArgs = v.object({
+  anchor: v.string(),
+  filters: v.optional(viewFilters),
+  stateId: v.optional(v.union(v.id("taskStates"), v.null())),
+  paginationOpts: paginationOptsValidator,
+});
+async function publishedTasks(ctx: QueryCtx, args: Infer<typeof listArgs>) {
+  const access = await requirePublishedProject(ctx, args.anchor);
+  if (args.filters) validateShape(args.filters);
+  return stream(ctx.db, schema)
+    .query("tasks")
+    .withIndex("by_project", (q) => q.eq("projectId", access.project._id))
+    .order("desc")
+    .map(async (task) =>
+      publishedTask(task, access) &&
+      (!args.filters || matchesFilters(task, args.filters)) &&
+      (args.stateId === undefined || task.stateId === args.stateId)
+        ? task
+        : null
+    );
+}
 export const list = query({
-  args: { anchor: v.string(), filters: v.optional(viewFilters), paginationOpts: paginationOptsValidator },
-  handler: async (ctx, args) => {
-    const access = await requirePublishedProject(ctx, args.anchor);
-    if (args.filters) validateShape(args.filters);
-    return stream(ctx.db, schema)
-      .query("tasks")
-      .withIndex("by_project", (q) => q.eq("projectId", access.project._id))
-      .order("desc")
-      .map(async (task) =>
-        publishedTask(task, access) && (!args.filters || matchesFilters(task, args.filters)) ? publicTask(task) : null
-      )
-      .paginate(pageBudget(args.paginationOpts));
-  },
+  args: listArgs.fields,
+  handler: async (ctx, args) =>
+    (await publishedTasks(ctx, args)).map(async (task) => publicTask(task)).paginate(pageBudget(args.paginationOpts)),
+});
+
+// Exact totals require exhausting these lightweight contributions, including the null-state cohort.
+export const summary = query({
+  args: listArgs.fields,
+  handler: async (ctx, args) =>
+    (await publishedTasks(ctx, args))
+      .map(async (task) => ({ taskId: task._id, stateId: task.stateId }))
+      .paginate(pageBudget(args.paginationOpts)),
 });
 
 export const getTask = query({
