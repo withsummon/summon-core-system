@@ -1,25 +1,48 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
+import { z } from "zod";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
-import { systemFields, pointFields } from "./schema";
+import { systemFields, pointFields, pointInput } from "./schema";
 import { estimateConfig, requireSystem, checkEstimateRevision } from "./access";
 function details(name: string, description: string) {
   if (!name.trim() || name.length > 255 || description.length > 20000)
     throw new ConvexError("Enter a name up to 255 and description up to 20,000 characters.");
   return { name: name.trim(), description };
 }
-export function pointContent(fields: { key: number; value: string; description: string }) {
+export function pointContent(fields: Infer<typeof pointInput>) {
+  const description = fields.description ?? "";
   if (
     !Number.isSafeInteger(fields.key) ||
     fields.key < 0 ||
     !fields.value.trim() ||
     fields.value.length > 20 ||
-    fields.description.length > 20000
+    description.length > 20000
   )
     throw new ConvexError(
       "Points require a nonnegative integer key, value up to 20 and description up to 20,000 characters."
     );
-  return fields;
+  return { ...fields, description };
+}
+function validatePointValues(type: Infer<typeof systemFields.type>, points: Infer<typeof pointInput>[]) {
+  const values = points.map((point) => point.value);
+  const parsed =
+    type === "points"
+      ? z.array(z.coerce.number().positive()).safeParse(values)
+      : z
+          .array(
+            z
+              .string()
+              .trim()
+              .min(1)
+              .refine((value) => Number.isNaN(Number(value)))
+          )
+          .safeParse(values);
+  if (!parsed.success)
+    throw new ConvexError(
+      type === "points" ? "Points require positive finite numbers." : "Categories require nonnumeric names."
+    );
+  if (new Set<string | number>(parsed.data).size !== points.length)
+    throw new ConvexError("Estimate values must be unique.");
 }
 export const list = query({
   args: { projectId: v.id("projects") },
@@ -30,10 +53,13 @@ export const list = query({
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId).eq("deleted", false))
       .take(101);
     return {
+      types: systemFields.type.members.map((type) => type.value),
       systems: systems.filter((row) => !row.deleted),
       config: await estimateConfig(ctx, args.projectId),
       canWrite: permission.member.role !== "guest" && permission.projectMember.role !== "guest",
-      canSelect: permission.member.role !== "guest" && permission.projectMember.role === "admin",
+      canSelect:
+        permission.member.role === "admin" ||
+        (permission.member.role !== "guest" && permission.projectMember.role === "admin"),
     };
   },
 });
@@ -51,11 +77,21 @@ export const get = query({
   },
 });
 export const create = mutation({
-  args: { projectId: v.id("projects"), ...systemFields, points: v.array(v.object(pointFields)) },
+  args: {
+    projectId: v.id("projects"),
+    ...systemFields,
+    points: v.array(pointInput),
+    rememberSelection: v.optional(v.object({ expectedRevision: v.number() })),
+  },
   handler: async (ctx, args) => {
-    const { project } = await requireProject(ctx, args.projectId, true);
+    const { project, projectMember, member } = await requireProject(ctx, args.projectId, true);
     const config = await estimateConfig(ctx, project._id);
     if (config?.jobId) throw new ConvexError("Finish the estimate replacement first.");
+    if (args.rememberSelection) {
+      if (member.role !== "admin" && projectMember.role !== "admin")
+        throw new ConvexError("Only project administrators can select the estimate system.");
+      checkEstimateRevision(config?.revision ?? 0, args.rememberSelection.expectedRevision);
+    }
     const systems = await ctx.db
       .query("estimateSystems")
       .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
@@ -65,7 +101,8 @@ export const create = mutation({
     if (systems.some((row) => !row.deleted && row.name === fields.name))
       throw new ConvexError("Estimate system name already exists.");
     if (!args.points.length || args.points.length > 100) throw new ConvexError("Choose 1–100 estimate points.");
-    args.points.forEach(pointContent);
+    const points = args.points.map(pointContent);
+    validatePointValues(args.type, points);
     const systemId = await ctx.db.insert("estimateSystems", {
       ...fields,
       type: args.type,
@@ -76,7 +113,7 @@ export const create = mutation({
       retiring: false,
     });
     await Promise.all(
-      args.points.map((point) =>
+      points.map((point) =>
         ctx.db.insert("estimatePoints", {
           ...point,
           systemId,
@@ -87,6 +124,17 @@ export const create = mutation({
         })
       )
     );
+    if (args.rememberSelection) {
+      if (config) await ctx.db.patch(config._id, { lastUsedSystemId: systemId, revision: config.revision + 1 });
+      else
+        await ctx.db.insert("projectEstimates", {
+          projectId: project._id,
+          activeSystemId: null,
+          lastUsedSystemId: systemId,
+          revision: 1,
+          jobId: null,
+        });
+    }
     return systemId;
   },
 });
@@ -102,6 +150,11 @@ export const update = mutation({
       .take(101);
     if (others.some((row) => !row.deleted && row._id !== system._id && row.name === fields.name))
       throw new ConvexError("Estimate system name already exists.");
+    const points = await ctx.db
+      .query("estimatePoints")
+      .withIndex("by_system", (q) => q.eq("systemId", system._id).eq("deleted", false))
+      .take(101);
+    validatePointValues(args.type, points);
     await ctx.db.patch(system._id, { ...fields, type: args.type, revision: system.revision + 1 });
   },
 });
@@ -112,21 +165,31 @@ export const select = mutation({
     expectedRevision: v.number(),
   },
   handler: async (ctx, args) => {
-    const permission = await requireProject(ctx, args.projectId, true);
-    if (permission.projectMember.role !== "admin")
+    const permission = await requireProject(ctx, args.projectId);
+    if (
+      permission.member.role !== "admin" &&
+      (permission.member.role === "guest" || permission.projectMember.role !== "admin")
+    )
       throw new ConvexError("Only project administrators can select the estimate system.");
     const config = await estimateConfig(ctx, args.projectId);
     checkEstimateRevision(config?.revision ?? 0, args.expectedRevision);
     if (config?.jobId) throw new ConvexError("Finish the estimate replacement first.");
     if (args.systemId) {
-      const { system } = await requireSystem(ctx, args.systemId, true);
+      const { system } = await requireSystem(ctx, args.systemId);
       if (system.projectId !== args.projectId) throw new ConvexError("Estimate system belongs to another project.");
+      if (system.retiring) throw new ConvexError("Finish the estimate replacement first.");
     }
-    if (config) await ctx.db.patch(config._id, { activeSystemId: args.systemId, revision: config.revision + 1 });
+    if (config)
+      await ctx.db.patch(config._id, {
+        activeSystemId: args.systemId,
+        lastUsedSystemId: args.systemId ?? config.lastUsedSystemId,
+        revision: config.revision + 1,
+      });
     else
       await ctx.db.insert("projectEstimates", {
         projectId: args.projectId,
         activeSystemId: args.systemId,
+        lastUsedSystemId: args.systemId,
         revision: 1,
         jobId: null,
       });
@@ -144,6 +207,7 @@ export const createPoint = mutation({
     if (rows.length >= 100) throw new ConvexError("An estimate system supports at most 100 points.");
     const { systemId, expectedSystemRevision, ...fields } = args;
     pointContent(fields);
+    validatePointValues(system.type, [...rows, fields]);
     const id = await ctx.db.insert("estimatePoints", {
       ...fields,
       systemId,
@@ -165,6 +229,11 @@ export const updatePoint = mutation({
     checkEstimateRevision(point.revision, args.expectedRevision);
     const { pointId, expectedRevision, ...fields } = args;
     pointContent(fields);
+    const rows = await ctx.db
+      .query("estimatePoints")
+      .withIndex("by_system", (q) => q.eq("systemId", system._id).eq("deleted", false))
+      .take(101);
+    validatePointValues(system.type, [...rows.filter((row) => row._id !== pointId), fields]);
     await ctx.db.patch(pointId, { ...fields, revision: point.revision + 1 });
     await ctx.db.patch(system._id, { revision: system.revision + 1 });
   },

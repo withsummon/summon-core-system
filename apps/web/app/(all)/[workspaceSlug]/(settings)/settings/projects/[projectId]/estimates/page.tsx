@@ -4,42 +4,35 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// components
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import { useOutletContext, useParams } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
 import { EstimateRoot } from "@/components/estimates";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
-import type { Route } from "./+types/page";
+import { EstimateLoaderScreen } from "@/components/estimates/loader-screen";
+import { PreservedProjectSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 import { EstimatesProjectSettingsHeader } from "./header";
+export { ProjectFeatureSettingsErrorBoundary as ErrorBoundary } from "@/components/settings/project/content/feature-control-item";
 
-function EstimatesSettingsPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug, projectId } = params;
-  // store
-  const { currentProjectDetails } = useProject();
-  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-
-  // derived values
-  const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails?.name} - Estimates` : undefined;
-  const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
-
-  if (workspaceUserInfo && !canPerformProjectAdminActions) {
-    return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
-  }
-
+export default function EstimatesSettingsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { projectId } = useParams();
+  const project = useQuery(
+    api.projects.features.resolve,
+    projectId ? { workspaceId: session.workspace._id, projectId } : "skip"
+  );
+  if (!project) return <EstimateLoaderScreen />;
   return (
-    <SettingsContentWrapper header={<EstimatesProjectSettingsHeader />}>
-      <PageHead title={pageTitle} />
-      <div className={`w-full ${canPerformProjectAdminActions ? "" : "pointer-events-none opacity-60"}`}>
-        <EstimateRoot workspaceSlug={workspaceSlug} projectId={projectId} isAdmin={canPerformProjectAdminActions} />
-      </div>
-    </SettingsContentWrapper>
+    <PreservedProjectSettingsShell
+      {...session}
+      project={project}
+      authorized={project.role !== "guest"}
+      activePath="common.estimates"
+      header={<EstimatesProjectSettingsHeader />}
+    >
+      <PageHead title={`${project.name} - Estimates`} />
+      <EstimateRoot key={project.projectId} projectId={project.projectId} />
+    </PreservedProjectSettingsShell>
   );
 }
-
-export default observer(EstimatesSettingsPage);
