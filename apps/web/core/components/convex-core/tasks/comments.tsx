@@ -296,7 +296,7 @@ function CommentForm({
         id={`comment-draft-${initial?._id ?? taskId}`}
         label={initial ? "Edit comment" : "New comment"}
         placeholder="Write a comment…"
-        html={initial?.html ?? "<p></p>"}
+        html={html}
         editable={!pending && canEdit}
         onChange={setHtml}
       />
