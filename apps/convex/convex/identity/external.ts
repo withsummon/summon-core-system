@@ -20,8 +20,6 @@ export const user = internalQuery({
         return { status: 403 as const, body: { detail: "Your account is unavailable." } };
       throw error;
     }
-    if (account.apiId === undefined)
-      return { status: 503 as const, body: { detail: "User API identifier migration is incomplete." } };
     const id = apiIdSchema.parse(account.apiId);
     const profile = await profileIdentity(ctx, account._id);
     if (!profile) throw new ConvexError("Your account is unavailable.");
