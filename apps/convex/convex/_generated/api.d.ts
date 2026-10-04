@@ -255,6 +255,7 @@ import type * as tasks_revision from "../tasks/revision.js";
 import type * as tasks_rich_content from "../tasks/rich_content.js";
 import type * as tasks_states from "../tasks/states.js";
 import type * as tasks_status from "../tasks/status.js";
+import type * as tasks_votes from "../tasks/votes.js";
 import type * as workspaces_index from "../workspaces/index.js";
 import type * as workspaces_lifecycle from "../workspaces/lifecycle.js";
 import type * as workspaces_member_count from "../workspaces/member_count.js";
@@ -509,6 +510,7 @@ declare const fullApi: ApiFromModules<{
   "tasks/rich_content": typeof tasks_rich_content;
   "tasks/states": typeof tasks_states;
   "tasks/status": typeof tasks_status;
+  "tasks/votes": typeof tasks_votes;
   "workspaces/index": typeof workspaces_index;
   "workspaces/lifecycle": typeof workspaces_lifecycle;
   "workspaces/member_count": typeof workspaces_member_count;

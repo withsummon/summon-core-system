@@ -71,6 +71,8 @@ export async function createTask(
     createdBy: userId,
     updatedAt,
     titleUpdatedAt: updatedAt,
+    upVoteCount: 0,
+    downVoteCount: 0,
   });
   const created = await ctx.db.get(taskId);
   if (!created) throw new Error("Created task missing from transaction.");

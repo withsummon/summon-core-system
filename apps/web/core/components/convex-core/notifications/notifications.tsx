@@ -41,6 +41,7 @@ const eventLabels = {
   deleted: "Task deleted",
   restored: "Task restored",
   reaction_changed: "Reaction changed",
+  vote_changed: "Vote changed",
   comment_created: "Comment added",
   comment_updated: "Comment edited",
   comment_deleted: "Comment deleted",

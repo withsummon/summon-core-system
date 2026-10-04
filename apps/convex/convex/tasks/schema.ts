@@ -12,6 +12,7 @@ export const status = v.union(
 );
 export const taskStatus = v.union(...status.members, v.literal("triage"));
 export const commentAudience = v.union(v.literal("INTERNAL"), v.literal("EXTERNAL"));
+export const taskVote = v.union(v.literal(1), v.literal(-1));
 export const commentRequestId = z.uuid();
 export const commentCreation = v.object({
   requestId: zodToConvex(commentRequestId),
@@ -189,12 +190,14 @@ export const taskEventKind = v.union(
   v.literal("deleted"),
   v.literal("restored"),
   v.literal("reaction_changed"),
+  v.literal("vote_changed"),
   v.literal("comment_created"),
   v.literal("comment_updated"),
   v.literal("comment_deleted"),
   v.literal("comment_restored")
 );
 export const taskChange = v.union(
+  v.object({ field: v.literal("vote"), before: v.union(taskVote, v.null()), after: v.union(taskVote, v.null()) }),
   v.object({ field: v.literal("title"), before: v.string(), after: v.string() }),
   v.object({ field: v.literal("priority"), before: priority, after: priority }),
   v.object({ field: v.literal("state"), before: activityState, after: activityState }),
@@ -239,6 +242,14 @@ export const taskTables = {
   })
     .index("by_task_deleted", ["taskId", "deletedAt"])
     .index("by_task_actor_code_deleted", ["taskId", "actorId", "reaction", "deletedAt"]),
+  taskVotes: defineTable({
+    taskId: v.id("tasks"),
+    actorId: v.id("users"),
+    vote: taskVote,
+    deletedAt: v.union(v.number(), v.null()),
+  })
+    .index("by_task_actor_deleted", ["taskId", "actorId", "deletedAt"])
+    .index("by_task_vote_deleted", ["taskId", "vote", "deletedAt"]),
   taskLinks: defineTable({
     taskId: v.id("tasks"),
     url: v.string(),
@@ -312,6 +323,8 @@ export const taskTables = {
     createdBy: v.id("users"),
     updatedAt: v.number(),
     titleUpdatedAt: v.number(),
+    upVoteCount: v.number(),
+    downVoteCount: v.number(),
     ...taskProperties,
     completedAt: v.union(v.number(), v.null()),
   })

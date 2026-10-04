@@ -31,6 +31,7 @@ const icons = {
   estimate: <Triangle className="size-3 text-secondary" aria-hidden="true" />,
   assignees: <Users className="size-3 text-secondary" aria-hidden="true" />,
   labels: <Tag className="size-3 text-secondary" aria-hidden="true" />,
+  vote: <History className="size-3 text-secondary" aria-hidden="true" />,
 } satisfies Record<Change["field"], React.ReactNode>;
 
 export function ActivityList({ activity, currentUserId }: { activity: Event[]; currentUserId: Id<"users"> }) {
