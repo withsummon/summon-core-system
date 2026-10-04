@@ -29,7 +29,7 @@ export default function ProjectSettingsPage() {
       {...session}
       project={settings.shell}
       authorized
-      activePath="project_settings.general.title"
+      activePath="common.general"
       header={<GeneralProjectSettingsHeader />}
     >
       <PageHead title={`${settings.input.name} - General Settings`} />
