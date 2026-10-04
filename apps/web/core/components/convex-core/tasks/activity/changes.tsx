@@ -15,7 +15,12 @@ const labels = {
   assignees: "Assignees",
   labels: "Labels",
   modules: "Modules",
+  vote: "Vote",
 } satisfies Record<Change["field"], string>;
+const voteLabels = { 1: "Upvote", "-1": "Downvote" } satisfies Record<
+  NonNullable<Extract<Change, { field: "vote" }>["before"]>,
+  string
+>;
 function Scalar({ label, before, after }: { label: string; before: string | null; after: string | null }) {
   return (
     <li className="break-words">
@@ -23,21 +28,22 @@ function Scalar({ label, before, after }: { label: string; before: string | null
     </li>
   );
 }
-function ChangeRow({ change }: { change: Change }) {
-  if ("added" in change)
-    return (
-      <li className="break-words">
-        <span className="font-medium">{labels[change.field]}:</span>
-        <ul>
-          {change.added.map((item) => (
-            <li key={item.id}>Added {item.name ?? `Unavailable ${change.field}`}</li>
-          ))}
-          {change.removed.map((item) => (
-            <li key={item.id}>Removed {item.name ?? `Unavailable ${change.field}`}</li>
-          ))}
-        </ul>
-      </li>
-    );
+function CollectionChange({ change }: { change: Extract<Change, { added: unknown }> }) {
+  return (
+    <li className="break-words">
+      <span className="font-medium">{labels[change.field]}:</span>
+      <ul>
+        {change.added.map((item) => (
+          <li key={item.id}>Added {item.name ?? `Unavailable ${change.field}`}</li>
+        ))}
+        {change.removed.map((item) => (
+          <li key={item.id}>Removed {item.name ?? `Unavailable ${change.field}`}</li>
+        ))}
+      </ul>
+    </li>
+  );
+}
+function ChangeRow({ change }: { change: Exclude<Change, { added: unknown } | { field: "vote" }> }) {
   switch (change.field) {
     case "archivedAt":
     case "deletedAt":
@@ -79,9 +85,20 @@ function ChangeRow({ change }: { change: Change }) {
 export function ActivityChanges({ changes }: { changes: Change[] }) {
   return (
     <ul className="space-y-1 text-secondary">
-      {changes.map((change) => (
-        <ChangeRow key={change.field} change={change} />
-      ))}
+      {changes.map((change) =>
+        "added" in change ? (
+          <CollectionChange key={change.field} change={change} />
+        ) : change.field === "vote" ? (
+          <Scalar
+            key={change.field}
+            label={labels.vote}
+            before={change.before === null ? null : voteLabels[change.before]}
+            after={change.after === null ? null : voteLabels[change.after]}
+          />
+        ) : (
+          <ChangeRow key={change.field} change={change} />
+        )
+      )}
     </ul>
   );
 }

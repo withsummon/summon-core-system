@@ -18,6 +18,7 @@ const actions = {
   deleted: "deleted",
   restored: "restored",
   reaction_changed: "changed a reaction on",
+  vote_changed: "changed a vote on",
   comment_created: "added a comment to",
   comment_updated: "edited a comment on",
   comment_deleted: "removed a comment from",

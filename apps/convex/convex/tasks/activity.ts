@@ -57,7 +57,7 @@ async function profilePage(
   );
   return source
     .map(async (event) => {
-      if (event.kind === "reaction_changed" || event.kind.startsWith("comment_")) return null;
+      if (["reaction_changed", "vote_changed"].includes(event.kind) || event.kind.startsWith("comment_")) return null;
       const task = await ctx.db.get(event.taskId);
       if (!task || task.workspaceId !== event.workspaceId || task.projectId !== event.projectId) return null;
       const scope = await readProject(task.projectId);
