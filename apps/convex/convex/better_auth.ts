@@ -33,7 +33,10 @@ export const authComponent = createClient<DataModel, typeof authSchema>(componen
   triggers: {
     user: {
       onCreate: async (ctx, user) => {
-        if (!(await existingAppUser(ctx, user.email))) await requireSignup(ctx, user.email);
+        const existing = await existingAppUser(ctx, user.email);
+        if (existing && existing.emailVerificationTime === undefined && !user.emailVerified)
+          throw new ConvexError("This account must be verified before migration.");
+        if (!existing) await requireSignup(ctx, user.email);
         if (user.emailVerified) await linkVerifiedUser(ctx, user._id, user.email, user.name);
       },
       onUpdate: async (ctx, user, previous) => {
@@ -113,8 +116,6 @@ async function existingAppUser(ctx: MutationCtx, email: string) {
     .take(2);
   if (matches.length > 1) throw new ConvexError("Email identity is ambiguous.");
   const existing = matches[0];
-  if (existing && existing.emailVerificationTime === undefined)
-    throw new ConvexError("This account must be verified before migration.");
   if (existing) await requireUnrestrictedAccount(ctx, existing._id);
   return existing ?? null;
 }
@@ -153,7 +154,8 @@ async function linkVerifiedUser(
     }
     return;
   }
-  let userId = (await existingAppUser(ctx, email))?._id;
+  const appUser = await existingAppUser(ctx, email);
+  let userId = appUser?._id;
   if (!userId)
     userId = await ctx.db.insert("users", {
       apiId: await allocateUserApiId(ctx),
@@ -166,6 +168,8 @@ async function linkVerifiedUser(
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
   if (existing) throw new ConvexError("This account is already linked.");
+  if (appUser && appUser.emailVerificationTime === undefined)
+    await ctx.db.patch(appUser._id, { emailVerificationTime: Date.now() });
   await ctx.db.insert("betterAuthLinks", { authId, userId });
 }
 
