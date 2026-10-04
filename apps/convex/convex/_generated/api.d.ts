@@ -177,6 +177,7 @@ import type * as projects_directory from "../projects/directory.js";
 import type * as projects_feature_schema from "../projects/feature_schema.js";
 import type * as projects_features from "../projects/features.js";
 import type * as projects_form from "../projects/form.js";
+import type * as projects_inactivity from "../projects/inactivity.js";
 import type * as projects_index from "../projects/index.js";
 import type * as projects_lifecycle from "../projects/lifecycle.js";
 import type * as projects_metadata_fields from "../projects/metadata_fields.js";
@@ -432,6 +433,7 @@ declare const fullApi: ApiFromModules<{
   "projects/feature_schema": typeof projects_feature_schema;
   "projects/features": typeof projects_features;
   "projects/form": typeof projects_form;
+  "projects/inactivity": typeof projects_inactivity;
   "projects/index": typeof projects_index;
   "projects/lifecycle": typeof projects_lifecycle;
   "projects/metadata_fields": typeof projects_metadata_fields;

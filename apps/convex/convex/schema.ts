@@ -2,7 +2,7 @@ import { projectLogoProps } from "./projects/branding_schema";
 import { projectNetwork } from "./projects/network_schema";
 import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
-import { projectPersonalTables } from "./projects/schema";
+import { projectInactivityTables, projectPersonalTables } from "./projects/schema";
 import { navigationTables } from "./navigation/schema";
 import { estimateTables } from "./estimates/schema";
 import { favoriteTables } from "./favorites/schema";
@@ -34,6 +34,7 @@ export const role = v.union(v.literal("admin"), v.literal("member"), v.literal("
 export const invitationDeliveryStatus = v.union(v.literal("sent"), v.literal("failed"));
 export default defineSchema({
   ...projectPersonalTables,
+  ...projectInactivityTables,
   ...projectAppearanceTables,
   ...navigationTables,
   ...estimateTables,

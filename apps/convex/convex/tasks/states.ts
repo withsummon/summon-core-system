@@ -42,6 +42,15 @@ function ordinaryState(states: Doc<"taskStates">[], stateId: Id<"taskStates">) {
   return { ...state, status: state.status };
 }
 
+async function requireUnconfiguredCancellationState(ctx: MutationCtx, state: ReturnType<typeof ordinaryState>) {
+  const policy = await ctx.db
+    .query("projectInactivityPolicies")
+    .withIndex("by_project", (q) => q.eq("projectId", state.projectId))
+    .unique();
+  if (policy?.close?.stateId === state._id)
+    throw new ConvexError("Choose another inactivity automation cancellation state first.");
+}
+
 function requireAnotherGroupState(states: Doc<"taskStates">[], state: ReturnType<typeof ordinaryState>) {
   if (!states.some((row) => row._id !== state._id && row.status === state.status))
     throw new ConvexError("Keep at least one state in every group.");
@@ -77,6 +86,7 @@ async function changeGroup(
 ) {
   if (state.status === nextStatus) return;
   requireAnotherGroupState(access.states, state);
+  await requireUnconfiguredCancellationState(ctx, state);
   await ctx.db.patch(state._id, { status: nextStatus });
   // State identity stays stable. Both indexed task statuses and private draft references
   // publish in this transaction; a platform limit failure rolls back the entire move.
@@ -202,6 +212,7 @@ export const remove = mutation({
     const state = ordinaryState(access.states, found._id);
     if (state.isDefault) throw new ConvexError("Choose another default state first.");
     requireAnotherGroupState(access.states, state);
+    await requireUnconfiguredCancellationState(ctx, state);
     if (
       await ctx.db
         .query("tasks")

@@ -348,6 +348,7 @@ export const taskTables = {
     projectId: v.id("projects"),
     taskId: v.id("tasks"),
     actorId: v.id("users"),
+    automation: v.optional(v.literal(true)),
     commentId: v.optional(v.id("taskComments")),
     changes: v.optional(v.array(taskChange)),
     kind: taskEventKind,

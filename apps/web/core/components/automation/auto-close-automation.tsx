@@ -4,193 +4,115 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import type { ComponentProps } from "react";
 import { ArchiveX } from "lucide-react";
-// plane imports
-import { PROJECT_AUTOMATION_MONTHS, EUserPermissions, EUserPermissionsLevel, EIconSize } from "@plane/constants";
+import { PROJECT_AUTOMATION_MONTHS, EIconSize } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
-import type { IProject } from "@plane/types";
-import { CustomSelect, CustomSearchSelect, ToggleSwitch, Loader } from "@plane/ui";
-import { SelectMonthModal } from "@/components/automation";
+import { CustomSelect, CustomSearchSelect, ToggleSwitch } from "@plane/ui";
 import { SettingsControlItem } from "@/components/settings/control-item";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useProjectState } from "@/hooks/store/use-project-state";
-import { useUserPermissions } from "@/hooks/store/user";
+import type { AutoArchiveAutomation } from "./auto-archive-automation";
 
-type Props = {
-  handleChange: (formData: Partial<IProject>) => Promise<void>;
-};
-
-export const AutoCloseAutomation = observer(function AutoCloseAutomation(props: Props) {
-  const { handleChange } = props;
-  // router
-  const { workspaceSlug } = useParams();
-  // states
-  const [monthModal, setmonthModal] = useState(false);
-  // store hooks
-  const { currentProjectDetails } = useProject();
-  const { projectStates } = useProjectState();
-  const { allowPermissions } = useUserPermissions();
+export function AutoCloseAutomation({
+  settings,
+  pending,
+  handleChange,
+  onCustomize,
+}: ComponentProps<typeof AutoArchiveAutomation>) {
   const { t } = useTranslation();
-
-  // const stateGroups = projectStateStore.groupedProjectStates ?? undefined;
-
-  const options = projectStates
-    ?.filter((state) => state.group === "cancelled")
-    .map((state) => ({
-      value: state.id,
-      query: state.name,
-      content: (
-        <div className="flex items-center gap-2">
-          <StateGroupIcon stateGroup={state.group} color={state.color} size={EIconSize.LG} />
-          {state.name}
-        </div>
-      ),
-    }));
-
-  const multipleOptions = (options ?? []).length > 1;
-
-  const defaultState = projectStates?.find((s) => s.group === "cancelled")?.id || null;
-
-  const selectedOption = projectStates?.find((s) => s.id === (currentProjectDetails?.default_state ?? defaultState));
-  const currentDefaultState = projectStates?.find((s) => s.id === defaultState);
-
-  const initialValues: Partial<IProject> = {
-    close_in: 1,
-    default_state: defaultState,
-  };
-
-  const isAdmin = allowPermissions(
-    [EUserPermissions.ADMIN],
-    EUserPermissionsLevel.PROJECT,
-    workspaceSlug?.toString(),
-    currentProjectDetails?.id
-  );
-
-  const autoCloseStatus = useMemo(() => {
-    if (currentProjectDetails?.close_in === undefined) return false;
-    return currentProjectDetails.close_in !== 0;
-  }, [currentProjectDetails]);
-
-  return (
-    <>
-      <SelectMonthModal
-        type="auto-close"
-        initialValues={initialValues}
-        isOpen={monthModal}
-        handleClose={() => setmonthModal(false)}
-        handleChange={handleChange}
-      />
-      <div className="flex flex-col gap-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-sm bg-layer-2">
-            <ArchiveX className="size-4 shrink-0 text-danger-primary" />
-          </div>
-          <SettingsControlItem
-            title={t("project_settings.automations.auto-close.title")}
-            description={t("project_settings.automations.auto-close.description")}
-            control={
-              <ToggleSwitch
-                value={autoCloseStatus}
-                onChange={() => {
-                  if (currentProjectDetails?.close_in === 0) {
-                    void handleChange({ close_in: 1, default_state: defaultState });
-                  } else {
-                    void handleChange({ close_in: 0, default_state: null });
-                  }
-                }}
-                size="sm"
-                disabled={!isAdmin}
-              />
-            }
-          />
-        </div>
-
-        {currentProjectDetails ? (
-          autoCloseStatus && (
-            <div className="ml-13">
-              <div className="flex flex-col rounded-sm border border-subtle bg-surface-2">
-                <div className="flex w-full items-center justify-between gap-2 px-5 py-4">
-                  <div className="w-1/2 text-13 font-medium">
-                    {t("project_settings.automations.auto-close.duration")}
-                  </div>
-                  <div className="w-1/2">
-                    <CustomSelect
-                      value={currentProjectDetails?.close_in}
-                      label={`${currentProjectDetails?.close_in} ${
-                        currentProjectDetails?.close_in === 1 ? "month" : "months"
-                      }`}
-                      onChange={(val: number) => void handleChange({ close_in: val })}
-                      input
-                      disabled={!isAdmin}
-                    >
-                      <>
-                        {PROJECT_AUTOMATION_MONTHS.map((month) => (
-                          <CustomSelect.Option key={month.i18n_label} value={month.value}>
-                            {t(month.i18n_label, { months: month.value })}
-                          </CustomSelect.Option>
-                        ))}
-                        <button
-                          type="button"
-                          className="flex w-full items-center rounded-sm px-1 py-1.5 text-secondary select-none hover:bg-layer-1"
-                          onClick={() => setmonthModal(true)}
-                        >
-                          {t("common.customize_time_range")}
-                        </button>
-                      </>
-                    </CustomSelect>
-                  </div>
-                </div>
-
-                <div className="ppy flex w-full items-center justify-between gap-2 px-5 py-4 sm:py-10">
-                  <div className="w-1/2 text-13 font-medium">
-                    {t("project_settings.automations.auto-close.auto_close_status")}
-                  </div>
-                  <div className="w-1/2">
-                    <CustomSearchSelect
-                      value={currentProjectDetails?.default_state ?? defaultState}
-                      label={
-                        <div className="flex items-center gap-2">
-                          {selectedOption ? (
-                            <StateGroupIcon
-                              stateGroup={selectedOption.group}
-                              color={selectedOption.color}
-                              size={EIconSize.LG}
-                            />
-                          ) : currentDefaultState ? (
-                            <StateGroupIcon
-                              stateGroup={currentDefaultState.group}
-                              color={currentDefaultState.color}
-                              size={EIconSize.LG}
-                            />
-                          ) : (
-                            <StatePropertyIcon className="h-3.5 w-3.5 text-secondary" />
-                          )}
-                          {selectedOption?.name
-                            ? selectedOption.name
-                            : (currentDefaultState?.name ?? <span className="text-secondary">{t("state")}</span>)}
-                        </div>
-                      }
-                      onChange={(val: string) => void handleChange({ default_state: val })}
-                      options={options}
-                      disabled={!multipleOptions}
-                      input
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        ) : (
-          <Loader className="ml-13">
-            <Loader.Item height="50px" />
-          </Loader>
-        )}
+  const close = settings.close;
+  const disabled = pending || !settings.canConfigure;
+  const firstState = settings.cancelledStates[0];
+  const selected = settings.cancelledStates.find((state) => state._id === close?.stateId);
+  const options = settings.cancelledStates.map((state) => ({
+    value: state._id,
+    query: state.name,
+    content: (
+      <div className="flex items-center gap-2">
+        <StateGroupIcon stateGroup="cancelled" color={state.color} size={EIconSize.LG} />
+        {state.name}
       </div>
-    </>
+    ),
+  }));
+  return (
+    <div className="flex flex-col gap-4 py-2">
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-sm bg-layer-2">
+          <ArchiveX className="size-4 shrink-0 text-danger-primary" />
+        </div>
+        <SettingsControlItem
+          title={t("project_settings.automations.auto-close.title")}
+          description={t("project_settings.automations.auto-close.description")}
+          control={
+            <ToggleSwitch
+              label={t("project_settings.automations.auto-close.title")}
+              value={close !== null}
+              onChange={() => {
+                if (close) void handleChange({ close: null });
+                else if (firstState) void handleChange({ close: { months: 1, stateId: firstState._id } });
+              }}
+              size="sm"
+              disabled={disabled || !firstState}
+            />
+          }
+        />
+      </div>
+      {close && (
+        <div className="ml-0 sm:ml-13">
+          <div className="flex flex-col rounded-sm border border-subtle bg-surface-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
+              <div className="text-13 font-medium">{t("project_settings.automations.auto-close.duration")}</div>
+              <CustomSelect<number | "custom">
+                ariaLabel="Close after inactivity"
+                value={close.months}
+                label={`${close.months} ${close.months === 1 ? "month" : "months"}`}
+                onChange={(value) => {
+                  if (value === "custom") return onCustomize();
+                  const months = settings.months.find((month) => month === value);
+                  if (months) void handleChange({ close: { ...close, months } });
+                }}
+                input
+                disabled={disabled}
+              >
+                {PROJECT_AUTOMATION_MONTHS.map((month) => (
+                  <CustomSelect.Option key={month.value} value={month.value}>
+                    {t(month.i18n_label, { months: month.value })}
+                  </CustomSelect.Option>
+                ))}
+                <CustomSelect.Option value="custom">{t("common.customize_time_range")}</CustomSelect.Option>
+              </CustomSelect>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
+              <div className="text-13 font-medium">
+                {t("project_settings.automations.auto-close.auto_close_status")}
+              </div>
+              <CustomSearchSelect
+                ariaLabel="Automatic cancellation state"
+                value={close.stateId}
+                label={
+                  <div className="flex items-center gap-2">
+                    {selected ? (
+                      <>
+                        <StateGroupIcon stateGroup="cancelled" color={selected.color} size={EIconSize.LG} />
+                        {selected.name}
+                      </>
+                    ) : (
+                      <StatePropertyIcon className="size-3.5 text-secondary" />
+                    )}
+                  </div>
+                }
+                onChange={(value: string) => {
+                  const state = settings.cancelledStates.find((row) => row._id === value);
+                  if (state) void handleChange({ close: { ...close, stateId: state._id } });
+                }}
+                options={options}
+                disabled={disabled || settings.cancelledStates.length < 2}
+                input
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
-});
+}
