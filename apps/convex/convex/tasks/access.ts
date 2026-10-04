@@ -4,6 +4,8 @@ import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { taskOrder } from "./schema";
+import { currentTaskCycle } from "../cycles/tasks";
+import { currentTaskModules } from "../modules/tasks";
 export const taskOrdering = {
   sortOrder: { index: "by_workspace_manual", direction: "asc" },
   createdAt: { index: "by_workspace", direction: "desc" },
@@ -119,7 +121,11 @@ export async function taskDetail(
       .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", task.createdBy))
       .unique(),
   ]);
-  const assignees = await Promise.all(task.assigneeIds.map((id) => taskAssignee(ctx, project, id)));
+  const [assignees, cycle, modules] = await Promise.all([
+    Promise.all(task.assigneeIds.map((id) => taskAssignee(ctx, project, id))),
+    currentTaskCycle(ctx, task),
+    currentTaskModules(ctx, task),
+  ]);
   return {
     ...task,
     creator: {
@@ -130,6 +136,10 @@ export async function taskDetail(
           : null,
     },
     assignees,
+    cycle: cycle.cycle,
+    cycleReference: cycle.reference,
+    modules: modules.modules,
+    moduleReferences: modules.references,
     canEdit: writer && taskIsActive(task),
     canArchive: writer && taskIsActive(task) && (task.status === "done" || task.status === "cancelled"),
     canDelete: recovery && task.deletedAt === null,

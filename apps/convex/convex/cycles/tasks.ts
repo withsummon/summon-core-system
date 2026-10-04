@@ -34,8 +34,7 @@ export const current = query({
   handler: async (ctx, args) => {
     const task = await requireTask(ctx, args.taskId, "read");
     await requireProject(ctx, task.projectId);
-    const { cycle } = await readTaskCycle(ctx, task);
-    return cycle && !cycle.deleted ? cycle : null;
+    return (await currentTaskCycle(ctx, task)).cycle;
   },
 });
 export const list = query({
@@ -79,6 +78,13 @@ export async function readTaskCycle(ctx: QueryCtx, task: Doc<"tasks">) {
   if (membership && (!cycle || cycle.projectId !== task.projectId || cycle.workspaceId !== task.workspaceId))
     throw new ConvexError("Cycle reference not found in this project.");
   return { membership, cycle };
+}
+export async function currentTaskCycle(ctx: QueryCtx, task: Doc<"tasks">) {
+  const { cycle } = await readTaskCycle(ctx, task);
+  return {
+    cycle: cycle && !cycle.deleted ? cycle : null,
+    reference: cycle ? { cycleId: cycle._id, expectedCycleUpdatedAt: cycle.updatedAt } : null,
+  };
 }
 export async function prepareCycleChange(
   ctx: MutationCtx,

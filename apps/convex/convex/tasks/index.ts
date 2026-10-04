@@ -25,8 +25,8 @@ import { plainDescriptionHtml, taskRichContent } from "./rich_content";
 import schema from "../schema";
 import type { QueryCtx } from "../_generated/server";
 import { readTaskParent } from "./hierarchy";
-import { readTaskCycle } from "../cycles/tasks";
-import { readTaskModules } from "../modules/tasks";
+import { currentTaskCycle } from "../cycles/tasks";
+import { currentTaskModules } from "../modules/tasks";
 import { validateProperties } from "./properties";
 import { matchesFilters, validateShape } from "../savedViews/filters";
 import { text as validateText } from "../commercial/validation";
@@ -150,8 +150,8 @@ export async function taskEditSource(ctx: QueryCtx, task: Awaited<ReturnType<typ
       .unique(),
     descriptionVersion(ctx, task._id),
     readTaskParent(ctx, task),
-    readTaskCycle(ctx, task),
-    readTaskModules(ctx, task),
+    currentTaskCycle(ctx, task),
+    currentTaskModules(ctx, task),
     validateProperties(ctx, project, task, task),
   ]);
   const expectedEdit = { title: task.title, status: task.status, properties: properties.data };
@@ -165,8 +165,8 @@ export async function taskEditSource(ctx: QueryCtx, task: Awaited<ReturnType<typ
     parent: parent.task ? { taskId: parent.task._id, expectedUpdatedAt: parent.task.updatedAt } : null,
     hasParent: parent.hasParent,
     canUnlinkParent: parent.canUnlink,
-    cycle: cycle.cycle ? { cycleId: cycle.cycle._id, expectedCycleUpdatedAt: cycle.cycle.updatedAt } : null,
-    modules: modules.map(({ module }) => ({ moduleId: module._id, expectedModuleUpdatedAt: module.updatedAt })),
+    cycle: cycle.reference,
+    modules: modules.references,
   };
 }
 export const editSnapshot = query({
