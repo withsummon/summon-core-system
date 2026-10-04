@@ -3,6 +3,7 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
+import { defaultTaskPreferences } from "@summon/convex/task-schema";
 import { Button } from "@plane/propel/button";
 import { ViewDefinitionForm } from "./form";
 type Detail = FunctionReturnType<typeof api.savedViews.workspace.get>;
@@ -29,6 +30,12 @@ export function WorkspaceViewForm({
   return (
     <ViewDefinitionForm
       initial={initial}
+      defaultDisplayFilters={{
+        ...defaultTaskPreferences.displayFilters,
+        layout: "spreadsheet",
+        includeSubtasks: false,
+        showEmptyGroups: false,
+      }}
       canEdit={canEdit}
       onPendingChange={onPendingChange}
       onDone={onDone}

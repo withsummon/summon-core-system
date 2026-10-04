@@ -158,20 +158,30 @@ export const taskLayout = v.union(
   v.literal("kanban"),
   v.literal("calendar"),
   v.literal("spreadsheet"),
-  v.literal("gantt")
+  v.literal("gantt_chart")
 );
+export const taskOrder = v.union(...profileOrder.members, v.literal("targetDate"));
+export const taskGroupBy = v.union(
+  v.literal("stateId"),
+  v.literal("priority"),
+  v.literal("cycleId"),
+  v.literal("moduleId"),
+  v.literal("labelId"),
+  v.literal("assigneeId"),
+  v.literal("createdBy"),
+  v.null()
+);
+export const taskDisplayProperties = v.object({ ...profileDisplayProperties.fields, issue_type: v.boolean() });
+export const taskDisplayPropertiesSchema = convexToZod(taskDisplayProperties);
 export const taskDisplayFilters = v.object({
   ...profileDisplayFilters.fields,
   layout: taskLayout,
-  subGroupBy: profileGroupBy,
+  groupBy: taskGroupBy,
+  subGroupBy: taskGroupBy,
+  order: taskOrder,
   calendar: v.object({ showWeekends: v.boolean(), layout: v.union(v.literal("month"), v.literal("week")) }),
 });
-export const taskPreferences = v.object({
-  displayFilters: taskDisplayFilters,
-  displayProperties: profileDisplayProperties,
-  filters: viewFilters,
-});
-export const taskPreferencesSchema = convexToZod(taskPreferences).superRefine(({ displayFilters }, ctx) => {
+export const taskDisplayFiltersSchema = convexToZod(taskDisplayFilters).superRefine((displayFilters, ctx) => {
   if (displayFilters.groupBy === null && displayFilters.subGroupBy !== null)
     ctx.addIssue({ code: "custom", message: "Choose a primary group before a subgroup." });
   if (displayFilters.layout === "kanban" && displayFilters.groupBy === null)
@@ -179,6 +189,12 @@ export const taskPreferencesSchema = convexToZod(taskPreferences).superRefine(({
   if (displayFilters.subGroupBy !== null && displayFilters.groupBy === displayFilters.subGroupBy)
     ctx.addIssue({ code: "custom", message: "Choose distinct primary and secondary groups." });
 });
+export const taskPreferences = v.object({
+  displayFilters: taskDisplayFilters,
+  displayProperties: taskDisplayProperties,
+  filters: viewFilters,
+});
+export const taskPreferencesSchema = convexToZod(taskPreferences).extend({ displayFilters: taskDisplayFiltersSchema });
 export const defaultTaskPreferences = {
   displayFilters: {
     layout: "list",
@@ -205,6 +221,7 @@ export const defaultTaskPreferences = {
     updated_on: true,
     cycle: true,
     modules: true,
+    issue_type: true,
   },
   filters: {
     match: "all",

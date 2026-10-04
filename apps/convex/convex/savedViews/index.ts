@@ -1,8 +1,9 @@
+import { defaultTaskPreferences, taskDisplayFiltersSchema, taskDisplayPropertiesSchema } from "../tasks/schema";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { EmptyStream, mergedStream, SingletonStream, stream } from "convex-helpers/server/stream";
 import schema from "../schema";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -16,6 +17,8 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const { user, project } = await requireProject(ctx, args.projectId);
     const filters = await validateFilters(ctx, args.projectId, args.filters);
+    const display = taskDisplayFiltersSchema.safeParse(args.displayFilters ?? defaultTaskPreferences.displayFilters);
+    if (!display.success) throw new ConvexError(display.error.message);
     return ctx.db.insert("savedViews", {
       projectId: args.projectId,
       workspaceId: project.workspaceId,
@@ -23,6 +26,8 @@ export const create = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      displayFilters: display.data,
+      displayProperties: args.displayProperties ?? defaultTaskPreferences.displayProperties,
       access: args.access ?? "public",
       logoProps: validatedProjectLogo(args.logoProps ?? {}),
       isLocked: false,
@@ -38,10 +43,15 @@ export const update = mutation({
     if (!canEdit) throw new ConvexError("Only the owner can edit an unlocked saved view.");
     requireRevision(view, args.expectedUpdatedAt);
     const filters = await validateFilters(ctx, view.projectId, args.filters);
+    const display =
+      args.displayFilters === undefined ? undefined : taskDisplayFiltersSchema.safeParse(args.displayFilters);
+    if (display && !display.success) throw new ConvexError(display.error.message);
     await ctx.db.patch(view._id, {
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      ...(display === undefined ? {} : { displayFilters: display.data }),
+      ...(args.displayProperties === undefined ? {} : { displayProperties: args.displayProperties }),
       ...(args.access === undefined ? {} : { access: args.access }),
       ...(args.logoProps === undefined ? {} : { logoProps: validatedProjectLogo(args.logoProps) }),
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
@@ -157,6 +167,47 @@ export const access = query({
     return {
       canCreate: true,
       canFavorite: permission.member.role !== "guest" && permission.projectMember.role !== "guest",
+    };
+  },
+});
+
+// Temporary additive rollout: remove after complete missing-only coverage and a
+// second zero-change pass, then require both stored display fields and remove read defaults.
+export const initializeDisplayPreferences = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("savedViews").paginate({
+      cursor: args.cursor,
+      numItems: 50,
+      maximumRowsRead: 50,
+      maximumBytesRead: 1048576,
+    });
+    let displayFiltersFilled = 0,
+      displayPropertiesFilled = 0;
+    for (const view of page.page) {
+      if (view.displayFilters !== undefined) taskDisplayFiltersSchema.parse(view.displayFilters);
+      if (view.displayProperties !== undefined) taskDisplayPropertiesSchema.parse(view.displayProperties);
+    }
+    await Promise.all(
+      page.page.map(async (view) => {
+        if (view.displayFilters !== undefined && view.displayProperties !== undefined) return;
+        const patch = {
+          ...(view.displayFilters === undefined ? { displayFilters: defaultTaskPreferences.displayFilters } : {}),
+          ...(view.displayProperties === undefined
+            ? { displayProperties: defaultTaskPreferences.displayProperties }
+            : {}),
+        };
+        if (view.displayFilters === undefined) displayFiltersFilled++;
+        if (view.displayProperties === undefined) displayPropertiesFilled++;
+        await ctx.db.patch(view._id, patch);
+      })
+    );
+    return {
+      processed: page.page.length,
+      displayFiltersFilled,
+      displayPropertiesFilled,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
     };
   },
 });

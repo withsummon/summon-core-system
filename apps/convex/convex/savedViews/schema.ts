@@ -1,6 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { viewFilters } from "../tasks/schema";
+import { viewFilters, taskDisplayFilters, taskDisplayProperties } from "../tasks/schema";
 export { viewFilters } from "../tasks/schema";
 import { projectLogoProps } from "../projects/branding_schema";
 export const viewAccess = v.union(v.literal("private"), v.literal("public"));
@@ -12,10 +12,15 @@ export const viewListFields = {
   favorites: v.optional(v.boolean()),
   createdAt: v.optional(v.array(v.object({ before: v.boolean(), timestamp: v.number() }))),
 };
+export const viewDisplayFields = {
+  displayFilters: v.optional(taskDisplayFilters),
+  displayProperties: v.optional(taskDisplayProperties),
+};
 export const viewDefinitionFields = {
   name: v.string(),
   description: v.string(),
   filters: viewFilters,
+  ...viewDisplayFields,
   access: v.optional(viewAccess),
   logoProps: v.optional(projectLogoProps),
 };
@@ -29,6 +34,7 @@ export const savedViewTables = {
     access: viewAccess,
     logoProps: projectLogoProps,
     filters: viewFilters,
+    ...viewDisplayFields,
     isLocked: v.boolean(),
     updatedAt: v.number(),
     deletedAt: v.union(v.number(), v.null()),

@@ -4,6 +4,14 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
+import {
+  defaultTaskPreferences,
+  taskDisplayFiltersSchema,
+  taskDisplayPropertiesSchema,
+} from "@summon/convex/task-schema";
+import { EIssueLayoutTypes } from "@plane/types";
+import { Select } from "@plane/propel/select";
+import { LayoutSelection, FilterDisplayProperties } from "@/components/issues/issue-layouts/filters";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
@@ -15,6 +23,24 @@ import { BasicFilters, FilterChoices } from "./filters";
 type Detail =
   | FunctionReturnType<typeof api.savedViews.index.get>
   | FunctionReturnType<typeof api.savedViews.workspace.get>;
+type DisplayFilters = NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayFilters"]>;
+const groupLabels = {
+  stateId: "State",
+  priority: "Priority",
+  cycleId: "Cycle",
+  moduleId: "Module",
+  labelId: "Labels",
+  assigneeId: "Assignees",
+  createdBy: "Created by",
+} satisfies Record<Exclude<DisplayFilters["groupBy"], null>, string>;
+const orderLabels = {
+  sortOrder: "Manual",
+  createdAt: "Newest created",
+  updatedAt: "Newest updated",
+  startDate: "Start date",
+  priority: "Priority",
+  targetDate: "Due date",
+} satisfies Record<DisplayFilters["order"], string>;
 type Filters = FunctionArgs<typeof api.savedViews.index.create>["filters"];
 const emptyFilters: Filters = {
   match: "all",
@@ -50,6 +76,13 @@ export function SavedViewForm({
   return (
     <ViewDefinitionForm
       initial={initial}
+      defaultDisplayFilters={{
+        ...defaultTaskPreferences.displayFilters,
+        groupBy: "stateId",
+        order: "sortOrder",
+        includeSubtasks: false,
+        showEmptyGroups: false,
+      }}
       canEdit={canEdit}
       onPendingChange={onPendingChange}
       onDone={onDone}
@@ -95,12 +128,14 @@ export function ViewDefinitionForm({
   scopeDescription,
   canEdit,
   onPendingChange,
+  defaultDisplayFilters,
 }: {
+  defaultDisplayFilters: DisplayFilters;
   initial: Detail | null;
   onSave: (
     definition: Pick<
       FunctionArgs<typeof api.savedViews.index.create>,
-      "name" | "description" | "filters" | "access" | "logoProps"
+      "name" | "description" | "filters" | "access" | "logoProps" | "displayFilters" | "displayProperties"
     >,
     snapshot: Detail | null
   ) => Promise<Id<"savedViews">>;
@@ -122,6 +157,8 @@ export function ViewDefinitionForm({
     Pick<FunctionArgs<typeof api.savedViews.index.create>, "name" | "description" | "filters"> & {
       access: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["access"]>;
       logo: ComponentProps<typeof ProjectLogoPicker>["value"];
+      displayFilters: DisplayFilters;
+      displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
     }
   >(() =>
     initial
@@ -129,6 +166,8 @@ export function ViewDefinitionForm({
           name: initial.view.name,
           description: initial.view.description,
           filters: initial.view.filters,
+          displayFilters: initial.view.displayFilters,
+          displayProperties: initial.view.displayProperties,
           access: initial.view.access,
           logo: initial.logo ?? undefined,
         }
@@ -136,12 +175,14 @@ export function ViewDefinitionForm({
           name: "",
           description: "",
           filters: emptyFilters,
+          displayFilters: defaultDisplayFilters,
+          displayProperties: defaultTaskPreferences.displayProperties,
           access: "public",
           logo: undefined,
         }
   );
   const [draft, setDraft] = useState(original);
-  const { name, description, filters, access, logo } = draft;
+  const { name, description, filters, access, logo, displayFilters, displayProperties } = draft;
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const dirty = JSON.stringify(draft) !== JSON.stringify(original);
@@ -174,7 +215,15 @@ export function ViewDefinitionForm({
         onPendingChange?.(true);
         setError("");
         try {
-          const data = { name, description, filters, access, logoProps: { ...snapshot?.view.logoProps, ...logo } };
+          const data = {
+            name,
+            description,
+            filters,
+            access,
+            displayFilters,
+            displayProperties,
+            logoProps: { ...snapshot?.view.logoProps, ...logo },
+          };
           const id = await onSave(data, snapshot);
           release((allowNavigation) => {
             onCancel();
@@ -239,6 +288,12 @@ export function ViewDefinitionForm({
             Private views are visible only to you. Public views are shared with current members in this scope.
           </p>
         </div>
+        <ViewDisplayFields
+          displayFilters={displayFilters}
+          displayProperties={displayProperties}
+          disabled={pending || !canEdit}
+          onChange={(display) => setDraft({ ...draft, ...display })}
+        />
         <BasicFilters filters={filters} onChange={(value) => setDraft({ ...draft, filters: value })} />
         <details
           className="space-y-3 rounded-md border border-subtle-1 p-3"
@@ -294,5 +349,173 @@ export function ViewDefinitionForm({
         </p>
       )}
     </form>
+  );
+}
+
+function ViewDisplayFields({
+  displayFilters,
+  displayProperties,
+  disabled,
+  onChange,
+}: {
+  displayFilters: DisplayFilters;
+  displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
+  disabled: boolean;
+  onChange: (
+    display: Pick<FunctionArgs<typeof api.savedViews.index.create>, "displayFilters" | "displayProperties">
+  ) => void;
+}) {
+  const changeFilters = (change: Partial<DisplayFilters>) =>
+    onChange({
+      displayFilters: { ...displayFilters, ...change },
+      displayProperties,
+    });
+  return (
+    <>
+      <LayoutSelection
+        layouts={[
+          EIssueLayoutTypes.LIST,
+          EIssueLayoutTypes.KANBAN,
+          EIssueLayoutTypes.CALENDAR,
+          EIssueLayoutTypes.SPREADSHEET,
+          EIssueLayoutTypes.GANTT,
+        ]}
+        selectedLayout={displayFilters.layout}
+        disabled={disabled}
+        onChange={(layout) =>
+          changeFilters({
+            layout,
+            groupBy: layout === "kanban" && displayFilters.groupBy === null ? "stateId" : displayFilters.groupBy,
+          })
+        }
+      />
+      <details className="space-y-3 rounded-md border border-subtle-1 p-3">
+        <summary className="cursor-pointer text-14 font-medium">Display</summary>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(displayFilters.layout === "list" || displayFilters.layout === "kanban") && (
+            <SummonField label="Group by" htmlFor="saved-view-group">
+              <Select
+                id="saved-view-group"
+                value={displayFilters.groupBy ?? ""}
+                disabled={disabled}
+                options={[
+                  { value: "", label: "None", disabled: displayFilters.layout === "kanban" },
+                  ...Object.entries(groupLabels).map(([value, label]) => ({ value, label })),
+                ]}
+                onValueChange={(value) => {
+                  const groupBy = taskDisplayFiltersSchema.shape.groupBy.parse(value === "" ? null : value);
+                  changeFilters({
+                    groupBy,
+                    subGroupBy:
+                      groupBy === null || groupBy === displayFilters.subGroupBy ? null : displayFilters.subGroupBy,
+                  });
+                }}
+              />
+            </SummonField>
+          )}
+          {displayFilters.layout === "kanban" && (
+            <SummonField label="Subgroup by" htmlFor="saved-view-subgroup">
+              <Select
+                id="saved-view-subgroup"
+                value={displayFilters.subGroupBy ?? ""}
+                disabled={disabled}
+                options={[
+                  { value: "", label: "None" },
+                  ...Object.entries(groupLabels).map(([value, label]) => ({
+                    value,
+                    label,
+                    disabled: value === displayFilters.groupBy,
+                  })),
+                ]}
+                onValueChange={(value) =>
+                  changeFilters({
+                    subGroupBy: taskDisplayFiltersSchema.shape.subGroupBy.parse(value === "" ? null : value),
+                  })
+                }
+              />
+            </SummonField>
+          )}
+          {displayFilters.layout !== "calendar" && (
+            <SummonField label="Order by" htmlFor="saved-view-order">
+              <Select
+                id="saved-view-order"
+                value={displayFilters.order}
+                disabled={disabled}
+                options={Object.entries(orderLabels).map(([value, label]) => ({
+                  value,
+                  label,
+                  disabled:
+                    value === "targetDate" && displayFilters.layout !== "list" && displayFilters.layout !== "kanban",
+                }))}
+                onValueChange={(value) => changeFilters({ order: taskDisplayFiltersSchema.shape.order.parse(value) })}
+              />
+            </SummonField>
+          )}
+          {displayFilters.layout === "calendar" && (
+            <SummonField label="Calendar layout" htmlFor="saved-view-calendar">
+              <Select
+                id="saved-view-calendar"
+                value={displayFilters.calendar.layout}
+                disabled={disabled}
+                options={[
+                  { value: "month", label: "Month" },
+                  { value: "week", label: "Week" },
+                ]}
+                onValueChange={(value) =>
+                  changeFilters({
+                    calendar: {
+                      ...displayFilters.calendar,
+                      layout: taskDisplayFiltersSchema.shape.calendar.shape.layout.parse(value),
+                    },
+                  })
+                }
+              />
+            </SummonField>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            aria-pressed={displayFilters.includeSubtasks}
+            onClick={() => changeFilters({ includeSubtasks: !displayFilters.includeSubtasks })}
+          >
+            Show sub-work items
+          </Button>
+          {(displayFilters.layout === "list" || displayFilters.layout === "kanban") && (
+            <Button
+              variant="secondary"
+              aria-pressed={displayFilters.showEmptyGroups}
+              onClick={() => changeFilters({ showEmptyGroups: !displayFilters.showEmptyGroups })}
+            >
+              Show empty groups
+            </Button>
+          )}
+          {displayFilters.layout === "calendar" && (
+            <Button
+              variant="secondary"
+              aria-pressed={displayFilters.calendar.showWeekends}
+              onClick={() =>
+                changeFilters({
+                  calendar: { ...displayFilters.calendar, showWeekends: !displayFilters.calendar.showWeekends },
+                })
+              }
+            >
+              Show weekends
+            </Button>
+          )}
+        </div>
+        <FilterDisplayProperties
+          displayProperties={displayProperties}
+          displayPropertiesToRender={
+            displayFilters.layout === "calendar" || displayFilters.layout === "gantt_chart"
+              ? ["key", "issue_type"]
+              : taskDisplayPropertiesSchema.keyof().options
+          }
+          handleUpdate={(change) =>
+            onChange({ displayFilters, displayProperties: { ...displayProperties, ...change } })
+          }
+        />
+      </details>
+    </>
   );
 }
