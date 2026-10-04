@@ -7,6 +7,11 @@ import { z } from "zod/v4";
 import { convexToZod, zodToConvexFields, zodToConvex } from "convex-helpers/server/zod4";
 
 export const apiIdSchema = z.uuid();
+export const instanceGeneral = z.object({
+  instanceName: z.string().trim().min(1).max(255),
+  telemetryEnabled: z.boolean(),
+});
+export const instanceIdentifier = z.string().regex(/^[0-9a-f]{24}$/);
 
 // Safe request metadata only. HEAD is served by Convex through its GET handler.
 export const apiRequestMetadata = z.object({
@@ -73,7 +78,13 @@ export const identityTables = {
     coverAssetId: v.optional(v.union(v.id("assets"), v.null())),
     externalCoverUrl: v.optional(v.string()),
   }).index("by_user", ["userId"]),
-  instanceAuthority: defineTable({ key: v.literal("instance"), initializedAt: v.number() }).index("by_key", ["key"]),
+  instanceAuthority: defineTable({
+    key: v.literal("instance"),
+    initializedAt: v.number(),
+    ...zodToConvexFields(instanceGeneral.shape),
+    instanceId: zodToConvex(instanceIdentifier),
+    revision: v.number(),
+  }).index("by_key", ["key"]),
   instanceAdmins: defineTable({
     instanceId: v.id("instanceAuthority"),
     userId: v.id("users"),
