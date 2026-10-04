@@ -33,9 +33,11 @@ export function SavedViewForm({
   onDone,
   onCancel,
   canEdit = true,
+  onPendingChange,
 }: {
   projectId: Id<"projects">;
   canEdit?: boolean;
+  onPendingChange?: (pending: boolean) => void;
   initial: Detail | null;
   onDone: (id: Id<"savedViews">) => void;
   onCancel: () => void;
@@ -49,6 +51,7 @@ export function SavedViewForm({
     <ViewDefinitionForm
       initial={initial}
       canEdit={canEdit}
+      onPendingChange={onPendingChange}
       onDone={onDone}
       onCancel={onCancel}
       scopeDescription="Saved for this project. Guest visibility follows the project’s feature settings."
@@ -91,6 +94,7 @@ export function ViewDefinitionForm({
   peopleControls,
   scopeDescription,
   canEdit,
+  onPendingChange,
 }: {
   initial: Detail | null;
   onSave: (
@@ -111,6 +115,7 @@ export function ViewDefinitionForm({
   peopleControls: ReactNode;
   scopeDescription: string;
   canEdit: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const [snapshot] = useState(initial);
   const [original] = useState<
@@ -166,6 +171,7 @@ export function ViewDefinitionForm({
         event.preventDefault();
         if (pending || !canEdit) return;
         setPending(true);
+        onPendingChange?.(true);
         setError("");
         try {
           const data = { name, description, filters, access, logoProps: { ...snapshot?.view.logoProps, ...logo } };
@@ -178,6 +184,7 @@ export function ViewDefinitionForm({
           setError(mutationMessage(failure));
         } finally {
           setPending(false);
+          onPendingChange?.(false);
         }
       }}
     >

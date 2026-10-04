@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
@@ -7,13 +8,16 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { DEFAULT_GLOBAL_VIEWS_LIST } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
+import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Dialog } from "@plane/propel/dialog";
 import { Button } from "@plane/propel/button";
-import { EditIcon, LinkIcon, NewTabIcon, SearchIcon, TrashIcon, ViewsIcon } from "@plane/propel/icons";
+import { EditIcon, LinkIcon, LockIcon, NewTabIcon, SearchIcon, TrashIcon, ViewsIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyUrlToClipboard } from "@plane/utils";
 import {
   AlertModalCore,
   Breadcrumbs,
+  ContextMenu,
   CustomMenu,
   EModalPosition,
   EModalWidth,
@@ -31,6 +35,9 @@ import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { GlobalDefaultViewListItem } from "@/components/workspace/views/default-view-list-item";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
 import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+
+import type { TContextMenuItem } from "@plane/ui";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 
 type ViewRow = FunctionReturnType<typeof api.savedViews.workspace.list>["page"][number];
 
@@ -106,67 +113,26 @@ export default function WorkspaceViewsPage() {
                 <GlobalDefaultViewListItem key={view.key} view={view} />
               ))}
               {views.results.map((row) => (
-                <div
+                <SavedViewListItem
                   key={row.view._id}
-                  className="group flex min-h-[52px] items-center border-b border-subtle hover:bg-surface-2"
-                >
-                  <Link
-                    to={`/${session.workspace.slug}/workspace-views/${row.view._id}/`}
-                    className="flex min-w-0 flex-1 flex-col justify-center px-5 py-2"
-                  >
-                    <span className="truncate text-13 leading-4 font-medium">{row.view.name}</span>
-                    {row.view.description && (
-                      <span className="truncate text-11 text-secondary">{row.view.description}</span>
-                    )}
-                  </Link>
-                  <CustomMenu ellipsis placement="bottom-end" closeOnSelect buttonClassName="mr-4 size-[26px]">
-                    {row.canEdit && (
-                      <CustomMenu.MenuItem onClick={() => setEditing(row.view._id)}>
-                        <span className="flex items-center gap-2">
-                          <EditIcon width={14} height={14} />
-                          Edit View
-                        </span>
-                      </CustomMenu.MenuItem>
-                    )}
-                    <CustomMenu.MenuItem
-                      onClick={() =>
-                        window.open(`/${session.workspace.slug}/workspace-views/${row.view._id}/`, "_blank")
-                      }
-                    >
-                      <span className="flex items-center gap-2">
-                        <NewTabIcon width={14} height={14} />
-                        {t("open_in_new_tab")}
-                      </span>
-                    </CustomMenu.MenuItem>
-                    <CustomMenu.MenuItem
-                      onClick={async () => {
-                        try {
-                          await copyUrlToClipboard(`/${session.workspace.slug}/workspace-views/${row.view._id}/`);
-                          setToast({
-                            type: TOAST_TYPE.SUCCESS,
-                            title: "Link copied",
-                            message: "View link copied to clipboard.",
-                          });
-                        } catch {
-                          setToast({ type: TOAST_TYPE.ERROR, title: "Could not copy link", message: "Try again." });
-                        }
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <LinkIcon width={14} height={14} />
-                        {t("copy_link")}
-                      </span>
-                    </CustomMenu.MenuItem>
-                    {row.canRemove && (
-                      <CustomMenu.MenuItem onClick={() => setDeleting(row)}>
-                        <span className="flex items-center gap-2">
-                          <TrashIcon width={14} height={14} />
-                          Delete View
-                        </span>
-                      </CustomMenu.MenuItem>
-                    )}
-                  </CustomMenu>
-                </div>
+                  row={row}
+                  href={`/${session.workspace.slug}/workspace-views/${row.view._id}/`}
+                  pending={deletingPending}
+                  onEdit={() => setEditing(row.view._id)}
+                  onRemove={() => setDeleting(row)}
+                  onCopy={async () => {
+                    try {
+                      await copyUrlToClipboard(`/${session.workspace.slug}/workspace-views/${row.view._id}/`);
+                      setToast({
+                        type: TOAST_TYPE.SUCCESS,
+                        title: "Link copied",
+                        message: "View link copied to clipboard.",
+                      });
+                    } catch {
+                      setToast({ type: TOAST_TYPE.ERROR, title: "Could not copy link", message: "Try again." });
+                    }
+                  }}
+                />
               ))}
               {views.status === "LoadingFirstPage" && (
                 <p role="status" className="p-5 text-13">
@@ -181,41 +147,44 @@ export default function WorkspaceViewsPage() {
             </div>
           </div>
         </ContentWrapper>
-        <ModalCore
+        <SavedViewEditor
           isOpen={creating || editing !== null}
-          handleClose={() => {
+          onClose={() => {
             setCreating(false);
             setEditing(null);
           }}
-          position={EModalPosition.TOP}
-          width={EModalWidth.XXL}
         >
-          <div className="max-h-[80vh] overflow-y-auto p-5">
-            {creating && (
-              <WorkspaceViewForm
-                workspaceId={session.workspace._id}
-                initial={null}
-                onDone={(id) => {
-                  setCreating(false);
-                  navigate(`/${session.workspace.slug}/workspace-views/${id}/`);
-                }}
-                onCancel={() => setCreating(false)}
-              />
-            )}
-            {editing &&
-              (edited ? (
+          {(onPendingChange) => (
+            <>
+              {creating && (
                 <WorkspaceViewForm
-                  key={editing}
                   workspaceId={session.workspace._id}
-                  initial={edited}
-                  onDone={() => setEditing(null)}
-                  onCancel={() => setEditing(null)}
+                  initial={null}
+                  onPendingChange={onPendingChange}
+                  onDone={(id) => {
+                    setCreating(false);
+                    navigate(`/${session.workspace.slug}/workspace-views/${id}/`);
+                  }}
+                  onCancel={() => setCreating(false)}
                 />
-              ) : (
-                <p role="status">Opening workspace view…</p>
-              ))}
-          </div>
-        </ModalCore>
+              )}
+              {editing &&
+                (edited ? (
+                  <WorkspaceViewForm
+                    key={editing}
+                    workspaceId={session.workspace._id}
+                    initial={edited}
+                    canEdit={edited.canEdit}
+                    onPendingChange={onPendingChange}
+                    onDone={() => setEditing(null)}
+                    onCancel={() => setEditing(null)}
+                  />
+                ) : (
+                  <p role="status">Opening workspace view…</p>
+                ))}
+            </>
+          )}
+        </SavedViewEditor>
         <AlertModalCore
           isOpen={deleting !== null}
           handleClose={closeDelete}
@@ -247,5 +216,133 @@ export default function WorkspaceViewsPage() {
         />
       </div>
     </PreservedWorkspaceShell>
+  );
+}
+
+export function SavedViewEditor({
+  isOpen,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  children: (onPendingChange: (pending: boolean) => void) => ReactNode;
+}) {
+  const [pending, setPending] = useState(false);
+  return (
+    <ModalCore
+      isOpen={isOpen}
+      handleClose={() => {
+        if (!pending) onClose();
+      }}
+      position={EModalPosition.TOP}
+      width={EModalWidth.XXL}
+    >
+      <div className="max-h-[80vh] overflow-y-auto p-5">
+        <Dialog.Title className="sr-only">View settings</Dialog.Title>
+        <Dialog.Description className="sr-only">Save work item filters and view visibility.</Dialog.Description>
+        {children(setPending)}
+      </div>
+    </ModalCore>
+  );
+}
+
+export function SavedViewListItem({
+  row,
+  href,
+  pending,
+  onEdit,
+  onRemove,
+  onCopy,
+  onFavorite,
+}: {
+  row: ViewRow | FunctionReturnType<typeof api.savedViews.index.list>["page"][number];
+  href: string;
+  pending: boolean;
+  onEdit: () => void;
+  onRemove: () => void;
+  onCopy: () => void;
+  onFavorite?: () => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const items: TContextMenuItem[] = [
+    { key: "edit", title: "Edit View", icon: EditIcon, action: onEdit, shouldRender: row.canEdit, disabled: pending },
+    {
+      key: "open",
+      title: "Open in new tab",
+      icon: NewTabIcon,
+      action: () => window.open(href, "_blank"),
+      disabled: pending,
+    },
+    { key: "copy", title: "Copy link", icon: LinkIcon, action: onCopy, disabled: pending },
+    {
+      key: "remove",
+      title: row.canRestore ? "Restore View" : "Delete View",
+      icon: TrashIcon,
+      action: onRemove,
+      shouldRender: row.canRemove || row.canRestore,
+      disabled: pending,
+    },
+  ];
+  return (
+    <div
+      ref={parentRef}
+      className="group flex min-h-[52px] flex-wrap items-center gap-3 border-b border-subtle px-5 py-2 hover:bg-surface-2"
+    >
+      <Link to={href} className="flex min-w-0 flex-1 items-center gap-3">
+        <Logo logo={row.logo ?? undefined} size={16} type="lucide" />
+        <span className="min-w-0">
+          <span className="block truncate text-13">{row.view.name}</span>
+          {row.view.description && (
+            <span className="block truncate text-11 text-secondary">{row.view.description}</span>
+          )}
+        </span>
+      </Link>
+      {row.view.access === "private" ? (
+        <LockIcon className="size-4 text-tertiary" aria-label="Private view" />
+      ) : (
+        <span className="text-11 text-tertiary">Public</span>
+      )}
+      {"owner" in row && row.owner && (
+        <span
+          title={row.owner.fullName || row.owner.displayName || "View creator"}
+          className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-layer-2 text-11"
+        >
+          {row.owner.avatar ? (
+            <AuthenticatedAssetImage
+              asset={row.owner.avatar}
+              alt="View creator"
+              className="size-6 object-cover"
+              compactName={row.owner.fullName || row.owner.displayName || "View creator"}
+            />
+          ) : (
+            (row.owner.fullName || row.owner.displayName || "?").slice(0, 1)
+          )}
+        </span>
+      )}
+      {row.canFavorite && onFavorite && (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`${row.isFavorite ? "Remove" : "Add"} ${row.view.name} ${row.isFavorite ? "from" : "to"} favorites`}
+          aria-pressed={row.isFavorite}
+          disabled={pending}
+          onClick={onFavorite}
+        >
+          {row.isFavorite ? "★" : "☆"}
+        </Button>
+      )}
+      <ContextMenu parentRef={parentRef} items={items} />
+      <CustomMenu ellipsis placement="bottom-end" closeOnSelect buttonClassName="size-[26px]" disabled={pending}>
+        {items
+          .filter((item) => item.shouldRender !== false)
+          .map((item) => (
+            <CustomMenu.MenuItem key={item.key} onClick={item.action} disabled={item.disabled}>
+              {item.icon && <item.icon className="size-3.5" />}
+              {item.title}
+            </CustomMenu.MenuItem>
+          ))}
+      </CustomMenu>
+    </div>
   );
 }

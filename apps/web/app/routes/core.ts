@@ -61,14 +61,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             ),
           ]),
 
-          // Views List
-          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/layout.tsx", [
-            route(
-              ":workspaceSlug/projects/:projectId/views",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx"
-            ),
-          ]),
-
           // Automation
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/layout.tsx", [
             route(

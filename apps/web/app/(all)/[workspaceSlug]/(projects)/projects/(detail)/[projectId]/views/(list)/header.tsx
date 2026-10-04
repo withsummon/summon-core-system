@@ -1,64 +1,97 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// ui
-import { PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
+import { Input } from "@plane/propel/input";
 import { ViewsIcon } from "@plane/propel/icons";
-import { Breadcrumbs, Header } from "@plane/ui";
-// components
+import { Breadcrumbs, CustomMenu, Header } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { ViewListHeader } from "@/components/views/view-list-header";
-// hooks
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useProject } from "@/hooks/store/use-project";
-// plane web imports
-import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
+import { FilterCreatedDate } from "@/components/common/filters/created-at";
+import { ViewOrderByDropdown } from "@/components/views/filters/order-by";
 
-export const ProjectViewsHeader = observer(function ProjectViewsHeader() {
-  const { workspaceSlug, projectId } = useParams();
-  // store hooks
-  const { toggleCreateViewModal } = useCommandPalette();
-  const { loader } = useProject();
-
+type Criteria = Omit<FunctionArgs<typeof api.savedViews.index.list>, "projectId" | "paginationOpts">;
+export function ProjectViewsHeader({
+  project,
+  path,
+  criteria,
+  onChange,
+  dates,
+  onDates,
+  members,
+  onCreate,
+}: {
+  project: FunctionReturnType<typeof api.projects.features.resolve>;
+  path: string;
+  criteria: Criteria;
+  onChange: (criteria: Criteria) => void;
+  dates: string[];
+  onDates: (value: string | string[]) => void;
+  members: FunctionReturnType<typeof api.projects.index.members>["members"];
+  onCreate: () => void;
+}) {
   return (
-    <>
-      <Header>
-        <Header.LeftItem>
-          <Breadcrumbs isLoading={loader === "init-loader"}>
-            <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
-            <Breadcrumbs.Item
-              component={
-                <BreadcrumbLink
-                  label="Views"
-                  href={`/${workspaceSlug}/projects/${projectId}/views/`}
-                  icon={<ViewsIcon className="h-4 w-4 text-tertiary" />}
-                  isLast
-                />
-              }
-              isLast
-            />
-          </Breadcrumbs>
-        </Header.LeftItem>
-        <Header.RightItem>
-          <ViewListHeader />
-          <div>
-            <Button
-              data-ph-element={PROJECT_VIEW_TRACKER_ELEMENTS.RIGHT_HEADER_ADD_BUTTON}
-              variant="primary"
-              size="lg"
-              onClick={() => toggleCreateViewModal(true)}
-            >
-              Add view
-            </Button>
+    <Header className="h-auto min-h-11 flex-wrap gap-y-2 py-2">
+      <Header.LeftItem>
+        <Breadcrumbs>
+          <Breadcrumbs.Item
+            component={<BreadcrumbLink label={project.name} href={path.replace(/views\/$/, "issues/")} />}
+          />
+          <Breadcrumbs.Item
+            component={
+              <BreadcrumbLink label="Views" href={path} icon={<ViewsIcon className="size-4 text-tertiary" />} isLast />
+            }
+            isLast
+          />
+        </Breadcrumbs>
+      </Header.LeftItem>
+      <Header.RightItem className="flex-wrap max-md:basis-full max-md:justify-start">
+        <Input
+          aria-label="Search views"
+          type="search"
+          maxLength={255}
+          value={criteria.search ?? ""}
+          onChange={(event) => onChange({ ...criteria, search: event.target.value })}
+          placeholder="Search"
+          inputSize="sm"
+          className="w-36"
+        />
+        <ViewOrderByDropdown
+          sortKey={criteria.orderBy ?? "updated_at"}
+          sortBy={criteria.order ?? "desc"}
+          onChange={(value) =>
+            onChange({ ...criteria, orderBy: value.key ?? criteria.orderBy, order: value.order ?? criteria.order })
+          }
+        />
+        <CustomMenu customButton={<span>Filters</span>} placement="bottom-end">
+          <CustomMenu.MenuItem onClick={() => onChange({ ...criteria, favorites: !criteria.favorites })}>
+            {criteria.favorites ? "✓ " : ""}Favorites
+          </CustomMenu.MenuItem>
+          <div className="p-2">
+            <FilterCreatedDate appliedFilters={dates} handleUpdate={onDates} searchQuery="" />
           </div>
-        </Header.RightItem>
-      </Header>
-    </>
+          <div className="border-t border-subtle p-2">
+            <p className="mb-2 text-11 font-medium">Created by</p>
+            {members.map((member) => (
+              <CustomMenu.MenuItem
+                key={member.userId}
+                onClick={() =>
+                  onChange({
+                    ...criteria,
+                    ownerIds: criteria.ownerIds?.includes(member.userId)
+                      ? criteria.ownerIds.filter((id) => id !== member.userId)
+                      : [...(criteria.ownerIds ?? []), member.userId],
+                  })
+                }
+              >
+                {criteria.ownerIds?.includes(member.userId) ? "✓ " : ""}
+                {member.displayName || member.fullName}
+              </CustomMenu.MenuItem>
+            ))}
+          </div>
+        </CustomMenu>
+        <Button variant="primary" size="lg" disabled={!project.features.views} onClick={onCreate}>
+          Add view
+        </Button>
+      </Header.RightItem>
+    </Header>
   );
-});
+}
