@@ -2,6 +2,11 @@ import { preferences } from "./preferences_fields";
 import { oauthProviderIds } from "./oauth/config";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+import { z } from "zod/v4";
+import { zodToConvex } from "convex-helpers/server/zod4";
+
+export const userApiId = z.uuid();
 
 export const lastLoginMedium = v.union(
   v.literal("email"),
@@ -15,6 +20,13 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  users: defineTable({
+    ...authTables.users.validator.fields,
+    apiId: zodToConvex(userApiId.optional()),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"])
+    .index("by_api_id", ["apiId"]),
   betterAuthLinks: defineTable({
     authId: v.string(),
     userId: v.id("users"),
