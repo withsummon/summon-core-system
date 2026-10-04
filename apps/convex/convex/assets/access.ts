@@ -13,10 +13,12 @@ import { requireConversation } from "../assistant/access";
 import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
 import { requireJob } from "../automation/access";
+import { requireExport } from "../exports/access";
 import { requireMeeting } from "../meetings/access";
 import { isAudioAsset, recordingReadMaxBytes } from "./content";
 
 async function requireProjectCoverScope(ctx: QueryCtx, scope: Parameters<typeof requireAssetScope>[1], write: boolean) {
+  if (scope.purpose !== "projectCover") throw new ConvexError("Project cover draft scope is invalid.");
   if (
     !scope.projectId ||
     [
@@ -75,6 +77,7 @@ export async function requireAssetScope(
     | "avatarUserId"
     | "meetingId"
     | "automationJobId"
+    | "exportJobId"
     | "commentUpload"
     | "commentId"
     | "projectCoverFormRevision"
@@ -82,10 +85,9 @@ export async function requireAssetScope(
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
-  if (scope.projectCoverFormRevision !== undefined) {
-    if (scope.purpose !== "projectCover") throw new ConvexError("Project cover draft scope is invalid.");
+  if (scope.exportJobId) return requireExport(ctx, scope, scope.exportJobId, write);
+  if ([scope.projectCoverFormRevision !== undefined, scope.purpose === "projectCover"].some(Boolean))
     return requireProjectCoverScope(ctx, scope, write);
-  }
   if ([scope.commentUpload, scope.commentId].some(Boolean)) return requireCommentImageScope(ctx, scope, write);
   if (scope.automationJobId) return requireAutomationFileScope(ctx, scope, scope.automationJobId, write);
   if (scope.meetingId) return requireMeetingRecordingScope(ctx, scope, scope.meetingId, write);
@@ -95,7 +97,6 @@ export async function requireAssetScope(
     throw new ConvexError("Workspace asset scope is invalid.");
   const workspaceScope = { ...scope, workspaceId: scope.workspaceId };
   if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
-  if (scope.purpose === "projectCover") return requireProjectCoverScope(ctx, scope, write);
   if (scope.purpose === "workspaceLogo") return requireWorkspaceLogoScope(ctx, workspaceScope, write);
   if (scope.draftId) {
     if ([scope.taskId, scope.projectId, scope.documentId, scope.conversationId].some(Boolean))

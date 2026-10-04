@@ -44,7 +44,7 @@ const extractedFile = z.object({
   text: z.string().min(1).max(30000),
   truncated: z.boolean(),
 });
-async function worker(path: string, init: RequestInit) {
+export async function worker(path: string, init: RequestInit) {
   const endpoint = process.env.SUMMON_DOCUMENT_WORKER_URL;
   const token = process.env.DOCUMENT_WORKER_TOKEN;
   if (!endpoint || !token) throw new ConvexError("Document processing is not configured.");

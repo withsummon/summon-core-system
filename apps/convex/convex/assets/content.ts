@@ -91,6 +91,7 @@ export async function validateContent(blob: Blob, contentType: string, meetingRe
     "image/gif": () => ["GIF87a", "GIF89a"].includes(ascii(0, 6)),
     "image/webp": () => ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP",
     "application/pdf": () => ascii(0, 5) === "%PDF-",
+    "application/zip": () => prefix(80, 75, 3, 4) || prefix(80, 75, 5, 6),
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": () => prefix(80, 75, 3, 4),
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": () => prefix(80, 75, 3, 4),
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": () => prefix(80, 75, 3, 4),

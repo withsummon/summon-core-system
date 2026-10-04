@@ -24,6 +24,7 @@ export const assetScope = {
   conversationId: v.optional(v.id("assistantConversations")),
   meetingId: v.optional(v.id("meetings")),
   automationJobId: v.optional(v.id("automationJobs")),
+  exportJobId: v.optional(v.id("workspaceExports")),
   workspaceId: v.id("workspaces"),
   projectId: v.union(v.id("projects"), v.null()),
   documentId: v.union(v.id("documents"), v.null()),

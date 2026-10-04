@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { IAppIntegration, IImporterService, IWorkspaceIntegration, IExportServiceResponse } from "@plane/types";
+import type { IAppIntegration, IImporterService, IWorkspaceIntegration } from "@plane/types";
 import { APIService } from "@/services/api.service";
 // types
 // helper
@@ -41,22 +41,6 @@ export class IntegrationService extends APIService {
 
   async getImporterServicesList(workspaceSlug: string): Promise<IImporterService[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/importers/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-  async getExportsServicesList(
-    workspaceSlug: string,
-    cursor: string,
-    per_page: number
-  ): Promise<IExportServiceResponse> {
-    return this.get(`/api/workspaces/${workspaceSlug}/export-issues`, {
-      params: {
-        per_page,
-        cursor,
-      },
-    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

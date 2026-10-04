@@ -17,6 +17,7 @@ import { moduleTables } from "./modules/schema";
 import { cycleTables } from "./cycles/schema";
 import { notificationTables } from "./notifications/schema";
 import { automationTables } from "./automation/schema";
+import { exportTables } from "./exports/schema";
 import { mcpTables } from "./mcp/schema";
 import { assistantTables } from "./assistant/schema";
 import { taskTables } from "./tasks/schema";
@@ -49,6 +50,7 @@ export default defineSchema({
   ...moduleTables,
   ...notificationTables,
   ...automationTables,
+  ...exportTables,
   ...mcpTables,
   ...assistantTables,
   ...assetTables,

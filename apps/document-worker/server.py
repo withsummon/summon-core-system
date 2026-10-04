@@ -13,6 +13,7 @@ from urllib.parse import unquote
 
 from summon_documents.context import DOCUMENT_TYPES, MAX_UPLOAD_BYTES, extract_context_document
 from summon_documents.renderer import render_document_files
+from summon_documents.exporter import export_workspace
 
 MAX_RESPONSE_BYTES = 20 * 1024 * 1024
 TIMEOUT_SECONDS = 30
@@ -31,6 +32,8 @@ def execute(path, data, name, connection):
             upload.name = name
             upload.size = len(data)
             result = extract_context_document(upload)
+        elif path == "/export":
+            result = export_workspace(data)
         else:
             result = {
                 "artifacts": [
@@ -106,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authenticated():
             return
-        if self.path not in {"/extract", "/render"}:
+        if self.path not in {"/extract", "/render", "/export"}:
             self.reply(404, b'{"error":"Endpoint not found."}')
             return
         if not _slots.acquire(blocking=False):
@@ -140,11 +143,12 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(415, b'{"error":"Use application/json."}')
                     return
                 data = json.loads(data)
-                if not isinstance(data, dict) or set(data) != {"document_type", "title", "content"}:
+                if self.path == "/render" and (not isinstance(data, dict) or set(data) != {"document_type", "title", "content"}):
                     raise ValueError("Invalid document render request.")
-                for field, limit in {"document_type": 80, "title": 255, "content": 100000}.items():
-                    if not isinstance(data[field], str) or not 0 < len(data[field]) <= limit:
-                        raise ValueError("Invalid document render request.")
+                if self.path == "/render":
+                    for field, limit in {"document_type": 80, "title": 255, "content": 100000}.items():
+                        if not isinstance(data[field], str) or not 0 < len(data[field]) <= limit:
+                            raise ValueError("Invalid document render request.")
             status, result = process_document(self.path, data, name)
             self.reply(status, result)
         except ValueError:
