@@ -31,7 +31,7 @@ const PopoverContent = memo(function PopoverContent({
   sideOffset = 8,
   containerRef,
   collisionPadding,
-  positionerClassName,
+  positionerClassName = "z-[120]",
   renderInPortal = true,
   ...props
 }: PopoverContentProps) {

@@ -33,6 +33,7 @@ export function MaterialIconList(props: MaterialIconListProps) {
         <button
           key={icon.name}
           type="button"
+          aria-label={`Choose ${icon.name.replaceAll("_", " ")} icon`}
           className="grid h-9 w-9 place-items-center rounded-sm text-16 select-none hover:bg-layer-1"
           onClick={() => {
             onChange({
