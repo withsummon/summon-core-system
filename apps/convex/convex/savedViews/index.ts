@@ -2,17 +2,17 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget, text } from "../commercial/validation";
-import { viewFilters } from "./schema";
+import { viewDefinitionFields } from "./schema";
+import { validatedProjectLogo } from "../projects/branding_schema";
 import { capabilities, requireView, requireRevision, projectView } from "./access";
 import { validateFilters, filterSelections } from "./filters";
-const definition = { name: v.string(), description: v.string(), filters: viewFilters };
 export const create = mutation({
-  args: { projectId: v.id("projects"), ...definition },
+  args: { projectId: v.id("projects"), ...viewDefinitionFields },
   handler: async (ctx, args) => {
     const { user, project } = await requireProject(ctx, args.projectId);
     const filters = await validateFilters(ctx, args.projectId, args.filters);
@@ -23,6 +23,8 @@ export const create = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      access: args.access ?? "public",
+      logoProps: validatedProjectLogo(args.logoProps ?? {}),
       isLocked: false,
       updatedAt: Date.now(),
       deletedAt: null,
@@ -30,7 +32,7 @@ export const create = mutation({
   },
 });
 export const update = mutation({
-  args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), ...definition },
+  args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), ...viewDefinitionFields },
   handler: async (ctx, args) => {
     const { view, canEdit } = await requireView(ctx, args.viewId);
     if (!canEdit) throw new ConvexError("Only the owner can edit an unlocked saved view.");
@@ -40,6 +42,8 @@ export const update = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      ...(args.access === undefined ? {} : { access: args.access }),
+      ...(args.logoProps === undefined ? {} : { logoProps: validatedProjectLogo(args.logoProps) }),
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
     });
   },
@@ -79,7 +83,7 @@ export const list = query({
 export const lifecycle = mutation({
   args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), deleted: v.boolean() },
   handler: async (ctx, args) => {
-    const { view, canRemove, canRestore } = await requireView(ctx, args.viewId, true);
+    const { view, canRemove, canRestore } = await requireView(ctx, args.viewId, true, "lifecycle");
     requireRevision(view, args.expectedUpdatedAt);
     if (args.deleted ? !canRemove : !canRestore)
       throw new ConvexError("Only the owner or a project administrator can change this saved view's lifecycle.");
@@ -87,6 +91,30 @@ export const lifecycle = mutation({
       deletedAt: args.deleted ? Date.now() : null,
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
     });
+  },
+});
+
+// Native rows were shared/no-logo before these columns existed. Never infer imported Django privacy.
+// Remove after all lifecycle cohorts have metadata, both columns become required, and read defaults are deleted.
+export const initializeMetadata = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db
+      .query("savedViews")
+      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1000000 });
+    let changed = 0;
+    /* oxlint-disable no-await-in-loop */
+    for (const view of page.page) {
+      if (view.logoProps !== undefined) validatedProjectLogo(view.logoProps);
+      if (view.access !== undefined && view.logoProps !== undefined) continue;
+      await ctx.db.patch(view._id, {
+        ...(view.access === undefined ? { access: "public" } : {}),
+        ...(view.logoProps === undefined ? { logoProps: validatedProjectLogo({}) } : {}),
+      });
+      changed++;
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
   },
 });
 

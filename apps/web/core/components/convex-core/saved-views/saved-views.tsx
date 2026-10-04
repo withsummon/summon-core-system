@@ -136,11 +136,12 @@ function SavedViewDetail({
   const [editing, setEditing] = useState(false);
   if (!detail) return <p role="status">Opening saved view…</p>;
   if (detail.view.projectId !== project._id) throw new Error("Saved view belongs to another project");
-  if (editing && detail.canEdit)
+  if (editing)
     return (
       <SavedViewForm
         projectId={project._id}
         initial={detail}
+        canEdit={detail.canEdit}
         onDone={() => setEditing(false)}
         onCancel={() => setEditing(false)}
       />

@@ -132,23 +132,25 @@ export function ProjectLogoPicker({
   value,
   onChange,
   disabled = false,
+  iconType = "material",
 }: {
   value: ComponentProps<typeof Logo>["logo"];
   onChange: (logo: NonNullable<ComponentProps<typeof Logo>["logo"]>) => void;
   disabled?: boolean;
+  iconType?: ComponentProps<typeof EmojiPicker>["iconType"];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <EmojiPicker
-      iconType="material"
-      isOpen={isOpen}
+      iconType={iconType}
+      isOpen={isOpen && !disabled}
       handleToggle={setIsOpen}
       disabled={disabled}
       className="flex items-center justify-center"
       buttonClassName="flex items-center justify-center"
       label={
         <span className="grid h-11 w-11 place-items-center rounded-md border border-subtle bg-layer-2">
-          <Logo logo={value} size={20} />
+          <Logo logo={value} size={20} type={iconType} />
         </span>
       }
       onChange={(choice) =>

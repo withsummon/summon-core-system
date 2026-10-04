@@ -11,8 +11,10 @@ export function WorkspaceViewForm({
   initial,
   onDone,
   onCancel,
+  canEdit = true,
 }: {
   workspaceId: Id<"workspaces">;
+  canEdit?: boolean;
   initial: Detail | null;
   onDone: (id: Id<"savedViews">) => void;
   onCancel: () => void;
@@ -25,6 +27,7 @@ export function WorkspaceViewForm({
   return (
     <ViewDefinitionForm
       initial={initial}
+      canEdit={canEdit}
       onDone={onDone}
       onCancel={onCancel}
       scopeDescription="Saved for this workspace. Each person sees only tasks they can currently access."
