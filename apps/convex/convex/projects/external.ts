@@ -1,17 +1,26 @@
 import { z } from "zod/v4";
 import { ConvexError, v } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
-import { httpAction, internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
+import {
+  httpAction,
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+  type MutationCtx,
+  type ActionCtx,
+} from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireAccountUser } from "../identity/session";
-import { requireWorkspaceForUser } from "../identity/access";
+import { requireWorkspaceForUser, type requireProject } from "../identity/access";
 import { externalUserLite } from "../identity/external";
 import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { apiIdSchema, apiRequestMetadata } from "../identity/schema";
 import { createProject } from "./create";
 import {
   projectApiCreate,
+  projectApiPatch,
+  projectApiLiteField,
   projectApiField,
   projectApiOrder,
   projectApiReference,
@@ -21,8 +30,13 @@ import {
   projectJsonText,
   inactivityPolicyFields,
 } from "./schema";
-import { projectAppearance, requireApiProjectCover } from "./cover_owner";
+import { projectAppearance, requireApiProjectCover, setExternalCover } from "./cover_owner";
 import { canReadApiProject } from "./network_access";
+import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
+import { validateTimezone } from "../settings/timezone";
+import { ensureDefaultIntake } from "../intakes/configuration_owner";
+import { writeInactivityPolicy } from "./inactivity";
+import { selectEstimateSystem } from "../estimates/index";
 import { descriptor } from "../assets/access";
 import { publicationForProject } from "../publicSharing/access";
 
@@ -47,17 +61,24 @@ async function workspaceAccess(ctx: QueryCtx, slug: string, userId: Id<"users">,
     throw error;
   }
 }
+async function apiProjectMembership(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  access: Awaited<ReturnType<typeof workspaceAccess>>
+) {
+  const member = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", access.user._id))
+    .unique();
+  return member?.active && member.workspaceId === access.workspace._id ? member : null;
+}
 async function visibleProject(
   ctx: QueryCtx,
   project: Doc<"projects">,
   access: Awaited<ReturnType<typeof workspaceAccess>>
 ) {
   if (project.workspaceId !== access.workspace._id || project.deletedAt != null) return null;
-  const member = await ctx.db
-    .query("projectMembers")
-    .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", access.user._id))
-    .unique();
-  const membership = member?.active && member.workspaceId === access.workspace._id ? member : null;
+  const membership = await apiProjectMembership(ctx, project, access);
   return canReadApiProject(project, membership) ? { project, membership } : null;
 }
 function known<T>(field: string, value: T | undefined): T {
@@ -246,7 +267,14 @@ export const read = internalQuery({
   },
 });
 export const list = internalQuery({
-  args: { ...readArgs, perPage: v.number(), page: v.number(), orderBy: v.string() },
+  args: {
+    ...readArgs,
+    perPage: v.number(),
+    page: v.number(),
+    orderBy: v.string(),
+    lite: v.boolean(),
+    includeArchived: v.boolean(),
+  },
   handler: async (ctx, args) => {
     const perPage = z.int().min(1).max(1000).parse(args.perPage);
     const page = z.int().nonnegative().parse(args.page);
@@ -255,13 +283,17 @@ export const list = internalQuery({
       .query("projects")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", access.workspace._id))
       .collect();
-    const cohort = (await Promise.all(projects.map((project) => visibleProject(ctx, project, access)))).filter(
-      (row) => row !== null
-    );
+    const cohort = (
+      await Promise.all(
+        projects
+          .filter((project) => !args.lite || args.includeArchived || !project.archived)
+          .map((project) => visibleProject(ctx, project, access))
+      )
+    ).filter((row) => row !== null);
     const reverse = args.orderBy.startsWith("-");
     const parsedOrder = projectApiOrder.safeParse(reverse ? args.orderBy.slice(1) : args.orderBy);
-    const order = parsedOrder.success ? parsedOrder.data : "sort_order";
-    const descending = parsedOrder.success && reverse;
+    const order = parsedOrder.success ? parsedOrder.data : args.lite ? "created_at" : "sort_order";
+    const descending = parsedOrder.success ? reverse : args.lite;
     const ordered = cohort.map((row) => ({
       row,
       value:
@@ -292,7 +324,17 @@ export const list = internalQuery({
     const results = await Promise.all(
       ordered
         .slice(offset, offset + perPage)
-        .map(({ row }) => projectWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, true))
+        .map(({ row }) =>
+          projectWire(
+            ctx,
+            row,
+            access,
+            args.lite ? projectApiLiteField.options : args.fields,
+            args.lite ? [] : args.expand,
+            args.assetOrigin,
+            !args.lite
+          )
+        )
     );
     return JSON.stringify({
       grouped_by: null,
@@ -346,25 +388,8 @@ export const create = internalMutation({
   handler: async (ctx, args) => {
     const input = projectApiCreate.parse(projectJsonText.parse(args.bodyJson));
     const access = await workspaceAccess(ctx, args.slug, args.userId, true);
-    const leadApiId = input.project_lead;
-    const assigneeApiId = input.default_assignee;
-    const lead =
-      leadApiId === null
-        ? null
-        : await ctx.db
-            .query("users")
-            .withIndex("by_api_id", (q) => q.eq("apiId", leadApiId))
-            .unique();
-    const assignee =
-      assigneeApiId === null
-        ? null
-        : await ctx.db
-            .query("users")
-            .withIndex("by_api_id", (q) => q.eq("apiId", assigneeApiId))
-            .unique();
-    if (input.project_lead !== null && !lead) throw new ConvexError({ status: 400, detail: "Project lead not found." });
-    if (input.default_assignee !== null && !assignee)
-      throw new ConvexError({ status: 400, detail: "Default assignee not found." });
+    const leadId = await apiUserId(ctx, input.project_lead);
+    const assigneeId = await apiUserId(ctx, input.default_assignee);
     const months = convexToZod(inactivityPolicyFields.archiveMonths);
     const randomness = crypto.randomUUID().replaceAll("-", "");
     const projectId = await createProject(
@@ -374,8 +399,8 @@ export const create = internalMutation({
         name: input.name,
         identifier: input.identifier,
         description: input.description,
-        leadId: lead?._id ?? null,
-        defaultAssigneeId: assignee?._id ?? null,
+        leadId,
+        defaultAssigneeId: assigneeId,
         timezone: input.timezone,
         features: {
           modules: input.module_view,
@@ -415,12 +440,263 @@ export const create = internalMutation({
     return JSON.stringify(await projectWire(ctx, row, access, null, [], args.assetOrigin, false));
   },
 });
+async function apiUserId(ctx: QueryCtx, apiId: string | null) {
+  if (apiId === null) return null;
+  const account = await ctx.db
+    .query("users")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (!account) throw new ConvexError({ status: 400, detail: "Referenced user not found." });
+  return account._id;
+}
+async function patchReferences(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project } = permission;
+  const fields = {
+    leadId: project.leadId,
+    defaultAssigneeId: project.defaultAssigneeId,
+    defaultStateId: project.defaultStateId,
+  };
+  if (input.project_lead !== undefined) {
+    fields.leadId = await apiUserId(ctx, input.project_lead);
+    await validateProjectLead(ctx, project.workspaceId, fields.leadId);
+  }
+  if (input.default_assignee !== undefined) {
+    const id = await apiUserId(ctx, input.default_assignee);
+    if (id !== null) {
+      const membership = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
+        .unique();
+      if (!membership) throw new ConvexError("Default assignee must belong to this workspace.");
+    }
+    fields.defaultAssigneeId = id;
+  }
+  if (input.default_state !== undefined) {
+    const apiId = input.default_state;
+    if (apiId === null) fields.defaultStateId = null;
+    else {
+      const state = await ctx.db
+        .query("taskStates")
+        .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+        .unique();
+      if (!state || state.projectId !== project._id || state.workspaceId !== project.workspaceId)
+        throw new ConvexError("Default state must belong to this project.");
+      fields.defaultStateId = state._id;
+    }
+  }
+  if (input.estimate !== undefined) {
+    const apiId = input.estimate;
+    if (apiId === null) await selectEstimateSystem(ctx, permission, null);
+    else {
+      const system = await ctx.db
+        .query("estimateSystems")
+        .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+        .unique();
+      if (!system) throw new ConvexError("Estimate system not found.");
+      await selectEstimateSystem(ctx, permission, system._id);
+    }
+  }
+  return fields;
+}
+async function patchMetadata(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project, user } = permission;
+  const references = await patchReferences(ctx, permission, input);
+  const metadata = await validateProjectMetadata(ctx, project.workspaceId, { ...project, ...input }, project._id);
+  const features = known("features", project.features);
+  await ctx.db.patch(project._id, {
+    ...metadata,
+    ...references,
+    features: {
+      modules: input.module_view ?? features.modules,
+      cycles: input.cycle_view ?? features.cycles,
+      views: input.issue_views_view ?? features.views,
+      pages: input.page_view ?? features.pages,
+    },
+    intakeEnabled: input.intake_view ?? project.intakeEnabled,
+    guestViewAllFeatures: input.guest_view_all_features ?? project.guestViewAllFeatures,
+    iconPropsJson:
+      input.icon_prop === undefined
+        ? project.iconPropsJson
+        : input.icon_prop === null
+          ? null
+          : JSON.stringify(input.icon_prop),
+    emoji: input.emoji === undefined ? project.emoji : input.emoji,
+    externalSource: input.external_source === undefined ? project.externalSource : input.external_source,
+    externalId: input.external_id === undefined ? project.externalId : input.external_id,
+    issueTypeEnabled: input.is_issue_type_enabled ?? project.issueTypeEnabled,
+    timeTrackingEnabled: input.is_time_tracking_enabled ?? project.timeTrackingEnabled,
+    timezone: input.timezone === undefined ? project.timezone : validateTimezone(input.timezone),
+    metadataRevision: project.metadataRevision + 1,
+    updatedAt: Date.now(),
+    updatedById: user._id,
+  });
+}
+async function patchInactivity(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project, user } = permission;
+  if (input.archive_in !== undefined || input.close_in !== undefined) {
+    const policy = await ctx.db
+      .query("projectInactivityPolicies")
+      .withIndex("by_project", (q) => q.eq("projectId", project._id))
+      .unique();
+    const months = convexToZod(inactivityPolicyFields.archiveMonths);
+    const closeMonths = months.parse(input.close_in ?? policy?.close?.months ?? 0);
+    const cancelled = closeMonths
+      ? policy?.close
+        ? await ctx.db.get(policy.close.stateId)
+        : await ctx.db
+            .query("taskStates")
+            .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+            .filter((q) => q.eq(q.field("status"), "cancelled"))
+            .first()
+      : null;
+    if (closeMonths && !cancelled) throw new ConvexError("Choose a cancellation state in this project.");
+    await writeInactivityPolicy(
+      ctx,
+      { projectId: project._id, workspaceId: project.workspaceId, configuredBy: user._id },
+      {
+        archiveMonths: months.parse(input.archive_in ?? policy?.archiveMonths ?? 0),
+        close: closeMonths && cancelled ? { months: closeMonths, stateId: cancelled._id } : null,
+      },
+      policy
+    );
+  }
+}
+export const patch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    bodyJson: v.string(),
+    assetOrigin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const input = projectApiPatch.parse(projectJsonText.parse(args.bodyJson));
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, detail: "Project not found." });
+    const membership = await apiProjectMembership(ctx, project, access);
+    if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+      throw new ConvexError({
+        status: 403,
+        detail: "Only joined workspace or project administrators can update this project.",
+      });
+    if (project.archived) throw new ConvexError({ status: 400, detail: "Archived project cannot be updated." });
+    const permission = { ...access, project, projectMember: membership };
+    try {
+      await patchMetadata(ctx, permission, input);
+      const current = await ctx.db.get(project._id);
+      if (!current) throw new Error("Updated project is unavailable.");
+      if (current.intakeEnabled) await ensureDefaultIntake(ctx, current);
+      if (input.cover_image !== undefined)
+        await setExternalCover(ctx, project._id, await projectAppearance(ctx, project._id), input.cover_image);
+      await patchInactivity(ctx, permission, input);
+    } catch (error) {
+      if (error instanceof ConvexError && typeof error.data === "string")
+        throw new ConvexError({ status: 400, detail: error.data });
+      throw error;
+    }
+    const current = await ctx.db.get(project._id);
+    if (!current) throw new ConvexError("Updated project is unavailable.");
+    return JSON.stringify(
+      await projectWire(ctx, { project: current, membership: membership }, access, null, [], args.assetOrigin, false)
+    );
+  },
+});
 const headers = {
   ...externalApiHeaders,
   "Access-Control-Allow-Headers": "X-Api-Key, Content-Type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
 };
 export const options = httpAction(async () => new Response(null, { status: 204, headers }));
+async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"users">, responseHeaders: HeadersInit) {
+  const url = new URL(request.url);
+  const match = /^\/api\/v1\/workspaces\/([^/]+)\/(projects|projects-lite)\/(?:([^/]+)\/)?$/.exec(url.pathname);
+  if (!match || (match[2] === "projects-lite" && match[3])) {
+    return Response.json({ detail: "Not found." }, { status: 404, headers: responseHeaders });
+  }
+  const slug = decodeURIComponent(match[1]);
+  const lite = match[2] === "projects-lite";
+  const projectApiId = match[3];
+  const reading = ["GET", "HEAD"].includes(request.method);
+  const writing = !lite && request.method === (projectApiId ? "PATCH" : "POST");
+  if (!reading && !writing) {
+    return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
+  }
+  const parsedId = projectApiId === undefined ? null : apiIdSchema.safeParse(projectApiId);
+  if (parsedId && !parsedId.success) {
+    return Response.json({ detail: "Project not found." }, { status: 404, headers: responseHeaders });
+  }
+  let bodyJson;
+  let status;
+  if (writing) {
+    const body = projectJsonText
+      .pipe(request.method === "POST" ? projectApiCreate : projectApiPatch)
+      .safeParse(await request.text());
+    if (!body.success) {
+      return Response.json({ detail: z.flattenError(body.error) }, { status: 400, headers: responseHeaders });
+    }
+    const writeInput = {
+      userId,
+      slug,
+      bodyJson: JSON.stringify(body.data),
+      assetOrigin: url.origin,
+    };
+    if (parsedId?.success) {
+      bodyJson = await ctx.runMutation(internal.projects.external.patch, {
+        ...writeInput,
+        projectApiId: parsedId.data,
+      });
+      status = 200;
+    } else {
+      bodyJson = await ctx.runMutation(internal.projects.external.create, writeInput);
+      status = 201;
+    }
+  } else {
+    const readOptions = projectApiReadOptions.safeParse({
+      ...(lite ? { order_by: "-created_at" } : {}),
+      ...Object.fromEntries(url.searchParams),
+    });
+    if (!readOptions.success) {
+      return Response.json({ detail: "Invalid project query parameter." }, { status: 400, headers: responseHeaders });
+    }
+    const readInput = {
+      userId,
+      slug,
+      fields: readOptions.data.fields,
+      expand: readOptions.data.expand,
+      assetOrigin: url.origin,
+    };
+    if (parsedId?.success)
+      bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
+    else
+      bodyJson = await ctx.runQuery(internal.projects.external.list, {
+        ...readInput,
+        perPage: readOptions.data.per_page,
+        page: readOptions.data.cursor,
+        orderBy: readOptions.data.order_by,
+        lite,
+        includeArchived: readOptions.data.include_archived,
+      });
+    status = 200;
+  }
+  return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
+}
 export const projects = httpAction(async (ctx, request) => {
   const startedAt = Date.now();
   let status = 500;
@@ -436,62 +712,9 @@ export const projects = httpAction(async (ctx, request) => {
       status = credential.status;
       return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
     }
-    const url = new URL(request.url);
-    const match = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/(?:([^/]+)\/)?$/.exec(url.pathname);
-    if (!match) {
-      status = 404;
-      return Response.json({ detail: "Not found." }, { status, headers: responseHeaders });
-    }
-    const slug = decodeURIComponent(match[1]);
-    const projectApiId = match[2];
-    if (request.method !== "GET" && request.method !== "HEAD" && (request.method !== "POST" || projectApiId)) {
-      status = 405;
-      return Response.json({ detail: "Method not allowed." }, { status, headers: responseHeaders });
-    }
-    const readOptions = projectApiReadOptions.safeParse(Object.fromEntries(url.searchParams));
-    if (!readOptions.success) {
-      status = 400;
-      return Response.json({ detail: "Invalid project query parameter." }, { status, headers: responseHeaders });
-    }
-    const readInput = {
-      userId: credential.userId,
-      slug,
-      fields: readOptions.data.fields,
-      expand: readOptions.data.expand,
-      assetOrigin: url.origin,
-    };
-    let bodyJson;
-    if (request.method === "POST") {
-      const body = projectJsonText.pipe(projectApiCreate).safeParse(await request.text());
-      if (!body.success) {
-        status = 400;
-        return Response.json({ detail: z.flattenError(body.error) }, { status, headers: responseHeaders });
-      }
-      bodyJson = await ctx.runMutation(internal.projects.external.create, {
-        userId: credential.userId,
-        slug,
-        bodyJson: JSON.stringify(body.data),
-        assetOrigin: url.origin,
-      });
-      status = 201;
-    } else if (projectApiId) {
-      const parsedId = apiIdSchema.safeParse(projectApiId);
-      if (!parsedId.success) {
-        status = 404;
-        return Response.json({ detail: "Project not found." }, { status, headers: responseHeaders });
-      }
-      bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
-      status = 200;
-    } else {
-      bodyJson = await ctx.runQuery(internal.projects.external.list, {
-        ...readInput,
-        perPage: readOptions.data.per_page,
-        page: readOptions.data.cursor,
-        orderBy: readOptions.data.order_by,
-      });
-      status = 200;
-    }
-    return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
+    const response = await projectResponse(ctx, request, credential.userId, responseHeaders);
+    status = response.status;
+    return response;
   } catch (error) {
     if (error instanceof ConvexError) {
       const failure = projectApiFailure.safeParse(error.data);

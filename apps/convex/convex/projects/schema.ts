@@ -62,6 +62,32 @@ export const projectApiCreate = z.object({
   is_issue_type_enabled: projectApiData.shape.issueTypeEnabled,
   is_time_tracking_enabled: projectApiData.shape.timeTrackingEnabled,
 });
+// A partial Zod object retains inner defaults. Remove them at this owner so
+// an omitted REST field cannot overwrite an existing project setting.
+export const projectApiPatch = projectApiCreate
+  .extend({
+    description: projectApiCreate.shape.description.removeDefault(),
+    project_lead: projectApiCreate.shape.project_lead.removeDefault(),
+    default_assignee: projectApiCreate.shape.default_assignee.removeDefault(),
+    icon_prop: projectApiCreate.shape.icon_prop.removeDefault(),
+    emoji: projectApiCreate.shape.emoji.removeDefault(),
+    cover_image: projectApiCreate.shape.cover_image.removeDefault(),
+    module_view: projectApiCreate.shape.module_view.removeDefault(),
+    cycle_view: projectApiCreate.shape.cycle_view.removeDefault(),
+    issue_views_view: projectApiCreate.shape.issue_views_view.removeDefault(),
+    page_view: projectApiCreate.shape.page_view.removeDefault(),
+    intake_view: projectApiCreate.shape.intake_view.removeDefault(),
+    guest_view_all_features: projectApiCreate.shape.guest_view_all_features.removeDefault(),
+    archive_in: projectApiCreate.shape.archive_in.removeDefault(),
+    close_in: projectApiCreate.shape.close_in.removeDefault(),
+    external_source: projectApiCreate.shape.external_source.removeDefault(),
+    external_id: projectApiCreate.shape.external_id.removeDefault(),
+    is_issue_type_enabled: projectApiCreate.shape.is_issue_type_enabled.removeDefault(),
+    is_time_tracking_enabled: projectApiCreate.shape.is_time_tracking_enabled.removeDefault(),
+    default_state: apiIdSchema.nullable(),
+    estimate: apiIdSchema.nullable(),
+  })
+  .partial();
 export const projectApiField = z.enum([
   "id",
   "created_at",
@@ -108,6 +134,17 @@ export const projectApiField = z.enum([
   "cover_image_url",
   "sort_order",
 ]);
+export const projectApiLiteField = projectApiField.extract([
+  "id",
+  "identifier",
+  "name",
+  "cover_image",
+  "icon_prop",
+  "emoji",
+  "description",
+  "cover_image_url",
+  "archived_at",
+]);
 export const projectApiOrder = z.enum(["created_at", "updated_at", "name", "network", "sort_order"]);
 export const projectApiReference = projectApiField.extract([
   "workspace",
@@ -137,6 +174,10 @@ export const projectApiReadOptions = z.object({
     .transform((value) => Number(value.split(":")[1]))
     .pipe(z.int().nonnegative()),
   order_by: z.string().default("sort_order"),
+  include_archived: z
+    .string()
+    .default("false")
+    .transform((value) => ["true", "1"].includes(value.toLowerCase())),
 });
 export const projectApiFailure = z.object({
   status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(409), z.literal(503)]),

@@ -1,4 +1,5 @@
 import { apiIdSchema } from "../identity/schema";
+import type { Id } from "../_generated/dataModel";
 import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod";
 import { query, mutation, type MutationCtx } from "../_generated/server";
@@ -160,42 +161,49 @@ export const update = mutation({
     await ctx.db.patch(system._id, { ...fields, type: args.type, revision: system.revision + 1 });
   },
 });
+// Both REST and native settings select the same current configuration. The
+// native settings caller supplies its reviewed revision; REST PATCH has no ETag.
+export async function selectEstimateSystem(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  systemId: Id<"estimateSystems"> | null,
+  expectedRevision?: number
+) {
+  const { project, member, projectMember } = permission;
+  if (member.role !== "admin" && (member.role === "guest" || projectMember.role !== "admin"))
+    throw new ConvexError("Only project administrators can select the estimate system.");
+  const config = await estimateConfig(ctx, project._id);
+  if (expectedRevision !== undefined) checkEstimateRevision(config?.revision ?? 0, expectedRevision);
+  if (config?.jobId) throw new ConvexError("Finish the estimate replacement first.");
+  if (systemId !== null) {
+    const system = await ctx.db.get(systemId);
+    if (!system || system.deleted || system.projectId !== project._id || system.workspaceId !== project.workspaceId)
+      throw new ConvexError("Estimate system belongs to another project or is unavailable.");
+    if (system.retiring) throw new ConvexError("Finish the estimate replacement first.");
+  }
+  if (config)
+    await ctx.db.patch(config._id, {
+      activeSystemId: systemId,
+      lastUsedSystemId: systemId ?? config.lastUsedSystemId,
+      revision: config.revision + 1,
+    });
+  else
+    await ctx.db.insert("projectEstimates", {
+      projectId: project._id,
+      activeSystemId: systemId,
+      lastUsedSystemId: systemId,
+      revision: 1,
+      jobId: null,
+    });
+}
 export const select = mutation({
   args: {
     projectId: v.id("projects"),
     systemId: v.union(v.id("estimateSystems"), v.null()),
     expectedRevision: v.number(),
   },
-  handler: async (ctx, args) => {
-    const permission = await requireProject(ctx, args.projectId);
-    if (
-      permission.member.role !== "admin" &&
-      (permission.member.role === "guest" || permission.projectMember.role !== "admin")
-    )
-      throw new ConvexError("Only project administrators can select the estimate system.");
-    const config = await estimateConfig(ctx, args.projectId);
-    checkEstimateRevision(config?.revision ?? 0, args.expectedRevision);
-    if (config?.jobId) throw new ConvexError("Finish the estimate replacement first.");
-    if (args.systemId) {
-      const { system } = await requireSystem(ctx, args.systemId);
-      if (system.projectId !== args.projectId) throw new ConvexError("Estimate system belongs to another project.");
-      if (system.retiring) throw new ConvexError("Finish the estimate replacement first.");
-    }
-    if (config)
-      await ctx.db.patch(config._id, {
-        activeSystemId: args.systemId,
-        lastUsedSystemId: args.systemId ?? config.lastUsedSystemId,
-        revision: config.revision + 1,
-      });
-    else
-      await ctx.db.insert("projectEstimates", {
-        projectId: args.projectId,
-        activeSystemId: args.systemId,
-        lastUsedSystemId: args.systemId,
-        revision: 1,
-        jobId: null,
-      });
-  },
+  handler: async (ctx, args) =>
+    selectEstimateSystem(ctx, await requireProject(ctx, args.projectId), args.systemId, args.expectedRevision),
 });
 export const createPoint = mutation({
   args: { systemId: v.id("estimateSystems"), expectedSystemRevision: v.number(), ...pointFields },
