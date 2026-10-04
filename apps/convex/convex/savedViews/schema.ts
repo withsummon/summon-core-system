@@ -1,6 +1,8 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { status, priority } from "../tasks/schema";
+import { projectLogoProps } from "../projects/branding_schema";
+export const viewAccess = v.union(v.literal("private"), v.literal("public"));
 const dateRange = v.union(
   v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
   v.null()
@@ -16,6 +18,13 @@ export const viewFilters = v.object({
   startDate: dateRange,
   targetDate: dateRange,
 });
+export const viewDefinitionFields = {
+  name: v.string(),
+  description: v.string(),
+  filters: viewFilters,
+  access: v.optional(viewAccess),
+  logoProps: v.optional(projectLogoProps),
+};
 export const savedViewTables = {
   savedViews: defineTable({
     workspaceId: v.id("workspaces"),
@@ -23,6 +32,9 @@ export const savedViewTables = {
     ownerId: v.id("users"),
     name: v.string(),
     description: v.string(),
+    // Temporary native-only rollout: required after all lifecycle cohorts have metadata and the initializer is retired.
+    access: v.optional(viewAccess),
+    logoProps: v.optional(projectLogoProps),
     filters: viewFilters,
     isLocked: v.boolean(),
     updatedAt: v.number(),

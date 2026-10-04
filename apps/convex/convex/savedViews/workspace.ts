@@ -10,12 +10,12 @@ import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget, text } from "../commercial/validation";
-import { viewFilters } from "./schema";
+import { viewDefinitionFields } from "./schema";
+import { validatedProjectLogo } from "../projects/branding_schema";
 import { workspaceCapabilities, requireWorkspaceView, requireRevision, workspaceView } from "./access";
 import { validateWorkspaceFilters, workspaceFilterSelections } from "./filters";
-const definition = { name: v.string(), description: v.string(), filters: viewFilters };
 export const create = mutation({
-  args: { workspaceId: v.id("workspaces"), ...definition },
+  args: { workspaceId: v.id("workspaces"), ...viewDefinitionFields },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
     const filters = await validateWorkspaceFilters(ctx, args.workspaceId, user._id, args.filters);
@@ -26,6 +26,8 @@ export const create = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      access: args.access ?? "public",
+      logoProps: validatedProjectLogo(args.logoProps ?? {}),
       isLocked: false,
       updatedAt: Date.now(),
       deletedAt: null,
@@ -33,7 +35,7 @@ export const create = mutation({
   },
 });
 export const update = mutation({
-  args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), ...definition },
+  args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), ...viewDefinitionFields },
   handler: async (ctx, args) => {
     const { view, canEdit, access: permission } = await requireWorkspaceView(ctx, args.viewId);
     if (!canEdit) throw new ConvexError("Only the owner can edit an unlocked saved view.");
@@ -43,6 +45,8 @@ export const update = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      ...(args.access === undefined ? {} : { access: args.access }),
+      ...(args.logoProps === undefined ? {} : { logoProps: validatedProjectLogo(args.logoProps) }),
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
     });
   },
@@ -95,7 +99,7 @@ export const list = query({
 export const lifecycle = mutation({
   args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), deleted: v.boolean() },
   handler: async (ctx, args) => {
-    const { view, canRemove, canRestore } = await requireWorkspaceView(ctx, args.viewId, true);
+    const { view, canRemove, canRestore } = await requireWorkspaceView(ctx, args.viewId, true, "lifecycle");
     requireRevision(view, args.expectedUpdatedAt);
     if (args.deleted ? !canRemove : !canRestore)
       throw new ConvexError("Only the owner or a workspace administrator can change this saved view's lifecycle.");

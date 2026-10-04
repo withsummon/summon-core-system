@@ -144,11 +144,12 @@ function WorkspaceViewDetail({
   if (!detail) return <p role="status">Opening workspace view…</p>;
   if (detail.view.workspaceId !== workspace._id || detail.view.projectId !== null)
     throw new Error("View belongs to another scope");
-  if (editing && detail.canEdit)
+  if (editing)
     return (
       <WorkspaceViewForm
         workspaceId={workspace._id}
         initial={detail}
+        canEdit={detail.canEdit}
         onDone={() => setEditing(false)}
         onCancel={() => setEditing(false)}
       />
