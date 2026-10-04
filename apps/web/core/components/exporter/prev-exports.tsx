@@ -1,141 +1,129 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { useCallback, useEffect, useState } from "react";
-import { observer } from "mobx-react";
-import useSWR, { mutate } from "swr";
+import { useEffect, useState } from "react";
+import { useConvex, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
 import { MoveLeft, MoveRight, RefreshCw } from "lucide-react";
-// plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IExportData } from "@plane/types";
 import { Table } from "@plane/ui";
-// components
+import { AssetTransfers } from "@/components/convex-core/documents/asset-transfers";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { ImportExportSettingsLoader } from "@/components/ui/loader/settings/import-and-export";
-// constants
-import { EXPORT_SERVICES_LIST } from "@plane/constants";
-// services
-import { IntegrationService } from "@/services/integrations";
-// local imports
 import { useExportColumns } from "./column";
 
-const integrationService = new IntegrationService();
-
-type Props = {
-  workspaceSlug: string;
-  cursor: string | undefined;
-  per_page: number;
-  setCursor: (cursor: string) => void;
-};
-type RowData = IExportData;
-export const PrevExports = observer(function PrevExports(props: Props) {
-  // props
-  const { workspaceSlug, cursor, per_page, setCursor } = props;
-  // state
-  const [refreshing, setRefreshing] = useState(false);
-  // hooks
+export function PrevExports({ workspaceId }: { workspaceId: Id<"workspaces"> }) {
   const { t } = useTranslation();
-  const columns = useExportColumns();
-
-  const { data: exporterServices } = useSWR(
-    workspaceSlug && cursor ? EXPORT_SERVICES_LIST(workspaceSlug, cursor, `${per_page}`) : null,
-    workspaceSlug && cursor ? () => integrationService.getExportsServicesList(workspaceSlug, cursor, per_page) : null
-  );
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
+  const client = useConvex();
+  const [cursors, setCursors] = useState<(string | null)[]>([null]);
+  const args = { workspaceId, paginationOpts: { numItems: 10, cursor: cursors[cursors.length - 1] } };
+  const exports = useQuery(api.exports.index.list, args);
+  const [transfers] = useState(() => new AssetTransfers());
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => () => transfers.dispose(), [transfers]);
+  useReloadConfirmations(pending, "The export download is still in progress.", undefined, pending);
+  const run = async (operation: () => Promise<void>) => {
+    if (pending) return;
+    setPending(true);
+    setError("");
     try {
-      await mutate(EXPORT_SERVICES_LIST(workspaceSlug, `${cursor}`, `${per_page}`));
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to refresh export services list", error);
+      await operation();
+    } catch (failure) {
+      setError(mutationMessage(failure));
     } finally {
-      setRefreshing(false);
+      setPending(false);
     }
-  }, [workspaceSlug, cursor, per_page]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (
-        Array.isArray(exporterServices?.results) &&
-        exporterServices.results.some((service) => service.status === "processing")
-      ) {
-        handleRefresh();
-      } else {
-        clearInterval(interval);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [exporterServices, handleRefresh]);
-
+  };
+  const download = (row: FunctionReturnType<typeof api.exports.index.list>["page"][number]) =>
+    run(async () => {
+      if (!row.artifact) return;
+      const artifact = row.artifact;
+      await transfers.run(async (signal) => {
+        const url = transfers.objectUrl(await transfers.download(artifact, signal), signal);
+        try {
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = artifact.name;
+          link.click();
+        } finally {
+          transfers.release(url);
+        }
+      });
+    });
+  const columns = useExportColumns(download, pending);
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-subtle pb-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle pb-3.5">
         <div className="flex items-center gap-2">
           <h3 className="text-h6-medium text-primary">{t("workspace_settings.settings.exports.previous_exports")}</h3>
-          <Button variant="tertiary" className="shrink-0" onClick={handleRefresh}>
-            <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? t("refreshing") : t("refresh_status")}
+          <Button
+            variant="tertiary"
+            disabled={pending}
+            onClick={() =>
+              void run(async () => {
+                await client.query(api.exports.index.list, args);
+              })
+            }
+          >
+            <RefreshCw className="size-3" />
+            {t("refresh_status")}
           </Button>
         </div>
-        {Array.isArray(exporterServices?.results) && exporterServices.results.length > 0 && (
-          <div className="flex items-center gap-2 text-11">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={!exporterServices?.prev_page_results}
-              onClick={() => exporterServices?.prev_page_results && setCursor(exporterServices?.prev_cursor)}
-              prependIcon={<MoveLeft />}
-            >
-              {t("prev")}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={!exporterServices?.next_page_results}
-              onClick={() => exporterServices?.next_page_results && setCursor(exporterServices?.next_cursor)}
-              appendIcon={<MoveRight />}
-            >
-              {t("next")}
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2 text-11">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={pending || cursors.length === 1}
+            onClick={() => setCursors((current) => current.slice(0, -1))}
+            prependIcon={<MoveLeft />}
+          >
+            {t("prev")}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={pending || !exports || exports.isDone}
+            onClick={() => {
+              if (exports && !exports.isDone) setCursors((current) => [...current, exports.continueCursor]);
+            }}
+            appendIcon={<MoveRight />}
+          >
+            {t("next")}
+          </Button>
+        </div>
       </div>
-      <div className="flex flex-col">
-        {!exporterServices ? (
-          <ImportExportSettingsLoader />
-        ) : Array.isArray(exporterServices.results) && exporterServices.results.length > 0 ? (
-          <div>
-            <div className="divide-y divide-subtle-1">
-              <Table
-                columns={columns}
-                data={exporterServices.results}
-                keyExtractor={(rowData: RowData) => rowData?.id ?? ""}
-                tHeadClassName="border-b border-subtle"
-                thClassName="text-left font-medium divide-x-0 text-placeholder"
-                tBodyClassName="divide-y-0"
-                tBodyTrClassName="divide-x-0 p-4 h-[40px] text-secondary"
-                tHeadTrClassName="divide-x-0"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <EmptyStateCompact
-              assetKey="export"
-              title={t("settings_empty_state.exports.title")}
-              description={t("settings_empty_state.exports.description")}
-              align="start"
-              rootClassName="py-20"
-            />
-          </div>
-        )}
-      </div>
+      {error && (
+        <p role="alert" className="py-2 text-13 text-danger-primary">
+          {error}
+        </p>
+      )}
+      {exports === undefined ? (
+        <ImportExportSettingsLoader />
+      ) : exports.page.length ? (
+        <div className="overflow-x-auto">
+          <Table
+            columns={columns}
+            data={exports.page}
+            keyExtractor={(row) => row.id}
+            tHeadClassName="border-b border-subtle"
+            thClassName="text-left font-medium divide-x-0 text-placeholder"
+            tBodyClassName="divide-y-0"
+            tBodyTrClassName="divide-x-0 p-4 h-[40px] text-secondary"
+            tHeadTrClassName="divide-x-0"
+          />
+        </div>
+      ) : (
+        <EmptyStateCompact
+          assetKey="export"
+          title={t("settings_empty_state.exports.title")}
+          description={t("settings_empty_state.exports.description")}
+          align="start"
+          rootClassName="py-20"
+        />
+      )}
     </div>
   );
-});
+}

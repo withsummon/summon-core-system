@@ -7,6 +7,8 @@ RUN awk '/^(openpyxl|python-docx|python-pptx|pypdf|reportlab)==/ { print }' api-
     && pip install --no-cache-dir -r requirements.txt \
     && useradd --uid 10001 --create-home documents
 COPY --chown=documents:documents apps/api/summon_documents ./summon_documents
+COPY --chown=documents:documents apps/api/plane/utils/porters/exporter.py apps/api/plane/utils/porters/formatters.py ./plane/utils/porters/
+COPY --chown=documents:documents apps/api/plane/utils/csv_utils.py ./plane/utils/
 COPY --chown=documents:documents apps/document-worker/server.py ./
 USER documents
 EXPOSE 8092

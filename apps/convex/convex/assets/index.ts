@@ -48,6 +48,7 @@ export const prepare = mutation({
   handler: async (ctx, args) => {
     if (args.commentUpload || args.commentId) throw new ConvexError("Prepare comment images through comments.");
     if (args.automationJobId) throw new ConvexError("Generated files are created by their generation job.");
+    if (args.exportJobId) throw new ConvexError("Export files are created by their export job.");
     if (args.draftId) throw new ConvexError("Prepare draft uploads through draft attachments.");
     if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
     if (args.conversationId) throw new ConvexError("Prepare conversation uploads through assistant attachments.");
@@ -229,6 +230,7 @@ export const remove = mutation({
       throw new ConvexError("Remove workspace logos through workspace appearance.");
     if (asset.purpose === "projectCover") throw new ConvexError("Remove project covers through project appearance.");
     if (asset.automationJobId) throw new ConvexError("Generated files belong to their generation job.");
+    if (asset.exportJobId) throw new ConvexError("Export files belong to their export job.");
     if (asset.draftId) throw new ConvexError("Remove draft files through draft attachments.");
     if (asset.taskId) throw new ConvexError("Remove task files through task attachments.");
     if (asset.conversationId) throw new ConvexError("Remove conversation files through assistant attachments.");
