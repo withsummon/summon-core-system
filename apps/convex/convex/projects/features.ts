@@ -11,10 +11,8 @@ function stored(project: Doc<"projects">) {
   return { ...project.features, intake: project.intakeEnabled ?? false };
 }
 async function featureAccess(ctx: QueryCtx, projectId: Id<"projects">) {
-  const project = await ctx.db.get(projectId);
-  if (!project || project.deletedAt != null || project.archived) throw new ConvexError("Project is unavailable.");
-  const { member } = await requireWorkspace(ctx, project.workspaceId);
-  const projectRole = member.role === "admin" ? "admin" : (await requireProject(ctx, projectId)).projectMember.role;
+  const { project, member, projectMember } = await requireProject(ctx, projectId);
+  const projectRole = member.role === "admin" ? "admin" : projectMember.role;
   const role = member.role === "guest" ? "guest" : projectRole;
   return { project, role, canConfigure: role === "admin" };
 }
