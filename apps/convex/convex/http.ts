@@ -23,5 +23,6 @@ http.route({ path: "/api/v1/users/me/", method: "OPTIONS", handler: externalUser
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "GET", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "POST", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "PATCH", handler: externalProjects });
+http.route({ pathPrefix: "/api/v1/workspaces/", method: "DELETE", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "OPTIONS", handler: externalProjectOptions });
 export default http;

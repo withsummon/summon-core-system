@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { taskChanged } from "../tasks/revision";
-import { requireSystem, estimateConfig, checkEstimateRevision, validateEstimatePoint } from "./access";
+import { requireSystem, estimateConfig, checkEstimateRevision, validateEstimatePoint, retireEstimate } from "./access";
 export const begin = mutation({
   args: {
     systemId: v.id("estimateSystems"),
@@ -120,15 +120,10 @@ export const page = mutation({
       cursor = rows.continueCursor;
       if (rows.isDone) {
         const sourcePoints = await Promise.all(job.pointIds.map((id) => ctx.db.get(id)));
-        await Promise.all(
-          sourcePoints
-            .filter((point) => point !== null)
-            .map((point) => ctx.db.patch(point._id, { deleted: true, retiring: false, revision: point.revision + 1 }))
-        );
+        await Promise.all(sourcePoints.filter((point) => point !== null).map((point) => retireEstimate(ctx, point)));
         const system = await ctx.db.get(job.systemId);
         if (!system) throw new ConvexError("Estimate system is missing.");
-        if (job.deleteSystem)
-          await ctx.db.patch(system._id, { deleted: true, retiring: false, revision: system.revision + 1 });
+        if (job.deleteSystem) await retireEstimate(ctx, system);
         else {
           await ctx.db.patch(system._id, { revision: system.revision + 1 });
           const removed = sourcePoints[0];

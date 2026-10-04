@@ -3,7 +3,7 @@ import { preserveDescriptionRepresentations } from "../description_content";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { mutation, query, type QueryCtx } from "../../_generated/server";
+import { mutation, query, type QueryCtx, type MutationCtx } from "../../_generated/server";
 import type { Doc } from "../../_generated/dataModel";
 import schema from "../../schema";
 import { requireWorkspace, requireProject } from "../../identity/access";
@@ -124,6 +124,14 @@ export const save = mutation({
     return { updatedAt, contentRevision: draft.contentRevision + 1 };
   },
 });
+export async function changeDraftDeleted(
+  ctx: MutationCtx,
+  draft: Doc<"taskDrafts">,
+  deleted: boolean,
+  updatedAt: number
+) {
+  await ctx.db.patch(draft._id, { deletedAt: deleted ? updatedAt : null, updatedAt });
+}
 export const lifecycle = mutation({
   args: { draftId: v.id("taskDrafts"), expectedUpdatedAt: v.number(), deleted: v.boolean() },
   handler: async (ctx, args) => {
@@ -131,7 +139,7 @@ export const lifecycle = mutation({
     if (draft.publishedTaskId) throw new ConvexError("Published drafts cannot be changed.");
     const updatedAt = draftRevision(draft.updatedAt, args.expectedUpdatedAt);
     if (args.deleted === (draft.deletedAt !== null)) throw new ConvexError("Draft lifecycle already changed.");
-    await ctx.db.patch(draft._id, { deletedAt: args.deleted ? Date.now() : null, updatedAt });
+    await changeDraftDeleted(ctx, draft, args.deleted, updatedAt);
   },
 });
 export const publish = mutation({

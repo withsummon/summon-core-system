@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, type MutationCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { requireTask, taskIsReadable, taskCanRead } from "./access";
 import { projectReader, projectSummary } from "../savedViews/scope";
@@ -153,6 +153,18 @@ export const add = mutation({
     return id;
   },
 });
+export async function removeRelationship(
+  ctx: MutationCtx,
+  relation: Doc<"taskRelations">,
+  task: Doc<"tasks">,
+  related: Doc<"tasks">,
+  actorId: Id<"users">,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]> = "subscribers"
+) {
+  await ctx.db.delete(relation._id);
+  await taskChanged(ctx, task, actorId, undefined, delivery);
+  await taskChanged(ctx, related, actorId, undefined, delivery);
+}
 export const remove = mutation({
   args: { relationId: v.id("taskRelations"), taskId: v.id("tasks"), expectedUpdatedAt: v.number() },
   handler: async (ctx, args) => {
@@ -167,8 +179,6 @@ export const remove = mutation({
     const { user } = await requireProject(ctx, task.projectId, true);
     await requireProject(ctx, related.projectId, true);
     requireTaskRevision(task, args.expectedUpdatedAt);
-    await ctx.db.delete(relation._id);
-    await taskChanged(ctx, task, user._id);
-    await taskChanged(ctx, related, user._id);
+    await removeRelationship(ctx, relation, task, related, user._id);
   },
 });

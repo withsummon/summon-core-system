@@ -257,3 +257,37 @@ export const projectInactivityTables = {
     revision: v.number(),
   }).index("by_project", ["projectId"]),
 };
+
+export const projectDeletionPhase = v.union(
+  v.literal("favorites"),
+  v.literal("tasks"),
+  v.literal("parents"),
+  v.literal("draftParents"),
+  v.literal("relationsFrom"),
+  v.literal("relationsTo"),
+  v.literal("drafts"),
+  v.literal("views"),
+  v.literal("cycles"),
+  v.literal("modules"),
+  v.literal("estimates"),
+  v.literal("estimatePoints"),
+  v.literal("pages"),
+  v.literal("members"),
+  v.literal("complete")
+);
+export const projectDeletionTables = {
+  // REST retirement owns a durable cascade. Ordinary native Trash never creates this intent.
+  projectDeletionJobs: defineTable({
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    actorId: v.id("users"),
+    deletedAt: v.number(),
+    phase: projectDeletionPhase,
+    cursor: v.union(v.string(), v.null()),
+    collectionCursor: v.union(v.string(), v.null()),
+    taskId: v.union(v.id("tasks"), v.null()),
+    collectionDone: v.boolean(),
+    systemId: v.union(v.id("estimateSystems"), v.null()),
+    revision: v.number(),
+  }).index("by_project", ["projectId"]),
+};

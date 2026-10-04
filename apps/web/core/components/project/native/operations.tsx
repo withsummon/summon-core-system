@@ -25,7 +25,7 @@ function operationAccess(
   if (selection.kind === "recover")
     return {
       ready: deletedComplete,
-      allowed: deletedProjects.some((project) => project.id === selection.project.id),
+      allowed: deletedProjects.some((project) => project.id === selection.project.id && project.canRestore),
     };
   const live = projects.find((project) => project.projectId === selection.project.projectId);
   switch (selection.kind) {

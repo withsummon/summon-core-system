@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
-import type { QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { Id, Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 export async function estimateConfig(ctx: QueryCtx, projectId: Id<"projects">) {
   return ctx.db
@@ -38,4 +38,8 @@ export async function validateEstimatePoint(
   const config = await estimateConfig(ctx, projectId);
   if (point.retiring || system.retiring || config?.activeSystemId !== point.systemId)
     throw new ConvexError("Choose a point from the active estimate system.");
+}
+
+export async function retireEstimate(ctx: MutationCtx, row: Doc<"estimateSystems"> | Doc<"estimatePoints">) {
+  await ctx.db.patch(row._id, { deleted: true, retiring: false, revision: row.revision + 1 });
 }

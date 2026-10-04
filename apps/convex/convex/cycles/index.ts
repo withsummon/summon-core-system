@@ -1,7 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import type { QueryCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
@@ -156,6 +156,9 @@ export const list = query({
     return result;
   },
 });
+export async function changeCycleDeleted(ctx: MutationCtx, cycle: Doc<"cycles">, deleted: boolean) {
+  await ctx.db.patch(cycle._id, { deleted, updatedAt: Math.max(Date.now(), cycle.updatedAt + 1) });
+}
 export const lifecycle = mutation({
   args: {
     cycleId: v.id("cycles"),
@@ -170,10 +173,7 @@ export const lifecycle = mutation({
         throw new ConvexError("Only the cycle creator or a project administrator can delete or restore it.");
       if (cycle.deleted === (args.operation === "delete")) return;
       if (args.operation === "restore") await checkSchedule(ctx, cycle.projectId, cycle.startDate, cycle.endDate);
-      await ctx.db.patch(cycle._id, {
-        deleted: args.operation === "delete",
-        updatedAt: Math.max(Date.now(), cycle.updatedAt + 1),
-      });
+      await changeCycleDeleted(ctx, cycle, args.operation === "delete");
     } else {
       if (cycle.deleted) throw new ConvexError("Restore this cycle first.");
       if (args.operation === "archive" && cyclePhase(cycle) !== "completed")

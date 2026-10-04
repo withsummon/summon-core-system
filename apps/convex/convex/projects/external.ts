@@ -17,6 +17,7 @@ import { externalUserLite } from "../identity/external";
 import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { apiIdSchema, apiRequestMetadata } from "../identity/schema";
 import { createProject } from "./create";
+import { beginProjectDeletion } from "./deletion";
 import {
   projectApiCreate,
   projectApiPatch,
@@ -618,12 +619,66 @@ export const patch = internalMutation({
     );
   },
 });
+export const remove = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, detail: "Project not found." });
+    const membership = await apiProjectMembership(ctx, project, access);
+    if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+      throw new ConvexError({
+        status: 403,
+        detail: "Only joined workspace or project administrators can delete this project.",
+      });
+    await beginProjectDeletion(ctx, { project, user: access.user });
+  },
+});
 const headers = {
   ...externalApiHeaders,
   "Access-Control-Allow-Headers": "X-Api-Key, Content-Type",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
 };
 export const options = httpAction(async () => new Response(null, { status: 204, headers }));
+async function writeProjectResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  slug: string,
+  projectApiId: string | undefined,
+  assetOrigin: string,
+  responseHeaders: HeadersInit
+) {
+  let bodyJson;
+  let status;
+  const body = projectJsonText
+    .pipe(request.method === "POST" ? projectApiCreate : projectApiPatch)
+    .safeParse(await request.text());
+  if (!body.success) {
+    return Response.json({ detail: z.flattenError(body.error) }, { status: 400, headers: responseHeaders });
+  }
+  const writeInput = {
+    userId,
+    slug,
+    bodyJson: JSON.stringify(body.data),
+    assetOrigin,
+  };
+  if (projectApiId !== undefined) {
+    bodyJson = await ctx.runMutation(internal.projects.external.patch, {
+      ...writeInput,
+      projectApiId,
+    });
+    status = 200;
+  } else {
+    bodyJson = await ctx.runMutation(internal.projects.external.create, writeInput);
+    status = 201;
+  }
+  return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
+}
 async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"users">, responseHeaders: HeadersInit) {
   const url = new URL(request.url);
   const match = /^\/api\/v1\/workspaces\/([^/]+)\/(projects|projects-lite)\/(?:([^/]+)\/)?$/.exec(url.pathname);
@@ -633,68 +688,48 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
   const slug = decodeURIComponent(match[1]);
   const lite = match[2] === "projects-lite";
   const projectApiId = match[3];
-  const reading = ["GET", "HEAD"].includes(request.method);
-  const writing = !lite && request.method === (projectApiId ? "PATCH" : "POST");
-  if (!reading && !writing) {
+  const methods = lite ? ["GET", "HEAD"] : projectApiId ? ["GET", "HEAD", "PATCH", "DELETE"] : ["GET", "HEAD", "POST"];
+  if (!methods.includes(request.method)) {
     return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
   }
   const parsedId = projectApiId === undefined ? null : apiIdSchema.safeParse(projectApiId);
   if (parsedId && !parsedId.success) {
     return Response.json({ detail: "Project not found." }, { status: 404, headers: responseHeaders });
   }
+  if (request.method === "DELETE" && parsedId?.success) {
+    await ctx.runMutation(internal.projects.external.remove, { userId, slug, projectApiId: parsedId.data });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
   let bodyJson;
   let status;
-  if (writing) {
-    const body = projectJsonText
-      .pipe(request.method === "POST" ? projectApiCreate : projectApiPatch)
-      .safeParse(await request.text());
-    if (!body.success) {
-      return Response.json({ detail: z.flattenError(body.error) }, { status: 400, headers: responseHeaders });
-    }
-    const writeInput = {
-      userId,
-      slug,
-      bodyJson: JSON.stringify(body.data),
-      assetOrigin: url.origin,
-    };
-    if (parsedId?.success) {
-      bodyJson = await ctx.runMutation(internal.projects.external.patch, {
-        ...writeInput,
-        projectApiId: parsedId.data,
-      });
-      status = 200;
-    } else {
-      bodyJson = await ctx.runMutation(internal.projects.external.create, writeInput);
-      status = 201;
-    }
-  } else {
-    const readOptions = projectApiReadOptions.safeParse({
-      ...(lite ? { order_by: "-created_at" } : {}),
-      ...Object.fromEntries(url.searchParams),
-    });
-    if (!readOptions.success) {
-      return Response.json({ detail: "Invalid project query parameter." }, { status: 400, headers: responseHeaders });
-    }
-    const readInput = {
-      userId,
-      slug,
-      fields: readOptions.data.fields,
-      expand: readOptions.data.expand,
-      assetOrigin: url.origin,
-    };
-    if (parsedId?.success)
-      bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
-    else
-      bodyJson = await ctx.runQuery(internal.projects.external.list, {
-        ...readInput,
-        perPage: readOptions.data.per_page,
-        page: readOptions.data.cursor,
-        orderBy: readOptions.data.order_by,
-        lite,
-        includeArchived: readOptions.data.include_archived,
-      });
-    status = 200;
+  if (["POST", "PATCH"].includes(request.method))
+    return writeProjectResponse(ctx, request, userId, slug, parsedId?.data, url.origin, responseHeaders);
+  const readOptions = projectApiReadOptions.safeParse({
+    ...(lite ? { order_by: "-created_at" } : {}),
+    ...Object.fromEntries(url.searchParams),
+  });
+  if (!readOptions.success) {
+    return Response.json({ detail: "Invalid project query parameter." }, { status: 400, headers: responseHeaders });
   }
+  const readInput = {
+    userId,
+    slug,
+    fields: readOptions.data.fields,
+    expand: readOptions.data.expand,
+    assetOrigin: url.origin,
+  };
+  if (parsedId?.success)
+    bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
+  else
+    bodyJson = await ctx.runQuery(internal.projects.external.list, {
+      ...readInput,
+      perPage: readOptions.data.per_page,
+      page: readOptions.data.cursor,
+      orderBy: readOptions.data.order_by,
+      lite,
+      includeArchived: readOptions.data.include_archived,
+    });
+  status = 200;
   return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
 }
 export const projects = httpAction(async (ctx, request) => {

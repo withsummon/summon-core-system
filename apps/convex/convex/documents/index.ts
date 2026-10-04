@@ -243,9 +243,17 @@ export async function updateDocumentMetadata(
     throw new ConvexError("Only the owner can change document visibility.");
   await validateDocumentMetadata(ctx, document.workspaceId, updated, user, document);
   if (compareValues(updated, document) === 0) return;
-  await ctx.db.patch(documentId, {
+  await writeDocumentMetadata(ctx, document, metadata, user._id);
+}
+export async function writeDocumentMetadata(
+  ctx: MutationCtx,
+  document: Doc<"documents">,
+  metadata: Infer<typeof documentMetadata>,
+  userId: Id<"users">
+) {
+  await ctx.db.patch(document._id, {
     ...metadata,
-    updatedBy: user._id,
+    updatedBy: userId,
     updatedAt: Math.max(Date.now(), document.updatedAt + 1),
   });
 }
