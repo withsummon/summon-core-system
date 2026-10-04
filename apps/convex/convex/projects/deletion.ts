@@ -233,6 +233,16 @@ async function projectLinks(ctx: MutationCtx, job: Job) {
       } satisfies Partial<Job>;
     }
     case "pages": {
+      if (job.cursor === null) {
+        const config = await estimateConfig(ctx, job.projectId);
+        if (config)
+          await ctx.db.patch(config._id, {
+            activeSystemId: null,
+            lastUsedSystemId: null,
+            jobId: null,
+            revision: config.revision + 1,
+          });
+      }
       const rows = await ctx.db
         .query("documents")
         .withIndex("by_workspace", (q) => q.eq("workspaceId", job.workspaceId))
@@ -305,16 +315,6 @@ async function estimatePage(ctx: MutationCtx, job: Job) {
       if (!point.deleted) await retireEstimate(ctx, point);
     })
   );
-  if (rows.isDone && job.collectionDone) {
-    const config = await estimateConfig(ctx, job.projectId);
-    if (config)
-      await ctx.db.patch(config._id, {
-        activeSystemId: null,
-        lastUsedSystemId: null,
-        jobId: null,
-        revision: config.revision + 1,
-      });
-  }
   return {
     phase: rows.isDone ? (job.collectionDone ? "pages" : "estimates") : "estimatePoints",
     cursor: rows.isDone ? (job.collectionDone ? null : job.collectionCursor) : rows.continueCursor,
