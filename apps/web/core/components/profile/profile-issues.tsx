@@ -13,7 +13,7 @@ import {
   dropTargetForElements,
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { useNavigate, useOutletContext, useSearchParams } from "react-router";
+import { useOutletContext } from "react-router";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -24,20 +24,16 @@ import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { Dialog } from "@plane/propel/dialog";
 import { DropIndicator, ModalCore } from "@plane/ui";
 import { cn } from "@plane/utils";
-import { IssueListBlockView } from "@/components/issues/issue-layouts/list/block";
-import { KanbanIssueBlockView } from "@/components/issues/issue-layouts/kanban/block";
-import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
 import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loader";
 import { FiltersRow } from "@/components/rich-filters/filters-row";
-import { TaskLifecycle, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
+import { NativeTaskRow, TaskLifecycle, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
 import { statusOptions } from "@/components/convex-core/tasks/options";
 import { TaskRowProperties } from "@/components/convex-core/tasks/task-properties";
 import { CreateProjectIssue, TaskPeek } from "@/components/convex-core/tasks/task-detail";
 import { ProjectChoice } from "@/components/convex-core/tasks/task-structure";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
-import { usePlatformOS } from "@/hooks/use-platform-os";
 import type { ProfileSession } from "@/app/(all)/[workspaceSlug]/(projects)/profile/[userId]/layout";
 import { ProfileFiltersFailure, ProfileIssuesFilter } from "./profile-issues-filter";
 
@@ -492,11 +488,7 @@ function ProfileTaskRow({
   properties: NonNullable<ProfileSession["taskControls"]["preferences"]>["displayProperties"];
 }) {
   const { task } = row;
-  const rowRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const { isMobile } = usePlatformOS();
   const lifecycle = useTaskLifecycle(() => {});
   const [over, setOver] = useState<"before" | "after" | null>(null);
   useEffect(() => {
@@ -530,80 +522,40 @@ function ProfileTaskRow({
   }, [board, drag, row, group, manual, task, lifecycle]);
   const href = `/${workspaceSlug}/browse/${row.project.identifier}-${row.task.sequence}/`;
   const workItem = `${row.project.identifier}-${row.task.sequence}`;
-  const peeked = params.get("peek") === workItem;
-  const open = () => {
-    if (isMobile) navigate(href);
-    else
-      setParams((current) => {
-        const next = new URLSearchParams(current);
-        next.set("peek", workItem);
-        return next;
-      });
-  };
-  const identifier = (
-    <IdentifierText
-      identifier={`${row.project.identifier}-${row.task.sequence}`}
-      minWidth={calculateIdentifierWidth(row.project.identifier.length, row.task.sequence)}
-      size="sm"
-    />
-  );
-  const propertyControls = (
-    <TaskRowProperties task={task} display={properties} disabled={lifecycle.pending || drag.pending} />
-  );
   return (
     <TaskLifecycle
       task={task}
       href={href}
       disabled={drag.pending}
       lifecycle={lifecycle}
-      row={(menu) =>
-        board ? (
-          <>
-            <KanbanIssueBlockView
-              issueId={row.task._id}
-              blockId={`issue-${row.task._id}`}
-              href={href}
-              name={row.task.title}
-              onOpen={open}
-              cardRef={cardRef}
-              onDragStart={undefined}
-              isPeeked={peeked}
-              isDragging={drag.dragged === task._id}
-              isDraggingOver={over === "before"}
-              canDrag={drag.enabled && task.canEdit && !lifecycle.pending}
-              disabled={lifecycle.pending || drag.pending}
-              identifier={properties.key ? identifier : null}
-              properties={propertyControls}
-              actions={() => menu}
-              shouldRenderByDefault
-            />
-            {over === "after" && <DropIndicator isVisible />}
-          </>
-        ) : (
-          <IssueListBlockView
-            issueId={row.task._id}
+      row={(menu) => (
+        <>
+          <NativeTaskRow
+            task={task}
+            identifier={workItem}
+            identifierWidth={calculateIdentifierWidth(row.project.identifier.length, row.task.sequence)}
             href={href}
-            name={row.task.title}
-            ariaLabel={`${row.project.identifier}-${row.task.sequence}: ${row.task.title}`}
-            onOpen={open}
-            rowRef={rowRef}
-            onDragStart={undefined}
-            isPeeked={peeked}
-            isPeekedAtCurrentLevel={peeked}
-            isActive={false}
-            isSelected={false}
-            isDragging={false}
-            disabled={false}
             pending={lifecycle.pending}
-            identifier={properties.key ? identifier : null}
-            indent={0}
-            selection={null}
-            expansion={null}
-            properties={propertyControls}
-            actions={() => menu}
+            showIdentifier={properties.key}
+            properties={
+              <TaskRowProperties task={task} display={properties} disabled={lifecycle.pending || drag.pending} />
+            }
+            actions={menu}
+            kanban={
+              board
+                ? {
+                    cardRef,
+                    isDragging: drag.dragged === task._id,
+                    isDraggingOver: over === "before",
+                    canDrag: drag.enabled && task.canEdit && !lifecycle.pending,
+                    disabled: lifecycle.pending || drag.pending,
+                  }
+                : undefined
+            }
           />
-        )
-      }
+          {board && over === "after" && <DropIndicator isVisible />}
+        </>
+      )}
     />
   );
 }
