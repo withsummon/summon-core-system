@@ -1,22 +1,22 @@
 # Native registered surfaces
 
-Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **732 distinct rows, all OPEN** after the 2026-10-04 committed-source refresh against `260aa82e2d3453d806532339b719d79871ae9d1d`. It moves the preserved Project Settings landing and Admin-only static Billing routes to the native session, deletes three unused legacy layouts and refreshes existing ordered-project anchors without adding declarations. The earlier2b refresh adds nine canonical Exports and twelve Webhooks management declarations and relocates their preserved settings routes/dialogs, retires the unused export modal, and retains the four inactivity exports and their preserved route/dialog/scheduled owner. It retains the seven Members/defaults/delivery declarations, adds States default/reorder and Labels settings declarations and moves preserved States/Labels routes/dialogs to native owners; the prior Project General staged-cover preparation remains registered; the four public-vote RPC candidates remain registered; the earlier comment-image and public-reaction registrations remain inventoried; the historical SDK and owner receipts below retain their original coverage. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Inventory baseline: 2026-09-29, immutable committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, with dated owner deltas retained below. Current registration matches committed `5c24c067b69aaa3cd1df23484efc88928b698ca3`: **741 native rows and 995 inherited rows, all OPEN**. This refresh adds two internal external-request audit RPCs and the eighth native cron. The earlier 3e34 user/UUID/PAT-avatar declarations and ten native-layout aliases remain registered. Unrelated dirty files are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) complements the [inherited ledger](registered-surface-2026-09-28.tsv); registration is not runtime acceptance or a served deployment. Dated 260/3e34 and earlier counts/hashes below retain their original coverage.
 
 On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in nine changed query files against committed `2a9b29a2aaf1d559a37f07864440900e388ac7f6` and corrected 36 source anchors. It changes no registration, visibility or acceptance status. 2026-09-30 ledger SHA-256: `2acccf4998fbc24383b897c17afeebb45d9d146772c880ad49e7be1ca26ced99`. Receipt: `/tmp/summon-paging-20260930-native-anchor-refresh.json`. This scoped refresh does not rerun the historical SDK/factory/HTTP inventory audit.
 
 ## Registered boundaries
 
-| Surface                     |    Rows | Meaning                                                                                                             |
-| --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     649 | 536 public and 113 internal declarations across generated app modules.                                              |
-| Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
-| HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
-| HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
-| Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
-| Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **732** | **All OPEN.**                                                                                                       |
+| Surface                     |    Rows | Meaning                                                                                           |
+| --------------------------- | ------: | ------------------------------------------------------------------------------------------------- |
+| App RPC                     |     654 | 536 public and 118 internal declarations across generated app modules.                            |
+| Component export            |       8 | Local Better Auth adapter exports; parent references remain internal.                             |
+| HTTP action declaration     |       6 | Asset, assistant and external-user handlers; mounts are separate.                                 |
+| HTTP routing mount          |      15 | Six common mounts, four native-auth factory mounts and five alternate Convex Auth factory mounts. |
+| Better Auth HTTP descriptor |      51 | Retained pathful SDK candidates, including disabled paths/provider parameters.                    |
+| Better Auth server API      |       7 | Retained SDK operations excluded from HTTP routing.                                               |
+| **Total**                   | **741** | **All OPEN.**                                                                                     |
 
-The current ledger records 661 declarations: 653 app exports (649 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The seven native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The current ledger records 668 declarations: 660 app exports (654 RPCs and six HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The eight native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
 This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
 
@@ -24,7 +24,7 @@ The committed `tasks/votes:{summary,actors,viewer,set}` declarations belong to P
 
 ## HTTP candidates and availability
 
-`http.ts` always mounts asset GET/OPTIONS and assistant POST/OPTIONS. Native auth mounts discovery GET plus GET/POST/OPTIONS under `/api/auth/*` when `betterAuthEnabled` is true. The five Convex Auth factory mounts belong to the alternate branch; three additionally require a configured OAuth provider. These are candidate registrations across branches, not 13 simultaneously active mounts.
+`http.ts` mounts asset GET/OPTIONS, assistant POST/OPTIONS and external-user GET/OPTIONS `/api/v1/users/me/`. External-user transport and safe GET/HEAD auditing have bounded isolated 5c24 runtime proof; full external acceptance and elapsed retention/persistence-failure behavior remain OPEN. Native auth mounts discovery GET plus GET/POST/OPTIONS under `/api/auth/*` when `betterAuthEnabled` is true. The five Convex Auth factory mounts belong to the alternate branch; three additionally require a configured OAuth provider. These are candidate registrations across branches; the 15 ledger rows are not simultaneously active mounts.
 
 Better Auth exposes 58 SDK descriptors: 51 pathful HTTP candidates and seven server APIs. Installed Better Call excludes `SERVER_ONLY` operations from its HTTP router. Better Auth returns 404 for normalized paths in `disabledPaths`; the server `auth.api` registry remains available. Eleven HTTP paths are always disabled, including account lifecycle/password bridges and API-key management. Four more OTP paths depend on the canonical sign-in/reset policy. Thus at most 40 descriptors remain after the fixed exclusions, and 36 in the metadata fixture with all four conditional paths disabled. Neither number proves a reachable or authorized production endpoint: native capability checks, providers, trusted origins, method and auth-engine selection still apply. Prefix mounts are routing owners, not additional SDK functions.
 
@@ -36,17 +36,17 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 
 | Family         | Declarations | Family        | Declarations |
 | -------------- | -----------: | ------------- | -----------: |
-| Identity       |           23 | Account       |           27 |
+| Identity       |           24 | Account       |           27 |
 | Instance       |            7 | Workspace     |           39 |
 | Shared shell   |           24 | Projects      |           66 |
 | Tasks          |           81 | Cycles        |           22 |
 | Modules        |           23 | Intake        |           13 |
 | Views/search   |           22 | Documents     |           39 |
-| Assets         |           37 | Commercial    |           21 |
+| Assets         |           38 | Commercial    |           21 |
 | Meetings       |           32 | Resources/MCP |           37 |
 | Assistant      |           40 | Automation    |           26 |
 | Reporting      |           20 | Notifications |           14 |
-| Public sharing |           24 | External API  |           13 |
+| Public sharing |           24 | External API  |           18 |
 | Stickies       |            9 | Operations    |            2 |
 
 ## Seven concrete owner mappings
@@ -71,7 +71,7 @@ Operators read `/private/tmp/summon-projects-integration-20260929-v12-source` an
 
 Evidence: `/tmp/summon-projects-integration-20260929-v12-{native-inventory,native-ledger-refresh,registered-surface-refresh,jsx-audit}.json`; unchanged HTTP metadata comes from `/tmp/summon-project-directory-pages-20260929-http-metadata.json`. The [current Projects receipt](current-parity-checklist.md#preserved-projects-directory-creation-and-navigation-2026-09-29) separates source registration from its scoped isolated API/Chrome acceptance. Historical artifacts remain preserved.
 
-No native inbound `/api/v1/`/webhook, anonymous public-sharing or MCP-server HTTP mount is registered. Internal PAT verification is a candidate owner, and `mcp/*` is an outbound client. Configured endpoint availability, real mail/OAuth/providers, external API capacity, browser dialogs/commands, jobs, backup/restore, rollback and exact served-build identity remain acceptance work. This inventory changes no deployment or parity status.
+Native GET/OPTIONS `/api/v1/users/me/` is registered in committed 3e34; the existing asset HTTP handler also owns the PAT current-avatar source branch. Native webhook delivery, anonymous public-sharing HTTP and MCP-server mounts remain absent. `mcp/*` is an outbound client. Scoped local user/UUID runtime proof is recorded below; remote/strict UUID retirement and full external acceptance remain OPEN. Configured endpoint availability, real mail/OAuth/providers, external API capacity, browser dialogs/commands, jobs, backup/restore, rollback and exact served-build identity remain acceptance work. This inventory changes no deployment or parity status.
 
 ## Meeting Workspace owner refresh, 2026-10-02
 
@@ -200,3 +200,23 @@ The immutable `260aa82e2d3453d806532339b719d79871ae9d1d` archive SHA-256 `cd60cb
 The Billing route at `apps/web/app/routes.ts:239` retains Workspace and its current Admin-only native session/static presentation. Project Settings entry at line243 retains Projects and the canonical eligible ordered-project owner. Existing `projects/order:{list,move,backfill}` anchors refresh to14/40/66; no RPC was added. All732 native and994 inherited rows remain OPEN. The [scoped local receipt](current-parity-checklist.md#native-project-settings-entry-and-billing-2026-10-04) separates actual260 runtime/coverage and four combined105-project API phases from bounded Chrome controls; sparse redirect/empty state, dirty creation recovery/create/reload and global New project dialog now pass in a separate complete scoped capture. Named cleanup and fresh163-pair coverage also pass; Guest/Member browser denial and320px empty/create rendering remain OPEN; registration closes nothing.
 
 Native TSV SHA-256: `935e26aa2b701765575249c9f2c97ad4fdd2c8012ee57938a966ce4422125d63`; inherited TSV SHA-256: `12bf7c32edff8f40cf8a92c138422788ac27fa839e9956c5d029092816a827c7`. Temporary extraction, independent exact-set/source-object and retained-anchor checks pass. Receipts: `/tmp/summon-ledger-refresh-260aa82e-20261004/{final-ledger-receipt,ledger-verification,independent-owner-samples,generated-api-verification}.json`. Historical counts/hashes remain dated. Full production parity and all retirement gates remain OPEN.
+
+## Native aliases, user UUID and external user registration refresh (2026-10-04)
+
+Exact committed `3e34a08c4af27e451a414679a30b8f8853d6c36a` adds five declarations: internal `identity/user_owner:backfillApiIds`, internal `identity/external:user`, HTTP `identity/external:{currentUser,options}` and internal `assets/index:apiAvatar`. Two direct GET/OPTIONS `/api/v1/users/me/` mounts add routing boundaries. Native totals are 739 (652 app RPCs,8 component exports,6 HTTP actions,15 mounts,51 SDK HTTP descriptors,7 server APIs), all OPEN. SDK/factory visibility and installed-lock policy are preserved. Audit WIP, its table/internal functions/eighth cron are excluded.
+
+Ten existing aliases relocate from the legacy manifest into native layout ownership; route cardinality is unchanged. Inherited totals remain 994, including 110 route/3 index entries,299 dialog roots,93 command IDs,15 command mounts,7 action mounts and19 job registrations. The AST scope verifies 95 web routes and 290 web dialog roots; the retained 15 Admin/Space routes,2 index entries and9 dialog roots retain valid committed anchors. Every retained ledger path/line is checked. This scope does not rerun the historical Django/SDK descriptor extraction or infer runtime reachability.
+
+The 655source hashes and exact AST sets match the immutable source: 652 direct + 14 factory declarations,7 native crons and6 direct HTTP mounts. Receipt: `/tmp/summon-ledger-refresh-3e34a08c-20261004/ledger-verification.json`. Native/inherited hashes are `77b8be0f885409ccc70cd63c378eb963306da4a7e07d4cf7b48c638054ff6a5e` and `db4d4f9afa7aa49fee93fe64386fe4084d742c3c2e3a9e1a0868f00938e37791`. All 24 family declaration totals above are recomputed from the actual ledger, including HTTP declarations but excluding routing mounts/SDK descriptors.
+
+[Alias/external source evidence](current-parity-checklist.md#native-aliases-and-external-user-boundary-source-receipt-2026-10-04) separates ten local DOM journeys from the truncated network capture and held UUID/external-runtime acceptance. The temporary optional UUID schema/backfill needs actual populated-deployment proof before strict retirement. No family or retirement gate is closed.
+
+## External audit registration and scoped transport evidence (2026-10-04)
+
+Immutable committed `5c24c067b69aaa3cd1df23484efc88928b698ca3` has 6,135 tracked Git blobs independently checked, including the symlink blob. The 656 registration-source hashes match the archive. AST exact sets verify 654 direct + 14 factory declarations,95 scoped web routes,290 scoped dialog mounts,8 native crons and6 direct HTTP mounts. The two new internal declarations are `identity/apiAudit:{record,prune}`; the new scheduled registration is “Prune external API request logs” at 02:30 UTC. No new public RPC, HTTP transport, SDK descriptor or route/dialog was added. Generated API adds only its module import/registry entry; schema/value exports are not extra functions.
+
+Totals are 741 native (654 app RPCs,8 component exports,6 HTTP actions,15 mounts,51 SDK HTTP descriptors,7 server APIs) and 995 inherited (20 job registrations:12 Python+8 native). Other route/dialog/command totals retain the preceding 3e34 count. All rows remain OPEN. External API primary declarations increase 16→18; all 24 family counts above are derived from the current ledger. SDK/lock and retained anchor policy are unchanged.
+
+Receipt: `/tmp/summon-ledger-refresh-5c24c067-20261004/ledger-verification.json`. Archive SHA-256 `0db549b83e79aeb22f8a29479a544c28577fd2de0cf83a0e390161a695361a97`; native ledger `502bd9f6528dfc92b8d1ab34a2db2f1c93aa2cb8d1a72f2d3fdc6418133d3f34`; inherited ledger `c1344fb3c5e26695c8b773c7332610effb708d4dc0b63beb3fc380e3263e8891`. Dated 3e34 hashes above remain historical evidence.
+
+The [local UUID/transport receipt](current-parity-checklist.md#local-uuid-rollout-and-external-user-transport-2026-10-04) records actual two-user backfill, the original 3e34 transport phases, and the later exact 5c24 activation/GET-HEAD audit four-phase follow-up with 431 modules/14 unchanged environment values and strict code-only snapshot preservation. Later scoped alias DOM/network proof covers 12 complete segments/3,730 events without observed Django/application HTTP errors; the earlier truncated receipt remains historical. Elapsed audit retention/persistence-failure/action-cancellation, remote UUID coverage, required-field/helper retirement, other external methods, mail/WAF controls and every full acceptance family remain OPEN.
