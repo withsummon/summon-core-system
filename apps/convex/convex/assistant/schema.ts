@@ -1,6 +1,14 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { status as taskStatus } from "../tasks/schema";
+import { z } from "zod/v4";
+
+export const replyRequest = z.object({
+  conversationId: z.string(),
+  requestId: z.string(),
+  content: z.string(),
+  attachmentIds: z.array(z.string()).max(5),
+});
 export const contextFields = {
   workspace: v.optional(v.boolean()),
   projectId: v.union(v.id("projects"), v.null()),

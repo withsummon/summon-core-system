@@ -6,12 +6,11 @@ import { selectedAttachments } from "./attachments";
 import { conversationResult } from "../mcp/invocations";
 import { documentProposal } from "./actions";
 import { authorizedContext } from "./context";
+import { zodToConvexFields } from "convex-helpers/server/zod4";
+import { replyRequest } from "./schema";
 export const begin = internalMutation({
   args: {
-    conversationId: v.string(),
-    requestId: v.string(),
-    content: v.string(),
-    attachmentIds: v.array(v.string()),
+    ...zodToConvexFields(replyRequest.shape),
     provider: v.string(),
     model: v.string(),
   },
