@@ -1,7 +1,7 @@
 import { defaultTaskPreferences, taskDisplayFiltersSchema, taskDisplayPropertiesSchema } from "../tasks/schema";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { EmptyStream, mergedStream, SingletonStream, stream } from "convex-helpers/server/stream";
+import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { query, mutation, internalMutation } from "../_generated/server";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -19,11 +19,13 @@ export const create = mutation({
     const filters = await validateFilters(ctx, args.projectId, args.filters);
     const display = taskDisplayFiltersSchema.safeParse(args.displayFilters ?? defaultTaskPreferences.displayFilters);
     if (!display.success) throw new ConvexError(display.error.message);
+    const name = text(args.name, "View name", 255, true);
     return ctx.db.insert("savedViews", {
       projectId: args.projectId,
       workspaceId: project.workspaceId,
       ownerId: user._id,
-      name: text(args.name, "View name", 255, true),
+      name,
+      nameFolded: name.toLowerCase(),
       description: text(args.description, "View description", 10000),
       filters,
       displayFilters: display.data,
@@ -46,8 +48,10 @@ export const update = mutation({
     const display =
       args.displayFilters === undefined ? undefined : taskDisplayFiltersSchema.safeParse(args.displayFilters);
     if (display && !display.success) throw new ConvexError(display.error.message);
+    const name = text(args.name, "View name", 255, true);
     await ctx.db.patch(view._id, {
-      name: text(args.name, "View name", 255, true),
+      name,
+      nameFolded: name.toLowerCase(),
       description: text(args.description, "View description", 10000),
       filters,
       ...(display === undefined ? {} : { displayFilters: display.data }),
@@ -88,22 +92,26 @@ export const list = query({
       throw new ConvexError("Choose a valid created date.");
     const order = args.order ?? "desc";
     const search = args.search?.toLowerCase() ?? "";
-    const source = (
-      args.orderBy === "updated_at"
+    return (
+      args.orderBy === "name"
         ? stream(ctx.db, schema)
             .query("savedViews")
-            .withIndex("by_project_updated", (q) => q.eq("projectId", args.projectId))
-        : args.orderBy === "created_at"
+            .withIndex("by_project_name", (q) => q.eq("projectId", args.projectId))
+        : args.orderBy === "updated_at"
           ? stream(ctx.db, schema)
               .query("savedViews")
-              .withIndex("by_project_created", (q) => q.eq("projectId", args.projectId))
-          : stream(ctx.db, schema)
-              .query("savedViews")
-              .withIndex("by_project_deleted", (q) =>
-                args.deleted
-                  ? q.eq("projectId", args.projectId).gt("deletedAt", null)
-                  : q.eq("projectId", args.projectId).eq("deletedAt", null)
-              )
+              .withIndex("by_project_updated", (q) => q.eq("projectId", args.projectId))
+          : args.orderBy === "created_at"
+            ? stream(ctx.db, schema)
+                .query("savedViews")
+                .withIndex("by_project_created", (q) => q.eq("projectId", args.projectId))
+            : stream(ctx.db, schema)
+                .query("savedViews")
+                .withIndex("by_project_deleted", (q) =>
+                  args.deleted
+                    ? q.eq("projectId", args.projectId).gt("deletedAt", null)
+                    : q.eq("projectId", args.projectId).eq("deletedAt", null)
+                )
     )
       .order(order)
       .filterWith(async (view) => {
@@ -117,27 +125,7 @@ export const list = query({
         return !args.createdAt?.some((filter) =>
           filter.before ? view._creationTime > filter.timestamp : view._creationTime < filter.timestamp
         );
-      });
-    const names = args.orderBy === "name" ? await source.collect() : null;
-    // Case-folded name order needs the complete cohort; native query read limits still apply.
-    const sorted = names
-      ? names.length
-        ? mergedStream(
-            names.map(
-              (view) =>
-                new SingletonStream(
-                  view,
-                  order,
-                  ["name", "_creationTime", "_id"],
-                  [view.name.toLowerCase(), view._creationTime, view._id],
-                  []
-                )
-            ),
-            ["name", "_creationTime", "_id"]
-          )
-        : new EmptyStream<Doc<"savedViews">>(order, ["name", "_creationTime", "_id"])
-      : source;
-    return sorted
+      })
       .map(async (view) => {
         const row = await projectView(ctx, view, access);
         return args.favorites && !row.isFavorite ? null : row;
@@ -172,8 +160,8 @@ export const access = query({
 });
 
 // Temporary additive rollout: remove after complete missing-only coverage and a
-// second zero-change pass, then require both stored display fields and remove read defaults.
-export const initializeDisplayPreferences = internalMutation({
+// second zero-change pass, then require all three fields and remove display read defaults.
+export const initializeMetadata = internalMutation({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
     const page = await ctx.db.query("savedViews").paginate({
@@ -183,20 +171,26 @@ export const initializeDisplayPreferences = internalMutation({
       maximumBytesRead: 1048576,
     });
     let displayFiltersFilled = 0,
-      displayPropertiesFilled = 0;
+      displayPropertiesFilled = 0,
+      nameFoldedFilled = 0;
     for (const view of page.page) {
+      if (view.nameFolded !== undefined && view.nameFolded !== view.name.toLowerCase())
+        throw new ConvexError("Stored saved view name ordering is inconsistent.");
       if (view.displayFilters !== undefined) taskDisplayFiltersSchema.parse(view.displayFilters);
       if (view.displayProperties !== undefined) taskDisplayPropertiesSchema.parse(view.displayProperties);
     }
     await Promise.all(
       page.page.map(async (view) => {
-        if (view.displayFilters !== undefined && view.displayProperties !== undefined) return;
+        if (view.nameFolded !== undefined && view.displayFilters !== undefined && view.displayProperties !== undefined)
+          return;
         const patch = {
+          ...(view.nameFolded === undefined ? { nameFolded: view.name.toLowerCase() } : {}),
           ...(view.displayFilters === undefined ? { displayFilters: defaultTaskPreferences.displayFilters } : {}),
           ...(view.displayProperties === undefined
             ? { displayProperties: defaultTaskPreferences.displayProperties }
             : {}),
         };
+        if (view.nameFolded === undefined) nameFoldedFilled++;
         if (view.displayFilters === undefined) displayFiltersFilled++;
         if (view.displayProperties === undefined) displayPropertiesFilled++;
         await ctx.db.patch(view._id, patch);
@@ -206,6 +200,7 @@ export const initializeDisplayPreferences = internalMutation({
       processed: page.page.length,
       displayFiltersFilled,
       displayPropertiesFilled,
+      nameFoldedFilled,
       isDone: page.isDone,
       continueCursor: page.continueCursor,
     };
