@@ -11,7 +11,7 @@ import { requireProject, requireWorkspace } from "../identity/access";
 export function projectMetadata(project: Doc<"projects">) {
   return { description: project.description, revision: project.metadataRevision };
 }
-function checkRevision(project: Doc<"projects">, expectedRevision: number) {
+export function checkRevision(project: Doc<"projects">, expectedRevision: number) {
   const metadata = projectMetadata(project);
   if (!Number.isSafeInteger(expectedRevision) || metadata.revision !== expectedRevision)
     throw new ConvexError("Project changed. Reopen settings before saving.");

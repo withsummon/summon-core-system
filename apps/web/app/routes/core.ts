@@ -131,11 +131,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           // No Projects available page
           route(":workspaceSlug/settings/projects", "./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx"),
           layout("./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/layout.tsx", [
-            // Project States
-            route(
-              ":workspaceSlug/settings/projects/:projectId/states",
-              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx"
-            ),
             // Project Labels
             route(
               ":workspaceSlug/settings/projects/:projectId/labels",

@@ -9,7 +9,6 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { memberLabel } from "@summon/convex/member-label";
-import { STATE_GROUPS } from "@plane/constants";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
@@ -47,7 +46,7 @@ import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { SummonField } from "@/components/summon/forms";
 import { AuthenticatedAssetImage } from "../assets/image";
 import { mutationMessage, selectClass } from "../commercial/forms";
-import { statusOptions, taskStatusOptions } from "./options";
+import { stateGroups, statusOptions, taskStatusOptions } from "./options";
 export type TaskPropertyValues = Pick<
   Doc<"tasks">,
   "priority" | "assigneeIds" | "labelIds" | "startDate" | "targetDate" | "stateId" | "estimatePointId"
@@ -255,13 +254,6 @@ type InlinePropertyProps = {
   ) => Promise<void>;
 };
 
-const stateGroups = {
-  backlog: STATE_GROUPS.backlog.key,
-  todo: STATE_GROUPS.unstarted.key,
-  in_progress: STATE_GROUPS.started.key,
-  done: STATE_GROUPS.completed.key,
-  cancelled: STATE_GROUPS.cancelled.key,
-} satisfies Record<NonNullable<FunctionReturnType<typeof api.tasks.index.get>>["status"], keyof typeof STATE_GROUPS>;
 const propertyOptionClass =
   "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
 

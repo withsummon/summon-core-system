@@ -150,11 +150,14 @@ export const taskPosition = v.object({
   previous: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
   next: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
 });
-export const stateFields = {
+export const stateContentFields = {
   name: v.string(),
   description: v.string(),
   color: v.string(),
   status,
+};
+export const stateFields = {
+  ...stateContentFields,
   sortOrder: v.number(),
   isDefault: v.boolean(),
 };
