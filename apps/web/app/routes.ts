@@ -16,6 +16,18 @@ import { coreRoutes } from "./routes/core";
 // Add catch-all route at the end (404 handler)
 const routes: RouteConfigEntry[] = [
   layout("./native-layout.tsx", [
+    // Existing URL aliases share the native session with their destinations.
+    route(":workspaceSlug/projects/:projectId/settings/*", "routes/redirects/core/project-settings.tsx"),
+    route(":workspaceSlug/settings/api-tokens", "routes/redirects/core/api-tokens.tsx"),
+    route(":workspaceSlug/projects/:projectId/inbox", "routes/redirects/core/inbox.tsx"),
+    route("accounts/sign-up", "routes/redirects/core/accounts-signup.tsx"),
+    route("sign-in", "routes/redirects/core/sign-in.tsx"),
+    route("signin", "routes/redirects/core/signin.tsx"),
+    route("login", "routes/redirects/core/login.tsx"),
+    route("register", "routes/redirects/core/register.tsx"),
+    route("profile/*", "routes/redirects/core/profile-settings.tsx"),
+    route(":workspaceSlug/settings/account/*", "routes/redirects/core/workspace-account-settings.tsx"),
+
     // Home - Sign In
     layout("./(home)/layout.tsx", [index("./(home)/page.tsx")]),
 
