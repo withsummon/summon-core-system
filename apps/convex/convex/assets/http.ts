@@ -8,6 +8,7 @@ import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { recordingReadMaxBytes } from "./content";
 
 const cors = {
+  "Cache-Control": "private, no-store",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Authorization, X-Api-Key, Range",
   "Access-Control-Expose-Headers":
@@ -48,7 +49,6 @@ export const read = httpAction(async (ctx, request) => {
       ...responseHeaders,
       "Content-Type": asset.contentType,
       "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
-      "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "sandbox",
     };
