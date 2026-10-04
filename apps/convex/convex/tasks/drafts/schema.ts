@@ -29,5 +29,6 @@ export const draftTables = {
     .index("by_author_workspace", ["authorId", "workspaceId"])
     .index("by_author_copy_request", ["authorId", "copySource.requestId"])
     .index("by_project", ["projectId"])
+    .index("by_parent", ["parent.taskId"])
     .index("by_project_state_unpublished", ["projectId", "properties.stateId", "publishedTaskId"]),
 };

@@ -4,7 +4,7 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { query, mutation, internalMutation } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -17,7 +17,7 @@ export async function requireLifecycle(ctx: QueryCtx, projectId: Id<"projects">)
     throw new ConvexError("Only workspace or project administrators can manage project Trash.");
   return { project, user: access.user };
 }
-function projection(project: Doc<"projects">) {
+async function projection(ctx: QueryCtx, project: Doc<"projects">) {
   return {
     id: project._id,
     workspaceId: project.workspaceId,
@@ -26,11 +26,15 @@ function projection(project: Doc<"projects">) {
     archived: project.archived,
     deletedAt: project.deletedAt ?? null,
     revision: project.metadataRevision,
+    canRestore: !(await ctx.db
+      .query("projectDeletionJobs")
+      .withIndex("by_project", (q) => q.eq("projectId", project._id))
+      .unique()),
   };
 }
 export const get = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => projection((await requireLifecycle(ctx, args.projectId)).project),
+  handler: async (ctx, args) => projection(ctx, (await requireLifecycle(ctx, args.projectId)).project),
 });
 export const list = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
@@ -41,26 +45,42 @@ export const list = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .map(async (project) =>
         project.deletedAt != null && (await canAdministerProject(ctx, project, access.user._id, access.member.role))
-          ? projection(project)
+          ? projection(ctx, project)
           : null
       )
       .paginate(pageBudget(args.paginationOpts));
   },
 });
+export async function changeProjectDeleted(
+  ctx: MutationCtx,
+  { project, user }: Awaited<ReturnType<typeof requireLifecycle>>,
+  expectedRevision: number,
+  deleted: boolean
+) {
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== project.metadataRevision)
+    throw new ConvexError("Project changed. Reopen its latest settings before continuing.");
+  if (
+    !deleted &&
+    (await ctx.db
+      .query("projectDeletionJobs")
+      .withIndex("by_project", (q) => q.eq("projectId", project._id))
+      .unique())
+  )
+    throw new ConvexError("This project was retired through the API and cannot be restored from Trash.");
+  if ((project.deletedAt != null) === deleted) return project.deletedAt ?? null;
+  const updatedAt = Date.now();
+  await ctx.db.patch(project._id, {
+    deletedAt: deleted ? updatedAt : null,
+    metadataRevision: project.metadataRevision + 1,
+    updatedAt,
+    updatedById: user._id,
+  });
+  return deleted ? updatedAt : null;
+}
 export const setDeleted = mutation({
   args: { projectId: v.id("projects"), deleted: v.boolean(), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const { project, user } = await requireLifecycle(ctx, args.projectId);
-    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== project.metadataRevision)
-      throw new ConvexError("Project changed. Reopen its latest settings before continuing.");
-    if ((project.deletedAt != null) === args.deleted) return;
-    const updatedAt = Date.now();
-    await ctx.db.patch(project._id, {
-      deletedAt: args.deleted ? updatedAt : null,
-      metadataRevision: project.metadataRevision + 1,
-      updatedAt,
-      updatedById: user._id,
-    });
+    await changeProjectDeleted(ctx, await requireLifecycle(ctx, args.projectId), args.expectedRevision, args.deleted);
   },
 });
 // Temporary additive rollout owner. Remove after both deployments complete every

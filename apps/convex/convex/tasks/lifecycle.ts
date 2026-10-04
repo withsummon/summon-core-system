@@ -1,5 +1,5 @@
 import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -31,9 +31,19 @@ async function prepareChange(
 }
 async function applyChange(ctx: MutationCtx, change: Awaited<ReturnType<typeof prepareChange>>) {
   if (change.unchanged) return false;
-  await ctx.db.patch(change.task._id, { [change.field]: change.enabled ? Date.now() : null });
-  await taskChanged(ctx, change.task, change.user._id);
+  await writeTaskLifecycle(ctx, change.task, change.user._id, change.field, change.enabled);
   return true;
+}
+export async function writeTaskLifecycle(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  actorId: Id<"users">,
+  field: "deletedAt" | "archivedAt",
+  enabled: boolean,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]> = "subscribers"
+) {
+  await ctx.db.patch(task._id, { [field]: enabled ? Date.now() : null });
+  await taskChanged(ctx, task, actorId, undefined, delivery);
 }
 export const change = mutation({
   args: { taskId: v.id("tasks"), expectedUpdatedAt: v.number(), operation: lifecycleOperation },

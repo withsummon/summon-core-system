@@ -1,4 +1,4 @@
-import { insertFavorite, validateSequence, nextSequence } from "./write";
+import { changeFavoriteDeleted, insertFavorite, validateSequence, nextSequence } from "./write";
 import { requireWorkspace } from "../identity/access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -115,17 +115,13 @@ export const lifecycle = mutation({
   handler: async (ctx, args) => {
     const { row, member } = await ownFavorite(ctx, args.favoriteId);
     await requireViewFavoriteManagement(ctx, row, member);
-    const updatedAt = revision(row, args.expectedUpdatedAt);
+    revision(row, args.expectedUpdatedAt);
     if ((row.deletedAt !== null) === args.deleted) throw new ConvexError("Favorite lifecycle already changed.");
     const chain = await ancestors(ctx, row);
     if (chain.some((item) => item.deletedAt !== null)) throw new ConvexError("Restore the parent folder first.");
     if (!args.deleted && !(await visibleTarget(ctx, row.target, member))?.canFavorite)
       throw new ConvexError("Favorite target is unavailable.");
-    await ctx.db.patch(row._id, {
-      deletedAt: args.deleted ? Date.now() : null,
-      favoritedAt: args.deleted ? row.favoritedAt : Date.now(),
-      updatedAt,
-    });
+    await changeFavoriteDeleted(ctx, row, args.deleted);
   },
 });
 

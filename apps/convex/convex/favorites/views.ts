@@ -1,4 +1,4 @@
-import { insertFavorite } from "./write";
+import { changeFavoriteDeleted, insertFavorite } from "./write";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -22,11 +22,7 @@ export async function setViewFavorite(
     if (favorite && (await ancestors(ctx, row)).some((parent) => parent.deletedAt !== null))
       throw new ConvexError("Restore the parent favorite folder first.");
     if ((row.deletedAt === null) === favorite) return;
-    await ctx.db.patch(row._id, {
-      deletedAt: favorite ? null : Date.now(),
-      favoritedAt: favorite ? Date.now() : row.favoritedAt,
-      updatedAt: Math.max(Date.now(), row.updatedAt + 1),
-    });
+    await changeFavoriteDeleted(ctx, row, !favorite);
     return;
   }
   if (!favorite) return;

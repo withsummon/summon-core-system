@@ -319,6 +319,10 @@ export const leave = mutation({
 export async function revokeProjectMembership(ctx: MutationCtx, member: Doc<"projectMembers">) {
   if (!member.active) return;
   if (member.role === "admin") await requireAnotherProjectAdmin(ctx, member.projectId);
+  await deactivateProjectMembership(ctx, member);
+}
+
+export async function deactivateProjectMembership(ctx: MutationCtx, member: Doc<"projectMembers">) {
   await ctx.db.patch(member._id, { active: false, revision: member.revision + 1 });
 }
 

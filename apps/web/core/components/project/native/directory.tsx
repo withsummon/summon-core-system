@@ -326,7 +326,7 @@ function NativeProjectTrash({
       {complete && rows.length === 0 && (
         <EmptyStateDetailed
           title="No projects in Trash"
-          description="Deleted projects you can restore will appear here."
+          description="Deleted projects will appear here."
           assetKey="project"
           assetClassName="size-40"
         />
@@ -339,9 +339,13 @@ function NativeProjectTrash({
               <h3 className="text-16 font-medium break-words">{project.name}</h3>
               {project.archived && <span className="text-11 text-placeholder">Archived</span>}
             </div>
-            <Button variant="secondary" onClick={() => onRestore(project)}>
-              Restore
-            </Button>
+            {project.canRestore ? (
+              <Button variant="secondary" onClick={() => onRestore(project)}>
+                Restore
+              </Button>
+            ) : (
+              <span className="text-12 text-secondary">Retired through the API</span>
+            )}
           </li>
         ))}
       </ul>

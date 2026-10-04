@@ -22,6 +22,15 @@ export async function insertFavorite(
   });
 }
 
+export async function changeFavoriteDeleted(ctx: MutationCtx, row: Doc<"favorites">, deleted: boolean) {
+  const updatedAt = Math.max(Date.now(), row.updatedAt + 1);
+  await ctx.db.patch(row._id, {
+    deletedAt: deleted ? updatedAt : null,
+    favoritedAt: deleted ? row.favoritedAt : updatedAt,
+    updatedAt,
+  });
+}
+
 export async function nextSequence(
   ctx: MutationCtx,
   fields: Pick<Doc<"favorites">, "workspaceId" | "userId" | "parentId">

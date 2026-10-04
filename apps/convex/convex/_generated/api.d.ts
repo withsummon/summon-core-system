@@ -179,6 +179,7 @@ import type * as projects_branding_schema from "../projects/branding_schema.js";
 import type * as projects_cover from "../projects/cover.js";
 import type * as projects_cover_owner from "../projects/cover_owner.js";
 import type * as projects_create from "../projects/create.js";
+import type * as projects_deletion from "../projects/deletion.js";
 import type * as projects_directory from "../projects/directory.js";
 import type * as projects_external from "../projects/external.js";
 import type * as projects_feature_schema from "../projects/feature_schema.js";
@@ -444,6 +445,7 @@ declare const fullApi: ApiFromModules<{
   "projects/cover": typeof projects_cover;
   "projects/cover_owner": typeof projects_cover_owner;
   "projects/create": typeof projects_create;
+  "projects/deletion": typeof projects_deletion;
   "projects/directory": typeof projects_directory;
   "projects/external": typeof projects_external;
   "projects/feature_schema": typeof projects_feature_schema;

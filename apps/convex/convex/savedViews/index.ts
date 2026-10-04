@@ -3,8 +3,8 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { query, mutation } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { Id, Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget, text } from "../commercial/validation";
 import { viewDefinitionFields } from "./schema";
@@ -80,6 +80,10 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
   },
 });
+export async function changeViewDeleted(ctx: MutationCtx, view: Doc<"savedViews">, deleted: boolean) {
+  const updatedAt = Math.max(Date.now(), view.updatedAt + 1);
+  await ctx.db.patch(view._id, { deletedAt: deleted ? updatedAt : null, updatedAt });
+}
 export const lifecycle = mutation({
   args: { viewId: v.id("savedViews"), expectedUpdatedAt: v.number(), deleted: v.boolean() },
   handler: async (ctx, args) => {
@@ -87,10 +91,7 @@ export const lifecycle = mutation({
     requireRevision(view, args.expectedUpdatedAt);
     if (args.deleted ? !canRemove : !canRestore)
       throw new ConvexError("Only the owner or a project administrator can change this saved view's lifecycle.");
-    await ctx.db.patch(view._id, {
-      deletedAt: args.deleted ? Date.now() : null,
-      updatedAt: Math.max(Date.now(), view.updatedAt + 1),
-    });
+    await changeViewDeleted(ctx, view, args.deleted);
   },
 });
 

@@ -242,6 +242,9 @@ export const directory = query({
       .paginate(pageBudget(args.paginationOpts));
   },
 });
+export async function changeModuleDeleted(ctx: MutationCtx, module: Doc<"modules">, deleted: boolean) {
+  await ctx.db.patch(module._id, { deleted, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+}
 export const lifecycle = mutation({
   args: {
     moduleId: v.id("modules"),
@@ -256,10 +259,7 @@ export const lifecycle = mutation({
         throw new ConvexError("Only the module creator or a project administrator can delete or restore it.");
       if (module.deleted === (args.operation === "delete")) return;
       if (args.operation === "restore") await requireAvailableName(ctx, module.projectId, module.name);
-      await ctx.db.patch(module._id, {
-        deleted: args.operation === "delete",
-        updatedAt: Math.max(Date.now(), module.updatedAt + 1),
-      });
+      await changeModuleDeleted(ctx, module, args.operation === "delete");
     } else {
       if (module.deleted) throw new ConvexError("Restore this module first.");
       if (args.operation === "archive" && module.status !== "completed" && module.status !== "cancelled")

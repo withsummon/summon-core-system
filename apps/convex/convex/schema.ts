@@ -2,7 +2,12 @@ import { projectLogoProps } from "./projects/branding_schema";
 import { projectNetwork } from "./projects/network_schema";
 import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
-import { projectApiData, projectInactivityTables, projectPersonalTables } from "./projects/schema";
+import {
+  projectApiData,
+  projectInactivityTables,
+  projectPersonalTables,
+  projectDeletionTables,
+} from "./projects/schema";
 import { navigationTables } from "./navigation/schema";
 import { estimateTables } from "./estimates/schema";
 import { favoriteTables } from "./favorites/schema";
@@ -38,6 +43,7 @@ export const invitationDeliveryStatus = v.union(v.literal("sent"), v.literal("fa
 export default defineSchema({
   ...projectPersonalTables,
   ...projectInactivityTables,
+  ...projectDeletionTables,
   ...projectAppearanceTables,
   ...navigationTables,
   ...estimateTables,
