@@ -6,7 +6,7 @@ import { requireAccountUser } from "./session";
 import { profileIdentity } from "./profile_owner";
 import { personalImageDescriptor, userAppearance } from "./avatar_owner";
 import type { Id } from "../_generated/dataModel";
-import { apiRequestMetadata, userApiId } from "./schema";
+import { apiRequestMetadata, apiIdSchema } from "./schema";
 
 // This is the inherited UserLite public representation, not a session profile.
 export const user = internalQuery({
@@ -22,7 +22,7 @@ export const user = internalQuery({
     }
     if (account.apiId === undefined)
       return { status: 503 as const, body: { detail: "User API identifier migration is incomplete." } };
-    const id = userApiId.parse(account.apiId);
+    const id = apiIdSchema.parse(account.apiId);
     const profile = await profileIdentity(ctx, account._id);
     if (!profile) throw new ConvexError("Your account is unavailable.");
     const avatar = await personalImageDescriptor(ctx, await userAppearance(ctx, account._id), "avatar");

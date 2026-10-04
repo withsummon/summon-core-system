@@ -9,7 +9,7 @@ import { favoriteTables } from "./favorites/schema";
 import { draftTables } from "./tasks/drafts/schema";
 import { stickyTables } from "./stickies/schema";
 import { savedViewTables } from "./savedViews/schema";
-import { identityTables } from "./identity/schema";
+import { apiIdSchema, identityTables } from "./identity/schema";
 import { intakeTables } from "./intakes/schema";
 import { publicationTables } from "./publicSharing/schema";
 import { quickLinkTables } from "./quickLinks/schema";
@@ -26,6 +26,7 @@ import { assetTables } from "./assets/schema";
 import { settingsTables } from "./settings/schema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { zodToConvex } from "convex-helpers/server/zod4";
 import { authTables } from "@convex-dev/auth/server";
 import { meetingTables } from "./meetings/schema";
 import { commercialTables } from "./commercial/schema";
@@ -65,16 +66,20 @@ export default defineSchema({
   ...intakeTables,
   ...publicationTables,
   workspaces: defineTable({
+    apiId: zodToConvex(apiIdSchema.optional()),
     name: v.string(),
     slug: v.string(),
     metadataRevision: v.number(),
     deletedAt: v.optional(v.union(v.number(), v.null())),
-  }).index("by_slug", ["slug"]),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_api_id", ["apiId"]),
   workspaceMembers: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), role, active: v.boolean() })
     .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_user", ["userId"])
     .index("by_workspace_role_active", ["workspaceId", "role", "active"]),
   projects: defineTable({
+    apiId: zodToConvex(apiIdSchema.optional()),
     workspaceId: v.id("workspaces"),
     name: v.string(),
     identifier: v.string(),
@@ -92,6 +97,7 @@ export default defineSchema({
     archived: v.boolean(),
     deletedAt: v.optional(v.union(v.number(), v.null())),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_identifier", ["workspaceId", "identifier"])
     .index("by_workspace_name", ["workspaceId", "name"]),

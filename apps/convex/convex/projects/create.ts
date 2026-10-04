@@ -4,7 +4,9 @@ import { renderedProjectLogo } from "./branding_schema";
 import { defaultProjectFeatures } from "./feature_schema";
 import { initializeProjectOrder } from "./order_owner";
 import { workspaceTimezone, validateTimezone } from "../settings/timezone";
-import type { Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
+import { internalMutation } from "../_generated/server";
+import { apiIdSchema } from "../identity/schema";
 import type { projectCreateArgs } from "./schema";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -32,6 +34,7 @@ export async function createProject(ctx: MutationCtx, args: Infer<typeof project
   const projectId = await ctx.db.insert("projects", {
     workspaceId: args.workspaceId,
     ...metadata,
+    apiId: await allocateProjectApiId(ctx),
     leadId,
     defaultAssigneeId: null,
     timezone:
@@ -76,3 +79,41 @@ export async function createProject(ctx: MutationCtx, args: Infer<typeof project
     });
   return projectId;
 }
+
+async function allocateProjectApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("projects")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Project API identifier already exists.");
+  return apiId;
+}
+
+// Temporary stored-row rollout: remove after every deployment proves complete
+// UUID coverage and the projects schema requires apiId. Never allocate on reads.
+export const backfillApiIds = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db
+      .query("projects")
+      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
+    let changed = 0;
+    // Sequential writes make each uniqueness check see previously allocated IDs.
+    /* oxlint-disable no-await-in-loop */
+    for (const project of page.page) {
+      if (project.apiId === undefined) {
+        await ctx.db.patch(project._id, { apiId: await allocateProjectApiId(ctx) });
+        changed++;
+      } else {
+        const apiId = apiIdSchema.parse(project.apiId);
+        await ctx.db
+          .query("projects")
+          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+          .unique();
+      }
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
+  },
+});

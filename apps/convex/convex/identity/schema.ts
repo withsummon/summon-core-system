@@ -6,7 +6,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { z } from "zod/v4";
 import { convexToZod, zodToConvexFields, zodToConvex } from "convex-helpers/server/zod4";
 
-export const userApiId = z.uuid();
+export const apiIdSchema = z.uuid();
 
 // Safe request metadata only. HEAD is served by Convex through its GET handler.
 export const apiRequestMetadata = z.object({
@@ -34,7 +34,7 @@ export const identityTables = {
   apiRequestLogs: defineTable(apiRequestFields),
   users: defineTable({
     ...authTables.users.validator.fields,
-    apiId: zodToConvex(userApiId.optional()),
+    apiId: zodToConvex(apiIdSchema.optional()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])
