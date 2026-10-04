@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { InfoIcon } from "lucide-react";
 import { SearchIcon } from "../../icons";
+import { Input } from "../../input";
 import { cn } from "../../utils/classname";
 import { adjustColorForContrast, DEFAULT_COLORS } from "../helper";
 import { LucideIconsList } from "./lucide-root";
@@ -51,7 +52,10 @@ export function IconRoot(props: IconRootProps) {
             >
               <SearchIcon className="absolute bottom-3 left-2.5 h-3.5 w-3.5 text-placeholder" />
 
-              <input
+              <Input
+                mode="true-transparent"
+                inputSize="sm"
+                aria-label="Search icons"
                 placeholder="Search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -71,8 +75,11 @@ export function IconRoot(props: IconRootProps) {
               />
               <span className="flex-shrink-0 text-11 text-tertiary">HEX</span>
               <span className="-mr-1 flex-shrink-0 text-11 text-secondary">#</span>
-              <input
+              <Input
+                mode="true-transparent"
+                inputSize="xs"
                 type="text"
+                aria-label="Icon color hex code"
                 value={hexValue}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -80,7 +87,6 @@ export function IconRoot(props: IconRootProps) {
                   if (/^[0-9A-Fa-f]{6}$/.test(value)) setActiveColor(adjustColorForContrast(`#${value}`));
                 }}
                 className="block flex-grow rounded-sm border-[0.5px] border-none border-subtle bg-transparent px-3 py-2 pl-0 text-11 text-secondary placeholder-(--text-color-placeholder) ring-0 focus:outline-none"
-                autoFocus
               />
             </div>
           ) : (
@@ -88,6 +94,8 @@ export function IconRoot(props: IconRootProps) {
               <button
                 key={curCol}
                 type="button"
+                aria-label={`Icon color ${curCol}`}
+                aria-pressed={activeColor.toLowerCase() === curCol.toLowerCase()}
                 className="grid size-5 place-items-center"
                 onClick={() => {
                   setActiveColor(curCol);
@@ -100,6 +108,7 @@ export function IconRoot(props: IconRootProps) {
           )}
           <button
             type="button"
+            aria-label={showHexInput ? "Show color presets" : "Use custom icon color"}
             className={cn("grid h-4 w-4 place-items-center rounded-full border border-transparent", {
               "border-strong-1": !showHexInput,
             })}

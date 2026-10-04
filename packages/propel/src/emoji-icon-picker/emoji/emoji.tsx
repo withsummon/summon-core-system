@@ -14,8 +14,7 @@ type EmojiRootProps = {
   searchDisabled?: boolean;
 };
 
-export function EmojiRoot(props: EmojiRootProps) {
-  const { onChange, searchPlaceholder = "Search", searchDisabled = false } = props;
+export function EmojiRoot({ onChange, searchPlaceholder = "Search", searchDisabled = false }: EmojiRootProps) {
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const focusInput = () => {
@@ -40,6 +39,7 @@ export function EmojiRoot(props: EmojiRootProps) {
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-surface-1 px-1.5 py-2 [&>[data-slot='emoji-picker-search-wrapper']]:flex-grow [&>[data-slot='emoji-picker-search-wrapper']]:p-0">
         <div ref={searchWrapperRef} data-slot="emoji-picker-search-wrapper" className="p-2">
           <EmojiPicker.Search
+            aria-label="Search emoji"
             placeholder={searchPlaceholder}
             disabled={searchDisabled}
             className="block h-full w-full flex-grow-0 rounded-md border-[0.5px] border-subtle bg-transparent p-0 px-3 py-2 text-16 placeholder-(--text-color-placeholder) focus:border-accent-strong focus:outline-none"

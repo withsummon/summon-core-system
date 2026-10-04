@@ -101,11 +101,14 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
 
   return (
     <Popover open={isOpen} onOpenChange={handleToggle}>
-      <Popover.Button className={cn("outline-none", buttonClassName)} disabled={disabled}>
+      <Popover.Button
+        aria-label="Choose emoji or icon"
+        className={cn("outline-none", buttonClassName)}
+        disabled={disabled}
+      >
         {label}
       </Popover.Button>
       <Popover.Panel
-        positionerClassName="z-50"
         className={cn("w-80 overflow-hidden rounded-md border-[0.5px] border-strong bg-surface-1", dropdownClassName)}
         side={finalSide}
         align={finalAlign}
