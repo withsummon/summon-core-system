@@ -195,6 +195,10 @@ const routes: RouteConfigEntry[] = [
         "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/page.tsx"
       ),
       route(
+        ":workspaceSlug/settings/projects/:projectId/members",
+        "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx"
+      ),
+      route(
         ":workspaceSlug/settings/projects/:projectId/estimates",
         "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx"
       ),

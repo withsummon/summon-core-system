@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { invitationPreview } from "./delivery";
 import { previewFields } from "./delivery";
 import { createFields } from "./index";
-import { action } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
@@ -85,5 +85,21 @@ export const incomingPreview = action({
     );
     if (latest.logo?.id !== data.logo?.id) throw new ConvexError("Invitation logo changed. Reload the invitation.");
     return { ...latest, logo: bytes && data.logo ? { contentType: data.logo.contentType, bytes } : null };
+  },
+});
+
+export const projectAdded = internalAction({
+  args: { membershipId: v.id("projectMembers"), expectedRevision: v.number(), addedById: v.id("users") },
+  handler: async (ctx, args) => {
+    const context = await ctx.runQuery(internal.invitations.delivery.projectAddition, args);
+    if (!context) return;
+    const config = configuration();
+    const url = new URL(`/${context.workspaceSlug}/projects/${context.projectId}/issues/`, config.siteUrl);
+    await sendAccountEmail(
+      context.email,
+      `You have been added to ${context.projectName} on Summon`,
+      `You now have access to ${context.projectName} in ${context.workspaceName}.\n\nOpen the project:\n\n${url.href}`,
+      `project-added-${args.membershipId}-${args.expectedRevision}`
+    );
   },
 });

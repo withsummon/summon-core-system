@@ -33,6 +33,7 @@ export async function createProject(ctx: MutationCtx, args: Infer<typeof project
     workspaceId: args.workspaceId,
     ...metadata,
     leadId,
+    defaultAssigneeId: null,
     timezone:
       args.timezone === undefined ? await workspaceTimezone(ctx, args.workspaceId) : validateTimezone(args.timezone),
     metadataRevision: 0,
@@ -51,6 +52,7 @@ export async function createProject(ctx: MutationCtx, args: Infer<typeof project
     userId: user._id,
     role: "admin",
     active: true,
+    revision: 0,
   });
   await Promise.all(
     taskStatus.members.map((state) =>

@@ -2,12 +2,10 @@ import { useState } from "react";
 import { useConvex, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import type { Doc, Id } from "@summon/convex/data-model";
+import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { SummonField } from "@/components/summon/forms";
-
-const roles = ["guest", "member", "admin"] as const satisfies readonly Doc<"projectMembers">["role"][];
 
 export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) {
   const client = useConvex();
@@ -15,7 +13,8 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
   const revokeProject = useMutation(api.projects.index.revokeMember);
   const [userId, setUserId] = useState("");
   const [target, setTarget] = useState<FunctionReturnType<typeof api.projects.index.resolveMember> | null>(null);
-  const [role, setRole] = useState<Doc<"projectMembers">["role"]>("member");
+  const [role, setRole] =
+    useState<FunctionReturnType<typeof api.projects.index.resolveMember>["allowedRoles"][number]>("member");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -26,8 +25,13 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
     setError("");
     setMessage("");
     try {
-      if (operation === "grant") await grantProject({ projectId, userId: target.id, role });
-      else await revokeProject({ projectId, userId: target.id });
+      if (operation === "grant")
+        await grantProject({ projectId, userId: target.userId, role, expectedRevision: target.expectedRevision });
+      else {
+        if (target.expectedRevision === null) return;
+        await revokeProject({ projectId, userId: target.userId, expectedRevision: target.expectedRevision });
+      }
+      setTarget(await client.query(api.projects.index.resolveMember, { projectId, userId: target.userId }));
       setMessage(operation === "grant" ? `${role} access saved.` : "Access revoked.");
     } catch {
       setError(
@@ -59,6 +63,7 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
                 userId: userId.trim(),
               });
               setTarget(user);
+              setRole(user.active && user.role !== null ? user.role : user.workspaceRole);
             } catch {
               setError("User not found or unavailable. Check the ID and required workspace membership.");
             } finally {
@@ -85,8 +90,8 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
         {target && (
           <div className="space-y-3">
             <p className="text-14">
-              {target.name || target.email || "User"}
-              <span className="font-mono mt-1 block text-12 break-all text-secondary">{target.id}</span>
+              {target.displayName || target.email || "User"}
+              <span className="font-mono mt-1 block text-12 break-all text-secondary">{target.userId}</span>
             </p>
             <SummonField label="Access role">
               <select
@@ -94,11 +99,11 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
                 value={role}
                 disabled={pending}
                 onChange={(event) => {
-                  const selected = roles.find((value) => value === event.target.value);
+                  const selected = target.allowedRoles.find((value) => value === event.target.value);
                   if (selected) setRole(selected);
                 }}
               >
-                {roles.map((value) => (
+                {target.allowedRoles.map((value) => (
                   <option key={value} value={value}>
                     {value}
                   </option>
@@ -106,10 +111,18 @@ export function ProjectMembership({ projectId }: { projectId: Id<"projects"> }) 
               </select>
             </SummonField>
             <div className="flex flex-wrap gap-2">
-              <Button loading={pending} onClick={() => void changeAccess("grant")}>
+              <Button
+                loading={pending}
+                disabled={!target.allowedRoles.includes(role)}
+                onClick={() => void changeAccess("grant")}
+              >
                 Save access
               </Button>
-              <Button variant="secondary" disabled={pending} onClick={() => void changeAccess("revoke")}>
+              <Button
+                variant="secondary"
+                disabled={pending || !target.canRemove}
+                onClick={() => void changeAccess("revoke")}
+              >
                 Revoke access
               </Button>
             </div>

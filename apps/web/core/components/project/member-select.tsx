@@ -4,99 +4,90 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
 import { Ban } from "lucide-react";
-import { EUserProjectRoles } from "@plane/types";
-// plane ui
-import { Avatar, CustomSearchSelect } from "@plane/ui";
-// helpers
-import { getFileURL } from "@plane/utils";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
+import { CustomSearchSelect } from "@plane/ui";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import type { ProjectMember } from "./settings/member-columns";
 
-type Props = {
-  value: any;
-  onChange: (val: string) => void;
+export function MemberSelect({
+  value,
+  members,
+  onChange,
+  isDisabled = false,
+  label,
+}: {
+  value: ProjectMember["userId"] | null;
+  members: ProjectMember[];
+  onChange: (value: ProjectMember["userId"] | null) => void;
   isDisabled?: boolean;
-};
-
-export const MemberSelect = observer(function MemberSelect(props: Props) {
-  const { value, onChange, isDisabled = false } = props;
-  // router
-  const { projectId } = useParams();
-  // store hooks
-  const {
-    project: { projectMemberIds, getProjectMemberDetails },
-  } = useMember();
-
-  const options = projectMemberIds
-    ?.map((userId) => {
-      const memberDetails = projectId ? getProjectMemberDetails(userId, projectId.toString()) : null;
-
-      if (!memberDetails?.member) return;
-      const isGuest = memberDetails.role === EUserProjectRoles.GUEST;
-      if (isGuest) return;
-
-      return {
-        value: `${memberDetails?.member.id}`,
-        query: `${memberDetails?.member.display_name}`,
-        content: (
-          <div className="flex items-center gap-2">
-            <Avatar name={memberDetails?.member.display_name} src={getFileURL(memberDetails?.member.avatar_url)} />
-            {memberDetails?.member.display_name}
-          </div>
-        ),
-      };
-    })
-    .filter((option) => !!option) as
-    | {
-        value: string;
-        query: string;
-        content: React.ReactNode;
-      }[]
-    | undefined;
-  const selectedOption = projectId ? getProjectMemberDetails(value, projectId.toString()) : null;
-
+  label: string;
+}) {
+  const selected = members.find((member) => member.userId === value);
   return (
     <CustomSearchSelect
-      value={value}
+      value={value ?? "none"}
+      ariaLabel={label}
       label={
-        <div className="flex h-3.5 items-center gap-2">
-          {selectedOption && (
-            <Avatar name={selectedOption.member?.display_name} src={getFileURL(selectedOption.member?.avatar_url)} />
+        <div className="flex min-h-3.5 min-w-0 items-center gap-2">
+          {selected?.avatar && (
+            <AuthenticatedAssetImage
+              asset={selected.avatar}
+              alt="Member avatar"
+              compactName={selected.displayName ?? selected.fullName}
+              className="size-5 rounded-full"
+            />
           )}
-          {selectedOption ? (
-            selectedOption.member?.display_name
+          {selected ? (
+            <span className="min-w-0 truncate">{selected.displayName ?? selected.fullName}</span>
           ) : (
-            <div className="flex items-center gap-2">
-              <Ban className="h-3.5 w-3.5 rotate-90 text-placeholder" />
-              <span className="text-13 text-placeholder">None</span>
-            </div>
+            <>
+              <Ban className="size-3.5 rotate-90 text-placeholder" aria-hidden="true" />
+              <span className="text-13 text-placeholder">{value === null ? "None" : "Unavailable member"}</span>
+            </>
           )}
         </div>
       }
       buttonClassName="!px-3 !py-2 bg-surface-1"
-      options={
-        options &&
-        options && [
-          ...options,
-          {
-            value: "none",
-            query: "none",
+      options={[
+        ...members
+          .filter((member) => member.role !== "guest" && member.workspaceRole !== "guest")
+          .map((member) => ({
+            value: member.userId,
+            query: `${member.fullName} ${member.displayName ?? ""} ${member.email ?? ""}`,
             content: (
               <div className="flex items-center gap-2">
-                <Ban className="h-3.5 w-3.5 rotate-90 text-placeholder" />
-                <span className="py-0.5 text-13 text-placeholder">None</span>
+                {member.avatar && (
+                  <AuthenticatedAssetImage
+                    asset={member.avatar}
+                    alt="Member avatar"
+                    compactName={member.displayName ?? member.fullName}
+                    className="size-5 rounded-full"
+                  />
+                )}
+                {member.displayName ?? member.fullName}
               </div>
             ),
-          },
-        ]
-      }
+          })),
+        {
+          value: "none",
+          query: "none",
+          content: (
+            <div className="flex items-center gap-2">
+              <Ban className="size-3.5 rotate-90 text-placeholder" aria-hidden="true" />
+              <span>None</span>
+            </div>
+          ),
+        },
+      ]}
       maxHeight="md"
-      onChange={onChange}
+      onChange={(selection: string) => {
+        if (selection === "none") onChange(null);
+        else {
+          const choice = members.find((member) => member.userId === selection);
+          if (choice) onChange(choice.userId);
+        }
+      }}
       disabled={isDisabled}
     />
   );
-});
+}

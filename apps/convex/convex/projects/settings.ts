@@ -1,4 +1,5 @@
-import { validateProjectMetadata } from "./metadata_fields";
+import { taskAssigneeEligible } from "../tasks/properties";
+import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
 import { canAdministerProject } from "./administration";
 import { requireNetworkScope } from "./network_access";
 import { ConvexError, v } from "convex/values";
@@ -90,5 +91,50 @@ export const setArchived = mutation({
     const metadataRevision = checkRevision(project, args.expectedRevision);
     if (project.archived === args.archived) return;
     await ctx.db.patch(project._id, { archived: args.archived, metadataRevision });
+  },
+});
+
+export const memberDefaults = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const access = await requireProject(ctx, args.projectId);
+    const canManage = await canAdministerProject(ctx, access.project, access.user._id, access.member.role);
+    return {
+      projectId: access.project._id,
+      name: access.project.name,
+      canManage,
+      revision: access.project.metadataRevision,
+      leadId: access.project.leadId ?? null,
+      defaultAssigneeId: access.project.defaultAssigneeId,
+      defaultAssigneeEligible:
+        access.project.defaultAssigneeId !== null &&
+        (await taskAssigneeEligible(ctx, access.project, access.project.defaultAssigneeId)),
+      guestViewAllFeatures: access.project.guestViewAllFeatures ?? false,
+    };
+  },
+});
+export const saveMemberDefaults = mutation({
+  args: {
+    projectId: v.id("projects"),
+    expectedRevision: v.number(),
+    leadId: v.optional(v.union(v.id("users"), v.null())),
+    defaultAssigneeId: v.optional(v.union(v.id("users"), v.null())),
+    guestViewAllFeatures: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { expectedRevision, projectId, ...fields }) => {
+    const { project, user, member } = await requireProject(ctx, projectId);
+    if (!(await canAdministerProject(ctx, project, user._id, member.role)))
+      throw new ConvexError("Only workspace or project administrators can edit project member defaults.");
+    const metadataRevision = checkRevision(project, expectedRevision);
+    if (fields.leadId !== undefined && fields.leadId !== (project.leadId ?? null))
+      await validateProjectLead(ctx, project.workspaceId, fields.leadId);
+    if (
+      fields.defaultAssigneeId !== undefined &&
+      fields.defaultAssigneeId !== null &&
+      !(await taskAssigneeEligible(ctx, project, fields.defaultAssigneeId))
+    )
+      throw new ConvexError("Default assignee must be an active project writer.");
+    await ctx.db.patch(projectId, { ...fields, metadataRevision });
+    return { revision: metadataRevision };
   },
 });

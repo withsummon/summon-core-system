@@ -1,3 +1,4 @@
+import { grantProjectMembership, revokeProjectMembership } from "../projects/index";
 import { recordWorkspaceCreation } from "../identity/onboarding";
 import { selectWorkspaceForUser } from "../identity/preferences";
 import { defaultSettings, validateSettings } from "../settings/values";
@@ -5,19 +6,19 @@ import { requireWorkspaceCreation } from "../identity/instance/configuration";
 import { workspaceLogo } from "../settings/logo_owner";
 import { workspaceName, workspaceSlug } from "../settings/metadata";
 import { requireUnrestrictedAccount } from "../identity/deactivation/access";
-import { defaultProfile } from "../identity/profile_owner";
+import {
+  MAX_MEMBER_DIRECTORY_MEMBERS,
+  memberDirectoryOrder,
+  profileIdentity,
+  sortMemberDirectory,
+} from "../identity/profile_owner";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { role } from "../schema";
 import type { MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
-import {
-  requireUser,
-  requireWorkspace,
-  requireAnotherWorkspaceAdmin,
-  requireAnotherProjectAdmin,
-} from "../identity/access";
+import { requireUser, requireWorkspace, requireAnotherWorkspaceAdmin } from "../identity/access";
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -72,63 +73,40 @@ export const create = mutation({
   },
 });
 
-const MAX_WORKSPACE_DIRECTORY_MEMBERS = 1000;
 export const members = query({
   args: {
     workspaceId: v.id("workspaces"),
     search: v.optional(v.string()),
     roles: v.optional(v.array(v.union(role, v.literal("suspended")))),
-    orderBy: v.optional(
-      v.object({
-        field: v.union(
-          v.literal("fullName"),
-          v.literal("displayName"),
-          v.literal("email"),
-          v.literal("role"),
-          v.literal("joinedAt")
-        ),
-        direction: v.union(v.literal("asc"), v.literal("desc")),
-      })
-    ),
+    orderBy: v.optional(memberDirectoryOrder),
   },
   handler: async (ctx, args) => {
     await requireWorkspace(ctx, args.workspaceId, true);
     const memberships = await ctx.db
       .query("workspaceMembers")
       .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId))
-      .take(MAX_WORKSPACE_DIRECTORY_MEMBERS + 1);
-    if (memberships.length > MAX_WORKSPACE_DIRECTORY_MEMBERS)
+      .take(MAX_MEMBER_DIRECTORY_MEMBERS + 1);
+    if (memberships.length > MAX_MEMBER_DIRECTORY_MEMBERS)
       throw new ConvexError(
-        `Workspace directory exceeds the ${MAX_WORKSPACE_DIRECTORY_MEMBERS}-membership limit. No partial directory was returned.`
+        `Workspace directory exceeds the ${MAX_MEMBER_DIRECTORY_MEMBERS}-membership limit. No partial directory was returned.`
       );
     const rows = await Promise.all(
       memberships.map(async (membership) => {
-        const [user, profile, authLink] = await Promise.all([
-          ctx.db.get(membership.userId),
-          ctx.db
-            .query("userProfiles")
-            .withIndex("by_user", (q) => q.eq("userId", membership.userId))
-            .unique(),
+        const [identity, authLink] = await Promise.all([
+          profileIdentity(ctx, membership.userId),
           ctx.db
             .query("betterAuthLinks")
             .withIndex("by_user", (q) => q.eq("userId", membership.userId))
             .unique(),
         ]);
-        if (!user) throw new ConvexError("Workspace membership references an unavailable account.");
-        const names = profile ?? defaultProfile;
-        return {
+        if (!identity) throw new ConvexError("Workspace membership references an unavailable account.");
+        return Object.assign(identity, {
           membershipId: membership._id,
-          userId: user._id,
           role: membership.role,
           active: membership.active,
-          displayName: user.name ?? null,
-          firstName: names.firstName,
-          lastName: names.lastName,
-          fullName: `${names.firstName} ${names.lastName}`.trim(),
-          email: user.email ?? null,
           joinedAt: membership._creationTime,
           loginMethod: authLink?.lastLoginMedium ?? null,
-        };
+        });
       })
     );
     const search = (args.search ?? "").trim().toLocaleLowerCase();
@@ -138,21 +116,7 @@ export const members = query({
         (!roles.length || roles.includes(row.active ? row.role : "suspended")) &&
         `${row.fullName} ${row.displayName ?? ""} ${row.email ?? ""}`.toLocaleLowerCase().includes(search)
     );
-    const field = args.orderBy?.field ?? "joinedAt";
-    const direction = args.orderBy?.direction === "asc" ? 1 : -1;
-    // The canonical role schema lists administrator through guest; this is
-    // display order only, never an authority check.
-    const roleOrder = role.members.map((entry) => entry.value);
-    // oxlint-disable-next-line unicorn/no-array-sort -- Sort this private filtered array in place; generated consumers use the web's ES2020 lib.
-    const ordered = filtered.sort((a, b) => {
-      const comparison =
-        field === "joinedAt"
-          ? a.joinedAt - b.joinedAt
-          : field === "role"
-            ? roleOrder.indexOf(b.role) - roleOrder.indexOf(a.role)
-            : (a[field] ?? "").toLocaleLowerCase().localeCompare((b[field] ?? "").toLocaleLowerCase());
-      return Number(b.active) - Number(a.active) || comparison * direction || a.userId.localeCompare(b.userId);
-    });
+    const ordered = sortMemberDirectory(filtered, args.orderBy);
     const directory = await Promise.all(
       ordered.map(async (row) =>
         Object.assign(row, {
@@ -235,19 +199,13 @@ async function restrictProjectMemberships(
     throw new ConvexError(
       `Membership change exceeds the atomic budget of ${MAX_ATOMIC_PROJECT_MEMBERSHIPS} active projects. No access changed.`
     );
-  await Promise.all(
-    activeMemberships
-      .filter((member) => member.role === "admin")
-      .map(async (member) => {
-        const project = await ctx.db.get(member.projectId);
-        if (project) await requireAnotherProjectAdmin(ctx, member.projectId);
-      })
-  );
-  await Promise.all(
-    activeMemberships.map((member) =>
-      ctx.db.patch(member._id, restriction === "revoke" ? { active: false } : { role: "guest" })
-    )
-  );
+  for (const member of activeMemberships) {
+    // The project membership owner preserves administrator and stale-write invariants.
+    // oxlint-disable-next-line no-await-in-loop
+    if (restriction === "revoke") await revokeProjectMembership(ctx, member);
+    // oxlint-disable-next-line no-await-in-loop
+    else await grantProjectMembership(ctx, { workspaceId, projectId: member.projectId, userId, role: "guest" });
+  }
 }
 
 export async function grantWorkspaceMembership(

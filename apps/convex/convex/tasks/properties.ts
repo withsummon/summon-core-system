@@ -2,7 +2,8 @@ import { requireUsableLabel } from "./label_access";
 import { validateEstimatePoint } from "../estimates/access";
 import { ConvexError, v, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import { accountRestricted } from "../identity/deactivation/access";
+import type { Doc, Id } from "../_generated/dataModel";
 import { date } from "../commercial/validation";
 import { taskProperties, nonStateTaskProperties } from "./schema";
 
@@ -19,6 +20,36 @@ export const initialProperties = {
 } satisfies Infer<typeof properties> & { completedAt: null };
 const properties = v.object(taskProperties);
 const nonStateProperties = v.object(nonStateTaskProperties);
+export async function taskAssigneeEligible(ctx: QueryCtx, project: Doc<"projects">, userId: Id<"users">) {
+  const [member, workspaceMember, user, restricted] = await Promise.all([
+    ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
+      .unique(),
+    ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
+      .unique(),
+    ctx.db.get(userId),
+    accountRestricted(ctx, userId),
+  ]);
+  return (
+    member?.active === true &&
+    member.role !== "guest" &&
+    workspaceMember?.active === true &&
+    workspaceMember.role !== "guest" &&
+    user !== null &&
+    !restricted
+  );
+}
+export async function creationAssignees(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  assigneeIds: Infer<typeof properties>["assigneeIds"]
+) {
+  if (assigneeIds.length || project.defaultAssigneeId === null) return assigneeIds;
+  return (await taskAssigneeEligible(ctx, project, project.defaultAssigneeId)) ? [project.defaultAssigneeId] : [];
+}
 export async function validateNonStateProperties(
   ctx: QueryCtx,
   project: Doc<"projects">,
@@ -37,17 +68,7 @@ export async function validateNonStateProperties(
     data.assigneeIds
       .filter((id) => !retainedTask?.assigneeIds.includes(id))
       .map(async (userId) => {
-        const [member, workspaceMember] = await Promise.all([
-          ctx.db
-            .query("projectMembers")
-            .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
-            .unique(),
-          ctx.db
-            .query("workspaceMembers")
-            .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
-            .unique(),
-        ]);
-        if (!member?.active || member.role === "guest" || !workspaceMember?.active || workspaceMember.role === "guest")
+        if (!(await taskAssigneeEligible(ctx, project, userId)))
           throw new ConvexError("Assignees must be active project writers.");
       })
   );
