@@ -32,9 +32,8 @@ export const savedViewTables = {
     ownerId: v.id("users"),
     name: v.string(),
     description: v.string(),
-    // Temporary native-only rollout: required after all lifecycle cohorts have metadata and the initializer is retired.
-    access: v.optional(viewAccess),
-    logoProps: v.optional(projectLogoProps),
+    access: viewAccess,
+    logoProps: projectLogoProps,
     filters: viewFilters,
     isLocked: v.boolean(),
     updatedAt: v.number(),
