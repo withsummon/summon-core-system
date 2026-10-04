@@ -1,10 +1,11 @@
 import { validateProjectMetadata } from "./metadata_fields";
 import { canAdministerProject } from "./administration";
+import { requireNetworkScope } from "./network_access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-import { requireProject, requireProjectMembership, requireWorkspace } from "../identity/access";
+import { requireProject, requireWorkspace } from "../identity/access";
 
 export function projectMetadata(project: Doc<"projects">) {
   return { description: project.description, revision: project.metadataRevision };
@@ -83,11 +84,9 @@ export const setArchived = mutation({
   args: { projectId: v.id("projects"), archived: v.boolean(), expectedRevision: v.number() },
   handler: async (ctx, args) => {
     // This owner permits lifecycle recovery only; normal domain access still rejects archived projects.
-    const project = await ctx.db.get(args.projectId);
-    if (!project) throw new ConvexError("Project not found.");
-    const { projectMember } = await requireProjectMembership(ctx, project, true);
-    if (projectMember.role !== "admin")
-      throw new ConvexError("Only project administrators can archive or restore projects.");
+    const { project, user, member } = await requireNetworkScope(ctx, args.projectId, true);
+    if (!(await canAdministerProject(ctx, project, user._id, member.role)))
+      throw new ConvexError("Only workspace or project administrators can archive or restore projects.");
     const metadataRevision = checkRevision(project, args.expectedRevision);
     if (project.archived === args.archived) return;
     await ctx.db.patch(project._id, { archived: args.archived, metadataRevision });

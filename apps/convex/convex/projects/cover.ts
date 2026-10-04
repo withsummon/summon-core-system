@@ -1,7 +1,8 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query, mutation } from "../_generated/server";
-import { requireProject } from "../identity/access";
+import { requireNetworkScope } from "./network_access";
+import { canAdministerProject } from "./administration";
 import { descriptor } from "../assets/access";
 import { prepareAsset } from "../assets/index";
 import { fileMetadataFields } from "../assets/schema";
@@ -11,10 +12,12 @@ import { projectCover, requireCoverWrite, replaceProjectCover } from "./cover_ow
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
-    const access = await requireProject(ctx, projectId);
+    const access = await requireNetworkScope(ctx, projectId);
+    const canManage = await canAdministerProject(ctx, access.project, access.user._id, access.member.role);
+    if (!canManage && !access.membership?.active) throw new ConvexError("Project not found.");
     return {
       ...(await projectCover(ctx, projectId)),
-      canManage: access.member.role !== "guest" && access.projectMember.role === "admin",
+      canManage,
       supportedTypes: [...supportedAssetTypes].filter((type) => type.startsWith("image/")),
       maxBytes: assetSizeLimit("image/png"),
     };
@@ -48,8 +51,9 @@ export const remove = mutation({
 export const removed = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const access = await requireProject(ctx, args.projectId, true);
-    if (access.projectMember.role !== "admin") throw new ConvexError("Only project administrators can recover covers.");
+    const access = await requireNetworkScope(ctx, args.projectId, true);
+    if (!(await canAdministerProject(ctx, access.project, access.user._id, access.member.role)))
+      throw new ConvexError("Only workspace or project administrators can recover covers.");
     const page = await ctx.db
       .query("assets")
       .withIndex("by_project_purpose_status", (q) =>

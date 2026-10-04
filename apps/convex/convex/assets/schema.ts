@@ -36,6 +36,7 @@ export const assetTables = {
     avatarRevision: v.optional(v.number()),
     avatarPublishedRevision: v.optional(v.number()),
     projectCoverRevision: v.optional(v.number()),
+    projectCoverFormRevision: v.optional(v.number()),
     workspaceLogoRevision: v.optional(v.number()),
     workspaceLogoPublishedRevision: v.optional(v.number()),
     purpose: v.optional(v.union(v.literal("workspaceLogo"), v.literal("projectCover"), personalImagePurpose)),

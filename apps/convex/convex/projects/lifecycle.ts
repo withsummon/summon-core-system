@@ -9,7 +9,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 
-async function requireLifecycle(ctx: QueryCtx, projectId: Id<"projects">) {
+export async function requireLifecycle(ctx: QueryCtx, projectId: Id<"projects">) {
   const project = await ctx.db.get(projectId);
   if (!project) throw new ConvexError("Project not found.");
   const access = await requireWorkspace(ctx, project.workspaceId);

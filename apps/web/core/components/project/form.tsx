@@ -6,395 +6,298 @@
 
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useAction, useConvex, useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Info } from "lucide-react";
 import { NETWORK_CHOICES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-// plane imports
 import { Button } from "@plane/propel/button";
 import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
 import { LockIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import { EFileAssetType } from "@plane/types";
-import type { IProject, IWorkspace } from "@plane/types";
 import { CustomSelect, Input, TextArea } from "@plane/ui";
-import { renderFormattedDate } from "@plane/utils";
+import { projectIdentifierSanitizer, renderFormattedDate } from "@plane/utils";
 import { CoverImage } from "@/components/common/cover-image";
-import { ImagePickerPopover } from "@/components/core/image-picker-popover";
+import { ImagePickerPopoverView } from "@/components/core/image-picker-popover";
 import { TimezoneSelect } from "@/components/global";
-// helpers
-import { handleCoverImageChange } from "@/helpers/cover-image.helper";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { uploadFileAsset } from "@/components/convex-core/assets/upload-file";
+import { AssetTransfers } from "@/components/convex-core/documents/asset-transfers";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// services
-import { ProjectService } from "@/services/project";
-// local imports
+import { GeneralProjectSettingsControlSection } from "./settings/control-section";
 import { ProjectNetworkIcon } from "./project-network-icon";
 
-export interface IProjectDetailsForm {
-  project: IProject;
+export function ProjectDetailsForm({
+  project,
+  workspaceSlug,
+}: {
+  project: FunctionReturnType<typeof api.projects.form.get>;
   workspaceSlug: string;
-  projectId: string;
-  isAdmin: boolean;
-}
-const projectService = new ProjectService();
-
-export function ProjectDetailsForm(props: IProjectDetailsForm) {
-  const { project, workspaceSlug, projectId, isAdmin } = props;
+}) {
   const { t } = useTranslation();
-  // states
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  // store hooks
-  const { updateProject } = useProject();
   const { isMobile } = usePlatformOS();
-
-  // form info
+  const client = useConvex();
+  const save = useMutation(api.projects.form.save);
+  const prepare = useMutation(api.projects.form.prepareCover);
+  const finalize = useAction(api.assets.upload.finalize);
+  const policy = useQuery(api.assets.index.policy);
+  const [transfers] = useState(() => new AssetTransfers());
+  useEffect(() => () => transfers.dispose(), [transfers]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [coverPending, setCoverPending] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<FunctionReturnType<typeof api.assets.index.get> | null>(null);
+  const [error, setError] = useState("");
   const {
     handleSubmit,
     watch,
     control,
     setValue,
-    setError,
     reset,
-    formState: { errors },
     getValues,
-  } = useForm<IProject>({
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<
+    FunctionReturnType<typeof api.projects.form.get>["input"] &
+      Pick<FunctionArgs<typeof api.projects.form.save>, "expectedRevision" | "expectedTimezone" | "cover">
+  >({
     defaultValues: {
-      ...project,
-      workspace: (project.workspace as IWorkspace).id,
+      ...project.input,
+      expectedRevision: project.revision,
+      expectedTimezone: project.input.timezone,
     },
   });
-  // derived values
-  const currentNetwork = NETWORK_CHOICES.find((n) => n.key === project?.network);
-  const coverImage = watch("cover_image_url");
-
-  useEffect(() => {
-    if (project && projectId !== getValues("id")) {
-      reset({
-        ...project,
-        workspace: (project.workspace as IWorkspace).id,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, projectId]);
-
-  // handlers
-  const handleIdentifierChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, "");
-    const formattedValue = alphanumericValue.toUpperCase();
-    setValue("identifier", formattedValue);
-  };
-
-  const handleUpdateChange = async (payload: Partial<IProject>) => {
-    if (!workspaceSlug || !project) return;
-    return updateProject(workspaceSlug.toString(), project.id, payload)
-      .then(() =>
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("toast.success"),
-          message: t("project_settings.general.toast.success"),
-        })
-      )
-      .catch((err) => {
-        try {
-          // Handle the new error format where codes are nested in arrays under field names
-          const errorData = err ?? {};
-
-          const nameError = errorData.name?.includes("PROJECT_NAME_ALREADY_EXIST");
-          const identifierError = errorData?.identifier?.includes("PROJECT_IDENTIFIER_ALREADY_EXIST");
-          const nameSpecialCharError = errorData?.name?.includes("PROJECT_NAME_CANNOT_CONTAIN_SPECIAL_CHARACTERS");
-
-          if (nameError || identifierError || nameSpecialCharError) {
-            if (nameError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_name_already_taken"),
-              });
-            }
-
-            if (identifierError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_identifier_already_taken"),
-              });
-            }
-
-            if (nameSpecialCharError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_name_cannot_contain_special_characters"),
-              });
-            }
-          } else {
-            setToast({
-              type: TOAST_TYPE.ERROR,
-              title: t("toast.error"),
-              message: t("something_went_wrong"),
-            });
-          }
-        } catch (error) {
-          // Fallback error handling if the error processing fails
-          console.error("Error processing API error:", error);
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: t("toast.error"),
-            message: t("something_went_wrong"),
-          });
-        }
-      });
-  };
-
-  const onSubmit = async (formData: IProject) => {
-    if (!workspaceSlug) return;
-    setIsLoading(true);
-    const payload: Partial<IProject> = {
-      name: formData.name,
-      network: formData.network,
-      identifier: formData.identifier,
-      description: formData.description,
-
-      logo_props: formData.logo_props,
-      timezone: formData.timezone,
-    };
-
-    // Handle cover image changes
+  const pending = isSubmitting || coverPending;
+  const release = useReloadConfirmations(isDirty || pending, "This project has unsaved changes.", undefined, pending);
+  const selectedCover = watch("cover");
+  const cover = selectedCover ? coverPreview : project.appearance.cover;
+  const logo = watch("logoProps");
+  const currentNetwork = NETWORK_CHOICES.find((entry) => entry.key === watch("network"));
+  const disabled = pending || !project.canManage;
+  const changeCover = async (selection: File | string) => {
+    if (!policy) throw new Error("Cover upload policy is unavailable. Your selection is retained.");
+    setCoverPending(true);
     try {
-      const coverImagePayload = await handleCoverImageChange(project.cover_image_url, formData.cover_image_url, {
-        workspaceSlug: workspaceSlug.toString(),
-        entityIdentifier: project.id,
-        entityType: EFileAssetType.PROJECT_COVER,
-        isUserAsset: false,
-      });
-
-      if (coverImagePayload) {
-        Object.assign(payload, coverImagePayload);
-      }
-    } catch (error) {
-      console.error("Error handling cover image:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("toast.error"),
-        message: error instanceof Error ? error.message : "Failed to process cover image",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    if (project.identifier !== formData.identifier) {
-      const availability = await projectService.checkProjectIdentifierAvailability(
-        workspaceSlug,
-        payload.identifier ?? ""
+      const file =
+        typeof selection === "string"
+          ? await transfers.run(async (signal) => {
+              const response = await fetch(selection, { signal });
+              if (!response.ok) throw new Error("The selected cover could not be loaded. Retry its upload.");
+              const blob = await response.blob();
+              return new File([blob], "project-cover.jpg", { type: blob.type });
+            })
+          : selection;
+      const assetId = await transfers.run((signal) =>
+        uploadFileAsset(
+          file,
+          policy,
+          (metadata) =>
+            prepare({
+              projectId: project.input.projectId,
+              expectedRevision: getValues("expectedRevision"),
+              expectedCoverRevision: project.appearance.revision,
+              ...metadata,
+            }),
+          finalize,
+          signal
+        )
       );
-      if (availability.exists) setError("identifier", { message: t("common.identifier_already_exists") });
-      else await handleUpdateChange(payload);
-    } else await handleUpdateChange(payload);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
+      const image = await client.query(api.assets.index.get, { assetId });
+      setCoverPreview(image);
+      setValue("cover", { assetId, expectedRevision: project.appearance.revision }, { shouldDirty: true });
+    } finally {
+      setCoverPending(false);
+    }
   };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="relative h-44 w-full">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <CoverImage src={coverImage} alt="Project cover image" className="h-44 w-full rounded-md" />
-        <div className="absolute bottom-4 z-5 flex w-full items-end justify-between gap-3 px-4">
-          <div className="flex flex-grow gap-3 truncate">
+    <>
+      <form
+        onSubmit={handleSubmit(async (fields) => {
+          setError("");
+          try {
+            const receipt = await save(fields);
+            const { cover: _cover, ...metadata } = fields;
+            reset({ ...metadata, expectedRevision: receipt.revision, expectedTimezone: fields.timezone });
+            setCoverPreview(null);
+            release();
+            setToast({
+              type: TOAST_TYPE.SUCCESS,
+              title: t("toast.success"),
+              message: t("project_settings.general.toast.success"),
+            });
+          } catch (failure) {
+            setError(mutationMessage(failure));
+          }
+        })}
+        aria-busy={pending}
+      >
+        <div className="relative h-44 w-full">
+          {cover ? (
+            <AuthenticatedAssetImage
+              asset={cover}
+              alt="Project cover image"
+              className="h-44 w-full rounded-md object-cover"
+            />
+          ) : (
+            <CoverImage
+              src={selectedCover ? null : project.appearance.externalCoverUrl}
+              alt="Project cover image"
+              className="h-44 w-full rounded-md"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-4 z-5 flex w-full items-end justify-between gap-3 px-4">
+            <div className="flex flex-grow gap-3 truncate">
+              <EmojiPicker
+                iconType="material"
+                closeOnSelect={false}
+                isOpen={isOpen}
+                handleToggle={setIsOpen}
+                className="flex items-center justify-center"
+                buttonClassName="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10"
+                label={<Logo logo={logo.in_use === null ? undefined : logo} size={28} />}
+                disabled={disabled}
+                onChange={(choice) => {
+                  setValue(
+                    "logoProps",
+                    choice.type === "emoji"
+                      ? { in_use: choice.type, emoji: { value: choice.value } }
+                      : { in_use: choice.type, icon: choice.value },
+                    { shouldDirty: true }
+                  );
+                  setIsOpen(false);
+                }}
+                defaultIconColor={logo.in_use === "icon" ? logo.icon?.color : undefined}
+                defaultOpen={logo.in_use === "emoji" ? EmojiIconPickerTypes.EMOJI : EmojiIconPickerTypes.ICON}
+              />
+              <div className="flex flex-col gap-1 truncate text-on-color">
+                <span className="truncate text-16 font-semibold">{watch("name")}</span>
+                <span className="flex items-center gap-2 text-13">
+                  <span>{watch("identifier")} .</span>
+                  <span className="flex items-center gap-1.5">
+                    {watch("network") === 0 && <LockIcon className="h-2.5 w-2.5 text-on-color" />}
+                    {currentNetwork && t(currentNetwork.i18n_label)}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-shrink-0 justify-center">
+              <ImagePickerPopoverView
+                label={t("change_cover")}
+                value={null}
+                currentImage={
+                  cover && (
+                    <AuthenticatedAssetImage
+                      asset={cover}
+                      alt="Current project cover"
+                      className="h-full w-full object-cover"
+                    />
+                  )
+                }
+                disabled={disabled || !policy}
+                onSelect={changeCover}
+                onUpload={changeCover}
+              />
+            </div>
+          </div>
+        </div>
+        <fieldset disabled={disabled} className="mt-8 flex flex-col gap-8">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="name" className="text-13">
+              {t("common.project_name")}
+            </label>
             <Controller
               control={control}
-              name="logo_props"
-              render={({ field: { value, onChange } }) => (
-                <EmojiPicker
-                  iconType="material"
-                  closeOnSelect={false}
-                  isOpen={isOpen}
-                  handleToggle={(val: boolean) => setIsOpen(val)}
-                  className="flex items-center justify-center"
-                  buttonClassName="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10"
-                  label={<Logo logo={value} size={28} />}
-                  // TODO: fix types
-                  onChange={(val: any) => {
-                    let logoValue = {};
-
-                    if (val?.type === "emoji")
-                      logoValue = {
-                        value: val.value,
-                      };
-                    else if (val?.type === "icon") logoValue = val.value;
-
-                    onChange({
-                      in_use: val?.type,
-                      [val?.type]: logoValue,
-                    });
-                    setIsOpen(false);
-                  }}
-                  defaultIconColor={value?.in_use && value.in_use === "icon" ? value?.icon?.color : undefined}
-                  defaultOpen={
-                    value.in_use && value.in_use === "emoji" ? EmojiIconPickerTypes.EMOJI : EmojiIconPickerTypes.ICON
-                  }
-                  disabled={!isAdmin}
+              name="name"
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="name"
+                  type="text"
+                  required
+                  maxLength={255}
+                  className="rounded-md !p-3 font-medium"
+                  placeholder={t("common.project_name")}
                 />
               )}
             />
-            <div className="flex flex-col gap-1 truncate text-on-color">
-              <span className="truncate text-16 font-semibold">{watch("name")}</span>
-              <span className="flex items-center gap-2 text-13">
-                <span>{watch("identifier")} .</span>
-                <span className="flex items-center gap-1.5">
-                  {project.network === 0 && <LockIcon className="h-2.5 w-2.5 text-on-color" />}
-                  {currentNetwork && t(currentNetwork?.i18n_label)}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-shrink-0 justify-center">
-            <div>
-              <Controller
-                control={control}
-                name="cover_image_url"
-                render={({ field: { value, onChange } }) => (
-                  <ImagePickerPopover
-                    label={t("change_cover")}
-                    onChange={onChange}
-                    value={value ?? null}
-                    disabled={!isAdmin}
-                    projectId={project.id}
-                  />
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 flex flex-col gap-8">
-        <div className="flex flex-col gap-1">
-          <h4 className="text-13">{t("common.project_name")}</h4>
-          <Controller
-            control={control}
-            name="name"
-            rules={{
-              required: t("name_is_required"),
-              maxLength: {
-                value: 255,
-                message: "Project name should be less than 255 characters",
-              },
-            }}
-            render={({ field: { value, onChange, ref } }) => (
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                ref={ref}
-                value={value}
-                onChange={onChange}
-                hasError={Boolean(errors.name)}
-                className="rounded-md !p-3 font-medium"
-                placeholder={t("common.project_name")}
-                disabled={!isAdmin}
-              />
-            )}
-          />
-          <span className="text-11 text-danger-primary">{errors?.name?.message}</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h4 className="text-13">{t("description")}</h4>
-          <Controller
-            name="description"
-            control={control}
-            render={({ field: { value, onChange } }) => (
-              <TextArea
-                id="description"
-                name="description"
-                value={value}
-                placeholder={t("project_description_placeholder")}
-                onChange={onChange}
-                className="min-h-[102px] text-13 font-medium"
-                hasError={Boolean(errors?.description)}
-                disabled={!isAdmin}
-              />
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="flex flex-col gap-1">
-            <h4 className="text-13">Project ID</h4>
-            <div className="relative">
-              <Controller
-                control={control}
-                name="identifier"
-                rules={{
-                  required: t("project_id_is_required"),
-                  validate: (value) => /^[ÇŞĞIİÖÜA-Z0-9]+$/.test(value.toUpperCase()) || t("project_id_allowed_char"),
-                  minLength: {
-                    value: 1,
-                    message: t("project_id_min_char"),
-                  },
-                  maxLength: {
-                    value: 10,
-                    message: t("project_id_max_char"),
-                  },
-                }}
-                render={({ field: { value, ref } }) => (
-                  <Input
-                    id="identifier"
-                    name="identifier"
-                    type="text"
-                    value={value}
-                    onChange={handleIdentifierChange}
-                    ref={ref}
-                    hasError={Boolean(errors.identifier)}
-                    placeholder={t("project_settings.general.enter_project_id")}
-                    className="w-full font-medium"
-                    disabled={!isAdmin}
-                  />
-                )}
-              />
-              <Tooltip
-                isMobile={isMobile}
-                tooltipContent={t("project_id_tooltip_content")}
-                className="text-13"
-                position="right-start"
-              >
-                <Info className="absolute top-2.5 right-2 h-4 w-4 text-placeholder" />
-              </Tooltip>
-            </div>
-            <span className="text-11 text-danger-primary">
-              <>{errors?.identifier?.message}</>
-            </span>
           </div>
           <div className="flex flex-col gap-1">
-            <h4 className="text-13">{t("workspace_projects.network.label")}</h4>
+            <label htmlFor="description" className="text-13">
+              {t("description")}
+            </label>
             <Controller
-              name="network"
+              name="description"
               control={control}
-              render={({ field: { value, onChange } }) => {
-                const selectedNetwork = NETWORK_CHOICES.find((n) => n.key === value);
-                return (
+              render={({ field }) => (
+                <TextArea
+                  {...field}
+                  id="description"
+                  maxLength={20000}
+                  placeholder={t("project_description_placeholder")}
+                  className="min-h-[102px] text-13 font-medium"
+                />
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="identifier" className="text-13">
+                Project ID
+              </label>
+              <div className="relative">
+                <Controller
+                  control={control}
+                  name="identifier"
+                  rules={{ required: t("project_id_is_required"), maxLength: 12 }}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="identifier"
+                      type="text"
+                      maxLength={12}
+                      onChange={(event) => field.onChange(projectIdentifierSanitizer(event.target.value).toUpperCase())}
+                      hasError={Boolean(errors.identifier)}
+                      placeholder={t("project_settings.general.enter_project_id")}
+                      className="w-full font-medium"
+                    />
+                  )}
+                />
+                <Tooltip
+                  isMobile={isMobile}
+                  tooltipContent={t("project_id_tooltip_content")}
+                  className="text-13"
+                  position="right-start"
+                >
+                  <Info className="absolute top-2.5 right-2 h-4 w-4 text-placeholder" />
+                </Tooltip>
+              </div>
+              <span className="text-11 text-danger-primary">{errors.identifier?.message}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-13">{t("workspace_projects.network.label")}</label>
+              <Controller
+                name="network"
+                control={control}
+                render={({ field }) => (
                   <CustomSelect
-                    value={value}
-                    onChange={onChange}
+                    value={field.value}
+                    onChange={field.onChange}
                     label={
                       <div className="flex items-center gap-1">
-                        {selectedNetwork ? (
+                        {currentNetwork && (
                           <>
-                            <ProjectNetworkIcon iconKey={selectedNetwork.iconKey} className="h-3.5 w-3.5" />
-                            {t(selectedNetwork.i18n_label)}
+                            <ProjectNetworkIcon iconKey={currentNetwork.iconKey} className="h-3.5 w-3.5" />
+                            {t(currentNetwork.i18n_label)}
                           </>
-                        ) : (
-                          <span className="text-placeholder">{t("select_network")}</span>
                         )}
                       </div>
                     }
                     buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
                     input
-                    disabled={!isAdmin}
-                    // optionsClassName="w-full"
+                    disabled={disabled}
                   >
                     {NETWORK_CHOICES.map((network) => (
                       <CustomSelect.Option key={network.key} value={network.key}>
@@ -408,42 +311,48 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                       </CustomSelect.Option>
                     ))}
                   </CustomSelect>
-                );
-              }}
-            />
-          </div>
-          <div className="col-span-1 flex flex-col gap-1 sm:col-span-2 xl:col-span-1">
-            <h4 className="text-13">{t("common.project_timezone")}</h4>
-            <Controller
-              name="timezone"
-              control={control}
-              rules={{ required: t("project_settings.general.please_select_a_timezone") }}
-              render={({ field: { value, onChange } }) => (
-                <>
+                )}
+              />
+            </div>
+            <div className="col-span-1 flex flex-col gap-1 sm:col-span-2 xl:col-span-1">
+              <label className="text-13">{t("common.project_timezone")}</label>
+              <Controller
+                name="timezone"
+                control={control}
+                rules={{ required: t("project_settings.general.please_select_a_timezone") }}
+                render={({ field }) => (
                   <TimezoneSelect
-                    value={value}
-                    onChange={onChange}
+                    value={field.value}
+                    onChange={field.onChange}
                     error={Boolean(errors.timezone)}
                     buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
-                    disabled={!isAdmin}
+                    disabled={disabled}
                   />
-                </>
-              )}
-            />
-            {errors.timezone && <span className="text-11 text-danger-primary">{errors.timezone.message}</span>}
+                )}
+              />
+              {errors.timezone && <span className="text-11 text-danger-primary">{errors.timezone.message}</span>}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center justify-between py-2">
-          <>
-            <Button variant="primary" size="lg" type="submit" loading={isLoading} disabled={!isAdmin}>
-              {isLoading ? t("updating") : t("common.update_project")}
+          {error && (
+            <p role="alert" className="text-13 text-danger-primary">
+              {error}
+            </p>
+          )}
+          <div className="flex items-center justify-between py-2">
+            <Button variant="primary" size="lg" type="submit" loading={isSubmitting} disabled={disabled}>
+              {isSubmitting ? t("updating") : t("common.update_project")}
             </Button>
             <span className="text-13 text-placeholder italic">
-              {t("common.created_on")} {renderFormattedDate(project?.created_at)}
+              {t("common.created_on")} {renderFormattedDate(new Date(project.createdAt).toISOString())}
             </span>
-          </>
-        </div>
-      </div>
-    </form>
+          </div>
+        </fieldset>
+      </form>
+      <GeneralProjectSettingsControlSection
+        project={project}
+        workspaceSlug={workspaceSlug}
+        disabled={isDirty || pending}
+      />
+    </>
   );
 }
