@@ -64,7 +64,10 @@ export function ExportForm({
               render={({ field }) => (
                 <Combobox.Root<Id<"projects">, Id<"projects">, true>
                   value={field.value}
-                  onValueChange={(ids) => setValue("projectIds", ids)}
+                  onValueChange={(ids) => {
+                    field.onChange(ids);
+                    setValue("requestId", crypto.randomUUID());
+                  }}
                   multiple
                   disabled={pending || !settings.canExport}
                   filter={null}
@@ -92,6 +95,13 @@ export function ExportForm({
                             className="w-full bg-transparent py-1 text-11 outline-none"
                           />
                         </div>
+                        <Combobox.Clear
+                          type="button"
+                          tabIndex={0}
+                          className="mt-2 w-full rounded px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40"
+                        >
+                          All projects
+                        </Combobox.Clear>
                         <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                           {filteredProjects.map((project) => (
                             <Combobox.Item
@@ -131,7 +141,10 @@ export function ExportForm({
                 <CustomSelect
                   ariaLabel="Export format"
                   value={field.value}
-                  onChange={field.onChange}
+                  onChange={(format) => {
+                    if (format !== field.value) setValue("requestId", crypto.randomUUID());
+                    field.onChange(format);
+                  }}
                   disabled={pending || !settings.canExport}
                   label={settings.formats.find(({ value }) => value === field.value)?.label}
                   optionsClassName="max-w-48 sm:max-w-[532px]"

@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router";
 import { useTranslation } from "@plane/i18n";
+import { WORKSPACE_SETTINGS } from "@plane/constants";
 import { PageHead } from "@/components/core/page-title";
 import { ExportGuide } from "@/components/exporter/guide";
 import { SettingsHeading } from "@/components/settings/heading";
@@ -13,7 +14,7 @@ export default function ExportsPage() {
   return (
     <PreservedWorkspaceSettingsShell
       {...session}
-      activePath={`/${session.workspace.slug}/settings/exports/`}
+      activePath={WORKSPACE_SETTINGS.export.i18n_label}
       header={<ExportsWorkspaceSettingsHeader />}
       hugging
     >
