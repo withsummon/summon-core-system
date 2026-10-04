@@ -84,6 +84,13 @@ export function ExportForm({
                     {field.value.length ? `${field.value.length} project(s)` : "All projects"}
                     <ChevronDownIcon className="size-3" />
                   </Combobox.Trigger>
+                  <Combobox.Clear
+                    type="button"
+                    tabIndex={0}
+                    className="mt-2 w-full rounded px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40"
+                  >
+                    All projects
+                  </Combobox.Clear>
                   <Combobox.Portal>
                     <Combobox.Positioner side="bottom" align="end" sideOffset={4} className="z-[120]">
                       <Combobox.Popup className="max-w-48 min-w-48 rounded-md border border-subtle-1 bg-surface-1 p-2 text-11 shadow-raised-200 outline-none sm:max-w-[532px]">
@@ -95,13 +102,6 @@ export function ExportForm({
                             className="w-full bg-transparent py-1 text-11 outline-none"
                           />
                         </div>
-                        <Combobox.Clear
-                          type="button"
-                          tabIndex={0}
-                          className="mt-2 w-full rounded px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40"
-                        >
-                          All projects
-                        </Combobox.Clear>
                         <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                           {filteredProjects.map((project) => (
                             <Combobox.Item
