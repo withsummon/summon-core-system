@@ -83,7 +83,13 @@ async function verifyKey(ctx: MutationCtx, key: string) {
         .parse(verified.error);
       headers["Retry-After"] = String(Math.ceil(retry.details.tryAgainIn / 1000));
     }
-    return { status: limited ? (429 as const) : (403 as const), detail: denial.message, headers };
+    return {
+      status: limited ? (429 as const) : (403 as const),
+      detail: denial.message,
+      headers,
+      userId: null,
+      keyId: null,
+    };
   }
   const token = verified.key;
   const authUser = await authComponent.getAnyUserById(ctx, token.referenceId);
@@ -99,7 +105,7 @@ async function verifyKey(ctx: MutationCtx, key: string) {
     user.emailVerificationTime === undefined ||
     (await accountRestricted(ctx, user._id))
   )
-    return { status: 403 as const, detail: invalid.message, headers };
+    return { status: 403 as const, detail: invalid.message, headers, userId: null, keyId: token.id };
   if (
     token.rateLimitEnabled &&
     token.rateLimitMax !== null &&
@@ -109,7 +115,7 @@ async function verifyKey(ctx: MutationCtx, key: string) {
     headers["X-RateLimit-Remaining"] = String(Math.max(0, token.rateLimitMax - token.requestCount));
     headers["X-RateLimit-Reset"] = String(Math.floor((Number(token.lastRequest) + token.rateLimitTimeWindow) / 1000));
   }
-  return { status: 200 as const, userId: user._id, headers };
+  return { status: 200 as const, userId: user._id, keyId: token.id, headers };
 }
 export const verify = internalMutation({
   args: { key: v.string() },
@@ -124,6 +130,13 @@ export const externalApiHeaders = {
 };
 export async function verifyRequest(ctx: ActionCtx, request: Request): Promise<Awaited<ReturnType<typeof verifyKey>>> {
   const key = request.headers.get("X-Api-Key");
-  if (!key) return { status: 403, detail: "Authentication credentials were not provided.", headers: {} };
+  if (!key)
+    return {
+      status: 403,
+      detail: "Authentication credentials were not provided.",
+      headers: {},
+      userId: null,
+      keyId: null,
+    };
   return ctx.runMutation(internal.identity.apiTokens.verify, { key });
 }

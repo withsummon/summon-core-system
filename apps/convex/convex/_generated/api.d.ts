@@ -86,6 +86,7 @@ import type * as favorites_write from "../favorites/write.js";
 import type * as http from "../http.js";
 import type * as identity_access from "../identity/access.js";
 import type * as identity_accounts_unlink from "../identity/accounts/unlink.js";
+import type * as identity_apiAudit from "../identity/apiAudit.js";
 import type * as identity_apiTokens from "../identity/apiTokens.js";
 import type * as identity_avatar from "../identity/avatar.js";
 import type * as identity_avatar_access from "../identity/avatar_access.js";
@@ -349,6 +350,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "identity/access": typeof identity_access;
   "identity/accounts/unlink": typeof identity_accounts_unlink;
+  "identity/apiAudit": typeof identity_apiAudit;
   "identity/apiTokens": typeof identity_apiTokens;
   "identity/avatar": typeof identity_avatar;
   "identity/avatar_access": typeof identity_avatar_access;

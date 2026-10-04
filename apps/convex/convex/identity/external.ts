@@ -5,7 +5,8 @@ import { externalApiHeaders, verifyRequest } from "./apiTokens";
 import { requireAccountUser } from "./session";
 import { profileIdentity } from "./profile_owner";
 import { personalImageDescriptor, userAppearance } from "./avatar_owner";
-import { userApiId } from "./schema";
+import type { Id } from "../_generated/dataModel";
+import { apiRequestMetadata, userApiId } from "./schema";
 
 // This is the inherited UserLite public representation, not a session profile.
 export const user = internalQuery({
@@ -41,16 +42,44 @@ export const user = internalQuery({
 });
 export const options = httpAction(async () => new Response(null, { status: 204, headers: externalApiHeaders }));
 export const currentUser = httpAction(async (ctx, request) => {
-  const credential = await verifyRequest(ctx, request);
-  if (credential.status !== 200)
-    return Response.json(
-      { detail: credential.detail },
-      { status: credential.status, headers: { ...externalApiHeaders, ...credential.headers } }
-    );
-  const headers = { ...externalApiHeaders, ...credential.headers };
-  const result = await ctx.runQuery(internal.identity.external.user, {
-    userId: credential.userId,
-    assetOrigin: new URL(request.url).origin,
-  });
-  return Response.json(result.body, { status: result.status, headers });
+  const startedAt = Date.now();
+  let status = 500;
+  let userId: Id<"users"> | null = null;
+  let keyId: string | null = null;
+  try {
+    const credential = await verifyRequest(ctx, request);
+    userId = credential.userId;
+    keyId = credential.keyId;
+    if (credential.status !== 200) {
+      status = credential.status;
+      return Response.json(
+        { detail: credential.detail },
+        { status, headers: { ...externalApiHeaders, ...credential.headers } }
+      );
+    }
+    const headers = { ...externalApiHeaders, ...credential.headers };
+    const result = await ctx.runQuery(internal.identity.external.user, {
+      userId: credential.userId,
+      assetOrigin: new URL(request.url).origin,
+    });
+    status = result.status;
+    return Response.json(result.body, { status, headers });
+  } finally {
+    const metadata = {
+      pathname: new URL(request.url).pathname,
+      method: request.method,
+      status,
+      durationMs: Date.now() - startedAt,
+      userId,
+      keyId,
+    };
+    // Never persist request/query/header/body or response contents. Audit
+    // persistence is recoverable and must not replace the resource response.
+    console.info("External API request", metadata);
+    try {
+      await ctx.runMutation(internal.identity.apiAudit.record, apiRequestMetadata.parse(metadata));
+    } catch {
+      console.error("External API request audit could not be persisted", metadata);
+    }
+  }
 });
