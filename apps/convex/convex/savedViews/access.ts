@@ -4,6 +4,9 @@ import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject, requireWorkspace } from "../identity/access";
 import { renderedProjectLogo } from "../projects/branding_schema";
+import { profileIdentity } from "../identity/profile_owner";
+import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
+import { accountRestricted } from "../identity/deactivation/access";
 
 export function capabilities(view: Doc<"savedViews">, access: Awaited<ReturnType<typeof requireProject>>) {
   return viewCapabilities(
@@ -54,9 +57,30 @@ export async function projectView(
   access: Awaited<ReturnType<typeof requireProject>>
 ) {
   const favorite = await viewFavorite(ctx, view.workspaceId, access.user._id, view._id);
+  const membership = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", view.workspaceId).eq("userId", view.ownerId))
+    .unique();
+  const identity =
+    membership?.active && !(await accountRestricted(ctx, view.ownerId))
+      ? await profileIdentity(ctx, view.ownerId)
+      : null;
   return {
     view: { ...view, projectId: access.project._id },
     logo: renderedProjectLogo(view.logoProps),
+    owner: identity
+      ? {
+          userId: identity.userId,
+          displayName: identity.displayName,
+          fullName: identity.fullName,
+          avatar: await personalImageDescriptor(
+            ctx,
+            await userAppearance(ctx, view.ownerId),
+            "avatar",
+            view.workspaceId
+          ),
+        }
+      : null,
     isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
     ...capabilities(view, access),
   };

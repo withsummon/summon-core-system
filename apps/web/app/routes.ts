@@ -97,6 +97,12 @@ const routes: RouteConfigEntry[] = [
       ]),
       ...(nativeStickiesRoute ? [route(":workspaceSlug/stickies", "./native-stickies.tsx")] : []),
       route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/views",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx"
+        ),
+      ]),
       route(":workspaceSlug/workspace-views/all-issues", "./native-workspace-views.tsx", {
         id: "native-workspace-views-all-issues",
       }),

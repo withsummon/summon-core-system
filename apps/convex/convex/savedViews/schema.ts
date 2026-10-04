@@ -3,6 +3,14 @@ import { v } from "convex/values";
 import { status, priority } from "../tasks/schema";
 import { projectLogoProps } from "../projects/branding_schema";
 export const viewAccess = v.union(v.literal("private"), v.literal("public"));
+export const viewListFields = {
+  search: v.optional(v.string()),
+  orderBy: v.optional(v.union(v.literal("name"), v.literal("created_at"), v.literal("updated_at"))),
+  order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  ownerIds: v.optional(v.array(v.id("users"))),
+  favorites: v.optional(v.boolean()),
+  createdAt: v.optional(v.array(v.object({ before: v.boolean(), timestamp: v.number() }))),
+};
 const dateRange = v.union(
   v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
   v.null()
@@ -40,6 +48,8 @@ export const savedViewTables = {
     deletedAt: v.union(v.number(), v.null()),
   })
     .index("by_project_deleted", ["projectId", "deletedAt"])
+    .index("by_project_updated", ["projectId", "updatedAt"])
+    .index("by_project_created", ["projectId"])
     .index("by_workspace_project_deleted", ["workspaceId", "projectId", "deletedAt"]),
   savedViewFavorites: defineTable({
     workspaceId: v.id("workspaces"),
