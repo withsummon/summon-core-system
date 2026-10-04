@@ -5,7 +5,7 @@ import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { GlobeIcon, LockIcon } from "@plane/propel/icons";
-import { TaskRichEditor } from "./rich-editor";
+import { TaskImageEditor } from "./image-editor";
 export function FocusedComment({
   taskId,
   commentId,
@@ -49,7 +49,8 @@ function CommentPreview({ taskId, commentId }: { taskId: Id<"tasks">; commentId:
           {comment.audience === "INTERNAL" ? "Private" : "Public"}
         </span>
       </p>
-      <TaskRichEditor
+      <TaskImageEditor
+        target={{ comment: { taskId, commentId: comment._id, anchor: null } }}
         key={comment.updatedAt}
         id={`focused-comment-${comment._id}`}
         label="Notification comment content"

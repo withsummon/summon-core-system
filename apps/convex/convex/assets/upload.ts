@@ -4,6 +4,7 @@ import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { isAudioAsset, validateContent } from "./content";
+import { commentImageTarget } from "./schema";
 
 export const finalize = action({
   args: { assetId: v.id("assets"), storageId: v.string() },
@@ -72,15 +73,23 @@ export const duplicate = action({
   },
 });
 
-/** Editor node duplication stays within its task or private draft and owns independent bytes. */
+/** Editor node duplication stays within its description/comment owner and owns independent bytes. */
 export const duplicateDescriptionImage = action({
   args: {
-    target: v.union(v.object({ taskId: v.id("tasks") }), v.object({ draftId: v.id("taskDrafts") })),
+    target: v.union(
+      v.object({ taskId: v.id("tasks") }),
+      v.object({ draftId: v.id("taskDrafts") }),
+      v.object({ comment: commentImageTarget })
+    ),
     assetId: v.string(),
   },
   handler: async (ctx, { target, assetId }): Promise<Id<"assets">> => {
-    const source = await ctx.runQuery(internal.assets.index.download, { assetId });
-    const bound = "taskId" in target ? source.taskId === target.taskId : source.draftId === target.draftId;
+    const source = await ctx.runQuery(internal.assets.index.download, {
+      assetId,
+      ...("comment" in target ? { commentTarget: target.comment } : {}),
+    });
+    const bound =
+      "comment" in target || ("taskId" in target ? source.taskId === target.taskId : source.draftId === target.draftId);
     if (!bound || !source.contentType.startsWith("image/"))
       throw new ConvexError("Image belongs to another work item or is not an image.");
     const blob = source.storageId ? await ctx.storage.get(source.storageId) : null;
@@ -92,9 +101,16 @@ export const duplicateDescriptionImage = action({
       sha256: source.sha256,
     };
     const ticket =
-      "taskId" in target
-        ? await ctx.runMutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
-        : await ctx.runMutation(api.assets.draftAttachments.prepare, { ...target, ...metadata });
+      "comment" in target
+        ? await ctx.runMutation(
+            target.comment.anchor === null
+              ? api.assets.index.prepareCommentImage
+              : api.assets.index.preparePublicCommentImage,
+            { target: target.comment, ...metadata }
+          )
+        : "taskId" in target
+          ? await ctx.runMutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
+          : await ctx.runMutation(api.assets.draftAttachments.prepare, { ...target, ...metadata });
     const storageId = await ctx.storage.store(blob);
     return ctx.runAction(api.assets.upload.finalize, { assetId: ticket.assetId, storageId });
   },

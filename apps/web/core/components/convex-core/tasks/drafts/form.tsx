@@ -12,7 +12,7 @@ import { SummonField } from "@/components/summon/forms";
 import { mutationMessage, selectClass } from "../../commercial/forms";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { TaskProperties } from "../task-properties";
-import { TaskDescriptionEditor } from "../description-editor";
+import { TaskImageEditor } from "../image-editor";
 import { DraftRelationships } from "./relationships";
 import { changeDraftProject, hasScopedDraftSelections } from "./project-change";
 type Detail = FunctionReturnType<typeof api.tasks.drafts.index.resolve>;
@@ -185,7 +185,7 @@ export function DraftForm({
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           />
         </SummonField>
-        <TaskDescriptionEditor
+        <TaskImageEditor
           target={{ draftId: snapshot._id }}
           onUploadingChange={setUploading}
           id={`draft-${snapshot._id}`}

@@ -8,7 +8,7 @@ import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../../commercial/forms";
-import { TaskDescriptionEditor } from "../description-editor";
+import { TaskImageEditor } from "../image-editor";
 import { DraftAttachments } from "./draft-attachments";
 import { DraftForm } from "./form";
 type Workspace = FunctionReturnType<typeof api.workspaces.index.list>[number];
@@ -173,7 +173,7 @@ function DraftDetail({
             {draft.deletedAt !== null ? (
               <p className="text-14 text-secondary">Restore this draft to preview its description and images.</p>
             ) : (
-              <TaskDescriptionEditor
+              <TaskImageEditor
                 target={draft.publishedTaskId ? { taskId: draft.publishedTaskId } : { draftId: draft._id }}
                 id={`draft-preview-${draft._id}`}
                 label="Draft description"

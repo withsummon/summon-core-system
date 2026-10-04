@@ -12,7 +12,7 @@ import { GlobeIcon, LockIcon } from "@plane/propel/icons";
 import { CustomMenu } from "@plane/ui";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
-import { TaskRichEditor } from "./rich-editor";
+import { TaskImageEditor } from "./image-editor";
 type Comment = FunctionReturnType<typeof api.tasks.comments.list>["page"][number];
 export function TaskComments({ taskId }: { taskId: Id<"tasks"> }) {
   const [params, setParams] = useSearchParams();
@@ -176,8 +176,9 @@ function CommentRow({ comment }: { comment: Comment }) {
           onDone={() => setEditing(false)}
         />
       ) : (
-        <TaskRichEditor
+        <TaskImageEditor
           key={comment.updatedAt}
+          target={{ comment: { taskId: comment.taskId, commentId: comment._id, anchor: null } }}
           id={`comment-${comment._id}`}
           label="Comment"
           placeholder=""
@@ -245,12 +246,14 @@ function CommentForm({
   const update = useMutation(api.tasks.comments.update);
   // Capture the revision with the draft. Reactive remote edits must not bless a stale draft.
   const [initial] = useState(comment);
+  const [requestId] = useState(() => crypto.randomUUID());
   const [html, setHtml] = useState(comment?.html ?? "<p></p>");
   const [mentionedUserIds, setMentionedUserIds] = useState(comment?.mentionedUserIds ?? []);
   const [audience, setAudience] = useState<FunctionArgs<typeof api.tasks.comments.create>["audience"]>(
     comment?.audience ?? "INTERNAL"
   );
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const changed = initial !== undefined && comment?.updatedAt !== initial.updatedAt;
   const initialMentions = initial?.mentionedUserIds ?? [];
@@ -259,13 +262,19 @@ function CommentForm({
     audience !== (initial?.audience ?? "INTERNAL") ||
     mentionedUserIds.length !== initialMentions.length ||
     mentionedUserIds.some((id) => !initialMentions.includes(id));
-  const release = useReloadConfirmations(dirty || pending, "This comment has unsaved changes.", onDone, pending);
+  const busy = pending || uploading;
+  const release = useReloadConfirmations(
+    dirty || busy,
+    "This comment has unsaved changes or an image upload.",
+    onDone,
+    busy
+  );
   return (
     <form
       className="space-y-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (pending || !canEdit) return;
+        if (busy || !canEdit) return;
         setPending(true);
         setError("");
         try {
@@ -277,7 +286,7 @@ function CommentForm({
               mentionedUserIds,
               audience,
             });
-          else await create({ taskId, html, mentionedUserIds, audience });
+          else await create({ taskId, requestId, html, mentionedUserIds, audience });
           release(onDone);
         } catch (failure) {
           setError(mutationMessage(failure));
@@ -292,7 +301,11 @@ function CommentForm({
           latest comment.
         </p>
       )}
-      <TaskRichEditor
+      <TaskImageEditor
+        target={{
+          comment: initial ? { taskId, commentId: initial._id, anchor: null } : { taskId, requestId, anchor: null },
+        }}
+        onUploadingChange={setUploading}
         id={`comment-draft-${initial?._id ?? taskId}`}
         label={initial ? "Edit comment" : "New comment"}
         placeholder="Write a comment…"
@@ -309,14 +322,14 @@ function CommentForm({
         taskId={taskId}
         selected={mentionedUserIds}
         onChange={setMentionedUserIds}
-        disabled={pending || !canEdit}
+        disabled={busy || !canEdit}
       />
       <div role="group" aria-label="Comment audience" className="flex gap-2">
         <Button
           variant="secondary"
           prependIcon={<LockIcon />}
           aria-pressed={audience === "INTERNAL"}
-          disabled={pending || !canEdit}
+          disabled={busy || !canEdit}
           onClick={() => setAudience("INTERNAL")}
         >
           Private
@@ -325,19 +338,19 @@ function CommentForm({
           variant="secondary"
           prependIcon={<GlobeIcon />}
           aria-pressed={audience === "EXTERNAL"}
-          disabled={pending || !canEdit}
+          disabled={busy || !canEdit}
           onClick={() => setAudience("EXTERNAL")}
         >
           Public
         </Button>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" loading={pending} disabled={!canEdit}>
+        <Button type="submit" loading={pending} disabled={uploading || !canEdit}>
           {initial ? "Save comment" : "Post comment"}
         </Button>
         <Button
           variant="secondary"
-          disabled={pending}
+          disabled={busy}
           onClick={() => {
             release();
             onDone();
@@ -349,6 +362,7 @@ function CommentForm({
       {error && (
         <p role="alert" className="text-14 text-danger-primary">
           {error}
+          {!initial && " Retry with the same comment. To post different content, cancel and start a new comment."}
         </p>
       )}
     </form>

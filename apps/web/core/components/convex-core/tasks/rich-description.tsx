@@ -8,7 +8,7 @@ import type { TNameDescriptionLoader } from "@plane/types";
 import { Button } from "@plane/propel/button";
 import { TextAutosave } from "@/components/editor/rich-text/description-input/autosave";
 import { DescriptionHistory } from "./description-history";
-import { TaskDescriptionEditor } from "./description-editor";
+import { TaskImageEditor } from "./image-editor";
 import { mutationMessage } from "../commercial/forms";
 
 export function RichDescription({
@@ -91,7 +91,7 @@ function DescriptionContent({
 
   return (
     <section className="space-y-3">
-      <TaskDescriptionEditor
+      <TaskImageEditor
         target={{ taskId: description.taskId }}
         id={`task-description-${description.taskId}`}
         label="Task description"

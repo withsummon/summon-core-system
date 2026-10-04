@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { intakeCapabilities, requireIntakeTask } from "../intakes/access";
+import { requireProject } from "../identity/access";
 import { projectReader } from "../savedViews/scope";
 import { requireTask, taskCanRead } from "./access";
 
@@ -42,4 +43,27 @@ export async function discussionCanRead(ctx: QueryCtx, task: Doc<"tasks">, userI
       intake.createdBy
     ).canRead
   );
+}
+
+export async function requireCommentAccess(ctx: QueryCtx, taskId: Id<"tasks">) {
+  const task = await requireDiscussion(ctx, taskId, "read");
+  const permission = await requireProject(ctx, task.projectId);
+  const canCreate =
+    (permission.member.role !== "guest" && permission.projectMember.role !== "guest") ||
+    task.createdBy === permission.user._id ||
+    !!permission.project.guestViewAllFeatures;
+  const active = discussionIsActive(task);
+  return { ...permission, task, canCreate: active && canCreate };
+}
+
+export async function requireEditableComment(ctx: QueryCtx, commentId: Id<"taskComments">, deleted = false) {
+  const comment = await ctx.db.get(commentId);
+  if (!comment) throw new ConvexError("Comment not found.");
+  const task = await requireDiscussion(ctx, comment.taskId);
+  const permission = await requireProject(ctx, task.projectId);
+  if (comment.authorId !== permission.user._id && permission.projectMember.role !== "admin")
+    throw new ConvexError("Only the author or a project administrator can change this comment.");
+  if ((comment.deletedAt != null) !== deleted)
+    throw new ConvexError(deleted ? "Comment is not deleted." : "This comment is deleted. Restore it before editing.");
+  return { comment, task, ...permission };
 }

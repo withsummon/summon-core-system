@@ -1,9 +1,10 @@
-import { ECustomImageAttributeNames } from "@plane/editor/image-contract";
+import { ECustomImageAttributeNames, ECustomImageStatus } from "@plane/editor/image-contract";
 import sanitizeHtml from "sanitize-html";
 import { ConvexError } from "convex/values";
 
 const safeColor = /^(?:#[a-f0-9]{3,8}|[a-z][a-z-]*|(?:rgb|hsl)a?\([0-9.,%\s]+\)|var\(--[a-z0-9-]+\))$/i;
 const blockTags = new Set(["p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "tr", "br"]);
+const imageHtmlLimit = 640 * 1024;
 export function plainDescriptionHtml(text: string) {
   const escaped = text
     .replaceAll("&", "&amp;")
@@ -19,13 +20,34 @@ export function taskRichContent(input: string) {
   return sanitizeRichContent(input, false);
 }
 
-/** Only the task-bound description owner may enable image nodes, then validate their asset bindings. */
-export function taskDescriptionImageContent(input: string) {
-  return sanitizeRichContent(input, true);
+/** Description and comment owners must bind these image IDs before persisting this content. */
+export function imageRichContent(input: string) {
+  const content = sanitizeRichContent(input, true);
+  return { ...content, sources: uploadedImageSources(content.html) };
+}
+
+/** Shared node parser also reads already-sanitized stored content without reapplying the raw input budget. */
+export function uploadedImageSources(html: string) {
+  const sources = new Set<string>();
+  sanitizeHtml(html, {
+    allowedTags: ["image-component"],
+    allowedAttributes: { "image-component": ["src", "status"] },
+    exclusiveFilter: (frame) => {
+      if (frame.tag === "image-component") {
+        if (!frame.attribs.src || frame.attribs.status !== ECustomImageStatus.UPLOADED)
+          throw new ConvexError("Finish uploading images before saving.");
+        sources.add(frame.attribs.src);
+      }
+      return false;
+    },
+  });
+  if (sources.size > 100) throw new ConvexError("Content can reference at most 100 distinct images.");
+  return sources;
 }
 
 function sanitizeRichContent(input: string, images: boolean) {
-  if (input.length > 100000) throw new ConvexError("Task description must be at most 100,000 characters.");
+  const inputLimit = images ? imageHtmlLimit : 100000;
+  if (input.length > inputLimit) throw new ConvexError(`Rich content must be at most ${inputLimit} HTML characters.`);
   const html = sanitizeHtml(input, {
     allowedTags: images ? [...sanitizeHtml.defaults.allowedTags, "image-component"] : sanitizeHtml.defaults.allowedTags,
     allowedAttributes: {
@@ -63,6 +85,8 @@ function sanitizeRichContent(input: string, images: boolean) {
       },
     },
   });
+  if (images && new TextEncoder().encode(html).byteLength > imageHtmlLimit)
+    throw new ConvexError(`Formatted content must be at most ${imageHtmlLimit} bytes.`);
   // The existing sanitizer/parser owns tag removal and entity decoding. Preserve
   // block boundaries for list/search consumers without regex-based HTML parsing.
   const chunks: string[] = [];
@@ -84,5 +108,7 @@ function sanitizeRichContent(input: string, images: boolean) {
       return false;
     },
   });
-  return { html, description: description.trim() };
+  description = description.trim();
+  if (images && description.length > 100000) throw new ConvexError("Text must be at most 100,000 characters.");
+  return { html, description };
 }
