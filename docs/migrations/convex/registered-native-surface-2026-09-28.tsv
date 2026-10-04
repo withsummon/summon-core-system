@@ -525,9 +525,9 @@ convex-rpc	projects/network:join	apps/convex/convex/projects/network.ts:122	Conv
 convex-rpc	projects/network:joinMany	apps/convex/convex/projects/network.ts:128	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/network:list	apps/convex/convex/projects/network.ts:75	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/network:save	apps/convex/convex/projects/network.ts:96	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/order:backfill	apps/convex/convex/projects/order.ts:67	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	projects/order:list	apps/convex/convex/projects/order.ts:12	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/order:move	apps/convex/convex/projects/order.ts:41	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/order:backfill	apps/convex/convex/projects/order.ts:66	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/order:list	apps/convex/convex/projects/order.ts:14	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/order:move	apps/convex/convex/projects/order.ts:40	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/settings:archived	apps/convex/convex/projects/settings.ts:48	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/settings:get	apps/convex/convex/projects/settings.ts:20	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/settings:memberDefaults	apps/convex/convex/projects/settings.ts:97	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
