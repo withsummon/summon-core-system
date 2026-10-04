@@ -16,9 +16,9 @@ import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { v, ConvexError } from "convex/values";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
-import { status, taskPosition, taskProperties, profileOrder, viewFilters } from "./schema";
+import { status, taskPosition, taskProperties, taskOrder, viewFilters } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
@@ -40,7 +40,7 @@ export const list = query({
     openOnly: v.optional(v.boolean()),
     filters: v.optional(viewFilters),
     search: v.optional(v.string()),
-    order: v.optional(profileOrder),
+    order: v.optional(taskOrder),
     stateId: v.optional(v.union(v.id("taskStates"), v.null())),
     paginationOpts: paginationOptsValidator,
   },
@@ -86,6 +86,32 @@ export const list = query({
         maximumRowsRead: MAX_PAGE_TASKS,
         maximumBytesRead: MAX_PAGE_BYTES,
       });
+  },
+});
+// Remove after all-lifecycle coverage and a second zero-change pass, then require
+// targetDateMissing in the stored task schema. Existing task revisions stay intact.
+export const initializeDueOrdering = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("tasks").paginate({
+      cursor: args.cursor,
+      numItems: 50,
+      maximumRowsRead: 50,
+      maximumBytesRead: MAX_PAGE_BYTES,
+    });
+    for (const task of page.page) {
+      const missing = task.targetDate === null;
+      if (task.targetDateMissing !== undefined && task.targetDateMissing !== missing)
+        throw new ConvexError("Stored task due-date ordering is inconsistent.");
+    }
+    const missing = page.page.filter((task) => task.targetDateMissing === undefined);
+    await Promise.all(missing.map((task) => ctx.db.patch(task._id, { targetDateMissing: task.targetDate === null })));
+    return {
+      processed: page.page.length,
+      changed: missing.length,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
   },
 });
 export const create = mutation({

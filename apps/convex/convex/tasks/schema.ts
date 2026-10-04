@@ -424,6 +424,7 @@ export const taskTables = {
     // Ascending value orders retain newest-task ties and place missing dates last.
     createdAtDescending: v.number(),
     startDateMissing: v.boolean(),
+    targetDateMissing: v.optional(v.boolean()),
     priorityOrder: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
@@ -440,6 +441,7 @@ export const taskTables = {
     .index("by_project_state_order", ["projectId", "stateId", "status", "deletedAt", "sortOrder"])
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_target", ["workspaceId", "targetDate"])
+    .index("by_workspace_target_date", ["workspaceId", "targetDateMissing", "targetDate", "createdAtDescending"])
     .index("by_workspace_manual", ["workspaceId", "sortOrder", "createdAtDescending"])
     .index("by_workspace_start_date", ["workspaceId", "startDateMissing", "startDate", "createdAtDescending"])
     .index("by_workspace_priority", ["workspaceId", "priorityOrder", "createdAtDescending"])
