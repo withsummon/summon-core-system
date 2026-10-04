@@ -4,62 +4,40 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef } from "react";
-import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
-import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
-import { observer } from "mobx-react";
-// components
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import { useOutletContext, useParams } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
-import { ProjectSettingsLabelList } from "@/components/labels";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
+import { LabelManagement } from "@/components/convex-core/tasks/label-management";
+import { PreservedProjectSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
+import { Loader } from "@plane/ui";
 import { LabelsProjectSettingsHeader } from "./header";
+export { ProjectFeatureSettingsErrorBoundary as ErrorBoundary } from "@/components/settings/project/content/feature-control-item";
 
-function LabelsSettingsPage() {
-  // store hooks
-  const { currentProjectDetails } = useProject();
-  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-
-  const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails?.name} - Labels` : undefined;
-
-  const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
-
-  // derived values
-  const canPerformProjectMemberActions = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT
+export default function LabelsSettingsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { projectId } = useParams();
+  const project = useQuery(
+    api.projects.features.resolve,
+    projectId ? { workspaceId: session.workspace._id, projectId } : "skip"
   );
-
-  // Enable Auto Scroll for Labels list
-  useEffect(() => {
-    const element = scrollableContainerRef.current;
-
-    if (!element) return;
-
-    return combine(
-      autoScrollForElements({
-        element,
-      })
+  if (!project)
+    return (
+      <Loader>
+        <Loader.Item height="42px" />
+      </Loader>
     );
-  }, []);
-
-  if (workspaceUserInfo && !canPerformProjectMemberActions) {
-    return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
-  }
-
   return (
-    <SettingsContentWrapper header={<LabelsProjectSettingsHeader />}>
-      <PageHead title={pageTitle} />
-      <div ref={scrollableContainerRef} className="size-full">
-        <ProjectSettingsLabelList />
-      </div>
-    </SettingsContentWrapper>
+    <PreservedProjectSettingsShell
+      {...session}
+      project={project}
+      authorized={project.role !== "guest"}
+      activePath="common.labels"
+      header={<LabelsProjectSettingsHeader />}
+    >
+      <PageHead title={`${project.name} - Labels`} />
+      <LabelManagement key={project.projectId} projectId={project.projectId} />
+    </PreservedProjectSettingsShell>
   );
 }
-
-export default observer(LabelsSettingsPage);

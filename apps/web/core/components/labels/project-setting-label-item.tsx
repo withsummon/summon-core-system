@@ -4,118 +4,72 @@
  * See the LICENSE file for details.
  */
 
-import type { Dispatch, SetStateAction } from "react";
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { EditIcon, CloseIcon } from "@plane/propel/icons";
-// types
-import type { IIssueLabel } from "@plane/types";
-// hooks
-import { useLabel } from "@/hooks/store/use-label";
-// components
-import type { TLabelOperationsCallbacks } from "./create-update-label-inline";
-import { CreateUpdateLabelInline } from "./create-update-label-inline";
-import type { ICustomMenuItem } from "./label-block/label-item-block";
+import type { ReactNode } from "react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
+import type { ProjectLabel } from "./create-update-label-inline";
 import { LabelItemBlock } from "./label-block/label-item-block";
 import { LabelDndHOC } from "./label-drag-n-drop-HOC";
 
-type Props = {
-  label: IIssueLabel;
-  handleLabelDelete: (label: IIssueLabel) => void;
-  setIsUpdating: Dispatch<SetStateAction<boolean>>;
-  isParentDragging?: boolean;
+export function ProjectSettingLabelItem({
+  label,
+  labels,
+  canManage,
+  handleLabelDelete,
+  isChild,
+  isLastChild,
+  onDrop,
+  onEdit,
+  editingLabelId,
+  editor,
+  children,
+}: {
+  label: ProjectLabel;
+  labels: ProjectLabel[];
+  canManage: boolean;
+  handleLabelDelete: (label: ProjectLabel) => void;
   isChild: boolean;
   isLastChild: boolean;
-  onDrop: (
-    draggingLabelId: string,
-    droppedParentId: string | null,
-    droppedLabelId: string | undefined,
-    dropAtEndOfList: boolean
-  ) => void;
-  labelOperationsCallbacks: TLabelOperationsCallbacks;
-  isEditable?: boolean;
-};
-
-export function ProjectSettingLabelItem(props: Props) {
-  const {
-    label,
-    setIsUpdating,
-    handleLabelDelete,
-    isChild,
-    isLastChild,
-    isParentDragging = false,
-    onDrop,
-    labelOperationsCallbacks,
-    isEditable = false,
-  } = props;
-  // states
-  const [isEditLabelForm, setEditLabelForm] = useState(false);
-  // router
-  const { workspaceSlug, projectId } = useParams();
-  // store hooks
-  const { updateLabel } = useLabel();
-
-  const removeFromGroup = (label: IIssueLabel) => {
-    if (!workspaceSlug || !projectId) return;
-
-    updateLabel(workspaceSlug.toString(), projectId.toString(), label.id, {
-      parent: null,
-    });
-  };
-
-  const customMenuItems: ICustomMenuItem[] = [
-    {
-      CustomIcon: CloseIcon,
-      onClick: removeFromGroup,
-      isVisible: !!label.parent,
-      text: "Remove from group",
-      key: "remove_from_group",
-    },
-    {
-      CustomIcon: EditIcon,
-      onClick: () => {
-        setEditLabelForm(true);
-        setIsUpdating(true);
-      },
-      isVisible: true,
-      text: "Edit label",
-      key: "edit_label",
-    },
-  ];
-
+  onDrop: (args: FunctionArgs<typeof api.tasks.labels.save>) => Promise<void>;
+  onEdit: (label: ProjectLabel) => void;
+  editingLabelId?: Id<"taskLabels">;
+  editor: ReactNode;
+  children?: ReactNode;
+}) {
+  const editing = editingLabelId === label._id;
+  const group = labels.some((row) => row.parentId === label._id);
   return (
-    <LabelDndHOC label={label} isGroup={false} isChild={isChild} isLastChild={isLastChild} onDrop={onDrop}>
-      {(isDragging, isDroppingInLabel, dragHandleRef) => (
+    <LabelDndHOC
+      label={label}
+      labels={labels}
+      isGroup={group}
+      isChild={isChild}
+      isLastChild={isLastChild}
+      isEditable={canManage && !label.retiring && !editing}
+      onDrop={onDrop}
+    >
+      {(isDragging, isDropping, dragHandleRef) => (
         <div
-          className={`rounded-sm ${isDroppingInLabel ? "border-[2px] border-accent-strong" : "border-[1.5px] border-transparent"}`}
+          className={`group rounded-sm ${isDropping ? "border-2 border-accent-strong" : "border border-subtle"} ${isDragging ? "bg-layer-1" : "bg-surface-1"}`}
         >
-          <div
-            className={`group relative flex items-center justify-between gap-2 space-y-3 rounded-sm px-1 py-3 ${
-              isDroppingInLabel ? "" : "border-[0.5px] border-subtle"
-            } ${isDragging || isParentDragging ? "bg-layer-1" : "bg-surface-1"}`}
-          >
-            {isEditLabelForm ? (
-              <CreateUpdateLabelInline
-                labelForm={isEditLabelForm}
-                setLabelForm={setEditLabelForm}
-                isUpdating
-                labelToUpdate={label}
-                labelOperationsCallbacks={labelOperationsCallbacks}
-                onClose={() => {
-                  setEditLabelForm(false);
-                  setIsUpdating(false);
-                }}
-              />
+          <div className="flex min-w-0 items-center gap-2 px-1 py-3">
+            {editing ? (
+              editor
             ) : (
               <LabelItemBlock
                 label={label}
                 isDragging={isDragging}
-                customMenuItems={customMenuItems}
-                handleLabelDelete={handleLabelDelete}
+                disabled={!canManage || label.retiring}
+                isLabelGroup={group}
                 dragHandleRef={dragHandleRef}
-                disabled={!isEditable}
+                onEdit={() => onEdit(label)}
+                labels={labels}
+                onDrop={onDrop}
+                handleLabelDelete={handleLabelDelete}
               />
             )}
+            {children}
           </div>
         </div>
       )}

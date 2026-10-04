@@ -4,171 +4,166 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useRef } from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useEffect, useRef, useState } from "react";
+import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { Id } from "@summon/convex/data-model";
+import { getRandomLabelColor } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IIssueLabel } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
-import type { TLabelOperationsCallbacks } from "@/components/labels";
-import {
-  CreateUpdateLabelInline,
-  DeleteLabelModal,
-  ProjectSettingLabelGroup,
-  ProjectSettingLabelItem,
-} from "@/components/labels";
-// hooks
-import { useLabel } from "@/hooks/store/use-label";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import { CreateUpdateLabelInline } from "./create-update-label-inline";
+import type { ProjectLabel } from "./create-update-label-inline";
+import { DeleteLabelModal } from "./delete-label-modal";
+import { ProjectSettingLabelGroup } from "./project-setting-label-group";
+import { ProjectSettingLabelItem } from "./project-setting-label-item";
 import { SettingsHeading } from "../settings/heading";
 
-export const ProjectSettingsLabelList = observer(function ProjectSettingsLabelList() {
-  // router
-  const { workspaceSlug, projectId } = useParams();
-  // refs
-  const scrollToRef = useRef<HTMLDivElement>(null);
-  // states
-  const [showLabelForm, setLabelForm] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [selectDeleteLabel, setSelectDeleteLabel] = useState<IIssueLabel | null>(null);
-  // plane hooks
+export function ProjectSettingsLabelList({
+  projectId,
+  settings,
+}: {
+  projectId: Id<"projects">;
+  settings: FunctionReturnType<typeof api.tasks.labels.settings> | undefined;
+}) {
   const { t } = useTranslation();
-  // store hooks
-  const { projectLabels, updateLabelPosition, projectLabelsTree, createLabel, updateLabel } = useLabel();
-  const { allowPermissions } = useUserPermissions();
-  // derived values
-  const isEditable = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
-  const labelOperationsCallbacks: TLabelOperationsCallbacks = {
-    createLabel: (data: Partial<IIssueLabel>) => createLabel(workspaceSlug?.toString(), projectId?.toString(), data),
-    updateLabel: (labelId: string, data: Partial<IIssueLabel>) =>
-      updateLabel(workspaceSlug?.toString(), projectId?.toString(), labelId, data),
-  };
-
-  const newLabel = () => {
-    setIsUpdating(false);
-    setLabelForm(true);
-  };
-
-  const onDrop = (
-    draggingLabelId: string,
-    droppedParentId: string | null,
-    droppedLabelId: string | undefined,
-    dropAtEndOfList: boolean
-  ) => {
-    if (workspaceSlug && projectId) {
-      updateLabelPosition(
-        workspaceSlug?.toString(),
-        projectId?.toString(),
-        draggingLabelId,
-        droppedParentId,
-        droppedLabelId,
-        dropAtEndOfList
-      );
-      return;
+  const canManage = settings?.canManage === true;
+  const [editor, setEditor] = useState<FunctionArgs<typeof api.tasks.labels.save> | null>(null);
+  const [error, setError] = useState("");
+  const [deletion, setDeletion] = useState<ProjectLabel | null>(null);
+  const [pending, setPending] = useState(false);
+  const save = useMutation(api.tasks.labels.save);
+  const scrollable = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollable.current) return autoScrollForElements({ element: scrollable.current });
+  }, []);
+  const release = useReloadConfirmations(
+    Boolean(editor) || pending,
+    "Label changes may not be saved.",
+    () => setEditor(null),
+    pending
+  );
+  const command = async (args: FunctionArgs<typeof api.tasks.labels.save>) => {
+    if (pending || !canManage) return false;
+    setPending(true);
+    setError("");
+    try {
+      await save(args);
+      return true;
+    } catch (failure) {
+      const message = mutationMessage(failure);
+      setError(message);
+      setToast({ type: TOAST_TYPE.ERROR, title: "Unable to update label", message });
+      return false;
+    } finally {
+      setPending(false);
     }
   };
-
+  const closeEditor = () => {
+    if (!pending) {
+      release();
+      setEditor(null);
+      setError("");
+    }
+  };
+  const edit = (label?: ProjectLabel) => {
+    setError("");
+    setEditor({
+      projectId,
+      labelId: label?._id,
+      expectedRevision: label?.revision,
+      change: {
+        kind: "metadata",
+        data: {
+          name: label?.name ?? "",
+          color: label?.color ?? getRandomLabelColor(),
+          description: label?.description ?? "",
+        },
+      },
+    });
+  };
+  const form = editor?.change.kind === "metadata" && (
+    <CreateUpdateLabelInline
+      data={editor.change.data}
+      isUpdating={Boolean(editor.labelId)}
+      canManage={canManage}
+      pending={pending}
+      error={error}
+      onClose={closeEditor}
+      onChange={(data) => setEditor({ ...editor, change: { kind: "metadata", data } })}
+      onSubmit={async () => {
+        if (editor && (await command(editor))) {
+          release();
+          setEditor(null);
+        }
+      }}
+    />
+  );
+  const labels = settings?.labels;
+  const roots = labels?.filter((label) => label.parentId === null);
   return (
     <>
-      <DeleteLabelModal
-        isOpen={!!selectDeleteLabel}
-        data={selectDeleteLabel ?? null}
-        onClose={() => setSelectDeleteLabel(null)}
-      />
+      {deletion && <DeleteLabelModal label={deletion} canManage={canManage} onClose={() => setDeletion(null)} />}
       <SettingsHeading
         title={t("project_settings.labels.heading")}
         description={t("project_settings.labels.description")}
         control={
-          isEditable && (
-            <Button variant="primary" size="lg" onClick={newLabel}>
+          canManage && (
+            <Button variant="primary" size="lg" disabled={pending || Boolean(editor)} onClick={() => edit()}>
               {t("common.add_label")}
             </Button>
           )
         }
       />
-      <div className="mt-6 w-full">
-        {showLabelForm && (
-          <div className="my-2 w-full rounded-sm border border-subtle px-3.5 py-2">
-            <CreateUpdateLabelInline
-              labelForm={showLabelForm}
-              setLabelForm={setLabelForm}
-              isUpdating={isUpdating}
-              labelOperationsCallbacks={labelOperationsCallbacks}
-              ref={scrollToRef}
-              onClose={() => {
-                setLabelForm(false);
-                setIsUpdating(false);
-              }}
-            />
-          </div>
+      <div ref={scrollable} className="mt-6 w-full">
+        {editor && (!editor.labelId || !labels?.some((row) => row._id === editor.labelId)) && (
+          <div className="my-2 w-full rounded-sm border border-subtle px-3.5 py-2">{form}</div>
         )}
-        {projectLabels ? (
-          projectLabels.length === 0 && !showLabelForm ? (
-            <EmptyStateCompact
-              assetKey="label"
-              assetClassName="size-20"
-              title={t("settings_empty_state.labels.title")}
-              description={t("settings_empty_state.labels.description")}
-              actions={[
-                {
-                  label: t("settings_empty_state.labels.cta_primary"),
-                  onClick: () => {
-                    newLabel();
-                  },
-                },
-              ]}
-              align="start"
-              rootClassName="py-20"
-            />
-          ) : (
-            projectLabelsTree?.map((label, index) => {
-              if (label.children && label.children.length) {
-                return (
-                  <ProjectSettingLabelGroup
-                    key={label.id}
-                    label={label}
-                    labelChildren={label.children || []}
-                    handleLabelDelete={(label: IIssueLabel) => setSelectDeleteLabel(label)}
-                    isUpdating={isUpdating}
-                    setIsUpdating={setIsUpdating}
-                    isLastChild={index === projectLabelsTree.length - 1}
-                    onDrop={onDrop}
-                    isEditable={isEditable}
-                    labelOperationsCallbacks={labelOperationsCallbacks}
-                  />
-                );
-              }
-              return (
-                <ProjectSettingLabelItem
-                  label={label}
-                  key={label.id}
-                  setIsUpdating={setIsUpdating}
-                  handleLabelDelete={(label) => setSelectDeleteLabel(label)}
-                  isChild={false}
-                  isLastChild={index === projectLabelsTree.length - 1}
-                  onDrop={onDrop}
-                  isEditable={isEditable}
-                  labelOperationsCallbacks={labelOperationsCallbacks}
-                />
-              );
-            })
-          )
+        {labels === undefined ? (
+          <Loader className="space-y-5">
+            <Loader.Item height="42px" />
+            <Loader.Item height="42px" />
+          </Loader>
+        ) : labels.length === 0 && !editor ? (
+          <EmptyStateCompact
+            assetKey="label"
+            assetClassName="size-20"
+            title={t("settings_empty_state.labels.title")}
+            description={t("settings_empty_state.labels.description")}
+            actions={canManage ? [{ label: t("settings_empty_state.labels.cta_primary"), onClick: () => edit() }] : []}
+            align="start"
+            rootClassName="py-20"
+          />
         ) : (
-          !showLabelForm && (
-            <Loader className="space-y-5">
-              <Loader.Item height="42px" />
-              <Loader.Item height="42px" />
-              <Loader.Item height="42px" />
-              <Loader.Item height="42px" />
-            </Loader>
-          )
+          roots?.map((label, index) => {
+            const props = {
+              label,
+              labels,
+              canManage: canManage && !pending && !editor,
+              handleLabelDelete: setDeletion,
+              isChild: false,
+              isLastChild: index === roots.length - 1,
+              onDrop: async (args: FunctionArgs<typeof api.tasks.labels.save>) => {
+                await command(args);
+              },
+              onEdit: edit,
+              editingLabelId: editor?.labelId,
+              editor: form,
+            };
+            return labels.some((row) => row.parentId === label._id) ? (
+              <ProjectSettingLabelGroup key={label._id} {...props} />
+            ) : (
+              <ProjectSettingLabelItem key={label._id} {...props} />
+            );
+          })
         )}
       </div>
     </>
   );
-});
+}
