@@ -2,11 +2,12 @@ import { useNavigate, useSearchParams } from "react-router";
 import { PriorityIcon } from "@plane/propel/icons";
 import { renderFormattedDate } from "@plane/utils";
 import { IssueListBlockView } from "@/components/issues/issue-layouts/list/block";
+import { KanbanIssueBlockView } from "@/components/issues/issue-layouts/kanban/block";
 import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { BulkLifecycle } from "./bulk-lifecycle";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
@@ -280,6 +281,75 @@ export function TaskRecoveryList({
   );
 }
 
+export function NativeTaskRow({
+  task,
+  identifier,
+  identifierWidth,
+  href,
+  properties,
+  actions,
+  pending,
+  showIdentifier = true,
+  kanban,
+}: {
+  task: Task;
+  identifier: string;
+  identifierWidth: number;
+  href: string;
+  properties: ReactNode;
+  actions: ReactNode;
+  pending: ComponentProps<typeof IssueListBlockView>["pending"];
+  showIdentifier?: boolean;
+  kanban?: Pick<
+    ComponentProps<typeof KanbanIssueBlockView>,
+    "cardRef" | "isDragging" | "isDraggingOver" | "canDrag" | "disabled"
+  >;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const { isMobile } = usePlatformOS();
+  const peeked = params.get("peek") === identifier;
+  const open = () => {
+    if (isMobile) navigate(href);
+    else
+      setParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set("peek", identifier);
+        return next;
+      });
+  };
+  const blockProps = {
+    issueId: task._id,
+    href,
+    name: task.title,
+    onOpen: open,
+    onDragStart: undefined,
+    isPeeked: peeked,
+    identifier: showIdentifier ? <IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" /> : null,
+    properties,
+    actions: () => actions,
+  };
+  return kanban ? (
+    <KanbanIssueBlockView {...blockProps} {...kanban} blockId={`issue-${task._id}`} shouldRenderByDefault />
+  ) : (
+    <IssueListBlockView
+      {...blockProps}
+      ariaLabel={`${identifier}: ${task.title}`}
+      rowRef={rowRef}
+      isPeekedAtCurrentLevel={peeked}
+      isActive={false}
+      isSelected={false}
+      isDragging={false}
+      disabled={false}
+      pending={pending}
+      indent={0}
+      selection={null}
+      expansion={null}
+    />
+  );
+}
+
 export function ProjectIssueRow({
   task,
   identifier,
@@ -295,12 +365,7 @@ export function ProjectIssueRow({
   stateName: string;
   children?: (Item: typeof Menu.MenuItem | typeof ContextMenu.Item) => ReactNode;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const { isMobile } = usePlatformOS();
   const lifecycle = useTaskLifecycle(() => {});
-  const peeked = params.get("peek") === identifier;
   return (
     <li>
       <TaskLifecycle
@@ -309,33 +374,12 @@ export function ProjectIssueRow({
         disabled={false}
         lifecycle={lifecycle}
         row={(menu) => (
-          <IssueListBlockView
-            issueId={task._id}
+          <NativeTaskRow
+            task={task}
+            identifier={identifier}
+            identifierWidth={identifierWidth}
             href={href}
-            name={task.title}
-            ariaLabel={`${identifier}: ${task.title}`}
-            onOpen={() => {
-              if (isMobile) navigate(href);
-              else
-                setParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.set("peek", identifier);
-                  return next;
-                });
-            }}
-            rowRef={rowRef}
-            onDragStart={undefined}
-            isPeeked={peeked}
-            isPeekedAtCurrentLevel={peeked}
-            isActive={false}
-            isSelected={false}
-            isDragging={false}
-            disabled={false}
             pending={lifecycle.pending}
-            identifier={<IdentifierText identifier={identifier} minWidth={identifierWidth} size="sm" />}
-            indent={0}
-            selection={null}
-            expansion={null}
             properties={
               <>
                 <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular">{stateName}</span>
@@ -348,7 +392,7 @@ export function ProjectIssueRow({
                 )}
               </>
             }
-            actions={() => menu}
+            actions={menu}
           />
         )}
       >
