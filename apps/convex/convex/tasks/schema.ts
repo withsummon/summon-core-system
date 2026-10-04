@@ -424,7 +424,7 @@ export const taskTables = {
     // Ascending value orders retain newest-task ties and place missing dates last.
     createdAtDescending: v.number(),
     startDateMissing: v.boolean(),
-    targetDateMissing: v.optional(v.boolean()),
+    targetDateMissing: v.boolean(),
     priorityOrder: v.number(),
     createdBy: v.id("users"),
     updatedAt: v.number(),
