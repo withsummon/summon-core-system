@@ -17,14 +17,14 @@ export function ImageDownloadAction(props: Props) {
 
   return (
     <Tooltip tooltipContent="Download">
-      <button
-        type="button"
-        onClick={() => window.open(src, "_blank")}
+      <a
+        href={src}
+        download
         className="grid h-full flex-shrink-0 place-items-center text-white/60 transition-colors hover:text-white"
         aria-label="Download image"
       >
         <Download className="size-3" />
-      </button>
+      </a>
     </Tooltip>
   );
 }

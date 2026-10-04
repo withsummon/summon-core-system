@@ -81,8 +81,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
       if (direction === "increase") {
         targetZoom = ZOOM_STEPS.find((step) => step > prev) ?? MAX_ZOOM;
       } else {
-        // Reverse the array to find the next lower step
-        targetZoom = [...ZOOM_STEPS].reverse().find((step) => step < prev) ?? MIN_ZOOM;
+        targetZoom = ZOOM_STEPS.findLast((step) => step < prev) ?? MIN_ZOOM;
       }
 
       // Reset position when zoom matches initial magnification
@@ -210,6 +209,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
     >
       <div
         ref={modalRef}
+        role="presentation"
         onMouseDown={(e) => e.target === modalRef.current && handleClose()}
         className="relative grid size-full place-items-center overflow-hidden"
       >
@@ -224,6 +224,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         <img
           ref={setImageRef}
           src={src}
+          alt="Preview"
           className="read-only-image rounded-lg"
           style={{
             width: `${widthInNumber * initialMagnification}px`,
@@ -272,14 +273,14 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
             </button>
           </div>
           {!isTouchDevice && (
-            <button
-              type="button"
-              onClick={() => window.open(downloadSrc, "_blank")}
+            <a
+              href={downloadSrc}
+              download
               className="grid size-8 flex-shrink-0 place-items-center text-white/60 transition-colors duration-200 hover:text-white"
               aria-label="Download image"
             >
               <Download className="size-4" />
-            </button>
+            </a>
           )}
           {!isTouchDevice && (
             <button
