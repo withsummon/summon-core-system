@@ -6,25 +6,21 @@ import { requireProject } from "../identity/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { pageBudget } from "../commercial/validation";
 import schema from "../schema";
+import { taskAssigneeEligible } from "./properties";
 export const list = query({
   args: { projectId: v.id("projects"), search: v.optional(v.string()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { project } = await requireProject(ctx, args.projectId);
+    const { project, member } = await requireProject(ctx, args.projectId);
     const search = (args.search ?? "").trim().toLowerCase();
     return stream(ctx.db, schema)
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId))
       .map(async (membership) => {
         if (!membership.active || membership.role === "guest") return null;
-        const workspaceMember = await ctx.db
-          .query("workspaceMembers")
-          .withIndex("by_workspace_user", (q) =>
-            q.eq("workspaceId", project.workspaceId).eq("userId", membership.userId)
-          )
-          .unique();
-        if (!workspaceMember?.active || workspaceMember.role === "guest") return null;
+        if (!(await taskAssigneeEligible(ctx, project, membership.userId))) return null;
         const user = await ctx.db.get(membership.userId);
         if (!user) return null;
+        const email = member.role === "guest" ? null : (user.email ?? null);
         const profile = search
           ? await ctx.db
               .query("userProfiles")
@@ -33,7 +29,7 @@ export const list = query({
           : null;
         if (
           search &&
-          !`${user.name ?? ""} ${profile?.firstName ?? ""} ${profile?.lastName ?? ""} ${user.email ?? ""}`
+          !`${user.name ?? ""} ${profile?.firstName ?? ""} ${profile?.lastName ?? ""} ${email ?? ""}`
             .toLowerCase()
             .includes(search)
         )
@@ -41,7 +37,7 @@ export const list = query({
         return {
           id: user._id,
           name: user.name ?? null,
-          email: user.email ?? null,
+          email,
           avatar: await personalImageDescriptor(
             ctx,
             await userAppearance(ctx, user._id),

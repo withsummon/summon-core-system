@@ -80,6 +80,7 @@ export default defineSchema({
     network: v.optional(projectNetwork),
     logoProps: v.optional(projectLogoProps),
     leadId: v.optional(v.union(v.id("users"), v.null())),
+    defaultAssigneeId: v.union(v.id("users"), v.null()),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
@@ -120,6 +121,7 @@ export default defineSchema({
     userId: v.id("users"),
     role,
     active: v.boolean(),
+    revision: v.number(),
   })
     .index("by_project_user", ["projectId", "userId"])
     .index("by_user", ["userId"])

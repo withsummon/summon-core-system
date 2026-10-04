@@ -12,7 +12,7 @@ import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { checkRange, inRange, matchesFilters, validateShape } from "../savedViews/filters";
 import { createTask } from "../tasks/create";
-import { initialProperties, parseTaskText, validateNonStateProperties } from "../tasks/properties";
+import { initialProperties, parseTaskText, validateNonStateProperties, creationAssignees } from "../tasks/properties";
 import { priority, nonStateTaskProperties } from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
@@ -92,6 +92,7 @@ export const submit = mutation({
       ...initialProperties,
       ...args.properties,
       priority: args.priority,
+      assigneeIds: await creationAssignees(ctx, project, args.properties?.assigneeIds ?? []),
     });
     const content = taskRichContent(args.html);
     const { title } = parseTaskText(args.title, content.description);

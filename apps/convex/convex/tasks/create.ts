@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { priority, status, taskProperties } from "./schema";
 import { requireProject } from "../identity/access";
 import { requireParent } from "./hierarchy";
-import { initialProperties, validateProperties, parseTaskText } from "./properties";
+import { initialProperties, validateProperties, parseTaskText, creationAssignees } from "./properties";
 import { writeDescription } from "./description_content";
 import { plainDescriptionHtml } from "./rich_content";
 import type { MutationCtx } from "../_generated/server";
@@ -122,13 +122,12 @@ export async function createPreparedTask(ctx: MutationCtx, args: Infer<typeof pr
     .query("taskStates")
     .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
     .unique();
-  const { data, state } = await validateProperties(
-    ctx,
-    project,
-    args.properties
-      ? { ...args.properties, stateId: args.useDefaultState ? (defaultState?._id ?? null) : args.properties.stateId }
-      : { ...initialProperties, stateId: defaultState?._id ?? null }
-  );
+  const properties = args.properties ?? initialProperties;
+  const { data, state } = await validateProperties(ctx, project, {
+    ...properties,
+    stateId: !args.properties || args.useDefaultState ? (defaultState?._id ?? null) : properties.stateId,
+    assigneeIds: await creationAssignees(ctx, project, properties.assigneeIds),
+  });
   if (state && args.status && state.status !== args.status)
     throw new ConvexError("Task status must match its custom state.");
   const nextStatus = state?.status ?? args.status ?? "todo";

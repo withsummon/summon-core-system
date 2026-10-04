@@ -5,137 +5,83 @@
  */
 
 import { useState } from "react";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel, MEMBER_PROPERTY_DETAILS } from "@plane/constants";
+import type { ComponentProps } from "react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 import type { IProjectMemberDisplayProperties } from "@plane/constants";
-import type { IWorkspaceMember, TProjectMembership } from "@plane/types";
 import { renderFormattedDate } from "@plane/utils";
-// components
+import { Table } from "@plane/ui";
 import { MemberHeaderColumn } from "@/components/project/member-header-column";
-import { AccountTypeColumn, NameColumn } from "@/components/project/settings/member-columns";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-import type { IMemberFilters } from "@/store/member/utils";
+import { AccountTypeColumn } from "@/components/project/settings/member-columns";
+import type { ProjectMember } from "@/components/project/settings/member-columns";
+import { NameColumn } from "@/components/workspace/settings/member-columns";
 
-export interface RowData extends Pick<TProjectMembership, "original_role"> {
-  member: IWorkspaceMember;
-}
-
-type TUseProjectColumnsProps = {
-  projectId: string;
+type MemberArgs = FunctionArgs<typeof api.projects.index.members>;
+export const useProjectColumns = ({
+  projectId,
+  workspaceSlug,
+  orderBy,
+  onOrderChange,
+  disabled,
+  onChange,
+}: {
+  projectId: MemberArgs["projectId"];
   workspaceSlug: string;
-};
-
-export const useProjectColumns = (props: TUseProjectColumnsProps) => {
-  const { projectId, workspaceSlug } = props;
-  // states
-  const [removeMemberModal, setRemoveMemberModal] = useState<RowData | null>(null);
-
-  // store hooks
-  const { data: currentUser } = useUser();
-  const { allowPermissions, getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
-  const {
-    project: {
-      filters: { getFilters, updateFilters },
-    },
-  } = useMember();
-  // derived values
-  const isAdmin = allowPermissions(
-    [EUserPermissions.ADMIN],
-    EUserPermissionsLevel.PROJECT,
-    workspaceSlug.toString(),
-    projectId.toString()
+  orderBy: MemberArgs["orderBy"];
+  onOrderChange: (value: MemberArgs["orderBy"]) => void;
+} & Pick<ComponentProps<typeof AccountTypeColumn>, "onChange" | "disabled">) => {
+  const [removeMemberModal, setRemoveMemberModal] = useState<ProjectMember | null>(null);
+  const sorting = (
+    property: keyof IProjectMemberDisplayProperties,
+    field: NonNullable<MemberArgs["orderBy"]>["field"]
+  ) => (
+    <MemberHeaderColumn
+      property={property}
+      direction={orderBy?.field === field ? orderBy.direction : undefined}
+      onOrderChange={(direction) => onOrderChange(direction ? { field, direction } : undefined)}
+    />
   );
-  const currentProjectRole =
-    getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug.toString(), projectId.toString()) ?? EUserPermissions.GUEST;
-
-  const displayFilters = getFilters(projectId);
-
-  // handlers
-  const handleDisplayFilterUpdate = (filters: Partial<IMemberFilters>) => {
-    updateFilters(projectId, filters);
-  };
-
-  const sorting = (property: keyof IProjectMemberDisplayProperties) => {
-    const details = MEMBER_PROPERTY_DETAILS[property];
-    const direction =
-      displayFilters?.order_by === details.ascendingOrderKey
-        ? "asc"
-        : displayFilters?.order_by === details.descendingOrderKey
-          ? "desc"
-          : undefined;
-    return (
-      <MemberHeaderColumn
-        property={property}
-        direction={direction}
-        onOrderChange={(order) =>
-          updateFilters(projectId, {
-            order_by:
-              order === undefined
-                ? undefined
-                : order === "asc"
-                  ? details.ascendingOrderKey
-                  : details.descendingOrderKey,
-          })
-        }
-      />
-    );
-  };
-
-  const columns = [
+  const columns: ComponentProps<typeof Table<ProjectMember>>["columns"] = [
     {
-      key: "Full Name",
+      key: "fullName",
       content: "Full name",
-      thClassName: "text-left",
-      thRender: () => sorting("full_name"),
-      tdRender: (rowData: RowData) => (
+      thRender: () => sorting("full_name", "fullName"),
+      tdRender: (member) => (
         <NameColumn
-          rowData={rowData}
+          member={member}
           workspaceSlug={workspaceSlug}
-          isAdmin={isAdmin}
-          currentUser={currentUser}
-          setRemoveMemberModal={setRemoveMemberModal}
+          canRemove={member.canRemove || member.canLeave}
+          isSelf={member.canLeave}
+          onRemove={setRemoveMemberModal}
         />
       ),
     },
     {
-      key: "Display Name",
+      key: "displayName",
       content: "Display name",
-      thRender: () => sorting("display_name"),
-      tdRender: (rowData: RowData) => <div className="w-32">{rowData.member.display_name}</div>,
+      thRender: () => sorting("display_name", "displayName"),
+      tdRender: (member) => <div className="w-32">{member.displayName}</div>,
     },
     {
-      key: "Email",
+      key: "email",
       content: "Email",
-      thRender: () => sorting("email"),
-      tdRender: (rowData: RowData) => <div className="w-48 text-secondary">{rowData.member.email}</div>,
+      thRender: () => sorting("email", "email"),
+      tdRender: (member) => <div className="w-48 truncate text-secondary">{member.email}</div>,
     },
     {
-      key: "Account Type",
+      key: "role",
       content: "Account type",
-      thRender: () => sorting("role"),
-      tdRender: (rowData: RowData) => (
-        <AccountTypeColumn
-          rowData={rowData}
-          currentProjectRole={currentProjectRole}
-          projectId={projectId}
-          workspaceSlug={workspaceSlug}
-        />
+      thRender: () => sorting("role", "role"),
+      tdRender: (member) => (
+        <AccountTypeColumn member={member} projectId={projectId} onChange={onChange} disabled={disabled} />
       ),
     },
     {
-      key: "Joining Date",
+      key: "joinedAt",
       content: "Joining date",
-      thRender: () => sorting("joining_date"),
-      tdRender: (rowData: RowData) => <div>{renderFormattedDate(rowData?.member?.joining_date)}</div>,
+      thRender: () => sorting("joining_date", "joinedAt"),
+      tdRender: (member) => <div>{renderFormattedDate(new Date(member.joinedAt))}</div>,
     },
   ];
-  return {
-    columns,
-    removeMemberModal,
-    setRemoveMemberModal,
-    displayFilters,
-    handleDisplayFilterUpdate,
-  };
+  return { columns, removeMemberModal, setRemoveMemberModal };
 };

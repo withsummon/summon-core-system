@@ -1,3 +1,4 @@
+import { revokeProjectMembership } from "../../projects/index";
 import { ConvexError, v } from "convex/values";
 import { isAPIError } from "better-auth/api";
 import { mutation, type MutationCtx } from "../../_generated/server";
@@ -5,7 +6,7 @@ import type { Id } from "../../_generated/dataModel";
 import { authComponent, createAuth } from "../../better_auth";
 import { requireUser } from "../session";
 import { requireNotInstanceAdmin } from "../instance/index";
-import { requireAnotherWorkspaceAdmin, requireAnotherProjectAdmin } from "../access";
+import { requireAnotherWorkspaceAdmin } from "../access";
 import { clearPasswordAttempts, reservePasswordAttempt } from "../password/policy";
 
 export async function deactivateAccount(ctx: MutationCtx, userId: Id<"users">) {
@@ -22,10 +23,12 @@ export async function deactivateAccount(ctx: MutationCtx, userId: Id<"users">) {
     throw new ConvexError("Account exceeds the atomic deactivation budget. No changes were made.");
   for (const row of workspaces)
     if (row.active && row.role === "admin") await requireAnotherWorkspaceAdmin(ctx, row.workspaceId);
-  for (const row of projects)
-    if (row.active && row.role === "admin") await requireAnotherProjectAdmin(ctx, row.projectId);
   await ctx.db.insert("accountRestrictions", { userId, deactivatedAt: Date.now() });
-  for (const row of [...workspaces, ...projects]) if (row.active) await ctx.db.patch(row._id, { active: false });
+  for (const row of workspaces) if (row.active) await ctx.db.patch(row._id, { active: false });
+  for (const row of projects) {
+    // oxlint-disable-next-line no-await-in-loop
+    await revokeProjectMembership(ctx, row);
+  }
 }
 
 // Native HTTP deletion is disabled: component deletion and the application

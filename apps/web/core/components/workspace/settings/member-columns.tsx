@@ -19,15 +19,17 @@ import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
 export type WorkspaceMember = FunctionReturnType<typeof api.workspaces.index.members>["members"][number];
 
-type NameProps = {
-  member: WorkspaceMember;
+type NameProps<T extends Pick<WorkspaceMember, "active" | "avatar" | "userId" | "displayName" | "fullName">> = {
+  member: T;
   workspaceSlug: string;
   canRemove: boolean;
   isSelf: boolean;
-  onRemove: (member: WorkspaceMember) => void;
+  onRemove: (member: T) => void;
 };
 
-export function NameColumn({ member, workspaceSlug, canRemove, isSelf, onRemove }: NameProps) {
+export function NameColumn<
+  T extends Pick<WorkspaceMember, "active" | "avatar" | "userId" | "displayName" | "fullName">,
+>({ member, workspaceSlug, canRemove, isSelf, onRemove }: NameProps<T>) {
   const { t } = useTranslation();
   return (
     <div className="group relative">
@@ -52,7 +54,7 @@ export function NameColumn({ member, workspaceSlug, canRemove, isSelf, onRemove 
                 </span>
               ) : (
                 <Avatar
-                  name={member.email ?? undefined}
+                  name={member.displayName ?? member.fullName}
                   size={24}
                   shape="circle"
                   showTooltip={false}

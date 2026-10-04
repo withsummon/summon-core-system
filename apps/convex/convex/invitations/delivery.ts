@@ -1,7 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { internalQuery, internalMutation } from "../_generated/server";
-import { requireProject, requireUser, requireWorkspace } from "../identity/access";
+import { requireProject, requireProjectForUser, requireUser, requireWorkspace } from "../identity/access";
 import { issuerAccess, normalizedEmail } from "./access";
+import { accountRestricted } from "../identity/deactivation/access";
+import { canAdministerProject } from "../projects/administration";
 import { workspaceLogo } from "../settings/logo_owner";
 import { invitationDeliveryStatus } from "../schema";
 import type { QueryCtx } from "../_generated/server";
@@ -84,4 +86,30 @@ export async function invitationPreview(ctx: QueryCtx, args: Infer<typeof previe
 export const incomingPreview = internalQuery({
   args: previewFields,
   handler: invitationPreview,
+});
+
+export const projectAddition = internalQuery({
+  args: { membershipId: v.id("projectMembers"), expectedRevision: v.number(), addedById: v.id("users") },
+  handler: async (ctx, args) => {
+    const member = await ctx.db.get(args.membershipId);
+    if (!member?.active || member.revision !== args.expectedRevision) return null;
+    const [addedBy, addedUser] = await Promise.all([ctx.db.get(args.addedById), ctx.db.get(member.userId)]);
+    if (
+      !addedBy ||
+      !addedUser?.email ||
+      (await accountRestricted(ctx, addedBy._id)) ||
+      (await accountRestricted(ctx, addedUser._id))
+    )
+      return null;
+    const access = await requireProjectForUser(ctx, member.projectId, addedBy);
+    if (!(await canAdministerProject(ctx, access.project, addedBy._id, access.member.role))) return null;
+    await requireProjectForUser(ctx, member.projectId, addedUser);
+    return {
+      email: addedUser.email,
+      projectName: access.project.name,
+      workspaceName: access.workspace.name,
+      workspaceSlug: access.workspace.slug,
+      projectId: access.project._id,
+    };
+  },
 });
