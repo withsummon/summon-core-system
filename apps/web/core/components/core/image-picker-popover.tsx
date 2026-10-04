@@ -127,8 +127,8 @@ export function ImagePickerPopoverView({
     } catch (error) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Image not saved",
-        message: error instanceof Error ? error.message : "The image could not be saved. Please try again.",
+        title: "Image selection failed",
+        message: error instanceof Error ? error.message : "The image could not be selected. Please try again.",
       });
     } finally {
       setPending(false);
@@ -251,7 +251,7 @@ export function ImagePickerPopoverView({
                         disabled={!image || pending}
                         loading={pending}
                       >
-                        {pending ? "Uploading" : "Upload & Save"}
+                        {pending ? "Uploading" : "Use image"}
                       </Button>
                     </div>
                   </div>
