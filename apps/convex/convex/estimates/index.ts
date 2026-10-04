@@ -27,7 +27,7 @@ function validatePointValues(type: Infer<typeof systemFields.type>, points: Infe
   const values = points.map((point) => point.value);
   const parsed =
     type === "points"
-      ? z.array(z.coerce.number().positive()).safeParse(values)
+      ? z.array(z.coerce.number().positive().finite()).safeParse(values)
       : z
           .array(
             z
