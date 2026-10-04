@@ -15,7 +15,7 @@ export const projectJsonText = z
     try {
       return JSON.parse(text);
     } catch {
-      ctx.addIssue({ code: "custom", message: "Enter valid project JSON." });
+      ctx.issues.push({ code: "custom", message: "Enter valid project JSON.", input: text });
       return z.NEVER;
     }
   })
