@@ -42,11 +42,12 @@ export const read = httpAction(async (ctx, request) => {
             assetId,
             ...(workspace ? { readWorkspaceId: workspace } : {}),
           })
-        : await ctx.runQuery(internal.assets.index.publicCommentImage, {
+        : await ctx.runQuery(internal.assets.index.publicImage, {
             anchor,
             assetId,
             taskId: url.searchParams.get("task") ?? "",
-            commentId: url.searchParams.get("comment") ?? "",
+            commentId: url.searchParams.get("comment"),
+            readWorkspaceId: workspace,
           });
     if (!asset.storageId) return new Response("Asset not found.", { status: 404, headers: responseHeaders });
     const headers = {

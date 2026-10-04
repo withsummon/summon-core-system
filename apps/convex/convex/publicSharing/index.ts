@@ -8,9 +8,16 @@ import { pageBudget } from "../commercial/validation";
 import { viewFilters } from "../savedViews/schema";
 import { matchesFilters, validateShape } from "../savedViews/filters";
 import { plainDescriptionHtml } from "../tasks/rich_content";
+import { descriptor } from "../assets/access";
 import { readTaskCycle } from "../cycles/tasks";
 import { readTaskModules } from "../modules/tasks";
-import { publicationForProject, requirePublishedProject, requirePublishedTask, publishedTask } from "./access";
+import {
+  publicationForProject,
+  requirePublishedProject,
+  requirePublishedTask,
+  requirePublishedDescriptionImage,
+  publishedTask,
+} from "./access";
 import { defaultPublicationSettings, publicationSettings } from "./schema";
 import schema from "../schema";
 
@@ -232,5 +239,16 @@ export const modules = query({
         module.workspaceId === project.workspaceId && !module.archived ? { _id: module._id, name: module.name } : null
       )
       .paginate(pageBudget(args.paginationOpts));
+  },
+});
+
+export const resolveDescriptionImage = query({
+  args: { anchor: v.string(), taskId: v.id("tasks"), assetId: v.string() },
+  handler: async (ctx, { anchor, taskId, assetId }) => {
+    const asset = await requirePublishedDescriptionImage(ctx, anchor, taskId, assetId);
+    return {
+      ...descriptor(asset),
+      downloadPath: `/assets/${asset._id}?${new URLSearchParams({ anchor, task: taskId })}`,
+    };
   },
 });
