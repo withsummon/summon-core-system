@@ -55,7 +55,7 @@ const PopoverContent = memo(function PopoverContent({
       <BasePopover.Popup
         data-slot="popover-content"
         className={cn(
-          "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
+          "max-w-[var(--available-width)] origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
           className
         )}
         {...props}
