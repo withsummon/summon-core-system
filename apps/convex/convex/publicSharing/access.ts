@@ -3,6 +3,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { taskIsActive } from "../tasks/access";
 import { status } from "../tasks/schema";
+import { uploadedImageSources } from "../tasks/rich_content";
 
 export function publicationForProject(ctx: QueryCtx, projectId: Id<"projects">) {
   return ctx.db
@@ -61,4 +62,53 @@ export async function requirePublishedComment(
   if (!comment || comment.taskId !== taskId || comment.audience !== "EXTERNAL" || comment.deletedAt != null)
     throw new ConvexError("Comment not found.");
   return { ...access, comment };
+}
+
+// Publication authority applies only to an image still referenced by this task's current description.
+export async function requirePublishedDescriptionImage(
+  ctx: QueryCtx,
+  anchor: string,
+  taskId: Id<"tasks">,
+  rawAssetId: string
+) {
+  const { task } = await requirePublishedTask(ctx, anchor, taskId);
+  const description = await ctx.db
+    .query("taskDescriptions")
+    .withIndex("by_task", (q) => q.eq("taskId", task._id))
+    .unique();
+  const assetId = ctx.db.normalizeId("assets", rawAssetId);
+  const asset = assetId ? await ctx.db.get(assetId) : null;
+  if (
+    !description ||
+    !asset ||
+    asset.status !== "ready" ||
+    !asset.storageId ||
+    !asset.contentType.startsWith("image/") ||
+    asset.taskId !== task._id ||
+    asset.projectId !== task.projectId ||
+    asset.workspaceId !== task.workspaceId ||
+    asset.documentId !== null ||
+    [
+      asset.draftId,
+      asset.commentUpload,
+      asset.commentId,
+      asset.conversationId,
+      asset.meetingId,
+      asset.automationJobId,
+      asset.exportJobId,
+      asset.documentCopyId,
+      asset.purpose,
+      asset.avatarUserId,
+      asset.projectCoverRevision,
+      asset.projectCoverFormRevision,
+      asset.workspaceLogoRevision,
+      asset.workspaceLogoPublishedRevision,
+      asset.avatarRevision,
+      asset.avatarPublishedRevision,
+    ].some((value) => value !== undefined) ||
+    !uploadedImageSources(description.html).has(asset._id)
+  )
+    throw new ConvexError("Image is not published in this work item description.");
+  if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Published image bytes are missing.");
+  return asset;
 }
