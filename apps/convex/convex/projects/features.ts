@@ -10,8 +10,12 @@ function stored(project: Doc<"projects">) {
   if (!project.features) throw new ConvexError("Project feature migration is required.");
   return { ...project.features, intake: project.intakeEnabled ?? false };
 }
-async function featureAccess(ctx: QueryCtx, projectId: Id<"projects">) {
-  const { project, member, projectMember } = await requireProject(ctx, projectId);
+async function featureAccess(ctx: QueryCtx, projectId: Id<"projects">, write = false) {
+  const project = await ctx.db.get(projectId);
+  if (!project || project.deletedAt != null || project.archived) throw new ConvexError("Project is unavailable.");
+  const { member } = await requireWorkspace(ctx, project.workspaceId);
+  if (write && member.role === "admin") return { project, role: member.role, canConfigure: true };
+  const { projectMember } = await requireProject(ctx, projectId);
   const projectRole = member.role === "admin" ? "admin" : projectMember.role;
   const role = member.role === "guest" ? "guest" : projectRole;
   return { project, role, canConfigure: role === "admin" };
@@ -49,7 +53,7 @@ export const resolve = query({
 export const save = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number(), features: projectFeatures, intake: v.boolean() },
   handler: async (ctx, args) => {
-    const { project, canConfigure } = await featureAccess(ctx, args.projectId);
+    const { project, canConfigure } = await featureAccess(ctx, args.projectId, true);
     if (!canConfigure) throw new ConvexError("Only workspace or project administrators can configure features.");
     stored(project);
     if (!Number.isSafeInteger(args.expectedRevision) || project.metadataRevision !== args.expectedRevision)
