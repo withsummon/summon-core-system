@@ -281,6 +281,23 @@ export function TaskRecoveryList({
   );
 }
 
+export function useTaskRowNavigation(identifier: string, href: string) {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const { isMobile } = usePlatformOS();
+  const peeked = params.get("peek") === identifier;
+  const open = () => {
+    if (isMobile) navigate(href);
+    else
+      setParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set("peek", identifier);
+        return next;
+      });
+  };
+  return { open, peeked };
+}
+
 export function NativeTaskRow({
   task,
   identifier,
@@ -306,19 +323,7 @@ export function NativeTaskRow({
   >;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const { isMobile } = usePlatformOS();
-  const peeked = params.get("peek") === identifier;
-  const open = () => {
-    if (isMobile) navigate(href);
-    else
-      setParams((current) => {
-        const next = new URLSearchParams(current);
-        next.set("peek", identifier);
-        return next;
-      });
-  };
+  const { open, peeked } = useTaskRowNavigation(identifier, href);
   const blockProps = {
     issueId: task._id,
     href,
