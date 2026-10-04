@@ -3,7 +3,7 @@ import { zodToConvex } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod/v4";
-import type { DataModel, Doc, Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { pageBudget } from "../commercial/validation";
 import { requireWorkspace } from "../identity/access";
@@ -12,7 +12,7 @@ import { defaultProfile } from "../identity/profile_owner";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { projectReader, projectSummary } from "../savedViews/scope";
 import schema from "../schema";
-import { taskDetail, taskIsActive, taskRoleCanRead } from "./access";
+import { taskDetail, taskIsActive, taskRoleCanRead, taskOrdering } from "./access";
 import { requireUsableLabel } from "./label_access";
 import {
   priority,
@@ -24,17 +24,6 @@ import {
   profileView,
   profileTaskPreferences,
 } from "./schema";
-
-const ordering = {
-  sortOrder: { index: "by_workspace_manual", direction: "asc" },
-  createdAt: { index: "by_workspace", direction: "desc" },
-  updatedAt: { index: "by_workspace_updated", direction: "desc" },
-  startDate: { index: "by_workspace_start_date", direction: "asc" },
-  priority: { index: "by_workspace_priority", direction: "asc" },
-} satisfies Record<
-  Infer<typeof profileOrder>,
-  { index: keyof DataModel["tasks"]["indexes"]; direction: "asc" | "desc" }
->;
 
 function profileConditions(expression: z.infer<typeof profileExpression>): z.infer<typeof profileCondition>[] {
   if (expression === null) return [];
@@ -275,7 +264,7 @@ export const list = query({
           throw new ConvexError("Choose a group from an accessible project.");
       })
     );
-    const selectedOrder = ordering[args.order];
+    const selectedOrder = taskOrdering[args.order];
     return stream(ctx.db, schema)
       .query("tasks")
       .withIndex(selectedOrder.index, (q) => q.eq("workspaceId", args.workspaceId))
