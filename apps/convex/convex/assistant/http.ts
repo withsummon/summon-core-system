@@ -1,6 +1,8 @@
 import { httpAction } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { providerConfig, streamProvider } from "./provider";
+import { replyRequest } from "./schema";
+import type { z } from "zod/v4";
 const headers = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
 export const options = httpAction(
   async () =>
@@ -13,29 +15,6 @@ export const options = httpAction(
       },
     })
 );
-function requestBody(value: unknown) {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("conversationId" in value) ||
-    !("requestId" in value) ||
-    !("content" in value) ||
-    !("attachmentIds" in value) ||
-    !Array.isArray(value.attachmentIds) ||
-    value.attachmentIds.length > 5 ||
-    value.attachmentIds.some((id) => typeof id !== "string") ||
-    typeof value.conversationId !== "string" ||
-    typeof value.requestId !== "string" ||
-    typeof value.content !== "string"
-  )
-    throw new Error("Invalid request.");
-  return {
-    conversationId: value.conversationId,
-    requestId: value.requestId,
-    content: value.content,
-    attachmentIds: value.attachmentIds,
-  };
-}
 export const reply = httpAction(async (ctx, request) => {
   if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers });
@@ -45,11 +24,11 @@ export const reply = httpAction(async (ctx, request) => {
   } catch {
     // Deterministic document proposals do not require an LLM connection.
   }
-  let body: ReturnType<typeof requestBody>;
+  let body: z.infer<typeof replyRequest>;
   try {
     const raw = await request.text();
     if (raw.length > 24000) throw new Error("Request too large.");
-    body = requestBody(JSON.parse(raw));
+    body = replyRequest.parse(JSON.parse(raw));
   } catch {
     return new Response("Invalid message request.", { status: 400, headers });
   }

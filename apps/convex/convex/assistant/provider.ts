@@ -1,3 +1,14 @@
+import { z } from "zod/v4";
+
+const providerEvent = z.object({
+  choices: z.array(
+    z.object({
+      delta: z.object({ content: z.string().nullish(), tool_calls: z.null().optional() }),
+      finish_reason: z.literal("stop").nullish(),
+    })
+  ),
+});
+
 export function providerConfig(env: Record<string, string | undefined>) {
   const provider = env.LLM_PROVIDER ?? "openai";
   if (provider !== "openai" && provider !== "openai_compatible") throw new Error("Unsupported assistant provider.");
@@ -14,22 +25,9 @@ export function providerConfig(env: Record<string, string | undefined>) {
     throw new Error("Invalid assistant provider timeout.");
   return { provider, key, model, url: url.toString(), timeout };
 }
-function object(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 export function parseDelta(data: string) {
-  const value: unknown = JSON.parse(data);
-  if (!object(value) || !Array.isArray(value.choices)) throw new Error("Invalid provider event.");
-  if (value.choices.length === 0) return { content: "", finished: false };
-  const choice: unknown = value.choices[0];
-  if (!object(choice) || !object(choice.delta)) throw new Error("Invalid provider delta.");
-  if (choice.delta.tool_calls) throw new Error("Provider tool execution is not enabled.");
-  const content = choice.delta.content;
-  if (content !== undefined && content !== null && typeof content !== "string")
-    throw new Error("Invalid provider content.");
-  if (choice.finish_reason != null && choice.finish_reason !== "stop")
-    throw new Error("Provider did not complete the reply.");
-  return { content: typeof content === "string" ? content : "", finished: choice.finish_reason === "stop" };
+  const choice = providerEvent.parse(JSON.parse(data)).choices[0];
+  return { content: choice?.delta.content ?? "", finished: choice?.finish_reason === "stop" };
 }
 export async function* streamProvider(
   config: ReturnType<typeof providerConfig>,
