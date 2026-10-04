@@ -22,6 +22,17 @@ export async function requireNetworkScope(ctx: QueryCtx, projectId: Id<"projects
 export function canDiscover(network: ProjectNetwork, role: Doc<"workspaceMembers">["role"], joined: boolean) {
   return joined || role === "admin" || (role === "member" && network === 2);
 }
+// The inherited REST contract includes public projects for every workspace role.
+// Workspace administration alone does not expose an unjoined private project.
+export function canReadApiProject(project: Doc<"projects">, membership: Doc<"projectMembers"> | null) {
+  return (
+    project.deletedAt == null &&
+    (project.network === 2 ||
+      (membership?.active === true &&
+        membership.projectId === project._id &&
+        membership.workspaceId === project.workspaceId))
+  );
+}
 export async function requireProjectDiscovery(ctx: QueryCtx, projectId: Id<"projects">) {
   const access = await requireNetworkScope(ctx, projectId, true);
   if (!canDiscover(storedNetwork(access.project), access.member.role, access.membership?.active === true))

@@ -1,6 +1,7 @@
+import { apiIdSchema } from "../identity/schema";
 import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation, type MutationCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { systemFields, pointFields, pointInput } from "./schema";
 import { estimateConfig, requireSystem, checkEstimateRevision } from "./access";
@@ -104,6 +105,7 @@ export const create = mutation({
     const points = args.points.map(pointContent);
     validatePointValues(args.type, points);
     const systemId = await ctx.db.insert("estimateSystems", {
+      apiId: await allocateEstimateSystemApiId(ctx),
       ...fields,
       type: args.type,
       workspaceId: project.workspaceId,
@@ -236,5 +238,43 @@ export const updatePoint = mutation({
     validatePointValues(system.type, [...rows.filter((row) => row._id !== pointId), fields]);
     await ctx.db.patch(pointId, { ...fields, revision: point.revision + 1 });
     await ctx.db.patch(system._id, { revision: system.revision + 1 });
+  },
+});
+
+async function allocateEstimateSystemApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("estimateSystems")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Estimate API identifier already exists.");
+  return apiId;
+}
+
+// Temporary rollout: remove after complete stored-row UUID coverage and required apiId activation.
+// Includes lifecycle-hidden records; reading a row never allocates its API identity.
+export const backfillApiIds = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db
+      .query("estimateSystems")
+      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
+    let changed = 0;
+    // Sequential writes make each uniqueness check see previously allocated IDs.
+    /* oxlint-disable no-await-in-loop */
+    for (const row of page.page) {
+      if (row.apiId === undefined) {
+        await ctx.db.patch(row._id, { apiId: await allocateEstimateSystemApiId(ctx) });
+        changed++;
+      } else {
+        const apiId = apiIdSchema.parse(row.apiId);
+        await ctx.db
+          .query("estimateSystems")
+          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+          .unique();
+      }
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
   },
 });

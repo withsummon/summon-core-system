@@ -1,3 +1,4 @@
+import { allocateAssetApiId } from "../../assets/schema";
 import { requireUsableLabel } from "../label_access";
 import { validateEstimatePoint } from "../../estimates/access";
 import { liveDraftAssets } from "../../assets/draft_access";
@@ -57,37 +58,40 @@ async function copyAssets(
     new Set(files.map((file) => file.storageId)).size !== files.length
   )
     throw new ConvexError("Description files changed during copy.");
-  const mapped = await Promise.all(
-    assets.map(async (asset) => {
-      const file = bySource.get(asset._id);
-      if (!file || attachmentRevision(asset) !== file.revision)
-        throw new ConvexError("Description files changed during copy.");
-      const blob = await ctx.db.system.get(file.storageId);
-      const claimed = await ctx.db
-        .query("assets")
-        .withIndex("by_storage", (q) => q.eq("storageId", file.storageId))
-        .unique();
-      if (!blob || claimed || blob.size !== asset.size || blob.sha256 !== asset.sha256)
-        throw new ConvexError("Copied bytes do not match the source.");
-      const targetId = await ctx.db.insert("assets", {
-        draftId: draft._id,
-        workspaceId: draft.workspaceId,
-        projectId: null,
-        documentId: null,
-        createdBy: draft.authorId,
-        name: asset.name,
-        contentType: asset.contentType,
-        size: asset.size,
-        sha256: asset.sha256,
-        storageId: file.storageId,
-        status: "ready",
-        expiresAt: asset.expiresAt,
-        attachmentRevision: 0,
-      });
-      return { sourceId: asset._id, targetId };
-    })
-  );
-  return new Map(mapped.map(({ sourceId, targetId }) => [sourceId, targetId]));
+  const mapped = new Map<Id<"assets">, Id<"assets">>();
+  // Each allocation sees earlier inserts in this transaction.
+  /* oxlint-disable no-await-in-loop */
+  for (const asset of assets) {
+    const file = bySource.get(asset._id);
+    if (!file || attachmentRevision(asset) !== file.revision)
+      throw new ConvexError("Description files changed during copy.");
+    const blob = await ctx.db.system.get(file.storageId);
+    const claimed = await ctx.db
+      .query("assets")
+      .withIndex("by_storage", (q) => q.eq("storageId", file.storageId))
+      .unique();
+    if (!blob || claimed || blob.size !== asset.size || blob.sha256 !== asset.sha256)
+      throw new ConvexError("Copied bytes do not match the source.");
+    const targetId = await ctx.db.insert("assets", {
+      apiId: await allocateAssetApiId(ctx),
+      draftId: draft._id,
+      workspaceId: draft.workspaceId,
+      projectId: null,
+      documentId: null,
+      createdBy: draft.authorId,
+      name: asset.name,
+      contentType: asset.contentType,
+      size: asset.size,
+      sha256: asset.sha256,
+      storageId: file.storageId,
+      status: "ready",
+      expiresAt: asset.expiresAt,
+      attachmentRevision: 0,
+    });
+    mapped.set(asset._id, targetId);
+  }
+  /* oxlint-enable no-await-in-loop */
+  return mapped;
 }
 
 export const commit = internalMutation({

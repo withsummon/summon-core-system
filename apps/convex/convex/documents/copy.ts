@@ -1,3 +1,4 @@
+import { allocateAssetApiId } from "../assets/schema";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, query } from "../_generated/server";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -114,31 +115,34 @@ export const begin = internalMutation({
       status: "pending",
       resultId: null,
     });
-    const files = await Promise.all(
-      assets.map(async (asset) => {
-        const targetId = await ctx.db.insert("assets", {
-          workspaceId: asset.workspaceId,
-          projectId: null,
-          documentId: null,
-          documentCopyId: jobId,
-          name: asset.name,
-          contentType: asset.contentType,
-          size: asset.size,
-          sha256: asset.sha256,
-          createdBy: current.user._id,
-          storageId: null,
-          status: "pending",
-          expiresAt: Date.now() + COPY_LIFETIME,
-        });
-        return {
-          sourceId: asset._id,
-          targetId,
-          sourceStorageId: asset.storageId,
-          sha256: asset.sha256,
-          size: asset.size,
-        };
-      })
-    );
+    const files: Doc<"documentCopies">["files"] = [];
+    // Each allocation sees earlier inserts in this transaction.
+    /* oxlint-disable no-await-in-loop */
+    for (const asset of assets) {
+      const targetId = await ctx.db.insert("assets", {
+        apiId: await allocateAssetApiId(ctx),
+        workspaceId: asset.workspaceId,
+        projectId: null,
+        documentId: null,
+        documentCopyId: jobId,
+        name: asset.name,
+        contentType: asset.contentType,
+        size: asset.size,
+        sha256: asset.sha256,
+        createdBy: current.user._id,
+        storageId: null,
+        status: "pending",
+        expiresAt: Date.now() + COPY_LIFETIME,
+      });
+      files.push({
+        sourceId: asset._id,
+        targetId,
+        sourceStorageId: asset.storageId,
+        sha256: asset.sha256,
+        size: asset.size,
+      });
+    }
+    /* oxlint-enable no-await-in-loop */
     await ctx.db.patch(jobId, { files });
     await ctx.scheduler.runAfter(COPY_LIFETIME, internal.documents.copy.expire, { jobId });
     return jobId;

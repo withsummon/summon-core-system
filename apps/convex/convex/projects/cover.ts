@@ -6,9 +6,9 @@ import { canAdministerProject } from "./administration";
 import { descriptor } from "../assets/access";
 import { prepareAsset } from "../assets/index";
 import { fileMetadataFields } from "../assets/schema";
-import { assetSizeLimit, externalCoverUrl, supportedAssetTypes } from "../assets/content";
+import { assetSizeLimit, supportedAssetTypes } from "../assets/content";
 import { pageBudget } from "../commercial/validation";
-import { projectCover, requireCoverWrite, replaceProjectCover } from "./cover_owner";
+import { projectCover, requireCoverWrite, replaceProjectCover, setExternalCover } from "./cover_owner";
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
@@ -91,15 +91,7 @@ export const setExternal = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number(), url: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
     const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
-    const url = externalCoverUrl(args.url);
-    if (appearance) await ctx.db.patch(appearance._id, { externalCoverUrl: url, revision: appearance.revision + 1 });
-    else
-      await ctx.db.insert("projectAppearance", {
-        projectId: args.projectId,
-        coverAssetId: null,
-        externalCoverUrl: url,
-        revision: 1,
-      });
+    await setExternalCover(ctx, args.projectId, appearance, args.url);
   },
 });
 export const clear = mutation({

@@ -25,7 +25,8 @@ export const start = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { user } = await requireWorkspace(ctx, args.workspaceId, true);
+    const workspaceAccess = await requireWorkspace(ctx, args.workspaceId, true);
+    const { user } = workspaceAccess;
     const opportunity = await requireOpportunity(ctx, args.workspaceId, args.opportunityId);
     if (opportunity.stage !== "won") throw new ConvexError("Mark the opportunity as won before starting delivery.");
     if (!opportunity.clientId) throw new ConvexError("Link a client before starting delivery.");
@@ -42,11 +43,15 @@ export const start = mutation({
     }
     const projectId =
       args.target.kind === "create"
-        ? await createProject(ctx, {
-            workspaceId: args.workspaceId,
-            name: args.target.name,
-            identifier: args.target.identifier,
-          })
+        ? await createProject(
+            ctx,
+            {
+              workspaceId: args.workspaceId,
+              name: args.target.name,
+              identifier: args.target.identifier,
+            },
+            workspaceAccess
+          )
         : args.target.projectId;
     const access = await requireDeliveryAdministrator(ctx, projectId);
     if (access.project.workspaceId !== args.workspaceId) throw new ConvexError("Project not found in this workspace.");

@@ -1,3 +1,5 @@
+import { apiIdSchema } from "../identity/schema";
+import { zodToConvex } from "convex-helpers/server/zod4";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 export const systemFields = {
@@ -9,13 +11,16 @@ export const pointFields = { key: v.number(), value: v.string(), description: v.
 export const pointInput = v.object({ ...pointFields, description: v.optional(pointFields.description) });
 export const estimateTables = {
   estimateSystems: defineTable({
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     ...systemFields,
     projectId: v.id("projects"),
     workspaceId: v.id("workspaces"),
     revision: v.number(),
     deleted: v.boolean(),
     retiring: v.boolean(),
-  }).index("by_project", ["projectId", "deleted"]),
+  })
+    .index("by_api_id", ["apiId"])
+    .index("by_project", ["projectId", "deleted"]),
   estimatePoints: defineTable({
     ...pointFields,
     systemId: v.id("estimateSystems"),

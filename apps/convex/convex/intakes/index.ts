@@ -13,7 +13,7 @@ import { pageBudget } from "../commercial/validation";
 import { checkRange, inRange, matchesFilters, validateShape } from "../savedViews/filters";
 import { createTask } from "../tasks/create";
 import { initialProperties, parseTaskText, validateNonStateProperties, creationAssignees } from "../tasks/properties";
-import { priority, nonStateTaskProperties } from "../tasks/schema";
+import { priority, nonStateTaskProperties, allocateTaskStateApiId } from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
 import { requireTask, taskCanRead } from "../tasks/access";
@@ -107,6 +107,7 @@ export const submit = mutation({
     const stateId =
       state?._id ??
       (await ctx.db.insert("taskStates", {
+        apiId: await allocateTaskStateApiId(ctx),
         projectId: project._id,
         workspaceId: project.workspaceId,
         name: "Triage",

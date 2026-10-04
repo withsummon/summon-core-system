@@ -1,7 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import { requireApiAvatar } from "../identity/avatar_access";
 import { publishPersonalImage } from "../identity/avatar_owner";
-import { publishProjectCover } from "../projects/cover_owner";
+import { publishProjectCover, requireApiProjectCover } from "../projects/cover_owner";
 import { publishWorkspaceLogo } from "../settings/logo_owner";
 import { draftAttachmentChanged } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
@@ -11,7 +11,8 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { requireUser } from "../identity/access";
-import { assetScope, fileMetadataFields, commentImageTarget } from "./schema";
+import { allocateAssetApiId, assetScope, fileMetadataFields, commentImageTarget } from "./schema";
+import { apiIdSchema } from "../identity/schema";
 import { requireCommentImageTarget, requirePublicCommentImage } from "./commentImages";
 import { compareValues } from "convex/values";
 import type { personalImagePurpose } from "./schema";
@@ -36,6 +37,7 @@ export async function prepareAsset(
   const assetId = await ctx.db.insert("assets", {
     ...args,
     ...appearance,
+    apiId: await allocateAssetApiId(ctx),
     createdBy: user._id,
     ...(args.taskId || args.draftId ? { attachmentRevision: 0 } : {}),
     storageId: null,
@@ -220,9 +222,42 @@ export const download = internalQuery({
     return (await requireAsset(ctx, assetId, false, readWorkspaceId)).asset;
   },
 });
-export const apiAvatar = internalQuery({
-  args: { userId: v.id("users"), assetId: v.string() },
-  handler: (ctx, { userId, assetId }) => requireApiAvatar(ctx, userId, assetId),
+export const apiAsset = internalQuery({
+  args: { userId: v.id("users"), assetId: v.string(), readWorkspaceApiId: v.optional(v.string()) },
+  handler: async (ctx, { userId, assetId, readWorkspaceApiId }) => {
+    const id = ctx.db.normalizeId("assets", assetId);
+    const asset = id ? await ctx.db.get(id) : null;
+    if (asset?.purpose === "userAvatar") return requireApiAvatar(ctx, userId, assetId, readWorkspaceApiId);
+    if (asset?.purpose === "projectCover") return requireApiProjectCover(ctx, userId, assetId);
+    throw new ConvexError("API asset access denied.");
+  },
+});
+
+// Temporary rollout: remove after complete stored-row UUID coverage and required apiId activation.
+// Includes lifecycle-hidden records; reading a row never allocates its API identity.
+export const backfillApiIds = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db
+      .query("assets")
+      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
+    let changed = 0;
+    /* oxlint-disable no-await-in-loop */
+    for (const row of page.page) {
+      if (row.apiId === undefined) {
+        await ctx.db.patch(row._id, { apiId: await allocateAssetApiId(ctx) });
+        changed++;
+      } else {
+        const apiId = apiIdSchema.parse(row.apiId);
+        await ctx.db
+          .query("assets")
+          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+          .unique();
+      }
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
+  },
 });
 export const remove = mutation({
   args: { assetId: v.id("assets") },

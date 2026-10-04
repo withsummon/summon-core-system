@@ -1,11 +1,11 @@
-import { compareValues, ConvexError, v } from "convex/values";
-import { query, mutation, internalMutation, type QueryCtx } from "../_generated/server";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
+import { query, mutation, internalMutation, type QueryCtx, type MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireProject } from "../identity/access";
 import { requireNetworkScope } from "./network_access";
 import { canAdministerProject } from "./administration";
-import { inactivityMonths, inactivityPolicyFields } from "./schema";
+import { inactivityMonths, inactivityPolicy } from "./schema";
 import { readTaskCycle } from "../cycles/tasks";
 import { cyclePhase } from "../cycles/dates";
 import { readTaskModules } from "../modules/tasks";
@@ -43,7 +43,7 @@ export const save = mutation({
   args: {
     projectId: v.id("projects"),
     expectedRevision: v.union(v.number(), v.null()),
-    changes: v.object(inactivityPolicyFields).partial(),
+    changes: inactivityPolicy.partial(),
   },
   handler: async (ctx, args) => {
     const { project, user, member } = await requireNetworkScope(ctx, args.projectId);
@@ -58,24 +58,38 @@ export const save = mutation({
       throw new ConvexError("Inactivity automations changed. Reopen their latest settings.");
     const previous = { archiveMonths: current?.archiveMonths ?? 0, close: current?.close ?? null };
     const next = { ...previous, ...args.changes };
-    if (next.close) {
-      const state = await ctx.db.get(next.close.stateId);
-      if (state?.projectId !== project._id || state.workspaceId !== project.workspaceId || state.status !== "cancelled")
-        throw new ConvexError("Choose a cancellation state in this project.");
-    }
-    if (compareValues(previous, next) === 0) return { revision: currentRevision };
-    const revision = current ? current.revision + 1 : 0;
-    const data = { ...next, configuredBy: user._id, revision };
-    if (current) await ctx.db.patch(current._id, data);
-    else
-      await ctx.db.insert("projectInactivityPolicies", {
-        ...data,
-        projectId: project._id,
-        workspaceId: project.workspaceId,
-      });
-    return { revision };
+    return writeInactivityPolicy(
+      ctx,
+      { projectId: project._id, workspaceId: project.workspaceId, configuredBy: user._id },
+      next,
+      current
+    );
   },
 });
+export async function writeInactivityPolicy(
+  ctx: MutationCtx,
+  scope: Pick<Doc<"projectInactivityPolicies">, "projectId" | "workspaceId" | "configuredBy">,
+  next: Infer<typeof inactivityPolicy>,
+  current: Doc<"projectInactivityPolicies"> | null
+) {
+  if (next.close) {
+    const state = await ctx.db.get(next.close.stateId);
+    if (state?.projectId !== scope.projectId || state.workspaceId !== scope.workspaceId || state.status !== "cancelled")
+      throw new ConvexError("Choose a cancellation state in this project.");
+  }
+  if (compareValues({ archiveMonths: current?.archiveMonths ?? 0, close: current?.close ?? null }, next) === 0)
+    return { revision: current?.revision ?? null };
+  const revision = current ? current.revision + 1 : 0;
+  const data = { ...next, configuredBy: scope.configuredBy, revision };
+  if (current) await ctx.db.patch(current._id, data);
+  else
+    await ctx.db.insert("projectInactivityPolicies", {
+      ...data,
+      projectId: scope.projectId,
+      workspaceId: scope.workspaceId,
+    });
+  return { revision };
+}
 
 async function endedMemberships(ctx: QueryCtx, task: Doc<"tasks">, asOf: number) {
   const [cycle, modules] = await Promise.all([readTaskCycle(ctx, task), readTaskModules(ctx, task)]);

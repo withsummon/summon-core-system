@@ -2,7 +2,7 @@ import { projectLogoProps } from "./projects/branding_schema";
 import { projectNetwork } from "./projects/network_schema";
 import { projectFeatures } from "./projects/feature_schema";
 import { projectAppearanceTables } from "./projects/appearance_schema";
-import { projectInactivityTables, projectPersonalTables } from "./projects/schema";
+import { projectApiData, projectInactivityTables, projectPersonalTables } from "./projects/schema";
 import { navigationTables } from "./navigation/schema";
 import { estimateTables } from "./estimates/schema";
 import { favoriteTables } from "./favorites/schema";
@@ -80,6 +80,7 @@ export default defineSchema({
     .index("by_workspace_role_active", ["workspaceId", "role", "active"]),
   projects: defineTable({
     apiId: zodToConvex(apiIdSchema),
+    ...zodToConvex(projectApiData.partial()).fields,
     createdById: v.optional(v.union(v.id("users"), v.null())),
     updatedById: v.optional(v.union(v.id("users"), v.null())),
     updatedAt: v.optional(v.number()),
@@ -95,6 +96,7 @@ export default defineSchema({
     logoProps: v.optional(projectLogoProps),
     leadId: v.optional(v.union(v.id("users"), v.null())),
     defaultAssigneeId: v.union(v.id("users"), v.null()),
+    defaultStateId: v.optional(v.union(v.id("taskStates"), v.null())),
     intakeEnabled: v.optional(v.boolean()),
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
@@ -137,6 +139,7 @@ export default defineSchema({
     role,
     active: v.boolean(),
     revision: v.number(),
+    apiSortOrder: v.optional(v.number()),
   })
     .index("by_project_user", ["projectId", "userId"])
     .index("by_user", ["userId"])

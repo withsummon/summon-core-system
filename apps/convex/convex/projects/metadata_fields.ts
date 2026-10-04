@@ -39,9 +39,9 @@ export async function validateProjectMetadata(
     .query("projects")
     .withIndex("by_workspace_identifier", (q) => q.eq("workspaceId", workspaceId).eq("identifier", identifier))
     .first();
-  if (sameName) throw new ConvexError("This project name is already taken.");
+  if (sameName) throw new ConvexError({ status: 409, detail: "This project name is already taken." });
   if (sameIdentifier && sameIdentifier._id !== currentId)
-    throw new ConvexError("This project identifier is already taken.");
+    throw new ConvexError({ status: 409, detail: "This project identifier is already taken." });
   return { name, identifier, description: values.description };
 }
 export async function validateProjectLead(ctx: QueryCtx, workspaceId: Id<"workspaces">, leadId: Id<"users"> | null) {

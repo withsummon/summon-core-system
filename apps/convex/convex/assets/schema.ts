@@ -1,5 +1,7 @@
+import type { MutationCtx } from "../_generated/server";
+import { apiIdSchema } from "../identity/schema";
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { commentRequestId } from "../tasks/schema";
 
@@ -31,6 +33,7 @@ export const assetScope = {
 };
 export const assetTables = {
   assets: defineTable({
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     ...assetScope,
     workspaceId: v.union(v.id("workspaces"), v.null()),
     avatarUserId: v.optional(v.id("users")),
@@ -56,6 +59,7 @@ export const assetTables = {
     ),
     expiresAt: v.number(),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_personal_user_purpose_status", ["avatarUserId", "purpose", "status"])
     .index("by_project_purpose_status", ["projectId", "purpose", "status"])
     .index("by_workspace_purpose_status", ["workspaceId", "purpose", "status"])
@@ -65,3 +69,13 @@ export const assetTables = {
     .index("by_task_status", ["taskId", "status"])
     .index("by_status_expiry", ["status", "expiresAt"]),
 };
+
+export async function allocateAssetApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("assets")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Asset API identifier already exists.");
+  return apiId;
+}

@@ -1,3 +1,4 @@
+import { allocateAssetApiId } from "../assets/schema";
 import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -191,27 +192,30 @@ export const rendered = internalMutation({
     const { job } = await requireJob(ctx, args.jobId, true);
     if (job.status !== "completed") throw new ConvexError("Only completed previews can be rendered.");
     if (job.artifacts?.length) return false;
-    const artifacts = await Promise.all(
-      args.artifacts.map(async (file) => {
-        const metadata = await ctx.db.system.get(file.storageId);
-        if (!metadata || metadata.size > 10000000) throw new ConvexError("Rendered file is unavailable or too large.");
-        const assetId = await ctx.db.insert("assets", {
-          name: file.name,
-          contentType: file.contentType,
-          size: metadata.size,
-          sha256: metadata.sha256,
-          storageId: file.storageId,
-          automationJobId: job._id,
-          workspaceId: job.workspaceId,
-          projectId: job.projectId,
-          documentId: null,
-          createdBy: job.requesterId,
-          status: "ready",
-          expiresAt: Date.now() + 7 * 86400000,
-        });
-        return { assetId, format: file.format };
-      })
-    );
+    const artifacts: NonNullable<typeof job.artifacts> = [];
+    // Each allocation sees earlier inserts in this transaction.
+    /* oxlint-disable no-await-in-loop */
+    for (const file of args.artifacts) {
+      const metadata = await ctx.db.system.get(file.storageId);
+      if (!metadata || metadata.size > 10000000) throw new ConvexError("Rendered file is unavailable or too large.");
+      const assetId = await ctx.db.insert("assets", {
+        apiId: await allocateAssetApiId(ctx),
+        name: file.name,
+        contentType: file.contentType,
+        size: metadata.size,
+        sha256: metadata.sha256,
+        storageId: file.storageId,
+        automationJobId: job._id,
+        workspaceId: job.workspaceId,
+        projectId: job.projectId,
+        documentId: null,
+        createdBy: job.requesterId,
+        status: "ready",
+        expiresAt: Date.now() + 7 * 86400000,
+      });
+      artifacts.push({ assetId, format: file.format });
+    }
+    /* oxlint-enable no-await-in-loop */
     await ctx.db.patch(job._id, { artifacts });
     return true;
   },
