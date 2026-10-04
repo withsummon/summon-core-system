@@ -138,7 +138,7 @@ async function projectWire(
     is_issue_type_enabled: () => known("is_issue_type_enabled", project.issueTypeEnabled),
     guest_view_all_features: () => known("guest_view_all_features", project.guestViewAllFeatures),
     cover_image: () => appearance?.externalCoverUrl ?? null,
-    cover_image_asset: () => (coverAsset ? apiIdSchema.parse(known("cover_image_asset", coverAsset.apiId)) : null),
+    cover_image_asset: () => (coverAsset ? apiIdSchema.parse(coverAsset.apiId) : null),
     cover_image_url: () =>
       coverAsset
         ? new URL(descriptor(coverAsset).downloadPath, assetOrigin).toString()
@@ -152,7 +152,7 @@ async function projectWire(
       const system = await ctx.db.get(config.activeSystemId);
       if (system?.projectId !== project._id || system.workspaceId !== project.workspaceId)
         return unsupportedReference("estimate");
-      return apiIdSchema.parse(known("estimate", system.apiId));
+      return apiIdSchema.parse(system.apiId);
     },
     archive_in: () => policy?.archiveMonths ?? 0,
     close_in: () => policy?.close?.months ?? 0,
@@ -179,7 +179,7 @@ async function projectWire(
       const state = await ctx.db.get(id);
       if (state?.projectId !== project._id || state.workspaceId !== project.workspaceId)
         return unsupportedReference("default_state");
-      return apiIdSchema.parse(known("default_state", state.apiId));
+      return apiIdSchema.parse(state.apiId);
     },
     total_members: async () =>
       (
