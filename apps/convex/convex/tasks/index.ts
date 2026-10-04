@@ -1,4 +1,4 @@
-import { taskIsActive, taskDetail, taskCanRead, taskRoleCanRead, requireTask } from "./access";
+import { taskIsActive, taskDetail, taskCanRead, taskRoleCanRead, requireTask, taskOrdering } from "./access";
 import {
   preparePropertyUpdate,
   applyPropertyUpdate,
@@ -18,7 +18,7 @@ import { stream } from "convex-helpers/server/stream";
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
-import { status, taskPosition, taskProperties } from "./schema";
+import { status, taskPosition, taskProperties, profileOrder, viewFilters } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
@@ -28,31 +28,55 @@ import { readTaskParent } from "./hierarchy";
 import { readTaskCycle } from "../cycles/tasks";
 import { readTaskModules } from "../modules/tasks";
 import { validateProperties } from "./properties";
+import { matchesFilters, validateShape } from "../savedViews/filters";
+import { text as validateText } from "../commercial/validation";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
 
 export const list = query({
-  args: { projectId: v.id("projects"), openOnly: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
+  args: {
+    projectId: v.id("projects"),
+    openOnly: v.optional(v.boolean()),
+    filters: v.optional(viewFilters),
+    search: v.optional(v.string()),
+    order: v.optional(profileOrder),
+    stateId: v.optional(v.union(v.id("taskStates"), v.null())),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const access = await requireProject(ctx, args.projectId);
     const { user, member, projectMember, project } = access;
+    if (args.filters) validateShape(args.filters);
+    const search = validateText(args.search ?? "", "Search", 255).toLowerCase();
+    const ordering = taskOrdering[args.order ?? "createdAt"];
     if (
       !Number.isSafeInteger(args.paginationOpts.numItems) ||
       args.paginationOpts.numItems < 1 ||
       args.paginationOpts.numItems > MAX_PAGE_TASKS
     )
       throw new ConvexError("Request an integer between 1 and 100 tasks per page.");
-    return stream(ctx.db, schema)
-      .query("tasks")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .order("desc")
+    const tasks = stream(ctx.db, schema).query("tasks");
+    const orderedTasks =
+      args.order === "updatedAt"
+        ? tasks.withIndex("by_project_updated", (q) => q.eq("projectId", project._id)).order("desc")
+        : args.order === undefined || args.order === "createdAt"
+          ? tasks.withIndex("by_project", (q) => q.eq("projectId", project._id)).order("desc")
+          : tasks.withIndex(ordering.index, (q) => q.eq("workspaceId", project.workspaceId)).order(ordering.direction);
+    return orderedTasks
       .map(async (task) => {
         if (
+          task.projectId !== project._id ||
           !taskIsActive(task) ||
           (args.openOnly && (task.status === "done" || task.status === "cancelled")) ||
           task.workspaceId !== project.workspaceId ||
           !taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures)
+        )
+          return null;
+        if (
+          (args.filters && !matchesFilters(task, args.filters)) ||
+          (args.stateId !== undefined && task.stateId !== args.stateId) ||
+          !`${task.title} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search)
         )
           return null;
         return taskDetail(ctx, task, access);
