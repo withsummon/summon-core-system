@@ -166,13 +166,6 @@ export const results = query({
   args: { viewId: v.id("savedViews"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { view, access: permission } = await requireWorkspaceView(ctx, args.viewId);
-    return resultPage(
-      ctx,
-      view,
-      view.workspaceId,
-      permission.user._id,
-      permission.member.role === "guest",
-      args.paginationOpts
-    );
+    return resultPage(ctx, view, permission, args.paginationOpts);
   },
 });
