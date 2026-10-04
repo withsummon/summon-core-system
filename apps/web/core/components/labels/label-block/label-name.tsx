@@ -16,7 +16,7 @@ export function LabelName(props: ILabelName) {
   const { name, color, isGroup } = props;
 
   return (
-    <div className="flex items-center gap-3 pr-20">
+    <div className="flex min-w-0 items-center gap-3">
       {isGroup ? (
         <Component className="h-3.5 w-3.5" color={color} />
       ) : (
@@ -27,7 +27,7 @@ export function LabelName(props: ILabelName) {
           }}
         />
       )}
-      <h6 className="text-13">{name}</h6>
+      <h6 className="text-13 break-words">{name}</h6>
     </div>
   );
 }

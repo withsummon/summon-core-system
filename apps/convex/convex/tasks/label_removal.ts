@@ -3,18 +3,12 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { pageBudget } from "../commercial/validation";
 import { mutation, query } from "../_generated/server";
-import { requireProject } from "../identity/access";
-import type { QueryCtx } from "../_generated/server";
+import { requireLabelManagement } from "./label_access";
 import type { Id } from "../_generated/dataModel";
-async function admin(ctx: QueryCtx, projectId: Id<"projects">) {
-  const access = await requireProject(ctx, projectId, true);
-  if (access.projectMember.role !== "admin") throw new ConvexError("Only project administrators can manage labels.");
-  return access;
-}
 export const list = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await admin(ctx, args.projectId);
+    await requireLabelManagement(ctx, args.projectId);
     return ctx.db
       .query("labelRemovalJobs")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -27,7 +21,7 @@ export const begin = mutation({
   handler: async (ctx, args) => {
     const label = await ctx.db.get(args.labelId);
     if (!label) throw new ConvexError("Label not found.");
-    await admin(ctx, label.projectId);
+    await requireLabelManagement(ctx, label.projectId);
     if (label.revision !== args.expectedRevision) throw new ConvexError("Label changed. Reopen its latest settings.");
     if (label.retiring) throw new ConvexError("Label removal is already in progress.");
     const projectLabels = await ctx.db
@@ -63,7 +57,7 @@ export const cancel = mutation({
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
     if (!job) throw new ConvexError("Removal not found.");
-    await admin(ctx, job.projectId);
+    await requireLabelManagement(ctx, job.projectId);
     if (job.status !== "running") return;
     if (job.started) throw new ConvexError("Removal has already changed references. Continue it to completion.");
     await Promise.all(
@@ -80,7 +74,7 @@ export const step = mutation({
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
     if (!job) throw new ConvexError("Removal not found.");
-    const { user } = await admin(ctx, job.projectId);
+    const { user } = await requireLabelManagement(ctx, job.projectId);
     if (job.status !== "running") return { done: true, changed: 0 };
     const ids = new Set(job.labelIds);
     let changed = 0;

@@ -4,28 +4,27 @@
  * See the LICENSE file for details.
  */
 
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
-import { observer } from "mobx-react";
 import { createRoot } from "react-dom/client";
 // types
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import type { IIssueLabel, InstructionType } from "@plane/types";
+import type { InstructionType } from "@plane/types";
+import type { ComponentProps } from "react";
+import type { ProjectLabel } from "./create-update-label-inline";
+import type { ProjectSettingLabelItem } from "./project-setting-label-item";
 // ui
 import { DropIndicator } from "@plane/ui";
 // components
-import { useUserPermissions } from "@/hooks/store/user";
 import { LabelName } from "./label-block/label-name";
-import type { TargetData } from "./label-utils";
 import { getCanDrop, getInstructionFromPayload } from "./label-utils";
 
 type LabelDragPreviewProps = {
-  label: IIssueLabel;
+  label: ProjectLabel;
   isGroup: boolean;
 };
 
@@ -40,34 +39,28 @@ export function LabelDragPreview(props: LabelDragPreviewProps) {
 }
 
 type Props = {
-  label: IIssueLabel;
+  label: ProjectLabel;
   isGroup: boolean;
   isChild: boolean;
   isLastChild: boolean;
   children: (
     isDragging: boolean,
     isDroppingInLabel: boolean,
-    dragHandleRef: MutableRefObject<HTMLButtonElement | null>
+    dragHandleRef: RefObject<HTMLButtonElement>
   ) => React.ReactNode;
-  onDrop: (
-    draggingLabelId: string,
-    droppedParentId: string | null,
-    droppedLabelId: string | undefined,
-    dropAtEndOfList: boolean
-  ) => void;
+  labels: ProjectLabel[];
+  isEditable: boolean;
+  onDrop: ComponentProps<typeof ProjectSettingLabelItem>["onDrop"];
 };
 
-export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
-  const { label, isGroup, isChild, isLastChild, children, onDrop } = props;
+export function LabelDndHOC(props: Props) {
+  const { label, labels, isGroup, isChild, isLastChild, children, onDrop, isEditable } = props;
 
   const [isDragging, setIsDragging] = useState(false);
   const [instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
   // refs
   const labelRef = useRef<HTMLDivElement | null>(null);
-  const dragHandleRef = useRef<HTMLButtonElement | null>(null);
-
-  const { allowPermissions } = useUserPermissions();
-  const isEditable = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
+  const dragHandleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const element = labelRef.current;
@@ -79,7 +72,7 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
       draggable({
         element,
         dragHandle: dragHandleElement ?? undefined,
-        getInitialData: () => ({ id: label?.id, parentId: label?.parent, isGroup, isChild }),
+        getInitialData: () => ({ id: label._id, revision: label.revision, parentId: label.parentId, isGroup, isChild }),
         onDragStart: () => {
           setIsDragging(true);
         },
@@ -101,8 +94,8 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
       dropTargetForElements({
         element,
         canDrop: ({ source }) => getCanDrop(source, label, isChild),
-        getData: ({ input, element }) => {
-          const data = { id: label?.id, parentId: label?.parent, isGroup, isChild };
+        getData: ({ input, element: targetElement }) => {
+          const data = { id: label._id, parentId: label.parentId, isGroup, isChild };
 
           const blockedStates: InstructionType[] = [];
 
@@ -113,7 +106,7 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
 
           return attachInstruction(data, {
             input,
-            element,
+            element: targetElement,
             currentLevel: isChild ? 1 : 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -121,8 +114,7 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
           });
         },
         onDrag: ({ self, source, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          setInstruction(getInstructionFromPayload(self, source, location));
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -138,29 +130,33 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
           const dropTarget =
             dropTargets.length > 1 ? dropTargets.find((target) => target?.data?.isChild) : dropTargets[0];
 
-          let parentId: string | null = null,
-            dropAtEndOfList = false;
-
-          const dropTargetData = dropTarget?.data as TargetData;
-
-          if (!dropTarget || !dropTargetData) return;
-
-          // get possible instructions for the dropTarget
-          const instruction = getInstructionFromPayload(dropTarget, source, location);
-
-          // if instruction is make child the set parentId as current dropTarget Id or else set it as dropTarget's parentId
-          parentId = instruction === "make-child" ? dropTargetData.id : dropTargetData.parentId;
-          // if instruction is any other than make-child, i.e., reorder-above and reorder-below then set the droppedId as dropTarget's id
-          const droppedLabelId = instruction !== "make-child" ? dropTargetData.id : undefined;
-          // if instruction is to reorder-below that is enabled only for end of the last items in the list then dropAtEndOfList as true
-          if (instruction === "reorder-below") dropAtEndOfList = true;
-
-          const sourceData = source.data as TargetData;
-          if (sourceData.id) onDrop(sourceData.id, parentId, droppedLabelId, dropAtEndOfList);
+          if (!dropTarget) return;
+          const dragging = labels.find((row) => row._id === source.data.id);
+          const target = labels.find((row) => row._id === dropTarget.data.id);
+          if (!dragging || !target || typeof source.data.revision !== "number") return;
+          const dropInstruction = getInstructionFromPayload(dropTarget, source, location);
+          if (!dropInstruction) return;
+          void onDrop({
+            projectId: label.projectId,
+            labelId: dragging._id,
+            expectedRevision: source.data.revision,
+            change: {
+              kind: "position",
+              parentId: dropInstruction === "make-child" ? target._id : target.parentId,
+              position:
+                dropInstruction === "make-child"
+                  ? { targetId: null }
+                  : {
+                      targetId: target._id,
+                      expectedRevision: target.revision,
+                      placement: dropInstruction === "reorder-below" ? "after" : "before",
+                    },
+            },
+          });
         },
       })
     );
-  }, [labelRef?.current, dragHandleRef?.current, label, isChild, isGroup, isLastChild, onDrop]);
+  }, [label, labels, isChild, isGroup, isLastChild, onDrop, isEditable]);
 
   const isMakeChild = instruction == "make-child";
 
@@ -171,4 +167,4 @@ export const LabelDndHOC = observer(function LabelDndHOC(props: Props) {
       {isLastChild && <DropIndicator classNames="my-1" isVisible={instruction === "reorder-below"} />}
     </div>
   );
-});
+}
