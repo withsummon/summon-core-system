@@ -360,7 +360,7 @@ export const taskTables = {
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_actor", ["workspaceId", "actorId"]),
   taskStates: defineTable({
-    apiId: v.optional(zodToConvex(apiIdSchema)),
+    apiId: zodToConvex(apiIdSchema),
     ...stateFields,
     status: taskStatus,
     workspaceId: v.id("workspaces"),

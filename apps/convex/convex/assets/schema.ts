@@ -33,7 +33,7 @@ export const assetScope = {
 };
 export const assetTables = {
   assets: defineTable({
-    apiId: v.optional(zodToConvex(apiIdSchema)),
+    apiId: zodToConvex(apiIdSchema),
     ...assetScope,
     workspaceId: v.union(v.id("workspaces"), v.null()),
     avatarUserId: v.optional(v.id("users")),
