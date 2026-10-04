@@ -1,5 +1,13 @@
 # Account profile slice
 
+## External user identity rollout
+
+The inherited `GET /api/v1/users/me/` publishes a persistent UUID. Native application `users.apiId` owns that external identity separately from the Convex record ID and Better Auth component user ID. The existing user owner allocates a native UUID, parses it through `userApiId` and checks its indexed uniqueness inside the creation transaction. Both configured authentication insertion paths use it; linking, profile editing and email changes retain the same ID. No response-generated ID or generic identity registry is introduced.
+
+The optional field is a temporary stored-row rollout contract. Deploy the additive schema, run every 50-row/1 MiB cursor page of internal `identity/user_owner:backfillApiIds`, then repeat the complete scan with zero changes. Existing UUIDs must parse and resolve to their original row; missing UUIDs are allocated without changing account/profile metadata. Independently verify complete valid/distinct coverage and preservation of every other row field. Only after each deployment's proof may its external consumer activate. Require `apiId` in the final schema and remove the temporary mutation after all deployment receipts. Reads never allocate or substitute a Convex ID.
+
+This additive source phase does not register or accept the REST transport. Current API-key verification, exact inherited user fields, authenticated current-avatar bytes, native quota/error headers and API audit logging still need their own public-boundary integration proof. No deployment or stored-row migration is claimed here.
+
 Legacy owner: UserEndpoint and UserSerializer first/last/display name and timezone fields. Native owner: identity/profile with implicit Better Auth identity and a verified link to the stable application user; no user ID is accepted from the caller. Application users.name remains the public display-name field. Private first/last/timezone metadata lives in userProfiles indexed by user; both records change atomically. Missing profile means a not-yet-configured account with revision 0, not a migrated credential.
 
 Names are bounded and first/last names reject URL-shaped input. Timezone uses existing settings/timezone validation. Every save captures a revision; concurrent insertion/update conflicts cannot overwrite a newer profile. Frontend uses established fields in Account details; its draft is keyed by identity, never by live revision. Review caught and fixed missing identity-key isolation.

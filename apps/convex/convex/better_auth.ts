@@ -22,6 +22,7 @@ import { oauthConfigurations } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
 import { normalizedEmail } from "./invitations/access";
 import { lastLoginMedium } from "./identity/schema";
+import { allocateUserApiId } from "./identity/user_owner";
 
 export const siteUrl = process.env.SITE_URL ?? "";
 
@@ -155,6 +156,7 @@ async function linkVerifiedUser(
   let userId = (await existingAppUser(ctx, email))?._id;
   if (!userId)
     userId = await ctx.db.insert("users", {
+      apiId: await allocateUserApiId(ctx),
       email,
       name,
       emailVerificationTime: Date.now(),
