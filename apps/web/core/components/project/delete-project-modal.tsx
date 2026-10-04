@@ -122,8 +122,8 @@ export function DeleteProjectDialog({
           <Dialog.Description className="text-13 leading-7 text-secondary">
             Are you sure you want to delete project <span className="font-semibold break-words">{name}</span>?
             {recoverable
-              ? "The project will move to Trash. Its data is retained and an authorized administrator can restore it."
-              : "All of the data related to the project will be permanently removed. This action cannot be undone"}
+              ? " The project will move to Trash. Its data is retained and an authorized administrator can restore it."
+              : " All of the data related to the project will be permanently removed. This action cannot be undone"}
           </Dialog.Description>
         </div>
         <div className="text-secondary">
