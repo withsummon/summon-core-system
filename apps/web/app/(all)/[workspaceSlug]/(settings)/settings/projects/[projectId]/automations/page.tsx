@@ -9,6 +9,7 @@ import { useOutletContext, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { api } from "@summon/convex/api";
+import { PROJECT_SETTINGS } from "@plane/constants";
 import type { Id } from "@summon/convex/data-model";
 import { useTranslation } from "@plane/i18n";
 import { Loader } from "@plane/ui";
@@ -136,7 +137,7 @@ export default function AutomationSettingsPage() {
       {...session}
       project={project}
       authorized={project.role !== "guest"}
-      activePath="common.automations"
+      activePath={PROJECT_SETTINGS.automations.i18n_label}
       header={<AutomationsProjectSettingsHeader />}
     >
       <PageHead title={`${project.name} - Automations`} />
