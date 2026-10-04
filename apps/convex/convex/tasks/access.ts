@@ -3,17 +3,15 @@ import type { DataModel, Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
-import { profileOrder } from "./schema";
+import { taskOrder } from "./schema";
 export const taskOrdering = {
   sortOrder: { index: "by_workspace_manual", direction: "asc" },
   createdAt: { index: "by_workspace", direction: "desc" },
   updatedAt: { index: "by_workspace_updated", direction: "desc" },
   startDate: { index: "by_workspace_start_date", direction: "asc" },
+  targetDate: { index: "by_workspace_target_date", direction: "asc" },
   priority: { index: "by_workspace_priority", direction: "asc" },
-} satisfies Record<
-  Infer<typeof profileOrder>,
-  { index: keyof DataModel["tasks"]["indexes"]; direction: "asc" | "desc" }
->;
+} satisfies Record<Infer<typeof taskOrder>, { index: keyof DataModel["tasks"]["indexes"]; direction: "asc" | "desc" }>;
 export function taskIsActive(
   task: Doc<"tasks">
 ): task is Doc<"tasks"> & { status: Exclude<Doc<"tasks">["status"], "triage"> } {

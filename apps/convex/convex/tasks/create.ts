@@ -67,6 +67,7 @@ export async function createTask(
     // The actual document timestamp replaces this value before the transaction publishes.
     createdAtDescending: 0,
     startDateMissing: data.startDate === null,
+    targetDateMissing: data.targetDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === data.priority),
     createdBy: userId,
     updatedAt,

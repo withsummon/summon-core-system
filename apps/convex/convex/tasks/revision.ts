@@ -28,6 +28,7 @@ export async function taskChanged(
     updatedAt,
     titleUpdatedAt: current.title !== task.title ? updatedAt : current.titleUpdatedAt,
     startDateMissing: current.startDate === null,
+    targetDateMissing: current.targetDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === current.priority),
   });
   // Manual reordering advances the revision without creating a subscriber activity.
