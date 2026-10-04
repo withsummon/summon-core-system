@@ -1,5 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
 import { ConvexError, v } from "convex/values";
+import schema from "../schema";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { requireProject, requireWorkspace } from "../identity/access";
 import {
@@ -19,12 +21,10 @@ export const list = query({
       args.paginationOpts.numItems > 100
     )
       throw new ConvexError("Request between 1 and 100 projects.");
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("projectUserProperties")
       .withIndex("by_owner_order", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", user._id))
-      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1048576 });
-    const rows = await Promise.all(
-      result.page.map(async (row) => {
+      .map(async (row) => {
         const visible = await visibleOrderedProject(ctx, row);
         return visible
           ? Object.assign(visible.project, {
@@ -34,8 +34,7 @@ export const list = query({
             })
           : null;
       })
-    );
-    return { ...result, page: rows.filter((row) => row !== null) };
+      .paginate({ ...args.paginationOpts, maximumRowsRead: 100, maximumBytesRead: 1048576 });
   },
 });
 export const move = mutation({
@@ -62,8 +61,8 @@ export const move = mutation({
     await ctx.db.patch(neighbor._id, { sortOrder: current.sortOrder, revision: neighbor.revision + 1 });
   },
 });
-// Additive migration only. Existing projects.list remains the current consumer
-// until both deployments complete and verify every page twice.
+// Missing-row rollout owner. Verify complete coverage before activating an
+// ordered consumer on each deployment; creation and grants initialize new rows.
 export const backfill = internalMutation({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {

@@ -237,6 +237,11 @@ const routes: RouteConfigEntry[] = [
       ),
       route(":workspaceSlug/settings", "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx"),
       route(
+        ":workspaceSlug/settings/billing",
+        "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx"
+      ),
+      route(":workspaceSlug/settings/projects", "./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx"),
+      route(
         ":workspaceSlug/settings/exports",
         "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx"
       ),

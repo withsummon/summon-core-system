@@ -95,31 +95,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           ),
         ]),
       ]),
-
-      // ====================================================================
-      // SETTINGS SECTION
-      // ====================================================================
-      layout("./(all)/[workspaceSlug]/(settings)/layout.tsx", [
-        // --------------------------------------------------------------------
-        // WORKSPACE SETTINGS
-        // --------------------------------------------------------------------
-
-        layout("./(all)/[workspaceSlug]/(settings)/settings/(workspace)/layout.tsx", [
-          route(
-            ":workspaceSlug/settings/billing",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx"
-          ),
-        ]),
-
-        // --------------------------------------------------------------------
-        // PROJECT SETTINGS
-        // --------------------------------------------------------------------
-
-        layout("./(all)/[workspaceSlug]/(settings)/settings/projects/layout.tsx", [
-          // No Projects available page
-          route(":workspaceSlug/settings/projects", "./(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx"),
-        ]),
-      ]),
     ]),
     // ======================================================================
     // STANDALONE ROUTES (outside workspace context)
