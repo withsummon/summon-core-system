@@ -1,4 +1,6 @@
-import { v, ConvexError } from "convex/values";
+import { defaultTaskPreferences, taskPreferences, taskPreferencesSchema } from "../tasks/schema";
+import { validateFilters } from "../savedViews/filters";
+import { v, ConvexError, compareValues } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -184,5 +186,47 @@ export const lifecycle = mutation({
         updatedAt: Math.max(Date.now(), cycle.updatedAt + 1),
       });
     }
+  },
+});
+
+async function ownTaskPreferences(ctx: QueryCtx, cycleId: Id<"cycles">) {
+  const { cycle, user } = await requireCycle(ctx, cycleId);
+  const stored = await ctx.db
+    .query("cycleUserProperties")
+    .withIndex("by_cycle_user", (q) => q.eq("cycleId", cycle._id).eq("userId", user._id))
+    .unique();
+  if (stored && (stored.workspaceId !== cycle.workspaceId || stored.projectId !== cycle.projectId))
+    throw new ConvexError("Cycle personal properties scope is inconsistent.");
+  return { cycle, user, stored };
+}
+export const getTaskPreferences = query({
+  args: { cycleId: v.id("cycles") },
+  handler: async (ctx, args) => {
+    const { stored } = await ownTaskPreferences(ctx, args.cycleId);
+    return { ...(stored ? stored.taskPreferences : defaultTaskPreferences), revision: stored?.revision ?? 0 };
+  },
+});
+export const saveTaskPreferences = mutation({
+  args: { cycleId: v.id("cycles"), expectedRevision: v.number(), changes: taskPreferences.partial() },
+  handler: async (ctx, args) => {
+    const { cycle, user, stored } = await ownTaskPreferences(ctx, args.cycleId);
+    const revision = stored?.revision ?? 0;
+    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== revision)
+      throw new ConvexError("Cycle display preferences changed. Reload before saving.");
+    const current = stored ? stored.taskPreferences : defaultTaskPreferences;
+    const parsed = taskPreferencesSchema.safeParse({ ...current, ...args.changes });
+    if (!parsed.success) throw new ConvexError(parsed.error.message);
+    if (args.changes.filters !== undefined) await validateFilters(ctx, cycle.projectId, parsed.data.filters);
+    if (compareValues(current, parsed.data) === 0) return;
+    const next = { taskPreferences: parsed.data, revision: revision + 1 };
+    if (stored) await ctx.db.patch(stored._id, next);
+    else
+      await ctx.db.insert("cycleUserProperties", {
+        workspaceId: cycle.workspaceId,
+        projectId: cycle.projectId,
+        cycleId: cycle._id,
+        userId: user._id,
+        ...next,
+      });
   },
 });

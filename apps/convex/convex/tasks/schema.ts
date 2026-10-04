@@ -4,7 +4,7 @@ import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import { calendarDate } from "../commercial/validation";
 import { defineTable } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 export const status = v.union(
   v.literal("backlog"),
   v.literal("todo"),
@@ -30,6 +30,22 @@ export const priority = v.union(
   v.literal("low"),
   v.literal("none")
 );
+const dateRange = v.union(
+  v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
+  v.null()
+);
+export const viewFilters = v.object({
+  match: v.union(v.literal("all"), v.literal("any")),
+  statuses: v.array(status),
+  stateIds: v.array(v.id("taskStates")),
+  priorities: v.array(priority),
+  assigneeIds: v.array(v.id("users")),
+  labelIds: v.array(v.id("taskLabels")),
+  creatorIds: v.array(v.id("users")),
+  startDate: dateRange,
+  targetDate: dateRange,
+});
+
 const conditionFields = { id: z.string(), type: z.literal("condition") };
 const dateProperty = z.enum(["startDate", "targetDate"]);
 export const profileCondition = z.union([
@@ -136,6 +152,73 @@ export const profileTaskPreferences = v.object({
   filters: zodToConvex(profileExpression),
 });
 export const profileTaskPreferencesSchema = convexToZod(profileTaskPreferences).extend({ filters: profileExpression });
+// Collection display preferences are independent of the profile's two-layout renderer.
+export const taskLayout = v.union(
+  v.literal("list"),
+  v.literal("kanban"),
+  v.literal("calendar"),
+  v.literal("spreadsheet"),
+  v.literal("gantt")
+);
+export const taskDisplayFilters = v.object({
+  ...profileDisplayFilters.fields,
+  layout: taskLayout,
+  subGroupBy: profileGroupBy,
+  calendar: v.object({ showWeekends: v.boolean(), layout: v.union(v.literal("month"), v.literal("week")) }),
+});
+export const taskPreferences = v.object({
+  displayFilters: taskDisplayFilters,
+  displayProperties: profileDisplayProperties,
+  filters: viewFilters,
+});
+export const taskPreferencesSchema = convexToZod(taskPreferences).superRefine(({ displayFilters }, ctx) => {
+  if (displayFilters.groupBy === null && displayFilters.subGroupBy !== null)
+    ctx.addIssue({ code: "custom", message: "Choose a primary group before a subgroup." });
+  if (displayFilters.layout === "kanban" && displayFilters.groupBy === null)
+    ctx.addIssue({ code: "custom", message: "Choose a group for the board layout." });
+  if (displayFilters.subGroupBy !== null && displayFilters.groupBy === displayFilters.subGroupBy)
+    ctx.addIssue({ code: "custom", message: "Choose distinct primary and secondary groups." });
+});
+export const defaultTaskPreferences = {
+  displayFilters: {
+    layout: "list",
+    groupBy: null,
+    subGroupBy: null,
+    order: "createdAt",
+    includeSubtasks: true,
+    showEmptyGroups: true,
+    calendar: { showWeekends: false, layout: "month" },
+  },
+  displayProperties: {
+    assignee: true,
+    attachment_count: true,
+    created_on: true,
+    due_date: true,
+    estimate: true,
+    key: true,
+    labels: true,
+    link: true,
+    priority: true,
+    start_date: true,
+    state: true,
+    sub_issue_count: true,
+    updated_on: true,
+    cycle: true,
+    modules: true,
+  },
+  filters: {
+    match: "all",
+    statuses: [],
+    stateIds: [],
+    priorities: [],
+    assigneeIds: [],
+    labelIds: [],
+    creatorIds: [],
+    startDate: null,
+    targetDate: null,
+  },
+} satisfies Infer<typeof taskPreferences>;
+
 export const nonStateTaskProperties = {
   estimatePointId: v.union(v.id("estimatePoints"), v.null()),
   priority,

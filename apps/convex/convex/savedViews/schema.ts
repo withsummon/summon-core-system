@@ -1,6 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { status, priority } from "../tasks/schema";
+import { viewFilters } from "../tasks/schema";
+export { viewFilters } from "../tasks/schema";
 import { projectLogoProps } from "../projects/branding_schema";
 export const viewAccess = v.union(v.literal("private"), v.literal("public"));
 export const viewListFields = {
@@ -11,21 +12,6 @@ export const viewListFields = {
   favorites: v.optional(v.boolean()),
   createdAt: v.optional(v.array(v.object({ before: v.boolean(), timestamp: v.number() }))),
 };
-const dateRange = v.union(
-  v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
-  v.null()
-);
-export const viewFilters = v.object({
-  match: v.union(v.literal("all"), v.literal("any")),
-  statuses: v.array(status),
-  stateIds: v.array(v.id("taskStates")),
-  priorities: v.array(priority),
-  assigneeIds: v.array(v.id("users")),
-  labelIds: v.array(v.id("taskLabels")),
-  creatorIds: v.array(v.id("users")),
-  startDate: dateRange,
-  targetDate: dateRange,
-});
 export const viewDefinitionFields = {
   name: v.string(),
   description: v.string(),
