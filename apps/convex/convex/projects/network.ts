@@ -40,7 +40,7 @@ async function directoryProject(ctx: QueryCtx, access: Awaited<ReturnType<typeof
     name: project.name,
     identifier: project.identifier,
     description: project.description,
-    lead: project.leadId ? await directoryPerson(ctx, project.leadId, project.workspaceId) : null,
+    lead: project.leadId ? await directoryPerson(ctx, project.leadId, project.workspaceId, member.role) : null,
     logoProps,
     logo: renderedProjectLogo(logoProps),
     createdAt: project._creationTime,

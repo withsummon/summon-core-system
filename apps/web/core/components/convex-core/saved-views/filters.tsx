@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+import type { Id } from "@summon/convex/data-model";
+import { retainedChoices } from "./choices";
+import type { FunctionReturnType } from "convex/server";
 import type { FunctionArgs } from "convex/server";
 import type { api } from "@summon/convex/api";
 import { Input } from "@plane/propel/input";
@@ -98,5 +102,75 @@ export function FilterChoices<T extends string>({
         ))}
       </div>
     </fieldset>
+  );
+}
+export function ReferenceFilters({
+  choices,
+  selections,
+  filters,
+  onChange,
+  taxonomyControls,
+  peopleControls,
+}: {
+  choices: {
+    users: { id: Id<"users">; label: string }[];
+    states: { id: Id<"taskStates">; label: string }[];
+    labels: { id: Id<"taskLabels">; label: string }[];
+  };
+  selections?: FunctionReturnType<typeof api.savedViews.index.get>["selections"];
+  filters: Filters;
+  onChange: (filters: Filters) => void;
+  taxonomyControls: ReactNode;
+  peopleControls: ReactNode;
+}) {
+  const userChoices = retainedChoices(
+    choices.users,
+    selections?.users ?? [],
+    [...filters.assigneeIds, ...filters.creatorIds],
+    "Unavailable member"
+  );
+  const stateChoices = retainedChoices(choices.states, selections?.states ?? [], filters.stateIds, "Unavailable state");
+  const labelChoices = retainedChoices(choices.labels, selections?.labels ?? [], filters.labelIds, "Unavailable label");
+  return (
+    <>
+      <details
+        className="space-y-3 rounded-md border border-subtle-1 p-3"
+        open={filters.stateIds.length + filters.labelIds.length > 0 || undefined}
+      >
+        <summary className="cursor-pointer text-14 font-medium">States and labels</summary>
+        <FilterChoices
+          label="Workflow states"
+          options={stateChoices}
+          selected={filters.stateIds}
+          onChange={(stateIds) => onChange({ ...filters, stateIds })}
+        />
+        <FilterChoices
+          label="Labels"
+          options={labelChoices}
+          selected={filters.labelIds}
+          onChange={(labelIds) => onChange({ ...filters, labelIds })}
+        />
+        {taxonomyControls}
+      </details>
+      <details
+        className="space-y-3 rounded-md border border-subtle-1 p-3"
+        open={filters.assigneeIds.length + filters.creatorIds.length > 0 || undefined}
+      >
+        <summary className="cursor-pointer text-14 font-medium">Assignees and creators</summary>
+        <FilterChoices
+          label="Assignees"
+          options={userChoices}
+          selected={filters.assigneeIds}
+          onChange={(assigneeIds) => onChange({ ...filters, assigneeIds })}
+        />
+        <FilterChoices
+          label="Creators"
+          options={userChoices}
+          selected={filters.creatorIds}
+          onChange={(creatorIds) => onChange({ ...filters, creatorIds })}
+        />
+        {peopleControls}
+      </details>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { directoryPerson } from "../projects/directory";
 import { defaultTaskPreferences, taskPreferences, taskPreferencesSchema } from "../tasks/schema";
 import { validateFilters } from "../savedViews/filters";
 import { ConvexError, v, compareValues } from "convex/values";
@@ -110,13 +111,13 @@ async function detail(ctx: QueryCtx, moduleId: Id<"modules">) {
 async function moduleDetail(
   ctx: QueryCtx,
   module: Doc<"modules">,
-  { user, member, projectMember }: Awaited<ReturnType<typeof requireProject>>
+  { user, member, projectMember, project }: Awaited<ReturnType<typeof requireProject>>
 ) {
   const canWrite = member.role !== "guest" && projectMember.role !== "guest";
-  const lead = module.leadId ? await ctx.db.get(module.leadId) : null;
+  const lead = module.leadId ? await directoryPerson(ctx, module.leadId, project.workspaceId, member.role) : null;
   return {
     ...module,
-    lead: lead ? { id: lead._id, name: lead.name ?? null, email: lead.email ?? null } : null,
+    lead,
     canWrite,
     canEdit: canWrite && !module.archived && !module.deleted,
     canDelete: canWrite && (module.createdBy === user._id || projectMember.role === "admin"),

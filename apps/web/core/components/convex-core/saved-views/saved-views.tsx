@@ -11,7 +11,7 @@ import { Popover } from "@plane/propel/popover";
 import { mutationMessage } from "../commercial/forms";
 import { taskStatusOptions } from "../tasks/options";
 import { savedViewTaskLink } from "./task-link";
-import { SavedViewForm, ViewDisplayFields } from "./form";
+import { ProjectReferenceFilters, SavedViewForm, ViewDisplayFields } from "./form";
 import { BasicFilters } from "./filters";
 import { AlertModalCore } from "@plane/ui";
 import { copyUrlToClipboard } from "@plane/utils";
@@ -21,7 +21,7 @@ import { SavedViewEditor } from "@/app/(all)/[workspaceSlug]/(projects)/workspac
 import { ProjectViewIssuesHeader } from "@/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/header";
 import { CreateProjectIssue, TaskPeek } from "../tasks/task-detail";
 import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import useReloadConfirmations, { useReloadSubmitting } from "@/hooks/use-reload-confirmation";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Detail =
   | FunctionReturnType<typeof api.savedViews.index.get>
@@ -197,21 +197,24 @@ function ProjectViewDetail({
   const [creatingTask, setCreatingTask] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const isSubmitting = useReloadSubmitting();
   const update = useMutation(api.savedViews.index.update);
   const remove = useMutation(api.savedViews.index.lifecycle);
   const favorite = useMutation(api.savedViews.favorites.set);
   const access = useQuery(api.savedViews.index.access, { projectId: address.project._id });
   const states = useQuery(api.tasks.states.list, { projectId: address.project._id });
-  const input = preview?.input ?? {
-    projectId: address.project._id,
-    name: detail.view.name,
-    description: detail.view.description,
-    filters: detail.view.filters,
-    displayFilters: detail.view.displayFilters,
-    displayProperties: detail.view.displayProperties,
-    access: detail.view.access,
-    logoProps: detail.view.logoProps,
-  };
+  const input = preview
+    ? preview.input
+    : {
+        projectId: address.project._id,
+        name: detail.view.name,
+        description: detail.view.description,
+        filters: detail.view.filters,
+        displayFilters: detail.view.displayFilters,
+        displayProperties: detail.view.displayProperties,
+        access: detail.view.access,
+        logoProps: detail.view.logoProps,
+      };
   const displayFilters = input.displayFilters;
   const displayProperties = input.displayProperties;
   const dirty =
@@ -224,7 +227,7 @@ function ProjectViewDetail({
       ]);
   const release = useReloadConfirmations(dirty, "This view has unsaved changes.", () => setPreview(null), pending);
   const command = async (operation: () => Promise<unknown>) => {
-    if (pending) return;
+    if (pending || isSubmitting) return;
     setPending(true);
     setError("");
     try {
@@ -237,8 +240,10 @@ function ProjectViewDetail({
   };
   const change = (
     criteria: Pick<NonNullable<typeof preview>["input"], "filters" | "displayFilters" | "displayProperties">
-  ) => setPreview({ snapshot: preview?.snapshot ?? detail, input: { ...input, ...criteria } });
-  const busy = pending || editor !== null || lifecycle !== null;
+  ) => {
+    if (!isSubmitting) setPreview({ snapshot: preview?.snapshot ?? detail, input: { ...input, ...criteria } });
+  };
+  const busy = pending || isSubmitting || editor !== null || lifecycle !== null;
   const path = `/${address.workspace.slug}/projects/${address.project._id}/views/${detail.view._id}/`;
   const canCreateTask =
     features.features.views &&
@@ -286,7 +291,9 @@ function ProjectViewDetail({
               dirty={dirty}
               canCreate={!!access?.canCreate}
               onChange={change}
-              onDiscard={() => setPreview(null)}
+              onDiscard={() => {
+                if (!isSubmitting) setPreview(null);
+              }}
               onSaveAs={() => {
                 const { projectId: _projectId, ...definition } = input;
                 setEditor({ seed: { input: { ...definition, name: `${input.name} 2` }, logo: detail.logo } });
@@ -479,12 +486,14 @@ function ViewPreviewControls({
           placement="bottom-start"
           className="shadow-lg max-h-[80vh] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-md border border-subtle bg-surface-1 p-4"
         >
-          <ViewDisplayFields
-            displayFilters={displayFilters}
-            displayProperties={displayProperties}
-            disabled={busy}
-            onChange={(display) => onChange({ filters: input.filters, ...display })}
-          />
+          <fieldset disabled={busy}>
+            <ViewDisplayFields
+              displayFilters={displayFilters}
+              displayProperties={displayProperties}
+              disabled={busy}
+              onChange={(display) => onChange({ filters: input.filters, ...display })}
+            />
+          </fieldset>
         </Popover.Panel>
       </Popover>
       <Popover>
@@ -495,10 +504,18 @@ function ViewPreviewControls({
           placement="bottom-start"
           className="shadow-lg max-h-[80vh] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-md border border-subtle bg-surface-1 p-4"
         >
-          <BasicFilters
-            filters={input.filters}
-            onChange={(filters) => onChange({ filters, displayFilters, displayProperties })}
-          />
+          <fieldset disabled={busy}>
+            <BasicFilters
+              filters={input.filters}
+              onChange={(filters) => onChange({ filters, displayFilters, displayProperties })}
+            />
+            <ProjectReferenceFilters
+              projectId={detail.view.projectId}
+              filters={input.filters}
+              selections={detail.selections}
+              onChange={(filters) => onChange({ filters, displayFilters, displayProperties })}
+            />
+          </fieldset>
         </Popover.Panel>
       </Popover>
       <div className="flex flex-wrap gap-2">
@@ -509,7 +526,7 @@ function ViewPreviewControls({
           Save as
         </Button>
         {dirty && (
-          <Button size="sm" variant="ghost" disabled={pending} onClick={onDiscard}>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={onDiscard}>
             Discard preview
           </Button>
         )}
@@ -520,13 +537,8 @@ function ViewPreviewControls({
 function selectionNames(items: { id: string; name: string | null }[], ids: string[]) {
   return ids.map((id) => items.find((item) => item.id === id)?.name ?? "Unavailable selection").join(", ");
 }
-export function SavedFilters({
-  detail,
-  filters = detail.view.filters,
-}: {
-  detail: Detail;
-  filters?: Detail["view"]["filters"];
-}) {
+export function SavedFilters({ detail }: { detail: Detail }) {
+  const filters = detail.view.filters;
   const groups = [
     filters.statuses.length
       ? `Status: ${filters.statuses.map((status) => taskStatusOptions[status].label).join(", ")}`

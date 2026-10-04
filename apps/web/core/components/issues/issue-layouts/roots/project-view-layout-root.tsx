@@ -4,13 +4,14 @@ import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import { taskDisplayPropertiesSchema } from "@summon/convex/task-schema";
+import { priority as taskPriority, taskDisplayPropertiesSchema } from "@summon/convex/task-schema";
 import { Button } from "@plane/propel/button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomMenu } from "@plane/ui";
 import { TaskLifecycle, NativeTaskRow, useTaskLifecycle } from "@/components/convex-core/tasks/lifecycle";
 import { TaskRowPropertyControls, useTaskPropertyWriter } from "@/components/convex-core/tasks/task-properties";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { usePendingConfirmation } from "@/hooks/use-reload-confirmation";
 import { calculateIdentifierWidth } from "../utils";
 import { NativeCalendar } from "../calendar/roots/project-view-root";
 import { NativeTimeline } from "../gantt/blocks";
@@ -30,7 +31,9 @@ const groupLabels = {
 };
 
 function useGroupCatalogs(projectId: Address["project"]["_id"], display: Display) {
-  const groups = new Set([display.groupBy, display.subGroupBy]);
+  const groups = new Set(
+    display.layout === "list" || display.layout === "kanban" ? [display.groupBy, display.subGroupBy] : []
+  );
   const needsStates = groups.has("stateId"),
     needsLabels = groups.has("labelId"),
     needsPeople = groups.has("assigneeId") || groups.has("createdBy");
@@ -64,12 +67,15 @@ function useGroupCatalogs(projectId: Address["project"]["_id"], display: Display
     },
   };
 }
-function groupOptions(kind: Display["groupBy"], catalogs: ReturnType<typeof useGroupCatalogs>) {
+function groupOptions(
+  kind: Display["groupBy"],
+  catalogs: ReturnType<typeof useGroupCatalogs>
+): { id: string; name: string | null }[] {
   switch (kind) {
     case "stateId":
       return (catalogs.states ?? []).map((row) => ({ id: row._id, name: row.name }));
     case "priority":
-      return ["urgent", "high", "medium", "low", "none"].map((id) => ({ id, name: id }));
+      return taskPriority.members.map(({ value }) => ({ id: value, name: value }));
     case "cycleId":
       return catalogs.cycles.map((row) => ({ id: row._id, name: row.name }));
     case "moduleId":
@@ -143,7 +149,7 @@ function groupChange(
       return { stateId: state?._id ?? null };
     }
     case "priority": {
-      const priority = (["urgent", "high", "medium", "low", "none"] as const).find((value) => value === id);
+      const priority = taskPriority.members.find(({ value }) => value === id)?.value;
       if (priority) return { priority };
       return {};
     }
@@ -205,20 +211,24 @@ export function ProjectViewLayoutRoot({
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const dragged = useRef<{ task: Tasks[number]; groupId: string; subgroupId: string } | null>(null);
-  useReloadConfirmations(pending, "Work item changes are still saving.", undefined, pending);
+  const beginPending = usePendingConfirmation("Work item changes are still saving.");
   const save = async (
     task: Tasks[number],
     change: Omit<FunctionArgs<typeof api.tasks.index.update>, "taskId" | "expectedUpdatedAt">
   ) => {
     if (pending || !task.canEdit) return;
+    const release = beginPending();
     setPending(true);
     setError("");
     try {
       await update({ taskId: task._id, expectedUpdatedAt: task.updatedAt, ...change });
     } catch (failure) {
-      setError(mutationMessage(failure));
+      const message = mutationMessage(failure);
+      setError(message);
+      setToast({ type: TOAST_TYPE.ERROR, title: "Could not save work item changes", message });
     } finally {
       setPending(false);
+      release();
     }
   };
   const drop = (

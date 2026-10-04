@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { usePendingConfirmation } from "@/hooks/use-reload-confirmation";
 import { Paperclip } from "lucide-react";
 import type { ReactNode } from "react";
 import { EstimateSelection } from "../estimates/selection";
@@ -11,8 +11,10 @@ import { api } from "@summon/convex/api";
 import { memberLabel } from "@summon/convex/member-label";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
+import { Popover } from "@plane/propel/popover";
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 import { Input } from "@plane/propel/input";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -266,17 +268,21 @@ export function useTaskPropertyWriter(
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const disabled = !task.canEdit || pending || lifecyclePending || externallyDisabled;
-  useReloadConfirmations(pending, "Work item properties are still saving.", undefined, pending);
+  const beginPending = usePendingConfirmation("Work item properties are still saving.");
   const save: InlinePropertyProps["onChange"] = async (change) => {
     if (disabled) return;
+    const release = beginPending();
     setPending(true);
     setError("");
     try {
       await update({ ...change, taskId: task._id, expectedUpdatedAt: task.updatedAt });
     } catch (failure) {
-      setError(mutationMessage(failure));
+      const message = mutationMessage(failure);
+      setError(message);
+      setToast({ type: TOAST_TYPE.ERROR, title: "Could not save work item properties", message });
     } finally {
       setPending(false);
+      release();
     }
   };
   return { disabled, pending: pending || lifecyclePending, error, save };
@@ -378,7 +384,7 @@ export function TaskInlineProperties({
   );
 }
 
-function TaskPropertyOptions({ label, children, footer }: { label: string; children: ReactNode; footer?: ReactNode }) {
+function TaskPropertyOptions({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Combobox.Portal>
       <Combobox.Positioner align="start" sideOffset={4} className="z-[120]">
@@ -396,7 +402,6 @@ function TaskPropertyOptions({ label, children, footer }: { label: string; child
             />
           </div>
           <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-auto">{children}</Combobox.List>
-          {footer}
         </Combobox.Popup>
       </Combobox.Positioner>
     </Combobox.Portal>
@@ -508,19 +513,15 @@ export function InlineTaskAssignees({ task, disabled, onChange }: InlineProperty
   );
   const options = [...selected, ...results];
   return (
-    <Combobox.Root<Id<"users">, Id<"users">, true>
-      items={options.map((member) => member.id)}
-      multiple
-      value={task.assigneeIds}
-      inputValue={search}
-      onInputValueChange={setSearch}
+    <Popover
       open={open}
-      onOpenChange={setOpen}
-      filter={null}
-      disabled={disabled}
-      onValueChange={(assigneeIds) => void onChange({ assigneeIds })}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) setSearch("");
+      }}
     >
-      <Combobox.Trigger
+      <Popover.Button
+        disabled={disabled}
         render={
           <Button
             variant="ghost"
@@ -548,41 +549,64 @@ export function InlineTaskAssignees({ task, disabled, onChange }: InlineProperty
           </Button>
         }
       />
-      <TaskPropertyOptions
-        label="Assignees"
-        footer={
-          status === "CanLoadMore" ? (
-            <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => loadMore(100)}>
-              Load more members
-            </Button>
-          ) : (
-            (status === "LoadingFirstPage" || status === "LoadingMore") && (
-              <p role="status" className="px-1 py-1.5 text-placeholder">
-                Loading members…
-              </p>
-            )
-          )
-        }
+      <Popover.Panel
+        align="start"
+        sideOffset={4}
+        aria-label="Assignees"
+        data-prevent-outside-click
+        className="w-56 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200"
       >
-        {options.map((member) => (
-          <Combobox.Item key={member.id} value={member.id} disabled={disabled} className={propertyOptionClass}>
-            <TaskMemberAvatar member={member} />
-            <span className="min-w-0 grow truncate">
-              {memberLabel(member)}
-              {!member.selectable && <span className="ml-1 text-placeholder">(no longer assignable)</span>}
-            </span>
-            <Combobox.ItemIndicator>
-              <CheckIcon className="size-3.5" />
-            </Combobox.ItemIndicator>
-          </Combobox.Item>
-        ))}
-        {status === "Exhausted" && options.length === 0 && (
-          <p role="status" className="px-1 py-1.5 text-placeholder">
-            No matching members.
-          </p>
+        <Combobox.Root<Id<"users">, Id<"users">, true>
+          items={options.map((member) => member.id)}
+          multiple
+          value={task.assigneeIds}
+          inputValue={search}
+          onInputValueChange={setSearch}
+          filter={null}
+          disabled={disabled}
+          onValueChange={(assigneeIds) => void onChange({ assigneeIds })}
+        >
+          <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
+            <SearchIcon className="size-3.5 shrink-0 text-placeholder" />
+            <Combobox.Input
+              aria-label="Search assignees"
+              placeholder="Search assignees"
+              className="min-w-0 grow bg-transparent py-1 text-11 text-secondary outline-none placeholder:text-placeholder"
+            />
+          </div>
+          <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+            {options.map((member) => (
+              <Combobox.Item key={member.id} value={member.id} disabled={disabled} className={propertyOptionClass}>
+                <TaskMemberAvatar member={member} />
+                <span className="min-w-0 grow truncate">
+                  {memberLabel(member)}
+                  {!member.selectable && <span className="ml-1 text-placeholder">(no longer assignable)</span>}
+                </span>
+                <Combobox.ItemIndicator>
+                  <CheckIcon className="size-3.5" />
+                </Combobox.ItemIndicator>
+              </Combobox.Item>
+            ))}
+            {status === "Exhausted" && options.length === 0 && (
+              <p role="status" className="px-1 py-1.5 text-placeholder">
+                No matching members.
+              </p>
+            )}
+          </Combobox.List>
+        </Combobox.Root>
+        {status === "CanLoadMore" ? (
+          <Button variant="ghost" size="sm" className="mt-2 w-full" disabled={disabled} onClick={() => loadMore(100)}>
+            Load more members
+          </Button>
+        ) : (
+          (status === "LoadingFirstPage" || status === "LoadingMore") && (
+            <p role="status" className="px-1 py-1.5 text-placeholder">
+              Loading members…
+            </p>
+          )
         )}
-      </TaskPropertyOptions>
-    </Combobox.Root>
+      </Popover.Panel>
+    </Popover>
   );
 }
 

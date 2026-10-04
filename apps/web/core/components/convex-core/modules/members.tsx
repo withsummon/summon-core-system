@@ -4,7 +4,6 @@ import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
-import { memberLabel } from "@summon/convex/member-label";
 import { Button } from "@plane/propel/button";
 import { Dialog } from "@plane/propel/dialog";
 import { ModalCore } from "@plane/ui";
@@ -33,7 +32,7 @@ export function ModuleMembers({ module, onBusy }: { module: Module; onBusy?: (bu
           <ul className="space-y-2">
             {people.results.map((person) => (
               <li key={person.userId} className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-13">{memberLabel({ ...person, id: person.userId })}</span>
+                <span className="min-w-0 truncate text-13">{person.name}</span>
                 {module.canEdit && (
                   <Button size="sm" variant="ghost" onClick={() => setRemoving(person.userId)}>
                     Remove

@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import { requireProject } from "../identity/access";
 export async function requireModule(ctx: QueryCtx, moduleId: Id<"modules">, write = false, includeDeleted = false) {
   const module = await ctx.db.get(moduleId);
@@ -29,7 +30,8 @@ export async function requireAvailableName(
     throw new ConvexError("A module with this name already exists in this project.");
 }
 export async function requireModulePerson(ctx: QueryCtx, project: Doc<"projects">, userId: Id<"users">) {
-  const [workspaceMember, projectMember] = await Promise.all([
+  await requireUnrestrictedAccount(ctx, userId);
+  const [workspaceMember, projectMember, user] = await Promise.all([
     ctx.db
       .query("workspaceMembers")
       .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", userId))
@@ -38,7 +40,8 @@ export async function requireModulePerson(ctx: QueryCtx, project: Doc<"projects"
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", userId))
       .unique(),
+    ctx.db.get(userId),
   ]);
-  if (!workspaceMember?.active || !projectMember?.active)
+  if (!workspaceMember?.active || !projectMember?.active || projectMember.workspaceId !== project.workspaceId || !user)
     throw new ConvexError("Choose an active member of this project.");
 }

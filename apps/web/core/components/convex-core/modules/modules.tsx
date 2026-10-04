@@ -163,7 +163,7 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
         </div>
         <div>
           <dt className="text-12 text-secondary">Lead</dt>
-          <dd>{module.lead ? (module.lead.name ?? module.lead.email ?? "Unnamed member") : "No lead"}</dd>
+          <dd>{module.lead ? module.lead.name : "No lead"}</dd>
         </div>
       </dl>
       {module.description.trim() && (

@@ -20,7 +20,6 @@ import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ListItem } from "@/components/core/list";
 import { PageHead } from "@/components/core/page-title";
 import { ModuleLayoutIcon } from "@/components/modules/module-layout-icon";
-import { memberLabel } from "@summon/convex/member-label";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { FavoriteToggle } from "../favorites/toggle";
 import { ModuleActions, ModuleCreateContext } from "./actions";
@@ -401,7 +400,7 @@ function DirectoryRow({
         {module.startDate ? renderFormattedDate(module.startDate) : "Start date"} →{" "}
         {module.targetDate ? renderFormattedDate(module.targetDate) : "Target date"}
       </span>
-      {module.lead && <span>{memberLabel(module.lead)}</span>}
+      {module.lead && <span>{module.lead.name}</span>}
     </div>
   );
   if (layout === "board")

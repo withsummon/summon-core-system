@@ -18,8 +18,7 @@ import { SummonField } from "@/components/summon/forms";
 import { ProjectLogoPicker } from "@/components/project/create/header";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
-import { retainedChoices } from "./choices";
-import { BasicFilters, FilterChoices } from "./filters";
+import { BasicFilters, ReferenceFilters } from "./filters";
 type Detail =
   | FunctionReturnType<typeof api.savedViews.index.get>
   | FunctionReturnType<typeof api.savedViews.workspace.get>;
@@ -53,6 +52,46 @@ const emptyFilters: Filters = {
   startDate: null,
   targetDate: null,
 };
+function useProjectFilterChoices(projectId: Id<"projects">) {
+  const states = useQuery(api.tasks.states.list, { projectId }),
+    labels = useQuery(api.tasks.labels.list, { projectId });
+  const people = usePaginatedQuery(api.modules.members.choices, { projectId }, { initialNumItems: 50 });
+  return {
+    choices: {
+      users: people.results.map((person) => ({
+        id: person.userId,
+        label: person.name,
+      })),
+      states: (states ?? []).map((state) => ({ id: state._id, label: state.name })),
+      labels: (labels ?? []).map((label) => ({ id: label._id, label: label.name })),
+    },
+    taxonomyControls: !states || !labels ? <p role="status">Loading project choices…</p> : null,
+    peopleControls: (
+      <>
+        {people.status === "LoadingFirstPage" && <p role="status">Loading member choices…</p>}
+        {people.status === "CanLoadMore" && (
+          <Button variant="secondary" onClick={() => people.loadMore(50)}>
+            Load more member choices
+          </Button>
+        )}
+      </>
+    ),
+  };
+}
+export function ProjectReferenceFilters({
+  projectId,
+  filters,
+  selections,
+  onChange,
+}: {
+  projectId: Id<"projects">;
+  filters: Filters;
+  selections: ComponentProps<typeof ReferenceFilters>["selections"];
+  onChange: (filters: Filters) => void;
+}) {
+  const choices = useProjectFilterChoices(projectId);
+  return <ReferenceFilters {...choices} filters={filters} selections={selections} onChange={onChange} />;
+}
 export function SavedViewForm({
   projectId,
   initial,
@@ -72,9 +111,7 @@ export function SavedViewForm({
 }) {
   const create = useMutation(api.savedViews.index.create),
     update = useMutation(api.savedViews.index.update);
-  const states = useQuery(api.tasks.states.list, { projectId }),
-    labels = useQuery(api.tasks.labels.list, { projectId });
-  const people = usePaginatedQuery(api.modules.members.choices, { projectId }, { initialNumItems: 50 });
+  const { choices, taxonomyControls, peopleControls } = useProjectFilterChoices(projectId);
   return (
     <ViewDefinitionForm
       initial={initial}
@@ -91,25 +128,9 @@ export function SavedViewForm({
       onDone={onDone}
       onCancel={onCancel}
       scopeDescription="Saved for this project. Guest visibility follows the project’s feature settings."
-      choices={{
-        users: people.results.map((person) => ({
-          id: person.id,
-          label: person.name ?? person.email ?? "Unnamed member",
-        })),
-        states: (states ?? []).map((state) => ({ id: state._id, label: state.name })),
-        labels: (labels ?? []).map((label) => ({ id: label._id, label: label.name })),
-      }}
-      taxonomyControls={!states || !labels ? <p role="status">Loading project choices…</p> : null}
-      peopleControls={
-        <>
-          {people.status === "LoadingFirstPage" && <p role="status">Loading member choices…</p>}
-          {people.status === "CanLoadMore" && (
-            <Button variant="secondary" onClick={() => people.loadMore(50)}>
-              Load more member choices
-            </Button>
-          )}
-        </>
-      }
+      choices={choices}
+      taxonomyControls={taxonomyControls}
+      peopleControls={peopleControls}
       onSave={async (data, snapshot) => {
         if (snapshot) {
           await update({ ...data, viewId: snapshot.view._id, expectedUpdatedAt: snapshot.view.updatedAt });
@@ -146,11 +167,7 @@ export function ViewDefinitionForm({
   ) => Promise<Id<"savedViews">>;
   onDone: (id: Id<"savedViews">) => void;
   onCancel: () => void;
-  choices: {
-    users: { id: Id<"users">; label: string }[];
-    states: { id: Id<"taskStates">; label: string }[];
-    labels: { id: Id<"taskLabels">; label: string }[];
-  };
+  choices: ComponentProps<typeof ReferenceFilters>["choices"];
   taxonomyControls: ReactNode;
   peopleControls: ReactNode;
   scopeDescription: string;
@@ -192,24 +209,6 @@ export function ViewDefinitionForm({
     [error, setError] = useState("");
   const dirty = JSON.stringify(draft) !== JSON.stringify(original);
   const release = useReloadConfirmations(dirty, "This view has unsaved changes.", onCancel, pending);
-  const userChoices = retainedChoices(
-    choices.users,
-    initial?.selections.users ?? [],
-    [...filters.assigneeIds, ...filters.creatorIds],
-    "Unavailable member"
-  );
-  const stateChoices = retainedChoices(
-    choices.states,
-    initial?.selections.states ?? [],
-    filters.stateIds,
-    "Unavailable state"
-  );
-  const labelChoices = retainedChoices(
-    choices.labels,
-    initial?.selections.labels ?? [],
-    filters.labelIds,
-    "Unavailable label"
-  );
   return (
     <form
       className="max-w-4xl space-y-5"
@@ -300,44 +299,14 @@ export function ViewDefinitionForm({
           onChange={(display) => setDraft({ ...draft, ...display })}
         />
         <BasicFilters filters={filters} onChange={(value) => setDraft({ ...draft, filters: value })} />
-        <details
-          className="space-y-3 rounded-md border border-subtle-1 p-3"
-          open={filters.stateIds.length + filters.labelIds.length > 0 || undefined}
-        >
-          <summary className="cursor-pointer text-14 font-medium">States and labels</summary>
-          <FilterChoices
-            label="Workflow states"
-            options={stateChoices}
-            selected={filters.stateIds}
-            onChange={(stateIds) => setDraft({ ...draft, filters: { ...filters, stateIds } })}
-          />
-          <FilterChoices
-            label="Labels"
-            options={labelChoices}
-            selected={filters.labelIds}
-            onChange={(labelIds) => setDraft({ ...draft, filters: { ...filters, labelIds } })}
-          />
-          {taxonomyControls}
-        </details>
-        <details
-          className="space-y-3 rounded-md border border-subtle-1 p-3"
-          open={filters.assigneeIds.length + filters.creatorIds.length > 0 || undefined}
-        >
-          <summary className="cursor-pointer text-14 font-medium">Assignees and creators</summary>
-          <FilterChoices
-            label="Assignees"
-            options={userChoices}
-            selected={filters.assigneeIds}
-            onChange={(assigneeIds) => setDraft({ ...draft, filters: { ...filters, assigneeIds } })}
-          />
-          <FilterChoices
-            label="Creators"
-            options={userChoices}
-            selected={filters.creatorIds}
-            onChange={(creatorIds) => setDraft({ ...draft, filters: { ...filters, creatorIds } })}
-          />
-          {peopleControls}
-        </details>
+        <ReferenceFilters
+          choices={choices}
+          selections={initial?.selections}
+          filters={filters}
+          onChange={(value) => setDraft({ ...draft, filters: value })}
+          taxonomyControls={taxonomyControls}
+          peopleControls={peopleControls}
+        />
       </fieldset>
       {!canEdit && <p className="text-14 text-secondary">This view is read-only. Your draft is retained.</p>}
       <div className="flex flex-wrap gap-2">

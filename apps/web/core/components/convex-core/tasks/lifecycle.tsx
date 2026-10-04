@@ -6,7 +6,7 @@ import { KanbanIssueBlockView } from "@/components/issues/issue-layouts/kanban/b
 import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { BulkLifecycle } from "./bulk-lifecycle";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -18,7 +18,7 @@ import { ContextMenu } from "@plane/propel/context-menu";
 import { copyUrlToClipboard } from "@plane/utils";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Menu } from "@plane/propel/menu";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import { usePendingConfirmation } from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
 type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
@@ -52,11 +52,7 @@ export function useTaskLifecycle(onSuccess: (operation: Operation, task: Task) =
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const continuation = useRef<(() => void) | null>(null);
-  const leave = useCallback(() => {
-    continuation.current = null;
-    setConfirmation(null);
-  }, []);
-  const release = useReloadConfirmations(pending, "The work item operation is still in progress.", leave, pending);
+  const beginPending = usePendingConfirmation("The work item operation is still in progress.");
   useEffect(
     () => () => {
       continuation.current = null;
@@ -78,22 +74,25 @@ export function useTaskLifecycle(onSuccess: (operation: Operation, task: Task) =
       if (!confirmation || pending) return;
       const { task, operation } = confirmation;
       continuation.current = () => onSuccess(operation, task);
+      const release = beginPending();
       setPending(true);
       setError("");
       try {
         await change({ taskId: task._id, operation, expectedUpdatedAt: task.updatedAt });
       } catch (failure) {
-        if (continuation.current !== null) setError(mutationMessage(failure));
+        const message = mutationMessage(failure);
+        setError(message);
+        setToast({ type: TOAST_TYPE.ERROR, title: "Could not update the work item", message });
         continuation.current = null;
         return;
       } finally {
         setPending(false);
+        release((allow) => {
+          const navigate = continuation.current;
+          continuation.current = null;
+          if (allow) navigate?.();
+        });
       }
-      release((allow) => {
-        const navigate = continuation.current;
-        continuation.current = null;
-        if (allow) navigate?.();
-      });
       setConfirmation(null);
     },
   };
