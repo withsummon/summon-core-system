@@ -4,6 +4,7 @@ import { auth } from "./auth";
 import { betterAuthEnabled } from "./auth.config";
 import { authComponent, createAuth, siteUrl } from "./better_auth";
 import { read, options } from "./assets/http";
+import { currentUser, options as externalUserOptions } from "./identity/external";
 const http = httpRouter();
 if (betterAuthEnabled) {
   if (!siteUrl) throw new Error("SITE_URL is required for Better Auth.");
@@ -16,4 +17,6 @@ http.route({ pathPrefix: "/assets/", method: "GET", handler: read });
 http.route({ pathPrefix: "/assets/", method: "OPTIONS", handler: options });
 http.route({ path: "/assistant/reply", method: "POST", handler: assistantReply });
 http.route({ path: "/assistant/reply", method: "OPTIONS", handler: assistantOptions });
+http.route({ path: "/api/v1/users/me/", method: "GET", handler: currentUser });
+http.route({ path: "/api/v1/users/me/", method: "OPTIONS", handler: externalUserOptions });
 export default http;

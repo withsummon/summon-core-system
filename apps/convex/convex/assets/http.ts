@@ -4,25 +4,35 @@ import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { api, internal } from "../_generated/api";
+import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { recordingReadMaxBytes } from "./content";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Authorization, Range",
-  "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges",
+  "Access-Control-Allow-Headers": "Authorization, X-Api-Key, Range",
+  "Access-Control-Expose-Headers":
+    "Content-Range, Accept-Ranges, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 export const options = httpAction(async () => new Response(null, { status: 204, headers: cors }));
 export const read = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const anchor = url.searchParams.get("anchor");
-  if (anchor === null && !(await ctx.runQuery(api.identity.session.status, {})).valid)
+  const apiCredential = anchor === null && request.headers.has("X-Api-Key") ? await verifyRequest(ctx, request) : null;
+  if (apiCredential && apiCredential.status !== 200)
+    return Response.json(
+      { detail: apiCredential.detail },
+      { status: apiCredential.status, headers: { ...externalApiHeaders, ...cors, ...apiCredential.headers } }
+    );
+  if (anchor === null && !apiCredential && !(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers: cors });
+  const responseHeaders = { ...cors, ...apiCredential?.headers };
   try {
     const workspace = url.searchParams.get("workspace");
     const assetId = url.pathname.slice("/assets/".length);
-    const asset =
-      anchor === null
+    const asset = apiCredential
+      ? await ctx.runQuery(internal.assets.index.apiAvatar, { userId: apiCredential.userId, assetId })
+      : anchor === null
         ? await ctx.runQuery(internal.assets.index.download, {
             assetId,
             ...(workspace ? { readWorkspaceId: workspace } : {}),
@@ -33,9 +43,9 @@ export const read = httpAction(async (ctx, request) => {
             taskId: url.searchParams.get("task") ?? "",
             commentId: url.searchParams.get("comment") ?? "",
           });
-    if (!asset.storageId) return new Response("Asset not found.", { status: 404, headers: cors });
+    if (!asset.storageId) return new Response("Asset not found.", { status: 404, headers: responseHeaders });
     const headers = {
-      ...cors,
+      ...responseHeaders,
       "Content-Type": asset.contentType,
       "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
       "Cache-Control": "private, no-store",
@@ -44,10 +54,11 @@ export const read = httpAction(async (ctx, request) => {
     };
     if (isAudioAsset(asset)) return readRecordingRange(ctx, request, asset.storageId, asset.size, headers);
     const body = await ctx.storage.get(asset.storageId);
-    if (!body) return new Response("Asset not found.", { status: 404, headers: cors });
+    if (!body) return new Response("Asset not found.", { status: 404, headers: responseHeaders });
     return new Response(body, { headers });
   } catch (error) {
-    if (error instanceof ConvexError) return new Response("Asset access denied.", { status: 403, headers: cors });
+    if (error instanceof ConvexError)
+      return new Response("Asset access denied.", { status: 403, headers: responseHeaders });
     throw error;
   }
 });

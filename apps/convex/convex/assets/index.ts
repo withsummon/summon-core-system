@@ -1,4 +1,5 @@
 import type { Id } from "../_generated/dataModel";
+import { requireApiAvatar } from "../identity/avatar_access";
 import { publishPersonalImage } from "../identity/avatar_owner";
 import { publishProjectCover } from "../projects/cover_owner";
 import { publishWorkspaceLogo } from "../settings/logo_owner";
@@ -218,6 +219,10 @@ export const download = internalQuery({
     if (readWorkspaceId === null) throw new ConvexError("Workspace not found.");
     return (await requireAsset(ctx, assetId, false, readWorkspaceId)).asset;
   },
+});
+export const apiAvatar = internalQuery({
+  args: { userId: v.id("users"), assetId: v.string() },
+  handler: (ctx, { userId, assetId }) => requireApiAvatar(ctx, userId, assetId),
 });
 export const remove = mutation({
   args: { assetId: v.id("assets") },
