@@ -1,3 +1,4 @@
+import { STATE_GROUPS } from "@plane/constants";
 import type { FunctionArgs } from "convex/server";
 import type { api } from "@summon/convex/api";
 import type { Doc } from "@summon/convex/data-model";
@@ -23,3 +24,11 @@ export const taskStatusOptions = {
   ...writableStatusOptions,
   triage: { value: "triage", label: "Triage" },
 } as const satisfies { [Status in Doc<"tasks">["status"]]: { value: Status; label: string } };
+
+export const stateGroups = {
+  backlog: STATE_GROUPS.backlog.key,
+  todo: STATE_GROUPS.unstarted.key,
+  in_progress: STATE_GROUPS.started.key,
+  done: STATE_GROUPS.completed.key,
+  cancelled: STATE_GROUPS.cancelled.key,
+} satisfies Record<FunctionArgs<typeof api.tasks.index.setStatus>["status"], keyof typeof STATE_GROUPS>;

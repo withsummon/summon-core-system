@@ -1,8 +1,13 @@
-import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
+import { mutation, query, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
-import { stateFields } from "./schema";
+import { canAdministerProject } from "../projects/administration";
+import { checkRevision } from "../projects/settings";
+import { stateContentFields, status } from "./schema";
 import { text } from "../commercial/validation";
+import { applyPropertyUpdate } from "./property_updates";
+
 export const list = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
@@ -14,64 +19,189 @@ export const list = query({
     return states.flatMap((state) => (state.status === "triage" ? [] : [{ ...state, status: state.status }]));
   },
 });
+
+async function catalogue(ctx: MutationCtx, projectId: Id<"projects">, expectedRevision: number) {
+  const access = await requireProject(ctx, projectId);
+  if (!(await canAdministerProject(ctx, access.project, access.user._id, access.member.role)))
+    throw new ConvexError("Only workspace or project administrators can manage task states.");
+  const metadataRevision = checkRevision(access.project, expectedRevision);
+  const states = await ctx.db
+    .query("taskStates")
+    .withIndex("by_project_order", (q) => q.eq("projectId", projectId))
+    .take(101);
+  if (states.length > 100) throw new ConvexError("A project supports up to 100 task states.");
+  const defaults = states.filter((state) => state.isDefault);
+  if (defaults.length !== 1 || defaults[0]?.status === "triage")
+    throw new ConvexError("The project state catalogue requires one ordinary default state. Repair it before editing.");
+  return { ...access, states, metadataRevision };
+}
+
+function ordinaryState(states: Doc<"taskStates">[], stateId: Id<"taskStates">) {
+  const state = states.find((row) => row._id === stateId);
+  if (!state || state.status === "triage") throw new ConvexError("State not found in this project.");
+  return { ...state, status: state.status };
+}
+
+function requireAnotherGroupState(states: Doc<"taskStates">[], state: ReturnType<typeof ordinaryState>) {
+  if (!states.some((row) => row._id !== state._id && row.status === state.status))
+    throw new ConvexError("Keep at least one state in every group.");
+}
+
+function positionOrder(states: Doc<"taskStates">[], beforeStateId: Id<"taskStates"> | null) {
+  const index = beforeStateId === null ? states.length : states.findIndex((row) => row._id === beforeStateId);
+  if (index < 0) throw new ConvexError("Choose an ordering destination in the target group.");
+  const previous = states[index - 1]?.sortOrder;
+  const next = states[index]?.sortOrder;
+  const sortOrder =
+    previous === undefined
+      ? next === undefined
+        ? 65535
+        : next - 15000
+      : next === undefined
+        ? previous + 15000
+        : previous / 2 + next / 2;
+  if (
+    !Number.isFinite(sortOrder) ||
+    (previous !== undefined && sortOrder <= previous) ||
+    (next !== undefined && sortOrder >= next)
+  )
+    throw new ConvexError("These states have no available ordering gap. Choose another position.");
+  return sortOrder;
+}
+
+async function changeGroup(
+  ctx: MutationCtx,
+  access: Awaited<ReturnType<typeof catalogue>>,
+  state: ReturnType<typeof ordinaryState>,
+  nextStatus: Infer<typeof status>
+) {
+  if (state.status === nextStatus) return;
+  requireAnotherGroupState(access.states, state);
+  await ctx.db.patch(state._id, { status: nextStatus });
+  // State identity stays stable. Both indexed task statuses and private draft references
+  // publish in this transaction; a platform limit failure rolls back the entire move.
+  for await (const task of ctx.db.query("tasks").withIndex("by_state", (q) => q.eq("stateId", state._id))) {
+    if (task.projectId !== state.projectId || task.workspaceId !== state.workspaceId || task.status === "triage")
+      throw new ConvexError("The state has an invalid task reference. Repair it before moving groups.");
+    // Catalogue changes create task activity without notifying every task subscriber.
+    // oxlint-disable-next-line no-await-in-loop
+    await applyPropertyUpdate(
+      ctx,
+      {
+        task: { ...task, status: task.status },
+        user: access.user,
+        data: { stateId: task.stateId },
+        status: nextStatus,
+      },
+      undefined,
+      undefined,
+      "activity"
+    );
+  }
+  const drafts = ctx.db
+    .query("taskDrafts")
+    .withIndex("by_project_state_unpublished", (q) =>
+      q.eq("projectId", state.projectId).eq("properties.stateId", state._id).eq("publishedTaskId", null)
+    );
+  for await (const draft of drafts) {
+    if (draft.workspaceId !== state.workspaceId)
+      throw new ConvexError("The state has an invalid draft reference. Repair it before moving groups.");
+    // Deleted unpublished drafts retain a consistent state when their author restores them.
+    // oxlint-disable-next-line no-await-in-loop
+    await ctx.db.patch(draft._id, {
+      status: draft.status === null ? null : nextStatus,
+      contentRevision: draft.contentRevision + 1,
+      updatedAt: Math.max(Date.now(), draft.updatedAt + 1),
+    });
+  }
+}
+
 export const save = mutation({
-  args: { projectId: v.id("projects"), stateId: v.optional(v.id("taskStates")), data: v.object(stateFields) },
+  args: {
+    projectId: v.id("projects"),
+    expectedRevision: v.number(),
+    stateId: v.optional(v.id("taskStates")),
+    data: v.object(stateContentFields),
+  },
   handler: async (ctx, args) => {
-    const { project, projectMember } = await requireProject(ctx, args.projectId, true);
-    if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can manage task states.");
-    const name = text(args.data.name, "State name", 255, true);
-    const description = text(args.data.description, "State description", 10000);
-    const color = text(args.data.color, "State color", 255);
-    if (!Number.isFinite(args.data.sortOrder)) throw new ConvexError("State order must be finite.");
-    const existing = args.stateId ? await ctx.db.get(args.stateId) : null;
-    if (existing?.status === "triage") throw new ConvexError("The intake state is managed by intake.");
-    if (args.stateId && (!existing || existing.projectId !== project._id))
-      throw new ConvexError("State not found in this project.");
-    const duplicate = await ctx.db
-      .query("taskStates")
-      .withIndex("by_project_name", (q) => q.eq("projectId", project._id).eq("name", name))
-      .unique();
-    if (duplicate && duplicate._id !== args.stateId) throw new ConvexError("This state name already exists.");
-    // Group is materialized on tasks for indexed subscriptions. Moving populated groups requires a separate migration.
-    if (existing && existing.status !== args.data.status) {
-      const assigned = await ctx.db
-        .query("tasks")
-        .withIndex("by_state", (q) => q.eq("stateId", existing._id))
-        .first();
-      if (assigned) throw new ConvexError("Move tasks out of this state before changing its group.");
+    const access = await catalogue(ctx, args.projectId, args.expectedRevision);
+    const data = {
+      ...args.data,
+      name: text(args.data.name, "State name", 255, true),
+      description: text(args.data.description, "State description", 10000),
+      color: text(args.data.color, "State color", 255),
+    };
+    const existing = args.stateId ? ordinaryState(access.states, args.stateId) : null;
+    if (access.states.some((row) => row._id !== existing?._id && row.name === data.name))
+      throw new ConvexError("This state name already exists.");
+    if (existing) {
+      if (compareValues({ ...existing, ...data }, existing) === 0) return existing._id;
+      await changeGroup(ctx, access, existing, data.status);
+      await ctx.db.patch(existing._id, data);
+    } else {
+      if (access.states.length >= 100) throw new ConvexError("A project supports up to 100 task states.");
+      const group = access.states.filter((row) => row.status === data.status);
+      const sortOrder = positionOrder(group, null);
+      const stateId = await ctx.db.insert("taskStates", {
+        ...data,
+        sortOrder,
+        isDefault: false,
+        workspaceId: access.project.workspaceId,
+        projectId: access.project._id,
+      });
+      await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
+      return stateId;
     }
-    if (args.data.isDefault) {
-      const previous = await ctx.db
-        .query("taskStates")
-        .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
-        .unique();
-      if (previous) await ctx.db.patch(previous._id, { isDefault: false });
-    }
-    const data = { ...args.data, name, description, color };
-    if (args.stateId) {
-      await ctx.db.patch(args.stateId, data);
-      return args.stateId;
-    }
-    if (
-      (
-        await ctx.db
-          .query("taskStates")
-          .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
-          .take(100)
-      ).length >= 100
-    )
-      throw new ConvexError("A project supports up to 100 task states.");
-    return ctx.db.insert("taskStates", { ...data, workspaceId: project.workspaceId, projectId: project._id });
+    await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
+    return existing._id;
   },
 });
-export const remove = mutation({
-  args: { stateId: v.id("taskStates") },
+
+export const markDefault = mutation({
+  args: { projectId: v.id("projects"), stateId: v.id("taskStates"), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const state = await ctx.db.get(args.stateId);
-    if (!state || state.status === "triage") throw new ConvexError("State not found.");
-    const { projectMember } = await requireProject(ctx, state.projectId, true);
-    if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can manage task states.");
+    const access = await catalogue(ctx, args.projectId, args.expectedRevision);
+    const state = ordinaryState(access.states, args.stateId);
+    if (state.isDefault) return state._id;
+    await Promise.all(
+      access.states.filter((row) => row.isDefault).map((row) => ctx.db.patch(row._id, { isDefault: false }))
+    );
+    await ctx.db.patch(state._id, { isDefault: true });
+    await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
+    return state._id;
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    projectId: v.id("projects"),
+    expectedRevision: v.number(),
+    stateId: v.id("taskStates"),
+    status,
+    beforeStateId: v.union(v.id("taskStates"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const access = await catalogue(ctx, args.projectId, args.expectedRevision);
+    const state = ordinaryState(access.states, args.stateId);
+    const group = access.states.filter((row) => row._id !== state._id && row.status === args.status);
+    const sortOrder = positionOrder(group, args.beforeStateId);
+    if (state.status === args.status && state.sortOrder === sortOrder) return state._id;
+    await changeGroup(ctx, access, state, args.status);
+    await ctx.db.patch(state._id, { sortOrder });
+    await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
+    return state._id;
+  },
+});
+
+export const remove = mutation({
+  args: { stateId: v.id("taskStates"), expectedRevision: v.number() },
+  handler: async (ctx, args) => {
+    const found = await ctx.db.get(args.stateId);
+    if (!found || found.status === "triage") throw new ConvexError("State not found.");
+    const access = await catalogue(ctx, found.projectId, args.expectedRevision);
+    const state = ordinaryState(access.states, found._id);
     if (state.isDefault) throw new ConvexError("Choose another default state first.");
+    requireAnotherGroupState(access.states, state);
     if (
       await ctx.db
         .query("tasks")
@@ -79,6 +209,16 @@ export const remove = mutation({
         .first()
     )
       throw new ConvexError("Move tasks out of this state before deleting it.");
+    if (
+      await ctx.db
+        .query("taskDrafts")
+        .withIndex("by_project_state_unpublished", (q) =>
+          q.eq("projectId", state.projectId).eq("properties.stateId", state._id).eq("publishedTaskId", null)
+        )
+        .first()
+    )
+      throw new ConvexError("This state is referenced by an unpublished draft. Change its state before deleting.");
     await ctx.db.delete(state._id);
+    await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
   },
 });

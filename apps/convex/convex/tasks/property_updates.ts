@@ -82,19 +82,22 @@ export async function applyRelationshipUpdate(
 }
 export async function applyPropertyUpdate(
   ctx: MutationCtx,
-  prepared: Awaited<ReturnType<typeof preparePropertyUpdate>>,
+  prepared: Omit<Awaited<ReturnType<typeof preparePropertyUpdate>>, "data"> & {
+    data: Partial<Awaited<ReturnType<typeof preparePropertyUpdate>>["data"]>;
+  },
   fields?: Partial<Pick<Doc<"tasks">, "title" | "description" | "sortOrder">>,
-  event?: Parameters<typeof taskChanged>[3]
+  event?: Parameters<typeof taskChanged>[3],
+  delivery?: Parameters<typeof taskChanged>[4]
 ) {
   const { task, user, data, status: requestedStatus } = prepared;
   const patch = { ...data, ...fields, status: requestedStatus };
   if (compareValues({ ...task, ...patch }, task) === 0) return false;
-  const changed = task.status !== requestedStatus || task.stateId !== data.stateId;
+  const changed = task.status !== requestedStatus || (data.stateId !== undefined && task.stateId !== data.stateId);
   await ctx.db.patch(task._id, {
     ...patch,
     completedAt: changed ? (requestedStatus === "done" ? Date.now() : null) : task.completedAt,
   });
-  await taskChanged(ctx, task, user._id, event);
+  await taskChanged(ctx, task, user._id, event, delivery);
   return true;
 }
 
