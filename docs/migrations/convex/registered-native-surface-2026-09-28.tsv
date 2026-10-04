@@ -680,6 +680,10 @@ convex-rpc	tasks/relationships:remove	apps/convex/convex/tasks/relationships.ts:
 convex-rpc	tasks/states:list	apps/convex/convex/tasks/states.ts:6	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:remove	apps/convex/convex/tasks/states.ts:67	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:save	apps/convex/convex/tasks/states.ts:17	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:actors	apps/convex/convex/tasks/votes.ts:28	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:set	apps/convex/convex/tasks/votes.ts:63	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:summary	apps/convex/convex/tasks/votes.ts:19	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:viewer	apps/convex/convex/tasks/votes.ts:49	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/index:changeMemberRole	apps/convex/convex/workspaces/index.ts:169	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/index:create	apps/convex/convex/workspaces/index.ts:45	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/index:leave	apps/convex/convex/workspaces/index.ts:208	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN

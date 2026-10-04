@@ -1,6 +1,6 @@
 # Native registered surfaces
 
-Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **692 distinct rows, all OPEN** after the 2026-10-04 committed-source refresh against `6bc7f3f61daa5d4c7821b453e2bdd29c249fd96b`. This adds four comment-image and four public-reaction RPC candidates to the prior 684 rows; the historical SDK and owner receipts below retain their original coverage. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
+Inventory baseline: 2026-09-29, immutable export of committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, refreshed by the scoped owner deltas below; later scoped Profile route/property ownership is recorded below; unrelated dirty work is excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) contains **696 distinct rows, all OPEN** after the 2026-10-04 committed-source refresh against `81703672d650acc78752e4d16c2878f1fbddbe79`. This adds four public-vote RPC candidates to the prior 692 rows; the earlier comment-image and public-reaction registrations remain inventoried; the historical SDK and owner receipts below retain their original coverage. Its 19 moved saved-view declaration anchors were refreshed against committed `ee93a305e9e87c954c7ed493240818b6654970b0` on 2026-09-30. The existing `tasks/center:list` anchor moved to line 49 after `23affde7b9`, then line 55 after `b1ee4aa56e`. It complements the [inherited surface ledger](registered-surface-2026-09-28.tsv); registration establishes an owner, not equivalent behavior, browser acceptance or a served deployment.
 
 On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in nine changed query files against committed `2a9b29a2aaf1d559a37f07864440900e388ac7f6` and corrected 36 source anchors. It changes no registration, visibility or acceptance status. 2026-09-30 ledger SHA-256: `2acccf4998fbc24383b897c17afeebb45d9d146772c880ad49e7be1ca26ced99`. Receipt: `/tmp/summon-paging-20260930-native-anchor-refresh.json`. This scoped refresh does not rerun the historical SDK/factory/HTTP inventory audit.
 
@@ -8,17 +8,19 @@ On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in 
 
 | Surface                     |    Rows | Meaning                                                                                                             |
 | --------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------- |
-| App RPC                     |     609 | 510 public and 99 internal declarations across generated app modules.                                               |
+| App RPC                     |     613 | 514 public and 99 internal declarations across generated app modules.                                               |
 | Component export            |       8 | Local Better Auth adapter exports; all eight generated references are internal to the parent app, not browser RPCs. |
 | HTTP action declaration     |       4 | Asset and assistant handlers; their routing mounts are separate boundaries.                                         |
 | HTTP routing mount          |      13 | Four common mounts, four native auth factory mounts and five alternative Convex Auth factory mounts.                |
 | Better Auth HTTP descriptor |      51 | Pathful SDK candidates, including disabled paths and provider path parameters.                                      |
 | Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                                                                          |
-| **Total**                   | **692** | **All OPEN.**                                                                                                       |
+| **Total**                   | **696** | **All OPEN.**                                                                                                       |
 
-The current ledger records 621 declarations: 613 app exports (609 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The current ledger records 625 declarations: 617 app exports (613 RPCs and four HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The six native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
 
 This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
+
+The committed `tasks/votes:{summary,actors,viewer,set}` declarations belong to Public sharing. Exact summary counters, bounded recent actor names and verified viewer choice are distinct generated boundaries; registration does not establish counter rollout, live voting or preserved Space UI acceptance. The 2026-10-04 refresh against `81703672d650acc78752e4d16c2878f1fbddbe79` verifies 586 committed source hashes and exact AST sets of 611 direct declarations plus 14 factory exports, 95 scoped web routes, 293 recognized dialog mounts, six native cron registrations and four direct HTTP mounts. The inherited ledger remains 996 OPEN rows; one Notifications dialog anchor moved. All 696 native entries remain OPEN. Receipt: `/tmp/summon-ledger-refresh-81703672-20261004/ledger-verification.json`.
 
 ## HTTP candidates and availability
 
@@ -44,7 +46,7 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 | Meetings       |           32 | Resources/MCP |           37 |
 | Assistant      |           40 | Automation    |           22 |
 | Reporting      |           11 | Notifications |           14 |
-| Public sharing |           20 | External API  |            1 |
+| Public sharing |           24 | External API  |            1 |
 | Stickies       |            9 | Operations    |            2 |
 
 ## Seven concrete owner mappings

@@ -2,7 +2,7 @@
 
 Source snapshot: 2026-09-29, committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, with later scoped route and owner deltas through the 2026-10-04 Summon module migration recorded below. Unrelated dirty work is excluded. This is an **open acceptance checklist**, not proof of parity. The [registered surface](registered-surface-2026-09-28.tsv) lists each source registration, its current owner, its acceptance family, and its source line. `OPEN` means no route-wide production-browser acceptance has been recorded. Historical module receipts can establish smaller implemented operations but do not close an entire family.
 
-Current registration is reconciled against `6bc7f3f61daa5d4c7821b453e2bdd29c249fd96b`: **996 inherited rows and 692 native rows, all OPEN**. The [native surface receipt](native-surface-receipt.md) supersedes historical inventory totals; the dated journey receipts below describe their narrower source/build/API/Chrome evidence.
+Current registration is reconciled against `81703672d650acc78752e4d16c2878f1fbddbe79`: **996 inherited rows and 696 native rows, all OPEN**. Four public-vote declarations are registered; counter rollout, live API and preserved Space acceptance remain OPEN. The [native surface receipt](native-surface-receipt.md) supersedes historical inventory totals; the dated journey receipts below describe their narrower source/build/API/Chrome evidence.
 
 ## Scope and acceptance rule
 
