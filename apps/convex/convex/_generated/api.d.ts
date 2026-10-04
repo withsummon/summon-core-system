@@ -11,6 +11,7 @@
 import type * as assets_access from "../assets/access.js";
 import type * as assets_attachment_lifecycle from "../assets/attachment_lifecycle.js";
 import type * as assets_cleanup from "../assets/cleanup.js";
+import type * as assets_commentImages from "../assets/commentImages.js";
 import type * as assets_content from "../assets/content.js";
 import type * as assets_draftAttachments from "../assets/draftAttachments.js";
 import type * as assets_draft_access from "../assets/draft_access.js";
@@ -264,6 +265,7 @@ declare const fullApi: ApiFromModules<{
   "assets/access": typeof assets_access;
   "assets/attachment_lifecycle": typeof assets_attachment_lifecycle;
   "assets/cleanup": typeof assets_cleanup;
+  "assets/commentImages": typeof assets_commentImages;
   "assets/content": typeof assets_content;
   "assets/draftAttachments": typeof assets_draftAttachments;
   "assets/draft_access": typeof assets_draft_access;

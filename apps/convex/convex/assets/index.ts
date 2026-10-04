@@ -6,11 +6,13 @@ import { draftAttachmentChanged } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
 import { taskChanged } from "../tasks/revision";
 import type { Infer } from "convex/values";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { requireUser } from "../identity/access";
-import { assetScope, fileMetadataFields } from "./schema";
+import { assetScope, fileMetadataFields, commentImageTarget } from "./schema";
+import { requireCommentImageTarget, requirePublicCommentImage } from "./commentImages";
+import { compareValues } from "convex/values";
 import type { personalImagePurpose } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
 import { isAudioAsset, validateIntent, supportedAssetTypes, assetSizeLimit, assetTypesByExtension } from "./content";
@@ -44,6 +46,7 @@ export async function prepareAsset(
 export const prepare = mutation({
   args: uploadFields,
   handler: async (ctx, args) => {
+    if (args.commentUpload || args.commentId) throw new ConvexError("Prepare comment images through comments.");
     if (args.automationJobId) throw new ConvexError("Generated files are created by their generation job.");
     if (args.draftId) throw new ConvexError("Prepare draft uploads through draft attachments.");
     if (args.taskId) throw new ConvexError("Prepare task uploads through task attachments.");
@@ -119,9 +122,93 @@ export const get = query({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => descriptor((await requireAsset(ctx, assetId)).asset),
 });
-export const download = internalQuery({
-  args: { assetId: v.string(), readWorkspaceId: v.optional(v.string()) },
+const commentUploadFields = { target: commentImageTarget, ...fileMetadataFields };
+async function prepareCommentImageAsset(ctx: MutationCtx, args: Infer<typeof commentImageUpload>) {
+  if (!args.contentType.startsWith("image/")) throw new ConvexError("Comments accept images only.");
+  const { task, target } = await requireCommentImageTarget(ctx, args.target);
+  const { target: _target, ...metadata } = args;
+  return prepareAsset(ctx, {
+    ...metadata,
+    commentUpload: target,
+    workspaceId: task.workspaceId,
+    projectId: task.projectId,
+    documentId: null,
+  });
+}
+const commentImageUpload = v.object(commentUploadFields);
+export const prepareCommentImage = mutation({
+  args: commentUploadFields,
   handler: async (ctx, args) => {
+    if (args.target.anchor !== null) throw new ConvexError("Use public comment uploads for a publication.");
+    return prepareCommentImageAsset(ctx, args);
+  },
+});
+export const preparePublicCommentImage = mutation({
+  args: commentUploadFields,
+  handler: async (ctx, args) => {
+    if (args.target.anchor === null) throw new ConvexError("Public comment upload requires its publication.");
+    return prepareCommentImageAsset(ctx, args);
+  },
+});
+async function resolveCommentImageAsset(ctx: QueryCtx, target: Infer<typeof commentImageTarget>, rawId: string) {
+  const assetId = ctx.db.normalizeId("assets", rawId);
+  const asset = assetId ? await ctx.db.get(assetId) : null;
+  if (!asset || asset.status !== "ready") return null;
+  if (asset.commentUpload) {
+    await requireAssetScope(ctx, asset, false);
+    if (compareValues(asset.commentUpload, target) !== 0) throw new ConvexError("Image belongs to another composer.");
+    return asset;
+  }
+  const comment = asset.commentId ? await ctx.db.get(asset.commentId) : null;
+  if (!comment || comment.taskId !== target.taskId) throw new ConvexError("Image belongs to another work item.");
+  if ("requestId" in target) {
+    const { user } = await requireCommentImageTarget(ctx, target);
+    if (
+      comment.authorId !== user._id ||
+      comment.creation?.requestId !== target.requestId ||
+      comment.creation.anchor !== target.anchor
+    )
+      throw new ConvexError("Image belongs to another composer.");
+  } else if (comment._id !== target.commentId) throw new ConvexError("Image belongs to another comment.");
+  if (target.anchor !== null) await requirePublicCommentImage(ctx, target.anchor, target.taskId, comment._id, asset);
+  else await requireAssetScope(ctx, asset, false);
+  return asset;
+}
+export const resolveCommentImage = query({
+  args: { target: commentImageTarget, assetId: v.string() },
+  handler: async (ctx, { target, assetId }) => {
+    const asset = await resolveCommentImageAsset(ctx, target, assetId);
+    if (!asset) return null;
+    if (target.anchor === null || asset.commentUpload) return descriptor(asset);
+    return {
+      id: asset._id,
+      name: asset.name,
+      contentType: asset.contentType,
+      size: asset.size,
+      downloadPath: `/assets/${asset._id}?anchor=${encodeURIComponent(target.anchor)}&task=${target.taskId}&comment=${asset.commentId}`,
+    };
+  },
+});
+export const publicCommentImage = internalQuery({
+  args: { anchor: v.string(), taskId: v.string(), commentId: v.string(), assetId: v.string() },
+  handler: async (ctx, args) => {
+    const taskId = ctx.db.normalizeId("tasks", args.taskId);
+    const commentId = ctx.db.normalizeId("taskComments", args.commentId);
+    const assetId = ctx.db.normalizeId("assets", args.assetId);
+    const asset = assetId ? await ctx.db.get(assetId) : null;
+    if (!taskId || !commentId || !asset) throw new ConvexError("Comment image not found.");
+    return requirePublicCommentImage(ctx, args.anchor, taskId, commentId, asset);
+  },
+});
+export const download = internalQuery({
+  args: { assetId: v.string(), readWorkspaceId: v.optional(v.string()), commentTarget: v.optional(commentImageTarget) },
+  handler: async (ctx, args) => {
+    if (args.commentTarget) {
+      if (args.readWorkspaceId) throw new ConvexError("Comment image cannot have another read scope.");
+      const asset = await resolveCommentImageAsset(ctx, args.commentTarget, args.assetId);
+      if (!asset) throw new ConvexError("Comment image not found.");
+      return asset;
+    }
     const assetId = ctx.db.normalizeId("assets", args.assetId);
     if (!assetId) throw new ConvexError("Asset not found.");
     const readWorkspaceId =
@@ -134,6 +221,7 @@ export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
     const { asset } = await requireAsset(ctx, assetId, true);
+    if (asset.commentUpload || asset.commentId) throw new ConvexError("Remove image references through their comment.");
     if (asset.purpose === "userAvatar" || asset.purpose === "userCover")
       throw new ConvexError("Remove profile images through your profile.");
     if (asset.purpose === "workspaceLogo")

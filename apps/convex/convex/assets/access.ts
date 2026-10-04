@@ -1,4 +1,5 @@
 import { personalImagePurpose } from "./schema";
+import { requireCommentImageScope } from "./commentImages";
 import { requireProjectDiscovery } from "../projects/network_access";
 import { requirePersonalImageScope } from "../identity/avatar_access";
 import { requireDraftAttachmentAccess } from "./draft_access";
@@ -59,10 +60,13 @@ export async function requireAssetScope(
     | "avatarUserId"
     | "meetingId"
     | "automationJobId"
-  > & { _id?: Id<"assets"> },
+    | "commentUpload"
+    | "commentId"
+  > & { _id?: Id<"assets">; createdBy?: Id<"users">; expiresAt?: number },
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
+  if ([scope.commentUpload, scope.commentId].some(Boolean)) return requireCommentImageScope(ctx, scope, write);
   if (scope.automationJobId) return requireAutomationFileScope(ctx, scope, scope.automationJobId, write);
   if (scope.meetingId) return requireMeetingRecordingScope(ctx, scope, scope.meetingId, write);
   if (personalImagePurpose.members.some((purpose) => purpose.value === scope.purpose))
@@ -72,14 +76,7 @@ export async function requireAssetScope(
   const workspaceScope = { ...scope, workspaceId: scope.workspaceId };
   if (scope.documentCopyId) throw new ConvexError("Document copy files are not published.");
   if (scope.purpose === "projectCover") return requireProjectCoverScope(ctx, scope, write);
-  if (scope.purpose === "workspaceLogo") {
-    if ([scope.projectId, scope.documentId, scope.taskId, scope.draftId, scope.conversationId].some(Boolean))
-      throw new ConvexError("Workspace logos cannot have another scope.");
-    const access = await requireWorkspace(ctx, scope.workspaceId);
-    if (write && access.member.role !== "admin")
-      throw new ConvexError("Only workspace administrators can change the logo.");
-    return access;
-  }
+  if (scope.purpose === "workspaceLogo") return requireWorkspaceLogoScope(ctx, workspaceScope, write);
   if (scope.draftId) {
     if ([scope.taskId, scope.projectId, scope.documentId, scope.conversationId].some(Boolean))
       throw new ConvexError("Draft assets cannot have another scope.");
@@ -101,6 +98,18 @@ export async function requireAssetScope(
   if (scope.documentId) {
     await requireDocumentScope(ctx, workspaceScope, scope.documentId, write);
   }
+  return access;
+}
+async function requireWorkspaceLogoScope(
+  ctx: QueryCtx,
+  scope: Parameters<typeof requireAssetScope>[1] & { workspaceId: Id<"workspaces"> },
+  write: boolean
+) {
+  if ([scope.projectId, scope.documentId, scope.taskId, scope.draftId, scope.conversationId].some(Boolean))
+    throw new ConvexError("Workspace logos cannot have another scope.");
+  const access = await requireWorkspace(ctx, scope.workspaceId);
+  if (write && access.member.role !== "admin")
+    throw new ConvexError("Only workspace administrators can change the logo.");
   return access;
 }
 async function requireAutomationFileScope(

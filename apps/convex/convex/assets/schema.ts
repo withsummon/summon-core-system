@@ -1,5 +1,12 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { zodToConvex } from "convex-helpers/server/zod4";
+import { commentRequestId } from "../tasks/schema";
+
+export const commentImageTarget = v.union(
+  v.object({ taskId: v.id("tasks"), requestId: zodToConvex(commentRequestId), anchor: v.union(v.string(), v.null()) }),
+  v.object({ taskId: v.id("tasks"), commentId: v.id("taskComments"), anchor: v.union(v.string(), v.null()) })
+);
 
 export const personalImageSlot = v.union(v.literal("avatar"), v.literal("cover"));
 export const personalImagePurpose = v.union(v.literal("userAvatar"), v.literal("userCover"));
@@ -10,6 +17,8 @@ export const fileMetadataFields = {
   sha256: v.string(),
 };
 export const assetScope = {
+  commentUpload: v.optional(commentImageTarget),
+  commentId: v.optional(v.id("taskComments")),
   draftId: v.optional(v.id("taskDrafts")),
   taskId: v.optional(v.id("tasks")),
   conversationId: v.optional(v.id("assistantConversations")),

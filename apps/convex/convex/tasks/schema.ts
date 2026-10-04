@@ -12,6 +12,14 @@ export const status = v.union(
 );
 export const taskStatus = v.union(...status.members, v.literal("triage"));
 export const commentAudience = v.union(v.literal("INTERNAL"), v.literal("EXTERNAL"));
+export const commentRequestId = z.uuid();
+export const commentCreation = v.object({
+  requestId: zodToConvex(commentRequestId),
+  htmlSha256: v.bytes(),
+  audience: commentAudience,
+  mentionedUserIds: v.array(v.id("users")),
+  anchor: v.union(v.string(), v.null()),
+});
 export const priority = v.union(
   v.literal("urgent"),
   v.literal("high"),
@@ -244,6 +252,7 @@ export const taskTables = {
     .index("by_task_deleted", ["taskId", "deletedAt"])
     .index("by_task_url_deleted", ["taskId", "url", "deletedAt"]),
   taskComments: defineTable({
+    creation: v.optional(commentCreation),
     audience: commentAudience,
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     taskId: v.id("tasks"),
@@ -255,7 +264,8 @@ export const taskTables = {
     deletedAt: v.optional(v.union(v.number(), v.null())),
   })
     .index("by_task", ["taskId"])
-    .index("by_task_audience", ["taskId", "audience"]),
+    .index("by_task_audience", ["taskId", "audience"])
+    .index("by_author_task_creation_request", ["authorId", "taskId", "creation.requestId"]),
   taskDescriptionVersions: defineTable({
     taskId: v.id("tasks"),
     actorId: v.id("users"),

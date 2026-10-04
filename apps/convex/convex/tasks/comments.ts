@@ -1,57 +1,47 @@
 import { validateMentions } from "../notifications/mentions";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { ConvexError, v } from "convex/values";
+import { compareValues, ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { requireProject, requireUser } from "../identity/access";
+import { requireUser } from "../identity/access";
 import { recordTaskEvent } from "../notifications/delivery";
 import { pageBudget } from "../commercial/validation";
 import { requirePublishedComment, requirePublishedDiscussion } from "../publicSharing/access";
 import schema from "../schema";
-import { requireDiscussion, discussionIsActive } from "./discussion_access";
-import { taskRichContent } from "./rich_content";
-import { commentAudience } from "./schema";
+import { requireCommentAccess, requireEditableComment, discussionIsActive } from "./discussion_access";
+import { imageRichContent } from "./rich_content";
+import { bindCommentImages } from "../assets/commentImages";
+import { commentAudience, commentRequestId } from "./schema";
+import { zodToConvex } from "convex-helpers/server/zod4";
 
 const revisionFields = { commentId: v.id("taskComments"), expectedUpdatedAt: v.number() };
 const publicTarget = { anchor: v.string(), taskId: v.id("tasks") };
-async function commentAccess(ctx: QueryCtx, taskId: Id<"tasks">) {
-  const task = await requireDiscussion(ctx, taskId, "read");
-  const permission = await requireProject(ctx, task.projectId);
-  const canCreate =
-    (permission.member.role !== "guest" && permission.projectMember.role !== "guest") ||
-    task.createdBy === permission.user._id ||
-    !!permission.project.guestViewAllFeatures;
-  const active = discussionIsActive(task);
-  return { ...permission, task, canCreate: active && canCreate };
-}
 export const access = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const { canCreate } = await commentAccess(ctx, args.taskId);
+    const { canCreate } = await requireCommentAccess(ctx, args.taskId);
     return { canCreate };
   },
 });
-function commentContent(html: string) {
-  const content = taskRichContent(html);
-  if (!content.description.trim()) throw new ConvexError("Write a comment before posting.");
-  return { html: content.html, text: content.description };
+function commentCreation(
+  input: Pick<NonNullable<Doc<"taskComments">["creation"]>, "requestId" | "audience" | "anchor"> &
+    Pick<Doc<"taskComments">, "html" | "mentionedUserIds">
+) {
+  const requestId = commentRequestId.safeParse(input.requestId);
+  if (!requestId.success) throw new ConvexError("Provide a UUID for this comment creation request.");
+  return {
+    requestId: requestId.data,
+    html: input.html,
+    audience: input.audience,
+    mentionedUserIds: input.mentionedUserIds ?? [],
+    anchor: input.anchor,
+  };
 }
 function requireCommentRevision(comment: Doc<"taskComments">, expectedUpdatedAt: number) {
   if (!Number.isSafeInteger(expectedUpdatedAt) || comment.updatedAt !== expectedUpdatedAt)
     throw new ConvexError("This comment changed. Reload before editing.");
-}
-async function editableComment(ctx: QueryCtx, commentId: Id<"taskComments">, deleted = false) {
-  const comment = await ctx.db.get(commentId);
-  if (!comment) throw new ConvexError("Comment not found.");
-  const task = await requireDiscussion(ctx, comment.taskId);
-  const permission = await requireProject(ctx, task.projectId);
-  if (comment.authorId !== permission.user._id && permission.projectMember.role !== "admin")
-    throw new ConvexError("Only the author or a project administrator can change this comment.");
-  if ((comment.deletedAt != null) !== deleted)
-    throw new ConvexError(deleted ? "Comment is not deleted." : "This comment is deleted. Restore it before editing.");
-  return { comment, task, ...permission };
 }
 function commentEvent(
   ctx: MutationCtx,
@@ -81,20 +71,48 @@ async function insertComment(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   authorId: Id<"users">,
-  input: Pick<Doc<"taskComments">, "html" | "audience" | "mentionedUserIds">,
+  input: ReturnType<typeof commentCreation>,
   delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>
 ) {
+  const { html, ...intent } = input;
+  const content = imageRichContent(html);
+  const creation = {
+    ...intent,
+    htmlSha256: await crypto.subtle.digest("SHA-256", new TextEncoder().encode(content.html)),
+  };
+  const existing = await ctx.db
+    .query("taskComments")
+    .withIndex("by_author_task_creation_request", (q) =>
+      q.eq("authorId", authorId).eq("taskId", task._id).eq("creation.requestId", creation.requestId)
+    )
+    .unique();
+  if (existing) {
+    if (compareValues(existing.creation, creation) !== 0)
+      throw new ConvexError("This comment request already belongs to another creation payload.");
+    if (creation.anchor !== null) await requirePublishedComment(ctx, creation.anchor, task._id, existing._id);
+    if (existing.deletedAt != null) throw new ConvexError("This comment was deleted. Restore it before editing.");
+    return existing._id;
+  }
+  if (creation.anchor === null) await validateMentions(ctx, task, creation.mentionedUserIds);
   const commentId = await ctx.db.insert("taskComments", {
     taskId: task._id,
     authorId,
-    audience: input.audience,
-    mentionedUserIds: input.mentionedUserIds ?? [],
-    ...commentContent(input.html),
+    creation,
+    audience: creation.audience,
+    mentionedUserIds: creation.mentionedUserIds,
+    html: content.html,
+    text: content.description,
     updatedAt: Date.now(),
     editedAt: null,
     deletedAt: null,
   });
-  await commentEvent(ctx, task, authorId, commentId, "comment_created", delivery, input.mentionedUserIds);
+  await bindCommentImages(
+    ctx,
+    { taskId: task._id, requestId: creation.requestId, anchor: creation.anchor },
+    content,
+    commentId
+  );
+  await commentEvent(ctx, task, authorId, commentId, "comment_created", delivery, creation.mentionedUserIds);
   return commentId;
 }
 async function updateComment(
@@ -103,10 +121,19 @@ async function updateComment(
   comment: Doc<"taskComments">,
   actorId: Id<"users">,
   input: Partial<Pick<Doc<"taskComments">, "html" | "audience" | "mentionedUserIds">> & { expectedUpdatedAt: number },
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>
+  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>,
+  anchor: string | null = null
 ) {
   requireCommentRevision(comment, input.expectedUpdatedAt);
-  const content = input.html === undefined ? { html: comment.html, text: comment.text } : commentContent(input.html);
+  const content =
+    input.html === undefined
+      ? { html: comment.html, text: comment.text }
+      : await bindCommentImages(
+          ctx,
+          { taskId: task._id, commentId: comment._id, anchor },
+          imageRichContent(input.html),
+          comment._id
+        );
   const audience = input.audience ?? comment.audience;
   const previousMentions = comment.mentionedUserIds ?? [];
   const mentionedUserIds = input.mentionedUserIds ?? previousMentions;
@@ -146,7 +173,7 @@ async function removeComment(
 export const list = query({
   args: { taskId: v.id("tasks"), deleted: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const permission = await commentAccess(ctx, args.taskId);
+    const permission = await requireCommentAccess(ctx, args.taskId);
     const result = await stream(ctx.db, schema)
       .query("taskComments")
       .withIndex("by_task", (q) => q.eq("taskId", permission.task._id))
@@ -155,7 +182,8 @@ export const list = query({
         const canManage = comment.authorId === permission.user._id || permission.projectMember.role === "admin";
         if ((comment.deletedAt != null) !== (args.deleted ?? false) || (args.deleted && !canManage)) return null;
         const author = await ctx.db.get(comment.authorId);
-        return Object.assign({}, comment, {
+        const { creation: _creation, ...current } = comment;
+        return Object.assign({}, current, {
           authorName: author?.name ?? null,
           canEdit: discussionIsActive(permission.task) && comment.deletedAt == null && canManage,
           canRestore: discussionIsActive(permission.task) && comment.deletedAt != null && canManage,
@@ -168,15 +196,27 @@ export const list = query({
 export const create = mutation({
   args: {
     taskId: v.id("tasks"),
+    requestId: zodToConvex(commentRequestId),
     html: v.string(),
     audience: commentAudience,
     mentionedUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
-    const { task, user, canCreate } = await commentAccess(ctx, args.taskId);
+    const { task, user, canCreate } = await requireCommentAccess(ctx, args.taskId);
     if (!canCreate) throw new ConvexError("Guests can comment only on tasks they created.");
-    const mentionedUserIds = await validateMentions(ctx, task, args.mentionedUserIds ?? []);
-    return insertComment(ctx, task, user._id, { ...args, mentionedUserIds }, "subscribers");
+    return insertComment(
+      ctx,
+      task,
+      user._id,
+      commentCreation({
+        requestId: args.requestId,
+        html: args.html,
+        audience: args.audience,
+        mentionedUserIds: args.mentionedUserIds,
+        anchor: null,
+      }),
+      "subscribers"
+    );
   },
 });
 export const update = mutation({
@@ -187,7 +227,7 @@ export const update = mutation({
     mentionedUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
-    const { comment, task, user } = await editableComment(ctx, args.commentId);
+    const { comment, task, user } = await requireEditableComment(ctx, args.commentId);
     if (args.mentionedUserIds !== undefined) await validateMentions(ctx, task, args.mentionedUserIds);
     return updateComment(ctx, task, comment, user._id, args, "subscribers");
   },
@@ -195,7 +235,7 @@ export const update = mutation({
 export const remove = mutation({
   args: revisionFields,
   handler: async (ctx, args) => {
-    const { comment, task, user } = await editableComment(ctx, args.commentId);
+    const { comment, task, user } = await requireEditableComment(ctx, args.commentId);
     await removeComment(ctx, task, comment, user._id, args.expectedUpdatedAt, "subscribers");
   },
 });
@@ -203,7 +243,7 @@ export const remove = mutation({
 export const restore = mutation({
   args: revisionFields,
   handler: async (ctx, args) => {
-    const { comment, task, user } = await editableComment(ctx, args.commentId, true);
+    const { comment, task, user } = await requireEditableComment(ctx, args.commentId, true);
     requireCommentRevision(comment, args.expectedUpdatedAt);
     await ctx.db.patch(comment._id, { deletedAt: null, updatedAt: Math.max(Date.now(), comment.updatedAt + 1) });
     await commentEvent(ctx, task, user._id, comment._id, "comment_restored", "subscribers");
@@ -215,13 +255,14 @@ export const restore = mutation({
 export const get = query({
   args: { taskId: v.id("tasks"), commentId: v.string() },
   handler: async (ctx, args) => {
-    await commentAccess(ctx, args.taskId);
+    await requireCommentAccess(ctx, args.taskId);
     const id = ctx.db.normalizeId("taskComments", args.commentId);
     const comment = id ? await ctx.db.get(id) : null;
     if (!comment || comment.taskId !== args.taskId || comment.deletedAt != null)
       throw new ConvexError("Comment not found.");
     const author = await ctx.db.get(comment.authorId);
-    return { ...comment, mentionedUserIds: comment.mentionedUserIds ?? [], authorName: author?.name ?? null };
+    const { creation: _creation, ...current } = comment;
+    return { ...current, mentionedUserIds: comment.mentionedUserIds ?? [], authorName: author?.name ?? null };
   },
 });
 
@@ -271,18 +312,24 @@ export const publicGet = query({
     publicComment(ctx, (await requirePublishedComment(ctx, args.anchor, args.taskId, args.commentId)).comment),
 });
 export const publicCreate = mutation({
-  args: { ...publicTarget, html: v.string() },
+  args: { ...publicTarget, requestId: zodToConvex(commentRequestId), html: v.string() },
   handler: async (ctx, args) => {
     const { task } = await requirePublishedDiscussion(ctx, args.anchor, args.taskId);
     const user = await requireUser(ctx);
-    return insertComment(ctx, task, user._id, { html: args.html, audience: "EXTERNAL" }, "activity");
+    return insertComment(
+      ctx,
+      task,
+      user._id,
+      commentCreation({ requestId: args.requestId, html: args.html, audience: "EXTERNAL", anchor: args.anchor }),
+      "activity"
+    );
   },
 });
 export const publicUpdate = mutation({
   args: { ...publicTarget, ...revisionFields, html: v.string() },
   handler: async (ctx, args) => {
     const { task, comment, user } = await editablePublicComment(ctx, args.anchor, args.taskId, args.commentId);
-    return updateComment(ctx, task, comment, user._id, args, "activity");
+    return updateComment(ctx, task, comment, user._id, args, "activity", args.anchor);
   },
 });
 export const publicRemove = mutation({

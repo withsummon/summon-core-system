@@ -6,7 +6,7 @@ import { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
-import { TaskDescriptionEditor } from "../tasks/description-editor";
+import { TaskImageEditor } from "../tasks/image-editor";
 import { mutationMessage } from "../commercial/forms";
 type Content = FunctionReturnType<typeof api.intakes.description.get>;
 export function IntakeDescription({
@@ -37,7 +37,7 @@ export function IntakeDescription({
       {editing ? (
         <DescriptionForm initial={content} onDone={onDone} />
       ) : (
-        <TaskDescriptionEditor
+        <TaskImageEditor
           key={`${content.contentVersion?.versionId}:${content.contentVersion?.revision}`}
           target={{ taskId }}
           id={`intake-content-${taskId}`}
@@ -93,7 +93,7 @@ function DescriptionForm({ initial, onDone }: { initial: Content; onDone: () => 
         }
       })}
     >
-      <TaskDescriptionEditor
+      <TaskImageEditor
         target={{ taskId: snapshot.taskId }}
         id={`intake-content-edit-${snapshot.taskId}`}
         label="Edit submission description"

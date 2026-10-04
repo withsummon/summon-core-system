@@ -12,14 +12,16 @@ type Props = Omit<ComponentProps<typeof TaskRichEditor>, "imageFileHandler"> & {
   target: FunctionArgs<typeof api.assets.upload.duplicateDescriptionImage>["target"];
   onUploadingChange?: (uploading: boolean) => void;
 };
-export function TaskDescriptionEditor(props: Props) {
-  return <BoundEditor key={"taskId" in props.target ? props.target.taskId : props.target.draftId} {...props} />;
+export function TaskImageEditor(props: Props) {
+  return <BoundEditor key={JSON.stringify(props.target)} {...props} />;
 }
 function BoundEditor({ target, onUploadingChange, ...editor }: Props) {
   const client = useConvex();
   const policy = useQuery(api.assets.index.policy, {});
   const resolve = useCallback(
     async (assetId: string) => {
+      if ("comment" in target)
+        return client.query(api.assets.index.resolveCommentImage, { target: target.comment, assetId });
       const asset =
         "taskId" in target
           ? await client.query(api.assets.taskAttachments.get, { ...target, assetId })
@@ -43,12 +45,12 @@ function BoundEditor({ target, onUploadingChange, ...editor }: Props) {
         transfers.cancel();
         setStatus({});
       },
-      checkIfAssetExists: async (id) => (await resolve(id)).status === "ready",
-      // An acknowledged description save owns reference unlinking. Local delete/undo never retires
+      checkIfAssetExists: async (id) => (await resolve(id)) !== null,
+      // An acknowledged save owns reference unlinking. Local delete/undo never retires
       // bytes needed by canceled drafts, saved history or another reference.
       delete: () => Promise.resolve(),
       restore: async (id) => {
-        await resolve(id);
+        if (!(await resolve(id))) throw new Error("This image is no longer available.");
       },
       getAssetSrc: (id) => source(id, false),
       getAssetDownloadSrc: (id) => source(id, true),
@@ -73,9 +75,16 @@ function BoundEditor({ target, onUploadingChange, ...editor }: Props) {
               file,
               policy,
               (metadata) =>
-                "taskId" in target
-                  ? client.mutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
-                  : client.mutation(api.assets.draftAttachments.prepare, { ...target, ...metadata }),
+                "comment" in target
+                  ? client.mutation(
+                      target.comment.anchor === null
+                        ? api.assets.index.prepareCommentImage
+                        : api.assets.index.preparePublicCommentImage,
+                      { target: target.comment, ...metadata }
+                    )
+                  : "taskId" in target
+                    ? client.mutation(api.assets.taskAttachments.prepare, { ...target, ...metadata })
+                    : client.mutation(api.assets.draftAttachments.prepare, { ...target, ...metadata }),
               (args) => client.action(api.assets.upload.finalize, args),
               signal
             );
@@ -91,6 +100,6 @@ function BoundEditor({ target, onUploadingChange, ...editor }: Props) {
       validation: { maxFileSize: policy.imageMaxBytes },
     } satisfies TFileHandler;
   }, [policy, assetsUploadStatus, transfers, resolve, source, client, target]);
-  if (!fileHandler) return <p role="status">Loading description editor…</p>;
+  if (!fileHandler) return <p role="status">Loading editor…</p>;
   return <TaskRichEditor {...editor} imageFileHandler={fileHandler} />;
 }

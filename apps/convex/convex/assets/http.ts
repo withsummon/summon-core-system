@@ -14,15 +14,25 @@ const cors = {
 };
 export const options = httpAction(async () => new Response(null, { status: 204, headers: cors }));
 export const read = httpAction(async (ctx, request) => {
-  if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
+  const url = new URL(request.url);
+  const anchor = url.searchParams.get("anchor");
+  if (anchor === null && !(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers: cors });
   try {
-    const url = new URL(request.url);
     const workspace = url.searchParams.get("workspace");
-    const asset = await ctx.runQuery(internal.assets.index.download, {
-      assetId: url.pathname.slice("/assets/".length),
-      ...(workspace ? { readWorkspaceId: workspace } : {}),
-    });
+    const assetId = url.pathname.slice("/assets/".length);
+    const asset =
+      anchor === null
+        ? await ctx.runQuery(internal.assets.index.download, {
+            assetId,
+            ...(workspace ? { readWorkspaceId: workspace } : {}),
+          })
+        : await ctx.runQuery(internal.assets.index.publicCommentImage, {
+            anchor,
+            assetId,
+            taskId: url.searchParams.get("task") ?? "",
+            commentId: url.searchParams.get("comment") ?? "",
+          });
     if (!asset.storageId) return new Response("Asset not found.", { status: 404, headers: cors });
     const headers = {
       ...cors,

@@ -35,9 +35,7 @@ import { TaskSubscription } from "../notifications/task-subscription";
 import { peekOptions } from "./options";
 import type { TaskPeekMode } from "./options";
 
-const TaskDescriptionEditor = lazy(() =>
-  import("./description-editor").then((module) => ({ default: module.TaskDescriptionEditor }))
-);
+const TaskImageEditor = lazy(() => import("./image-editor").then((module) => ({ default: module.TaskImageEditor })));
 
 const TaskRichEditor = lazy(() => import("./rich-editor").then((module) => ({ default: module.TaskRichEditor })));
 
@@ -576,7 +574,7 @@ export function CreateProjectIssue({
         <div className="px-5 pb-4">
           <Suspense fallback={<p role="status">Loading work item editor…</p>}>
             {opened ? (
-              <TaskDescriptionEditor
+              <TaskImageEditor
                 target={opened.kind === "edit" ? { taskId: opened.value.task._id } : { draftId: opened.value._id }}
                 onUploadingChange={onUploadingChange}
                 id={`compose-work-item-${address.project._id}`}

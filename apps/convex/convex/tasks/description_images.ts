@@ -1,33 +1,17 @@
-import { ECustomImageStatus } from "@plane/editor/image-contract";
 import sanitizeHtml from "sanitize-html";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireAsset } from "../assets/access";
-import { taskDescriptionImageContent } from "./rich_content";
+import { imageRichContent } from "./rich_content";
 
-/** Explicit task-description boundary; shared comment/intake sanitizers still omit images. */
+/** Explicit task-description boundary; generic task/intake content still omits images. */
 export async function boundDescriptionContent(
   ctx: QueryCtx,
   scope: Id<"tasks"> | { draftId: Id<"taskDrafts"> },
   html: string
 ) {
-  const content = taskDescriptionImageContent(html);
-  const sources = new Set<string>();
-  sanitizeHtml(content.html, {
-    allowedTags: ["image-component"],
-    exclusiveFilter: (frame) => {
-      if (frame.tag === "image-component") {
-        if (!frame.attribs.src || frame.attribs.status !== ECustomImageStatus.UPLOADED)
-          throw new ConvexError("Finish uploading images before saving the description.");
-        sources.add(frame.attribs.src);
-      }
-      return false;
-    },
-    allowedAttributes: { "image-component": ["src", "status"] },
-  });
-  // Bounds authorization/storage reads in the same atomic save; no silent truncation.
-  if (sources.size > 100) throw new ConvexError("A description can reference at most 100 distinct images.");
+  const { sources, ...content } = imageRichContent(html);
   const assets = await Promise.all(
     [...sources].map(async (source) => {
       const id = ctx.db.normalizeId("assets", source);
@@ -46,7 +30,7 @@ export async function boundDescriptionContent(
 
 /** Copied image nodes keep their attributes but reference independent destination assets. */
 export function remapDescriptionImages(html: string, sources: ReadonlyMap<string, Id<"assets">>) {
-  const content = taskDescriptionImageContent(html);
+  const { sources: _sources, ...content } = imageRichContent(html);
   const rewritten = sanitizeHtml(content.html, {
     // The canonical sanitizer above already owns the accepted tags and attributes.
     allowedTags: false,

@@ -6,7 +6,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { mutationMessage } from "../commercial/forms";
-import { TaskDescriptionEditor } from "./description-editor";
+import { TaskImageEditor } from "./image-editor";
 type Scope = FunctionArgs<typeof api.tasks.history.list>["scope"];
 type Capabilities = FunctionReturnType<typeof api.tasks.history.capabilities>;
 export function DescriptionHistory({ scope }: { scope: Scope }) {
@@ -114,7 +114,7 @@ function VersionPreview({
       <h3 className="text-16 font-medium">
         Saved {new Date(confirmation?.lastSavedAt ?? version.lastSavedAt).toLocaleString()}
       </h3>
-      <TaskDescriptionEditor
+      <TaskImageEditor
         target={{ taskId: scope.taskId }}
         key={confirmation ? "confirmation" : version.revision}
         id={`history-${versionId}`}
