@@ -62,12 +62,16 @@ export function ActivityList({ activity, currentUserId }: { activity: Event[]; c
             </div>
             <div className="min-w-0 flex-1 border-b border-subtle py-4">
               <p className="text-13 break-words text-secondary">
-                <Link
-                  href={"/" + event.workspaceSlug + "/profile/" + event.actorId}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {currentUserId === event.actorId ? "You" : (event.actorName ?? "Member")}
-                </Link>{" "}
+                {event.automation ? (
+                  <span className="font-medium text-primary">Automation</span>
+                ) : (
+                  <Link
+                    href={"/" + event.workspaceSlug + "/profile/" + event.actorId}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {currentUserId === event.actorId ? "You" : (event.actorName ?? "Member")}
+                  </Link>
+                )}{" "}
                 <ProfileActivityMessage event={event} />{" "}
                 <time className="whitespace-nowrap" dateTime={new Date(event.at).toISOString()}>
                   {calculateTimeAgo(new Date(event.at).toISOString())}

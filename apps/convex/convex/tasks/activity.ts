@@ -32,6 +32,7 @@ export const list = query({
           kind: event.kind,
           status: event.status,
           changes: event.changes ?? null,
+          automation: event.automation === true,
           actorName: actor?.name ?? null,
         };
       })
@@ -96,6 +97,7 @@ async function profilePage(
         kind: event.kind,
         status: event.status,
         changes: event.changes ?? null,
+        automation: event.automation === true,
         actorId: target._id,
         actorName: target.name ?? null,
         avatar,

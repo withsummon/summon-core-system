@@ -12,8 +12,9 @@ export async function taskChanged(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   actorId: Id<"users">,
-  event?: Pick<Doc<"taskEvents">, "kind" | "changes">,
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]> = "subscribers"
+  event?: Pick<Doc<"taskEvents">, "kind" | "changes" | "commentId" | "automation">,
+  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]> = "subscribers",
+  mentionedUserIds: Id<"users">[] = []
 ) {
   const current = await ctx.db.get(task._id);
   if (!current) throw new ConvexError("Task not found.");
@@ -43,11 +44,12 @@ export async function taskChanged(
       projectId: task.projectId,
       taskId: task._id,
       actorId,
+      ...event,
       kind,
       status: current.status,
       changes,
     },
-    [],
+    mentionedUserIds,
     delivery
   );
   return updatedAt;

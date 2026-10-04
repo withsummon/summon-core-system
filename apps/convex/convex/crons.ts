@@ -1,6 +1,9 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
+crons.daily("Apply project inactivity automations", { hourUTC: 1, minuteUTC: 0 }, internal.projects.inactivity.sweep, {
+  cursor: null,
+});
 crons.interval("Expire unfinished asset uploads", { hours: 1 }, internal.assets.cleanup.expire, {});
 crons.interval("Delete unclaimed storage blobs", { hours: 1 }, internal.assets.cleanup.sweep, { cursor: null });
 crons.interval("Delete expired notification read batches", { hours: 1 }, internal.notifications.cleanup.expire, {});

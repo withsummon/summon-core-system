@@ -63,7 +63,11 @@ export function ProfileActivity({
                 <div className="-mt-1 w-4/5 break-words">
                   <p className="text-13 text-secondary">
                     <span className="font-medium text-primary">
-                      {currentUserId === event.actorId ? "You" : (event.actorName ?? "Member")}{" "}
+                      {event.automation
+                        ? "Automation"
+                        : currentUserId === event.actorId
+                          ? "You"
+                          : (event.actorName ?? "Member")}{" "}
                     </span>
                     <ProfileActivityMessage event={event} />
                   </p>

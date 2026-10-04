@@ -6,7 +6,7 @@ import { mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireUser } from "../identity/access";
-import { recordTaskEvent } from "../notifications/delivery";
+import { taskChanged } from "./revision";
 import { pageBudget } from "../commercial/validation";
 import { requirePublishedComment, requirePublishedDiscussion } from "../publicSharing/access";
 import schema from "../schema";
@@ -49,30 +49,17 @@ function commentEvent(
   actorId: Id<"users">,
   commentId: Id<"taskComments">,
   kind: Extract<Doc<"taskEvents">["kind"], `comment_${string}`>,
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]>,
   mentionedUserIds: Id<"users">[] = []
 ) {
-  return recordTaskEvent(
-    ctx,
-    {
-      workspaceId: task.workspaceId,
-      projectId: task.projectId,
-      taskId: task._id,
-      actorId,
-      kind,
-      status: task.status,
-      commentId,
-    },
-    mentionedUserIds,
-    delivery
-  );
+  return taskChanged(ctx, task, actorId, { kind, commentId }, delivery, mentionedUserIds);
 }
 async function insertComment(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   authorId: Id<"users">,
   input: ReturnType<typeof commentCreation>,
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]>
 ) {
   const { html, ...intent } = input;
   const content = imageRichContent(html);
@@ -121,7 +108,7 @@ async function updateComment(
   comment: Doc<"taskComments">,
   actorId: Id<"users">,
   input: Partial<Pick<Doc<"taskComments">, "html" | "audience" | "mentionedUserIds">> & { expectedUpdatedAt: number },
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]>,
   anchor: string | null = null
 ) {
   requireCommentRevision(comment, input.expectedUpdatedAt);
@@ -163,7 +150,7 @@ async function removeComment(
   comment: Doc<"taskComments">,
   actorId: Id<"users">,
   expectedUpdatedAt: number,
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]>
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]>
 ) {
   requireCommentRevision(comment, expectedUpdatedAt);
   const updatedAt = Math.max(Date.now(), comment.updatedAt + 1);

@@ -74,7 +74,8 @@ function ActivityRows({ taskId }: { taskId: Id<"tasks"> }) {
         {rows.results.map((event) => (
           <li key={event.id} className="space-y-1 py-3 text-14">
             <p>
-              <span className="font-medium">{event.actorName || "Member"}</span> {actions[event.kind]} this task
+              <span className="font-medium">{event.automation ? "Automation" : event.actorName || "Member"}</span>{" "}
+              {actions[event.kind]} this task
               {event.kind === "status_changed" &&
                 !event.changes?.length &&
                 ` to ${taskStatusOptions[event.status].label}`}

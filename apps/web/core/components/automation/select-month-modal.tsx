@@ -4,130 +4,88 @@
  * See the LICENSE file for details.
  */
 
-import { useParams } from "next/navigation";
-// react-hook-form
-import { Controller, useForm } from "react-hook-form";
+import { useState } from "react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import type { IProject } from "@plane/types";
-// ui
+import { Dialog } from "@plane/propel/dialog";
 import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 
-// types
-type Props = {
-  isOpen: boolean;
-  type: "auto-close" | "auto-archive";
-  initialValues: Partial<IProject>;
+export function SelectMonthModal({
+  initialValues,
+  months,
+  canConfigure,
+  pending,
+  error,
+  handleClose,
+  handleChange,
+}: {
+  initialValues: FunctionArgs<typeof api.projects.inactivity.save>;
+  months: FunctionReturnType<typeof api.projects.inactivity.get>["months"];
+  canConfigure: boolean;
+  pending: boolean;
+  error: string;
   handleClose: () => void;
-  handleChange: (formData: Partial<IProject>) => Promise<void>;
-};
-
-export function SelectMonthModal({ type, initialValues, isOpen, handleClose, handleChange }: Props) {
-  const { workspaceSlug, projectId } = useParams();
-
-  const {
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    control,
-    reset,
-  } = useForm<IProject>({
-    defaultValues: initialValues,
-  });
-
-  const onClose = () => {
-    handleClose();
-    reset(initialValues);
-  };
-
-  const onSubmit = (formData: Partial<IProject>) => {
-    if (!workspaceSlug && !projectId) return;
-    handleChange(formData);
-    onClose();
-  };
-
+  handleChange: (months: FunctionReturnType<typeof api.projects.inactivity.get>["months"][number]) => Promise<void>;
+}) {
+  const [value, setValue] = useState(
+    String(initialValues.changes.close?.months ?? initialValues.changes.archiveMonths)
+  );
+  const selected = months.find((month) => month === Number(value));
   return (
-    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <h3 className="text-16 leading-6 font-medium text-primary">Customize time range</h3>
-          <div className="mt-8 flex items-center gap-2">
-            <div className="flex w-full flex-col justify-center gap-1">
-              {type === "auto-close" ? (
-                <>
-                  <Controller
-                    control={control}
-                    name="close_in"
-                    rules={{
-                      required: "Select a month between 1 and 12.",
-                      min: 1,
-                      max: 12,
-                    }}
-                    render={({ field: { value, onChange, ref } }) => (
-                      <div className="relative flex w-full flex-col justify-center gap-1">
-                        <Input
-                          id="close_in"
-                          name="close_in"
-                          type="number"
-                          value={value?.toString()}
-                          onChange={onChange}
-                          ref={ref}
-                          hasError={Boolean(errors.close_in)}
-                          placeholder="Enter Months"
-                          className="w-full border-subtle"
-                          min={1}
-                          max={12}
-                        />
-                        <span className="absolute top-2.5 right-8 text-13 text-secondary">Months</span>
-                      </div>
-                    )}
-                  />
-
-                  {errors.close_in && (
-                    <span className="px-1 text-13 text-danger-primary">Select a month between 1 and 12.</span>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Controller
-                    control={control}
-                    name="archive_in"
-                    rules={{
-                      required: "Select a month between 1 and 12.",
-                      min: 1,
-                      max: 12,
-                    }}
-                    render={({ field: { value, onChange, ref } }) => (
-                      <div className="relative flex w-full flex-col justify-center gap-1">
-                        <Input
-                          id="archive_in"
-                          name="archive_in"
-                          type="number"
-                          value={value?.toString()}
-                          onChange={onChange}
-                          ref={ref}
-                          hasError={Boolean(errors.archive_in)}
-                          placeholder="Enter Months"
-                          className="w-full border-subtle"
-                          min={1}
-                          max={12}
-                        />
-                        <span className="absolute top-2.5 right-8 text-13 text-secondary">Months</span>
-                      </div>
-                    )}
-                  />
-                  {errors.archive_in && (
-                    <span className="px-1 text-13 text-danger-primary">Select a month between 1 and 12.</span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+    <ModalCore isOpen handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
+      <form
+        className="space-y-5 p-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (selected !== undefined && canConfigure && !pending) void handleChange(selected);
+        }}
+      >
+        <Dialog.Title className="text-16 leading-6 font-medium text-primary">Customize time range</Dialog.Title>
+        <Dialog.Description className="text-13 text-secondary">
+          Choose how many months of inactivity to wait. One month is 30 days.
+        </Dialog.Description>
+        <div className="space-y-2">
+          <label htmlFor="automation-months" className="text-13 font-medium">
+            Months
+          </label>
+          <Input
+            id="automation-months"
+            name="months"
+            type="number"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            min={months[0]}
+            max={months.at(-1)}
+            step={1}
+            required
+            disabled={pending || !canConfigure}
+            hasError={selected === undefined}
+            className="w-full"
+          />
+          {selected === undefined && (
+            <p className="text-13 text-danger-primary">
+              Choose a whole number of months between {months[0]} and {months.at(-1)}.
+            </p>
+          )}
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="secondary" size="lg" onClick={onClose}>
+        {error && (
+          <p role="alert" className="text-13 text-danger-primary">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" size="lg" disabled={pending} onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit"}
+          <Button
+            variant="primary"
+            size="lg"
+            type="submit"
+            disabled={selected === undefined || !canConfigure}
+            loading={pending}
+          >
+            Submit
           </Button>
         </div>
       </form>
