@@ -4,37 +4,36 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { useOutletContext } from "react-router";
 // component
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { WORKSPACE_SETTINGS } from "@plane/constants";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
+import { PreservedWorkspaceSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 // hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserPermissions } from "@/hooks/store/user";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 // local imports
 import { BillingWorkspaceSettingsHeader } from "./header";
 import { BillingRoot } from "@/components/workspace/billing";
 
 function BillingSettingsPage() {
-  // store hooks
-  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-  const { currentWorkspace } = useWorkspace();
-  // derived values
-  const canPerformWorkspaceAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Billing & Plans` : undefined;
-
-  if (workspaceUserInfo && !canPerformWorkspaceAdminActions) {
-    return <NotAuthorizedView section="settings" className="h-auto" />;
-  }
-
+  const session = useOutletContext<WorkspaceSession>();
+  const { workspace } = session;
   return (
-    <SettingsContentWrapper header={<BillingWorkspaceSettingsHeader />} hugging>
-      <PageHead title={pageTitle} />
-      <BillingRoot />
-    </SettingsContentWrapper>
+    <PreservedWorkspaceSettingsShell
+      {...session}
+      activePath={WORKSPACE_SETTINGS["billing-and-plans"].i18n_label}
+      header={<BillingWorkspaceSettingsHeader />}
+      hugging
+    >
+      <PageHead title={`${workspace.name} - Billing & Plans`} />
+      {workspace.membershipRole === "admin" ? (
+        <BillingRoot />
+      ) : (
+        <NotAuthorizedView section="settings" className="h-auto" />
+      )}
+    </PreservedWorkspaceSettingsShell>
   );
 }
 
-export default observer(BillingSettingsPage);
+export default BillingSettingsPage;
