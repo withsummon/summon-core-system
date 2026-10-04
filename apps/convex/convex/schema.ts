@@ -18,6 +18,7 @@ import { cycleTables } from "./cycles/schema";
 import { notificationTables } from "./notifications/schema";
 import { automationTables } from "./automation/schema";
 import { exportTables } from "./exports/schema";
+import { webhookTables } from "./webhooks/schema";
 import { mcpTables } from "./mcp/schema";
 import { assistantTables } from "./assistant/schema";
 import { taskTables } from "./tasks/schema";
@@ -51,6 +52,7 @@ export default defineSchema({
   ...notificationTables,
   ...automationTables,
   ...exportTables,
+  ...webhookTables,
   ...mcpTables,
   ...assistantTables,
   ...assetTables,

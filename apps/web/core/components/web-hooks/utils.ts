@@ -4,26 +4,25 @@
  * See the LICENSE file for details.
  */
 
-// helpers
-import type { IWebhook, IWorkspace } from "@plane/types";
-import { renderFormattedPayloadDate } from "@plane/utils";
-// types
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
 
 export const getCurrentHookAsCSV = (
-  currentWorkspace: IWorkspace | null,
-  webhook: IWebhook | undefined,
-  secretKey: string | undefined
+  workspace: NativeWorkspace,
+  webhook: FunctionReturnType<typeof api.webhooks.index.get>,
+  secretKey: string
 ) => ({
-  id: webhook?.id || "",
-  url: webhook?.url || "",
-  created_at: renderFormattedPayloadDate(webhook?.created_at || "") ?? "",
-  updated_at: renderFormattedPayloadDate(webhook?.updated_at || "") ?? "",
-  is_active: webhook?.is_active?.toString() || "",
-  secret_key: secretKey || "",
-  project: webhook?.project?.toString() || "",
-  issue: webhook?.issue?.toString() || "",
-  module: webhook?.module?.toString() || "",
-  cycle: webhook?.cycle?.toString() || "",
-  issue_comment: webhook?.issue_comment?.toString() || "",
-  workspace: currentWorkspace?.name || "",
+  id: webhook._id,
+  url: webhook.url,
+  created_at: new Date(webhook._creationTime).toISOString(),
+  updated_at: new Date(webhook.updatedAt).toISOString(),
+  is_active: webhook.isActive.toString(),
+  secret_key: secretKey,
+  project: webhook.events.includes("project").toString(),
+  issue: webhook.events.includes("issue").toString(),
+  module: webhook.events.includes("module").toString(),
+  cycle: webhook.events.includes("cycle").toString(),
+  issue_comment: webhook.events.includes("issue_comment").toString(),
+  workspace: workspace.name,
 });

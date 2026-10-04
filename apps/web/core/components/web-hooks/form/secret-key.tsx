@@ -5,148 +5,131 @@
  */
 
 import { useState } from "react";
-import { range } from "lodash-es";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// icons
+import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CopyIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IWebhook } from "@plane/types";
-// ui
 import { csvDownload, copyTextToClipboard } from "@plane/utils";
-// hooks
-import { useWebhook } from "@/hooks/store/use-webhook";
-import { useWorkspace } from "@/hooks/store/use-workspace";
-// types
-import { usePlatformOS } from "@/hooks/use-platform-os";
-// utils
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { getCurrentHookAsCSV } from "../utils";
-// hooks
 
 type Props = {
-  data: Partial<IWebhook>;
+  workspace: NativeWorkspace;
+  data: FunctionReturnType<typeof api.webhooks.index.get>;
+  initialSecretKey?: string;
+  disabled?: boolean;
+  onRegenerated: (webhook: FunctionReturnType<typeof api.webhooks.index.get>) => void;
+  onPendingChange?: (pending: boolean) => void;
 };
 
-export const WebhookSecretKey = observer(function WebhookSecretKey(props: Props) {
-  const { data } = props;
-  // states
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [shouldShowKey, setShouldShowKey] = useState(false);
-  // router
-  const { workspaceSlug, webhookId } = useParams();
-  // store hooks
-  const { currentWorkspace } = useWorkspace();
-  const { currentWebhook, regenerateSecretKey, webhookSecretKey } = useWebhook();
-  const { isMobile } = usePlatformOS();
+export function WebhookSecretKey({
+  workspace,
+  data,
+  initialSecretKey,
+  disabled,
+  onRegenerated,
+  onPendingChange,
+}: Props) {
+  const [secretKey, setSecretKey] = useState(initialSecretKey);
+  const [pending, setPending] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const regenerate = useAction(api.webhooks.actions.regenerate);
   const { t } = useTranslation();
-  const handleCopySecretKey = () => {
-    if (!webhookSecretKey) return;
-
-    copyTextToClipboard(webhookSecretKey)
-      .then(() =>
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: `${t("success")}`,
-          message: t("workspace_settings.settings.webhooks.toasts.secret_key_copied.message"),
-        })
-      )
-      .catch(() =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: `${t("error")}!`,
-          message: t("workspace_settings.settings.webhooks.toasts.secret_key_not_copied.message"),
-        })
-      );
-  };
-
-  const handleRegenerateSecretKey = () => {
-    if (!workspaceSlug || !data.id) return;
-
-    setIsRegenerating(true);
-
-    regenerateSecretKey(workspaceSlug.toString(), data.id)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: `${t("success")}`,
-          message: "New key regenerated successfully.",
-        });
-
-        if (currentWebhook && webhookSecretKey) {
-          const csvData = getCurrentHookAsCSV(currentWorkspace, currentWebhook, webhookSecretKey);
-          csvDownload(csvData, `webhook-secret-key-${Date.now()}`);
-        }
-      })
-      .catch((err) =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: `${t("error")}!`,
-          message: err?.error ?? t("something_went_wrong_please_try_again"),
-        })
-      )
-      .finally(() => setIsRegenerating(false));
-  };
-
-  const toggleShowKey = () => setShouldShowKey((prevState) => !prevState);
-
-  const SECRET_KEY_OPTIONS = [
-    { label: "View secret key", Icon: shouldShowKey ? EyeOff : Eye, onClick: toggleShowKey, key: "eye" },
-    { label: "Copy secret key", Icon: CopyIcon, onClick: handleCopySecretKey, key: "copy" },
-  ];
-
+  useReloadConfirmations(pending, "Wait for the webhook secret operation to finish.", undefined, pending);
+  const canManage = workspace.membershipRole === "admin";
   return (
-    <>
-      {(data || webhookSecretKey) && (
-        <div className="space-y-2">
-          {webhookId && (
-            <div className="text-13 font-medium">{t("workspace_settings.settings.webhooks.secret_key.title")}</div>
-          )}
-          <div className="text-11 text-placeholder">{t("workspace_settings.settings.webhooks.secret_key.message")}</div>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="flex h-8 max-w-lg flex-grow items-center justify-between self-stretch rounded-sm border border-subtle px-2">
-              <div className="overflow-hidden font-medium select-none">
-                {shouldShowKey ? (
-                  <p className="text-11">{webhookSecretKey}</p>
-                ) : (
-                  <div className="mr-2 flex items-center gap-1.5 overflow-hidden">
-                    {range(30).map((index) => (
-                      <div key={index} className="h-1 w-1 flex-shrink-0 rounded-full bg-(--text-color-disabled)" />
-                    ))}
-                  </div>
-                )}
-              </div>
-              {webhookSecretKey && (
-                <div className="flex items-center gap-2">
-                  {SECRET_KEY_OPTIONS.map((option) => (
-                    <Tooltip key={option.key} tooltipContent={option.label} isMobile={isMobile}>
-                      <button type="button" className="grid flex-shrink-0 place-items-center" onClick={option.onClick}>
-                        <option.Icon className="h-3 w-3 text-placeholder" />
-                      </button>
-                    </Tooltip>
-                  ))}
-                </div>
-              )}
-            </div>
-            {data && (
-              <div>
-                <Button
-                  onClick={handleRegenerateSecretKey}
-                  variant="secondary"
-                  size="lg"
-                  loading={isRegenerating}
-                  prependIcon={<RefreshCw />}
-                >
-                  {isRegenerating ? `${t("re_generating")}...` : t("re_generate_key")}
-                </Button>
-              </div>
-            )}
+    <div className="space-y-2">
+      <div className="text-13 font-medium">{t("workspace_settings.settings.webhooks.secret_key.title")}</div>
+      <div className="text-11 text-placeholder">{t("workspace_settings.settings.webhooks.secret_key.message")}</div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="flex h-8 max-w-lg flex-grow items-center justify-between self-stretch rounded-sm border border-subtle px-2">
+          <div className="overflow-hidden font-medium select-none">
+            <p className="truncate text-11">{showKey && secretKey ? secretKey : "••••••••••••••••••••••••••••••"}</p>
           </div>
+          {secretKey && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={showKey ? "Hide secret key" : "View secret key"}
+                onClick={() => setShowKey(!showKey)}
+                className="grid shrink-0 place-items-center"
+              >
+                {showKey ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+              </button>
+              <button
+                type="button"
+                aria-label="Copy secret key"
+                className="grid shrink-0 place-items-center"
+                onClick={async () => {
+                  try {
+                    await copyTextToClipboard(secretKey);
+                    setToast({
+                      type: TOAST_TYPE.SUCCESS,
+                      title: t("success"),
+                      message: t("workspace_settings.settings.webhooks.toasts.secret_key_copied.message"),
+                    });
+                  } catch {
+                    setError(t("workspace_settings.settings.webhooks.toasts.secret_key_not_copied.message"));
+                  }
+                }}
+              >
+                <CopyIcon className="size-3" />
+              </button>
+            </div>
+          )}
         </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          loading={pending}
+          disabled={disabled || !canManage}
+          prependIcon={<RefreshCw />}
+          onClick={async () => {
+            setPending(true);
+            onPendingChange?.(true);
+            setError(null);
+            try {
+              const result = await regenerate({
+                workspaceId: workspace._id,
+                webhookId: data._id,
+                expectedRevision: data.revision,
+              });
+              setSecretKey(result.secretKey);
+              setShowKey(false);
+              onRegenerated(result.webhook);
+              try {
+                csvDownload(
+                  getCurrentHookAsCSV(workspace, result.webhook, result.secretKey),
+                  `webhook-secret-key-${Date.now()}`
+                );
+              } catch {
+                setError("Key regenerated. CSV download failed; copy the key above.");
+              }
+              setToast({ type: TOAST_TYPE.SUCCESS, title: t("success"), message: "New key regenerated successfully." });
+            } catch (failure) {
+              setError(mutationMessage(failure));
+            } finally {
+              setPending(false);
+              onPendingChange?.(false);
+            }
+          }}
+        >
+          {t("re_generate_key")}
+        </Button>
+      </div>
+      {error && (
+        <p role="alert" className="text-13 text-danger-primary">
+          {error}
+        </p>
       )}
-    </>
+    </div>
   );
-});
+}
