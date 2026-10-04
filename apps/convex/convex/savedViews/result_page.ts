@@ -6,7 +6,6 @@ import type { Doc } from "../_generated/dataModel";
 import type { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { taskDetail, taskIsActive, taskOrdering, taskRoleCanRead } from "../tasks/access";
-import { defaultTaskPreferences } from "../tasks/schema";
 import { matchesFilters } from "./filters";
 import { projectReader, projectSummary } from "./scope";
 export async function resultPage(
@@ -18,7 +17,7 @@ export async function resultPage(
 ) {
   const projectId = view.projectId;
   const { workspace, user, member } = access;
-  const display = criteria.displayFilters ?? defaultTaskPreferences.displayFilters;
+  const display = criteria.displayFilters;
   const ordering = taskOrdering[display.order];
   const tasks = stream(ctx.db, schema).query("tasks");
   const source =

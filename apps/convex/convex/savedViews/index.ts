@@ -1,9 +1,9 @@
-import { defaultTaskPreferences, taskDisplayFiltersSchema, taskDisplayPropertiesSchema } from "../tasks/schema";
+import { defaultTaskPreferences, taskDisplayFiltersSchema } from "../tasks/schema";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
-import { query, mutation, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -155,54 +155,6 @@ export const access = query({
     return {
       canCreate: true,
       canFavorite: permission.member.role !== "guest" && permission.projectMember.role !== "guest",
-    };
-  },
-});
-
-// Temporary additive rollout: remove after complete missing-only coverage and a
-// second zero-change pass, then require all three fields and remove display read defaults.
-export const initializeMetadata = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, args) => {
-    const page = await ctx.db.query("savedViews").paginate({
-      cursor: args.cursor,
-      numItems: 50,
-      maximumRowsRead: 50,
-      maximumBytesRead: 1048576,
-    });
-    let displayFiltersFilled = 0,
-      displayPropertiesFilled = 0,
-      nameFoldedFilled = 0;
-    for (const view of page.page) {
-      if (view.nameFolded !== undefined && view.nameFolded !== view.name.toLowerCase())
-        throw new ConvexError("Stored saved view name ordering is inconsistent.");
-      if (view.displayFilters !== undefined) taskDisplayFiltersSchema.parse(view.displayFilters);
-      if (view.displayProperties !== undefined) taskDisplayPropertiesSchema.parse(view.displayProperties);
-    }
-    await Promise.all(
-      page.page.map(async (view) => {
-        if (view.nameFolded !== undefined && view.displayFilters !== undefined && view.displayProperties !== undefined)
-          return;
-        const patch = {
-          ...(view.nameFolded === undefined ? { nameFolded: view.name.toLowerCase() } : {}),
-          ...(view.displayFilters === undefined ? { displayFilters: defaultTaskPreferences.displayFilters } : {}),
-          ...(view.displayProperties === undefined
-            ? { displayProperties: defaultTaskPreferences.displayProperties }
-            : {}),
-        };
-        if (view.nameFolded === undefined) nameFoldedFilled++;
-        if (view.displayFilters === undefined) displayFiltersFilled++;
-        if (view.displayProperties === undefined) displayPropertiesFilled++;
-        await ctx.db.patch(view._id, patch);
-      })
-    );
-    return {
-      processed: page.page.length,
-      displayFiltersFilled,
-      displayPropertiesFilled,
-      nameFoldedFilled,
-      isDone: page.isDone,
-      continueCursor: page.continueCursor,
     };
   },
 });

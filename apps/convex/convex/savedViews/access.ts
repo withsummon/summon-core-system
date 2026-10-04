@@ -1,4 +1,3 @@
-import { defaultTaskPreferences } from "../tasks/schema";
 import { effectiveFavorite, viewFavorite } from "../favorites/access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
@@ -70,8 +69,6 @@ export async function projectView(
     view: {
       ...view,
       projectId: access.project._id,
-      displayFilters: view.displayFilters ?? defaultTaskPreferences.displayFilters,
-      displayProperties: view.displayProperties ?? defaultTaskPreferences.displayProperties,
     },
     logo: renderedProjectLogo(view.logoProps),
     owner: identity
@@ -125,8 +122,6 @@ export async function workspaceView(
       ...view,
       projectId: null,
       workspaceId: access.workspace._id,
-      displayFilters: view.displayFilters ?? defaultTaskPreferences.displayFilters,
-      displayProperties: view.displayProperties ?? defaultTaskPreferences.displayProperties,
     },
     logo: renderedProjectLogo(view.logoProps),
     isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
