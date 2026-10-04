@@ -95,6 +95,7 @@ import type * as identity_deactivation_access from "../identity/deactivation/acc
 import type * as identity_deactivation_index from "../identity/deactivation/index.js";
 import type * as identity_emailChange_notifications from "../identity/emailChange/notifications.js";
 import type * as identity_entry from "../identity/entry.js";
+import type * as identity_external from "../identity/external.js";
 import type * as identity_index from "../identity/index.js";
 import type * as identity_instance_access from "../identity/instance/access.js";
 import type * as identity_instance_configuration from "../identity/instance/configuration.js";
@@ -357,6 +358,7 @@ declare const fullApi: ApiFromModules<{
   "identity/deactivation/index": typeof identity_deactivation_index;
   "identity/emailChange/notifications": typeof identity_emailChange_notifications;
   "identity/entry": typeof identity_entry;
+  "identity/external": typeof identity_external;
   "identity/index": typeof identity_index;
   "identity/instance/access": typeof identity_instance_access;
   "identity/instance/configuration": typeof identity_instance_configuration;

@@ -1,7 +1,9 @@
+import { z } from "zod/v4";
 import { isAPIError } from "better-auth/api";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
+import type { ActionCtx, MutationCtx } from "../_generated/server";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { authComponent, createAuth } from "../better_auth";
 import { pageBudget, text } from "../commercial/validation";
@@ -66,31 +68,62 @@ export const revoke = mutation({
 
 // HTTP transports must consume this boundary once per request. A token grants its
 // current app user identity; every resource still enforces native membership.
+async function verifyKey(ctx: MutationCtx, key: string) {
+  const auth = createAuth(ctx);
+  const verified = await auth.api.verifyApiKey({ body: { key } });
+  const invalid = auth.$ERROR_CODES.INVALID_API_KEY;
+  const headers: Record<string, string> = {};
+  if (!verified.valid || !verified.key) {
+    const limited = verified.error?.code === "RATE_LIMITED";
+    const denial = limited ? auth.$ERROR_CODES.RATE_LIMIT_EXCEEDED : invalid;
+    if (limited) {
+      // The installed plugin returns this detail; its public error type omits it.
+      const retry = z
+        .object({ details: z.object({ tryAgainIn: z.number().finite().nonnegative() }) })
+        .parse(verified.error);
+      headers["Retry-After"] = String(Math.ceil(retry.details.tryAgainIn / 1000));
+    }
+    return { status: limited ? (429 as const) : (403 as const), detail: denial.message, headers };
+  }
+  const token = verified.key;
+  const authUser = await authComponent.getAnyUserById(ctx, token.referenceId);
+  const link = await ctx.db
+    .query("betterAuthLinks")
+    .withIndex("by_auth_id", (q) => q.eq("authId", token.referenceId))
+    .unique();
+  const user = link && (await ctx.db.get(link.userId));
+  if (
+    !authUser?.emailVerified ||
+    !user ||
+    user.email !== authUser.email ||
+    user.emailVerificationTime === undefined ||
+    (await accountRestricted(ctx, user._id))
+  )
+    return { status: 403 as const, detail: invalid.message, headers };
+  if (
+    token.rateLimitEnabled &&
+    token.rateLimitMax !== null &&
+    token.rateLimitTimeWindow !== null &&
+    token.lastRequest !== null
+  ) {
+    headers["X-RateLimit-Remaining"] = String(Math.max(0, token.rateLimitMax - token.requestCount));
+    headers["X-RateLimit-Reset"] = String(Math.floor((Number(token.lastRequest) + token.rateLimitTimeWindow) / 1000));
+  }
+  return { status: 200 as const, userId: user._id, headers };
+}
 export const verify = internalMutation({
   args: { key: v.string() },
-  handler: async (ctx, body) => {
-    const auth = createAuth(ctx);
-    const verified = await auth.api.verifyApiKey({ body });
-    const invalid = auth.$ERROR_CODES.INVALID_API_KEY;
-    if (!verified.valid || !verified.key) {
-      const denial = verified.error?.code === "RATE_LIMITED" ? auth.$ERROR_CODES.RATE_LIMIT_EXCEEDED : invalid;
-      throw new ConvexError({ code: denial.code, message: denial.message });
-    }
-    const token = verified.key;
-    const authUser = await authComponent.getAnyUserById(ctx, token.referenceId);
-    const link = await ctx.db
-      .query("betterAuthLinks")
-      .withIndex("by_auth_id", (q) => q.eq("authId", token.referenceId))
-      .unique();
-    const user = link && (await ctx.db.get(link.userId));
-    if (
-      !authUser?.emailVerified ||
-      !user ||
-      user.email !== authUser.email ||
-      user.emailVerificationTime === undefined ||
-      (await accountRestricted(ctx, user._id))
-    )
-      throw new ConvexError({ code: invalid.code, message: invalid.message });
-    return { userId: user._id, keyId: token.id };
-  },
+  handler: (ctx, { key }) => verifyKey(ctx, key),
 });
+export const externalApiHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "X-Api-Key",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Expose-Headers": "X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After",
+  "Cache-Control": "private, no-store",
+};
+export async function verifyRequest(ctx: ActionCtx, request: Request): Promise<Awaited<ReturnType<typeof verifyKey>>> {
+  const key = request.headers.get("X-Api-Key");
+  if (!key) return { status: 403, detail: "Authentication credentials were not provided.", headers: {} };
+  return ctx.runMutation(internal.identity.apiTokens.verify, { key });
+}
