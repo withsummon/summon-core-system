@@ -1,3 +1,4 @@
+import { defaultTaskPreferences, taskDisplayFiltersSchema } from "../tasks/schema";
 import { setViewFavorite } from "../favorites/views";
 import { effectiveFavorite } from "../favorites/access";
 import { resultPage } from "./result_page";
@@ -19,6 +20,8 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
     const filters = await validateWorkspaceFilters(ctx, args.workspaceId, user._id, args.filters);
+    const display = taskDisplayFiltersSchema.safeParse(args.displayFilters ?? defaultTaskPreferences.displayFilters);
+    if (!display.success) throw new ConvexError(display.error.message);
     return ctx.db.insert("savedViews", {
       projectId: null,
       workspaceId: args.workspaceId,
@@ -26,6 +29,8 @@ export const create = mutation({
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      displayFilters: display.data,
+      displayProperties: args.displayProperties ?? defaultTaskPreferences.displayProperties,
       access: args.access ?? "public",
       logoProps: validatedProjectLogo(args.logoProps ?? {}),
       isLocked: false,
@@ -41,10 +46,15 @@ export const update = mutation({
     if (!canEdit) throw new ConvexError("Only the owner can edit an unlocked saved view.");
     requireRevision(view, args.expectedUpdatedAt);
     const filters = await validateWorkspaceFilters(ctx, view.workspaceId, permission.user._id, args.filters);
+    const display =
+      args.displayFilters === undefined ? undefined : taskDisplayFiltersSchema.safeParse(args.displayFilters);
+    if (display && !display.success) throw new ConvexError(display.error.message);
     await ctx.db.patch(view._id, {
       name: text(args.name, "View name", 255, true),
       description: text(args.description, "View description", 10000),
       filters,
+      ...(display === undefined ? {} : { displayFilters: display.data }),
+      ...(args.displayProperties === undefined ? {} : { displayProperties: args.displayProperties }),
       ...(args.access === undefined ? {} : { access: args.access }),
       ...(args.logoProps === undefined ? {} : { logoProps: validatedProjectLogo(args.logoProps) }),
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
