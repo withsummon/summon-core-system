@@ -56,6 +56,7 @@ const emptyFilters: Filters = {
 export function SavedViewForm({
   projectId,
   initial,
+  createSeed,
   onDone,
   onCancel,
   canEdit = true,
@@ -65,6 +66,7 @@ export function SavedViewForm({
   canEdit?: boolean;
   onPendingChange?: (pending: boolean) => void;
   initial: Detail | null;
+  createSeed?: { input: Omit<FunctionArgs<typeof api.savedViews.index.create>, "projectId">; logo: Detail["logo"] };
   onDone: (id: Id<"savedViews">) => void;
   onCancel: () => void;
 }) {
@@ -76,6 +78,7 @@ export function SavedViewForm({
   return (
     <ViewDefinitionForm
       initial={initial}
+      createSeed={createSeed}
       defaultDisplayFilters={{
         ...defaultTaskPreferences.displayFilters,
         groupBy: "stateId",
@@ -119,6 +122,7 @@ export function SavedViewForm({
 }
 export function ViewDefinitionForm({
   initial,
+  createSeed,
   onSave,
   onDone,
   onCancel,
@@ -132,6 +136,7 @@ export function ViewDefinitionForm({
 }: {
   defaultDisplayFilters: DisplayFilters;
   initial: Detail | null;
+  createSeed?: { input: Omit<FunctionArgs<typeof api.savedViews.index.create>, "projectId">; logo: Detail["logo"] };
   onSave: (
     definition: Pick<
       FunctionArgs<typeof api.savedViews.index.create>,
@@ -172,13 +177,13 @@ export function ViewDefinitionForm({
           logo: initial.logo ?? undefined,
         }
       : {
-          name: "",
-          description: "",
-          filters: emptyFilters,
-          displayFilters: defaultDisplayFilters,
-          displayProperties: defaultTaskPreferences.displayProperties,
-          access: "public",
-          logo: undefined,
+          name: createSeed?.input.name ?? "",
+          description: createSeed?.input.description ?? "",
+          filters: createSeed?.input.filters ?? emptyFilters,
+          displayFilters: createSeed?.input.displayFilters ?? defaultDisplayFilters,
+          displayProperties: createSeed?.input.displayProperties ?? defaultTaskPreferences.displayProperties,
+          access: createSeed?.input.access ?? "public",
+          logo: createSeed?.logo ?? undefined,
         }
   );
   const [draft, setDraft] = useState(original);
@@ -222,7 +227,7 @@ export function ViewDefinitionForm({
             access,
             displayFilters,
             displayProperties,
-            logoProps: { ...snapshot?.view.logoProps, ...logo },
+            logoProps: { ...(snapshot?.view.logoProps ?? createSeed?.input.logoProps), ...logo },
           };
           const id = await onSave(data, snapshot);
           release((allowNavigation) => {
@@ -352,7 +357,7 @@ export function ViewDefinitionForm({
   );
 }
 
-function ViewDisplayFields({
+export function ViewDisplayFields({
   displayFilters,
   displayProperties,
   disabled,
@@ -361,9 +366,10 @@ function ViewDisplayFields({
   displayFilters: DisplayFilters;
   displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
   disabled: boolean;
-  onChange: (
-    display: Pick<FunctionArgs<typeof api.savedViews.index.create>, "displayFilters" | "displayProperties">
-  ) => void;
+  onChange: (display: {
+    displayFilters: DisplayFilters;
+    displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
+  }) => void;
 }) {
   const changeFilters = (change: Partial<DisplayFilters>) =>
     onChange({

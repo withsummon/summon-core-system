@@ -257,11 +257,15 @@ type InlinePropertyProps = {
 const propertyOptionClass =
   "flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover data-[disabled]:text-placeholder";
 
-export function useTaskPropertyWriter(task: InlinePropertyProps["task"], lifecyclePending: boolean) {
+export function useTaskPropertyWriter(
+  task: InlinePropertyProps["task"],
+  lifecyclePending: boolean,
+  externallyDisabled = false
+) {
   const update = useMutation(api.tasks.index.update);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const disabled = !task.canEdit || pending || lifecyclePending;
+  const disabled = !task.canEdit || pending || lifecyclePending || externallyDisabled;
   useReloadConfirmations(pending, "Work item properties are still saving.", undefined, pending);
   const save: InlinePropertyProps["onChange"] = async (change) => {
     if (disabled) return;
@@ -275,7 +279,7 @@ export function useTaskPropertyWriter(task: InlinePropertyProps["task"], lifecyc
       setPending(false);
     }
   };
-  return { disabled, pending, error, save };
+  return { disabled, pending: pending || lifecyclePending, error, save };
 }
 
 export function TaskInlineProperties({
@@ -289,7 +293,7 @@ export function TaskInlineProperties({
   const { disabled, pending, error, save } = useTaskPropertyWriter(task, lifecyclePending);
   const creatorName = task.creator.name || "Unavailable account";
   return (
-    <fieldset disabled={!task.canEdit || lifecyclePending} aria-busy={pending || lifecyclePending} className="min-w-0">
+    <fieldset disabled={!task.canEdit || lifecyclePending} aria-busy={pending} className="min-w-0">
       <legend className="text-body-xs-medium">Properties</legend>
       <div className={cn("mt-4 mb-2 space-y-2.5", !task.canEdit && "opacity-60")}>
         <SidebarPropertyListItem icon={StatePropertyIcon} label="State">
@@ -728,8 +732,20 @@ export function TaskRowProperties({
   display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
   disabled: boolean;
 }) {
+  const writer = useTaskPropertyWriter(task, lifecyclePending);
+  return <TaskRowPropertyControls task={task} display={display} writer={writer} />;
+}
+export function TaskRowPropertyControls({
+  task,
+  display,
+  writer,
+}: {
+  task: InlinePropertyProps["task"];
+  display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
+  writer: ReturnType<typeof useTaskPropertyWriter>;
+}) {
   const profile = useQuery(api.identity.profile.get, {});
-  const { disabled, pending, error, save } = useTaskPropertyWriter(task, lifecyclePending);
+  const { disabled, pending, error, save } = writer;
   return (
     <fieldset disabled={disabled} aria-busy={pending} className="flex min-w-0 flex-wrap items-center gap-2">
       <legend className="sr-only">Work item properties</legend>
@@ -792,7 +808,7 @@ export function TaskRowProperties({
         </span>
       )}
       <TaskRowCounts taskId={task._id} display={display} />
-      {(display.cycle || display.modules) && <TaskRowMemberships taskId={task._id} display={display} />}
+      {(display.cycle || display.modules) && <TaskRowMemberships task={task} display={display} />}
       {error && (
         <p role="alert" className="text-caption-sm-regular text-danger-primary">
           {error}
@@ -856,29 +872,21 @@ function TaskRowCounts({
 }
 
 function TaskRowMemberships({
-  taskId,
+  task,
   display,
 }: {
-  taskId: InlinePropertyProps["task"]["_id"];
+  task: InlinePropertyProps["task"];
   display: FunctionReturnType<typeof api.tasks.profile.preferences>["displayProperties"];
 }) {
-  const cycle = useQuery(api.cycles.tasks.current, display.cycle ? { taskId } : "skip");
-  const modules = usePaginatedQuery(api.modules.tasks.forTask, display.modules ? { taskId } : "skip", {
-    initialNumItems: 100,
-  });
-  const { status, loadMore } = modules;
-  useEffect(() => {
-    if (status === "CanLoadMore") loadMore(100);
-  }, [status, loadMore]);
   return (
     <>
-      {display.cycle && cycle && (
+      {display.cycle && task.cycle && (
         <span className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular" title="Cycle">
-          {cycle.name}
+          {task.cycle.name}
         </span>
       )}
       {display.modules &&
-        modules.results.map((module) => (
+        task.modules.map((module) => (
           <span
             key={module._id}
             className="rounded-sm border border-subtle px-2 py-0.5 text-caption-sm-regular"

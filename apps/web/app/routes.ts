@@ -103,6 +103,12 @@ const routes: RouteConfigEntry[] = [
           "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx"
         ),
       ]),
+      layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/layout.tsx", [
+        route(
+          ":workspaceSlug/projects/:projectId/views/:viewId",
+          "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx"
+        ),
+      ]),
       route(":workspaceSlug/workspace-views/all-issues", "./native-workspace-views.tsx", {
         id: "native-workspace-views-all-issues",
       }),
