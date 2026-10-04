@@ -27,7 +27,7 @@ export async function prepareAsset(
   args: Omit<Infer<typeof upload>, "workspaceId"> & { workspaceId: Id<"workspaces"> | null },
   appearance?:
     | { purpose: "workspaceLogo"; workspaceLogoRevision: number }
-    | { purpose: "projectCover"; projectCoverRevision: number }
+    | { purpose: "projectCover"; projectCoverRevision: number; projectCoverFormRevision?: number }
     | { purpose: Infer<typeof personalImagePurpose>; avatarUserId: Id<"users">; avatarRevision: number }
 ) {
   const { user } = await requireAssetScope(ctx, { ...args, ...appearance }, true);
@@ -97,7 +97,8 @@ export const commit = internalMutation({
       throw new ConvexError("Upload has expired or is closed.");
     if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Uploaded file is missing.");
     if (asset.purpose === "workspaceLogo") await publishWorkspaceLogo(ctx, asset);
-    if (asset.purpose === "projectCover") await publishProjectCover(ctx, asset);
+    if (asset.purpose === "projectCover" && asset.projectCoverFormRevision === undefined)
+      await publishProjectCover(ctx, asset);
     if (asset.purpose === "userAvatar" || asset.purpose === "userCover") await publishPersonalImage(ctx, asset);
     await ctx.db.patch(assetId, { status: "ready" });
     if (asset.draftId) await draftAttachmentChanged(ctx, asset.draftId);

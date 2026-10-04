@@ -1,6 +1,7 @@
 import { personalImagePurpose } from "./schema";
 import { requireCommentImageScope } from "./commentImages";
-import { requireProjectDiscovery } from "../projects/network_access";
+import { requireNetworkScope, requireProjectDiscovery } from "../projects/network_access";
+import { canAdministerProject } from "../projects/administration";
 import { requirePersonalImageScope } from "../identity/avatar_access";
 import { requireDraftAttachmentAccess } from "./draft_access";
 import { requireTaskAttachmentAccess } from "./task_access";
@@ -15,21 +16,35 @@ import { requireJob } from "../automation/access";
 import { requireMeeting } from "../meetings/access";
 import { isAudioAsset, recordingReadMaxBytes } from "./content";
 
-async function requireProjectCoverScope(
-  ctx: QueryCtx,
-  scope: Pick<Doc<"assets">, "workspaceId" | "projectId" | "documentId" | "taskId" | "draftId" | "conversationId"> & {
-    _id?: Id<"assets">;
-  },
-  write: boolean
-) {
-  if (!scope.projectId || [scope.documentId, scope.taskId, scope.draftId, scope.conversationId].some(Boolean))
+async function requireProjectCoverScope(ctx: QueryCtx, scope: Parameters<typeof requireAssetScope>[1], write: boolean) {
+  if (
+    !scope.projectId ||
+    [
+      scope.documentId,
+      scope.taskId,
+      scope.draftId,
+      scope.conversationId,
+      scope.commentUpload,
+      scope.commentId,
+      scope.meetingId,
+      scope.automationJobId,
+      scope.avatarUserId,
+      scope.documentCopyId,
+    ].some(Boolean)
+  )
     throw new ConvexError("Project covers require only their project scope.");
   const projectId = scope.projectId;
-  if (write) {
-    const access = await requireProject(ctx, projectId, true);
+  if (write || scope.projectCoverFormRevision !== undefined) {
+    const access = await requireNetworkScope(ctx, projectId);
     if (access.project.workspaceId !== scope.workspaceId) throw new ConvexError("Project cover scope mismatch.");
-    if (access.projectMember.role !== "admin")
-      throw new ConvexError("Only project administrators can change the cover.");
+    if (!(await canAdministerProject(ctx, access.project, access.user._id, access.member.role)))
+      throw new ConvexError("Only workspace or project administrators can change the cover.");
+    if (
+      scope.projectCoverFormRevision !== undefined &&
+      (!write || scope._id) &&
+      (scope.createdBy !== access.user._id || scope.expiresAt === undefined || scope.expiresAt <= Date.now())
+    )
+      throw new ConvexError("This project cover draft is unavailable.");
     return access;
   }
   const access = await requireProjectDiscovery(ctx, projectId);
@@ -62,10 +77,15 @@ export async function requireAssetScope(
     | "automationJobId"
     | "commentUpload"
     | "commentId"
+    | "projectCoverFormRevision"
   > & { _id?: Id<"assets">; createdBy?: Id<"users">; expiresAt?: number },
   write: boolean,
   readWorkspaceId?: Id<"workspaces">
 ) {
+  if (scope.projectCoverFormRevision !== undefined) {
+    if (scope.purpose !== "projectCover") throw new ConvexError("Project cover draft scope is invalid.");
+    return requireProjectCoverScope(ctx, scope, write);
+  }
   if ([scope.commentUpload, scope.commentId].some(Boolean)) return requireCommentImageScope(ctx, scope, write);
   if (scope.automationJobId) return requireAutomationFileScope(ctx, scope, scope.automationJobId, write);
   if (scope.meetingId) return requireMeetingRecordingScope(ctx, scope, scope.meetingId, write);

@@ -129,9 +129,14 @@ const projectRoles = {
 
 export function PreservedProjectSettingsShell({
   project,
+  authorized = project.canConfigure,
   ...props
 }: ComponentProps<typeof PreservedWorkspaceSettingsShell> & {
-  project: FunctionReturnType<typeof api.projects.features.resolve>;
+  project: Pick<
+    FunctionReturnType<typeof api.projects.features.resolve>,
+    "projectId" | "name" | "role" | "logo" | "canConfigure"
+  >;
+  authorized?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -156,7 +161,7 @@ export function PreservedProjectSettingsShell({
       />
     </ProjectSettingsSidebarView>
   );
-  return <PreservedSettingsFrame {...props} sidebar={sidebar} authorized={project.canConfigure} projectView />;
+  return <PreservedSettingsFrame {...props} sidebar={sidebar} authorized={authorized} projectView />;
 }
 
 function PreservedSettingsFrame({

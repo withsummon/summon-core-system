@@ -34,7 +34,12 @@ export const sweep = internalMutation({
             .unique();
           // Upload authority expires at one hour; unadopted ready bytes use the existing 24-hour orphan sweep.
           // Adopted comment images survive unlimited soft-delete/restore, under live comment access checks.
-          if (asset?.commentUpload && asset.status === "ready" && asset.expiresAt <= Date.now()) {
+          if (
+            asset &&
+            (asset.commentUpload || asset.projectCoverFormRevision !== undefined) &&
+            asset.status === "ready" &&
+            asset.expiresAt <= Date.now()
+          ) {
             await ctx.storage.delete(blob._id);
             await ctx.db.patch(asset._id, { status: "expired", storageId: null });
             return;

@@ -1,7 +1,8 @@
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { requireProject } from "../identity/access";
+import { requireNetworkScope } from "./network_access";
+import { canAdministerProject } from "./administration";
 import { descriptor } from "../assets/access";
 export function projectAppearance(ctx: QueryCtx, projectId: Id<"projects">) {
   return ctx.db
@@ -10,8 +11,9 @@ export function projectAppearance(ctx: QueryCtx, projectId: Id<"projects">) {
     .unique();
 }
 export async function requireCoverWrite(ctx: QueryCtx, projectId: Id<"projects">, expectedRevision: number) {
-  const access = await requireProject(ctx, projectId, true);
-  if (access.projectMember.role !== "admin") throw new ConvexError("Only project administrators can change the cover.");
+  const access = await requireNetworkScope(ctx, projectId);
+  if (!(await canAdministerProject(ctx, access.project, access.user._id, access.member.role)))
+    throw new ConvexError("Only workspace or project administrators can change the cover.");
   const appearance = await projectAppearance(ctx, projectId);
   if (!Number.isSafeInteger(expectedRevision) || (appearance?.revision ?? 0) !== expectedRevision)
     throw new ConvexError("Project cover changed. Reopen appearance before saving.");
