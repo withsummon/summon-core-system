@@ -1,6 +1,6 @@
 import { projectCreateArgs } from "./schema";
 import { initializeProjectOrder } from "./order_owner";
-import { accountRestricted, requireUnrestrictedAccount } from "../identity/deactivation/access";
+import { requireUnrestrictedAccount } from "../identity/deactivation/access";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { createProject } from "./create";
@@ -10,13 +10,8 @@ import schema, { role } from "../schema";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { pageBudget } from "../commercial/validation";
-import {
-  MAX_MEMBER_DIRECTORY_MEMBERS,
-  memberDirectoryOrder,
-  profileIdentity,
-  sortMemberDirectory,
-} from "../identity/profile_owner";
-import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
+import { MAX_MEMBER_DIRECTORY_MEMBERS, memberDirectoryOrder, sortMemberDirectory } from "../identity/profile_owner";
+import { memberIdentity } from "./directory";
 import { internal } from "../_generated/api";
 import { canAdministerProject } from "./administration";
 import {
@@ -92,29 +87,6 @@ function memberCapabilities(
     (target.role !== "member" || access.projectMember.role !== "guest");
   return { allowedRoles, canRemove, canLeave: editing && self };
 }
-async function memberIdentity(
-  ctx: QueryCtx,
-  access: Awaited<ReturnType<typeof memberAccess>>,
-  userId: Id<"users">,
-  search: string
-) {
-  const workspaceId = access.project.workspaceId;
-  const workspaceMember = await ctx.db
-    .query("workspaceMembers")
-    .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", userId))
-    .unique();
-  if (!workspaceMember?.active || (await accountRestricted(ctx, userId))) return null;
-  const identity = await profileIdentity(ctx, userId);
-  if (!identity) return null;
-  const email = access.member.role === "guest" ? null : identity.email;
-  if (!`${identity.fullName} ${identity.displayName ?? ""} ${email ?? ""}`.toLowerCase().includes(search)) return null;
-  return {
-    ...identity,
-    email,
-    workspaceRole: workspaceMember.role,
-    avatar: await personalImageDescriptor(ctx, await userAppearance(ctx, userId), "avatar", workspaceId),
-  };
-}
 function memberRevision(member: Doc<"projectMembers"> | null, expectedRevision: number | null) {
   if (
     expectedRevision === null
@@ -146,7 +118,13 @@ export const members = query({
     const rows = await Promise.all(
       memberships.map(async (member) => {
         if (!member.active || (args.roles?.length && !args.roles.includes(member.role))) return null;
-        const identity = await memberIdentity(ctx, access, member.userId, search);
+        const identity = await memberIdentity(
+          ctx,
+          access.project.workspaceId,
+          access.member.role,
+          member.userId,
+          search
+        );
         return identity
           ? Object.assign(identity, {
               membershipId: member._id,
@@ -187,7 +165,13 @@ export const availableMembers = query({
           .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", workspaceMember.userId))
           .unique();
         if (member?.active) return null;
-        const identity = await memberIdentity(ctx, access, workspaceMember.userId, search);
+        const identity = await memberIdentity(
+          ctx,
+          access.project.workspaceId,
+          access.member.role,
+          workspaceMember.userId,
+          search
+        );
         return identity
           ? Object.assign(identity, {
               expectedRevision: member?.revision ?? null,
@@ -206,7 +190,7 @@ export const resolveMember = query({
     const { project } = access;
     const userId = ctx.db.normalizeId("users", args.userId);
     if (!userId) throw new ConvexError("User not found.");
-    const identity = await memberIdentity(ctx, access, userId, "");
+    const identity = await memberIdentity(ctx, access.project.workspaceId, access.member.role, userId, "");
     if (!identity) throw new ConvexError("An active member of this workspace is required.");
     const member = await ctx.db
       .query("projectMembers")
@@ -231,7 +215,7 @@ export const grantMember = mutation({
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", args.userId))
       .unique();
     memberRevision(member, expectedRevision);
-    const identity = await memberIdentity(ctx, access, args.userId, "");
+    const identity = await memberIdentity(ctx, access.project.workspaceId, access.member.role, args.userId, "");
     if (!identity || !memberCapabilities(access, member, identity.workspaceRole).allowedRoles.includes(args.role))
       throw new ConvexError("You cannot assign this project role to this member.");
     const membershipId = await grantProjectMembership(ctx, { ...args, workspaceId: project.workspaceId });
@@ -266,7 +250,7 @@ export const addMembers = mutation({
       if (member?.active)
         throw new ConvexError("A selected person is already a project member. Reload before adding members.");
       // oxlint-disable-next-line no-await-in-loop
-      const identity = await memberIdentity(ctx, access, entry.userId, "");
+      const identity = await memberIdentity(ctx, access.project.workspaceId, access.member.role, entry.userId, "");
       if (!identity || !memberCapabilities(access, member, identity.workspaceRole).allowedRoles.includes(entry.role))
         throw new ConvexError("You cannot add a selected person with this project role.");
       // oxlint-disable-next-line no-await-in-loop
@@ -298,7 +282,7 @@ export const revokeMember = mutation({
       .unique();
     memberRevision(member, args.expectedRevision);
     if (!member?.active) throw new ConvexError("Project membership is no longer active.");
-    const identity = await memberIdentity(ctx, access, member.userId, "");
+    const identity = await memberIdentity(ctx, access.project.workspaceId, access.member.role, member.userId, "");
     if (!identity || !memberCapabilities(access, member, identity.workspaceRole).canRemove)
       throw new ConvexError("You cannot remove this project member.");
     await revokeProjectMembership(ctx, member);

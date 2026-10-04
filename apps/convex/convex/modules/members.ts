@@ -1,5 +1,8 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
+import { directoryPerson } from "../projects/directory";
 import { mutation, query } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -30,41 +33,35 @@ export const set = mutation({
 export const list = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireModule(ctx, args.moduleId);
-    const result = await ctx.db
+    const { module, project, member } = await requireModule(ctx, args.moduleId);
+    return stream(ctx.db, schema)
       .query("moduleMembers")
-      .withIndex("by_module_user", (q) => q.eq("moduleId", args.moduleId))
-      .paginate(pageBudget(args.paginationOpts));
-    const users = await Promise.all(
-      result.page.map(async (row) => {
-        const user = await ctx.db.get(row.userId);
-        return { userId: row.userId, name: user?.name ?? null, email: user?.email ?? null };
+      .withIndex("by_module_user", (q) => q.eq("moduleId", module._id))
+      .map(async (row) => {
+        const membership = await ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", row.userId))
+          .unique();
+        return membership?.active && membership.workspaceId === project.workspaceId
+          ? directoryPerson(ctx, row.userId, project.workspaceId, member.role)
+          : null;
       })
-    );
-    return { ...result, page: users };
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 
 export const choices = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { project } = await requireProject(ctx, args.projectId);
-    const result = await ctx.db
+    const { project, member } = await requireProject(ctx, args.projectId);
+    return stream(ctx.db, schema)
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
+      .map(async (row) =>
+        row.active && row.workspaceId === project.workspaceId
+          ? directoryPerson(ctx, row.userId, project.workspaceId, member.role)
+          : null
+      )
       .paginate(pageBudget(args.paginationOpts));
-    const users = await Promise.all(
-      result.page.map(async (member) => {
-        if (!member.active) return null;
-        const workspaceMember = await ctx.db
-          .query("workspaceMembers")
-          .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", member.userId))
-          .unique();
-        if (!workspaceMember?.active) return null;
-        const user = await ctx.db.get(member.userId);
-        return user ? { id: user._id, name: user.name ?? null, email: user.email ?? null } : null;
-      })
-    );
-    return { ...result, page: users.filter((user) => user !== null) };
   },
 });

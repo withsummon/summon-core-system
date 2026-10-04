@@ -25,7 +25,9 @@ export const project = query({
         .withIndex("by_project", (q) => q.eq("projectId", projectId))
         .order("desc")
         .paginate({ cursor: null, numItems: 100, maximumRowsRead: 100, maximumBytesRead: 1_000_000 }),
-      access.project.leadId ? directoryPerson(ctx, access.project.leadId, access.workspace._id) : null,
+      access.project.leadId
+        ? directoryPerson(ctx, access.project.leadId, access.workspace._id, access.member.role)
+        : null,
     ]);
     const profile = storedProfile && !storedProfile.deleted ? storedProfile : null;
     const client = profile?.clientId ? await ctx.db.get(profile.clientId) : null;

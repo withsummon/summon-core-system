@@ -4,38 +4,64 @@ import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireProjectDiscovery, canDiscover, storedNetwork } from "./network_access";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { memberLabel } from "../../shared/member-label";
+import { profileIdentity } from "../identity/profile_owner";
+import { accountRestricted } from "../identity/deactivation/access";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 
-export async function directoryPerson(ctx: QueryCtx, userId: Id<"users">, workspaceId: Id<"workspaces">) {
-  const membership = await ctx.db
+export async function memberIdentity(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"],
+  userId: Id<"users">,
+  search: string
+) {
+  const workspaceMember = await ctx.db
     .query("workspaceMembers")
     .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspaceId).eq("userId", userId))
     .unique();
-  const user = await ctx.db.get(userId);
-  if (!membership?.active || !user) return null;
+  if (!workspaceMember?.active || (await accountRestricted(ctx, userId))) return null;
+  const identity = await profileIdentity(ctx, userId);
+  if (!identity) return null;
+  const email = viewerWorkspaceRole === "guest" ? null : identity.email;
+  if (!`${identity.fullName} ${identity.displayName ?? ""} ${email ?? ""}`.toLowerCase().includes(search)) return null;
   return {
-    userId: user._id,
-    name: memberLabel({ id: user._id, name: user.name, email: user.email }),
-    avatar: await personalImageDescriptor(ctx, await userAppearance(ctx, user._id), "avatar", workspaceId),
+    ...identity,
+    email,
+    workspaceRole: workspaceMember.role,
+    avatar: await personalImageDescriptor(ctx, await userAppearance(ctx, userId), "avatar", workspaceId),
   };
+}
+export async function directoryPerson(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  workspaceId: Id<"workspaces">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
+) {
+  const identity = await memberIdentity(ctx, workspaceId, viewerWorkspaceRole, userId, "");
+  return identity
+    ? {
+        userId: identity.userId,
+        name: identity.fullName || identity.displayName?.trim() || `Member ${userId.slice(-6)}`,
+        avatar: identity.avatar,
+      }
+    : null;
 }
 // Each returned row contributes one currently active human member. The total
 // requires cursor exhaustion; there is no silently truncated member count.
 export const members = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const { project } = await requireProjectDiscovery(ctx, args.projectId);
+    const { project, member } = await requireProjectDiscovery(ctx, args.projectId);
     return stream(ctx.db, schema)
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
       .map(async (row) =>
         row.active && row.workspaceId === project.workspaceId
-          ? directoryPerson(ctx, row.userId, project.workspaceId)
+          ? directoryPerson(ctx, row.userId, project.workspaceId, member.role)
           : null
       )
       .paginate(pageBudget(args.paginationOpts));
@@ -61,7 +87,7 @@ export const memberships = query({
           .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", access.user._id))
           .unique();
         if (!canDiscover(storedNetwork(project), access.member.role, caller?.active === true)) return null;
-        const member = await directoryPerson(ctx, row.userId, project.workspaceId);
+        const member = await directoryPerson(ctx, row.userId, project.workspaceId, access.member.role);
         return member ? Object.assign(member, { projectId: project._id }) : null;
       })
       .paginate(pageBudget(args.paginationOpts));

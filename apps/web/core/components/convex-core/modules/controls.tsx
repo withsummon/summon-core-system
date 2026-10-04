@@ -9,7 +9,6 @@ import { Button } from "@plane/propel/button";
 import { ModuleStatusIcon, MembersPropertyIcon } from "@plane/propel/icons";
 import { Popover } from "@plane/propel/popover";
 import { CustomSelect } from "@plane/ui";
-import { memberLabel } from "@summon/convex/member-label";
 
 type Module = FunctionReturnType<typeof api.modules.index.get>;
 type Person = FunctionReturnType<typeof api.modules.members.choices>["page"][number];
@@ -69,10 +68,10 @@ export function ModulePersonPicker({
 }) {
   const people = usePaginatedQuery(api.modules.members.choices, { projectId }, { initialNumItems: 30 });
   const choices =
-    initial && !people.results.some((person) => person.id === initial.id)
+    initial && !people.results.some((person) => person.userId === initial.userId)
       ? [initial, ...people.results]
       : people.results;
-  const selected = choices.find((person) => person.id === value);
+  const selected = choices.find((person) => person.userId === value);
   return (
     <div className="space-y-2">
       <CustomSelect<Id<"users"> | null>
@@ -80,12 +79,12 @@ export function ModulePersonPicker({
         onChange={onChange}
         disabled={disabled}
         ariaLabel={label}
-        label={selected ? memberLabel(selected) : label}
+        label={selected ? selected.name : label}
       >
         <CustomSelect.Option value={null}>None</CustomSelect.Option>
         {choices.map((person) => (
-          <CustomSelect.Option key={person.id} value={person.id}>
-            {memberLabel(person)}
+          <CustomSelect.Option key={person.userId} value={person.userId}>
+            {person.name}
           </CustomSelect.Option>
         ))}
       </CustomSelect>
@@ -140,19 +139,21 @@ export function ModuleMemberChoices({
         />
         <ul className="max-h-48 space-y-1 overflow-y-auto">
           {people.results
-            .filter((person) => memberLabel(person).toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+            .filter((person) => person.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
             .map((person) => (
-              <li key={person.id}>
+              <li key={person.userId}>
                 <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 text-13 hover:bg-layer-transparent-hover">
                   <input
                     type="checkbox"
                     disabled={disabled}
-                    checked={value.includes(person.id)}
+                    checked={value.includes(person.userId)}
                     onChange={(event) =>
-                      onChange(event.target.checked ? [...value, person.id] : value.filter((id) => id !== person.id))
+                      onChange(
+                        event.target.checked ? [...value, person.userId] : value.filter((id) => id !== person.userId)
+                      )
                     }
                   />
-                  <span className="truncate">{memberLabel(person)}</span>
+                  <span className="truncate">{person.name}</span>
                 </label>
               </li>
             ))}

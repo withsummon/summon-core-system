@@ -15,6 +15,22 @@ type AfterRelease = (allowDefaultNavigation: boolean) => void;
 export const ConfirmationContext = createContext<
   ((id: string, confirmation?: Parameters<typeof useReloadConfirmations>, afterRelease?: AfterRelease) => void) | null
 >(null);
+const SubmittingContext = createContext(false);
+
+export function useReloadSubmitting() {
+  return useContext(SubmittingContext);
+}
+
+/** A pending write belongs to its promise, even if a reactive query removes its row. */
+export function usePendingConfirmation(message: string) {
+  const setConfirmation = useContext(ConfirmationContext);
+  if (!setConfirmation) throw new Error("Reload confirmation requires the root navigation owner.");
+  return useCallback(() => {
+    const id = crypto.randomUUID();
+    setConfirmation(id, [true, message, undefined, true]);
+    return (afterRelease?: AfterRelease) => setConfirmation(id, undefined, afterRelease);
+  }, [message, setConfirmation]);
+}
 
 /** React Router supports one blocker; the root composes all active editor and selection policies. */
 export function ReloadConfirmations({ children }: { children: ReactNode }) {
@@ -52,7 +68,7 @@ export function ReloadConfirmations({ children }: { children: ReactNode }) {
   const isSubmitting = activeConfirmations.some(([, , , pending]) => pending);
   return (
     <ConfirmationContext.Provider value={setConfirmation}>
-      {children}
+      <SubmittingContext.Provider value={isSubmitting}>{children}</SubmittingContext.Provider>
       {blocker.state === "blocked" && (
         <AlertModalCore
           isSubmitting={isSubmitting}
