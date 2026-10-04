@@ -43,6 +43,7 @@ export function StartOfWeekPreference({
       description={option.description}
       control={
         <Select.Root<typeof profile.preferences.startOfWeek>
+          items={START_OF_THE_WEEK_OPTIONS}
           value={profile.preferences.startOfWeek}
           onValueChange={(day) => {
             if (day !== null) void handleStartOfWeekChange(day);
