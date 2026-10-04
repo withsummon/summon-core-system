@@ -67,6 +67,8 @@ export const configure = mutation({
       intakeEnabled: args.enabled,
       guestViewAllFeatures: args.guestViewAllFeatures,
       metadataRevision: args.expectedRevision + 1,
+      updatedAt: Date.now(),
+      updatedById: access.user._id,
     });
   },
 });

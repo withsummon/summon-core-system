@@ -137,6 +137,8 @@ export const save = mutation({
       leadId: args.leadId,
       timezone,
       metadataRevision: project.metadataRevision + 1,
+      updatedAt: Date.now(),
+      updatedById: user._id,
     });
     return { revision: project.metadataRevision + 1 };
   },

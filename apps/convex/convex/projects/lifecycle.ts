@@ -15,7 +15,7 @@ export async function requireLifecycle(ctx: QueryCtx, projectId: Id<"projects">)
   const access = await requireWorkspace(ctx, project.workspaceId);
   if (!(await canAdministerProject(ctx, project, access.user._id, access.member.role)))
     throw new ConvexError("Only workspace or project administrators can manage project Trash.");
-  return project;
+  return { project, user: access.user };
 }
 function projection(project: Doc<"projects">) {
   return {
@@ -30,7 +30,7 @@ function projection(project: Doc<"projects">) {
 }
 export const get = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => projection(await requireLifecycle(ctx, args.projectId)),
+  handler: async (ctx, args) => projection((await requireLifecycle(ctx, args.projectId)).project),
 });
 export const list = query({
   args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
@@ -50,13 +50,16 @@ export const list = query({
 export const setDeleted = mutation({
   args: { projectId: v.id("projects"), deleted: v.boolean(), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const project = await requireLifecycle(ctx, args.projectId);
+    const { project, user } = await requireLifecycle(ctx, args.projectId);
     if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision !== project.metadataRevision)
       throw new ConvexError("Project changed. Reopen its latest settings before continuing.");
     if ((project.deletedAt != null) === args.deleted) return;
+    const updatedAt = Date.now();
     await ctx.db.patch(project._id, {
-      deletedAt: args.deleted ? Date.now() : null,
+      deletedAt: args.deleted ? updatedAt : null,
       metadataRevision: project.metadataRevision + 1,
+      updatedAt,
+      updatedById: user._id,
     });
   },
 });

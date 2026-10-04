@@ -12,6 +12,11 @@ export const save = mutation({
     if (!Number.isSafeInteger(args.expectedRevision) || project.metadataRevision !== args.expectedRevision)
       throw new ConvexError("Project changed. Reopen its current settings.");
     renderedProjectLogo(args.logoProps);
-    await ctx.db.patch(project._id, { logoProps: args.logoProps, metadataRevision: project.metadataRevision + 1 });
+    await ctx.db.patch(project._id, {
+      logoProps: args.logoProps,
+      metadataRevision: project.metadataRevision + 1,
+      updatedAt: Date.now(),
+      updatedById: user._id,
+    });
   },
 });

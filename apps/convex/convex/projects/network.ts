@@ -104,6 +104,8 @@ export const save = mutation({
     await ctx.db.patch(access.project._id, {
       network: args.network,
       metadataRevision: access.project.metadataRevision + 1,
+      updatedAt: Date.now(),
+      updatedById: access.user._id,
     });
   },
 });

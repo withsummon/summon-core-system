@@ -80,6 +80,10 @@ export default defineSchema({
     .index("by_workspace_role_active", ["workspaceId", "role", "active"]),
   projects: defineTable({
     apiId: zodToConvex(apiIdSchema.optional()),
+    createdById: v.optional(v.union(v.id("users"), v.null())),
+    updatedById: v.optional(v.union(v.id("users"), v.null())),
+    updatedAt: v.optional(v.number()),
+    archivedAt: v.optional(v.union(v.number(), v.null())),
     workspaceId: v.id("workspaces"),
     name: v.string(),
     identifier: v.string(),

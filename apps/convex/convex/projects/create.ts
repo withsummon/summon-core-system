@@ -35,6 +35,10 @@ export async function createProject(ctx: MutationCtx, args: Infer<typeof project
     workspaceId: args.workspaceId,
     ...metadata,
     apiId: await allocateProjectApiId(ctx),
+    createdById: user._id,
+    updatedById: null,
+    updatedAt: Date.now(),
+    archivedAt: null,
     leadId,
     defaultAssigneeId: null,
     timezone:
