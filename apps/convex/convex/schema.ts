@@ -66,7 +66,7 @@ export default defineSchema({
   ...intakeTables,
   ...publicationTables,
   workspaces: defineTable({
-    apiId: zodToConvex(apiIdSchema.optional()),
+    apiId: zodToConvex(apiIdSchema),
     name: v.string(),
     slug: v.string(),
     metadataRevision: v.number(),
@@ -79,7 +79,7 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_workspace_role_active", ["workspaceId", "role", "active"]),
   projects: defineTable({
-    apiId: zodToConvex(apiIdSchema.optional()),
+    apiId: zodToConvex(apiIdSchema),
     createdById: v.optional(v.union(v.id("users"), v.null())),
     updatedById: v.optional(v.union(v.id("users"), v.null())),
     updatedAt: v.optional(v.number()),

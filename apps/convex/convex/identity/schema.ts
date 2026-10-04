@@ -34,7 +34,7 @@ export const identityTables = {
   apiRequestLogs: defineTable(apiRequestFields),
   users: defineTable({
     ...authTables.users.validator.fields,
-    apiId: zodToConvex(apiIdSchema.optional()),
+    apiId: zodToConvex(apiIdSchema),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])

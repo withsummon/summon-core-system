@@ -14,7 +14,7 @@ import {
 } from "../identity/profile_owner";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { v, ConvexError, type Infer } from "convex/values";
-import { query, mutation, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import { apiIdSchema } from "../identity/schema";
 import { role } from "../schema";
 import type { MutationCtx } from "../_generated/server";
@@ -89,34 +89,6 @@ async function allocateWorkspaceApiId(ctx: MutationCtx) {
   if (existing) throw new ConvexError("Workspace API identifier already exists.");
   return apiId;
 }
-
-// Temporary stored-row rollout: remove after every deployment proves complete
-// UUID coverage and the workspaces schema requires apiId. Never allocate on reads.
-export const backfillApiIds = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }) => {
-    const page = await ctx.db
-      .query("workspaces")
-      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
-    let changed = 0;
-    // Sequential writes make each uniqueness check see previously allocated IDs.
-    /* oxlint-disable no-await-in-loop */
-    for (const workspace of page.page) {
-      if (workspace.apiId === undefined) {
-        await ctx.db.patch(workspace._id, { apiId: await allocateWorkspaceApiId(ctx) });
-        changed++;
-      } else {
-        const apiId = apiIdSchema.parse(workspace.apiId);
-        await ctx.db
-          .query("workspaces")
-          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
-          .unique();
-      }
-    }
-    /* oxlint-enable no-await-in-loop */
-    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
-  },
-});
 
 export const members = query({
   args: {

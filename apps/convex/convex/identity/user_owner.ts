@@ -1,8 +1,7 @@
 import { requireSignup } from "./signup_policy";
 import type { ConvexAuthConfig } from "@convex-dev/auth/server";
 import type { MutationCtx } from "../_generated/server";
-import { internalMutation } from "../_generated/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
 import { requireUnrestrictedAccount } from "./deactivation/access";
 import { apiIdSchema } from "./schema";
 
@@ -53,31 +52,3 @@ export async function createOrUpdateUser(ctx: MutationCtx, args: Input) {
     ...(typeof args.profile.image === "string" ? { image: args.profile.image } : {}),
   });
 }
-
-// Temporary stored-row rollout: remove after every deployment proves complete
-// UUID coverage and the users schema requires apiId. Never allocate on reads.
-export const backfillApiIds = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }) => {
-    const page = await ctx.db
-      .query("users")
-      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
-    let changed = 0;
-    // Sequential writes make each uniqueness check see previously allocated IDs.
-    /* oxlint-disable no-await-in-loop */
-    for (const user of page.page) {
-      if (user.apiId === undefined) {
-        await ctx.db.patch(user._id, { apiId: await allocateUserApiId(ctx) });
-        changed++;
-      } else {
-        const apiId = apiIdSchema.parse(user.apiId);
-        await ctx.db
-          .query("users")
-          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
-          .unique();
-      }
-    }
-    /* oxlint-enable no-await-in-loop */
-    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
-  },
-});
