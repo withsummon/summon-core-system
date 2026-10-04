@@ -10,6 +10,7 @@ import { Controller, useForm } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 // Plane imports
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IProject } from "@plane/types";
 import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
@@ -113,22 +114,22 @@ export function DeleteProjectDialog({
           <span className="place-items-center rounded-full bg-danger-subtle p-4">
             <AlertTriangle className="h-6 w-6 text-danger-primary" aria-hidden="true" />
           </span>
-          <span className="flex items-center justify-start">
-            <h3 className="text-18 font-medium 2xl:text-20">Delete project</h3>
-          </span>
+          <div className="flex items-center justify-start">
+            <Dialog.Title className="text-18 font-medium 2xl:text-20">Delete project</Dialog.Title>
+          </div>
         </div>
-        <span>
-          <p className="text-13 leading-7 text-secondary">
+        <div>
+          <Dialog.Description className="text-13 leading-7 text-secondary">
             Are you sure you want to delete project <span className="font-semibold break-words">{name}</span>?
             {recoverable
               ? "The project will move to Trash. Its data is retained and an authorized administrator can restore it."
               : "All of the data related to the project will be permanently removed. This action cannot be undone"}
-          </p>
-        </span>
+          </Dialog.Description>
+        </div>
         <div className="text-secondary">
-          <p className="text-13 break-words">
+          <label htmlFor="projectName" className="block text-13 break-words">
             Enter the project name <span className="font-medium text-primary">{name}</span> to continue:
-          </p>
+          </label>
           <Controller
             control={control}
             name="projectName"
@@ -150,9 +151,9 @@ export function DeleteProjectDialog({
           />
         </div>
         <div className="text-secondary">
-          <p className="text-13">
+          <label htmlFor="confirmDelete" className="block text-13">
             To confirm, type <span className="font-medium text-primary">delete my project</span> below:
-          </p>
+          </label>
           <Controller
             control={control}
             name="confirmDelete"
