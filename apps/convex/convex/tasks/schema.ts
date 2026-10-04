@@ -1,8 +1,10 @@
+import type { MutationCtx } from "../_generated/server";
+import { apiIdSchema } from "../identity/schema";
 import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import { calendarDate } from "../commercial/validation";
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 export const status = v.union(
   v.literal("backlog"),
   v.literal("todo"),
@@ -358,11 +360,13 @@ export const taskTables = {
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_actor", ["workspaceId", "actorId"]),
   taskStates: defineTable({
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     ...stateFields,
     status: taskStatus,
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"])
@@ -391,3 +395,13 @@ export const taskTables = {
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"]),
 };
+
+export async function allocateTaskStateApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("taskStates")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("State API identifier already exists.");
+  return apiId;
+}

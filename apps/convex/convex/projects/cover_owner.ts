@@ -1,14 +1,39 @@
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { requireNetworkScope } from "./network_access";
+import { canReadApiProject, requireNetworkScope } from "./network_access";
+import { requireWorkspaceForUser } from "../identity/access";
+import { requireAccountUser } from "../identity/session";
 import { canAdministerProject } from "./administration";
 import { descriptor } from "../assets/access";
+import { externalCoverUrl } from "../assets/content";
 export function projectAppearance(ctx: QueryCtx, projectId: Id<"projects">) {
   return ctx.db
     .query("projectAppearance")
     .withIndex("by_project", (q) => q.eq("projectId", projectId))
     .unique();
+}
+export async function requireApiProjectCover(ctx: QueryCtx, userId: Id<"users">, rawAssetId: string) {
+  const user = await requireAccountUser(ctx, userId);
+  const assetId = ctx.db.normalizeId("assets", rawAssetId);
+  const asset = assetId ? await ctx.db.get(assetId) : null;
+  if (
+    !asset?.projectId ||
+    asset.purpose !== "projectCover" ||
+    asset.status !== "ready" ||
+    asset.projectCoverFormRevision !== undefined
+  )
+    throw new ConvexError("Project cover access denied.");
+  const project = await ctx.db.get(asset.projectId);
+  if (!project || asset.workspaceId !== project.workspaceId) throw new ConvexError("Project cover access denied.");
+  await requireWorkspaceForUser(ctx, project.workspaceId, user);
+  const member = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", user._id))
+    .unique();
+  if (!canReadApiProject(project, member) || (await projectAppearance(ctx, project._id))?.coverAssetId !== asset._id)
+    throw new ConvexError("Project cover access denied.");
+  return asset;
 }
 export async function requireCoverWrite(ctx: QueryCtx, projectId: Id<"projects">, expectedRevision: number) {
   const access = await requireNetworkScope(ctx, projectId);
@@ -39,6 +64,16 @@ export async function replaceProjectCover(
       ...(clearExternal ? { externalCoverUrl: undefined } : {}),
     });
   else await ctx.db.insert("projectAppearance", { projectId, coverAssetId: assetId, revision: 1 });
+}
+export async function setExternalCover(
+  ctx: MutationCtx,
+  projectId: Id<"projects">,
+  appearance: Doc<"projectAppearance"> | null,
+  value: string | null
+) {
+  const url = externalCoverUrl(value);
+  if (appearance) await ctx.db.patch(appearance._id, { externalCoverUrl: url, revision: appearance.revision + 1 });
+  else await ctx.db.insert("projectAppearance", { projectId, coverAssetId: null, externalCoverUrl: url, revision: 1 });
 }
 export async function publishProjectCover(ctx: MutationCtx, asset: Doc<"assets">) {
   if (!asset.projectId || asset.projectCoverRevision === undefined)

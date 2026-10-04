@@ -32,7 +32,11 @@ export const read = httpAction(async (ctx, request) => {
     const workspace = url.searchParams.get("workspace");
     const assetId = url.pathname.slice("/assets/".length);
     const asset = apiCredential
-      ? await ctx.runQuery(internal.assets.index.apiAvatar, { userId: apiCredential.userId, assetId })
+      ? await ctx.runQuery(internal.assets.index.apiAsset, {
+          userId: apiCredential.userId,
+          assetId,
+          ...(workspace ? { readWorkspaceApiId: workspace } : {}),
+        })
       : anchor === null
         ? await ctx.runQuery(internal.assets.index.download, {
             assetId,

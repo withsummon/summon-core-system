@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ConvexError } from "convex/values";
+import { projectApiFailure } from "@summon/convex/project-schema";
 import { Button } from "@plane/propel/button";
 
 export const selectClass = "rounded-md border border-subtle-1 bg-layer-2 px-3 py-2 text-sm";
@@ -10,7 +11,11 @@ export function field(form: FormData, name: string) {
   return value;
 }
 export function mutationMessage(error: unknown) {
-  if (error instanceof ConvexError && typeof error.data === "string") return error.data;
+  if (error instanceof ConvexError) {
+    if (typeof error.data === "string") return error.data;
+    const failure = projectApiFailure.safeParse(error.data);
+    if (failure.success) return failure.data.detail;
+  }
   return "The change could not be saved. Check your connection and access, then try again.";
 }
 

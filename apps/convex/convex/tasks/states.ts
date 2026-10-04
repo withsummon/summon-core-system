@@ -1,10 +1,11 @@
+import { apiIdSchema } from "../identity/schema";
 import { compareValues, ConvexError, v, type Infer } from "convex/values";
-import { mutation, query, type MutationCtx } from "../_generated/server";
+import { mutation, query, internalMutation, type MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { canAdministerProject } from "../projects/administration";
 import { checkRevision } from "../projects/settings";
-import { stateContentFields, status } from "./schema";
+import { stateContentFields, status, allocateTaskStateApiId } from "./schema";
 import { text } from "../commercial/validation";
 import { applyPropertyUpdate } from "./property_updates";
 
@@ -153,6 +154,7 @@ export const save = mutation({
       const group = access.states.filter((row) => row.status === data.status);
       const sortOrder = positionOrder(group, null);
       const stateId = await ctx.db.insert("taskStates", {
+        apiId: await allocateTaskStateApiId(ctx),
         ...data,
         sortOrder,
         isDefault: false,
@@ -230,6 +232,37 @@ export const remove = mutation({
     )
       throw new ConvexError("This state is referenced by an unpublished draft. Change its state before deleting.");
     await ctx.db.delete(state._id);
-    await ctx.db.patch(access.project._id, { metadataRevision: access.metadataRevision });
+    await ctx.db.patch(access.project._id, {
+      metadataRevision: access.metadataRevision,
+      ...(access.project.defaultStateId === state._id ? { defaultStateId: null } : {}),
+    });
+  },
+});
+
+// Temporary rollout: remove after complete stored-row UUID coverage and required apiId activation.
+// Includes lifecycle-hidden records; reading a row never allocates its API identity.
+export const backfillApiIds = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db
+      .query("taskStates")
+      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
+    let changed = 0;
+    // Sequential writes make each uniqueness check see previously allocated IDs.
+    /* oxlint-disable no-await-in-loop */
+    for (const row of page.page) {
+      if (row.apiId === undefined) {
+        await ctx.db.patch(row._id, { apiId: await allocateTaskStateApiId(ctx) });
+        changed++;
+      } else {
+        const apiId = apiIdSchema.parse(row.apiId);
+        await ctx.db
+          .query("taskStates")
+          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+          .unique();
+      }
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
   },
 });

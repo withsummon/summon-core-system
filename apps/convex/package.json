@@ -9,6 +9,7 @@
     "./member-label": "./shared/member-label.ts",
     "./project-navigation": "./shared/project-navigation.ts",
     "./task-schema": "./convex/tasks/schema.ts",
+    "./project-schema": "./convex/projects/schema.ts",
     "./commercial-schema": "./convex/commercial/schema.ts",
     "./credential-schema": "./convex/mcp/schema.ts"
   },

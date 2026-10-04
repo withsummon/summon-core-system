@@ -5,10 +5,33 @@ import { externalApiHeaders, verifyRequest } from "./apiTokens";
 import { requireAccountUser } from "./session";
 import { profileIdentity } from "./profile_owner";
 import { personalImageDescriptor, userAppearance } from "./avatar_owner";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 import { apiRequestMetadata, apiIdSchema } from "./schema";
 
 // This is the inherited UserLite public representation, not a session profile.
+export async function externalUserLite(
+  ctx: QueryCtx,
+  account: Doc<"users">,
+  assetOrigin: string,
+  workspace?: Doc<"workspaces">
+) {
+  const id = apiIdSchema.parse(account.apiId);
+  const profile = await profileIdentity(ctx, account._id);
+  if (!profile) throw new ConvexError("Your account is unavailable.");
+  const avatar = await personalImageDescriptor(ctx, await userAppearance(ctx, account._id), "avatar");
+  const avatarUrl = avatar ? new URL(avatar.downloadPath, assetOrigin) : null;
+  if (avatarUrl && workspace) avatarUrl.searchParams.set("workspace", workspace.apiId);
+  return {
+    id,
+    first_name: profile.firstName,
+    last_name: profile.lastName,
+    email: profile.email,
+    avatar: account.image ?? "",
+    avatar_url: avatarUrl?.toString() ?? (account.image || null),
+    display_name: profile.displayName ?? "",
+  };
+}
 export const user = internalQuery({
   args: { userId: v.id("users"), assetOrigin: v.string() },
   handler: async (ctx, { userId, assetOrigin }) => {
@@ -20,21 +43,9 @@ export const user = internalQuery({
         return { status: 403 as const, body: { detail: "Your account is unavailable." } };
       throw error;
     }
-    const id = apiIdSchema.parse(account.apiId);
-    const profile = await profileIdentity(ctx, account._id);
-    if (!profile) throw new ConvexError("Your account is unavailable.");
-    const avatar = await personalImageDescriptor(ctx, await userAppearance(ctx, account._id), "avatar");
     return {
       status: 200 as const,
-      body: {
-        id,
-        first_name: profile.firstName,
-        last_name: profile.lastName,
-        email: profile.email,
-        avatar: account.image ?? "",
-        avatar_url: avatar ? new URL(avatar.downloadPath, assetOrigin).toString() : account.image || null,
-        display_name: profile.displayName ?? "",
-      },
+      body: await externalUserLite(ctx, account, assetOrigin),
     };
   },
 });

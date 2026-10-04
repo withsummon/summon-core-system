@@ -1,3 +1,4 @@
+import { allocateAssetApiId } from "../assets/schema";
 import { compareValues, ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -208,6 +209,7 @@ export const complete = internalMutation({
       .unique();
     if (previous) throw new ConvexError("Export file is already claimed.");
     const assetId = await ctx.db.insert("assets", {
+      apiId: await allocateAssetApiId(ctx),
       workspaceId: access.job.workspaceId,
       projectId: null,
       documentId: null,

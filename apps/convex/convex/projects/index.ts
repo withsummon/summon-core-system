@@ -56,7 +56,7 @@ export const list = query({
 export const create = mutation({
   args: projectCreateArgs.fields,
   handler: async (ctx, args) => {
-    return createProject(ctx, args);
+    return createProject(ctx, args, await requireWorkspace(ctx, args.workspaceId, true));
   },
 });
 
@@ -353,5 +353,11 @@ export async function grantProjectMembership(
     await ctx.db.patch(existing._id, { role: args.role, active: true, revision: existing.revision + 1 });
     return existing._id;
   }
-  return ctx.db.insert("projectMembers", { ...membership, workspaceId, active: true, revision: 0 });
+  return ctx.db.insert("projectMembers", {
+    ...membership,
+    workspaceId,
+    active: true,
+    revision: 0,
+    apiSortOrder: 65535,
+  });
 }
