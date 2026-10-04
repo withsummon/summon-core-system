@@ -11,7 +11,7 @@ export const pointFields = { key: v.number(), value: v.string(), description: v.
 export const pointInput = v.object({ ...pointFields, description: v.optional(pointFields.description) });
 export const estimateTables = {
   estimateSystems: defineTable({
-    apiId: v.optional(zodToConvex(apiIdSchema)),
+    apiId: zodToConvex(apiIdSchema),
     ...systemFields,
     projectId: v.id("projects"),
     workspaceId: v.id("workspaces"),

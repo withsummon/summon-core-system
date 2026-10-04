@@ -12,7 +12,6 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { requireUser } from "../identity/access";
 import { allocateAssetApiId, assetScope, fileMetadataFields, commentImageTarget } from "./schema";
-import { apiIdSchema } from "../identity/schema";
 import { requireCommentImageTarget, requirePublicCommentImage } from "./commentImages";
 import { requirePublishedDescriptionImage } from "../publicSharing/access";
 import { compareValues } from "convex/values";
@@ -243,32 +242,6 @@ export const apiAsset = internalQuery({
   },
 });
 
-// Temporary rollout: remove after complete stored-row UUID coverage and required apiId activation.
-// Includes lifecycle-hidden records; reading a row never allocates its API identity.
-export const backfillApiIds = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }) => {
-    const page = await ctx.db
-      .query("assets")
-      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
-    let changed = 0;
-    /* oxlint-disable no-await-in-loop */
-    for (const row of page.page) {
-      if (row.apiId === undefined) {
-        await ctx.db.patch(row._id, { apiId: await allocateAssetApiId(ctx) });
-        changed++;
-      } else {
-        const apiId = apiIdSchema.parse(row.apiId);
-        await ctx.db
-          .query("assets")
-          .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
-          .unique();
-      }
-    }
-    /* oxlint-enable no-await-in-loop */
-    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
-  },
-});
 export const remove = mutation({
   args: { assetId: v.id("assets") },
   handler: async (ctx, { assetId }) => {
