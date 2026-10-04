@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 // ui
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
@@ -124,15 +125,15 @@ export function ArchiveRestoreDialog({
   return (
     <ModalCore isOpen={isOpen} handleClose={close} position={EModalPosition.CENTER} width={EModalWidth.LG}>
       <div className="px-5 py-4">
-        <h3 className="text-18 font-medium 2xl:text-20">
+        <Dialog.Title className="text-18 font-medium 2xl:text-20">
           {archive ? "Archive" : "Restore"} {name}
-        </h3>
-        <p className="mt-3 text-13 text-secondary">
+        </Dialog.Title>
+        <Dialog.Description className="mt-3 text-13 text-secondary">
           {description ??
             (archive
               ? "This project and its work items, cycles, modules, and pages will be archived. Its work items won't appear in search. Only project admins can restore the project."
               : "Restoring a project will activate it and make it visible to all members of the project. Are you sure you want to continue?")}
-        </p>
+        </Dialog.Description>
         {error && (
           <p role="alert" className="text-danger-primary">
             {error}
