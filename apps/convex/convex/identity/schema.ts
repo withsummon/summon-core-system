@@ -1,12 +1,23 @@
 import { preferences } from "./preferences_fields";
 import { oauthProviderIds } from "./oauth/config";
-import { defineTable } from "convex/server";
+import { defineTable, ROUTABLE_HTTP_METHODS } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 import { z } from "zod/v4";
-import { zodToConvex } from "convex-helpers/server/zod4";
+import { convexToZod, zodToConvexFields, zodToConvex } from "convex-helpers/server/zod4";
 
 export const userApiId = z.uuid();
+
+// Safe request metadata only. HEAD is served by Convex through its GET handler.
+export const apiRequestMetadata = z.object({
+  pathname: z.string().startsWith("/").max(255),
+  method: z.enum([...ROUTABLE_HTTP_METHODS, "HEAD"]),
+  status: z.int().min(100).max(599),
+  durationMs: z.number().finite().nonnegative(),
+  userId: convexToZod(v.id("users")).nullable(),
+  keyId: z.string().min(1).max(255).nullable(),
+});
+export const apiRequestFields = zodToConvexFields(apiRequestMetadata.shape);
 
 export const lastLoginMedium = v.union(
   v.literal("email"),
@@ -20,6 +31,7 @@ export const profileFields = {
   timezone: v.string(),
 };
 export const identityTables = {
+  apiRequestLogs: defineTable(apiRequestFields),
   users: defineTable({
     ...authTables.users.validator.fields,
     apiId: zodToConvex(userApiId.optional()),

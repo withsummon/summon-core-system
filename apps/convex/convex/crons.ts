@@ -15,6 +15,7 @@ crons.interval(
     cursor: null,
   }
 );
+crons.daily("Prune external API request logs", { hourUTC: 2, minuteUTC: 30 }, internal.identity.apiAudit.prune, {});
 crons.daily("Prune document history", { hourUTC: 3, minuteUTC: 0 }, internal.documents.history.prune, { cursor: null });
 crons.daily("Prune task description history", { hourUTC: 3, minuteUTC: 15 }, internal.tasks.history.prune, {
   cursor: null,
