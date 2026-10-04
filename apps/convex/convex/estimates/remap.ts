@@ -51,6 +51,7 @@ export const begin = mutation({
       await ctx.db.insert("projectEstimates", {
         projectId: system.projectId,
         activeSystemId: null,
+        lastUsedSystemId: null,
         jobId,
         revision: 1,
       });
@@ -145,6 +146,8 @@ export const page = mutation({
         await ctx.db.patch(config._id, {
           jobId: null,
           activeSystemId: job.deleteSystem && config.activeSystemId === job.systemId ? null : config.activeSystemId,
+          lastUsedSystemId:
+            job.deleteSystem && config.lastUsedSystemId === job.systemId ? null : config.lastUsedSystemId,
           revision: config.revision + 1,
         });
         nextPhase = "complete";

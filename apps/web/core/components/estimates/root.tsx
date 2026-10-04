@@ -5,142 +5,168 @@
  */
 
 import { useState } from "react";
-import { observer } from "mobx-react";
-import useSWR from "swr";
-// plane imports
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
-// components
+import { Button } from "@plane/propel/button";
+import { TrashIcon } from "@plane/propel/icons";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { ToggleSwitch } from "@plane/ui";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsHeading } from "@/components/settings/heading";
-// hooks
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import { useProjectEstimates } from "@/hooks/store/estimates";
-import { useProject } from "@/hooks/store/use-project";
-// local imports
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import { EstimateProgress, EstimateRemoval } from "@/components/convex-core/estimates/removal";
 import { CreateEstimateModal } from "./create/modal";
-import { DeleteEstimateModal } from "./delete/modal";
-import { EstimateDisableSwitch } from "./estimate-disable-switch";
-import { EstimateList } from "./estimate-list";
 import { EstimateLoaderScreen } from "./loader-screen";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
-type TEstimateRoot = {
-  workspaceSlug: string;
-  projectId: string;
-  isAdmin: boolean;
-};
-
-export const EstimateRoot = observer(function EstimateRoot(props: TEstimateRoot) {
-  const { workspaceSlug, projectId, isAdmin } = props;
-  // hooks
-  const { currentProjectDetails } = useProject();
-  const { loader, currentActiveEstimateId, archivedEstimateIds, getProjectEstimates } = useProjectEstimates();
-  // states
-  const [isEstimateCreateModalOpen, setIsEstimateCreateModalOpen] = useState(false);
-  // oxlint-disable-next-line no-unused-vars
-  const [estimateToUpdate, setEstimateToUpdate] = useState<string | undefined>();
-  const [estimateToDelete, setEstimateToDelete] = useState<string | undefined>();
-
+export function EstimateRoot({ projectId }: { projectId: FunctionArgs<typeof api.estimates.index.list>["projectId"] }) {
+  const configuration = useQuery(api.estimates.index.list, { projectId });
+  const select = useMutation(api.estimates.index.select);
   const { t } = useTranslation();
-
-  const { isLoading: isSWRLoading } = useSWR(
-    workspaceSlug && projectId ? `PROJECT_ESTIMATES_${workspaceSlug}_${projectId}` : null,
-    async () => workspaceSlug && projectId && getProjectEstimates(workspaceSlug, projectId)
-  );
-
-  if (loader === "init-loader" || isSWRLoading) {
-    return <EstimateLoaderScreen />;
-  }
-
+  const [creating, setCreating] = useState(false);
+  const [removing, setRemoving] = useState<FunctionReturnType<typeof api.estimates.index.get> | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  useReloadConfirmations(pending, "An estimate setting is still saving.", undefined, pending);
+  if (!configuration) return <EstimateLoaderScreen />;
+  const current = configuration.config?.lastUsedSystemId;
+  const archived = configuration.systems.filter((system) => system._id !== current);
   return (
     <>
-      <div>
-        {/* header */}
-        <SettingsHeading
-          title={t("project_settings.estimates.heading")}
-          description={t("project_settings.estimates.description")}
-        />
-        <div className="mt-6">
-          {/* current active estimate section */}
-          {currentActiveEstimateId ? (
-            <>
-              {/* estimates activated deactivated section */}
-              <SettingsBoxedControlItem
-                title={t("project_settings.estimates.title")}
-                description={t("project_settings.estimates.enable_description")}
-                control={
-                  <EstimateDisableSwitch workspaceSlug={workspaceSlug} projectId={projectId} isAdmin={isAdmin} />
-                }
-              />
-              {/* active estimates section */}
-              <div className="mt-12 flex flex-col gap-y-4">
-                <SettingsHeading title="Estimates list" variant="h6" />
-                <EstimateList
-                  estimateIds={[currentActiveEstimateId]}
-                  isAdmin={isAdmin}
-                  isEstimateEnabled={Boolean(currentProjectDetails?.estimate)}
-                  isEditable
-                  onEditClick={(estimateId: string) => setEstimateToUpdate(estimateId)}
-                  onDeleteClick={(estimateId: string) => setEstimateToDelete(estimateId)}
+      <SettingsHeading
+        title={t("project_settings.estimates.heading")}
+        description={t("project_settings.estimates.description")}
+      />
+      <div className="mt-6">
+        {configuration.config?.jobId && (
+          <EstimateProgress jobId={configuration.config.jobId} canWrite={configuration.canWrite} />
+        )}
+        {current ? (
+          <>
+            <SettingsBoxedControlItem
+              title={t("project_settings.estimates.title")}
+              description={t("project_settings.estimates.enable_description")}
+              control={
+                <ToggleSwitch
+                  label={t("project_settings.estimates.title")}
+                  size="sm"
+                  value={!!configuration.config?.activeSystemId}
+                  disabled={pending || !configuration.canSelect || !!configuration.config?.jobId}
+                  onChange={async (enabled) => {
+                    setPending(true);
+                    setError("");
+                    try {
+                      await select({
+                        projectId,
+                        systemId: enabled ? current : null,
+                        expectedRevision: configuration.config?.revision ?? 0,
+                      });
+                      setToast({
+                        type: TOAST_TYPE.SUCCESS,
+                        title: t(`project_settings.estimates.toasts.${enabled ? "enabled" : "disabled"}.success.title`),
+                        message: t(
+                          `project_settings.estimates.toasts.${enabled ? "enabled" : "disabled"}.success.message`
+                        ),
+                      });
+                    } catch (failure) {
+                      setError(mutationMessage(failure));
+                    } finally {
+                      setPending(false);
+                    }
+                  }}
                 />
-              </div>
-            </>
-          ) : (
-            <EmptyStateCompact
-              assetKey="estimate"
-              assetClassName="size-20"
-              title={t("settings_empty_state.estimates.title")}
-              description={t("settings_empty_state.estimates.description")}
-              actions={[
-                {
-                  label: t("settings_empty_state.estimates.cta_primary"),
-                  onClick: () => setIsEstimateCreateModalOpen(true),
-                },
-              ]}
-              align="start"
-              rootClassName="py-20"
+              }
             />
-          )}
-          {/* archived estimates section */}
-          {archivedEstimateIds && archivedEstimateIds.length > 0 && (
             <div className="mt-12 flex flex-col gap-y-4">
-              <SettingsHeading
-                title="Archived estimates"
-                description={
-                  <>
-                    Estimates have gone through a change, these are the estimates you had in your older versions which
-                    were not in use. Read more about them&nbsp;
-                    <a
-                      href={"https://docs.plane.so/core-concepts/projects/run-project#estimate"}
-                      target="_blank"
-                      className="text-accent-primary/80 hover:text-accent-primary"
-                      rel="noreferrer"
-                    >
-                      here.
-                    </a>
-                  </>
-                }
-                variant="h6"
+              <SettingsHeading title="Estimates list" variant="h6" />
+              <EstimateCard
+                systemId={current}
+                canDelete={configuration.canSelect && configuration.canWrite && !configuration.config?.jobId}
+                onDelete={setRemoving}
               />
-              <EstimateList estimateIds={archivedEstimateIds} isAdmin={isAdmin} />
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <EmptyStateCompact
+            assetKey="estimate"
+            assetClassName="size-20"
+            title={t("settings_empty_state.estimates.title")}
+            description={t("settings_empty_state.estimates.description")}
+            actions={
+              configuration.canSelect && configuration.canWrite && !configuration.config?.jobId
+                ? [{ label: t("settings_empty_state.estimates.cta_primary"), onClick: () => setCreating(true) }]
+                : []
+            }
+            align="start"
+            rootClassName="py-20"
+          />
+        )}
+        {error && (
+          <p role="alert" className="mt-3 text-14 text-danger-primary">
+            {error}
+          </p>
+        )}
+        {archived.length > 0 && (
+          <div className="mt-12 flex flex-col gap-y-4">
+            <SettingsHeading
+              title="Archived estimates"
+              description={
+                <>
+                  Estimates have gone through a change, these are the estimates you had in your older versions which
+                  were not in use. Read more about them&nbsp;
+                  <a
+                    href="https://docs.plane.so/core-concepts/projects/run-project#estimate"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-primary/80 hover:text-accent-primary"
+                  >
+                    here.
+                  </a>
+                </>
+              }
+              variant="h6"
+            />
+            <div>
+              {archived.map((system) => (
+                <EstimateCard key={system._id} systemId={system._id} canDelete={false} onDelete={setRemoving} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      {/* CRUD modals */}
-      <CreateEstimateModal
-        workspaceSlug={workspaceSlug}
-        projectId={projectId}
-        isOpen={isEstimateCreateModalOpen}
-        handleClose={() => setIsEstimateCreateModalOpen(false)}
-      />
-      <DeleteEstimateModal
-        workspaceSlug={workspaceSlug}
-        projectId={projectId}
-        estimateId={estimateToDelete ? estimateToDelete : undefined}
-        // oxlint-disable-next-line no-unneeded-ternary
-        isOpen={estimateToDelete ? true : false}
-        handleClose={() => setEstimateToDelete(undefined)}
-      />
+      {creating && (
+        <CreateEstimateModal projectId={projectId} configuration={configuration} onClose={() => setCreating(false)} />
+      )}
+      {removing && <EstimateRemoval system={removing} point={null} onClose={() => setRemoving(null)} />}
     </>
   );
-});
+}
+
+function EstimateCard({
+  systemId,
+  canDelete,
+  onDelete,
+}: {
+  systemId: FunctionArgs<typeof api.estimates.index.get>["systemId"];
+  canDelete: boolean;
+  onDelete: (system: FunctionReturnType<typeof api.estimates.index.get>) => void;
+}) {
+  const system = useQuery(api.estimates.index.get, { systemId });
+  if (!system) return <p role="status">Loading estimate system…</p>;
+  return (
+    <SettingsBoxedControlItem
+      title={system.name}
+      description={system.points.map((point) => point.value).join(", ")}
+      control={
+        canDelete && (
+          <Button variant="link" size="sm" aria-label={`Delete ${system.name}`} onClick={() => onDelete(system)}>
+            <TrashIcon width={14} height={14} />
+          </Button>
+        )
+      }
+    />
+  );
+}

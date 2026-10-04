@@ -3,9 +3,10 @@ import { v } from "convex/values";
 export const systemFields = {
   name: v.string(),
   description: v.string(),
-  type: v.union(v.literal("categories"), v.literal("points")),
+  type: v.union(v.literal("points"), v.literal("categories")),
 };
 export const pointFields = { key: v.number(), value: v.string(), description: v.string() };
+export const pointInput = v.object({ ...pointFields, description: v.optional(pointFields.description) });
 export const estimateTables = {
   estimateSystems: defineTable({
     ...systemFields,
@@ -26,6 +27,7 @@ export const estimateTables = {
   projectEstimates: defineTable({
     projectId: v.id("projects"),
     activeSystemId: v.union(v.id("estimateSystems"), v.null()),
+    lastUsedSystemId: v.union(v.id("estimateSystems"), v.null()),
     revision: v.number(),
     jobId: v.union(v.id("estimateRemaps"), v.null()),
   }).index("by_project", ["projectId"]),
