@@ -4,10 +4,10 @@ import type { MutationCtx } from "../_generated/server";
 import { internalMutation } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { requireUnrestrictedAccount } from "./deactivation/access";
-import { userApiId } from "./schema";
+import { apiIdSchema } from "./schema";
 
 export async function allocateUserApiId(ctx: MutationCtx) {
-  const apiId = userApiId.parse(crypto.randomUUID());
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
   const existing = await ctx.db
     .query("users")
     .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
@@ -70,7 +70,7 @@ export const backfillApiIds = internalMutation({
         await ctx.db.patch(user._id, { apiId: await allocateUserApiId(ctx) });
         changed++;
       } else {
-        const apiId = userApiId.parse(user.apiId);
+        const apiId = apiIdSchema.parse(user.apiId);
         await ctx.db
           .query("users")
           .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
