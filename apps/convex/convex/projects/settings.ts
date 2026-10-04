@@ -33,7 +33,7 @@ export const get = query({
 export const save = mutation({
   args: { projectId: v.id("projects"), name: v.string(), description: v.string(), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const { project, projectMember } = await requireProject(ctx, args.projectId, true);
+    const { project, projectMember, user } = await requireProject(ctx, args.projectId, true);
     if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can edit project settings.");
     const metadataRevision = checkRevision(project, args.expectedRevision);
     const fields = await validateProjectMetadata(
@@ -42,7 +42,7 @@ export const save = mutation({
       { ...args, identifier: project.identifier },
       project._id
     );
-    await ctx.db.patch(project._id, { ...fields, metadataRevision });
+    await ctx.db.patch(project._id, { ...fields, metadataRevision, updatedAt: Date.now(), updatedById: user._id });
   },
 });
 export const archived = query({
@@ -90,7 +90,14 @@ export const setArchived = mutation({
       throw new ConvexError("Only workspace or project administrators can archive or restore projects.");
     const metadataRevision = checkRevision(project, args.expectedRevision);
     if (project.archived === args.archived) return;
-    await ctx.db.patch(project._id, { archived: args.archived, metadataRevision });
+    const updatedAt = Date.now();
+    await ctx.db.patch(project._id, {
+      archived: args.archived,
+      archivedAt: args.archived ? updatedAt : null,
+      metadataRevision,
+      updatedAt,
+      updatedById: user._id,
+    });
   },
 });
 
@@ -134,7 +141,7 @@ export const saveMemberDefaults = mutation({
       !(await taskAssigneeEligible(ctx, project, fields.defaultAssigneeId))
     )
       throw new ConvexError("Default assignee must be an active project writer.");
-    await ctx.db.patch(projectId, { ...fields, metadataRevision });
+    await ctx.db.patch(projectId, { ...fields, metadataRevision, updatedAt: Date.now(), updatedById: user._id });
     return { revision: metadataRevision };
   },
 });

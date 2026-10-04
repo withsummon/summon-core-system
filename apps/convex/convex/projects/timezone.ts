@@ -21,11 +21,15 @@ export const get = query({
 export const save = mutation({
   args: { projectId: v.id("projects"), timezone: v.string(), expectedTimezone: v.string() },
   handler: async (ctx, args) => {
-    const { project, projectMember } = await requireProject(ctx, args.projectId, true);
+    const { project, projectMember, user } = await requireProject(ctx, args.projectId, true);
     if (projectMember.role !== "admin") throw new ConvexError("Only project administrators can change timezone.");
     if (requireProjectTimezone(project) !== args.expectedTimezone)
       throw new ConvexError("Project timezone changed. Reload before saving.");
-    await ctx.db.patch(project._id, { timezone: validateTimezone(args.timezone) });
+    await ctx.db.patch(project._id, {
+      timezone: validateTimezone(args.timezone),
+      updatedAt: Date.now(),
+      updatedById: user._id,
+    });
   },
 });
 // Temporary migration owner. Run all cursor pages, verify remaining=0 separately,
