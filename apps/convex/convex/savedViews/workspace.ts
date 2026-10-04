@@ -22,11 +22,13 @@ export const create = mutation({
     const filters = await validateWorkspaceFilters(ctx, args.workspaceId, user._id, args.filters);
     const display = taskDisplayFiltersSchema.safeParse(args.displayFilters ?? defaultTaskPreferences.displayFilters);
     if (!display.success) throw new ConvexError(display.error.message);
+    const name = text(args.name, "View name", 255, true);
     return ctx.db.insert("savedViews", {
       projectId: null,
       workspaceId: args.workspaceId,
       ownerId: user._id,
-      name: text(args.name, "View name", 255, true),
+      name,
+      nameFolded: name.toLowerCase(),
       description: text(args.description, "View description", 10000),
       filters,
       displayFilters: display.data,
@@ -49,8 +51,10 @@ export const update = mutation({
     const display =
       args.displayFilters === undefined ? undefined : taskDisplayFiltersSchema.safeParse(args.displayFilters);
     if (display && !display.success) throw new ConvexError(display.error.message);
+    const name = text(args.name, "View name", 255, true);
     await ctx.db.patch(view._id, {
-      name: text(args.name, "View name", 255, true),
+      name,
+      nameFolded: name.toLowerCase(),
       description: text(args.description, "View description", 10000),
       filters,
       ...(display === undefined ? {} : { displayFilters: display.data }),

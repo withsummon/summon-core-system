@@ -30,6 +30,7 @@ export const savedViewTables = {
     projectId: v.union(v.id("projects"), v.null()),
     ownerId: v.id("users"),
     name: v.string(),
+    nameFolded: v.optional(v.string()),
     description: v.string(),
     access: viewAccess,
     logoProps: projectLogoProps,
@@ -40,6 +41,7 @@ export const savedViewTables = {
     deletedAt: v.union(v.number(), v.null()),
   })
     .index("by_project_deleted", ["projectId", "deletedAt"])
+    .index("by_project_name", ["projectId", "nameFolded"])
     .index("by_project_updated", ["projectId", "updatedAt"])
     .index("by_project_created", ["projectId"])
     .index("by_workspace_project_deleted", ["workspaceId", "projectId", "deletedAt"]),
