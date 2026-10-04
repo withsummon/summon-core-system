@@ -7,6 +7,7 @@ import { defaultProjectFeatures, projectFeatures } from "./feature_schema";
 import { z } from "zod/v4";
 import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
 import { apiIdSchema } from "../identity/schema";
+import { taskPreferences } from "../tasks/schema";
 
 export const projectJson = z.json();
 export const projectJsonText = z
@@ -243,6 +244,7 @@ export const projectPersonalTables = {
     sortOrder: v.number(),
     revision: v.number(),
     navigation: v.optional(projectNavigation),
+    taskPreferences: v.optional(taskPreferences),
   })
     .index("by_project_user", ["projectId", "userId"])
     .index("by_owner_order", ["workspaceId", "userId", "sortOrder"]),

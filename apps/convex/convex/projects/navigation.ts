@@ -1,4 +1,6 @@
-import { v, ConvexError } from "convex/values";
+import { defaultTaskPreferences, taskPreferences, taskPreferencesSchema } from "../tasks/schema";
+import { validateFilters } from "../savedViews/filters";
+import { v, ConvexError, compareValues } from "convex/values";
 import { query, mutation, type QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -43,5 +45,26 @@ export const reset = mutation({
     checkRevision(row.revision, args.expectedRevision);
     if (row.navigation === undefined) return;
     await ctx.db.patch(row._id, { navigation: undefined, revision: row.revision + 1 });
+  },
+});
+
+export const getTaskPreferences = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const row = await ownProperties(ctx, args.projectId);
+    return { ...(row.taskPreferences ?? defaultTaskPreferences), revision: row.revision };
+  },
+});
+export const saveTaskPreferences = mutation({
+  args: { projectId: v.id("projects"), expectedRevision: v.number(), changes: taskPreferences.partial() },
+  handler: async (ctx, args) => {
+    const row = await ownProperties(ctx, args.projectId);
+    checkRevision(row.revision, args.expectedRevision);
+    const current = row.taskPreferences ?? defaultTaskPreferences;
+    const parsed = taskPreferencesSchema.safeParse({ ...current, ...args.changes });
+    if (!parsed.success) throw new ConvexError(parsed.error.message);
+    if (args.changes.filters !== undefined) await validateFilters(ctx, row.projectId, parsed.data.filters);
+    if (compareValues(current, parsed.data) === 0) return;
+    await ctx.db.patch(row._id, { taskPreferences: parsed.data, revision: row.revision + 1 });
   },
 });

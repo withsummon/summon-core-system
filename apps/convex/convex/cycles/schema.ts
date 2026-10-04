@@ -1,3 +1,4 @@
+import { taskPreferences } from "../tasks/schema";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 const curveTotals = { count: v.number(), points: v.number(), unquantified: v.number() };
@@ -26,6 +27,14 @@ export const cycleFields = {
   endDate: v.union(v.string(), v.null()),
 };
 export const cycleTables = {
+  cycleUserProperties: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    cycleId: v.id("cycles"),
+    userId: v.id("users"),
+    taskPreferences,
+    revision: v.number(),
+  }).index("by_cycle_user", ["cycleId", "userId"]),
   cycleTransfers: defineTable({
     projectId: v.id("projects"),
     sourceId: v.id("cycles"),

@@ -1,3 +1,4 @@
+import { taskPreferences } from "../tasks/schema";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
@@ -51,6 +52,14 @@ export const defaultModuleFilters: Infer<typeof moduleDirectoryFilters> = {
   targetBefore: null,
 };
 export const moduleTables = {
+  moduleUserProperties: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    moduleId: v.id("modules"),
+    userId: v.id("users"),
+    taskPreferences,
+    revision: v.number(),
+  }).index("by_module_user", ["moduleId", "userId"]),
   moduleLinks: defineTable({
     moduleId: v.id("modules"),
     url: v.string(),
