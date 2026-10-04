@@ -21,20 +21,25 @@ export async function setReaction<T extends Id<"taskReactions"> | Id<"taskCommen
   actorId: Id<"users">,
   existing: { _id: T } | null,
   active: boolean,
-  insert: () => Promise<T>
+  insert: () => Promise<T>,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]> = "subscribers"
 ) {
   if (active && existing) return existing._id;
   if (!active && !existing) return null;
   if (existing) {
     await ctx.db.patch(existing._id, { deletedAt: Date.now() });
-    await taskChanged(ctx, task, actorId, { kind: "reaction_changed" });
+    await taskChanged(ctx, task, actorId, { kind: "reaction_changed" }, delivery);
     return null;
   }
   const id = await insert();
-  await taskChanged(ctx, task, actorId, { kind: "reaction_changed" });
+  await taskChanged(ctx, task, actorId, { kind: "reaction_changed" }, delivery);
   return id;
 }
 export async function reactionActor<T extends { actorId: Id<"users"> }>(ctx: QueryCtx, row: T, userId: Id<"users">) {
   const actor = await ctx.db.get(row.actorId);
   return { ...row, actorName: actor?.name ?? null, isMine: row.actorId === userId };
+}
+export async function publicReaction(ctx: QueryCtx, row: Doc<"taskReactions"> | Doc<"taskCommentReactions">) {
+  const actor = await ctx.db.get(row.actorId);
+  return { _id: row._id, reaction: row.reaction, actorId: row.actorId, actorName: actor?.name ?? null };
 }

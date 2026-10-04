@@ -40,6 +40,10 @@ export async function requirePublishedTask(ctx: QueryCtx, anchor: string, taskId
   return { ...access, task };
 }
 
+export function requirePublishedReactions(access: Awaited<ReturnType<typeof requirePublishedTask>>) {
+  if (!access.publication.settings.reactionsEnabled) throw new ConvexError("Public reactions are disabled.");
+}
+
 export async function requirePublishedDiscussion(ctx: QueryCtx, anchor: string, taskId: Id<"tasks">) {
   const access = await requirePublishedTask(ctx, anchor, taskId);
   if (!access.publication.settings.commentsEnabled) throw new ConvexError("Public comments are disabled.");
