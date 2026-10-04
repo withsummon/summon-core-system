@@ -4,21 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// hooks
-import { useWebhook } from "@/hooks/store/use-webhook";
-// components
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
 import { WebhooksListItem } from "./webhooks-list-item";
 
-export const WebhooksList = observer(function WebhooksList() {
-  // store hooks
-  const { webhooks } = useWebhook();
-
+export function WebhooksList({
+  workspace,
+  webhooks,
+}: {
+  workspace: NativeWorkspace;
+  webhooks: FunctionReturnType<typeof api.webhooks.index.list>["page"];
+}) {
   return (
     <div className="flex size-full flex-col gap-y-2 overflow-y-auto rounded-lg border border-subtle bg-layer-1 p-3">
-      {Object.values(webhooks ?? {}).map((webhook) => (
-        <WebhooksListItem key={webhook.id} webhook={webhook} />
+      {webhooks.map((webhook) => (
+        <WebhooksListItem key={webhook._id} workspace={workspace} webhook={webhook} />
       ))}
     </div>
   );
-});
+}

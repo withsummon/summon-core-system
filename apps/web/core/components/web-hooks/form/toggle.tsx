@@ -7,12 +7,13 @@
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // constants
-import type { IWebhook } from "@plane/types";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 // ui
 import { ToggleSwitch } from "@plane/ui";
 
 interface IWebHookToggle {
-  control: Control<IWebhook, any>;
+  control: Control<FunctionArgs<typeof api.webhooks.index.update>["input"]>;
 }
 
 export function WebhookToggle({ control }: IWebHookToggle) {
@@ -21,7 +22,7 @@ export function WebhookToggle({ control }: IWebHookToggle) {
       <div className="text-13 font-medium">Enable webhook</div>
       <Controller
         control={control}
-        name="is_active"
+        name="isActive"
         render={({ field: { onChange, value } }) => (
           <ToggleSwitch
             value={value}
@@ -29,6 +30,7 @@ export function WebhookToggle({ control }: IWebHookToggle) {
               onChange(val);
             }}
             size="sm"
+            aria-label="Enable webhook"
           />
         )}
       />

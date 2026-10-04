@@ -6,14 +6,13 @@
 
 // types
 import { useTranslation } from "@plane/i18n";
-import type { TWebhookEventTypes } from "@plane/types";
 
 type Props = {
-  value: string;
-  onChange: (value: TWebhookEventTypes) => void;
+  value: "all" | "individual";
+  onChange: (value: Props["value"]) => void;
 };
 
-const WEBHOOK_EVENT_TYPES: { key: TWebhookEventTypes; i18n_label: string }[] = [
+const WEBHOOK_EVENT_TYPES: { key: Props["value"]; i18n_label: string }[] = [
   {
     key: "all",
     i18n_label: "workspace_settings.settings.webhooks.options.all",
@@ -29,14 +28,15 @@ export function WebhookOptions(props: Props) {
   const { t } = useTranslation();
 
   return (
-    <>
-      <h6 className="text-13 font-medium">{t("workspace_settings.settings.webhooks.modal.question")}</h6>
+    <fieldset>
+      <legend className="text-13 font-medium">{t("workspace_settings.settings.webhooks.modal.question")}</legend>
       <div className="space-y-3">
         {WEBHOOK_EVENT_TYPES.map((option) => (
           <div key={option.key} className="flex items-center gap-2">
             <input
               id={option.key}
               type="radio"
+              name="webhook-event-mode"
               value={option.key}
               checked={value == option.key}
               onChange={() => onChange(option.key)}
@@ -47,6 +47,6 @@ export function WebhookOptions(props: Props) {
           </div>
         ))}
       </div>
-    </>
+    </fieldset>
   );
 }

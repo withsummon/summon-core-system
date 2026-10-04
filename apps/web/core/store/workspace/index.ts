@@ -21,8 +21,6 @@ import type { CoreRootStore } from "@/store/root.store";
 // sub-stores
 import type { IHomeStore } from "./home";
 import { HomeStore } from "./home";
-import type { IWebhookStore } from "./webhook.store";
-import { WebhookStore } from "./webhook.store";
 
 export interface IWorkspaceRootStore {
   loader: boolean;
@@ -63,7 +61,6 @@ export interface IWorkspaceRootStore {
   ) => Promise<void>;
   mutateWorkspaceMembersActivity: (workspaceSlug: string) => Promise<void>;
   // sub-stores
-  webhook: IWebhookStore;
   home: IHomeStore;
 }
 
@@ -80,7 +77,6 @@ export class BaseWorkspaceRootStore implements IWorkspaceRootStore {
   user;
   home;
   // sub-stores
-  webhook: IWebhookStore;
 
   constructor(_rootStore: CoreRootStore) {
     makeObservable(this, {
@@ -115,7 +111,6 @@ export class BaseWorkspaceRootStore implements IWorkspaceRootStore {
     this.user = _rootStore.user;
     this.home = new HomeStore();
     // sub-stores
-    this.webhook = new WebhookStore(_rootStore);
   }
 
   /**

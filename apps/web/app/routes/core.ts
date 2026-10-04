@@ -109,14 +109,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             ":workspaceSlug/settings/billing",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx"
           ),
-          route(
-            ":workspaceSlug/settings/webhooks",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx"
-          ),
-          route(
-            ":workspaceSlug/settings/webhooks/:webhookId",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx"
-          ),
         ]),
 
         // --------------------------------------------------------------------
