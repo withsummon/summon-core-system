@@ -12,7 +12,8 @@ export async function taskChanged(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   actorId: Id<"users">,
-  event?: Pick<Doc<"taskEvents">, "kind" | "changes">
+  event?: Pick<Doc<"taskEvents">, "kind" | "changes">,
+  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]> = "subscribers"
 ) {
   const current = await ctx.db.get(task._id);
   if (!current) throw new ConvexError("Task not found.");
@@ -35,14 +36,19 @@ export async function taskChanged(
     compareValues({ ...task, sortOrder: current.sortOrder }, current) === 0
   )
     return updatedAt;
-  await recordTaskEvent(ctx, {
-    workspaceId: task.workspaceId,
-    projectId: task.projectId,
-    taskId: task._id,
-    actorId,
-    kind,
-    status: current.status,
-    changes,
-  });
+  await recordTaskEvent(
+    ctx,
+    {
+      workspaceId: task.workspaceId,
+      projectId: task.projectId,
+      taskId: task._id,
+      actorId,
+      kind,
+      status: current.status,
+      changes,
+    },
+    [],
+    delivery
+  );
   return updatedAt;
 }
