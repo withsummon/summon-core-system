@@ -2,6 +2,8 @@
 
 Status: **not ready to retire Django or its Postgres service**.
 
+The [current isolated retirement receipt](current-parity-checklist.md#project-retirement-and-current-isolated-shell--2026-10-05) records a successful four-phase native project DELETE journey and exact339 frontend/backend activation. New display/due/name owners remain source-only until initialization, strict-schema retirement and rendered application pass. These local proofs do not close external API, job, remote or product-family gates.
+
 The [2026-10-04 remote backend rollforward](current-parity-checklist.md#remote-backend-rollforward--2026-10-04) records exact committed function activation, verified schema backfill and private backups. Remote authentication remains on the legacy issuer; native-auth, frontend and external-provider acceptance are still open.
 
 The [current parity checklist](current-parity-checklist.md) and its [registered-surface ledger](registered-surface-2026-09-28.tsv) supersede older source inventories for route coverage. They keep every registered family open until served-browser, external API and job acceptance is recorded.
