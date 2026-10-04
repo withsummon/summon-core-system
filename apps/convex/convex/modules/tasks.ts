@@ -102,6 +102,13 @@ export async function readTaskModules(ctx: QueryCtx, task: Doc<"tasks">) {
     })
   );
 }
+export async function currentTaskModules(ctx: QueryCtx, task: Doc<"tasks">) {
+  const source = await readTaskModules(ctx, task);
+  return {
+    modules: source.filter(({ module }) => !module.deleted).map(({ module }) => module),
+    references: source.map(({ module }) => ({ moduleId: module._id, expectedModuleUpdatedAt: module.updatedAt })),
+  };
+}
 export async function prepareModuleTask(
   ctx: MutationCtx,
   args: {
