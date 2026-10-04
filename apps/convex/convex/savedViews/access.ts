@@ -5,15 +5,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject, requireWorkspace } from "../identity/access";
 import { renderedProjectLogo } from "../projects/branding_schema";
 
-// Historical native constructors had shared visibility and no logo. This is not a Django import policy.
-// Remove these defaults with required metadata after complete stored-row rollout.
-function nativeViewDefinition(view: Doc<"savedViews">) {
-  return {
-    ...view,
-    access: view.access ?? ("public" satisfies NonNullable<Doc<"savedViews">["access"]>),
-    logoProps: view.logoProps ?? {},
-  };
-}
 export function capabilities(view: Doc<"savedViews">, access: Awaited<ReturnType<typeof requireProject>>) {
   return viewCapabilities(
     view,
@@ -32,7 +23,7 @@ export function viewCapabilities(
 ) {
   const own = view.ownerId === userId;
   const manages = own || admin;
-  const visible = own || nativeViewDefinition(view).access === "public";
+  const visible = own || view.access === "public";
   if (view.deletedAt !== null)
     return { canRead: visible && manages, canEdit: false, canRemove: false, canRestore: manages, canFavorite: false };
   return {
@@ -63,10 +54,9 @@ export async function projectView(
   access: Awaited<ReturnType<typeof requireProject>>
 ) {
   const favorite = await viewFavorite(ctx, view.workspaceId, access.user._id, view._id);
-  const definition = nativeViewDefinition(view);
   return {
-    view: { ...definition, projectId: access.project._id },
-    logo: renderedProjectLogo(definition.logoProps),
+    view: { ...view, projectId: access.project._id },
+    logo: renderedProjectLogo(view.logoProps),
     isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
     ...capabilities(view, access),
   };
@@ -100,10 +90,9 @@ export async function workspaceView(
   access: Awaited<ReturnType<typeof requireWorkspace>>
 ) {
   const favorite = await viewFavorite(ctx, view.workspaceId, access.user._id, view._id);
-  const definition = nativeViewDefinition(view);
   return {
-    view: { ...definition, projectId: null, workspaceId: access.workspace._id },
-    logo: renderedProjectLogo(definition.logoProps),
+    view: { ...view, projectId: null, workspaceId: access.workspace._id },
+    logo: renderedProjectLogo(view.logoProps),
     isFavorite: view.deletedAt === null && (await effectiveFavorite(ctx, favorite)),
     ...workspaceCapabilities(view, access),
   };

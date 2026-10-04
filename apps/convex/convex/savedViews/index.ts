@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
-import { query, mutation, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -91,30 +91,6 @@ export const lifecycle = mutation({
       deletedAt: args.deleted ? Date.now() : null,
       updatedAt: Math.max(Date.now(), view.updatedAt + 1),
     });
-  },
-});
-
-// Native rows were shared/no-logo before these columns existed. Never infer imported Django privacy.
-// Remove after all lifecycle cohorts have metadata, both columns become required, and read defaults are deleted.
-export const initializeMetadata = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }) => {
-    const page = await ctx.db
-      .query("savedViews")
-      .paginate({ cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1000000 });
-    let changed = 0;
-    /* oxlint-disable no-await-in-loop */
-    for (const view of page.page) {
-      if (view.logoProps !== undefined) validatedProjectLogo(view.logoProps);
-      if (view.access !== undefined && view.logoProps !== undefined) continue;
-      await ctx.db.patch(view._id, {
-        ...(view.access === undefined ? { access: "public" } : {}),
-        ...(view.logoProps === undefined ? { logoProps: validatedProjectLogo({}) } : {}),
-      });
-      changed++;
-    }
-    /* oxlint-enable no-await-in-loop */
-    return { processed: page.page.length, changed, continueCursor: page.continueCursor, isDone: page.isDone };
   },
 });
 
