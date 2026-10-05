@@ -1,4 +1,4 @@
-import { Outlet, Link, useParams } from "react-router";
+import { Outlet, Link, useParams, useMatch, useSearchParams, useNavigate } from "react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
@@ -21,16 +21,47 @@ const TaskActionComposer = lazy(() =>
 const CreateWorkspaceIssue = lazy(() =>
   import("@/components/convex-core/tasks/task-detail").then((module) => ({ default: module.CreateWorkspaceIssue }))
 );
+const DocumentAccessBoundary = lazy(() =>
+  import("@/components/convex-core/documents/editor").then((module) => ({ default: module.DocumentAccessBoundary }))
+);
 export default function NativeWorkspaceLayout() {
   const { workspaceSlug } = useParams();
+  const page = useMatch("/:workspaceSlug/projects/:projectId/pages/:pageId");
+  const documents = useMatch("/:workspaceSlug/summon/documents");
+  const [search, setSearch] = useSearchParams();
+  const navigate = useNavigate();
+  const documentId = page?.params.pageId ?? (documents ? search.get("document") : null);
   return (
     <SessionBoundary>
-      <WorkspaceOutlet key={workspaceSlug} />
+      {documentId ? (
+        <Suspense
+          fallback={
+            <p role="status" className="p-6">
+              Opening document…
+            </p>
+          }
+        >
+          <DocumentAccessBoundary
+            key={`${workspaceSlug}:${documentId}`}
+            documentId={documentId}
+            onBack={() => {
+              if (page) navigate(`/${workspaceSlug}/projects/${page.params.projectId}/pages/`);
+              else setSearch({});
+            }}
+            unavailableTitle={page ? "Page not found" : "This document is unavailable"}
+            backLabel={page ? "View other Pages" : "Back to documents"}
+          >
+            <WorkspaceOutlet key={workspaceSlug} documentId={documentId} />
+          </DocumentAccessBoundary>
+        </Suspense>
+      ) : (
+        <WorkspaceOutlet key={workspaceSlug} />
+      )}
     </SessionBoundary>
   );
 }
 
-function WorkspaceOutlet() {
+function WorkspaceOutlet({ documentId }: { documentId?: string }) {
   const { workspaceSlug } = useParams();
   const [creatingProject, setCreatingProject] = useState<{
     workspaceId: NativeWorkspace["_id"];
@@ -63,6 +94,7 @@ function WorkspaceOutlet() {
         Loading workspace…
       </p>
     );
+  if (!workspace && documentId) throw new Error("This workspace is unavailable");
   const context: WorkspaceSession | null = workspace ? { user, workspace, workspaces } : null;
   return (
     <NativeProjectCreateContext.Provider value={createProject}>

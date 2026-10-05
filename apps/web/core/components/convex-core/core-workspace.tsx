@@ -70,22 +70,51 @@ const WorkspaceSettings = lazy(() =>
 const Assistant = lazy(() => import("./assistant/assistant-module").then((module) => ({ default: module.Assistant })));
 const Meetings = lazy(() => import("./meetings/meeting-module").then((module) => ({ default: module.Meetings })));
 
+const DocumentAccessBoundary = lazy(() =>
+  import("./documents/editor").then((module) => ({ default: module.DocumentAccessBoundary }))
+);
+
 export function CoreWorkspace() {
+  const [params, setParams] = useSearchParams();
+  const documentId = params.get("module") === "documents" ? params.get("document") : null;
   return (
     <SessionBoundary>
-      <Onboarding>
-        <Workspace />
-      </Onboarding>
+      {documentId ? (
+        <Suspense fallback={<p role="status">Opening document…</p>}>
+          <DocumentAccessBoundary
+            key={`${params.get("workspace")}:${documentId}`}
+            documentId={documentId}
+            onBack={() =>
+              setParams((current) => {
+                const next = new URLSearchParams(current);
+                next.delete("document");
+                return next;
+              })
+            }
+            unavailableTitle="This document is unavailable"
+            backLabel="Back to documents"
+          >
+            <Onboarding>
+              <Workspace documentId={documentId} />
+            </Onboarding>
+          </DocumentAccessBoundary>
+        </Suspense>
+      ) : (
+        <Onboarding>
+          <Workspace />
+        </Onboarding>
+      )}
     </SessionBoundary>
   );
 }
 
-function Workspace() {
+function Workspace({ documentId }: { documentId?: string }) {
   const workspaces = useQuery(api.workspaces.index.list);
   const [params, setParams] = useSearchParams();
   const workspace = workspaces?.find((item) => item.slug === params.get("workspace"));
   const connection = useConvexConnectionState();
   const [error, setError] = useState("");
+  if (documentId && workspaces && !workspace) throw new Error("This workspace is unavailable");
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-canvas text-primary md:overflow-hidden">
       <header className="flex shrink-0 items-center justify-between border-b border-subtle-1 px-6 py-4">
@@ -155,9 +184,13 @@ function Workspace() {
           {workspaces === undefined ? (
             <p role="status">Loading workspaces…</p>
           ) : workspace ? (
-            <MembershipAccessBoundary key={workspace._id} onRecover={() => setParams({})}>
+            documentId ? (
               <WorkspaceModules workspace={workspace} />
-            </MembershipAccessBoundary>
+            ) : (
+              <MembershipAccessBoundary key={workspace._id} onRecover={() => setParams({})}>
+                <WorkspaceModules workspace={workspace} />
+              </MembershipAccessBoundary>
+            )
           ) : (
             <CreateWorkspace onCreated={(slug) => setParams({ workspace: slug })} />
           )}

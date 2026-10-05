@@ -1,5 +1,5 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { Component, createContext, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ContextType, ReactNode } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
 import {
   CollaborativeDocumentEditorWithRef,
@@ -359,6 +359,10 @@ function DocumentIcon({
   );
 }
 
+export const DocumentRecoveryContext = createContext<
+  [onCapture: Props["onCapture"], isSaving: Props["isSaving"], recovery: (unavailable: boolean) => ReactNode] | null
+>(null);
+
 export function DocumentAccessBoundary({
   children,
   documentId,
@@ -366,11 +370,7 @@ export function DocumentAccessBoundary({
   unavailableTitle,
   backLabel,
 }: {
-  children: (
-    capture: Props["onCapture"],
-    isSaving: boolean,
-    recovery: (unavailable: boolean) => ReactNode
-  ) => ReactNode;
+  children: ReactNode;
   documentId: string;
   onBack: () => void;
   unavailableTitle: string;
@@ -393,62 +393,73 @@ export function DocumentAccessBoundary({
     setPersisted(null);
   }, []);
   const release = useReloadConfirmations(isSaving, "The latest document changes have not been saved yet.", discard);
-  const recovery = (unavailable: boolean) => (
-    <section className="space-y-2 px-page-x py-3">
-      {unavailable && <h1 className="text-xl font-semibold">{unavailableTitle}</h1>}
-      <p role="alert" className="text-13 text-danger-primary">
-        {unavailable
-          ? "This document is unavailable or your access may have changed."
-          : "The editor connection closed."}
-        {isSaving && " Local changes may not be saved. Download your local copy before leaving."}
-      </p>
-      {content && (
-        <>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const data = {
-                documentId,
-                html: content.html,
-                json: content.json,
-                binary: content.binary ? Array.from(content.binary) : null,
-              };
-              const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-              const link = window.document.createElement("a");
-              link.href = url;
-              link.download = "document-local-recovery.json";
-              link.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            Download local copy
-          </Button>
-          {isSaving && (
+  const recovery = useCallback(
+    (unavailable: boolean) => (
+      <section className="space-y-2 px-page-x py-3">
+        {unavailable && <h1 className="text-xl font-semibold">{unavailableTitle}</h1>}
+        <p role="alert" className="text-13 text-danger-primary">
+          {unavailable
+            ? "This document is unavailable or your access may have changed."
+            : "The editor connection closed."}
+          {isSaving && " Local changes may not be saved. Download your local copy before leaving."}
+        </p>
+        {content && (
+          <>
             <Button
               variant="secondary"
-              onClick={() =>
-                release((allow) => {
-                  discard();
-                  if (allow) onBack();
-                })
-              }
+              onClick={() => {
+                const data = {
+                  documentId,
+                  html: content.html,
+                  json: content.json,
+                  binary: content.binary ? Array.from(content.binary) : null,
+                };
+                const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+                const link = window.document.createElement("a");
+                link.href = url;
+                link.download = "document-local-recovery.json";
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
             >
-              Discard local changes
+              Download local copy
             </Button>
-          )}
-        </>
-      )}
-      {unavailable && (
-        <Button variant="secondary" onClick={onBack}>
-          {backLabel}
-        </Button>
-      )}
-    </section>
+            {isSaving && (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  release((allow) => {
+                    discard();
+                    if (allow) onBack();
+                  })
+                }
+              >
+                Discard local changes
+              </Button>
+            )}
+          </>
+        )}
+        {unavailable && (
+          <Button variant="secondary" onClick={onBack}>
+            {backLabel}
+          </Button>
+        )}
+      </section>
+    ),
+    [backLabel, content, discard, documentId, isSaving, onBack, release, unavailableTitle]
   );
-  return <DocumentReadBoundary recovery={recovery(true)}>{children(capture, isSaving, recovery)}</DocumentReadBoundary>;
+  const recoveryState = useMemo<NonNullable<ContextType<typeof DocumentRecoveryContext>>>(
+    () => [capture, isSaving, recovery],
+    [capture, isSaving, recovery]
+  );
+  return (
+    <DocumentRecoveryContext.Provider value={recoveryState}>
+      <DocumentReadBoundary recovery={recovery(true)}>{children}</DocumentReadBoundary>
+    </DocumentRecoveryContext.Provider>
+  );
 }
 
-class DocumentReadBoundary extends Component<{ children: ReactNode; recovery: ReactNode }, { failed: boolean }> {
+export class DocumentReadBoundary extends Component<{ children: ReactNode; recovery: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };

@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useOutletContext, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import { type WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { DocumentDetail } from "@/components/convex-core/documents/documents";
-import { DocumentAccessBoundary } from "@/components/convex-core/documents/editor";
+import { DocumentReadBoundary, DocumentRecoveryContext } from "@/components/convex-core/documents/editor";
 import Link from "next/link";
 import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -23,6 +23,7 @@ interface IDocumentsRootProps {
 
 export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
   const { workspace } = useOutletContext<WorkspaceSession>();
+  const documentRecovery = useContext(DocumentRecoveryContext);
   const projectsList = useQuery(api.projects.index.list, { workspaceId: workspace._id }) ?? [];
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("all");
@@ -60,29 +61,24 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
   }, [summaryStatus, loadSummary]);
   const pages = summary.results;
   const isLoading = status === "LoadingFirstPage";
-  if (selected)
+  if (selected) {
+    if (!documentRecovery) throw new Error("Document recovery requires the document route owner.");
+    const [onCapture, isSaving, recovery] = documentRecovery;
     return (
-      <DocumentAccessBoundary
-        key={selected}
-        documentId={selected}
-        onBack={() => setParams({})}
-        unavailableTitle="This document is unavailable"
-        backLabel="Back to documents"
-      >
-        {(onCapture, isSaving, recovery) => (
-          <DocumentDetail
-            workspaceId={workspace._id}
-            documentId={selected}
-            workspaceSlug={workspaceSlug}
-            workspaceRole={workspace.membershipRole}
-            onBack={() => setParams({})}
-            onCapture={onCapture}
-            isSaving={isSaving}
-            recovery={recovery(false)}
-          />
-        )}
-      </DocumentAccessBoundary>
+      <DocumentReadBoundary recovery={recovery(true)}>
+        <DocumentDetail
+          workspaceId={workspace._id}
+          documentId={selected}
+          workspaceSlug={workspaceSlug}
+          workspaceRole={workspace.membershipRole}
+          onBack={() => setParams({})}
+          onCapture={onCapture}
+          isSaving={isSaving}
+          recovery={recovery(false)}
+        />
+      </DocumentReadBoundary>
     );
+  }
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
       {/* Header */}
