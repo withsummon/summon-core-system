@@ -3,6 +3,8 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
@@ -95,23 +97,21 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const { user, member, projectMember, project } = await requireProject(ctx, args.projectId);
-    const result = await ctx.db
+    return stream(ctx.db, schema)
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .order("desc")
-      .paginate(pageBudget(args.paginationOpts));
-    return {
-      ...result,
-      page: result.page
-        .filter((task) => task.status !== "triage")
-        .filter((task) =>
+      .map(async (task) => {
+        if (task.status === "triage") return null;
+        const eligible =
           args.view === "deleted"
             ? task.deletedAt != null && (task.createdBy === user._id || projectMember.role === "admin")
             : task.deletedAt == null &&
               task.archivedAt != null &&
-              taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures)
-        ),
-    };
+              taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures);
+        return eligible ? task : null;
+      })
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const get = query({
