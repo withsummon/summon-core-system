@@ -18,11 +18,8 @@ import type { Route } from "./+types/root";
 // local imports
 import ErrorPage from "./error";
 import { AppProviders } from "./providers";
-// fonts
-import "@fontsource-variable/inter";
+// font preload
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
-import "@fontsource/material-symbols-rounded";
-import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Plane Publish | Make your Plane boards public with one-click";
 const APP_DESCRIPTION = "Plane Publish is a customer feedback management tool built on top of plane.so";
@@ -52,7 +49,7 @@ export const headers: Route.HeadersFunction = () => ({
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

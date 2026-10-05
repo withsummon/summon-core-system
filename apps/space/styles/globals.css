@@ -1,3 +1,6 @@
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource/material-symbols-rounded/index.css";
+@import "@fontsource/ibm-plex-mono/index.css";
 @import "@plane/tailwind-config/index.css";
 @import "@plane/editor/styles";
 @import "@plane/propel/styles/react-day-picker.css";
