@@ -86,8 +86,6 @@ export function OpportunityInspector(props: {
   const owner = context.owner ? memberLabel(context.owner) : undefined;
   const automationQuery = new URLSearchParams({
     opportunity: detail._id,
-    client: detail.clientId ?? "",
-    context: detail.title,
   }).toString();
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -172,20 +170,26 @@ export function OpportunityInspector(props: {
             Create from this opportunity
           </h3>
           <div className="flex flex-wrap gap-2">
-            <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=proposal`} icon={FileText}>
+            <ActionLink
+              href={`/${workspaceSlug}/summon/automation?${automationQuery}&templateType=proposal_client`}
+              icon={FileText}
+            >
               Proposal
             </ActionLink>
             <ActionLink
-              href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=quotation`}
+              href={`/${workspaceSlug}/summon/automation?${automationQuery}&templateType=quotation`}
               icon={ReceiptText}
             >
               Quotation
             </ActionLink>
-            <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=mom`} icon={NotebookPen}>
+            <ActionLink
+              href={`/${workspaceSlug}/summon/automation?${automationQuery}&templateType=mom_summon`}
+              icon={NotebookPen}
+            >
               Meeting notes
             </ActionLink>
             <ActionLink
-              href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=presentation`}
+              href={`/${workspaceSlug}/summon/automation?${automationQuery}&templateType=presentation`}
               icon={Presentation}
             >
               Presentation

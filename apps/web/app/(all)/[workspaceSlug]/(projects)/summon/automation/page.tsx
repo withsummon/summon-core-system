@@ -10,7 +10,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery, usePaginatedQuery } from "convex/react";
-import { useOutletContext } from "react-router";
+import { useOutletContext, useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import type { Doc } from "@summon/convex/data-model";
@@ -45,7 +45,6 @@ import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
 
-import type { Route } from "./+types/page";
 import {
   automationJobPath,
   buildAutomationInput,
@@ -122,10 +121,16 @@ const orderedTemplates = (templates: Doc<"automationTemplates">[]) =>
     );
   });
 
-export default function SummonAutomationPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug } = params;
+export default function SummonAutomationPage() {
   const session = useOutletContext<WorkspaceSession>();
   const { workspace } = session;
+  const workspaceSlug = workspace.slug;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const opportunityId = searchParams.get("opportunity");
+  const opportunity = useQuery(
+    api.commercial.opportunities.get,
+    opportunityId ? { workspaceId: workspace._id, opportunityId, clientId: null } : "skip"
+  );
   const commands = useStickiesCommands();
   const [installError, setInstallError] = useState("");
   const installDefaults = useMutation(api.automation.templates.installDefaults);
@@ -147,7 +152,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
-  const [template, setTemplate] = useState("");
   const isLoading = templateList.status !== "Exhausted" || jobList.status !== "Exhausted";
   const jobs = jobList.results;
   const templates = useMemo(() => orderedTemplates(templateList.results), [templateList.results]);
@@ -166,7 +170,16 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     () => Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map((job) => job.template.type)])),
     [jobs, templates]
   );
-  const selectTemplate = setTemplate;
+  const template =
+    searchParams.get("template") ??
+    templates.find((item) => item.isActive && item.type === searchParams.get("templateType"))?._id ??
+    "";
+  const selectTemplate = (templateId: string) =>
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("template", templateId);
+      return next;
+    });
 
   return (
     <PreservedWorkspaceShell
@@ -276,14 +289,20 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
         </section>
 
         <div className="mt-4 grid items-start gap-4 xl:grid-cols-[310px_minmax(0,1fr)]">
-          <AutomationGenerator
-            workspace={workspace}
-            workspaceSlug={workspaceSlug}
-            projects={projects}
-            template={template}
-            templates={templates}
-            onTemplateChange={setTemplate}
-          />
+          {opportunityId && opportunity === undefined ? (
+            <SummonRequestState loading />
+          ) : (
+            <AutomationGenerator
+              key={opportunity?.record?._id ?? "new"}
+              workspace={workspace}
+              workspaceSlug={workspaceSlug}
+              projects={projects}
+              template={template}
+              templates={templates}
+              opportunity={opportunity?.record ?? null}
+              onTemplateChange={selectTemplate}
+            />
+          )}
 
           <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-[0_8px_30px_rgba(36,55,99,0.035)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3.5">
@@ -524,6 +543,7 @@ function AutomationGenerator({
   projects,
   template,
   templates,
+  opportunity,
   onTemplateChange,
 }: {
   workspace: WorkspaceSession["workspace"];
@@ -531,6 +551,7 @@ function AutomationGenerator({
   projects: FunctionReturnType<typeof api.projects.index.list>;
   template: string;
   templates: Doc<"automationTemplates">[];
+  opportunity: FunctionReturnType<typeof api.commercial.opportunities.get>["record"];
   onTemplateChange: (id: string) => void;
 }) {
   const router = useRouter();
@@ -572,13 +593,13 @@ function AutomationGenerator({
     if (documentListStatus === "CanLoadMore") loadDocumentlist(100);
   }, [documentListStatus, loadDocumentlist]);
   const [outputProject, setOutputProject] = useState("");
-  const [enteredTitle, setTitle] = useState<string | null>(null);
+  const [enteredTitle, setTitle] = useState<string | null>(opportunity?.title ?? null);
   const title = enteredTitle ?? templates.find((item) => item._id === template)?.name ?? "";
-  const [brief, setBrief] = useState("");
+  const [brief, setBrief] = useState(opportunity?.description ?? "");
   const [tone, setTone] = useState("Professional");
   const [detailLevel, setDetailLevel] = useState("Comprehensive");
   const [workspaceContext, setWorkspaceContext] = useState(false);
-  const [clientId, setClientId] = useState("");
+  const [clientId, setClientId] = useState<string>(opportunity?.clientId ?? "");
   const [meetingId, setMeetingId] = useState("");
   const [pageIds, setPageIds] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
