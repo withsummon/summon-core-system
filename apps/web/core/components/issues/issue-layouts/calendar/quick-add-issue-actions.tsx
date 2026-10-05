@@ -66,7 +66,7 @@ export const CalendarQuickAddIssueActions = observer(function CalendarQuickAddIs
       },
       error: {
         title: t("toast.error"),
-        message: (err) => err?.message || t("common.errors.default.message"),
+        message: (err) => (err instanceof Error && err.message ? err.message : t("common.errors.default.message")),
       },
     });
   };
@@ -104,7 +104,7 @@ export const CalendarQuickAddIssueActions = observer(function CalendarQuickAddIs
       )}
       <QuickAddIssueRoot
         isQuickAddOpen={isOpen}
-        setIsQuickAddOpen={(isOpen) => setIsOpen(isOpen)}
+        setIsQuickAddOpen={setIsOpen}
         layout={EIssueLayoutTypes.CALENDAR}
         prePopulatedData={prePopulatedData}
         quickAddCallback={quickAddCallback}

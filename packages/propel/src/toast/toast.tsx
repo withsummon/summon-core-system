@@ -46,7 +46,7 @@ type PromiseToastData<ToastData> = {
 type PromiseToastOptions<ToastData> = {
   loading?: string;
   success: PromiseToastData<ToastData>;
-  error: PromiseToastData<ToastData>;
+  error: PromiseToastData<unknown>;
 };
 
 export type ToastProps = {
