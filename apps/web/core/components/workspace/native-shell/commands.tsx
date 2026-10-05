@@ -5,7 +5,7 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import type { FunctionReturnType } from "convex/server";
 import { Command } from "cmdk";
-import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquare } from "lucide-react";
+import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquare, BarChart2 } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/components/workspace/native-shell/session";
@@ -60,6 +60,16 @@ export function WorkspaceCommands({
           onSelect: () => {
             handleClose();
             navigate(`/${workspace.slug}/summon/tasks/`);
+          },
+        },
+        {
+          label: t("power_k.navigation_actions.nav_workspace_analytics"),
+          icon: BarChart2,
+          keySequence: "ga",
+          isDisabled: workspace.membershipRole === "guest",
+          onSelect: () => {
+            handleClose();
+            navigate(`/${workspace.slug}/analytics/overview`);
           },
         },
         {
