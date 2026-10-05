@@ -82,7 +82,11 @@ export function ProjectTasks({ project }: { project: FunctionReturnType<typeof a
         ))}
       </nav>
       {view !== "active" ? (
-        <TaskRecoveryList key={view} project={project} view={view} onSelect={setSelected} />
+        view === "archived" ? (
+          <TaskRecoveryList key={`${project._id}:${view}`} project={project} view="archived" />
+        ) : (
+          <TaskRecoveryList key={`${project._id}:${view}`} project={project} view="deleted" onSelect={setSelected} />
+        )
       ) : (
         <>
           {canWrite && project.membershipRole === "admin" && <ProjectTaxonomy projectId={project._id} />}
