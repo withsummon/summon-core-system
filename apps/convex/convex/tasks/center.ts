@@ -130,7 +130,7 @@ export const summary = query({
   args: centerArgs.fields,
   handler: async (ctx, args) =>
     (await scopedTasks(ctx, args))
-      .map(async ({ task, project }) => ({
+      .map(async ({ task, project, access }) => ({
         taskId: task._id,
         title: task.title,
         status: task.status,
@@ -139,7 +139,9 @@ export const summary = query({
         completedAt: task.completedAt,
         due: dueEligibility(task, args.today),
         project: projectSummary(project),
-        assignee: task.assigneeIds[0] ? await taskAssignee(ctx, project, task.assigneeIds[0]) : null,
+        assignee: task.assigneeIds[0]
+          ? await taskAssignee(ctx, project, task.assigneeIds[0], access.member.role)
+          : null,
       }))
       .paginate(pageBudget(args.paginationOpts)),
 });
