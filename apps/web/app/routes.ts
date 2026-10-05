@@ -309,8 +309,9 @@ const routes: RouteConfigEntry[] = [
     layout("./(all)/settings/profile/layout.tsx", [
       route("settings/profile/:profileTabId", "./(all)/settings/profile/[profileTabId]/page.tsx"),
     ]),
+    route("*", "./not-found.tsx"),
   ]),
-  layout("./legacy-layout.tsx", [...coreRoutes, route("*", "./not-found.tsx")]),
+  ...(coreRoutes.length ? [layout("./legacy-layout.tsx", coreRoutes)] : []),
 ];
 
 export default routes;
