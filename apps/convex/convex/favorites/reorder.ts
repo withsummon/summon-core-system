@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { ownFavorite, effectiveFavorite, revision } from "./access";
+import { ownFavorite, effectiveFavorite, favoriteRemoved, revision } from "./access";
 import { visibleTarget } from "./targets";
 export const move = mutation({
   args: {
@@ -34,7 +34,7 @@ export const move = mutation({
       if (neighbor.deletedAt !== null) continue;
       // Stop at the closest visible sibling; no hidden target data is returned.
       // eslint-disable-next-line no-await-in-loop
-      if (!(await visibleTarget(ctx, neighbor.target, member))) continue;
+      if (!(await visibleTarget(ctx, neighbor.target, member)) || (await favoriteRemoved(ctx, neighbor))) continue;
       // eslint-disable-next-line no-await-in-loop
       await requireDistinctSequence(ctx, neighbor);
       // eslint-disable-next-line no-await-in-loop

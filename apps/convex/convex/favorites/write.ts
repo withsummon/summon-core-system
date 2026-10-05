@@ -10,8 +10,12 @@ export async function insertFavorite(
   fields: Pick<Doc<"favorites">, "workspaceId" | "userId" | "target" | "targetProjectId" | "name" | "parentId">
 ) {
   const sequence = await nextSequence(ctx, fields);
+  const project = fields.targetProjectId === null ? null : await ctx.db.get(fields.targetProjectId);
+  if (fields.targetProjectId !== null && (!project || project.workspaceId !== fields.workspaceId))
+    throw new ConvexError("Favorite project is unavailable.");
   return ctx.db.insert("favorites", {
     ...fields,
+    ...(project ? { projectRevision: project.metadataRevision } : {}),
     targetType: fields.target.type,
     targetKey: fields.target.type === "folder" ? null : `${fields.target.type}:${fields.target.id}`,
     sequence,
@@ -24,8 +28,12 @@ export async function insertFavorite(
 
 export async function changeFavoriteDeleted(ctx: MutationCtx, row: Doc<"favorites">, deleted: boolean) {
   const updatedAt = Math.max(Date.now(), row.updatedAt + 1);
+  const project = !deleted && row.targetProjectId !== null ? await ctx.db.get(row.targetProjectId) : null;
+  if (!deleted && row.targetProjectId !== null && (!project || project.workspaceId !== row.workspaceId))
+    throw new ConvexError("Favorite project is unavailable.");
   await ctx.db.patch(row._id, {
     deletedAt: deleted ? updatedAt : null,
+    ...(project ? { projectRevision: project.metadataRevision } : {}),
     favoritedAt: deleted ? row.favoritedAt : updatedAt,
     updatedAt,
   });

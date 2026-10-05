@@ -6,7 +6,15 @@ import { mutation, query } from "../_generated/server";
 import { pageBudget } from "../commercial/validation";
 import { favoriteTarget } from "./schema";
 import { visibleTarget, targetKey, requireViewFavoriteManagement } from "./targets";
-import { favoriteAccess, ownFavorite, ancestors, revision, updateHeights } from "./access";
+import {
+  favoriteAccess,
+  ownFavorite,
+  ancestors,
+  revision,
+  updateHeights,
+  favoriteRemoved,
+  effectiveFavorite,
+} from "./access";
 function validateName(name: string | null) {
   if (name !== null && name.length > 255) throw new ConvexError("Favorite name must be at most 255 characters.");
 }
@@ -37,10 +45,11 @@ export const list = query({
       .paginate(pageBudget(args.paginationOpts));
     const page = await Promise.all(
       result.page.map(async (row) => {
-        if ((row.deletedAt !== null) !== args.deleted) return null;
+        const isRemoved = await favoriteRemoved(ctx, row);
+        if (isRemoved !== args.deleted) return null;
         const target = await visibleTarget(ctx, row.target, member);
         if (!target) return null;
-        return { ...row, entity: target, canManage: target.canFavorite };
+        return { ...row, isRemoved, entity: target, canManage: target.canFavorite };
       })
     );
     return { ...result, page: page.filter((row) => row !== null) };
@@ -70,7 +79,10 @@ export const create = mutation({
         )
         .unique();
       if (existing) {
-        if (existing.deletedAt !== null || (await ancestors(ctx, existing)).some((item) => item.deletedAt !== null))
+        if (
+          (await favoriteRemoved(ctx, existing)) ||
+          (await ancestors(ctx, existing)).some((item) => item.deletedAt !== null)
+        )
           throw new ConvexError("Restore the existing favorite and its parent folder first.");
         return existing._id;
       }
@@ -97,7 +109,7 @@ export const update = mutation({
     const oldChain = await ancestors(ctx, row);
     const chain = await ancestors(ctx, { ...row, parentId: args.parentId }, row._id);
     if (
-      row.deletedAt !== null ||
+      (await favoriteRemoved(ctx, row)) ||
       oldChain.some((item) => item.deletedAt !== null) ||
       chain.some((item) => item.deletedAt !== null)
     )
@@ -116,7 +128,8 @@ export const lifecycle = mutation({
     const { row, member } = await ownFavorite(ctx, args.favoriteId);
     await requireViewFavoriteManagement(ctx, row, member);
     revision(row, args.expectedUpdatedAt);
-    if ((row.deletedAt !== null) === args.deleted) throw new ConvexError("Favorite lifecycle already changed.");
+    if ((await favoriteRemoved(ctx, row)) === args.deleted)
+      throw new ConvexError("Favorite lifecycle already changed.");
     const chain = await ancestors(ctx, row);
     if (chain.some((item) => item.deletedAt !== null)) throw new ConvexError("Restore the parent folder first.");
     if (!args.deleted && !(await visibleTarget(ctx, row.target, member))?.canFavorite)
@@ -142,7 +155,7 @@ export const state = query({
     const blockedByFolder = favorite ? (await ancestors(ctx, favorite)).some((row) => row.deletedAt !== null) : false;
     return {
       favorite,
-      isFavorite: !!favorite && favorite.deletedAt === null && !blockedByFolder,
+      isFavorite: await effectiveFavorite(ctx, favorite),
       blockedByFolder,
       canFavorite: target.canFavorite,
     };

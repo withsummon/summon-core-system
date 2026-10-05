@@ -24,6 +24,7 @@ export const favoriteTables = {
       v.literal("folder")
     ),
     targetProjectId: v.union(v.id("projects"), v.null()),
+    projectRevision: v.optional(v.number()),
     targetKey: v.union(v.string(), v.null()),
     name: v.union(v.string(), v.null()),
     parentId: v.union(v.id("favorites"), v.null()),

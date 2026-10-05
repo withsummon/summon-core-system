@@ -56,8 +56,23 @@ export async function updateHeights(ctx: MutationCtx, chain: Doc<"favorites">[])
   }
 }
 
+// Missing revision markers predate adoption of archive cleanup. They are removed
+// only after a real archive supplies a cutoff; no historical event is inferred.
+export async function favoriteRemoved(ctx: QueryCtx, row: Doc<"favorites">) {
+  if (row.deletedAt !== null) return true;
+  if (row.targetProjectId === null) return false;
+  const project = await ctx.db.get(row.targetProjectId);
+  return (
+    project?.archivedFavoriteRevision !== undefined &&
+    (row.projectRevision === undefined || row.projectRevision < project.archivedFavoriteRevision)
+  );
+}
 export async function effectiveFavorite(ctx: QueryCtx, row: Doc<"favorites"> | null) {
-  return !!row && row.deletedAt === null && !(await ancestors(ctx, row)).some((parent) => parent.deletedAt !== null);
+  return (
+    !!row &&
+    !(await favoriteRemoved(ctx, row)) &&
+    !(await ancestors(ctx, row)).some((parent) => parent.deletedAt !== null)
+  );
 }
 export function viewFavorite(
   ctx: QueryCtx,

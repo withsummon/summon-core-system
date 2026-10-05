@@ -109,6 +109,7 @@ export default defineSchema({
     guestViewAllFeatures: v.optional(v.boolean()),
     nextSequence: v.number(),
     archived: v.boolean(),
+    archivedFavoriteRevision: v.optional(v.number()),
     deletedAt: v.optional(v.union(v.number(), v.null())),
   })
     .index("by_api_id", ["apiId"])
