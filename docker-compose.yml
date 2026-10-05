@@ -21,6 +21,8 @@ services:
       dockerfile: ./apps/admin/Dockerfile.admin
       args:
         DOCKER_BUILDKIT: 1
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
     restart: always
     depends_on:
       - api
@@ -33,6 +35,8 @@ services:
       dockerfile: ./apps/space/Dockerfile.space
       args:
         DOCKER_BUILDKIT: 1
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
     restart: always
     depends_on:
       - api

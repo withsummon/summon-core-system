@@ -15,12 +15,18 @@ services:
     build:
       context: ../../../
       dockerfile: apps/space/Dockerfile.space
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
 
   admin:
     image: ${DOCKERHUB_USER:-local}/plane-admin:${APP_RELEASE:-latest}
     build:
       context: ../../../
       dockerfile: apps/admin/Dockerfile.admin
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
 
   live:
     image: ${DOCKERHUB_USER:-local}/plane-live:${APP_RELEASE:-latest}
