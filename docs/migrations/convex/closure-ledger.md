@@ -1,5 +1,13 @@
 # Full migration closure ledger
 
+## Committed-source registration reconciliation, 2026-10-05
+
+Exact source `11f478d3b61208a0d9eb1c48d6d49177a8c0e573` has 782 native entries: 696 RPC declarations, eight direct HTTP handlers, 20 mount registrations, 51 Better Auth HTTP SDK endpoints and seven server-only APIs. The inherited ledger has 996 entries: 110 routes, three indexes, 300 recognized dialog mounts, 93 command identifiers, seven native action mounts, 15 native command mounts, 20 scheduled jobs, 435 Django URLs, ten Django mounts and three conditional declarations. All remain OPEN.
+
+Independent regeneration matches 748 scoped source hashes and both TSVs exactly. It corrects stale Analytics/archive/View/Automation owners, includes three omitted work-item dialog mounts, and preserves distinct native and conditional legacy Stickies routes. This is the recognized-dialog inventory policy, not proof that every dynamic popup is discovered or that any route is accepted. Existing SDK versions and integrity values remain pinned; approved integration dependency declarations changed existing Better Auth peer resolution from Zod 3 to Zod 4. SDK behavior is not inferred from unchanged package versions.
+
+Proofs: `/tmp/summon-ledger-refresh-11f478d3-20261005/ledger-verification.json` and `/tmp/summon-ledger-cold-review-11f478d3-20261005/successor-v2/cold-source-review.json`. Native TSV SHA-256 `a90109bde9576adbc809c4808174e8a6a01664e2e78f24262a3ec0f34d36ec88`; inherited TSV SHA-256 `d0a5ec78f92c4bbf8ed5fd018546dbc30e588fd8d006caecc84ca6408f607e69`. Uncommitted candidates and runtime acceptance are excluded. Historical receipts below retain their dated scope.
+
 **Current cutover requirement:** the user selected the currently deployed production UI as the visual/interaction baseline. [Production UI preservation contract](production-ui-contract.md) takes precedence over earlier standalone-native-screen proposals. `/core` receipts prove scoped migration behavior, not approved product UI parity. Production presentation/data-owner integration is mandatory before retirement.
 
 ## Latest preserved-UI and local backend checkpoint
