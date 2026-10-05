@@ -24,7 +24,13 @@ export function SelectXAxis({
   label: ReactNode;
 }) {
   return (
-    <CustomSelect value={value} label={label} onChange={onChange} maxHeight="lg">
+    <CustomSelect
+      value={value}
+      label={label}
+      ariaLabel={allowNoValue ? "Group by" : "Chart dimension"}
+      onChange={onChange}
+      maxHeight="lg"
+    >
       {allowNoValue && <CustomSelect.Option value={null}>No value</CustomSelect.Option>}
       {Object.entries(analyticsAxes)
         .filter(([key]) => key !== excluded)

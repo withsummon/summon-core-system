@@ -10,6 +10,7 @@ export function SelectYAxis() {
   return (
     <CustomSelect
       value="count"
+      ariaLabel="Chart measure"
       label={
         <span className="flex items-center gap-2">
           <ProjectIcon className="size-3" />
