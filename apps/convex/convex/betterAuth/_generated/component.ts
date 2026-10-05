@@ -124,6 +124,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       any,
       Name
     >;
+    currentIdentity: FunctionReference<
+      "query",
+      "internal",
+      { sessionId: string; subject: string },
+      null | {
+        expiresAt: number;
+        sessionId: string;
+        user: {
+          _creationTime: number;
+          _id: string;
+          createdAt: number;
+          email: string;
+          emailVerified: boolean;
+          image?: null | string;
+          name: string;
+          updatedAt: number;
+          userId?: null | string;
+        };
+      },
+      Name
+    >;
     deleteMany: FunctionReference<
       "mutation",
       "internal",

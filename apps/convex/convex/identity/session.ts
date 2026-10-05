@@ -1,7 +1,7 @@
 import { accountRestricted } from "./deactivation/access";
 import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import { authComponent, createAuth } from "../better_auth";
+import { components } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
@@ -31,26 +31,25 @@ export async function requireIdentity(
     };
   }
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity)
+  if (!identity || typeof identity.sessionId !== "string")
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
-  const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-  const current = await auth.api.getSession({
-    headers,
-    query: { disableCookieCache: true, disableRefresh: true },
+  const current = await ctx.runQuery(components.betterAuth.adapter.currentIdentity, {
+    subject: identity.subject,
+    sessionId: identity.sessionId,
   });
-  if (!current?.user.emailVerified || current.user.id !== identity.subject || current.session.id !== identity.sessionId)
+  if (!current)
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
   const authUser = current.user;
   const link = await ctx.db
     .query("betterAuthLinks")
-    .withIndex("by_auth_id", (q) => q.eq("authId", authUser.id))
+    .withIndex("by_auth_id", (q) => q.eq("authId", authUser._id))
     .unique();
   const user = link && (await ctx.db.get(link.userId));
   if (!user || user.email !== authUser.email || user.emailVerificationTime === undefined)
     throw new ConvexError("Your account is unavailable.");
   if (await accountRestricted(ctx, user._id))
     throw new ConvexError({ code: "SESSION_EXPIRED", message: "Sign in again. Your session expired or was revoked." });
-  return { user, sessionId: current.session.id, expiresAt: Number(current.session.expiresAt) };
+  return { user, sessionId: current.sessionId, expiresAt: current.expiresAt };
 }
 export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
   return (await requireIdentity(ctx)).user;
