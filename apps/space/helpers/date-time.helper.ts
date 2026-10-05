@@ -4,23 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { format, isValid } from "date-fns";
+import { format, isValid, formatDistanceToNowStrict } from "date-fns";
 import { isNumber } from "lodash-es";
 
-export const timeAgo = (time: any) => {
-  switch (typeof time) {
-    case "number":
-      break;
-    case "string":
-      time = +new Date(time);
-      break;
-    case "object":
-      if (time.constructor === Date) time = time.getTime();
-      break;
-    default:
-      time = +new Date();
-  }
-};
+export const timeAgo = (time: string | number | Date) => formatDistanceToNowStrict(new Date(time), { addSuffix: true });
 
 /**
  * This method returns a date from string of type yyyy-mm-dd
@@ -32,7 +19,7 @@ export const getDate = (date: string | Date | undefined | null): Date | undefine
   try {
     if (!date || date === "") return;
 
-    if (typeof date !== "string" && !(date instanceof String)) return date;
+    if (typeof date !== "string") return date;
 
     const [yearString, monthString, dayString] = date.substring(0, 10).split("-");
     const year = parseInt(yearString);

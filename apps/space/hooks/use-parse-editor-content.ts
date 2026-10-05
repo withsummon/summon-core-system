@@ -8,18 +8,19 @@ import { useCallback } from "react";
 // helpers
 import type { TCustomComponentsMetaData } from "@plane/utils";
 // helpers
+import type { EditorTarget } from "@/helpers/editor.helper";
 import { getEditorAssetSrc } from "@/helpers/editor.helper";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 
 type TArgs = {
-  anchor: string;
+  target: EditorTarget;
 };
 
 export const useParseEditorContent = (args: TArgs) => {
-  const { anchor } = args;
+  const { target } = args;
   // store hooks
-  const { getMemberById } = useMember();
+  const { results } = useMember();
 
   const getEditorMetaData = useCallback(
     (htmlContent: string): TCustomComponentsMetaData => {
@@ -31,7 +32,7 @@ export const useParseEditorContent = (args: TArgs) => {
       imageComponents.forEach((element) => {
         const src = element.getAttribute("src");
         if (src) {
-          const assetSrc = src.startsWith("http") ? src : getEditorAssetSrc(anchor, src);
+          const assetSrc = getEditorAssetSrc(target, src);
           if (assetSrc) {
             imageMetaData.push({
               id: src,
@@ -47,14 +48,14 @@ export const useParseEditorContent = (args: TArgs) => {
       mentionComponents.forEach((element) => {
         const id = element.getAttribute("entity_identifier");
         if (id) {
-          const userDetails = getMemberById(id);
+          const userDetails = results.find((member) => member.userId === id);
           const originUrl = typeof window !== "undefined" && (window.location.origin ?? "");
           const path = `profile/${id}`;
           const url = `${originUrl}/${path}`;
           if (userDetails) {
             userMentions.push({
               id,
-              display_name: userDetails.member__display_name,
+              display_name: userDetails.name ?? "",
               url,
             });
           }
@@ -66,7 +67,7 @@ export const useParseEditorContent = (args: TArgs) => {
         user_mentions: userMentions,
       };
     },
-    [anchor, getMemberById]
+    [target, results]
   );
 
   return {

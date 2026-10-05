@@ -5,19 +5,20 @@
  */
 
 // types
-import type { TLogoProps } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 // helpers
 import { cn } from "@plane/utils";
 
 type Props = {
   className?: string;
-  logo: TLogoProps;
+  logo: FunctionReturnType<typeof api.publicSharing.index.settings>["project"]["logoProps"];
 };
 
 export function ProjectLogo(props: Props) {
   const { className, logo } = props;
 
-  if (logo.in_use === "icon" && logo.icon)
+  if (logo?.in_use === "icon" && logo.icon)
     return (
       <span
         style={{
@@ -29,7 +30,7 @@ export function ProjectLogo(props: Props) {
       </span>
     );
 
-  if (logo.in_use === "emoji" && logo.emoji)
+  if (logo?.in_use === "emoji" && logo.emoji)
     return (
       <span className={cn("text-14", className)}>
         {logo.emoji.value?.split("-").map((emoji) => String.fromCodePoint(parseInt(emoji, 10)))}

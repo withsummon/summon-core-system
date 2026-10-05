@@ -4,19 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import { Circle } from "lucide-react";
 // types
-import type { TIssueGroupByOptions } from "@plane/types";
 
 interface IHeaderGroupByCard {
-  groupBy: TIssueGroupByOptions | undefined;
   icon?: React.ReactNode;
   title: string;
-  count: number;
+  count: number | undefined;
 }
 
-export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHeaderGroupByCard) {
+export function HeaderGroupByCard(props: IHeaderGroupByCard) {
   const { icon, title, count } = props;
 
   return (
@@ -27,9 +24,9 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
         </div>
         <div className="relative flex w-full flex-row items-center gap-1 overflow-hidden">
           <div className="line-clamp-1 inline-block truncate overflow-hidden font-medium text-primary">{title}</div>
-          <div className="shrink-0 pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
+          <div className="shrink-0 pl-2 text-13 font-medium text-tertiary">{count ?? "…"}</div>
         </div>
       </div>
     </>
   );
-});
+}

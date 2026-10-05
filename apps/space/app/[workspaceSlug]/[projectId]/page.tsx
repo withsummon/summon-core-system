@@ -6,13 +6,11 @@
 
 import { redirect } from "react-router";
 // plane imports
-import { SitesProjectPublishService } from "@plane/services";
-import type { TProjectPublishSettings } from "@plane/types";
+import { api } from "@summon/convex/api";
+import { convex } from "@/app/providers";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import type { Route } from "./+types/page";
-
-const publishService = new SitesProjectPublishService();
 
 export const clientLoader = async ({ params, request }: Route.ClientLoaderArgs) => {
   const { workspaceSlug, projectId } = params;
@@ -27,25 +25,17 @@ export const clientLoader = async ({ params, request }: Route.ClientLoaderArgs) 
   const board = url.searchParams.get("board");
   const peekId = url.searchParams.get("peekId");
 
-  let response: TProjectPublishSettings | undefined = undefined;
-
+  if (!convex) throw redirect("/404");
+  let anchor: string;
   try {
-    response = await publishService.retrieveSettingsByProjectId(workspaceSlug, projectId);
+    ({ anchor } = await convex.query(api.publicSharing.index.resolveProject, { workspaceSlug, projectId }));
   } catch {
     throw redirect("/404");
   }
-
-  if (response?.entity_name === "project") {
-    let redirectUrl = `/issues/${response?.anchor}`;
-    const urlParams = new URLSearchParams();
-    if (board) urlParams.append("board", String(board));
-    if (peekId) urlParams.append("peekId", String(peekId));
-    if (urlParams.toString()) redirectUrl += `?${urlParams.toString()}`;
-
-    throw redirect(redirectUrl);
-  } else {
-    throw redirect("/404");
-  }
+  const urlParams = new URLSearchParams();
+  if (board) urlParams.set("board", board);
+  if (peekId) urlParams.set("peekId", peekId);
+  throw redirect(`/issues/${anchor}${urlParams.size ? `?${urlParams}` : ""}`);
 };
 
 export default function IssuesPage() {

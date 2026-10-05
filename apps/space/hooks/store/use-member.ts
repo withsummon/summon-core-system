@@ -4,14 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useContext } from "react";
-// lib
-import { StoreContext } from "@/lib/store-provider";
-// store
-import type { IIssueMemberStore } from "@/store/members.store";
+import { useEffect } from "react";
+import { useParams } from "react-router";
+import { usePaginatedQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 
-export const useMember = (): IIssueMemberStore => {
-  const context = useContext(StoreContext);
-  if (context === undefined) throw new Error("useMember must be used within StoreProvider");
-  return context.member;
-};
+export function useMember() {
+  const { anchor } = useParams();
+  const directory = usePaginatedQuery(api.publicSharing.index.members, anchor ? { anchor } : "skip", {
+    initialNumItems: 50,
+  });
+  const { status, loadMore } = directory;
+  useEffect(() => {
+    if (status === "CanLoadMore") loadMore(50);
+  }, [status, loadMore]);
+  return directory;
+}

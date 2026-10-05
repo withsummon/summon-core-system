@@ -7,10 +7,11 @@
 import { forwardRef } from "react";
 // plane imports
 import { RichTextEditorWithRef } from "@plane/editor";
-import type { EditorRefApi, IRichTextEditorProps, TFileHandler } from "@plane/editor";
+import type { EditorRefApi, IRichTextEditorProps } from "@plane/editor";
 import type { MakeOptional } from "@plane/types";
 // helpers
-import { getEditorFileHandlers } from "@/helpers/editor.helper";
+import type { EditorTarget } from "@/helpers/editor.helper";
+import { useEditorFileHandlers } from "@/helpers/editor.helper";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
@@ -24,16 +25,9 @@ type RichTextEditorWrapperProps = MakeOptional<
   "disabledExtensions" | "flaggedExtensions" | "getEditorMetaData"
 > & {
   anchor: string;
-  workspaceId: string;
-} & (
-    | {
-        editable: false;
-      }
-    | {
-        editable: true;
-        uploadFile: TFileHandler["upload"];
-      }
-  );
+  target: EditorTarget;
+  editable: boolean;
+};
 
 export const RichTextEditor = forwardRef(function RichTextEditor(
   props: RichTextEditorWrapperProps,
@@ -43,35 +37,33 @@ export const RichTextEditor = forwardRef(function RichTextEditor(
     anchor,
     containerClassName,
     editable,
-    workspaceId,
+    target,
     disabledExtensions: additionalDisabledExtensions = [],
     ...rest
   } = props;
   // store hooks
-  const { getMemberById } = useMember();
+  const { results } = useMember();
   // parse content
   const { getEditorMetaData } = useParseEditorContent({
-    anchor,
+    target,
   });
   // editor flaggings
   const { richText: richTextEditorExtensions } = useEditorFlagging(anchor);
 
+  const fileHandler = useEditorFileHandlers(target);
+  if (!fileHandler) return <p role="status">Loading editor…</p>;
   return (
     <RichTextEditorWithRef
       mentionHandler={{
-        renderComponent: (props) => <EditorMentionsRoot {...props} />,
+        renderComponent: (mentionProps) => <EditorMentionsRoot {...mentionProps} />,
         getMentionedEntityDetails: (id: string) => ({
-          display_name: getMemberById(id)?.member__display_name ?? "",
+          display_name: results.find((member) => member.userId === id)?.name ?? "",
         }),
       }}
       ref={ref}
       disabledExtensions={[...richTextEditorExtensions.disabled, ...additionalDisabledExtensions]}
       editable={editable}
-      fileHandler={getEditorFileHandlers({
-        anchor,
-        uploadFile: editable ? props.uploadFile : async () => "",
-        workspaceId,
-      })}
+      fileHandler={fileHandler}
       getEditorMetaData={getEditorMetaData}
       flaggedExtensions={richTextEditorExtensions.flagged}
       extendedEditorProps={{}}
