@@ -28,6 +28,20 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+  document-live:
+    build:
+      context: ../..
+      dockerfile: apps/live/Dockerfile.live
+    command: ["node", "apps/live/dist/convex-start.mjs"]
+    restart: unless-stopped
+    expose: ["1235"]
+    environment:
+      CONVEX_URL: http://backend:3210
+      CONVEX_LIVE_HOST: 0.0.0.0
+      CONVEX_LIVE_PORT: "1235"
+    depends_on:
+      backend:
+        condition: service_healthy
   document-worker:
     build:
       context: ../..
