@@ -15,17 +15,13 @@ const ProfileSettingsModal = lazy(() =>
   }))
 );
 
-type TGlobalModalsProps = {
-  workspaceSlug: string;
-};
-
 /**
  * GlobalModals component manages all workspace-level modals across Plane applications.
  *
  * This includes:
  * - Profile settings modal
  */
-export const GlobalModals = observer(function GlobalModals(_props: TGlobalModalsProps) {
+export const GlobalModals = observer(function GlobalModals() {
   const { profileSettingsModal, toggleProfileSettingsModal } = useCommandPalette();
   if (!profileSettingsModal.isOpen) return null;
   return (
