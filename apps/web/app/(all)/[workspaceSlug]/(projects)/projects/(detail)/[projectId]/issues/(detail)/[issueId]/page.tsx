@@ -23,13 +23,17 @@ import { useStickiesCommands } from "@/components/stickies/native/provider";
 import type { Route } from "./+types/page";
 
 export default function IssueDetailsPage({ params }: Route.ComponentProps) {
+  return <NativeTaskDestination projectId={params.projectId} taskId={params.issueId} />;
+}
+
+export function NativeTaskDestination({ projectId, taskId }: { projectId: string; taskId: string }) {
   const session = useOutletContext<WorkspaceSession>();
   const commands = useStickiesCommands();
   const navigate = useNavigate();
   const address = useQuery(api.navigation.address.resolveTaskId, {
     workspaceId: session.workspace._id,
-    projectId: params.projectId,
-    taskId: params.issueId,
+    projectId,
+    taskId,
   });
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -57,7 +61,7 @@ export default function IssueDetailsPage({ params }: Route.ComponentProps) {
             description={t("issue.empty_state.issue_detail.description")}
             primaryButton={{
               text: t("issue.empty_state.issue_detail.primary_button.text"),
-              onClick: () => navigate(`/${session.workspace.slug}/projects/${params.projectId}/issues/`),
+              onClick: () => navigate(`/${session.workspace.slug}/projects/${projectId}/issues/`),
             }}
           />
         )}
