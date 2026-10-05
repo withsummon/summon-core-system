@@ -6,6 +6,7 @@ import { query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { projectReader, projectSummary } from "./scope";
+import { memberIdentity } from "../projects/directory";
 const choiceArgs = { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator };
 export const states = query({
   args: choiceArgs,
@@ -46,14 +47,14 @@ export const labels = query({
 export const people = query({
   args: choiceArgs,
   handler: async (ctx, args) => {
-    await requireWorkspace(ctx, args.workspaceId);
+    const permission = await requireWorkspace(ctx, args.workspaceId);
     return stream(ctx.db, schema)
       .query("workspaceMembers")
       .withIndex("by_workspace_role_active", (q) => q.eq("workspaceId", args.workspaceId))
       .map(async (row) => {
         if (!row.active) return null;
-        const user = await ctx.db.get(row.userId);
-        return user ? { id: user._id, name: user.name ?? null } : null;
+        const identity = await memberIdentity(ctx, args.workspaceId, permission.member.role, row.userId, "");
+        return identity ? { id: identity.userId, name: identity.fullName || identity.displayName } : null;
       })
       .paginate(pageBudget(args.paginationOpts));
   },

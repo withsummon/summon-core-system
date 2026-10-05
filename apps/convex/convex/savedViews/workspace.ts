@@ -1,4 +1,4 @@
-import { defaultTaskPreferences, taskDisplayFiltersSchema } from "../tasks/schema";
+import { defaultTaskPreferences, taskDisplayFilters, taskDisplayFiltersSchema, viewFilters } from "../tasks/schema";
 import { setViewFavorite } from "../favorites/views";
 import { effectiveFavorite } from "../favorites/access";
 import { resultPage } from "./result_page";
@@ -69,7 +69,7 @@ async function detail(ctx: QueryCtx, viewId: Id<"savedViews">) {
   const { view, access: permission } = await requireWorkspaceView(ctx, viewId, true);
   return {
     ...(await workspaceView(ctx, view, permission)),
-    selections: await workspaceFilterSelections(ctx, view, permission.user._id),
+    selections: await workspaceFilterSelections(ctx, view, permission.user._id, permission.member.role),
   };
 }
 export const get = query({
@@ -163,9 +163,24 @@ export const favorites = query({
   },
 });
 export const results = query({
-  args: { viewId: v.id("savedViews"), paginationOpts: paginationOptsValidator },
+  args: {
+    viewId: v.id("savedViews"),
+    filters: v.optional(viewFilters),
+    displayFilters: v.optional(taskDisplayFilters),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const { view, access: permission } = await requireWorkspaceView(ctx, args.viewId);
-    return resultPage(ctx, view, permission, args.paginationOpts);
+    const filters =
+      args.filters === undefined
+        ? view.filters
+        : await validateWorkspaceFilters(ctx, view.workspaceId, permission.user._id, args.filters);
+    const display =
+      args.displayFilters === undefined ? undefined : taskDisplayFiltersSchema.safeParse(args.displayFilters);
+    if (display && !display.success) throw new ConvexError(display.error.message);
+    return resultPage(ctx, view, permission, args.paginationOpts, {
+      filters,
+      displayFilters: display?.data ?? view.displayFilters,
+    });
   },
 });

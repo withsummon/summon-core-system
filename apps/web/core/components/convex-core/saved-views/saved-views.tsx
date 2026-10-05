@@ -10,7 +10,6 @@ import { Button } from "@plane/propel/button";
 import { Popover } from "@plane/propel/popover";
 import { mutationMessage } from "../commercial/forms";
 import { taskStatusOptions } from "../tasks/options";
-import { savedViewTaskLink } from "./task-link";
 import { ProjectReferenceFilters, SavedViewForm, ViewDisplayFields } from "./form";
 import { BasicFilters } from "./filters";
 import { AlertModalCore } from "@plane/ui";
@@ -282,8 +281,16 @@ function ProjectViewDetail({
         ) : (
           <>
             <ViewPreviewControls
-              detail={detail}
-              input={input}
+              canEdit={detail.canEdit}
+              filters={input.filters}
+              referenceFilters={
+                <ProjectReferenceFilters
+                  projectId={detail.view.projectId}
+                  filters={input.filters}
+                  selections={detail.selections}
+                  onChange={(filters) => change({ filters, displayFilters, displayProperties })}
+                />
+              }
               displayFilters={displayFilters}
               displayProperties={displayProperties}
               busy={busy}
@@ -373,14 +380,14 @@ function ProjectViewDetail({
     </div>
   );
 }
-function ViewLifecycleCommand({
+export function ViewLifecycleCommand({
   lifecycle,
   pending,
   error,
   onClose,
   onSubmit,
 }: {
-  lifecycle: FunctionReturnType<typeof api.savedViews.index.resolve> | null;
+  lifecycle: Detail | null;
   pending: boolean;
   error: string;
   onClose: () => void;
@@ -451,9 +458,10 @@ function ViewDefinitionCommand({
     </SavedViewEditor>
   );
 }
-function ViewPreviewControls({
-  detail,
-  input,
+export function ViewPreviewControls({
+  canEdit,
+  filters,
+  referenceFilters,
   displayFilters,
   displayProperties,
   busy,
@@ -465,8 +473,9 @@ function ViewPreviewControls({
   onSaveAs,
   onDiscard,
 }: {
-  detail: FunctionReturnType<typeof api.savedViews.index.resolve>;
-  input: FunctionArgs<typeof api.savedViews.index.create>;
+  canEdit: boolean;
+  filters: FunctionArgs<typeof api.savedViews.index.create>["filters"];
+  referenceFilters: ReactNode;
   displayFilters: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayFilters"]>;
   displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
   busy: boolean;
@@ -496,7 +505,7 @@ function ViewPreviewControls({
               displayFilters={displayFilters}
               displayProperties={displayProperties}
               disabled={busy}
-              onChange={(display) => onChange({ filters: input.filters, ...display })}
+              onChange={(display) => onChange({ filters, ...display })}
             />
           </fieldset>
         </Popover.Panel>
@@ -511,20 +520,15 @@ function ViewPreviewControls({
         >
           <fieldset disabled={busy}>
             <BasicFilters
-              filters={input.filters}
-              onChange={(filters) => onChange({ filters, displayFilters, displayProperties })}
+              filters={filters}
+              onChange={(nextFilters) => onChange({ filters: nextFilters, displayFilters, displayProperties })}
             />
-            <ProjectReferenceFilters
-              projectId={detail.view.projectId}
-              filters={input.filters}
-              selections={detail.selections}
-              onChange={(filters) => onChange({ filters, displayFilters, displayProperties })}
-            />
+            {referenceFilters}
           </fieldset>
         </Popover.Panel>
       </Popover>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" loading={pending} disabled={!dirty || !detail.canEdit || busy} onClick={onUpdate}>
+        <Button size="sm" loading={pending} disabled={!dirty || !canEdit || busy} onClick={onUpdate}>
           Update view
         </Button>
         <Button size="sm" variant="secondary" disabled={busy || !canCreate} onClick={onSaveAs}>
@@ -610,37 +614,6 @@ function Results({
         <p className="p-5 text-13 text-secondary">No matching work items.</p>
       )}
     </section>
-  );
-}
-export function TaskResultRows({
-  rows,
-}: {
-  rows: {
-    task: FunctionReturnType<typeof api.savedViews.results.list>["page"][number];
-    project: { identifier: string; name: string };
-  }[];
-}) {
-  const [params] = useSearchParams();
-  return (
-    <ul className="divide-y divide-subtle-1">
-      {rows.map(({ task, project }) => (
-        <li key={task._id}>
-          <Link
-            to={savedViewTaskLink(params, project.identifier, task._id)}
-            className="grid gap-1 py-3 text-14 sm:grid-cols-[6rem_minmax(0,1fr)_8rem]"
-          >
-            <span className="text-12 text-secondary">
-              {project.identifier}-{task.sequence}
-            </span>
-            <span className="min-w-0">
-              <span className="block font-medium break-words">{task.title}</span>
-              <span className="block text-12 text-secondary">{project.name}</span>
-            </span>
-            <span className="text-secondary">{taskStatusOptions[task.status].label}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
   );
 }
 function Favorite({ detail }: { detail: Pick<Detail, "view" | "canFavorite" | "isFavorite"> }) {

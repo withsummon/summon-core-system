@@ -4,6 +4,8 @@ import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
+import { useTranslation } from "@plane/i18n";
+import { SPREADSHEET_PROPERTY_DETAILS } from "@plane/constants";
 import { priority as taskPriority, taskDisplayPropertiesSchema } from "@summon/convex/task-schema";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -18,6 +20,9 @@ import { NativeTimeline } from "../gantt/blocks";
 
 type Tasks = FunctionReturnType<typeof api.savedViews.results.list>["page"];
 type Address = FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+type WorkspaceRows = FunctionReturnType<typeof api.savedViews.workspace.results>["page"];
+type GroupCatalogs = ReturnType<typeof useGroupCatalogs> | ReturnType<typeof useWorkspaceGroupCatalogs>;
+type TaskIdentity = Pick<ComponentProps<typeof NativeTaskRow>, "identifier" | "href" | "identifierWidth">;
 type Display = NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayFilters"]>;
 type Properties = NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
 const groupLabels = {
@@ -67,24 +72,42 @@ function useGroupCatalogs(projectId: Address["project"]["_id"], display: Display
     },
   };
 }
-function groupOptions(
-  kind: Display["groupBy"],
-  catalogs: ReturnType<typeof useGroupCatalogs>
-): { id: string; name: string | null }[] {
+function groupOptions(kind: Display["groupBy"], catalogs: GroupCatalogs): { id: string; name: string | null }[] {
   switch (kind) {
     case "stateId":
-      return (catalogs.states ?? []).map((row) => ({ id: row._id, name: row.name }));
+      return (catalogs.states ?? []).map((row) =>
+        "project" in row
+          ? { id: row.id, name: `${row.project.identifier} · ${row.name}` }
+          : { id: row._id, name: row.name }
+      );
     case "priority":
       return taskPriority.members.map(({ value }) => ({ id: value, name: value }));
     case "cycleId":
-      return catalogs.cycles.map((row) => ({ id: row._id, name: row.name }));
+      return catalogs.cycles.map((row) =>
+        "cycle" in row
+          ? { id: row.cycle._id, name: `${row.project.identifier} · ${row.cycle.name}` }
+          : { id: row._id, name: row.name }
+      );
     case "moduleId":
-      return catalogs.modules.map((row) => ({ id: row._id, name: row.name }));
+      return catalogs.modules.map((row) =>
+        "module" in row
+          ? { id: row.module._id, name: `${row.project.identifier} · ${row.module.name}` }
+          : { id: row._id, name: row.name }
+      );
     case "labelId":
-      return (catalogs.labels ?? []).map((row) => ({ id: row._id, name: row.name }));
+      return (catalogs.labels ?? []).map((row) =>
+        "project" in row
+          ? { id: row.id, name: `${row.project.identifier} · ${row.name}` }
+          : { id: row._id, name: row.name }
+      );
     case "assigneeId":
-    case "createdBy":
-      return (catalogs.people?.members ?? []).map((row) => ({ id: row.userId, name: row.displayName }));
+    case "createdBy": {
+      const people = catalogs.people;
+      if (!people) return [];
+      return "members" in people
+        ? people.members.map((row) => ({ id: row.userId, name: row.displayName }))
+        : people.map((row) => ({ id: row.id, name: row.name }));
+    }
     default:
       return [];
   }
@@ -109,14 +132,8 @@ function taskGroupIds(task: Tasks[number], kind: Display["groupBy"]): string[] {
       return [];
   }
 }
-function grouped(
-  tasks: Tasks,
-  kind: Display["groupBy"],
-  catalogs: ReturnType<typeof useGroupCatalogs>,
-  showEmpty: boolean
-) {
+function grouped(tasks: Tasks, kind: Display["groupBy"], options: ReturnType<typeof groupOptions>, showEmpty: boolean) {
   if (kind === null) return [{ id: "", name: "Work items", tasks }];
-  const options = groupOptions(kind, catalogs);
   const ids = new Set(tasks.flatMap((task) => taskGroupIds(task, kind)));
   const groups = options.map((option) => ({
     ...option,
@@ -136,39 +153,62 @@ function grouped(
   });
   return showEmpty ? groups : groups.filter((group) => group.tasks.length > 0);
 }
+function moveGroupMembership<T extends string>(previous: T[], sourceId: string, target: T | undefined): T[] {
+  const retained = previous.filter((id) => id !== sourceId);
+  return target ? [...new Set([...retained, target])] : retained;
+}
 function groupChange(
   task: Tasks[number],
   kind: Display["groupBy"],
   id: string,
-  catalogs: ReturnType<typeof useGroupCatalogs>,
+  catalogs: GroupCatalogs,
   sourceId: string
 ): Omit<FunctionArgs<typeof api.tasks.index.update>, "taskId" | "expectedUpdatedAt"> {
   switch (kind) {
     case "stateId": {
-      const state = catalogs.states?.find((row) => row._id === id);
-      return { stateId: state?._id ?? null };
+      const state = catalogs.states?.find((row) => ("id" in row ? row.id : row._id) === id);
+      return { stateId: state ? ("id" in state ? state.id : state._id) : null };
     }
     case "priority": {
       const priority = taskPriority.members.find(({ value }) => value === id)?.value;
-      if (priority) return { priority };
-      return {};
+      return priority ? { priority } : {};
     }
     case "assigneeId": {
-      const user = catalogs.people?.members.find((row) => row.userId === id);
+      const people = catalogs.people;
+      const userId =
+        people &&
+        ("members" in people
+          ? people.members.find((row) => row.userId === id)?.userId
+          : people.find((row) => row.id === id)?.id);
       return {
-        assigneeIds: [
-          ...new Set([...task.assigneeIds.filter((value) => value !== sourceId), ...(user ? [user.userId] : [])]),
-        ],
+        assigneeIds: moveGroupMembership(task.assigneeIds, sourceId, userId),
       };
     }
     case "labelId": {
-      const label = catalogs.labels?.find((row) => row._id === id);
+      const label = catalogs.labels?.find((row) => ("id" in row ? row.id : row._id) === id);
+      const labelId = label && ("id" in label ? label.id : label._id);
       return {
-        labelIds: [...new Set([...task.labelIds.filter((value) => value !== sourceId), ...(label ? [label._id] : [])])],
+        labelIds: moveGroupMembership(task.labelIds, sourceId, labelId),
       };
     }
+    case "cycleId":
+    case "moduleId":
+      return relationshipGroupChange(task, kind, id, catalogs, sourceId);
+    default:
+      return {};
+  }
+}
+function relationshipGroupChange(
+  task: Tasks[number],
+  kind: "cycleId" | "moduleId",
+  id: string,
+  catalogs: GroupCatalogs,
+  sourceId: string
+): Pick<FunctionArgs<typeof api.tasks.index.update>, "cycle" | "modules"> {
+  switch (kind) {
     case "cycleId": {
-      const cycle = catalogs.cycles.find((row) => row._id === id);
+      const row = catalogs.cycles.find((value) => ("cycle" in value ? value.cycle._id : value._id) === id);
+      const cycle = row && ("cycle" in row ? row.cycle : row);
       return {
         cycle: {
           previous: task.cycleReference,
@@ -177,22 +217,42 @@ function groupChange(
       };
     }
     case "moduleId": {
-      const module = catalogs.modules.find((row) => row._id === id);
+      const row = catalogs.modules.find((value) => ("module" in value ? value.module._id : value._id) === id);
+      const module = row && ("module" in row ? row.module : row);
       return {
         modules: {
           previous: task.moduleReferences,
           next: [
-            ...task.moduleReferences.filter((row) => row.moduleId !== sourceId && row.moduleId !== module?._id),
+            ...task.moduleReferences.filter((value) => value.moduleId !== sourceId && value.moduleId !== module?._id),
             ...(module ? [{ moduleId: module._id, expectedModuleUpdatedAt: module.updatedAt }] : []),
           ],
         },
       };
     }
-    default:
-      return {};
   }
 }
-
+function groupProject(kind: Display["groupBy"], id: string, catalogs: GroupCatalogs) {
+  switch (kind) {
+    case "stateId": {
+      const row = catalogs.states?.find((value) => ("id" in value ? value.id : value._id) === id);
+      return row && ("project" in row ? row.project.id : row.projectId);
+    }
+    case "labelId": {
+      const row = catalogs.labels?.find((value) => ("id" in value ? value.id : value._id) === id);
+      return row && ("project" in row ? row.project.id : row.projectId);
+    }
+    case "cycleId": {
+      const row = catalogs.cycles.find((value) => ("cycle" in value ? value.cycle._id : value._id) === id);
+      return row && ("cycle" in row ? row.project.id : row.projectId);
+    }
+    case "moduleId": {
+      const row = catalogs.modules.find((value) => ("module" in value ? value.module._id : value._id) === id);
+      return row && ("module" in row ? row.project.id : row.projectId);
+    }
+    default:
+      return null;
+  }
+}
 export function ProjectViewLayoutRoot({
   tasks,
   address,
@@ -209,6 +269,121 @@ export function ProjectViewLayoutRoot({
   taskActions?: (task: Tasks[number]) => ComponentProps<typeof TaskLifecycle>["children"];
 }) {
   const catalogs = useGroupCatalogs(address.project._id, displayFilters);
+  return (
+    <NativeTaskLayout
+      tasks={tasks}
+      displayFilters={displayFilters}
+      displayProperties={displayProperties}
+      cohortComplete={cohortComplete}
+      catalogs={catalogs}
+      taskActions={taskActions}
+      identifyTask={(task) => {
+        const identifier = `${address.project.identifier}-${task.sequence}`;
+        return {
+          identifier,
+          href: `/${address.workspace.slug}/browse/${identifier}/`,
+          identifierWidth: calculateIdentifierWidth(address.project.identifier.length, address.project.nextSequence),
+        };
+      }}
+    />
+  );
+}
+function useWorkspaceGroupCatalogs(workspaceId: Address["workspace"]["_id"], display: Display) {
+  const groups = new Set(
+    display.layout === "list" || display.layout === "kanban" ? [display.groupBy, display.subGroupBy] : []
+  );
+  const states = usePaginatedQuery(
+    api.savedViews.workspaceChoices.states,
+    groups.has("stateId") ? { workspaceId } : "skip",
+    { initialNumItems: 100 }
+  );
+  const labels = usePaginatedQuery(
+    api.savedViews.workspaceChoices.labels,
+    groups.has("labelId") ? { workspaceId } : "skip",
+    { initialNumItems: 100 }
+  );
+  const needsPeople = groups.has("assigneeId") || groups.has("createdBy");
+  const people = usePaginatedQuery(api.savedViews.workspaceChoices.people, needsPeople ? { workspaceId } : "skip", {
+    initialNumItems: 100,
+  });
+  const cycles = usePaginatedQuery(api.cycles.workspace.list, groups.has("cycleId") ? { workspaceId } : "skip", {
+    initialNumItems: 100,
+  });
+  const modules = usePaginatedQuery(api.modules.workspace.list, groups.has("moduleId") ? { workspaceId } : "skip", {
+    initialNumItems: 100,
+  });
+  const required = [
+    ...(groups.has("stateId") ? [states] : []),
+    ...(groups.has("labelId") ? [labels] : []),
+    ...(needsPeople ? [people] : []),
+    ...(groups.has("cycleId") ? [cycles] : []),
+    ...(groups.has("moduleId") ? [modules] : []),
+  ];
+  return {
+    states: states.results,
+    labels: labels.results,
+    people: people.results,
+    cycles: cycles.results,
+    modules: modules.results,
+    complete: required.every((rows) => rows.status === "Exhausted"),
+    canLoadMore: required.some((rows) => rows.status === "CanLoadMore"),
+    loadMore: () =>
+      required.forEach((rows) => {
+        if (rows.status === "CanLoadMore") rows.loadMore(100);
+      }),
+  };
+}
+export function WorkspaceViewLayoutRoot({
+  rows,
+  workspace,
+  displayFilters,
+  displayProperties,
+  cohortComplete,
+}: {
+  rows: WorkspaceRows;
+  workspace: Pick<Address["workspace"], "_id" | "slug">;
+  displayFilters: Display;
+  displayProperties: Properties;
+  cohortComplete: boolean;
+}) {
+  const catalogs = useWorkspaceGroupCatalogs(workspace._id, displayFilters);
+  return (
+    <NativeTaskLayout
+      tasks={rows.map((row) => row.task)}
+      displayFilters={displayFilters}
+      displayProperties={displayProperties}
+      cohortComplete={cohortComplete}
+      catalogs={catalogs}
+      identifyTask={(task) => {
+        const row = rows.find((value) => value.task._id === task._id);
+        if (!row) throw new Error("Workspace result project is unavailable.");
+        const identifier = `${row.project.identifier}-${task.sequence}`;
+        return {
+          identifier,
+          href: `/${workspace.slug}/browse/${identifier}/`,
+          identifierWidth: calculateIdentifierWidth(row.project.identifier.length, task.sequence),
+        };
+      }}
+    />
+  );
+}
+function NativeTaskLayout({
+  tasks,
+  displayFilters,
+  displayProperties,
+  cohortComplete,
+  taskActions,
+  catalogs,
+  identifyTask,
+}: {
+  tasks: Tasks;
+  displayFilters: Display;
+  displayProperties: Properties;
+  cohortComplete: boolean;
+  taskActions?: (task: Tasks[number]) => ComponentProps<typeof TaskLifecycle>["children"];
+  catalogs: GroupCatalogs;
+  identifyTask: (task: Tasks[number]) => TaskIdentity;
+}) {
   const update = useMutation(api.tasks.index.update);
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
@@ -233,6 +408,10 @@ export function ProjectViewLayoutRoot({
       release();
     }
   };
+  const canMoveGroup = (task: Tasks[number], kind: Display["groupBy"], id: string) => {
+    const projectId = id ? groupProject(kind, id, catalogs) : null;
+    return projectId === null || projectId === task.projectId;
+  };
   const drop = (
     groupId: string,
     subgroupId: string,
@@ -247,6 +426,7 @@ export function ProjectViewLayoutRoot({
     ] as const;
     try {
       for (const [kind, id, sourceId] of targets) {
+        if (!canMoveGroup(captured.task, kind, id)) throw new Error("Choose a group in this work item’s project.");
         if (kind === "createdBy" && id !== sourceId) throw new Error("The creator cannot be changed.");
         if (id && !groupOptions(kind, catalogs).some((option) => option.id === id))
           throw new Error("This group is unavailable. Reload the latest view before moving this work item.");
@@ -265,6 +445,19 @@ export function ProjectViewLayoutRoot({
       setError(mutationMessage(failure));
     }
   };
+  const canDrop = (groupId: string, subgroupId: string) => {
+    const captured = dragged.current;
+    return (
+      !!captured &&
+      cohortComplete &&
+      catalogs.complete &&
+      !pending &&
+      canMoveGroup(captured.task, displayFilters.groupBy, groupId) &&
+      canMoveGroup(captured.task, displayFilters.subGroupBy, subgroupId) &&
+      (displayFilters.groupBy !== "createdBy" || groupId === captured.groupId) &&
+      (displayFilters.subGroupBy !== "createdBy" || subgroupId === captured.subgroupId)
+    );
+  };
   const renderTask = (
     task: Tasks[number],
     kanban = false,
@@ -272,7 +465,7 @@ export function ProjectViewLayoutRoot({
   ) => (
     <NativeSavedViewTask
       task={task}
-      address={address}
+      {...identifyTask(task)}
       displayProperties={displayProperties}
       kanban={kanban}
       disabled={pending}
@@ -281,21 +474,35 @@ export function ProjectViewLayoutRoot({
       {taskActions?.(task)}
     </NativeSavedViewTask>
   );
-  const dateProps = { tasks, address, displayFilters, displayProperties, cohortComplete, renderTask };
+  const dateProps = { tasks, displayFilters, displayProperties, cohortComplete, renderTask };
   if (displayFilters.layout === "calendar") return <NativeCalendar {...dateProps} />;
-  if (displayFilters.layout === "gantt_chart") return <NativeTimeline {...dateProps} />;
+  if (displayFilters.layout === "gantt_chart")
+    return (
+      <NativeTimeline
+        {...dateProps}
+        taskLink={(task) => {
+          const identity = identifyTask(task);
+          return [identity.identifier, identity.href];
+        }}
+      />
+    );
   if (displayFilters.layout === "spreadsheet")
     return (
       <NativeSpreadsheet
         tasks={tasks}
-        address={address}
+        identifyTask={identifyTask}
         displayProperties={displayProperties}
         disabled={pending}
         taskActions={taskActions}
       />
     );
   const complete = cohortComplete && catalogs.complete;
-  const groups = grouped(tasks, displayFilters.groupBy, catalogs, displayFilters.showEmptyGroups);
+  const groups = grouped(
+    tasks,
+    displayFilters.groupBy,
+    groupOptions(displayFilters.groupBy, catalogs),
+    displayFilters.showEmptyGroups
+  );
   return (
     <section className="min-w-0">
       {catalogs.canLoadMore && (
@@ -316,7 +523,8 @@ export function ProjectViewLayoutRoot({
               displayFilters.layout === "kanban" ? "w-80 shrink-0 rounded-md bg-layer-1" : "border-b border-subtle"
             }
             onDragOver={(event) => {
-              if (complete && displayFilters.groupBy !== "createdBy") event.preventDefault();
+              if (canDrop(group.id, dragged.current?.subgroupId ?? "")) event.preventDefault();
+              else event.dataTransfer.dropEffect = "none";
             }}
             onDrop={(event) => {
               event.preventDefault();
@@ -330,75 +538,83 @@ export function ProjectViewLayoutRoot({
                 {complete && <span className="text-secondary">{group.tasks.length}</span>}
               </h2>
             )}
-            {grouped(group.tasks, displayFilters.subGroupBy, catalogs, displayFilters.showEmptyGroups).map(
-              (subgroup) => (
-                <div
-                  key={subgroup.id}
-                  onDragOver={(event) => {
-                    if (complete) event.preventDefault();
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    drop(group.id, subgroup.id);
-                  }}
-                >
-                  {displayFilters.subGroupBy !== null && (
-                    <h3 className="px-3 py-2 text-12 font-medium">
-                      {subgroup.name}
-                      {complete ? ` · ${subgroup.tasks.length}` : ""}
-                    </h3>
-                  )}
-                  <ul className={displayFilters.layout === "kanban" ? "space-y-2 p-2" : "divide-y divide-subtle"}>
-                    {subgroup.tasks.map((task, index) => (
-                      <li key={task._id}>
-                        {renderTask(task, displayFilters.layout === "kanban", (row, writer) => (
-                          <div
-                            draggable={!writer.disabled && complete}
-                            onDragStart={(event) => {
-                              dragged.current = { task, groupId: group.id, subgroupId: subgroup.id };
-                              event.dataTransfer.setData("text/plain", task._id);
-                            }}
-                            onDragEnd={() => {
-                              dragged.current = null;
-                            }}
-                            onDragOver={(event) => {
-                              if (!writer.disabled && complete && displayFilters.order === "sortOrder") {
-                                event.preventDefault();
-                                event.stopPropagation();
-                              }
-                            }}
-                            onDrop={(event) => {
-                              if (writer.disabled || displayFilters.order !== "sortOrder") return;
+            {grouped(
+              group.tasks,
+              displayFilters.subGroupBy,
+              groupOptions(displayFilters.subGroupBy, catalogs),
+              displayFilters.showEmptyGroups
+            ).map((subgroup) => (
+              <div
+                key={subgroup.id}
+                onDragOver={(event) => {
+                  if (canDrop(group.id, subgroup.id)) event.preventDefault();
+                  else event.dataTransfer.dropEffect = "none";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  drop(group.id, subgroup.id);
+                }}
+              >
+                {displayFilters.subGroupBy !== null && (
+                  <h3 className="px-3 py-2 text-12 font-medium">
+                    {subgroup.name}
+                    {complete ? ` · ${subgroup.tasks.length}` : ""}
+                  </h3>
+                )}
+                <ul className={displayFilters.layout === "kanban" ? "space-y-2 p-2" : "divide-y divide-subtle"}>
+                  {subgroup.tasks.map((task, index) => (
+                    <li key={task._id}>
+                      {renderTask(task, displayFilters.layout === "kanban", (row, writer) => (
+                        <div
+                          draggable={!writer.disabled && complete}
+                          onDragStart={(event) => {
+                            dragged.current = { task, groupId: group.id, subgroupId: subgroup.id };
+                            event.dataTransfer.setData("text/plain", task._id);
+                          }}
+                          onDragEnd={() => {
+                            dragged.current = null;
+                          }}
+                          onDragOver={(event) => {
+                            if (
+                              !writer.disabled &&
+                              canDrop(group.id, subgroup.id) &&
+                              displayFilters.order === "sortOrder"
+                            ) {
                               event.preventDefault();
                               event.stopPropagation();
-                              const captured = dragged.current;
-                              if (!captured || captured.task._id === task._id) return;
-                              const neighbors = subgroup.tasks.filter((value) => value._id !== captured.task._id);
-                              const nextIndex = neighbors.indexOf(task);
-                              drop(group.id, subgroup.id, {
-                                previous: taskNeighbor(neighbors[nextIndex - 1]),
-                                next: taskNeighbor(task),
-                              });
-                            }}
-                          >
-                            {row}
-                            {displayFilters.order === "sortOrder" && (
-                              <TaskPositionControls
-                                tasks={subgroup.tasks}
-                                index={index}
-                                disabled={writer.disabled || !complete}
-                                save={(change) => save(task, change)}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            )}
+                            }
+                          }}
+                          onDrop={(event) => {
+                            if (writer.disabled || displayFilters.order !== "sortOrder") return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            const captured = dragged.current;
+                            if (!captured || captured.task._id === task._id) return;
+                            const neighbors = subgroup.tasks.filter((value) => value._id !== captured.task._id);
+                            const nextIndex = neighbors.indexOf(task);
+                            drop(group.id, subgroup.id, {
+                              previous: taskNeighbor(neighbors[nextIndex - 1]),
+                              next: taskNeighbor(task),
+                            });
+                          }}
+                        >
+                          {row}
+                          {displayFilters.order === "sortOrder" && (
+                            <TaskPositionControls
+                              tasks={subgroup.tasks}
+                              index={index}
+                              disabled={writer.disabled || !complete}
+                              save={(change) => save(task, change)}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </section>
         ))}
       </div>
@@ -442,7 +658,9 @@ function taskNeighbor(task: Tasks[number] | undefined) {
 }
 export function NativeSavedViewTask({
   task,
-  address,
+  identifier,
+  href,
+  identifierWidth,
   displayProperties,
   kanban = false,
   disabled = false,
@@ -450,7 +668,9 @@ export function NativeSavedViewTask({
   children,
 }: {
   task: Tasks[number];
-  address: Address;
+  identifier: TaskIdentity["identifier"];
+  href: TaskIdentity["href"];
+  identifierWidth: TaskIdentity["identifierWidth"];
   displayProperties: Properties;
   kanban?: boolean;
   disabled?: boolean;
@@ -460,8 +680,6 @@ export function NativeSavedViewTask({
   const lifecycle = useTaskLifecycle(() => {});
   const writer = useTaskPropertyWriter(task, lifecycle.pending, disabled);
   const cardRef = useRef<HTMLDivElement>(null);
-  const identifier = `${address.project.identifier}-${task.sequence}`;
-  const href = `/${address.workspace.slug}/browse/${identifier}/`;
   return (
     <TaskLifecycle
       task={task}
@@ -473,7 +691,7 @@ export function NativeSavedViewTask({
           <NativeTaskRow
             task={task}
             identifier={identifier}
-            identifierWidth={calculateIdentifierWidth(address.project.identifier.length, address.project.nextSequence)}
+            identifierWidth={identifierWidth}
             href={href}
             pending={writer.pending}
             showIdentifier={displayProperties.key}
@@ -501,21 +719,24 @@ export function NativeSavedViewTask({
 }
 function NativeSpreadsheet({
   tasks,
-  address,
+  identifyTask,
   displayProperties,
   disabled,
   taskActions,
 }: {
   tasks: Tasks;
-  address: Address;
+  identifyTask: (task: Tasks[number]) => TaskIdentity;
   displayProperties: Properties;
   disabled: boolean;
   taskActions?: (task: Tasks[number]) => ComponentProps<typeof TaskLifecycle>["children"];
 }) {
-  const columns = taskDisplayPropertiesSchema
-    .keyof()
-    .options.filter((key) => displayProperties[key] && key !== "key" && key !== "issue_type");
-  const only = (key: (typeof columns)[number]) => {
+  const { t } = useTranslation();
+  const columns = taskDisplayPropertiesSchema.keyof().options.flatMap((key) => {
+    if (!displayProperties[key] || key === "key" || key === "issue_type") return [];
+    const property = SPREADSHEET_PROPERTY_DETAILS[key];
+    return property ? [{ key, property }] : [];
+  });
+  const only = (key: keyof Properties) => {
     const display = { ...displayProperties };
     for (const property of taskDisplayPropertiesSchema.keyof().options) display[property] = property === key;
     return display;
@@ -533,9 +754,9 @@ function NativeSpreadsheet({
             <div role="columnheader" className="sticky left-0 bg-surface-1 p-3">
               Work item
             </div>
-            {columns.map((key) => (
+            {columns.map(({ key, property }) => (
               <div role="columnheader" key={key} className="border-l border-subtle px-3 py-2">
-                {key.replaceAll("_", " ")}
+                {t(property.i18n_title)}
               </div>
             ))}
           </div>
@@ -545,7 +766,7 @@ function NativeSpreadsheet({
             <NativeSavedViewTask
               key={task._id}
               task={task}
-              address={address}
+              {...identifyTask(task)}
               displayProperties={only("key")}
               disabled={disabled}
               renderContent={(row, writer) => (
@@ -553,7 +774,7 @@ function NativeSpreadsheet({
                   <div role="cell" className="sticky left-0 bg-surface-1">
                     {row}
                   </div>
-                  {columns.map((key) => (
+                  {columns.map(({ key }) => (
                     <div role="cell" key={key} className="border-l border-subtle p-2">
                       <TaskRowPropertyControls task={task} display={only(key)} writer={writer} />
                     </div>
