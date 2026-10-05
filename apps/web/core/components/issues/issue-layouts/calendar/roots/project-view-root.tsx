@@ -50,11 +50,9 @@ function CalendarTask({
             className="flex items-center justify-between gap-1 border-t border-subtle px-2 py-1"
             aria-busy={writer.pending}
           >
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Move ${task.title} to another date`}
-              disabled={writer.disabled || !cohortComplete}
+            <span
+              aria-hidden="true"
+              className="p-1 text-tertiary"
               draggable={!writer.disabled && cohortComplete}
               onDragStart={(event) => {
                 event.dataTransfer.setData("text/plain", task._id);
@@ -64,7 +62,7 @@ function CalendarTask({
               onDragEnd={() => onDrag(null)}
             >
               <GripVertical className="size-3.5" />
-            </Button>
+            </span>
             <DateDropdownView
               value={task.targetDate}
               onChange={(value) => void writer.save({ targetDate: value ? renderFormattedPayloadDate(value) : null })}

@@ -51,8 +51,8 @@ export function ProjectViewIssuesHeader({
   );
   return (
     <Row className="z-[18] flex min-h-11 shrink-0 items-center border-b border-subtle bg-surface-1">
-      <Header>
-        <Header.LeftItem>
+      <Header className="min-w-0 flex-wrap py-2 sm:flex-nowrap sm:py-0">
+        <Header.LeftItem className="w-full max-w-full min-w-0 sm:w-auto sm:max-w-[80%]">
           <Breadcrumbs>
             <Breadcrumbs.Item
               component={
@@ -161,7 +161,7 @@ export function ProjectViewIssuesHeader({
             />
           </Breadcrumbs>
         </Header.LeftItem>
-        <Header.RightItem className="flex-wrap items-center gap-2">
+        <Header.RightItem className="w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
           {detail.canFavorite && (
             <Button variant="ghost" size="sm" disabled={pending} aria-pressed={detail.isFavorite} onClick={onFavorite}>
               {detail.isFavorite ? "Unfavorite" : "Favorite"}
