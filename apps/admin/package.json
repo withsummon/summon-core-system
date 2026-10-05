@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@bprogress/core": "catalog:",
+    "@convex-dev/better-auth": "0.12.5",
     "@fontsource-variable/inter": "catalog:",
     "@fontsource/ibm-plex-mono": "catalog:",
     "@fontsource/material-symbols-rounded": "catalog:",
@@ -30,6 +31,9 @@
     "@plane/ui": "workspace:*",
     "@plane/utils": "workspace:*",
     "@react-router/node": "catalog:",
+    "@summon/convex": "workspace:*",
+    "better-auth": "1.6.33",
+    "convex": "catalog:",
     "isbot": "catalog:",
     "lodash-es": "catalog:",
     "lucide-react": "catalog:",
