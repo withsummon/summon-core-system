@@ -151,17 +151,6 @@ export async function prepareCycleChange(
   }
   if (currentId === (destination?._id ?? null)) return null;
   if (source.cycle && !source.cycle.deleted) requireOpenCycle(source.cycle);
-  if (destination) {
-    if (
-      (
-        await ctx.db
-          .query("cycleTasks")
-          .withIndex("by_cycle", (q) => q.eq("cycleId", destination._id))
-          .take(100)
-      ).length >= 100
-    )
-      throw new ConvexError("This cycle has reached its 100 task limit.");
-  }
   return { task, user, source, destination };
 }
 export async function applyCycleChange(

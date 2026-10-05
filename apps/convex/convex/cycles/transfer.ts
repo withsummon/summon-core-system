@@ -1,18 +1,17 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { taskIsActive } from "../tasks/access";
 import { taskChanged } from "../tasks/revision";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
-import { cyclePhase } from "./dates";
-import { snapshot } from "./transfer_snapshot";
-export const TRANSFER_TASK_LIMIT = 100;
+import { cycleDay, cyclePhase } from "./dates";
+import { snapshot, requireTransferDocumentSize } from "./transfer_snapshot";
 export const TRANSFER_BATCH_SIZE = 20;
-export const SNAPSHOT_BYTES_LIMIT = 524288;
+export const TRANSFER_CAPTURE_SIZE = 5;
 function sourceAvailable(cycle: Doc<"cycles">) {
   if (cycle.deleted || cycle.archived || cyclePhase(cycle) !== "completed")
     throw new ConvexError("Transfer requires a completed, unarchived source cycle.");
@@ -29,7 +28,7 @@ async function requireJob(ctx: QueryCtx, id: Id<"cycleTransfers">) {
 function revision(job: Doc<"cycleTransfers">, expected: number) {
   if (job.revision !== expected) throw new ConvexError("Transfer changed. Review its latest progress.");
 }
-async function changed(ctx: QueryCtx, job: Doc<"cycleTransfers">, entry: Doc<"cycleTransfers">["entries"][number]) {
+async function changed(ctx: QueryCtx, job: Doc<"cycleTransfers">, entry: Doc<"cycleTransferEntries">) {
   const [task, membership] = await Promise.all([ctx.db.get(entry.taskId), ctx.db.get(entry.membershipId)]);
   if (!task || task.projectId !== job.projectId || !unfinished(task))
     return { task, reason: "Task is no longer active and unfinished." };
@@ -37,6 +36,67 @@ async function changed(ctx: QueryCtx, job: Doc<"cycleTransfers">, entry: Doc<"cy
     return { task, reason: "Task cycle membership changed." };
   if (task.updatedAt !== entry.expectedUpdatedAt) return { task, reason: "Task changed after the transfer snapshot." };
   return { task, reason: null };
+}
+async function pendingEntries(ctx: QueryCtx, job: Doc<"cycleTransfers">) {
+  return ctx.db
+    .query("cycleTransferEntries")
+    .withIndex("by_transfer_outcome", (q) => q.eq("transferId", job._id).eq("outcome", "pending"))
+    .take(TRANSFER_BATCH_SIZE);
+}
+async function capture(ctx: MutationCtx, job: Doc<"cycleTransfers">, source: Doc<"cycles">) {
+  requireCycleRevision(source, job.sourceUpdatedAt);
+  const page = await ctx.db
+    .query("cycleTasks")
+    .withIndex("by_cycle", (q) => q.eq("cycleId", source._id))
+    .paginate({
+      cursor: job.captureCursor,
+      numItems: TRANSFER_CAPTURE_SIZE,
+      maximumRowsRead: TRANSFER_CAPTURE_SIZE,
+      maximumBytesRead: 1_048_576,
+    });
+  const tasks = (await Promise.all(page.page.map((row) => ctx.db.get(row.taskId)))).flatMap((task) =>
+    task && task.projectId === source.projectId && task.workspaceId === source.workspaceId && taskIsActive(task)
+      ? [task]
+      : []
+  );
+  const entries = page.page.flatMap((membership) => {
+    const task = tasks.find((candidate) => candidate._id === membership.taskId);
+    return task && unfinished(task)
+      ? [
+          {
+            transferId: job._id,
+            taskId: task._id,
+            membershipId: membership._id,
+            expectedUpdatedAt: task.updatedAt,
+            outcome: "pending" as const,
+            skipReason: null,
+          },
+        ]
+      : [];
+  });
+  await Promise.all(
+    entries.map((entry) => {
+      requireTransferDocumentSize(entry);
+      return ctx.db.insert("cycleTransferEntries", entry);
+    })
+  );
+  const captured = await snapshot(ctx, tasks, source, job);
+  const captureCompletedAt = page.isDone ? Date.now() : null;
+  const update = {
+    snapshot: {
+      ...captured,
+      captureCompletedAt,
+      asOfDay: captureCompletedAt === null ? captured.asOfDay : cycleDay(source.timezone, captureCompletedAt),
+    },
+    capturedMemberships: job.capturedMemberships + page.page.length,
+    captureCursor: page.isDone ? null : page.continueCursor,
+    phase: page.isDone ? ("moving" as const) : ("capturing" as const),
+    pendingCount: job.pendingCount + entries.length,
+    status: page.isDone && job.pendingCount + entries.length === 0 ? ("completed" as const) : ("running" as const),
+    revision: job.revision + 1,
+  };
+  requireTransferDocumentSize({ ...job, ...update });
+  await ctx.db.patch(job._id, update);
 }
 export const list = query({
   args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
@@ -53,7 +113,7 @@ export const inspect = query({
   args: { transferId: v.id("cycleTransfers") },
   handler: async (ctx, args) => {
     const { job } = await requireJob(ctx, args.transferId);
-    const pending = job.entries.filter((entry) => entry.outcome === "pending").slice(0, TRANSFER_BATCH_SIZE);
+    const pending = job.phase === "moving" ? await pendingEntries(ctx, job) : [];
     const blockers = await Promise.all(
       pending.map(async (entry) => {
         const result = await changed(ctx, job, entry);
@@ -70,6 +130,16 @@ export const inspect = query({
       })
     );
     return { job, blockers: blockers.filter((row) => row !== null) };
+  },
+});
+export const buckets = query({
+  args: { transferId: v.id("cycleTransfers"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const { job } = await requireJob(ctx, args.transferId);
+    return ctx.db
+      .query("cycleTransferBuckets")
+      .withIndex("by_transfer", (q) => q.eq("transferId", job._id))
+      .paginate(pageBudget(args.paginationOpts));
   },
 });
 export const begin = mutation({
@@ -93,48 +163,37 @@ export const begin = mutation({
       .withIndex("by_source_status", (q) => q.eq("sourceId", source._id).eq("status", "running"))
       .unique();
     if (running) throw new ConvexError("Continue or cancel the existing transfer first.");
-    const memberships = await ctx.db
-      .query("cycleTasks")
-      .withIndex("by_cycle", (q) => q.eq("cycleId", source._id))
-      .take(TRANSFER_TASK_LIMIT + 1);
-    if (memberships.length > TRANSFER_TASK_LIMIT)
-      throw new ConvexError("Source cycle exceeds the 100-task transfer limit.");
-    const records = await Promise.all(
-      memberships.map(async (membership) => ({ membership, task: await ctx.db.get(membership.taskId) }))
-    );
-    const active = records.flatMap((row) =>
-      row.task && row.task.projectId === source.projectId && taskIsActive(row.task)
-        ? [{ membership: row.membership, task: row.task }]
-        : []
-    );
-    const entries = active
-      .filter((row) => unfinished(row.task))
-      .map(({ membership, task }) => ({
-        taskId: task._id,
-        membershipId: membership._id,
-        expectedUpdatedAt: task.updatedAt,
-        outcome: "pending" as const,
-        skipReason: null,
-      }));
-    if (!entries.length) throw new ConvexError("No unfinished tasks to transfer.");
-    const stats = await snapshot(
-      ctx,
-      active.map((row) => row.task),
-      source
-    );
-    if (new TextEncoder().encode(JSON.stringify(stats)).length > SNAPSHOT_BYTES_LIMIT)
-      throw new ConvexError("Transfer snapshot exceeds its 512 KiB limit.");
-    const id = await ctx.db.insert("cycleTransfers", {
+    const now = Date.now();
+    const sourceUpdatedAt = Math.max(now, source.updatedAt + 1);
+    const value = {
       projectId: source.projectId,
       sourceId: source._id,
       destinationId: destination._id,
       actorId: user._id,
-      snapshot: stats,
-      entries,
-      status: "running",
+      snapshot: {
+        count: 0,
+        numericEstimates: 0,
+        unquantifiedEstimates: 0,
+        captureStartedAt: now,
+        captureCompletedAt: null,
+        startDate: source.startDate,
+        endDate: source.endDate,
+        timezone: source.timezone,
+        asOfDay: cycleDay(source.timezone, now),
+      },
+      phase: "capturing" as const,
+      captureCursor: null,
+      sourceUpdatedAt,
+      capturedMemberships: 0,
+      pendingCount: 0,
+      movedCount: 0,
+      skippedCount: 0,
+      status: "running" as const,
       revision: 0,
-    });
-    await ctx.db.patch(source._id, { updatedAt: Math.max(Date.now(), source.updatedAt + 1) });
+    };
+    requireTransferDocumentSize(value);
+    const id = await ctx.db.insert("cycleTransfers", value);
+    await ctx.db.patch(source._id, { updatedAt: sourceUpdatedAt });
     return id;
   },
 });
@@ -148,21 +207,17 @@ export const step = mutation({
     sourceAvailable(source);
     const { cycle: destination } = await requireCycle(ctx, job.destinationId, true);
     requireOpenCycle(destination);
-    const batch = job.entries.filter((entry) => entry.outcome === "pending").slice(0, TRANSFER_BATCH_SIZE);
+    if (job.phase === "capturing") return capture(ctx, job, source);
+    const batch = await pendingEntries(ctx, job);
     const checked = await Promise.all(batch.map((entry) => changed(ctx, job, entry)));
     if (checked.some((row) => row.reason))
       throw new ConvexError("Tasks changed after the snapshot. Review and explicitly skip them before continuing.");
-    const destinationRows = await ctx.db
-      .query("cycleTasks")
-      .withIndex("by_cycle", (q) => q.eq("cycleId", destination._id))
-      .take(TRANSFER_TASK_LIMIT + 1);
-    if (destinationRows.length + batch.length > TRANSFER_TASK_LIMIT)
-      throw new ConvexError("Destination cycle has insufficient capacity. Free space before continuing.");
     await Promise.all(
       batch.map(async (entry, index) => {
         const task = checked[index].task;
         if (!task) throw new ConvexError("Task not found.");
         await ctx.db.patch(entry.membershipId, { cycleId: destination._id });
+        await ctx.db.patch(entry._id, { outcome: "moved" });
         await taskChanged(ctx, task, user._id, {
           kind: "updated",
           changes: [
@@ -175,13 +230,10 @@ export const step = mutation({
         });
       })
     );
-    const moved = new Set(batch.map((entry) => entry.taskId));
-    const entries = job.entries.map((entry) =>
-      moved.has(entry.taskId) ? { ...entry, outcome: "moved" as const } : entry
-    );
     await ctx.db.patch(job._id, {
-      entries,
-      status: entries.some((entry) => entry.outcome === "pending") ? "running" : "completed",
+      pendingCount: job.pendingCount - batch.length,
+      movedCount: job.movedCount + batch.length,
+      status: job.pendingCount === batch.length ? "completed" : "running",
       revision: job.revision + 1,
     });
     await Promise.all(
@@ -196,26 +248,29 @@ export const skipChanged = mutation({
   handler: async (ctx, args) => {
     const { job } = await requireJob(ctx, args.transferId);
     revision(job, args.expectedRevision);
-    if (job.status !== "running") throw new ConvexError("Transfer is not running.");
+    if (job.status !== "running" || job.phase !== "moving") throw new ConvexError("Transfer is not running.");
     if (
       !args.taskIds.length ||
       args.taskIds.length > TRANSFER_BATCH_SIZE ||
       new Set(args.taskIds).size !== args.taskIds.length
     )
       throw new ConvexError("Choose 1–20 distinct changed tasks.");
-    const updates = await Promise.all(
+    await Promise.all(
       args.taskIds.map(async (taskId) => {
-        const entry = job.entries.find((row) => row.taskId === taskId && row.outcome === "pending");
-        if (!entry) throw new ConvexError("Task is not pending in this transfer.");
+        const entry = await ctx.db
+          .query("cycleTransferEntries")
+          .withIndex("by_transfer_task", (q) => q.eq("transferId", job._id).eq("taskId", taskId))
+          .unique();
+        if (!entry || entry.outcome !== "pending") throw new ConvexError("Task is not pending in this transfer.");
         const result = await changed(ctx, job, entry);
         if (!result.reason) throw new ConvexError("Only changed tasks may be skipped.");
-        return { ...entry, outcome: "skipped" as const, skipReason: result.reason };
+        await ctx.db.patch(entry._id, { outcome: "skipped", skipReason: result.reason });
       })
     );
-    const entries = job.entries.map((entry) => updates.find((row) => row.taskId === entry.taskId) ?? entry);
     await ctx.db.patch(job._id, {
-      entries,
-      status: entries.some((entry) => entry.outcome === "pending") ? "running" : "completed",
+      pendingCount: job.pendingCount - args.taskIds.length,
+      skippedCount: job.skippedCount + args.taskIds.length,
+      status: job.pendingCount === args.taskIds.length ? "completed" : "running",
       revision: job.revision + 1,
     });
   },

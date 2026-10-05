@@ -65,8 +65,7 @@ export function CycleTransfers({
         {jobs.results.map((job) => (
           <li key={job._id}>
             <Button variant="secondary" onClick={() => setSelected(job._id)}>
-              {new Date(job._creationTime).toLocaleString()} · {job.status} ·{" "}
-              {job.entries.filter((row) => row.outcome === "moved").length} moved
+              {new Date(job._creationTime).toLocaleString()} · {job.status} · {job.movedCount} moved
             </Button>
           </li>
         ))}
@@ -144,8 +143,8 @@ function PrepareTransfer({
           <Dialog.Title className="mb-4">Transfer unfinished work items</Dialog.Title>
           <div className="space-y-3 rounded-md border border-subtle-1 p-3">
             <p className="text-14">
-              Save a snapshot, then move unfinished tasks in batches. Completed and cancelled tasks stay in this cycle.
-              Changes made after the snapshot need review before continuing.
+              Capture this cycle over a sequence of pages before moving any unfinished tasks. Completed and cancelled
+              tasks stay in this cycle. Changes after each task was captured need review before continuing.
             </p>
             <SummonField label="Destination cycle" htmlFor="cycle-transfer-destination">
               <Select
@@ -185,7 +184,7 @@ function PrepareTransfer({
                   }
                 }}
               >
-                Create transfer snapshot
+                Start capturing transfer
               </Button>
               <Button variant="secondary" disabled={pending} onClick={onCancel}>
                 Cancel
@@ -223,9 +222,9 @@ function TransferRun({
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<{
-    kind: "skip" | "cancel";
-    revision: number;
-    taskIds: Id<"tasks">[];
+    description: string;
+    label: string;
+    action: () => Promise<unknown>;
   } | null>(null);
   useReloadConfirmations(pending, "The cycle transfer is still in progress.", onClose, pending);
   if (!enabled)
@@ -239,9 +238,6 @@ function TransferRun({
     );
   if (!result) return <p role="status">Opening transfer…</p>;
   const { job, blockers } = result;
-  const moved = job.entries.filter((row) => row.outcome === "moved").length,
-    skipped = job.entries.filter((row) => row.outcome === "skipped").length,
-    remaining = job.entries.filter((row) => row.outcome === "pending").length;
   async function run(action: () => Promise<unknown>) {
     setPending(true);
     setError("");
@@ -275,12 +271,12 @@ function TransferRun({
             {destination?.deleted ? " · Removed" : ""}
           </p>
           <p className="text-14">
-            {moved} moved · {skipped} skipped · {remaining} pending
+            {job.movedCount} moved · {job.skippedCount} skipped · {job.pendingCount} pending
           </p>
           {job.status === "cancelled" && (
             <p className="text-14">Remaining work was cancelled. Tasks already moved stay in the destination cycle.</p>
           )}
-          <Snapshot snapshot={job.snapshot} />
+          <Snapshot job={job} />
           {job.status === "running" && (
             <>
               <ul className="space-y-1 text-14">
@@ -292,11 +288,11 @@ function TransferRun({
               </ul>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  disabled={blockers.length > 0 || !destination?.canEdit}
+                  disabled={pending || blockers.length > 0 || !destination?.canEdit}
                   loading={pending}
                   onClick={() => run(() => step({ transferId, expectedRevision: job.revision }))}
                 >
-                  Move next batch
+                  {job.phase === "capturing" ? "Capture next page" : "Move next batch"}
                 </Button>
                 {blockers.length > 0 && (
                   <Button
@@ -304,9 +300,14 @@ function TransferRun({
                     disabled={pending}
                     onClick={() =>
                       setConfirmation({
-                        kind: "skip",
-                        revision: job.revision,
-                        taskIds: blockers.map((row) => row.taskId),
+                        description: `Skip these ${blockers.length} changed tasks? They will not be moved by this transfer.`,
+                        label: "skip",
+                        action: () =>
+                          skip({
+                            transferId,
+                            expectedRevision: job.revision,
+                            taskIds: blockers.map((row) => row.taskId),
+                          }),
                       })
                     }
                   >
@@ -316,7 +317,13 @@ function TransferRun({
                 <Button
                   variant="secondary"
                   disabled={pending}
-                  onClick={() => setConfirmation({ kind: "cancel", revision: job.revision, taskIds: [] })}
+                  onClick={() =>
+                    setConfirmation({
+                      description: "Cancel all remaining work? Tasks already moved will not be returned to the source.",
+                      label: "cancellation",
+                      action: () => cancel({ transferId, expectedRevision: job.revision }),
+                    })
+                  }
                 >
                   Cancel remaining transfer
                 </Button>
@@ -325,23 +332,10 @@ function TransferRun({
           )}
           {confirmation && (
             <div className="space-y-2 border-t border-subtle-1 pt-3">
-              <p className="text-14">
-                {confirmation.kind === "skip"
-                  ? `Skip these ${confirmation.taskIds.length} changed tasks? They will not be moved by this transfer.`
-                  : "Cancel all remaining work? Tasks already moved will not be returned to the source."}
-              </p>
+              <p className="text-14">{confirmation.description}</p>
               <div className="flex gap-2">
-                <Button
-                  loading={pending}
-                  onClick={() =>
-                    run(() =>
-                      confirmation.kind === "skip"
-                        ? skip({ transferId, expectedRevision: confirmation.revision, taskIds: confirmation.taskIds })
-                        : cancel({ transferId, expectedRevision: confirmation.revision })
-                    )
-                  }
-                >
-                  Confirm {confirmation.kind === "skip" ? "skip" : "cancellation"}
+                <Button loading={pending} onClick={() => run(confirmation.action)}>
+                  Confirm {confirmation.label}
                 </Button>
                 <Button variant="secondary" disabled={pending} onClick={() => setConfirmation(null)}>
                   Keep reviewing
@@ -359,19 +353,33 @@ function TransferRun({
     </Dialog>
   );
 }
-function Snapshot({ snapshot }: { snapshot: Doc<"cycleTransfers">["snapshot"] }) {
+function Snapshot({ job }: { job: Doc<"cycleTransfers"> }) {
+  const buckets = usePaginatedQuery(api.cycles.transfer.buckets, { transferId: job._id }, { initialNumItems: 100 });
+  const { snapshot } = job;
+  const complete = buckets.status === "Exhausted" && snapshot.captureCompletedAt !== null;
   return (
     <details className="space-y-3">
       <summary className="cursor-pointer text-14 font-medium">
-        Snapshot before transfer · {snapshot.count} tasks
+        Snapshot before transfer · {snapshot.count} tasks {complete ? "" : "· Partial"}
       </summary>
+      <p className="text-14">
+        Captured {job.capturedMemberships} memberships from {new Date(snapshot.captureStartedAt).toLocaleString()}
+        {snapshot.captureCompletedAt !== null && ` through ${new Date(snapshot.captureCompletedAt).toLocaleString()}`}.
+        Tasks and reference names are captured across this interval.
+      </p>
       <p className="text-14">
         Numeric estimates: {snapshot.numericEstimates} · Estimates without a numeric value:{" "}
         {snapshot.unquantifiedEstimates}
       </p>
-      <Distribution heading="h5" kind="statuses" rows={snapshot.statuses} />
-      <Distribution heading="h5" kind="assignees" rows={snapshot.assignees} />
-      <Distribution heading="h5" kind="labels" rows={snapshot.labels} />
+      <Distribution heading="h5" kind="statuses" rows={buckets.results.filter((row) => row.kind === "statuses")} />
+      <Distribution heading="h5" kind="assignees" rows={buckets.results.filter((row) => row.kind === "assignees")} />
+      <Distribution heading="h5" kind="labels" rows={buckets.results.filter((row) => row.kind === "labels")} />
+      {buckets.status === "LoadingFirstPage" && <p role="status">Loading snapshot…</p>}
+      {buckets.status === "CanLoadMore" && (
+        <Button variant="secondary" onClick={() => buckets.loadMore(100)}>
+          Load more snapshot
+        </Button>
+      )}
       <p className="text-12 text-secondary">
         A task appears under each assigned person and label, so distribution totals may overlap.
       </p>
