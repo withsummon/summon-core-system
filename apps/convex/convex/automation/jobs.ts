@@ -1,15 +1,15 @@
 import { allocateAssetApiId } from "../assets/schema";
-import { v, ConvexError } from "convex/values";
+import { v, ConvexError, compareValues } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { query, internalMutation, internalQuery } from "../_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "../_generated/server";
 import schema from "../schema";
 import { internal } from "../_generated/api";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
 import { authorizedContext } from "../assistant/context";
 import { contextFields } from "../assistant/schema";
 import { text, pageBudget } from "../commercial/validation";
-import { renderedArtifact, automationInput, generationError } from "./schema";
+import { renderedArtifact, automationInput, generationError, generationPreferences, jobStatus } from "./schema";
 import { descriptor, requireAsset } from "../assets/access";
 import { generationSources } from "../assistant/attachments";
 import { summaryAccessForUser } from "../meetings/summary/access";
@@ -22,6 +22,7 @@ export const runFields = {
   requestId: v.string(),
   title: v.string(),
   input: automationInput,
+  preferences: v.optional(generationPreferences),
   sourceConversationId: v.optional(v.id("assistantConversations")),
   sourceAttachmentIds: v.optional(v.array(v.id("assistantAttachments"))),
   context: v.object(contextFields),
@@ -58,25 +59,31 @@ export const begin = internalMutation({
       .withIndex("by_request", (q) => q.eq("requesterId", user._id).eq("requestId", args.requestId))
       .unique();
     if (previous) {
+      if (previous.deletedAt !== undefined)
+        throw new ConvexError("This generation request was retired. Start a new request.");
       if (
-        JSON.stringify([
-          previous.templateId,
-          previous.projectId,
-          previous.title,
-          previous.sourceConversationId,
-          previous.sourceAttachmentIds ?? [],
-          previous.input,
-          previous.context,
-        ]) !==
-        JSON.stringify([
-          args.templateId,
-          args.projectId,
-          title,
-          args.sourceConversationId,
-          attachmentIds,
-          args.input,
-          selection,
-        ])
+        compareValues(
+          {
+            templateId: previous.templateId,
+            projectId: previous.projectId,
+            title: previous.title,
+            sourceConversationId: previous.sourceConversationId,
+            sourceAttachmentIds: previous.sourceAttachmentIds ?? [],
+            input: previous.input,
+            preferences: previous.preferences,
+            context: previous.context,
+          },
+          {
+            templateId: args.templateId,
+            projectId: args.projectId,
+            title,
+            sourceConversationId: args.sourceConversationId,
+            sourceAttachmentIds: attachmentIds,
+            input: args.input,
+            preferences: args.preferences,
+            context: selection,
+          }
+        ) !== 0
       )
         throw new ConvexError("Request identifier was used for different generation inputs.");
       return { jobId: previous._id, generate: false, context: "", instructions: "" };
@@ -150,15 +157,59 @@ export const resolve = query({
   },
 });
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), paginationOpts: paginationOptsValidator },
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    type: v.optional(v.string()),
+    status: v.optional(v.union(...jobStatus.members, v.literal("published"))),
+    search: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const { user } = await requireWorkspace(ctx, args.workspaceId);
+    if (args.projectId) {
+      const { project } = await requireProject(ctx, args.projectId);
+      if (project.workspaceId !== args.workspaceId) throw new ConvexError("Project belongs to another workspace.");
+    }
+    const search = text(args.search ?? "", "Search", 255).toLowerCase();
     return stream(ctx.db, schema)
       .query("automationJobs")
       .withIndex("by_workspace_requester", (q) => q.eq("workspaceId", args.workspaceId).eq("requesterId", user._id))
       .order("desc")
-      .filterWith((job) => canReadJob(ctx, job, user._id))
+      .filterWith(
+        async (job) =>
+          job.deletedAt === undefined &&
+          (!args.projectId || job.projectId === args.projectId) &&
+          (!args.type || job.template.type === args.type) &&
+          (!args.status ||
+            (args.status === "published" ? job.publishedDocumentId !== null : job.status === args.status)) &&
+          (!search ||
+            [job.title, job.template.name, ...Object.values(job.input)].some((value) =>
+              value.toLowerCase().includes(search)
+            )) &&
+          (await canReadJob(ctx, job, user._id))
+      )
       .paginate(pageBudget(args.paginationOpts));
+  },
+});
+export const retire = mutation({
+  args: {
+    jobId: v.id("automationJobs"),
+    expectedCompletedAt: v.union(v.number(), v.null()),
+    expectedPublishedAt: v.union(v.number(), v.null()),
+    expectedArtifactIds: v.array(v.id("assets")),
+  },
+  handler: async (ctx, args) => {
+    const { job } = await requireJob(ctx, args.jobId, true);
+    if (job.status === "running") throw new ConvexError("Wait for generation to finish before deleting this preview.");
+    if (
+      compareValues(
+        [job.completedAt, job.publishedAt, (job.artifacts ?? []).map((artifact) => artifact.assetId)],
+        [args.expectedCompletedAt, args.expectedPublishedAt, args.expectedArtifactIds]
+      ) !== 0
+    )
+      throw new ConvexError("Preview changed. Reopen before deleting.");
+    await ctx.db.patch(job._id, { deletedAt: Date.now() });
   },
 });
 export const sourceFile = query({

@@ -2,6 +2,17 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { contextFields, citation } from "../assistant/schema";
 export const generationError = v.union(v.literal("provider_unconfigured"), v.literal("generation_failed"));
+export const jobStatus = v.union(v.literal("running"), v.literal("completed"), v.literal("failed"));
+export const generationPreferences = v.object({
+  tone: v.union(
+    v.literal("Professional"),
+    v.literal("Formal"),
+    v.literal("Technical"),
+    v.literal("Executive"),
+    v.literal("Casual")
+  ),
+  detailLevel: v.union(v.literal("Concise"), v.literal("Standard"), v.literal("Comprehensive"), v.literal("In-depth")),
+});
 export const automationInput = v.record(v.string(), v.string());
 export const artifactFields = {
   name: v.string(),
@@ -39,10 +50,12 @@ export const automationTables = {
     sourceAttachmentIds: v.optional(v.array(v.id("assistantAttachments"))),
     template: v.object(templateFields),
     input: automationInput,
+    preferences: v.optional(generationPreferences),
+    deletedAt: v.optional(v.number()),
     context: v.object(contextFields),
     citations: v.array(citation),
     contextTruncated: v.boolean(),
-    status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+    status: jobStatus,
     previewMarkdown: v.string(),
     provider: v.string(),
     model: v.string(),
