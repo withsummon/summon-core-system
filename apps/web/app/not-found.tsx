@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import Link from "next/link";
+import { Link } from "react-router";
 // ui
-import { Button } from "@plane/propel/button";
+import { getButtonStyling } from "@plane/propel/button";
 // images
 import Image404 from "@/app/assets/404.svg?url";
 // types
@@ -32,12 +32,8 @@ function PageNotFound() {
               temporarily unavailable.
             </p>
           </div>
-          <Link href="/">
-            <span className="flex justify-center">
-              <Button variant="secondary" size="lg">
-                Go to Home
-              </Button>
-            </span>
+          <Link to="/" className={getButtonStyling("secondary", "lg")}>
+            Go to Home
           </Link>
         </div>
       </div>
