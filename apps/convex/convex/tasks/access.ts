@@ -2,6 +2,7 @@ import { ConvexError, type Infer } from "convex/values";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
+import { memberIdentity } from "../projects/directory";
 import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
 import { taskOrder } from "./schema";
 import { currentTaskCycle } from "../cycles/tasks";
@@ -69,34 +70,24 @@ export async function requireTask(ctx: QueryCtx, taskId: Id<"tasks">, mode: "act
 export async function taskAssignee(
   ctx: QueryCtx,
   project: Pick<Doc<"projects">, "_id" | "workspaceId">,
-  id: Id<"users">
+  id: Id<"users">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
 ) {
-  const [person, projectMembership, workspaceMembership] = await Promise.all([
-    ctx.db.get(id),
+  const [identity, projectMembership] = await Promise.all([
+    memberIdentity(ctx, project.workspaceId, viewerWorkspaceRole, id, ""),
     ctx.db
       .query("projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", id))
       .unique(),
-    ctx.db
-      .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
-      .unique(),
   ]);
   const selectable = Boolean(
-    person &&
-    projectMembership?.active &&
-    projectMembership.role !== "guest" &&
-    workspaceMembership?.active &&
-    workspaceMembership.role !== "guest"
+    identity && projectMembership?.active && projectMembership.role !== "guest" && identity.workspaceRole !== "guest"
   );
   return {
     id,
-    name: person?.name ?? null,
-    email: selectable ? (person?.email ?? null) : null,
-    avatar:
-      person && workspaceMembership?.active
-        ? await personalImageDescriptor(ctx, await userAppearance(ctx, id), "avatar", project.workspaceId)
-        : null,
+    name: identity ? identity.fullName || identity.displayName : null,
+    email: identity && selectable ? identity.email : null,
+    avatar: identity?.avatar ?? null,
     selectable,
   };
 }
@@ -122,7 +113,7 @@ export async function taskDetail(
       .unique(),
   ]);
   const [assignees, cycle, modules] = await Promise.all([
-    Promise.all(task.assigneeIds.map((id) => taskAssignee(ctx, project, id))),
+    Promise.all(task.assigneeIds.map((id) => taskAssignee(ctx, project, id, member.role))),
     currentTaskCycle(ctx, task),
     currentTaskModules(ctx, task),
   ]);
