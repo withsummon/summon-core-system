@@ -1,4 +1,4 @@
-import { signInPolicy } from "../signin_policy";
+import { currentSignInPolicy } from "../signin_policy";
 import { v, ConvexError } from "convex/values";
 import { isAPIError } from "better-auth/api";
 import { mutation, query } from "../../_generated/server";
@@ -14,10 +14,11 @@ export const capabilities = query({
     const { internalAdapter } = await createAuth(ctx).$context;
     const accounts = await internalAdapter.findAccounts(user._id);
     const hasPassword = accounts.some((account) => account.providerId === "credential" && account.password);
+    const policy = await currentSignInPolicy(ctx, { authId: user._id, email: user.email });
     return {
       requiresPassword: hasPassword,
-      canChange: signInPolicy(process.env).password && hasPassword,
-      canSet: signInPolicy(process.env).password && !hasPassword,
+      canChange: policy.password && hasPassword,
+      canSet: policy.password && !hasPassword,
     };
   },
 });
@@ -28,7 +29,8 @@ export const change = mutation({
   args: { currentPassword: v.string(), newPassword: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    if (!signInPolicy(process.env).password)
+    const authUser = await authComponent.getAuthUser(ctx);
+    if (!(await currentSignInPolicy(ctx, { authId: authUser._id, email: authUser.email })).password)
       throw new ConvexError("Password sign-in is disabled by the instance operator.");
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
     const { adapter, password } = await auth.$context;
@@ -60,7 +62,8 @@ export const set = mutation({
   args: { newPassword: v.string() },
   handler: async (ctx, args) => {
     await requireUser(ctx);
-    if (!signInPolicy(process.env).password)
+    const authUser = await authComponent.getAuthUser(ctx);
+    if (!(await currentSignInPolicy(ctx, { authId: authUser._id, email: authUser.email })).password)
       throw new ConvexError("Password sign-in is disabled by the instance operator.");
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
     try {

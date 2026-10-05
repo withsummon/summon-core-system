@@ -73,6 +73,8 @@ export default defineSchema({
   ...publicationTables,
   workspaces: defineTable({
     apiId: zodToConvex(apiIdSchema),
+    // Creation records its actual owner. Historical absence is unrecorded ownership, never inferred from membership.
+    ownerId: v.optional(v.id("users")),
     name: v.string(),
     slug: v.string(),
     metadataRevision: v.number(),

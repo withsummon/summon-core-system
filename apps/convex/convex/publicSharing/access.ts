@@ -1,9 +1,20 @@
-import { ConvexError, type Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { taskIsActive } from "../tasks/access";
 import { status } from "../tasks/schema";
 import { uploadedImageSources } from "../tasks/rich_content";
+import { projectAppearance } from "../projects/cover_owner";
+import { personalImageDescriptor, userAppearance } from "../identity/avatar_owner";
+import { accountRestricted } from "../identity/deactivation/access";
+import { profileIdentity } from "../identity/profile_owner";
+
+export const publicImageTarget = v.union(
+  v.object({ kind: v.literal("cover") }),
+  v.object({ kind: v.literal("description"), taskId: v.string() }),
+  v.object({ kind: v.literal("comment"), taskId: v.string(), commentId: v.string() }),
+  v.object({ kind: v.literal("commentAvatar"), taskId: v.string(), commentId: v.string() })
+);
 
 export function publicationForProject(ctx: QueryCtx, projectId: Id<"projects">) {
   return ctx.db
@@ -62,6 +73,87 @@ export async function requirePublishedComment(
   if (!comment || comment.taskId !== taskId || comment.audience !== "EXTERNAL" || comment.deletedAt != null)
     throw new ConvexError("Comment not found.");
   return { ...access, comment };
+}
+
+export async function requirePublishedCover(ctx: QueryCtx, anchor: string, rawAssetId: string) {
+  const { project } = await requirePublishedProject(ctx, anchor);
+  const appearance = await projectAppearance(ctx, project._id);
+  const assetId = ctx.db.normalizeId("assets", rawAssetId);
+  const asset = assetId ? await ctx.db.get(assetId) : null;
+  if (
+    !asset ||
+    appearance?.coverAssetId !== asset._id ||
+    asset.purpose !== "projectCover" ||
+    asset.status !== "ready" ||
+    !asset.storageId ||
+    !asset.contentType.startsWith("image/") ||
+    asset.workspaceId !== project.workspaceId ||
+    asset.projectId !== project._id ||
+    asset.documentId !== null ||
+    [
+      asset.taskId,
+      asset.draftId,
+      asset.commentUpload,
+      asset.commentId,
+      asset.conversationId,
+      asset.meetingId,
+      asset.automationJobId,
+      asset.exportJobId,
+      asset.documentCopyId,
+      asset.avatarUserId,
+      asset.avatarRevision,
+      asset.avatarPublishedRevision,
+      asset.projectCoverFormRevision,
+      asset.workspaceLogoRevision,
+      asset.workspaceLogoPublishedRevision,
+    ].some((value) => value !== undefined)
+  )
+    throw new ConvexError("Project cover is not published.");
+  if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Published image bytes are missing.");
+  return asset;
+}
+
+export async function requirePublishedCommentAvatar(
+  ctx: QueryCtx,
+  anchor: string,
+  taskId: Id<"tasks">,
+  commentId: Id<"taskComments">,
+  rawAssetId: string
+) {
+  const { comment } = await requirePublishedComment(ctx, anchor, taskId, commentId);
+  if ((await accountRestricted(ctx, comment.authorId)) || !(await profileIdentity(ctx, comment.authorId)))
+    throw new ConvexError("Comment author avatar is not published.");
+  const appearance = await userAppearance(ctx, comment.authorId);
+  const image = await personalImageDescriptor(ctx, appearance, "avatar");
+  const assetId = ctx.db.normalizeId("assets", rawAssetId);
+  const asset = assetId ? await ctx.db.get(assetId) : null;
+  if (
+    !asset ||
+    image?.id !== asset._id ||
+    !asset.storageId ||
+    !asset.contentType.startsWith("image/") ||
+    asset.workspaceId !== null ||
+    asset.projectId !== null ||
+    asset.documentId !== null ||
+    [
+      asset.taskId,
+      asset.draftId,
+      asset.commentUpload,
+      asset.commentId,
+      asset.conversationId,
+      asset.meetingId,
+      asset.automationJobId,
+      asset.exportJobId,
+      asset.documentCopyId,
+      asset.projectCoverRevision,
+      asset.projectCoverFormRevision,
+      asset.workspaceLogoRevision,
+      asset.workspaceLogoPublishedRevision,
+    ].some((value) => value !== undefined)
+  )
+    throw new ConvexError("Comment author avatar is not published.");
+  if (!(await ctx.db.system.get(asset.storageId))) throw new ConvexError("Published image bytes are missing.");
+  return asset;
 }
 
 // Publication authority applies only to an image still referenced by this task's current description.

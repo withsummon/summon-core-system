@@ -3,6 +3,10 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
+import { apiIdSchema } from "../identity/schema";
+import { profileIdentity } from "../identity/profile_owner";
+import { accountRestricted } from "../identity/deactivation/access";
+import { projectAppearance } from "../projects/cover_owner";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { pageBudget } from "../commercial/validation";
 import { viewFilters } from "../savedViews/schema";
@@ -16,6 +20,7 @@ import {
   requirePublishedProject,
   requirePublishedTask,
   requirePublishedDescriptionImage,
+  requirePublishedCover,
   publishedTask,
 } from "./access";
 import { defaultPublicationSettings, publicationSettings } from "./schema";
@@ -76,6 +81,8 @@ export const settings = query({
   args: { anchor: v.string() },
   handler: async (ctx, { anchor }) => {
     const { publication, project, workspace } = await requirePublishedProject(ctx, anchor);
+    const appearance = await projectAppearance(ctx, project._id);
+    const cover = appearance?.coverAssetId ? await requirePublishedCover(ctx, anchor, appearance.coverAssetId) : null;
     return {
       anchor: publication.anchor,
       settings: publication.settings,
@@ -85,6 +92,16 @@ export const settings = query({
         identifier: project.identifier,
         description: project.description,
         logoProps: project.logoProps ? renderedProjectLogo(project.logoProps) : null,
+        cover: cover
+          ? {
+              id: cover._id,
+              name: cover.name,
+              contentType: cover.contentType,
+              size: cover.size,
+              downloadPath: `/assets/${cover._id}?anchor=${encodeURIComponent(anchor)}&purpose=cover`,
+            }
+          : null,
+        externalCoverUrl: appearance?.externalCoverUrl ?? null,
       },
       workspace: { _id: workspace._id, name: workspace.name, slug: workspace.slug },
     };
@@ -94,8 +111,13 @@ export const settings = query({
 export const resolveProject = query({
   args: { workspaceSlug: v.string(), projectId: v.string() },
   handler: async (ctx, { workspaceSlug, projectId }) => {
-    const id = ctx.db.normalizeId("projects", projectId);
-    const publication = id ? await publicationForProject(ctx, id) : null;
+    const apiId = apiIdSchema.safeParse(projectId);
+    if (!apiId.success) throw new ConvexError("Project is not published.");
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiId.data))
+      .unique();
+    const publication = project ? await publicationForProject(ctx, project._id) : null;
     if (!publication || publication.revokedAt !== null) throw new ConvexError("Project is not published.");
     const { workspace } = await requirePublishedProject(ctx, publication.anchor);
     if (workspace.slug !== workspaceSlug) throw new ConvexError("Project is not published.");
@@ -161,13 +183,15 @@ export const summary = query({
 });
 
 export const getTask = query({
-  args: { anchor: v.string(), taskId: v.id("tasks") },
+  args: { anchor: v.string(), taskId: v.string() },
   handler: async (ctx, { anchor, taskId }) => {
-    const { task } = await requirePublishedTask(ctx, anchor, taskId);
+    const id = ctx.db.normalizeId("tasks", taskId);
+    if (!id) throw new ConvexError("Work item is not published.");
+    const { task } = await requirePublishedTask(ctx, anchor, id);
     const [description, cycle, modules] = await Promise.all([
       ctx.db
         .query("taskDescriptions")
-        .withIndex("by_task", (q) => q.eq("taskId", taskId))
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
         .unique(),
       readTaskCycle(ctx, task),
       readTaskModules(ctx, task),
@@ -226,9 +250,11 @@ export const members = query({
           .query("workspaceMembers")
           .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", member.userId))
           .unique();
-        if (!workspaceMember?.active) return null;
-        const user = await ctx.db.get(member.userId);
-        return user ? { userId: user._id, name: user.name ?? null } : null;
+        if (!workspaceMember?.active || (await accountRestricted(ctx, member.userId))) return null;
+        const identity = await profileIdentity(ctx, member.userId);
+        return identity
+          ? { userId: identity.userId, name: identity.fullName || identity.displayName?.trim() || null }
+          : null;
       })
       .paginate(pageBudget(args.paginationOpts));
   },

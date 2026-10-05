@@ -8,7 +8,14 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireUser } from "../identity/access";
 import { taskChanged } from "./revision";
 import { pageBudget } from "../commercial/validation";
-import { requirePublishedComment, requirePublishedDiscussion } from "../publicSharing/access";
+import {
+  requirePublishedComment,
+  requirePublishedDiscussion,
+  requirePublishedCommentAvatar,
+} from "../publicSharing/access";
+import { profileIdentity } from "../identity/profile_owner";
+import { accountRestricted } from "../identity/deactivation/access";
+import { userAppearance } from "../identity/avatar_owner";
 import schema from "../schema";
 import { requireCommentAccess, requireEditableComment, discussionIsActive } from "./discussion_access";
 import { imageRichContent } from "./rich_content";
@@ -254,8 +261,12 @@ export const get = query({
 });
 
 // Anonymous publication reads expose the external comment only, never mention or account metadata.
-async function publicComment(ctx: QueryCtx, comment: Doc<"taskComments">) {
-  const author = await ctx.db.get(comment.authorId);
+async function publicComment(ctx: QueryCtx, anchor: string, comment: Doc<"taskComments">) {
+  const author = (await accountRestricted(ctx, comment.authorId)) ? null : await profileIdentity(ctx, comment.authorId);
+  const appearance = author ? await userAppearance(ctx, comment.authorId) : null;
+  const avatar = appearance?.avatarAssetId
+    ? await requirePublishedCommentAvatar(ctx, anchor, comment.taskId, comment._id, appearance.avatarAssetId)
+    : null;
   return {
     _id: comment._id,
     _creationTime: comment._creationTime,
@@ -266,7 +277,16 @@ async function publicComment(ctx: QueryCtx, comment: Doc<"taskComments">) {
     audience: comment.audience,
     updatedAt: comment.updatedAt,
     editedAt: comment.editedAt,
-    authorName: author?.name ?? null,
+    authorName: author ? author.fullName || author.displayName?.trim() || null : null,
+    authorAvatar: avatar
+      ? {
+          id: avatar._id,
+          name: avatar.name,
+          contentType: avatar.contentType,
+          size: avatar.size,
+          downloadPath: `/assets/${avatar._id}?anchor=${encodeURIComponent(anchor)}&task=${comment.taskId}&comment=${comment._id}&purpose=commentAvatar`,
+        }
+      : null,
   };
 }
 async function editablePublicComment(
@@ -289,14 +309,18 @@ export const publicList = query({
       .query("taskComments")
       .withIndex("by_task_audience", (q) => q.eq("taskId", task._id).eq("audience", "EXTERNAL"))
       .order("asc")
-      .map(async (comment) => (comment.deletedAt == null ? publicComment(ctx, comment) : null))
+      .map(async (comment) => (comment.deletedAt == null ? publicComment(ctx, args.anchor, comment) : null))
       .paginate(pageBudget(args.paginationOpts, 50));
   },
 });
 export const publicGet = query({
   args: { ...publicTarget, commentId: v.id("taskComments") },
   handler: async (ctx, args) =>
-    publicComment(ctx, (await requirePublishedComment(ctx, args.anchor, args.taskId, args.commentId)).comment),
+    publicComment(
+      ctx,
+      args.anchor,
+      (await requirePublishedComment(ctx, args.anchor, args.taskId, args.commentId)).comment
+    ),
 });
 export const publicCreate = mutation({
   args: { ...publicTarget, requestId: zodToConvex(commentRequestId), html: v.string() },

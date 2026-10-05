@@ -1,11 +1,9 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import { canIssueInvitation } from "../invitations/access";
-export function signupPolicy() {
-  return { signupEnabled: (process.env.ENABLE_SIGNUP ?? "1") === "1", isSelfManaged: true };
-}
+import { currentAuthentication } from "./instance/authentication";
 export async function canSignUp(ctx: QueryCtx, email: string) {
-  if (signupPolicy().signupEnabled) return true;
+  if ((await currentAuthentication(ctx)).signupEnabled) return true;
   const invitations = await ctx.db
     .query("invitations")
     .withIndex("by_email", (q) => q.eq("email", email).eq("status", "pending"))

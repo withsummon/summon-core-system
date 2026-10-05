@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import type { FunctionArgs } from "convex/server";
 import { api, internal } from "../_generated/api";
 import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { recordingReadMaxBytes } from "./content";
@@ -45,8 +46,7 @@ export const read = httpAction(async (ctx, request) => {
         : await ctx.runQuery(internal.assets.index.publicImage, {
             anchor,
             assetId,
-            taskId: url.searchParams.get("task") ?? "",
-            commentId: url.searchParams.get("comment"),
+            target: publicImageTargetFromUrl(url),
             readWorkspaceId: workspace,
           });
     if (!asset.storageId) return new Response("Asset not found.", { status: 404, headers: responseHeaders });
@@ -67,6 +67,24 @@ export const read = httpAction(async (ctx, request) => {
     throw error;
   }
 });
+
+function publicImageTargetFromUrl(url: URL): FunctionArgs<typeof internal.assets.index.publicImage>["target"] {
+  const purpose = url.searchParams.get("purpose");
+  const task = url.searchParams.get("task");
+  const comment = url.searchParams.get("comment");
+  if (
+    (purpose !== null && purpose !== "cover" && purpose !== "commentAvatar") ||
+    (purpose === "cover" && (task !== null || comment !== null))
+  )
+    throw new ConvexError("Published image target is invalid.");
+  return purpose === "cover"
+    ? { kind: "cover" }
+    : purpose === "commentAvatar"
+      ? { kind: "commentAvatar", taskId: task ?? "", commentId: comment ?? "" }
+      : comment === null
+        ? { kind: "description", taskId: task ?? "" }
+        : { kind: "comment", taskId: task ?? "", commentId: comment };
+}
 
 // This private range protocol stays below the HTTP action response limit without exposing storage URLs.
 async function readRecordingRange(

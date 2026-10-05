@@ -3,25 +3,29 @@ import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { requireRunMutationCtx } from "@convex-dev/better-auth/utils";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, genericOAuth } from "better-auth/plugins";
 import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { deactivateAccount } from "./identity/deactivation/index";
 import { sendAccountEmail } from "./identity/mail/sender";
-import { signInPolicy } from "./identity/signin_policy";
+import { signInAvailability } from "./identity/signin_policy";
+import { authenticationDecision } from "./identity/instance/authentication";
+import { mailConfiguration } from "./identity/mail/config";
+import { z } from "zod/v4";
+import { zodToConvex } from "convex-helpers/server/zod4";
 import { requireSignup } from "./identity/signup_policy";
 import { nativeOAuthProviders } from "./identity/oauth/providers";
-import { oauthConfigurations } from "./identity/oauth/config";
+import { oauthProviderIds, oauthConfigurations } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
 import { normalizedEmail } from "./invitations/access";
-import { lastLoginMedium } from "./identity/schema";
+import { instanceAuthentication, lastLoginMedium } from "./identity/schema";
 import { allocateUserApiId } from "./identity/user_owner";
 
 export const siteUrl = process.env.SITE_URL ?? "";
@@ -210,6 +214,65 @@ export const expireRateLimits = internalMutation({
   },
 });
 
+export const authenticationPolicy = internalQuery({
+  args: { subject: v.optional(v.object({ authId: v.string(), email: v.string() })) },
+  returns: v.object({ authentication: zodToConvex(instanceAuthentication), administratorPassword: v.boolean() }),
+  handler: async (ctx, args) => authenticationDecision(ctx, args.subject),
+});
+
+// Two actual issuer seams consume this proof: before credential/OTP/OAuth work,
+// and again after native verification but before the session is persisted.
+async function requireAuthenticationMethod(
+  ctx: GenericCtx<DataModel>,
+  path: string,
+  body: unknown,
+  providerId: unknown,
+  subject?: Parameters<typeof authenticationDecision>[1]
+) {
+  const otp = z
+    .object({ type: z.enum(["sign-in", "forget-password", "email-verification", "change-email"]) })
+    .safeParse(body);
+  let method: "password" | "magic" | "passwordReset" | "oauth" | undefined;
+  if (["/sign-in/email", "/sign-up/email"].includes(path)) method = "password";
+  else if (path === "/sign-in/email-otp") method = "magic";
+  else if (
+    [
+      "/email-otp/request-password-reset",
+      "/forget-password/email-otp",
+      "/email-otp/reset-password",
+      "/request-password-reset",
+      "/reset-password",
+    ].includes(path) ||
+    path.startsWith("/reset-password/")
+  )
+    method = "passwordReset";
+  else if (["/sign-in/oauth2", "/oauth2/link", "/oauth2/callback/:providerId"].includes(path)) method = "oauth";
+  else if (["/email-otp/send-verification-otp", "/email-otp/check-verification-otp"].includes(path) && otp.success) {
+    if (otp.data.type === "sign-in") method = "magic";
+    if (otp.data.type === "forget-password") method = "passwordReset";
+  }
+  if (!method) return;
+  const decision =
+    "db" in ctx
+      ? await authenticationDecision(ctx, subject)
+      : await ctx.runQuery(internal.better_auth.authenticationPolicy, { subject });
+  const policy = signInAvailability(
+    decision.authentication.passwordEnabled || decision.administratorPassword,
+    decision.authentication.magicEnabled,
+    mailConfiguration(process.env) !== null
+  );
+  if (method !== "oauth" && !policy[method])
+    throw new APIError("FORBIDDEN", { message: "This sign-in method is disabled by the instance administrator." });
+  if (method === "oauth") {
+    const input = z.object({ providerId: z.enum(oauthProviderIds) }).safeParse(body);
+    const provider = z
+      .enum(oauthProviderIds)
+      .safeParse(providerId ?? (input.success ? input.data.providerId : undefined));
+    if (!provider.success || !decision.authentication.providers[provider.data])
+      throw new APIError("FORBIDDEN", { message: "This OAuth provider is disabled by the instance administrator." });
+  }
+}
+
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   const rateLimitStorage: NonNullable<BetterAuthRateLimitOptions["customStorage"]> = {
     get: async (key) => {
@@ -231,7 +294,41 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     ...authOptions,
     database: authComponent.adapter(ctx),
     rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session, request) => {
+            if (!request?.path) return;
+            const user =
+              request.path === "/sign-in/email"
+                ? await request.context.internalAdapter.findUserById(session.userId)
+                : null;
+            await requireAuthenticationMethod(
+              ctx,
+              request.path,
+              request.body,
+              request.params?.providerId,
+              user?.emailVerified ? { authId: user.id, email: user.email } : undefined
+            );
+          },
+        },
+      },
+    },
     hooks: {
+      before: createAuthMiddleware(async (request) => {
+        const email = z.email().safeParse(request.body?.email);
+        const current =
+          request.path === "/sign-in/email" && email.success
+            ? await request.context.internalAdapter.findUserByEmail(normalizedEmail(email.data))
+            : null;
+        await requireAuthenticationMethod(
+          ctx,
+          request.path,
+          request.body,
+          request.params?.providerId,
+          current?.user.emailVerified ? { authId: current.user.id, email: current.user.email } : undefined
+        );
+      }),
       after: createAuthMiddleware(async (request) => {
         const session = request.context.newSession;
         if (!session) return;
@@ -266,7 +363,8 @@ export const authOptions = {
   rateLimit: { enabled: true, storage: "database", customRules: { "/convex/jwks": false } },
   session: { freshAge: 300 },
   user: { deleteUser: { enabled: true } },
-  account: { accountLinking: { allowUnlinkingAll: signInPolicy(process.env).magic } },
+  // Public unlink is disabled; the canonical disconnect mutation owns the live method floor.
+  account: { accountLinking: { allowUnlinkingAll: true } },
   disabledPaths: [
     "/delete-user",
     "/delete-user/callback",
@@ -279,13 +377,10 @@ export const authOptions = {
     "/api-key/get",
     "/api-key/update",
     "/api-key/delete",
-    ...(!signInPolicy(process.env).magic ? ["/sign-in/email-otp"] : []),
-    ...(!signInPolicy(process.env).passwordReset
-      ? ["/email-otp/request-password-reset", "/email-otp/reset-password", "/forget-password/email-otp"]
-      : []),
   ],
   emailAndPassword: {
-    enabled: signInPolicy(process.env).password,
+    // Native verification serves the current administrator exception; issuer hooks own policy.
+    enabled: true,
     requireEmailVerification: true,
     minPasswordLength: 8,
     maxPasswordLength: 1024,
@@ -311,9 +406,6 @@ export const authOptions = {
       allowedAttempts: 5,
       storeOTP: "encrypted",
       async sendVerificationOTP({ email, otp, type }) {
-        const policy = signInPolicy(process.env);
-        if ((type === "sign-in" && !policy.magic) || (type === "forget-password" && !policy.passwordReset))
-          throw new ConvexError("This sign-in method is disabled by the instance operator.");
         const purpose =
           type === "sign-in"
             ? "Sign in"
