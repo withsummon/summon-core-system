@@ -14,7 +14,8 @@ import { GithubIcon, NewTabIcon, PageIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // hooks
-import { useInstance, useTheme } from "@/hooks/store";
+import { useTheme } from "@/hooks/store";
+import application from "package.json";
 // assets
 
 const helpOptions = [
@@ -39,7 +40,6 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
   // states
   const [isNeedHelpOpen, setIsNeedHelpOpen] = useState(false);
   // store
-  const { instance } = useInstance();
   const { isSidebarCollapsed, toggleSidebar } = useTheme();
   // refs
   const helpOptionsRef = useRef<HTMLDivElement | null>(null);
@@ -127,7 +127,7 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
                   );
               })}
             </div>
-            <div className="px-2 pt-2 pb-1 text-10">Version: v{instance?.current_version}</div>
+            <div className="px-2 pt-2 pb-1 text-10">Version: v{application.version}</div>
           </div>
         )}
       </div>

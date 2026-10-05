@@ -13,11 +13,12 @@ import { Button, getButtonStyling } from "@plane/propel/button";
 type Props = {
   isOpen: boolean;
   handleClose: () => void;
-  onDiscardHref: string;
-};
+  pending?: boolean;
+  dirty?: boolean;
+} & ({ onDiscardHref: string; onDiscard?: never } | { onDiscard: () => void; onDiscardHref?: never });
 
 export function ConfirmDiscardModal(props: Props) {
-  const { isOpen, handleClose, onDiscardHref } = props;
+  const { isOpen, handleClose, pending = false, dirty = true } = props;
 
   return (
     <Dialog
@@ -31,11 +32,15 @@ export function ConfirmDiscardModal(props: Props) {
           <div className="sm:flex sm:items-start">
             <div className="mt-3 text-center sm:mt-0 sm:text-left">
               <Dialog.Title className="text-16 leading-6 font-medium text-tertiary">
-                You have unsaved changes
+                {pending ? "Saving changes" : dirty ? "You have unsaved changes" : "Leave this page?"}
               </Dialog.Title>
               <div className="mt-2">
                 <p className="text-13 text-placeholder">
-                  Changes you made will be lost if you go back. Do you wish to go back?
+                  {pending
+                    ? "Wait for the current operation to finish before leaving."
+                    : dirty
+                      ? "Changes you made will be lost if you go back. Do you wish to go back?"
+                      : "The operation has finished. You can leave this page."}
                 </p>
               </div>
             </div>
@@ -45,9 +50,15 @@ export function ConfirmDiscardModal(props: Props) {
           <Button variant="secondary" size="lg" onClick={handleClose}>
             Keep editing
           </Button>
-          <Link href={onDiscardHref} className={getButtonStyling("primary", "base")}>
-            Go back
-          </Link>
+          {props.onDiscard ? (
+            <Button variant="primary" disabled={pending} onClick={props.onDiscard}>
+              {dirty ? "Discard and leave" : "Leave page"}
+            </Button>
+          ) : (
+            <Link href={props.onDiscardHref} className={getButtonStyling("primary", "base")}>
+              Go back
+            </Link>
+          )}
         </div>
       </Dialog.Panel>
     </Dialog>

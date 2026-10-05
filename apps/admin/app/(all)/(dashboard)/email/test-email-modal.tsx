@@ -1,114 +1,111 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useAction } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Dialog } from "@plane/propel/dialog";
-// plane imports
 import { Button } from "@plane/propel/button";
-import { InstanceService } from "@plane/services";
-// ui
 import { Input } from "@plane/ui";
 
-type Props = {
+export function SendTestEmailModal({
+  isOpen,
+  handleClose,
+  expectedRevision,
+  canEdit,
+  onPendingChange,
+}: {
   isOpen: boolean;
   handleClose: () => void;
-};
-
-enum ESendEmailSteps {
-  SEND_EMAIL = "SEND_EMAIL",
-  SUCCESS = "SUCCESS",
-  FAILED = "FAILED",
-}
-
-const instanceService = new InstanceService();
-
-export function SendTestEmailModal(props: Props) {
-  const { isOpen, handleClose } = props;
-
-  // state
-  const [receiverEmail, setReceiverEmail] = useState("");
-  const [sendEmailStep, setSendEmailStep] = useState<ESendEmailSteps>(ESendEmailSteps.SEND_EMAIL);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  // reset state
-  const resetState = () => {
-    setReceiverEmail("");
-    setSendEmailStep(ESendEmailSteps.SEND_EMAIL);
-    setIsLoading(false);
-    setError("");
+  expectedRevision: number;
+  canEdit: boolean;
+  onPendingChange: (pending: boolean) => void;
+}) {
+  const send = useAction(api.identity.instance.email.test);
+  const [intent, setIntent] = useState<FunctionArgs<typeof api.identity.instance.email.test> | null>(null);
+  const [recipient, setRecipient] = useState("");
+  const [acceptanceId, setAcceptanceId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const close = () => {
+    if (pending) return;
+    setIntent(null);
+    setRecipient("");
+    setAcceptanceId(null);
+    setError(null);
+    handleClose();
   };
-
-  useEffect(() => {
-    if (!isOpen) {
-      resetState();
+  const submit = async () => {
+    if (!canEdit || pending) return;
+    const args = intent ?? { expectedRevision, recipient, requestId: crypto.randomUUID() };
+    setIntent(args);
+    setPending(true);
+    onPendingChange(true);
+    setError(null);
+    try {
+      setAcceptanceId(await send(args));
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Resend acceptance could not be confirmed.");
+    } finally {
+      setPending(false);
+      onPendingChange(false);
     }
-  }, [isOpen]);
-
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.preventDefault();
-
-    setIsLoading(true);
-    await instanceService
-      .sendTestEmail(receiverEmail)
-      .then(() => {
-        setSendEmailStep(ESendEmailSteps.SUCCESS);
-      })
-      .catch((error) => {
-        setError(error?.error || "Failed to send email");
-        setSendEmailStep(ESendEmailSteps.FAILED);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
   };
-
   return (
     <Dialog
-      open={isOpen}
+      open={isOpen && canEdit}
       onOpenChange={(open) => {
-        if (!open) handleClose();
+        if (!open) close();
       }}
     >
-      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 transition-all sm:max-w-xl">
-        <Dialog.Title className="text-16 leading-6 font-medium text-primary">
-          {sendEmailStep === ESendEmailSteps.SEND_EMAIL
-            ? "Send test email"
-            : sendEmailStep === ESendEmailSteps.SUCCESS
-              ? "Email send"
-              : "Failed"}{" "}
+      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 text-left shadow-raised-200 sm:max-w-xl">
+        <Dialog.Title className="text-16 font-medium text-primary">
+          {acceptanceId ? "Resend accepted the test email" : "Send test email"}
         </Dialog.Title>
-        <div className="pt-6 pb-2">
-          {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
-            <Input
-              id="receiver_email"
-              type="email"
-              value={receiverEmail}
-              onChange={(e) => setReceiverEmail(e.target.value)}
-              placeholder="Receiver email"
-              className="w-full resize-none text-16"
-              tabIndex={0}
-            />
-          )}
-          {sendEmailStep === ESendEmailSteps.SUCCESS && (
-            <div className="flex flex-col gap-y-4 text-13">
-              <p>
-                We have sent the test email to {receiverEmail}. Please check your spam folder if you cannot find it.
-              </p>
-              <p>If you still cannot find it, recheck your SMTP configuration and trigger a new test email.</p>
+        <div className="space-y-4 pt-6 pb-2">
+          {acceptanceId ? (
+            <div className="space-y-2 text-13">
+              <p>Resend accepted the email to {recipient}. Check the recipient inbox to verify delivery.</p>
+              <p className="break-all">Acceptance ID: {acceptanceId}</p>
             </div>
+          ) : (
+            <>
+              <label htmlFor="test-recipient" className="text-13 text-tertiary">
+                Recipient email
+              </label>
+              <Input
+                id="test-recipient"
+                type="email"
+                value={recipient}
+                disabled={pending || !canEdit || intent !== null}
+                onChange={(event) => {
+                  setRecipient(event.target.value);
+                  setIntent(null);
+                  setError(null);
+                }}
+                placeholder="Recipient email"
+                className="w-full"
+              />
+            </>
           )}
-          {sendEmailStep === ESendEmailSteps.FAILED && <div className="text-13">{error}</div>}
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={0}>
-              {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancel" : "Close"}
+          {error && (
+            <p role="alert" className="text-13 text-danger-primary">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="lg" disabled={pending} onClick={close}>
+              {acceptanceId ? "Close" : "Cancel"}
             </Button>
-            {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
-              <Button variant="primary" size="lg" loading={isLoading} onClick={handleSubmit} tabIndex={0}>
-                {isLoading ? "Sending email" : "Send email"}
+            {!acceptanceId && (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={!recipient || !canEdit || pending}
+                loading={pending}
+                onClick={() => {
+                  void submit();
+                }}
+              >
+                {error ? "Retry same test" : "Send email"}
               </Button>
             )}
           </div>

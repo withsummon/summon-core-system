@@ -4,15 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import type { TInstanceAuthenticationModes } from "@plane/types";
 import { getCoreAuthenticationModesMap } from "./core";
 import type { TGetAuthenticationModeProps } from "./types";
 
-export const useAuthenticationModes = (props: TGetAuthenticationModeProps): TInstanceAuthenticationModes[] => {
+export const useAuthenticationModes = (props: TGetAuthenticationModeProps) => {
   // derived values
   const authenticationModes = getCoreAuthenticationModesMap(props);
 
-  const availableAuthenticationModes: TInstanceAuthenticationModes[] = [
+  const availableAuthenticationModes = [
     authenticationModes["unique-codes"],
     authenticationModes["passwords-login"],
     authenticationModes["google"],
