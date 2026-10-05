@@ -140,35 +140,59 @@ export default function SummonAutomationPage() {
     { workspaceId: workspace._id },
     { initialNumItems: 100 }
   );
-  const jobList = usePaginatedQuery(api.automation.jobs.list, { workspaceId: workspace._id }, { initialNumItems: 100 });
   const { status: templateListStatus, loadMore: loadTemplatelist } = templateList;
   useEffect(() => {
     if (templateListStatus === "CanLoadMore") loadTemplatelist(100);
   }, [templateListStatus, loadTemplatelist]);
-  const { status: jobListStatus, loadMore: loadJoblist } = jobList;
-  useEffect(() => {
-    if (jobListStatus === "CanLoadMore") loadJoblist(100);
-  }, [jobListStatus, loadJoblist]);
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
-  const isLoading = templateList.status !== "Exhausted" || jobList.status !== "Exhausted";
-  const jobs = jobList.results;
+  const jobList = usePaginatedQuery(
+    api.automation.jobs.list,
+    {
+      workspaceId: workspace._id,
+      search: query,
+      searchScope: "studio",
+      type: activeType === "all" ? undefined : activeType,
+    },
+    { initialNumItems: 8 }
+  );
+  const jobCounts = usePaginatedQuery(
+    api.automation.jobs.counts,
+    { workspaceId: workspace._id, search: query, searchScope: "studio" },
+    { initialNumItems: 100 }
+  );
+  const recentJobs = usePaginatedQuery(
+    api.automation.jobs.list,
+    { workspaceId: workspace._id },
+    { initialNumItems: 4 }
+  );
+  const { status: countStatus, loadMore: loadCounts } = jobCounts;
+  useEffect(() => {
+    if (countStatus === "CanLoadMore") loadCounts(100);
+  }, [countStatus, loadCounts]);
+  const total = jobCounts.results.filter(
+    (job) => job.matchesSearch && (activeType === "all" || job.type === activeType)
+  ).length;
+  const countsComplete = countStatus === "Exhausted";
+  const pageCount = Math.max(1, Math.ceil(total / 8));
+  const currentPage = countsComplete ? Math.min(page, pageCount) : page;
+  const { status: jobListStatus, loadMore: loadJobs, results: jobs } = jobList;
+  useEffect(() => {
+    if (jobListStatus === "CanLoadMore" && jobs.length < currentPage * 8) loadJobs(8);
+  }, [jobListStatus, loadJobs, jobs.length, currentPage]);
+  const { status: recentStatus, loadMore: loadRecent, results: recent } = recentJobs;
+  useEffect(() => {
+    if (recentStatus === "CanLoadMore" && recent.length < 4) loadRecent(4);
+  }, [recentStatus, loadRecent, recent.length]);
+  const isLoading = templateList.status !== "Exhausted";
+  const historyLoading = jobListStatus !== "Exhausted" && jobs.length < currentPage * 8;
   const templates = useMemo(() => orderedTemplates(templateList.results), [templateList.results]);
   const projectNames = new Map(projects.map((row) => [row._id, row.name]));
-  const filteredJobs = jobs.filter(
-    (job) =>
-      (activeType === "all" || job.template.type === activeType) &&
-      [job.title, job.template.type, projectNames.get(job.projectId)].some((value) =>
-        value?.toLowerCase().includes(query.trim().toLowerCase())
-      )
-  );
-  const pageCount = Math.max(1, Math.ceil(filteredJobs.length / 8));
-  const currentPage = Math.min(page, pageCount);
-  const pagedJobs = filteredJobs.slice((currentPage - 1) * 8, currentPage * 8);
+  const pagedJobs = jobs.slice((currentPage - 1) * 8, currentPage * 8);
   const types = useMemo(
-    () => Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map((job) => job.template.type)])),
-    [jobs, templates]
+    () => Array.from(new Set([...templates.map(({ type }) => type), ...jobCounts.results.map((job) => job.type)])),
+    [jobCounts.results, templates]
   );
   const template =
     searchParams.get("template") ??
@@ -200,7 +224,11 @@ export default function SummonAutomationPage() {
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
               <Input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                maxLength={255}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search templates, documents, or ask anything..."
                 className="h-10 rounded-xl pr-12 pl-9"
               />
@@ -351,7 +379,7 @@ export default function SummonAutomationPage() {
                 </button>
               ))}
             </div>
-            <SummonRequestState loading={isLoading} empty={!isLoading && filteredJobs.length === 0} />
+            <SummonRequestState loading={historyLoading} empty={jobListStatus === "Exhausted" && jobs.length === 0} />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left">
                 <thead className="border-b border-subtle bg-layer-1/40 text-[10px] font-semibold text-tertiary">
@@ -434,15 +462,16 @@ export default function SummonAutomationPage() {
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
               <p className="text-[10px] text-secondary">
-                Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
-                {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
+                Showing {pagedJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
+                {pagedJobs.length ? (currentPage - 1) * 8 + pagedJobs.length : 0}{" "}
+                {countsComplete ? `of ${total} documents` : "documents · Counting…"}
               </p>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   aria-label="Previous page"
                   disabled={currentPage === 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  onClick={() => setPage(Math.max(1, currentPage - 1))}
                   className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
                 >
                   <ChevronLeft className="size-3.5" />
@@ -450,12 +479,17 @@ export default function SummonAutomationPage() {
                 <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-[11px] font-semibold text-white">
                   {currentPage}
                 </span>
-                <span className="px-1 text-[10px] text-tertiary">/ {pageCount}</span>
+                <span className="px-1 text-[10px] text-tertiary">/ {countsComplete ? pageCount : "…"}</span>
                 <button
                   type="button"
                   aria-label="Next page"
-                  disabled={currentPage === pageCount}
-                  onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                  disabled={
+                    historyLoading ||
+                    (countsComplete
+                      ? currentPage === pageCount
+                      : jobListStatus === "Exhausted" && jobs.length <= currentPage * 8)
+                  }
+                  onClick={() => setPage(currentPage + 1)}
                   className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
                 >
                   <ChevronRight className="size-3.5" />
@@ -503,7 +537,7 @@ export default function SummonAutomationPage() {
               <History className="size-4 text-tertiary" />
             </div>
             <div className="mt-3 grid gap-3">
-              {jobs.slice(0, 4).map((job) => (
+              {recent.slice(0, 4).map((job) => (
                 <Link
                   key={job._id}
                   href={automationJobPath(workspaceSlug, job._id)}
@@ -526,7 +560,7 @@ export default function SummonAutomationPage() {
                   </span>
                 </Link>
               ))}
-              {!jobs.length && !isLoading ? (
+              {!recent.length && recentStatus === "Exhausted" ? (
                 <p className="text-[11px] text-tertiary">No generation activity yet.</p>
               ) : null}
             </div>
