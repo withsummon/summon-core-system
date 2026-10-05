@@ -1,3 +1,4 @@
+import { imageForInstance } from "./image";
 import { authenticationForInstance } from "./authentication";
 import { ConvexError, v } from "convex/values";
 import { zodToConvexFields } from "convex-helpers/server/zod4";
@@ -30,6 +31,8 @@ export const get = query({
       mailConfigured: mailForInstance(instance).configured,
       oauthProviders: oauth.configurations.map((provider) => provider.id),
       oauthAdoptionRequired: oauth.adoptionRequired,
+      imageConfigured: imageForInstance(instance).configured,
+      imageAdoptionRequired: imageForInstance(instance).adoptionRequired,
     };
   },
 });

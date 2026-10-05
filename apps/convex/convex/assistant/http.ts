@@ -1,6 +1,6 @@
 import { httpAction } from "../_generated/server";
 import { api, internal } from "../_generated/api";
-import { providerConfig, streamProvider } from "./provider";
+import { runtimeAiConfiguration, streamProvider, LLMError } from "./provider";
 import { replyRequest } from "./schema";
 import type { z } from "zod/v4";
 const headers = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
@@ -18,9 +18,11 @@ export const options = httpAction(
 export const reply = httpAction(async (ctx, request) => {
   if (!(await ctx.runQuery(api.identity.session.status, {})).valid)
     return new Response("Authentication required.", { status: 401, headers });
-  let config: ReturnType<typeof providerConfig> | null = null;
+  let config: z.infer<typeof runtimeAiConfiguration> | null = null;
   try {
-    config = providerConfig(process.env);
+    const configured = await ctx.runQuery(internal.identity.instance.ai.runtime, {});
+    if (!configured) throw new LLMError("llm_not_configured");
+    config = configured;
   } catch {
     // Deterministic document proposals do not require an LLM connection.
   }
