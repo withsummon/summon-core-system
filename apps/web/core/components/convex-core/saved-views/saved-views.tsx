@@ -334,7 +334,12 @@ function ProjectViewDetail({
         canEdit={features.features.views && detail.canEdit}
         canCreate={features.features.views && !!access?.canCreate}
         onClose={() => setEditor(null)}
-        onCreated={onCreated}
+        onCreated={(id) =>
+          release((allowNavigation) => {
+            setPreview(null);
+            if (allowNavigation) onCreated(id);
+          })
+        }
       />
       <ViewLifecycleCommand
         lifecycle={lifecycle}
