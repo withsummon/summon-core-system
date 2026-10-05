@@ -4,14 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useNavigate, useOutletContext } from "react-router";
+import { useOutletContext } from "react-router";
+import { useContext } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { getPageName } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
-import { DocumentAccessBoundary, DocumentEditor } from "@/components/convex-core/documents/editor";
+import {
+  DocumentReadBoundary,
+  DocumentRecoveryContext,
+  DocumentEditor,
+} from "@/components/convex-core/documents/editor";
 import { RecordVisit } from "@/components/convex-core/navigation/record-visit";
 import { PageContentLoader } from "@/components/pages/loaders/page-content-loader";
 import { PageDetailsHeader } from "../header";
@@ -19,25 +24,19 @@ import type { Route } from "./+types/page";
 
 export default function PageDetailsPage({ params }: Route.ComponentProps) {
   const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
-  const navigate = useNavigate();
+  const documentRecovery = useContext(DocumentRecoveryContext);
+  if (!documentRecovery) throw new Error("Document recovery requires the document route owner.");
+  const [onCapture, isSaving, recovery] = documentRecovery;
   return (
-    <DocumentAccessBoundary
-      key={params.pageId}
-      documentId={params.pageId}
-      onBack={() => navigate(`/${address.workspace.slug}/projects/${address.project._id}/pages/`)}
-      unavailableTitle="Page not found"
-      backLabel="View other Pages"
-    >
-      {(onCapture, isSaving, recovery) => (
-        <PageDetailsContent
-          address={address}
-          documentId={params.pageId}
-          onCapture={onCapture}
-          isSaving={isSaving}
-          recovery={recovery(false)}
-        />
-      )}
-    </DocumentAccessBoundary>
+    <DocumentReadBoundary recovery={recovery(true)}>
+      <PageDetailsContent
+        address={address}
+        documentId={params.pageId}
+        onCapture={onCapture}
+        isSaving={isSaving}
+        recovery={recovery(false)}
+      />
+    </DocumentReadBoundary>
   );
 }
 

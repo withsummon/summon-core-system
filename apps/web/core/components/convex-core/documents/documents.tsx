@@ -1,6 +1,6 @@
 import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -12,7 +12,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
 import { MetadataForm } from "./metadata-form";
-import { DocumentAccessBoundary, DocumentEditor } from "./editor";
+import { DocumentReadBoundary, DocumentRecoveryContext, DocumentEditor } from "./editor";
 import { DocumentHierarchy } from "./hierarchy";
 import { DocumentLabels } from "./labels";
 import { DocumentHistory } from "./history";
@@ -22,6 +22,7 @@ import { CustomMenu } from "@plane/ui";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
 export function Documents({ workspace }: { workspace: FunctionReturnType<typeof api.workspaces.index.list>[number] }) {
+  const documentRecovery = useContext(DocumentRecoveryContext);
   const [search, setSearch] = useState("");
   const { results, status, loadMore } = usePaginatedQuery(
     api.documents.index.list,
@@ -39,29 +40,24 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
     });
   const [creating, setCreating] = useState(false);
   const [trash, setTrash] = useState(false);
-  if (selected)
+  if (selected) {
+    if (!documentRecovery) throw new Error("Document recovery requires the document route owner.");
+    const [onCapture, isSaving, recovery] = documentRecovery;
     return (
-      <DocumentAccessBoundary
-        key={selected}
-        documentId={selected}
-        onBack={() => setSelected(null)}
-        unavailableTitle="This document is unavailable"
-        backLabel="Back to documents"
-      >
-        {(onCapture, isSaving, recovery) => (
-          <DocumentDetail
-            workspaceId={workspace._id}
-            documentId={selected}
-            workspaceSlug={workspace.slug}
-            workspaceRole={workspace.membershipRole}
-            onBack={() => setSelected(null)}
-            onCapture={onCapture}
-            isSaving={isSaving}
-            recovery={recovery(false)}
-          />
-        )}
-      </DocumentAccessBoundary>
+      <DocumentReadBoundary recovery={recovery(true)}>
+        <DocumentDetail
+          workspaceId={workspace._id}
+          documentId={selected}
+          workspaceSlug={workspace.slug}
+          workspaceRole={workspace.membershipRole}
+          onBack={() => setSelected(null)}
+          onCapture={onCapture}
+          isSaving={isSaving}
+          recovery={recovery(false)}
+        />
+      </DocumentReadBoundary>
     );
+  }
   return (
     <section className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet, useNavigate, useOutletContext } from "react-router";
+import { Outlet, useNavigate, useOutletContext, useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { useTheme } from "next-themes";
 import { api } from "@summon/convex/api";
@@ -19,6 +19,7 @@ import type { Route } from "./+types/layout";
 
 export default function ProjectPagesLayout({ params }: Route.ComponentProps) {
   const session = useOutletContext<WorkspaceSession>();
+  const { pageId } = useParams();
   const commands = useStickiesCommands();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export default function ProjectPagesLayout({ params }: Route.ComponentProps) {
     projectId: params.projectId,
   });
   const config = useQuery(api.projects.features.get, address ? { projectId: address.project._id } : "skip");
+  if (pageId && config && !config.features.pages) throw new Error("Page not found");
   return (
     <PreservedWorkspaceShell
       {...session}
