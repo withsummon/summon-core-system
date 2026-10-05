@@ -1,5 +1,6 @@
 import { api } from "../_generated/api";
-import { providerConfig } from "../assistant/provider";
+import { aiConfigured } from "../assistant/provider";
+import { currentAi } from "../identity/instance/ai";
 import { endpoint } from "../mcp/transport";
 import { workspaceName, workspaceSlug } from "./metadata";
 import { ConvexError, v } from "convex/values";
@@ -84,13 +85,11 @@ export const integrationStatus = query({
   handler: async (ctx, args) => {
     const { member } = await requireWorkspace(ctx, args.workspaceId);
     if (member.role !== "admin") throw new ConvexError("Only workspace administrators can view integration settings.");
-    let ai: Pick<ReturnType<typeof providerConfig>, "provider" | "model"> | null = null;
-    try {
-      const { provider, model } = providerConfig(process.env);
-      ai = { provider, model };
-    } catch {
-      /* Invalid or absent provider configuration is unavailable. */
-    }
+    const { configuration } = await currentAi(ctx);
+    const ai =
+      configuration && aiConfigured(configuration)
+        ? { provider: configuration.provider, model: configuration.model }
+        : null;
     let mcpOrigin: string | null = null;
     try {
       mcpOrigin = new URL(endpoint()).origin;

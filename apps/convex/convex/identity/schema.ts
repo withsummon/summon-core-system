@@ -1,3 +1,4 @@
+import { storedAiConfiguration } from "../assistant/provider";
 import { encryptedFields } from "../webhooks/schema";
 import { preferences } from "./preferences_fields";
 import { oauthSettings, oauthProviderIds } from "./oauth/config";
@@ -96,7 +97,9 @@ export const identityTables = {
     authentication: zodToConvex(instanceAuthentication.optional()),
     workspaceCreationDisabled: v.optional(v.boolean()),
     oauth: zodToConvex(oauthSettings.optional()),
+    ai: zodToConvex(storedAiConfiguration.optional()),
     resendKey: v.optional(v.union(v.object(encryptedFields), v.null())),
+    unsplashKey: v.optional(v.union(v.object(encryptedFields), v.null())),
     ...zodToConvexFields(instanceGeneral.shape),
     instanceId: zodToConvex(instanceIdentifier),
     revision: v.number(),

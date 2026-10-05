@@ -1,7 +1,7 @@
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { providerConfig, streamProvider } from "../assistant/provider";
+import { runtimeAiConfiguration, streamProvider, LLMError } from "../assistant/provider";
 import { runFields } from "./jobs";
 import { ConvexError, v, type Infer } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
@@ -88,9 +88,11 @@ export const preview = action({
   handler: async (ctx, args): Promise<Id<"automationJobs">> => {
     const started = await ctx.runMutation(internal.automation.jobs.begin, args);
     if (!started.generate) return started.jobId;
-    let config: ReturnType<typeof providerConfig>;
+    let config: z.infer<typeof runtimeAiConfiguration>;
     try {
-      config = providerConfig(process.env);
+      const configured = await ctx.runQuery(internal.identity.instance.ai.runtime, {});
+      if (!configured) throw new LLMError("llm_not_configured");
+      config = configured;
     } catch {
       await ctx.runMutation(internal.automation.jobs.fail, { jobId: started.jobId, error: "provider_unconfigured" });
       return started.jobId;

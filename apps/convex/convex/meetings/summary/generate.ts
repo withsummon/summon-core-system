@@ -1,8 +1,9 @@
 "use node";
+import type { z } from "zod/v4";
 import { action } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
-import { providerConfig, streamProvider } from "../../assistant/provider";
+import { runtimeAiConfiguration, streamProvider, LLMError } from "../../assistant/provider";
 import { convertGeneratedText } from "../../lib/documentConversion";
 import { runArgs } from "./runs";
 import { meetingDocumentTitle } from "./title";
@@ -21,9 +22,11 @@ export const summarize = action({
   handler: async (ctx, args): Promise<Id<"meetingSummaryRuns">> => {
     const started = await ctx.runMutation(internal.meetings.summary.runs.begin, args);
     if (!started.generate || !started.metadata) return started.runId;
-    let config: ReturnType<typeof providerConfig>;
+    let config: z.infer<typeof runtimeAiConfiguration>;
     try {
-      config = providerConfig(process.env);
+      const configured = await ctx.runQuery(internal.identity.instance.ai.runtime, {});
+      if (!configured) throw new LLMError("llm_not_configured");
+      config = configured;
     } catch {
       await ctx.runMutation(internal.meetings.summary.runs.fail, {
         runId: started.runId,
