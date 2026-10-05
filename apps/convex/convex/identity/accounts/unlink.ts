@@ -4,7 +4,7 @@ import { mutation } from "../../_generated/server";
 import { authComponent, createAuth } from "../../better_auth";
 import { requireUser } from "../session";
 import { currentSignInPolicy } from "../signin_policy";
-import { oauthConfigurations } from "../oauth/config";
+import { currentOAuth } from "../instance/oauth";
 import { clearPasswordAttempts, reservePasswordAttempt } from "../password/policy";
 
 export const disconnect = mutation({
@@ -19,7 +19,7 @@ export const disconnect = mutation({
     const accounts = await internalAdapter.findAccounts(authUser._id);
     const policy = await currentSignInPolicy(ctx, { authId: authUser._id, email: authUser.email });
     const configured = new Set<string>(
-      oauthConfigurations(process.env)
+      (await currentOAuth(ctx)).configurations
         .filter((provider) => policy.providers[provider.id])
         .map((provider) => provider.id)
     );

@@ -31,7 +31,10 @@ async function read(url: string, accessToken: string): Promise<unknown> {
   if (!response.ok) throw new Error("OAuth identity could not be verified.");
   return response.json();
 }
-function endpoints({ id, host, organization }: Configuration) {
+function endpoints(configuration: Configuration) {
+  const { id } = configuration;
+  const host = "host" in configuration ? configuration.host : undefined;
+  const organization = "organization" in configuration ? configuration.organization : undefined;
   return id === "google"
     ? {
         authorize: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -62,7 +65,9 @@ function endpoints({ id, host, organization }: Configuration) {
 }
 async function providerUser(configuration: Configuration, accessToken?: string) {
   if (!accessToken) throw new Error("OAuth access token unavailable.");
-  const { id, host, organization } = configuration;
+  const { id } = configuration;
+  const host = "host" in configuration ? configuration.host : undefined;
+  const organization = "organization" in configuration ? configuration.organization : undefined;
   const rawProfile = await read(endpoints(configuration).user, accessToken);
   if (id === "google") {
     const { verified_email, ...profile } = googleIdentity.parse(rawProfile);
@@ -91,8 +96,8 @@ async function providerUser(configuration: Configuration, accessToken?: string) 
   }
   return { id: profile.id, name: profile.name, email: verifiedEmail.email, emailVerified: true };
 }
-export function nativeOAuthProviders(env: Record<string, string | undefined>): GenericOAuthConfig[] {
-  return oauthConfigurations(env).map((configuration) => {
+export function nativeOAuthProviders(configurations: Configuration[]): GenericOAuthConfig[] {
+  return configurations.map((configuration) => {
     const urls = endpoints(configuration);
     return {
       providerId: configuration.id,

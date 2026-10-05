@@ -102,6 +102,7 @@ import type * as identity_instance_access from "../identity/instance/access.js";
 import type * as identity_instance_authentication from "../identity/instance/authentication.js";
 import type * as identity_instance_configuration from "../identity/instance/configuration.js";
 import type * as identity_instance_index from "../identity/instance/index.js";
+import type * as identity_instance_oauth from "../identity/instance/oauth.js";
 import type * as identity_instance_roster from "../identity/instance/roster.js";
 import type * as identity_instance_workspaces from "../identity/instance/workspaces.js";
 import type * as identity_mail_availability from "../identity/mail/availability.js";
@@ -371,6 +372,7 @@ declare const fullApi: ApiFromModules<{
   "identity/instance/authentication": typeof identity_instance_authentication;
   "identity/instance/configuration": typeof identity_instance_configuration;
   "identity/instance/index": typeof identity_instance_index;
+  "identity/instance/oauth": typeof identity_instance_oauth;
   "identity/instance/roster": typeof identity_instance_roster;
   "identity/instance/workspaces": typeof identity_instance_workspaces;
   "identity/mail/availability": typeof identity_mail_availability;

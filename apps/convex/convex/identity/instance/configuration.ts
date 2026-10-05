@@ -3,8 +3,8 @@ import { ConvexError, v } from "convex/values";
 import { zodToConvexFields } from "convex-helpers/server/zod4";
 import { internalMutation, mutation, query, type QueryCtx } from "../../_generated/server";
 import { requireInstanceAdmin } from "./access";
+import { oauthForInstance } from "./oauth";
 import { mailConfiguration } from "../mail/config";
-import { oauthConfigurations } from "../oauth/config";
 import type { Doc } from "../../_generated/dataModel";
 import { instanceGeneral } from "../schema";
 export const get = query({
@@ -17,6 +17,7 @@ export const get = query({
       .order("desc")
       .first();
     const administrator = firstAdmin ? await ctx.db.get(firstAdmin.userId) : null;
+    const oauth = oauthForInstance(instance);
     return {
       initializedAt: instance.initializedAt,
       instanceName: instance.instanceName,
@@ -27,7 +28,8 @@ export const get = query({
       ...workspaceCreationForInstance(instance),
       passwordSignIn: authenticationForInstance(instance).passwordEnabled,
       mailConfigured: mailConfiguration(process.env) !== null,
-      oauthProviders: oauthConfigurations(process.env).map((provider) => provider.id),
+      oauthProviders: oauth.configurations.map((provider) => provider.id),
+      oauthAdoptionRequired: oauth.adoptionRequired,
     };
   },
 });

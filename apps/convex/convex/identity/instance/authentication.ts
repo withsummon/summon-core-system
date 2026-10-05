@@ -3,6 +3,7 @@ import { zodToConvex } from "convex-helpers/server/zod4";
 import { internalMutation, mutation, query, type QueryCtx } from "../../_generated/server";
 import { instanceAuthentication, instanceAuthenticationPatch } from "../schema";
 import { oauthConfigurations, oauthProviderIds } from "../oauth/config";
+import { oauthForInstance } from "./oauth";
 import { mailConfiguration } from "../mail/config";
 import { accountRestricted } from "../deactivation/access";
 import { instanceAdminAccess, requireInstanceAdmin } from "./access";
@@ -63,11 +64,13 @@ export const get = query({
   args: {},
   handler: async (ctx) => {
     const { instance } = await requireInstanceAdmin(ctx);
+    const oauth = oauthForInstance(instance);
     return {
       authentication: authenticationForInstance(instance),
       revision: instance.revision,
       mailConfigured: mailConfiguration(process.env) !== null,
-      configuredProviders: oauthConfigurations(process.env).map((provider) => provider.id),
+      configuredProviders: oauth.configurations.map((provider) => provider.id),
+      oauthAdoptionRequired: oauth.adoptionRequired,
     };
   },
 });

@@ -1,5 +1,5 @@
 import { preferences } from "./preferences_fields";
-import { oauthProviderIds } from "./oauth/config";
+import { oauthSettings, oauthProviderIds } from "./oauth/config";
 import { defineTable, ROUTABLE_HTTP_METHODS } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
@@ -92,6 +92,7 @@ export const identityTables = {
     initializedAt: v.number(),
     authentication: zodToConvex(instanceAuthentication.optional()),
     workspaceCreationDisabled: v.optional(v.boolean()),
+    oauth: zodToConvex(oauthSettings.optional()),
     ...zodToConvexFields(instanceGeneral.shape),
     instanceId: zodToConvex(instanceIdentifier),
     revision: v.number(),
