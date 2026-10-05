@@ -18,6 +18,10 @@ import type { Route } from "./+types/root";
 // local imports
 import ErrorPage from "./error";
 import { AppProviders } from "./providers";
+// font stylesheets
+import interFontStyles from "@fontsource-variable/inter/index.css?url";
+import materialSymbolsFontStyles from "@fontsource/material-symbols-rounded/index.css?url";
+import ibmPlexMonoFontStyles from "@fontsource/ibm-plex-mono/index.css?url";
 // font preload
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 
@@ -30,6 +34,9 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
   { rel: "shortcut icon", href: faviconIco },
   { rel: "manifest", href: siteWebmanifest },
+  { rel: "stylesheet", href: interFontStyles },
+  { rel: "stylesheet", href: materialSymbolsFontStyles },
+  { rel: "stylesheet", href: ibmPlexMonoFontStyles },
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
