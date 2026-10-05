@@ -42,6 +42,8 @@ export const viewFilters = v.object({
   assigneeIds: v.array(v.id("users")),
   labelIds: v.array(v.id("taskLabels")),
   creatorIds: v.array(v.id("users")),
+  cycleIds: v.optional(v.array(v.id("cycles"))),
+  moduleIds: v.optional(v.array(v.id("modules"))),
   startDate: dateRange,
   targetDate: dateRange,
 });

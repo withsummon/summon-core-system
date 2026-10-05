@@ -139,7 +139,7 @@ async function publishedTasks(ctx: QueryCtx, args: Infer<typeof listArgs>) {
     .order("desc")
     .map(async (task) =>
       publishedTask(task, access) &&
-      (!args.filters || matchesFilters(task, args.filters)) &&
+      (!args.filters || (await matchesFilters(ctx, task, args.filters))) &&
       (args.stateId === undefined || task.stateId === args.stateId)
         ? task
         : null

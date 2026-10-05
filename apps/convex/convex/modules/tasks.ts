@@ -5,12 +5,14 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { mutation, query } from "../_generated/server";
-import { requireTask, taskIsActive, taskCanRead, taskDetail } from "../tasks/access";
+import { requireTask, taskIsActive, taskCanRead, taskDetail, taskOrdering } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
 import { requireModule, requireModuleRevision, requireEditableModule } from "./access";
 import { draftFields, validateModuleReferences } from "../tasks/drafts/fields";
+import { taskOrder, viewFilters } from "../tasks/schema";
+import { matchesFilters, validateShape } from "../savedViews/filters";
 export const set = mutation({
   args: {
     moduleId: v.id("modules"),
@@ -48,19 +50,62 @@ export const setMany = mutation({
   },
 });
 export const list = query({
-  args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
+  args: {
+    moduleId: v.id("modules"),
+    filters: v.optional(viewFilters),
+    order: v.optional(taskOrder),
+    includeSubtasks: v.optional(v.boolean()),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const access = await requireModule(ctx, args.moduleId);
     const { module, user, member, projectMember } = access;
     const canDetach = member.role !== "guest" && projectMember.role !== "guest" && !module.archived;
-    return stream(ctx.db, schema)
-      .query("moduleTasks")
-      .withIndex("by_module_task", (q) => q.eq("moduleId", args.moduleId))
-      .map(async (row) => {
-        const task = await ctx.db.get(row.taskId);
+    if (args.filters) validateShape(args.filters);
+    const source = stream(ctx.db, schema);
+    const ordering = taskOrdering[args.order ?? "createdAt"];
+    const tasks =
+      args.order === undefined
+        ? source
+            .query("moduleTasks")
+            .withIndex("by_module_task", (q) => q.eq("moduleId", module._id))
+            .map((row) => ctx.db.get(row.taskId))
+        : args.order === "createdAt"
+          ? source
+              .query("tasks")
+              .withIndex("by_project", (q) => q.eq("projectId", module.projectId))
+              .order("desc")
+          : args.order === "updatedAt"
+            ? source
+                .query("tasks")
+                .withIndex("by_project_updated", (q) => q.eq("projectId", module.projectId))
+                .order("desc")
+            : source
+                .query("tasks")
+                .withIndex(ordering.index, (q) => q.eq("workspaceId", module.workspaceId))
+                .order(ordering.direction);
+    return tasks
+      .map(async (task) => {
         if (!task || task.projectId !== module.projectId || task.workspaceId !== module.workspaceId) return null;
+        if (
+          args.order !== undefined &&
+          !(await ctx.db
+            .query("moduleTasks")
+            .withIndex("by_module_task", (q) => q.eq("moduleId", module._id).eq("taskId", task._id))
+            .unique())
+        )
+          return null;
         const readable = taskIsActive(task) && (await taskCanRead(ctx, task, user._id));
         if (!readable && !canDetach) return null;
+        if (args.filters && !(await matchesFilters(ctx, task, args.filters))) return null;
+        if (
+          args.includeSubtasks === false &&
+          (await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique())
+        )
+          return null;
         return {
           taskId: task._id,
           updatedAt: task.updatedAt,

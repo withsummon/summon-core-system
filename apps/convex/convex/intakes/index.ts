@@ -236,7 +236,7 @@ export const list = query({
         )
           return null;
         if (selection.statuses.length && !selection.statuses.includes(effectiveStatus)) return null;
-        if (!matchesFilters(task, filters)) return null;
+        if (!(await matchesFilters(ctx, task, filters))) return null;
         for (const [value, range] of [
           [task._creationTime, selection.createdAt],
           [task.updatedAt, selection.updatedAt],

@@ -33,8 +33,7 @@ export async function resultPage(
       if (
         task.workspaceId !== workspace._id ||
         (projectId !== null && task.projectId !== projectId) ||
-        !taskIsActive(task) ||
-        !matchesFilters(task, criteria.filters)
+        !taskIsActive(task)
       )
         return null;
       const permission = await read(task.projectId);
@@ -43,6 +42,7 @@ export async function resultPage(
         !taskRoleCanRead(task, user._id, member.role, permission.member.role, !!permission.project.guestViewAllFeatures)
       )
         return null;
+      if (!(await matchesFilters(ctx, task, criteria.filters))) return null;
       if (
         !display.includeSubtasks &&
         (await ctx.db
