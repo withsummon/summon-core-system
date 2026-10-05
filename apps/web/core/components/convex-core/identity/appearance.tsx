@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
@@ -11,14 +11,20 @@ export function ProfileAppearance() {
   const theme = profile?.preferences.theme;
   const language = profile?.preferences.language;
   const { setTheme } = useTheme();
+  const themeSetter = useRef(setTheme);
+  useEffect(() => {
+    themeSetter.current = setTheme;
+  }, [setTheme]);
+
+  // Apply saved preferences independently of next-themes local/storage setter identity.
   useEffect(() => {
     if (theme?.theme === undefined) return;
-    setTheme(theme.theme);
+    themeSetter.current(theme.theme);
     if (theme.theme === "custom" && theme.primary && theme.background && theme.darkPalette !== undefined) {
       applyCustomTheme(theme.primary, theme.background, theme.darkPalette ? "dark" : "light");
       return clearCustomTheme;
     }
-  }, [theme?.theme, theme?.primary, theme?.background, theme?.darkPalette, setTheme]);
+  }, [theme?.theme, theme?.primary, theme?.background, theme?.darkPalette]);
   useEffect(() => {
     const selected = SUPPORTED_LANGUAGES.find((option) => option.value === language);
     if (selected)
