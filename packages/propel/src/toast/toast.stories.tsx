@@ -209,9 +209,9 @@ export const UpdateToast: Story = {
 export const PromiseToast: Story = {
   render() {
     const handlePromise = () => {
-      const promise = new Promise<{ name?: string; error?: string }>((resolve, reject) => {
+      const promise = new Promise<{ name: string }>((resolve, reject) => {
         setTimeout(() => {
-          Math.random() > 0.5 ? resolve({ name: "Success data" }) : reject({ error: "Failed" });
+          return Math.random() > 0.5 ? resolve({ name: "Success data" }) : reject(new globalThis.Error("Failed"));
         }, 2000);
       });
 
@@ -223,7 +223,7 @@ export const PromiseToast: Story = {
         },
         error: {
           title: "Request failed",
-          message: (error) => `Error: ${error.error}`,
+          message: (error) => (error instanceof globalThis.Error ? error.message : "Request failed"),
         },
       });
     };
