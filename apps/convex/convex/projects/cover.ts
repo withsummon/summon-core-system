@@ -8,7 +8,7 @@ import { prepareAsset } from "../assets/index";
 import { fileMetadataFields } from "../assets/schema";
 import { assetSizeLimit, supportedAssetTypes } from "../assets/content";
 import { pageBudget } from "../commercial/validation";
-import { projectCover, requireCoverWrite, replaceProjectCover, setExternalCover } from "./cover_owner";
+import { projectCover, requireCoverWrite, replaceProjectCover } from "./cover_owner";
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
@@ -91,13 +91,14 @@ export const setExternal = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number(), url: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
     const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
-    await setExternalCover(ctx, args.projectId, appearance, args.url);
+    await replaceProjectCover(ctx, args.projectId, appearance, null, args.url);
+    return projectCover(ctx, args.projectId);
   },
 });
 export const clear = mutation({
   args: { projectId: v.id("projects"), expectedRevision: v.number() },
   handler: async (ctx, args) => {
     const { appearance } = await requireCoverWrite(ctx, args.projectId, args.expectedRevision);
-    await replaceProjectCover(ctx, args.projectId, appearance, null, true);
+    await replaceProjectCover(ctx, args.projectId, appearance, null, null);
   },
 });

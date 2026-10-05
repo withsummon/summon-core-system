@@ -76,7 +76,6 @@ export function GeneralProfileSettingsForm({
   if (!appearance || !policy) return <p role="status">Loading profile images…</p>;
 
   const changeCover = async (selection: File | string) => {
-    setCoverPending(true);
     const starting = getValues("expectedRevision");
     const controller = new AbortController();
     transfer.current = controller;
@@ -102,7 +101,6 @@ export function GeneralProfileSettingsForm({
       acknowledge(receipt.startingRevision, receipt.profileRevision);
     } finally {
       transfer.current = null;
-      setCoverPending(false);
     }
   };
   return (
@@ -175,7 +173,9 @@ export function GeneralProfileSettingsForm({
                   )
                 }
                 onUpload={changeCover}
+                onBusy={setCoverPending}
                 onSelect={changeCover}
+                onStockSelect={changeCover}
               />
             </div>
           </div>

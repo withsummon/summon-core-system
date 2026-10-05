@@ -97,7 +97,12 @@ export const save = mutation({
     logoProps: projectLogoProps,
     timezone: v.string(),
     leadId: v.union(v.id("users"), v.null()),
-    cover: v.optional(v.object({ assetId: v.union(v.id("assets"), v.null()), expectedRevision: v.number() })),
+    cover: v.optional(
+      v.union(
+        v.object({ assetId: v.union(v.id("assets"), v.null()), expectedRevision: v.number() }),
+        v.object({ externalCoverUrl: v.string(), expectedRevision: v.number() })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const { project, user, member } = await requireNetworkScope(ctx, args.projectId);
@@ -115,7 +120,9 @@ export const save = mutation({
     const timezone = validateTimezone(args.timezone);
     if (args.cover) {
       const { appearance } = await requireCoverWrite(ctx, project._id, args.cover.expectedRevision);
-      if (args.cover.assetId) {
+      if ("externalCoverUrl" in args.cover)
+        await replaceProjectCover(ctx, project._id, appearance, null, args.cover.externalCoverUrl);
+      else if (args.cover.assetId) {
         const { asset } = await requireAsset(ctx, args.cover.assetId, true);
         if (
           asset.purpose !== "projectCover" ||
@@ -126,9 +133,9 @@ export const save = mutation({
           !(await ctx.db.system.get(asset.storageId))
         )
           throw new ConvexError("This project cover draft is unavailable. Choose the image again.");
-        await replaceProjectCover(ctx, project._id, appearance, asset._id, true);
+        await replaceProjectCover(ctx, project._id, appearance, asset._id, null);
         await ctx.db.patch(asset._id, { projectCoverFormRevision: undefined });
-      } else await replaceProjectCover(ctx, project._id, appearance, null, true);
+      } else await replaceProjectCover(ctx, project._id, appearance, null, null);
     }
     await ctx.db.patch(project._id, {
       ...fields,

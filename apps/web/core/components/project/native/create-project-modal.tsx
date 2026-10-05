@@ -35,6 +35,7 @@ export function NativeCreateProjectModal({
   const client = useConvex();
   const create = useMutation(api.projects.index.create);
   const prepareCover = useMutation(api.projects.cover.prepare);
+  const setExternalCover = useMutation(api.projects.cover.setExternal);
   const finalize = useAction(api.assets.upload.finalize);
   const saveFeatures = useMutation(api.projects.features.save);
   const workspaces = useQuery(api.workspaces.index.list, {});
@@ -61,9 +62,11 @@ export function NativeCreateProjectModal({
     project !== null &&
     features !== null &&
     JSON.stringify({ ...features.features, intake: features.intake }) !== JSON.stringify(project.features);
+  const coverSaved =
+    coverAssetId !== null || (appearance !== null && selectedExternalCover(appearance, draft.externalCoverUrl));
   const dirty =
     createdId !== null
-      ? coverAssetId === null || featureDirty
+      ? !coverSaved || featureDirty
       : cover !== initialCover ||
         JSON.stringify(draft) !== JSON.stringify(initialFields) ||
         JSON.stringify(logo) !== JSON.stringify(initialLogo);
@@ -99,6 +102,16 @@ export function NativeCreateProjectModal({
     return coverState;
   };
   const saveCover = async (projectId: Id<"projects">, captured: FunctionReturnType<typeof api.projects.cover.get>) => {
+    if (draft.externalCoverUrl != null) {
+      if (selectedExternalCover(captured, draft.externalCoverUrl)) return;
+      const saved = await setExternalCover({
+        projectId,
+        expectedRevision: captured.revision,
+        url: draft.externalCoverUrl,
+      });
+      setAppearance({ ...captured, ...saved });
+      return;
+    }
     if (!policy) throw new Error("Cover upload policy is unavailable. Your selected cover is retained.");
     if (coverAssetId !== null) return;
     const file =
@@ -131,7 +144,7 @@ export function NativeCreateProjectModal({
     });
   const finish = () =>
     void run(async () => {
-      if (!createdId || !project || !features || coverAssetId === null) return;
+      if (!createdId || !project || !features || !coverSaved) return;
       if (featureDirty) {
         await saveFeatures(features);
         setProject({ ...project, features: { ...features.features, intake: features.intake } });
@@ -153,11 +166,12 @@ export function NativeCreateProjectModal({
           draft={draft}
           logo={logo}
           onLogo={setLogo}
-          onChange={(fields) => setDraft({ ...draft, ...fields })}
+          onChange={(fields) => setDraft((current) => ({ ...current, ...fields }))}
           cover={cover}
           onCover={setCover}
           policy={policy}
           pending={pending}
+          onBusy={setPending}
           canCreate={canCreate}
           onClose={dismiss}
           onSubmit={submit}
@@ -171,7 +185,7 @@ export function NativeCreateProjectModal({
             onFeatures={setFeatures}
             pending={pending}
             onBusy={setPending}
-            coverSaved={coverAssetId !== null}
+            coverSaved={coverSaved}
             coverRevision={appearance.revision}
             onCoverRefresh={(current) => {
               setAppearance(current);
@@ -233,4 +247,11 @@ export function NativeCreateProjectModal({
       )}
     </ModalCore>
   );
+}
+
+function selectedExternalCover(
+  appearance: FunctionReturnType<typeof api.projects.cover.get>,
+  url: FunctionArgs<typeof api.projects.cover.setExternal>["url"] | undefined
+) {
+  return url != null && appearance.cover === null && appearance.externalCoverUrl === url;
 }
