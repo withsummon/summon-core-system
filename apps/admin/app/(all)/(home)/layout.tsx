@@ -5,21 +5,20 @@
  */
 
 import { useEffect } from "react";
-import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { Outlet } from "react-router";
 // hooks
-import { useUser } from "@/hooks/store/use-user";
+import { useAdminSession } from "@/providers/user.provider";
 
 function RootLayout() {
   // router
   const { replace } = useRouter();
   // store hooks
-  const { isUserLoggedIn } = useUser();
+  const { authority } = useAdminSession();
 
   useEffect(() => {
-    if (isUserLoggedIn === true) replace("/general");
-  }, [replace, isUserLoggedIn]);
+    if (authority?.isInstanceAdmin) replace("/general");
+  }, [replace, authority?.isInstanceAdmin]);
 
   return (
     <div className="relative z-10 flex h-screen w-screen flex-col items-center overflow-hidden overflow-y-auto bg-surface-1 px-8 pt-6 pb-10">
@@ -28,4 +27,4 @@ function RootLayout() {
   );
 }
 
-export default observer(RootLayout);
+export default RootLayout;

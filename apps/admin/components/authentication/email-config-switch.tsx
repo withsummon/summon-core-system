@@ -1,39 +1,16 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import React from "react";
-import { observer } from "mobx-react";
-// hooks
-import type { TInstanceAuthenticationMethodKeys } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
-import { useInstance } from "@/hooks/store";
-// ui
-// types
-
-type Props = {
-  disabled: boolean;
-  updateConfig: (key: TInstanceAuthenticationMethodKeys, value: string) => void;
-};
-
-export const EmailCodesConfiguration = observer(function EmailCodesConfiguration(props: Props) {
-  const { disabled, updateConfig } = props;
-  // store
-  const { formattedConfig } = useInstance();
-  // derived values
-  const enableMagicLogin = formattedConfig?.ENABLE_MAGIC_LINK_LOGIN ?? "";
-
+import type { TGetAuthenticationModeProps } from "@/hooks/oauth/types";
+export function EmailCodesConfiguration({
+  disabled,
+  updateConfig,
+  configuration,
+}: Pick<TGetAuthenticationModeProps, "disabled" | "updateConfig" | "configuration">) {
   return (
     <ToggleSwitch
-      value={Boolean(parseInt(enableMagicLogin))}
-      onChange={() => {
-        const newEnableMagicLogin = Boolean(parseInt(enableMagicLogin)) === true ? "0" : "1";
-        updateConfig("ENABLE_MAGIC_LINK_LOGIN", newEnableMagicLogin);
-      }}
+      value={configuration.authentication.magicEnabled}
+      onChange={() => updateConfig({ magicEnabled: !configuration.authentication.magicEnabled })}
       size="sm"
       disabled={disabled}
     />
   );
-});
+}

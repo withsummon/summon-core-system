@@ -1,39 +1,16 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import React from "react";
-import { observer } from "mobx-react";
-// hooks
-import type { TInstanceAuthenticationMethodKeys } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
-import { useInstance } from "@/hooks/store";
-// ui
-// types
-
-type Props = {
-  disabled: boolean;
-  updateConfig: (key: TInstanceAuthenticationMethodKeys, value: string) => void;
-};
-
-export const PasswordLoginConfiguration = observer(function PasswordLoginConfiguration(props: Props) {
-  const { disabled, updateConfig } = props;
-  // store
-  const { formattedConfig } = useInstance();
-  // derived values
-  const enableEmailPassword = formattedConfig?.ENABLE_EMAIL_PASSWORD ?? "";
-
+import type { TGetAuthenticationModeProps } from "@/hooks/oauth/types";
+export function PasswordLoginConfiguration({
+  disabled,
+  updateConfig,
+  configuration,
+}: Pick<TGetAuthenticationModeProps, "disabled" | "updateConfig" | "configuration">) {
   return (
     <ToggleSwitch
-      value={Boolean(parseInt(enableEmailPassword))}
-      onChange={() => {
-        const newEnableEmailPassword = Boolean(parseInt(enableEmailPassword)) === true ? "0" : "1";
-        updateConfig("ENABLE_EMAIL_PASSWORD", newEnableEmailPassword);
-      }}
+      value={configuration.authentication.passwordEnabled}
+      onChange={() => updateConfig({ passwordEnabled: !configuration.authentication.passwordEnabled })}
       size="sm"
       disabled={disabled}
     />
   );
-});
+}

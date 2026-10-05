@@ -4,30 +4,50 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { useAdminSession } from "@/providers/user.provider";
+import { useEffect } from "react";
+import { usePaginatedQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { useAdminAssetUrl } from "@/providers/instance.provider";
 
 // plane internal packages
 import { WEB_BASE_URL } from "@plane/constants";
 import { NewTabIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import { getFileURL } from "@plane/utils";
 // hooks
-import { useWorkspace } from "@/hooks/store";
 
-type TWorkspaceListItemProps = {
-  workspaceId: string;
-};
-
-export const WorkspaceListItem = observer(function WorkspaceListItem({ workspaceId }: TWorkspaceListItemProps) {
-  // store hooks
-  const { getWorkspaceById } = useWorkspace();
-  // derived values
-  const workspace = getWorkspaceById(workspaceId);
-
-  if (!workspace) return null;
+export function WorkspaceListItem({
+  workspace,
+}: {
+  workspace: FunctionReturnType<typeof api.identity.instance.workspaces.list>["page"][number];
+}) {
+  const { authentication, authority } = useAdminSession();
+  const allowed = authentication.isAuthenticated && authority?.isInstanceAdmin === true;
+  const {
+    results: projects,
+    status: projectsStatus,
+    loadMore: loadProjects,
+  } = usePaginatedQuery(api.identity.instance.workspaces.projects, allowed ? { workspaceId: workspace._id } : "skip", {
+    initialNumItems: 100,
+  });
+  const {
+    results: members,
+    status: membersStatus,
+    loadMore: loadMembers,
+  } = usePaginatedQuery(api.identity.instance.workspaces.members, allowed ? { workspaceId: workspace._id } : "skip", {
+    initialNumItems: 100,
+  });
+  useEffect(() => {
+    if (projectsStatus === "CanLoadMore") loadProjects(100);
+  }, [projectsStatus, loadProjects]);
+  useEffect(() => {
+    if (membersStatus === "CanLoadMore") loadMembers(100);
+  }, [membersStatus, loadMembers]);
+  const logoUrl = useAdminAssetUrl(allowed ? workspace.logo?.downloadPath : undefined);
   return (
     <a
-      key={workspaceId}
+      key={workspace._id}
       href={`${WEB_BASE_URL}/${encodeURIComponent(workspace.slug)}`}
       target="_blank"
       className="group flex items-center justify-between gap-2.5 truncate rounded-lg border border-subtle bg-layer-1 p-3 hover:border-subtle-1 hover:bg-layer-1-hover hover:shadow-raised-100"
@@ -36,12 +56,12 @@ export const WorkspaceListItem = observer(function WorkspaceListItem({ workspace
       <div className="flex items-start gap-4">
         <span
           className={`relative mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center p-2 text-11 uppercase ${
-            !workspace?.logo_url && "rounded-lg bg-accent-primary text-on-color"
+            !logoUrl && "rounded-lg bg-accent-primary text-on-color"
           }`}
         >
-          {workspace?.logo_url && workspace.logo_url !== "" ? (
+          {logoUrl ? (
             <img
-              src={getFileURL(workspace.logo_url)}
+              src={logoUrl}
               className="absolute top-0 left-0 h-full w-full rounded-sm object-cover"
               alt="Workspace Logo"
             />
@@ -56,25 +76,25 @@ export const WorkspaceListItem = observer(function WorkspaceListItem({ workspace
               <h4 className="text-13 text-tertiary">[{workspace.slug}]</h4>
             </Tooltip>
           </div>
-          {workspace.owner.email && (
+          {workspace.owner?.email && (
             <div className="flex items-center gap-1 text-11">
               <h3 className="font-medium text-secondary">Owned by:</h3>
-              <h4 className="text-tertiary">{workspace.owner.email}</h4>
+              <h4 className="text-tertiary">{workspace.owner?.email}</h4>
             </div>
           )}
           <div className="flex items-center gap-2.5 text-11">
-            {workspace.total_projects !== null && (
+            {projectsStatus === "Exhausted" && (
               <span className="flex items-center gap-1">
                 <h3 className="font-medium text-secondary">Total projects:</h3>
-                <h4 className="text-tertiary">{workspace.total_projects}</h4>
+                <h4 className="text-tertiary">{projects.length}</h4>
               </span>
             )}
-            {workspace.total_members !== null && (
+            {membersStatus === "Exhausted" && (
               <>
                 •
                 <span className="flex items-center gap-1">
                   <h3 className="font-medium text-secondary">Total members:</h3>
-                  <h4 className="text-tertiary">{workspace.total_members}</h4>
+                  <h4 className="text-tertiary">{members.length}</h4>
                 </span>
               </>
             )}
@@ -86,4 +106,4 @@ export const WorkspaceListItem = observer(function WorkspaceListItem({ workspace
       </div>
     </a>
   );
-});
+}
