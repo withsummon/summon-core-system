@@ -6,11 +6,13 @@ import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { mutation, query } from "../_generated/server";
-import { requireTask, taskIsActive, taskCanRead, taskDetail } from "../tasks/access";
+import { requireTask, taskIsActive, taskCanRead, taskDetail, taskOrdering } from "../tasks/access";
 import { requireProject } from "../identity/access";
 import { requireTaskRevision, taskChanged } from "../tasks/revision";
 import { requireCycle, requireCycleRevision, requireOpenCycle } from "./access";
 import { draftFields } from "../tasks/drafts/fields";
+import { taskOrder, viewFilters } from "../tasks/schema";
+import { matchesFilters, validateShape } from "../savedViews/filters";
 export const assign = mutation({
   args: {
     cycleId: v.id("cycles"),
@@ -38,7 +40,13 @@ export const current = query({
   },
 });
 export const list = query({
-  args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
+  args: {
+    cycleId: v.id("cycles"),
+    filters: v.optional(viewFilters),
+    order: v.optional(taskOrder),
+    includeSubtasks: v.optional(v.boolean()),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     const access = await requireCycle(ctx, args.cycleId);
     const { cycle, user, member, projectMember } = access;
@@ -50,14 +58,50 @@ export const list = query({
       args.paginationOpts.numItems > 100
     )
       throw new ConvexError("Choose 1–100 tasks per page.");
-    return stream(ctx.db, schema)
-      .query("cycleTasks")
-      .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
-      .map(async (row) => {
-        const task = await ctx.db.get(row.taskId);
+    if (args.filters) validateShape(args.filters);
+    const source = stream(ctx.db, schema);
+    const ordering = taskOrdering[args.order ?? "createdAt"];
+    const tasks =
+      args.order === undefined
+        ? source
+            .query("cycleTasks")
+            .withIndex("by_cycle", (q) => q.eq("cycleId", cycle._id))
+            .map((row) => ctx.db.get(row.taskId))
+        : args.order === "createdAt"
+          ? source
+              .query("tasks")
+              .withIndex("by_project", (q) => q.eq("projectId", cycle.projectId))
+              .order("desc")
+          : args.order === "updatedAt"
+            ? source
+                .query("tasks")
+                .withIndex("by_project_updated", (q) => q.eq("projectId", cycle.projectId))
+                .order("desc")
+            : source
+                .query("tasks")
+                .withIndex(ordering.index, (q) => q.eq("workspaceId", cycle.workspaceId))
+                .order(ordering.direction);
+    return tasks
+      .map(async (task) => {
         if (!task || task.projectId !== cycle.projectId || task.workspaceId !== cycle.workspaceId) return null;
+        if (args.order !== undefined) {
+          const membership = await ctx.db
+            .query("cycleTasks")
+            .withIndex("by_task", (q) => q.eq("taskId", task._id))
+            .unique();
+          if (membership?.cycleId !== cycle._id) return null;
+        }
         const readable = taskIsActive(task) && (await taskCanRead(ctx, task, user._id));
         if (!readable && !canDetach) return null;
+        if (args.filters && !(await matchesFilters(ctx, task, args.filters))) return null;
+        if (
+          args.includeSubtasks === false &&
+          (await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique())
+        )
+          return null;
         return {
           taskId: task._id,
           updatedAt: task.updatedAt,

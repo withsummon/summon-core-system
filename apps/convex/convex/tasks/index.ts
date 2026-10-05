@@ -38,6 +38,7 @@ export const list = query({
   args: {
     projectId: v.id("projects"),
     openOnly: v.optional(v.boolean()),
+    includeSubtasks: v.optional(v.boolean()),
     filters: v.optional(viewFilters),
     search: v.optional(v.string()),
     order: v.optional(taskOrder),
@@ -74,9 +75,17 @@ export const list = query({
         )
           return null;
         if (
-          (args.filters && !matchesFilters(task, args.filters)) ||
+          (args.filters && !(await matchesFilters(ctx, task, args.filters))) ||
           (args.stateId !== undefined && task.stateId !== args.stateId) ||
           !`${task.title} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search)
+        )
+          return null;
+        if (
+          args.includeSubtasks === false &&
+          (await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique())
         )
           return null;
         return taskDetail(ctx, task, access);

@@ -7,8 +7,10 @@ import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
-import { pageBudget } from "../commercial/validation";
-import { requireTask, taskDetail, taskCanRead, taskRoleCanRead } from "./access";
+import { pageBudget, text } from "../commercial/validation";
+import { taskOrder, viewFilters } from "./schema";
+import { matchesFilters, validateShape } from "../savedViews/filters";
+import { requireTask, taskDetail, taskCanRead, taskRoleCanRead, taskOrdering } from "./access";
 import { requireTaskRevision, taskChanged } from "./revision";
 const MAX_BULK_TASKS = 20;
 export const lifecycleOperation = v.union(
@@ -93,23 +95,47 @@ export const list = query({
   args: {
     projectId: v.id("projects"),
     view: v.union(v.literal("archived"), v.literal("deleted")),
+    filters: v.optional(viewFilters),
+    search: v.optional(v.string()),
+    order: v.optional(taskOrder),
+    includeSubtasks: v.optional(v.boolean()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const { user, member, projectMember, project } = await requireProject(ctx, args.projectId);
-    return stream(ctx.db, schema)
-      .query("tasks")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .order("desc")
+    const access = await requireProject(ctx, args.projectId);
+    const { user, member, projectMember, project } = access;
+    if (args.filters) validateShape(args.filters);
+    const search = text(args.search ?? "", "Search", 255).toLowerCase();
+    const ordering = taskOrdering[args.order ?? "createdAt"];
+    const tasks = stream(ctx.db, schema).query("tasks");
+    const source =
+      args.order === "updatedAt"
+        ? tasks.withIndex("by_project_updated", (q) => q.eq("projectId", project._id)).order("desc")
+        : args.order === undefined || args.order === "createdAt"
+          ? tasks.withIndex("by_project", (q) => q.eq("projectId", project._id)).order("desc")
+          : tasks.withIndex(ordering.index, (q) => q.eq("workspaceId", project.workspaceId)).order(ordering.direction);
+    return source
       .map(async (task) => {
-        if (task.status === "triage") return null;
+        if (task.status === "triage" || task.projectId !== project._id || task.workspaceId !== project.workspaceId)
+          return null;
         const eligible =
           args.view === "deleted"
             ? task.deletedAt != null && (task.createdBy === user._id || projectMember.role === "admin")
             : task.deletedAt == null &&
               task.archivedAt != null &&
               taskRoleCanRead(task, user._id, member.role, projectMember.role, !!project.guestViewAllFeatures);
-        return eligible ? task : null;
+        if (!eligible || !`${task.title} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search))
+          return null;
+        if (args.filters && !(await matchesFilters(ctx, task, args.filters))) return null;
+        if (
+          args.includeSubtasks === false &&
+          (await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique())
+        )
+          return null;
+        return taskDetail(ctx, { ...task, status: task.status }, access);
       })
       .paginate(pageBudget(args.paginationOpts));
   },
