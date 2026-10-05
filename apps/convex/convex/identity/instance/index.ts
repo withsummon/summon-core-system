@@ -8,6 +8,7 @@ import { zodToConvexFields } from "convex-helpers/server/zod4";
 import { instanceGeneral, instanceIdentifier } from "../schema";
 import { workspaceCreationForInstance } from "./configuration";
 import { instanceAdminAccess } from "./access";
+import { operatorOAuth } from "./oauth";
 import { operatorAuthentication } from "./authentication";
 export async function requireNotInstanceAdmin(ctx: QueryCtx, userId: Id<"users">) {
   const setup = await ctx.db
@@ -44,6 +45,7 @@ export const bootstrap = internalMutation({
       key: "instance",
       initializedAt: Date.now(),
       authentication: operatorAuthentication(process.env),
+      oauth: await operatorOAuth(process.env),
       workspaceCreationDisabled: workspaceCreationForInstance(setup).isWorkspaceCreationDisabled,
       ...instanceGeneral.parse(args),
       instanceId: instanceIdentifier.parse(

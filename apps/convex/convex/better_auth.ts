@@ -22,6 +22,7 @@ import { z } from "zod/v4";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { requireSignup } from "./identity/signup_policy";
 import { nativeOAuthProviders } from "./identity/oauth/providers";
+import { runtimeOAuth } from "./identity/instance/oauth";
 import { oauthProviderIds, oauthConfigurations } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
 import { normalizedEmail } from "./invitations/access";
@@ -273,7 +274,21 @@ async function requireAuthenticationMethod(
   }
 }
 
+export const oauthConfiguration = internalQuery({ args: {}, handler: (ctx) => runtimeOAuth(ctx) });
+
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
+  // Both native generic handlers and refresh closures share this factory-local
+  // configuration. The global schema/introspection options remain unchanged.
+  const oauth = "db" in ctx ? runtimeOAuth(ctx) : ctx.runQuery(internal.better_auth.oauthConfiguration, {});
+  const oauthOptions: Parameters<typeof genericOAuth>[0] = { config: [] };
+  const oauthPlugin = genericOAuth(oauthOptions);
+  const requestOAuth = {
+    ...oauthPlugin,
+    init: async (context: Parameters<NonNullable<typeof oauthPlugin.init>>[0]) => {
+      oauthOptions.config = nativeOAuthProviders((await oauth).configurations);
+      return oauthPlugin.init(context);
+    },
+  };
   const rateLimitStorage: NonNullable<BetterAuthRateLimitOptions["customStorage"]> = {
     get: async (key) => {
       const { adapter } = await createAuth(ctx).$context;
@@ -293,6 +308,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     ...authOptions,
     database: authComponent.adapter(ctx),
+    plugins: authOptions.plugins.map((plugin) => (plugin.id === "generic-oauth" ? requestOAuth : plugin)),
     rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
     databaseHooks: {
       session: {
@@ -316,6 +332,11 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
     hooks: {
       before: createAuthMiddleware(async (request) => {
+        if (["/sign-in/oauth2", "/oauth2/link", "/oauth2/callback/:providerId"].includes(request.path)) {
+          const configuration = await oauth;
+          if (configuration.adoptionRequired)
+            throw new APIError("FORBIDDEN", { message: "OAuth configuration requires explicit operator adoption." });
+        }
         const email = z.email().safeParse(request.body?.email);
         const current =
           request.path === "/sign-in/email" && email.success
@@ -338,7 +359,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
             : request.path === "/sign-in/email-otp"
               ? "magic-code"
               : request.path === "/oauth2/callback/:providerId"
-                ? oauthConfigurations(process.env).find((provider) => provider.id === request.params?.providerId)?.id
+                ? (await oauth).configurations.find((provider) => provider.id === request.params?.providerId)?.id
                 : undefined;
         if (!medium) return;
         // Native issuance and metadata are separate HTTP transactions. The
@@ -398,7 +419,7 @@ export const authOptions = {
       keyExpiration: { minExpiresIn: 0, maxExpiresIn: Infinity },
       rateLimit: { timeWindow: 60_000, maxRequests: 60 },
     }),
-    genericOAuth({ config: nativeOAuthProviders(process.env) }),
+    genericOAuth({ config: nativeOAuthProviders(oauthConfigurations(process.env)) }),
     emailOTP({
       overrideDefaultEmailVerification: true,
       changeEmail: { enabled: true, verifyCurrentEmail: true },
