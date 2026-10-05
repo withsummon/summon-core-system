@@ -79,6 +79,7 @@ export function IssueCommentToolbar(props: Props) {
                   >
                     <button
                       type="button"
+                      aria-label={item.name}
                       onClick={() => executeCommand(item)}
                       className={cn(
                         "grid aspect-square place-items-center rounded-xs p-0.5 text-placeholder hover:bg-layer-transparent-hover",

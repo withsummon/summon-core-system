@@ -5,12 +5,12 @@
  */
 
 import { MoveRight, X } from "lucide-react";
-import { CustomSelect } from "@plane/ui";
+import { SelectPrimitive } from "@plane/propel/select";
 // ui
 import { LinkIcon, CenterPanelIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // helpers
-import { copyTextToClipboard } from "@/helpers/string.helper";
+import { copyTextToClipboard } from "@plane/utils";
 // hooks
 
 import useClipboardWritePermission from "@/hooks/use-clipboard-write-permission";
@@ -70,22 +70,30 @@ export function PeekOverviewHeader(props: Props) {
         >
           {peekMode === "side" ? <MoveRight className="size-4" /> : <X className="size-4" />}
         </button>
-        <CustomSelect
-          value={peekMode}
-          onChange={(value: Props["peekMode"]) => setPeekMode(value)}
-          customButton={<Icon className="size-4" aria-label="Work item view" />}
-          customButtonClassName="grid place-items-center text-tertiary hover:text-secondary"
-          noChevron
-        >
-          {PEEK_MODES.map((mode) => (
-            <CustomSelect.Option key={mode.key} value={mode.key}>
-              <span className="flex items-center gap-1.5">
-                <mode.icon className="size-4" />
-                {mode.label}
-              </span>
-            </CustomSelect.Option>
-          ))}
-        </CustomSelect>
+        <SelectPrimitive.Root<Props["peekMode"]> value={peekMode} onValueChange={setPeekMode}>
+          <SelectPrimitive.Trigger
+            aria-label="Work item view"
+            className="grid place-items-center text-tertiary hover:text-secondary"
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </SelectPrimitive.Trigger>
+          <SelectPrimitive.Portal>
+            <SelectPrimitive.Positioner sideOffset={4} alignItemWithTrigger={false} className="z-[120] outline-none">
+              <SelectPrimitive.Popup className="shadow-sm min-w-40 rounded-md border border-subtle-1 bg-layer-2 p-1 outline-none">
+                {PEEK_MODES.map((mode) => (
+                  <SelectPrimitive.Item
+                    key={mode.key}
+                    value={mode.key}
+                    className="flex cursor-default items-center gap-1.5 rounded-sm px-2 py-1.5 text-13 data-[highlighted]:bg-layer-1"
+                  >
+                    <mode.icon className="size-4" aria-hidden="true" />
+                    <SelectPrimitive.ItemText>{mode.label}</SelectPrimitive.ItemText>
+                  </SelectPrimitive.Item>
+                ))}
+              </SelectPrimitive.Popup>
+            </SelectPrimitive.Positioner>
+          </SelectPrimitive.Portal>
+        </SelectPrimitive.Root>
       </div>
       {isClipboardWriteAllowed && (peekMode === "side" || peekMode === "modal") && (
         <button

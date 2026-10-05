@@ -11,12 +11,12 @@ import { LinkIcon } from "lucide-react";
 // plane imports
 import { StatePropertyIcon, StateGroupIcon, PriorityPropertyIcon, DueDatePropertyIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { cn } from "@plane/utils";
+import { cn, copyTextToClipboard } from "@plane/utils";
 import { IssueBlockPriority } from "@/components/issues/issue-layouts/properties/priority";
 // helpers
 import { renderFormattedDate } from "@/helpers/date-time.helper";
 import { stateGroups, shouldHighlightIssueDueDate } from "@/helpers/issue.helper";
-import { copyTextToClipboard, addSpaceIfCamelCase } from "@/helpers/string.helper";
+import { addSpaceIfCamelCase } from "@/helpers/string.helper";
 // hooks
 import { usePublish } from "@/hooks/store/publish";
 import { useStates } from "@/hooks/store/use-state";
