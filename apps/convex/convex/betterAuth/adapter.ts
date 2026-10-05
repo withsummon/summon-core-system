@@ -12,6 +12,26 @@ export const { create, findOne, findMany, updateOne, updateMany, deleteOne, dele
   () => authOptions
 );
 
+export const currentIdentity = query({
+  args: { subject: v.string(), sessionId: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      user: schema.doc("user"),
+      sessionId: schema.id("session"),
+      expiresAt: v.number(),
+    })
+  ),
+  handler: async (ctx, { subject, sessionId }) => {
+    const id = ctx.db.normalizeId("session", sessionId);
+    const session = id && (await ctx.db.get(id));
+    if (!session || session.userId !== subject || session.expiresAt <= Date.now()) return null;
+    const userId = ctx.db.normalizeId("user", subject);
+    const user = userId && (await ctx.db.get(userId));
+    return user?.emailVerified ? { user, sessionId: session._id, expiresAt: session.expiresAt } : null;
+  },
+});
+
 // Metadata is native JSON storage; parse it once where the row becomes public.
 const metadata = z
   .string()
