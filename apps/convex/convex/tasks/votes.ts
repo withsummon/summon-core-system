@@ -4,6 +4,7 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { pageBudget } from "../commercial/validation";
 import { requireUser } from "../identity/access";
+import { publicProfileIdentity } from "../identity/profile_owner";
 import { requirePublishedTask } from "../publicSharing/access";
 import { taskVote } from "./schema";
 import { taskChanged } from "./revision";
@@ -39,7 +40,7 @@ export const actors = query({
       page: await Promise.all(
         result.page.map(async (row) => ({
           actorId: row.actorId,
-          actorName: (await ctx.db.get(row.actorId))?.name ?? null,
+          actorName: (await publicProfileIdentity(ctx, row.actorId))?.name ?? null,
         }))
       ),
     };
