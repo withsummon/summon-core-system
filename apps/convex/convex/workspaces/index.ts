@@ -44,37 +44,42 @@ export const list = query({
     return workspaces.filter((w) => w !== null);
   },
 });
+export const workspaceCreateInput = v.object({
+  name: v.string(),
+  slug: v.string(),
+  organizationSize: v.optional(v.string()),
+});
+export async function createWorkspace(ctx: MutationCtx, user: Doc<"users">, args: Infer<typeof workspaceCreateInput>) {
+  const name = workspaceName(args.name);
+  const slug = workspaceSlug(args.slug);
+  if (
+    await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique()
+  )
+    throw new ConvexError("This workspace slug is already taken.");
+  const settings = validateSettings({ ...defaultSettings, organizationSize: args.organizationSize ?? null });
+  const workspaceId = await ctx.db.insert("workspaces", {
+    name,
+    slug,
+    apiId: await allocateWorkspaceApiId(ctx),
+    ownerId: user._id,
+    metadataRevision: 0,
+    deletedAt: null,
+  });
+  if (args.organizationSize !== undefined) await ctx.db.insert("workspaceSettings", { workspaceId, ...settings });
+  await ctx.db.insert("workspaceMembers", { workspaceId, userId: user._id, role: "admin", active: true });
+  return { workspaceId, organizationSize: settings.organizationSize };
+}
 export const create = mutation({
-  args: {
-    name: v.string(),
-    slug: v.string(),
-    organizationSize: v.optional(v.string()),
-    onboardingRevision: v.optional(v.number()),
-  },
+  args: { ...workspaceCreateInput.fields, onboardingRevision: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    requireWorkspaceCreation();
-    const name = workspaceName(args.name);
-    const slug = workspaceSlug(args.slug);
-    if (
-      await ctx.db
-        .query("workspaces")
-        .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-        .unique()
-    )
-      throw new ConvexError("This workspace slug is already taken.");
-    const settings = validateSettings({ ...defaultSettings, organizationSize: args.organizationSize ?? null });
-    const workspaceId = await ctx.db.insert("workspaces", {
-      name,
-      slug,
-      apiId: await allocateWorkspaceApiId(ctx),
-      metadataRevision: 0,
-      deletedAt: null,
-    });
-    if (args.organizationSize !== undefined) await ctx.db.insert("workspaceSettings", { workspaceId, ...settings });
-    await ctx.db.insert("workspaceMembers", { workspaceId, userId: user._id, role: "admin", active: true });
+    await requireWorkspaceCreation(ctx);
+    const { workspaceId, organizationSize } = await createWorkspace(ctx, user, args);
     if (args.onboardingRevision !== undefined)
-      await recordWorkspaceCreation(ctx, workspaceId, args.onboardingRevision, settings.organizationSize);
+      await recordWorkspaceCreation(ctx, workspaceId, args.onboardingRevision, organizationSize);
     else await selectWorkspaceForUser(ctx, workspaceId);
     return workspaceId;
   },

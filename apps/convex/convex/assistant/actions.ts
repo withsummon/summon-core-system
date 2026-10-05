@@ -120,6 +120,7 @@ function matchedTemplate(content: string, templates: Doc<"automationTemplates">[
   if (mentioned) return mentioned;
   if (aliases && (normalized.split(" ").includes("mom") || normalized.includes("minutes of meeting")))
     return templates.find((item) => item.type === (normalized.includes("iglo") ? "mom_iglo" : "mom_summon"));
+  return undefined;
 }
 export async function documentProposal(
   ctx: MutationCtx,

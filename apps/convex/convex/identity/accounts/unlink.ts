@@ -3,8 +3,8 @@ import { isAPIError } from "better-auth/api";
 import { mutation } from "../../_generated/server";
 import { authComponent, createAuth } from "../../better_auth";
 import { requireUser } from "../session";
-import { signInPolicy } from "../signin_policy";
-import { nativeOAuthProviders } from "../oauth/providers";
+import { currentSignInPolicy } from "../signin_policy";
+import { oauthConfigurations } from "../oauth/config";
 import { clearPasswordAttempts, reservePasswordAttempt } from "../password/policy";
 
 export const disconnect = mutation({
@@ -17,8 +17,12 @@ export const disconnect = mutation({
     if (password && password.length > passwordPolicy.config.maxPasswordLength)
       throw new ConvexError("Password exceeds the account policy limit.");
     const accounts = await internalAdapter.findAccounts(authUser._id);
-    const policy = signInPolicy(process.env);
-    const configured = new Set(nativeOAuthProviders(process.env).map((provider) => provider.providerId));
+    const policy = await currentSignInPolicy(ctx, { authId: authUser._id, email: authUser.email });
+    const configured = new Set<string>(
+      oauthConfigurations(process.env)
+        .filter((provider) => policy.providers[provider.id])
+        .map((provider) => provider.id)
+    );
     if (
       !policy.magic &&
       !accounts.some(

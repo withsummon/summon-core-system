@@ -6,6 +6,9 @@ import { requireUser } from "../session";
 import { requireUnrestrictedAccount } from "../deactivation/access";
 import { zodToConvexFields } from "convex-helpers/server/zod4";
 import { instanceGeneral, instanceIdentifier } from "../schema";
+import { workspaceCreationForInstance } from "./configuration";
+import { instanceAdminAccess } from "./access";
+import { operatorAuthentication } from "./authentication";
 export async function requireNotInstanceAdmin(ctx: QueryCtx, userId: Id<"users">) {
   const setup = await ctx.db
     .query("instanceAuthority")
@@ -40,6 +43,8 @@ export const bootstrap = internalMutation({
     const instanceId = await ctx.db.insert("instanceAuthority", {
       key: "instance",
       initializedAt: Date.now(),
+      authentication: operatorAuthentication(process.env),
+      workspaceCreationDisabled: workspaceCreationForInstance(setup).isWorkspaceCreationDisabled,
       ...instanceGeneral.parse(args),
       instanceId: instanceIdentifier.parse(
         Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => byte.toString(16).padStart(2, "0")).join("")
@@ -53,10 +58,7 @@ export const me = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const membership = await ctx.db
-      .query("instanceAdmins")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .unique();
-    return { isInstanceAdmin: membership !== null };
+    const { instance, member } = await instanceAdminAccess(ctx, user._id);
+    return { isInstanceAdmin: !!instance && member?.instanceId === instance._id };
   },
 });

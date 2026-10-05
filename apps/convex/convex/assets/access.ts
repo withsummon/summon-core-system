@@ -8,7 +8,9 @@ import { requireTaskAttachmentAccess } from "./task_access";
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { requireWorkspace, requireProject } from "../identity/access";
+import { requireUser, requireWorkspace, requireWorkspaceForUser, requireProject } from "../identity/access";
+import { instanceAdminAccess } from "../identity/instance/access";
+import { workspaceLogo } from "../settings/logo_owner";
 import { requireConversation } from "../assistant/access";
 import { authorizedContext } from "../assistant/context";
 import { requireDocument } from "../documents/access";
@@ -128,9 +130,20 @@ async function requireWorkspaceLogoScope(
 ) {
   if ([scope.projectId, scope.documentId, scope.taskId, scope.draftId, scope.conversationId].some(Boolean))
     throw new ConvexError("Workspace logos cannot have another scope.");
+  if (!write) {
+    const user = await requireUser(ctx);
+    const { instance, member } = await instanceAdminAccess(ctx, user._id);
+    if (instance && member?.instanceId === instance._id) {
+      const workspace = await ctx.db.get(scope.workspaceId);
+      if (!workspace || workspace.deletedAt != null) throw new ConvexError("Workspace not found.");
+      if (!scope._id || (await workspaceLogo(ctx, workspace._id))?.id !== scope._id)
+        throw new ConvexError("Workspace logo is not currently published.");
+      return { user, workspace };
+    }
+    return requireWorkspaceForUser(ctx, scope.workspaceId, user);
+  }
   const access = await requireWorkspace(ctx, scope.workspaceId);
-  if (write && access.member.role !== "admin")
-    throw new ConvexError("Only workspace administrators can change the logo.");
+  if (access.member.role !== "admin") throw new ConvexError("Only workspace administrators can change the logo.");
   return access;
 }
 async function requireAutomationFileScope(

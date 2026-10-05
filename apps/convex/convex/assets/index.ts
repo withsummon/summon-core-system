@@ -13,7 +13,12 @@ import { mutation, query, internalMutation, internalQuery } from "../_generated/
 import { requireUser } from "../identity/access";
 import { allocateAssetApiId, assetScope, fileMetadataFields, commentImageTarget } from "./schema";
 import { requireCommentImageTarget, requirePublicCommentImage } from "./commentImages";
-import { requirePublishedDescriptionImage } from "../publicSharing/access";
+import {
+  publicImageTarget,
+  requirePublishedDescriptionImage,
+  requirePublishedCover,
+  requirePublishedCommentAvatar,
+} from "../publicSharing/access";
 import { compareValues } from "convex/values";
 import type { personalImagePurpose } from "./schema";
 import { descriptor, requireAsset, requireAssetScope } from "./access";
@@ -197,20 +202,24 @@ export const resolveCommentImage = query({
 export const publicImage = internalQuery({
   args: {
     anchor: v.string(),
-    taskId: v.string(),
-    commentId: v.union(v.string(), v.null()),
+    target: publicImageTarget,
     readWorkspaceId: v.union(v.string(), v.null()),
     assetId: v.string(),
   },
   handler: async (ctx, args) => {
     if (args.readWorkspaceId !== null) throw new ConvexError("Published image cannot have another read scope.");
-    const taskId = ctx.db.normalizeId("tasks", args.taskId);
+    if (args.target.kind === "cover") return requirePublishedCover(ctx, args.anchor, args.assetId);
+    const taskId = ctx.db.normalizeId("tasks", args.target.taskId);
     if (!taskId) throw new ConvexError("Work item image not found.");
-    if (args.commentId === null) return requirePublishedDescriptionImage(ctx, args.anchor, taskId, args.assetId);
-    const commentId = ctx.db.normalizeId("taskComments", args.commentId);
+    if (args.target.kind === "description")
+      return requirePublishedDescriptionImage(ctx, args.anchor, taskId, args.assetId);
+    const commentId = ctx.db.normalizeId("taskComments", args.target.commentId);
+    if (!commentId) throw new ConvexError("Comment image not found.");
+    if (args.target.kind === "commentAvatar")
+      return requirePublishedCommentAvatar(ctx, args.anchor, taskId, commentId, args.assetId);
     const assetId = ctx.db.normalizeId("assets", args.assetId);
     const asset = assetId ? await ctx.db.get(assetId) : null;
-    if (!commentId || !asset) throw new ConvexError("Comment image not found.");
+    if (!asset) throw new ConvexError("Comment image not found.");
     return requirePublicCommentImage(ctx, args.anchor, taskId, commentId, asset);
   },
 });

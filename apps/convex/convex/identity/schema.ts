@@ -11,6 +11,15 @@ export const instanceGeneral = z.object({
   instanceName: z.string().trim().min(1).max(255),
   telemetryEnabled: z.boolean(),
 });
+export const instanceAuthentication = z.object({
+  signupEnabled: z.boolean(),
+  passwordEnabled: z.boolean(),
+  magicEnabled: z.boolean(),
+  providers: z.record(z.enum(oauthProviderIds), z.boolean()),
+});
+export const instanceAuthenticationPatch = instanceAuthentication.partial().extend({
+  providers: z.partialRecord(z.enum(oauthProviderIds), z.boolean()).optional(),
+});
 export const instanceIdentifier = z.string().regex(/^[0-9a-f]{24}$/);
 
 // Safe request metadata only. HEAD is served by Convex through its GET handler.
@@ -81,6 +90,8 @@ export const identityTables = {
   instanceAuthority: defineTable({
     key: v.literal("instance"),
     initializedAt: v.number(),
+    authentication: zodToConvex(instanceAuthentication.optional()),
+    workspaceCreationDisabled: v.optional(v.boolean()),
     ...zodToConvexFields(instanceGeneral.shape),
     instanceId: zodToConvex(instanceIdentifier),
     revision: v.number(),
