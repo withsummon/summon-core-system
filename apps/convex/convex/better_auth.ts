@@ -18,10 +18,12 @@ import { sendAccountEmail } from "./identity/mail/sender";
 import { signInAvailability } from "./identity/signin_policy";
 import { authenticationDecision } from "./identity/instance/authentication";
 import { mailConfiguration } from "./identity/mail/config";
+import { currentMailReadiness, runtimeMail } from "./identity/instance/email";
 import { z } from "zod/v4";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { requireSignup } from "./identity/signup_policy";
-import { nativeOAuthProviders } from "./identity/oauth/providers";
+import { nativeOAuthProviders, verifiedProviderProfile } from "./identity/oauth/providers";
+import { profileForUser } from "./identity/profile_owner";
 import { runtimeOAuth } from "./identity/instance/oauth";
 import { oauthProviderIds, oauthConfigurations } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
@@ -66,14 +68,36 @@ export const authComponent = createClient<DataModel, typeof authSchema>(componen
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 export const recordSignIn = internalMutation({
-  args: { authId: v.string(), medium: lastLoginMedium, createdAt: v.number() },
+  args: {
+    authId: v.string(),
+    medium: lastLoginMedium,
+    createdAt: v.number(),
+    oauth: v.optional(
+      v.object({ sessionId: v.string(), createdNativeUser: v.boolean(), profile: zodToConvex(verifiedProviderProfile) })
+    ),
+  },
   handler: async (ctx, args): Promise<void> => {
     const link = await ctx.db
       .query("betterAuthLinks")
       .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .unique();
     if (!link || (link.lastLoginAt !== undefined && link.lastLoginAt >= args.createdAt)) return;
+    const initial =
+      link.createdAppUser === true && args.oauth?.createdNativeUser === true && link.lastLoginAt === undefined;
     await ctx.db.patch(link._id, { lastLoginMedium: args.medium, lastLoginAt: args.createdAt });
+    if (args.oauth && args.medium === args.oauth.profile.provider) {
+      const user = await ctx.db.get(link.userId);
+      if (!user) return;
+      const owner = await profileForUser(ctx, user);
+      await ctx.scheduler.runAfter(0, internal.identity.oauth.sync.publishProfile, {
+        authId: args.authId,
+        createdAt: args.createdAt,
+        initial,
+        sessionId: args.oauth.sessionId,
+        profile: args.oauth.profile,
+        expectedRevision: owner.profile?.revision ?? 0,
+      });
+    }
   },
 });
 
@@ -175,7 +199,7 @@ async function linkVerifiedUser(
   if (existing) throw new ConvexError("This account is already linked.");
   if (appUser && appUser.emailVerificationTime === undefined)
     await ctx.db.patch(appUser._id, { emailVerificationTime: Date.now() });
-  await ctx.db.insert("betterAuthLinks", { authId, userId });
+  await ctx.db.insert("betterAuthLinks", { authId, userId, createdAppUser: appUser === null });
 }
 
 // The native adapter's increment fallback spans separate HTTP adapter calls.
@@ -260,7 +284,8 @@ async function requireAuthenticationMethod(
   const policy = signInAvailability(
     decision.authentication.passwordEnabled || decision.administratorPassword,
     decision.authentication.magicEnabled,
-    mailConfiguration(process.env) !== null
+    ("db" in ctx ? await currentMailReadiness(ctx) : await ctx.runQuery(internal.identity.instance.email.readiness, {}))
+      .configured
   );
   if (method !== "oauth" && !policy[method])
     throw new APIError("FORBIDDEN", { message: "This sign-in method is disabled by the instance administrator." });
@@ -280,12 +305,24 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   // Both native generic handlers and refresh closures share this factory-local
   // configuration. The global schema/introspection options remain unchanged.
   const oauth = "db" in ctx ? runtimeOAuth(ctx) : ctx.runQuery(internal.better_auth.oauthConfiguration, {});
+  let verifiedProfile: z.infer<typeof verifiedProviderProfile> | undefined;
+  let createdNativeUserId: string | undefined;
+  const requestMail = emailOTP({
+    ...emailOTPOptions,
+    async sendVerificationOTP(data) {
+      const configuration =
+        "db" in ctx ? await runtimeMail(ctx) : await ctx.runQuery(internal.identity.instance.email.runtime, {});
+      await sendVerificationOTP(configuration, data);
+    },
+  });
   const oauthOptions: Parameters<typeof genericOAuth>[0] = { config: [] };
   const oauthPlugin = genericOAuth(oauthOptions);
   const requestOAuth = {
     ...oauthPlugin,
     init: async (context: Parameters<NonNullable<typeof oauthPlugin.init>>[0]) => {
-      oauthOptions.config = nativeOAuthProviders((await oauth).configurations);
+      oauthOptions.config = nativeOAuthProviders((await oauth).configurations, (profile) => {
+        verifiedProfile = profile;
+      });
       return oauthPlugin.init(context);
     },
   };
@@ -308,9 +345,18 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     ...authOptions,
     database: authComponent.adapter(ctx),
-    plugins: authOptions.plugins.map((plugin) => (plugin.id === "generic-oauth" ? requestOAuth : plugin)),
+    plugins: authOptions.plugins.map((plugin) =>
+      plugin.id === "generic-oauth" ? requestOAuth : plugin.id === "email-otp" ? requestMail : plugin
+    ),
     rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
     databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            createdNativeUserId = user.id;
+          },
+        },
+      },
       session: {
         create: {
           before: async (session, request) => {
@@ -369,12 +415,52 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
             authId: session.user.id,
             medium,
             createdAt: Number(session.session.createdAt),
+            ...(verifiedProfile && medium === verifiedProfile.provider
+              ? {
+                  oauth: {
+                    sessionId: session.session.id,
+                    createdNativeUser: createdNativeUserId === session.user.id,
+                    profile: verifiedProfile,
+                  },
+                }
+              : {}),
           })
         );
       }),
     },
   });
 };
+
+async function sendVerificationOTP(
+  configuration: ReturnType<typeof mailConfiguration>,
+  { email, otp, type }: Parameters<Parameters<typeof emailOTP>[0]["sendVerificationOTP"]>[0]
+) {
+  if (!configuration) throw new Error("Account email delivery is not configured.");
+  const purpose =
+    type === "sign-in"
+      ? "Sign in"
+      : type === "email-verification"
+        ? "Verify your email"
+        : type === "forget-password"
+          ? "Reset your password"
+          : "Change your email";
+  await sendAccountEmail(
+    configuration,
+    email,
+    `${purpose} · Summon Core`,
+    `${purpose} code: ${otp}\nThis code expires in 10 minutes.`
+  );
+}
+const emailOTPOptions = {
+  overrideDefaultEmailVerification: true,
+  changeEmail: { enabled: true, verifyCurrentEmail: true },
+  expiresIn: 600,
+  allowedAttempts: 5,
+  storeOTP: "encrypted",
+  async sendVerificationOTP(data) {
+    await sendVerificationOTP(mailConfiguration(process.env), data);
+  },
+} satisfies Parameters<typeof emailOTP>[0];
 
 // The documented local component and runtime share the native plugin schema.
 // The database adapter, HTTP limiter, and sign-in recorder require a runtime context.
@@ -420,27 +506,6 @@ export const authOptions = {
       rateLimit: { timeWindow: 60_000, maxRequests: 60 },
     }),
     genericOAuth({ config: nativeOAuthProviders(oauthConfigurations(process.env)) }),
-    emailOTP({
-      overrideDefaultEmailVerification: true,
-      changeEmail: { enabled: true, verifyCurrentEmail: true },
-      expiresIn: 600,
-      allowedAttempts: 5,
-      storeOTP: "encrypted",
-      async sendVerificationOTP({ email, otp, type }) {
-        const purpose =
-          type === "sign-in"
-            ? "Sign in"
-            : type === "email-verification"
-              ? "Verify your email"
-              : type === "forget-password"
-                ? "Reset your password"
-                : "Change your email";
-        await sendAccountEmail(
-          email,
-          `${purpose} · Summon Core`,
-          `${purpose} code: ${otp}\nThis code expires in 10 minutes.`
-        );
-      },
-    }),
+    emailOTP(emailOTPOptions),
   ],
 } satisfies BetterAuthOptions;

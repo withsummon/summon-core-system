@@ -1,19 +1,13 @@
 import type { Infer } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { defaultProfile, ownProfile, profileRevision, writeProfile } from "./profile_owner";
+import { defaultProfile, ownProfile, personalName, profileRevision, writeProfile } from "./profile_owner";
 import { profileFields } from "./schema";
 import { defaultTheme } from "./preferences_fields";
 import { text } from "../commercial/validation";
 import { validateTimezone } from "../settings/timezone";
 
-function personalName(value: string, label: string, required = false) {
-  const name = text(value, label, 255, required);
-  if (/https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,6}|(?:\d{1,3}\.){3}\d{1,3}/i.test(name))
-    throw new ConvexError(`${label} cannot contain a URL.`);
-  return name;
-}
 export const get = query({
   args: {},
   handler: async (ctx) => {

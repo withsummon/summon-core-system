@@ -9,7 +9,6 @@ import type { Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { invitationDeliveryStatus } from "../schema";
-import { mailConfiguration } from "../identity/mail/config";
 import { sendAccountEmail } from "../identity/mail/sender";
 
 const deliveryReceipt = v.object({
@@ -18,8 +17,8 @@ const deliveryReceipt = v.object({
   revision: v.number(),
 });
 
-function configuration() {
-  const config = mailConfiguration(process.env);
+async function configuration(ctx: ActionCtx) {
+  const config = await ctx.runQuery(internal.identity.instance.email.runtime, {});
   if (!config) throw new ConvexError("Invitation email delivery is not configured.");
   return config;
 }
@@ -28,7 +27,7 @@ async function deliver(
   invitationId: Id<"invitations">,
   expectedRevision: number
 ): Promise<Infer<typeof deliveryReceipt>> {
-  const config = configuration();
+  const config = await configuration(ctx);
   const context = await ctx.runQuery(internal.invitations.delivery.sending, { invitationId, expectedRevision });
   if (!context) return { invitationId, delivery: null, revision: expectedRevision };
   const url = new URL("/workspace-invitations/", config.siteUrl);
@@ -36,6 +35,7 @@ async function deliver(
   let status: Infer<typeof invitationDeliveryStatus> = "failed";
   try {
     await sendAccountEmail(
+      config,
       context.email,
       `Invitation to ${context.workspaceName} on Summon`,
       `You have been invited to ${context.workspaceName}${context.projectName ? ` (${context.projectName})` : ""}.\n\nOpen this link to review the invitation and sign in with your invited email:\n\n${url.href}\n\nThis invitation expires in seven days.`,
@@ -56,7 +56,7 @@ export const send = action({
   args: createFields,
   returns: v.array(deliveryReceipt),
   handler: async (ctx, args): Promise<Awaited<ReturnType<typeof deliver>>[]> => {
-    configuration();
+    await configuration(ctx);
     const invitations = await ctx.runMutation(api.invitations.index.create, args);
     return Promise.all(invitations.map((row) => deliver(ctx, row.invitationId, row.revision)));
   },
@@ -65,7 +65,7 @@ export const resend = action({
   args: { invitationId: v.id("invitations"), expectedRevision: v.number() },
   returns: deliveryReceipt,
   handler: async (ctx, args): Promise<Awaited<ReturnType<typeof deliver>>> => {
-    configuration();
+    await configuration(ctx);
     const invitation = await ctx.runMutation(internal.invitations.index.prepareResend, args);
     return deliver(ctx, invitation.invitationId, invitation.revision);
   },
@@ -93,9 +93,10 @@ export const projectAdded = internalAction({
   handler: async (ctx, args) => {
     const context = await ctx.runQuery(internal.invitations.delivery.projectAddition, args);
     if (!context) return;
-    const config = configuration();
+    const config = await configuration(ctx);
     const url = new URL(`/${context.workspaceSlug}/projects/${context.projectId}/issues/`, config.siteUrl);
     await sendAccountEmail(
+      config,
       context.email,
       `You have been added to ${context.projectName} on Summon`,
       `You now have access to ${context.projectName} in ${context.workspaceName}.\n\nOpen the project:\n\n${url.href}`,

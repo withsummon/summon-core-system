@@ -14,7 +14,7 @@ export const get = query({
       unavailableReason:
         policy.passwordReset || policy.magic
           ? null
-          : "Account email sign-in and recovery are unavailable under the current operator configuration.",
+          : "Account email sign-in and recovery are unavailable under the current instance configuration.",
     };
   },
 });

@@ -1,4 +1,4 @@
-import { mailConfiguration } from "../identity/mail/config";
+import { currentMailReadiness } from "../identity/instance/email";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation, internalMutation } from "../_generated/server";
@@ -267,8 +267,8 @@ export const incoming = query({
 });
 export const availability = query({
   args: {},
-  handler: () => ({
-    emailDelivery: mailConfiguration(process.env) !== null,
+  handler: async (ctx) => ({
+    emailDelivery: (await currentMailReadiness(ctx)).configured,
     manualSharing: true,
     expiresAfterDays: 7,
     maxCreateInvitations,

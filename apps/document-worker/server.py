@@ -11,6 +11,8 @@ from io import BytesIO
 from pathlib import Path
 from urllib.parse import unquote
 
+from plane.utils.url_security import pinned_fetch_following_redirects
+
 from summon_documents.context import DOCUMENT_TYPES, MAX_UPLOAD_BYTES, extract_context_document
 from summon_documents.renderer import render_document_files
 from summon_documents.exporter import export_workspace
@@ -18,6 +20,32 @@ from summon_documents.exporter import export_workspace
 MAX_RESPONSE_BYTES = 20 * 1024 * 1024
 TIMEOUT_SECONDS = 30
 _slots = threading.BoundedSemaphore(2)
+
+
+def import_avatar(data):
+    response, _ = pinned_fetch_following_redirects("GET", data["url"], timeout=10, max_redirects=5, stream=True,
+        reject_url_credentials=True)
+    try:
+        if response.status_code != 200:
+            raise ValueError("Avatar is unavailable.")
+        content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if content_type not in {"image/png", "image/jpeg", "image/gif", "image/webp"}:
+            raise ValueError("Unsupported avatar type.")
+        length = response.headers.get("Content-Length")
+        if length is not None and (not length.isdigit() or int(length) > data["max_bytes"]):
+            raise ValueError("Avatar exceeds the image limit.")
+        chunks = []
+        size = 0
+        for chunk in response.iter_content(chunk_size=8192):
+            size += len(chunk)
+            if size > data["max_bytes"]:
+                raise ValueError("Avatar exceeds the image limit.")
+            chunks.append(chunk)
+        if not size:
+            raise ValueError("Avatar is empty.")
+        return {"contentType": content_type, "base64": base64.b64encode(b"".join(chunks)).decode("ascii")}
+    finally:
+        response.close()
 
 
 def execute(path, data, name, connection):
@@ -32,6 +60,8 @@ def execute(path, data, name, connection):
             upload.name = name
             upload.size = len(data)
             result = extract_context_document(upload)
+        elif path == "/import-avatar":
+            result = import_avatar(data)
         elif path == "/export":
             result = export_workspace(data)
         else:
@@ -109,7 +139,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authenticated():
             return
-        if self.path not in {"/extract", "/render", "/export"}:
+        if self.path not in {"/extract", "/render", "/export", "/import-avatar"}:
             self.reply(404, b'{"error":"Endpoint not found."}')
             return
         if not _slots.acquire(blocking=False):
@@ -143,6 +173,13 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(415, b'{"error":"Use application/json."}')
                     return
                 data = json.loads(data)
+                if self.path == "/import-avatar":
+                    if not isinstance(data, dict) or set(data) != {"url", "max_bytes"}:
+                        raise ValueError("Invalid avatar import request.")
+                    if not isinstance(data["url"], str) or not 0 < len(data["url"]) <= 2048:
+                        raise ValueError("Invalid avatar URL.")
+                    if type(data["max_bytes"]) is not int or not 0 < data["max_bytes"] <= 5 * 1024 * 1024:
+                        raise ValueError("Invalid avatar image limit.")
                 if self.path == "/render" and (not isinstance(data, dict) or set(data) != {"document_type", "title", "content"}):
                     raise ValueError("Invalid document render request.")
                 if self.path == "/render":
