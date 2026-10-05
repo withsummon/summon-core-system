@@ -4,33 +4,20 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// components
+import { useOutletContext } from "react-router";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { PageHead } from "@/components/core/page-title";
-import { ArchivedIssuesHeader } from "@/components/issues/archived-issues-header";
-import { ArchivedIssueLayoutRoot } from "@/components/issues/issue-layouts/roots/archived-issue-layout-root";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import type { Route } from "./+types/page";
+import { TaskRecoveryList } from "@/components/convex-core/tasks/lifecycle";
 
-function ProjectArchivedIssuesPage({ params }: Route.ComponentProps) {
-  // router
-  const { projectId } = params;
-  // store hooks
-  const { getProjectById } = useProject();
-  // derived values
-  const project = getProjectById(projectId);
-  const pageTitle = project?.name && `${project?.name} - Archived work items`;
-
+export default function ProjectArchivedIssuesPage() {
+  const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
   return (
     <>
-      <PageHead title={pageTitle} />
-      <div className="relative flex h-full w-full flex-col overflow-hidden">
-        <ArchivedIssuesHeader />
-        <ArchivedIssueLayoutRoot />
+      <PageHead title={`${address.project.name} - Archived work items`} />
+      <div className="relative flex h-full w-full flex-col overflow-auto">
+        <TaskRecoveryList key={address.project._id} project={address.project} view="archived" />
       </div>
     </>
   );
 }
-
-export default observer(ProjectArchivedIssuesPage);

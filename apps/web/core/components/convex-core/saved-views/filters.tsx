@@ -76,11 +76,15 @@ export function BasicFilters({ filters, onChange }: { filters: Filters; onChange
 export function FilterChoices<T extends string>({
   label,
   options,
+  selections = [],
+  unavailableLabel = "Unavailable selection",
   selected,
   onChange,
 }: {
   label: string;
   options: { id: T; label: string }[];
+  selections?: Parameters<typeof retainedChoices<T>>[1];
+  unavailableLabel?: string;
   selected: T[];
   onChange: (values: T[]) => void;
 }) {
@@ -88,7 +92,7 @@ export function FilterChoices<T extends string>({
     <fieldset className="space-y-2">
       <legend className="text-14 font-medium">{label}</legend>
       <div className="flex max-h-48 flex-wrap gap-x-4 gap-y-2 overflow-y-auto">
-        {options.map((option) => (
+        {retainedChoices(options, selections, selected, unavailableLabel).map((option) => (
           <label key={option.id} className="flex min-w-0 items-center gap-2 text-14">
             <input
               type="checkbox"
@@ -116,6 +120,8 @@ export function ReferenceFilters({
     users: { id: Id<"users">; label: string }[];
     states: { id: Id<"taskStates">; label: string }[];
     labels: { id: Id<"taskLabels">; label: string }[];
+    cycles?: { id: Id<"cycles">; label: string }[];
+    modules?: { id: Id<"modules">; label: string }[];
   };
   selections?: FunctionReturnType<typeof api.savedViews.index.get>["selections"];
   filters: Filters;
@@ -123,14 +129,6 @@ export function ReferenceFilters({
   taxonomyControls: ReactNode;
   peopleControls: ReactNode;
 }) {
-  const userChoices = retainedChoices(
-    choices.users,
-    selections?.users ?? [],
-    [...filters.assigneeIds, ...filters.creatorIds],
-    "Unavailable member"
-  );
-  const stateChoices = retainedChoices(choices.states, selections?.states ?? [], filters.stateIds, "Unavailable state");
-  const labelChoices = retainedChoices(choices.labels, selections?.labels ?? [], filters.labelIds, "Unavailable label");
   return (
     <>
       <details
@@ -140,17 +138,44 @@ export function ReferenceFilters({
         <summary className="cursor-pointer text-14 font-medium">States and labels</summary>
         <FilterChoices
           label="Workflow states"
-          options={stateChoices}
+          options={choices.states}
+          selections={selections?.states}
+          unavailableLabel="Unavailable state"
           selected={filters.stateIds}
           onChange={(stateIds) => onChange({ ...filters, stateIds })}
         />
         <FilterChoices
           label="Labels"
-          options={labelChoices}
+          options={choices.labels}
+          selections={selections?.labels}
+          unavailableLabel="Unavailable label"
           selected={filters.labelIds}
           onChange={(labelIds) => onChange({ ...filters, labelIds })}
         />
         {taxonomyControls}
+      </details>
+
+      <details
+        className="space-y-3 rounded-md border border-subtle-1 p-3"
+        open={(filters.cycleIds?.length ?? 0) + (filters.moduleIds?.length ?? 0) > 0 || undefined}
+      >
+        <summary className="cursor-pointer text-14 font-medium">Cycles and modules</summary>
+        <FilterChoices
+          label="Cycles"
+          options={choices.cycles ?? []}
+          selections={selections?.cycles}
+          unavailableLabel="Unavailable cycle"
+          selected={filters.cycleIds ?? []}
+          onChange={(cycleIds) => onChange({ ...filters, cycleIds })}
+        />
+        <FilterChoices
+          label="Modules"
+          options={choices.modules ?? []}
+          selections={selections?.modules}
+          unavailableLabel="Unavailable module"
+          selected={filters.moduleIds ?? []}
+          onChange={(moduleIds) => onChange({ ...filters, moduleIds })}
+        />
       </details>
       <details
         className="space-y-3 rounded-md border border-subtle-1 p-3"
@@ -159,13 +184,17 @@ export function ReferenceFilters({
         <summary className="cursor-pointer text-14 font-medium">Assignees and creators</summary>
         <FilterChoices
           label="Assignees"
-          options={userChoices}
+          options={choices.users}
+          selections={selections?.users}
+          unavailableLabel="Unavailable member"
           selected={filters.assigneeIds}
           onChange={(assigneeIds) => onChange({ ...filters, assigneeIds })}
         />
         <FilterChoices
           label="Creators"
-          options={userChoices}
+          options={choices.users}
+          selections={selections?.users}
+          unavailableLabel="Unavailable member"
           selected={filters.creatorIds}
           onChange={(creatorIds) => onChange({ ...filters, creatorIds })}
         />

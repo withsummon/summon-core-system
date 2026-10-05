@@ -6,11 +6,21 @@ import { KanbanIssueBlockView } from "@/components/issues/issue-layouts/kanban/b
 import { IdentifierText } from "@/components/issues/issue-detail/identifier-text";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { BulkLifecycle } from "./bulk-lifecycle";
+import { TaskPeek } from "./task-detail";
 import { useContext, useEffect, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
+import { defaultTaskPreferences, taskPreferencesSchema } from "@summon/convex/task-schema";
+import useLocalStorage from "@/hooks/use-local-storage";
+import { ArchivedIssuesHeader } from "@/components/issues/archived-issues-header";
+import { Popover } from "@plane/propel/popover";
+import { EIssueLayoutTypes } from "@plane/types";
+import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
+import { BasicFilters } from "../saved-views/filters";
+import { ProjectReferenceFilters, ViewDisplayFields } from "../saved-views/form";
+import { Input } from "@plane/propel/input";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { NativeTaskActionContext } from "@/components/workspace/native-shell/session";
@@ -18,7 +28,7 @@ import { ContextMenu } from "@plane/propel/context-menu";
 import { copyUrlToClipboard } from "@plane/utils";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Menu } from "@plane/propel/menu";
-import { usePendingConfirmation } from "@/hooks/use-reload-confirmation";
+import { usePendingConfirmation, useReloadSubmitting } from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
 type Task = NonNullable<FunctionReturnType<typeof api.tasks.index.get>>;
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
@@ -246,27 +256,129 @@ export function TaskRecoveryList({
   view,
   onSelect,
 }: {
-  project: Project;
-  view: "archived" | "deleted";
-  onSelect: (id: string) => void;
-}) {
-  const tasks = usePaginatedQuery(api.tasks.lifecycle.list, { projectId: project._id, view }, { initialNumItems: 50 });
+  project: Pick<Project, "_id" | "workspaceId" | "identifier">;
+} & ({ view: "archived"; onSelect?: never } | { view: "deleted"; onSelect: (id: string) => void })) {
+  const busy = useReloadSubmitting();
+  const { storedValue, setValue } = useLocalStorage<unknown>(
+    `native-archive:${project.workspaceId}:${project._id}`,
+    defaultTaskPreferences
+  );
+  const parsed = taskPreferencesSchema.safeParse(storedValue);
+  const preferences =
+    parsed.success && parsed.data.displayFilters.layout === "list" ? parsed.data : defaultTaskPreferences;
+  const { filters, displayFilters, displayProperties } = preferences;
+  const [search, setSearch] = useState("");
+  const address = useQuery(
+    api.navigation.address.resolveProjectId,
+    view === "archived" ? { workspaceId: project.workspaceId, projectId: project._id } : "skip"
+  );
+  const features = useQuery(api.projects.features.get, view === "archived" ? { projectId: project._id } : "skip");
+  const tasks = usePaginatedQuery(
+    api.tasks.lifecycle.list,
+    {
+      projectId: project._id,
+      view,
+      ...(view === "archived"
+        ? {
+            filters,
+            search,
+            order: displayFilters.order,
+            includeSubtasks: displayFilters.includeSubtasks,
+          }
+        : {}),
+    },
+    { initialNumItems: 50 }
+  );
   return (
     <section className="space-y-3">
-      <h2 className="text-20 font-semibold">{view === "archived" ? "Archived tasks" : "Task trash"}</h2>
+      {view === "archived" ? (
+        address &&
+        features && (
+          <ArchivedIssuesHeader address={address} features={features.features}>
+            <Input
+              aria-label="Search archived work items"
+              placeholder="Search"
+              disabled={busy}
+              className="w-40"
+              value={search}
+              maxLength={255}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <Popover>
+              <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
+                Filters
+              </Popover.Button>
+              <Popover.Panel
+                side="bottom"
+                align="end"
+                sideOffset={4}
+                className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
+              >
+                <fieldset disabled={busy} className="space-y-4">
+                  <BasicFilters filters={filters} onChange={(value) => setValue({ ...preferences, filters: value })} />
+                  <ProjectReferenceFilters
+                    projectId={project._id}
+                    filters={filters}
+                    selections={undefined}
+                    onChange={(value) => setValue({ ...preferences, filters: value })}
+                  />
+                </fieldset>
+              </Popover.Panel>
+            </Popover>
+            <Popover>
+              <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
+                Display
+              </Popover.Button>
+              <Popover.Panel
+                side="bottom"
+                align="end"
+                sideOffset={4}
+                className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
+              >
+                <fieldset disabled={busy}>
+                  <ViewDisplayFields
+                    layouts={[EIssueLayoutTypes.LIST]}
+                    displayFilters={displayFilters}
+                    displayProperties={displayProperties}
+                    disabled={busy}
+                    onChange={(display) => setValue({ ...preferences, ...display })}
+                  />
+                </fieldset>
+              </Popover.Panel>
+            </Popover>
+          </ArchivedIssuesHeader>
+        )
+      ) : (
+        <h2 className="text-20 font-semibold">Task trash</h2>
+      )}
       <BulkLifecycle key={view} projectId={project._id} rows={tasks.results} view={view} />
-      <ul className="divide-y divide-subtle-1">
-        {tasks.results.map((task) => (
-          <li key={task._id}>
-            <button className="w-full space-y-1 py-3 text-left" onClick={() => onSelect(task._id)}>
-              <span className="block text-12 text-secondary">
-                {project.identifier}-{task.sequence}
-              </span>
-              <span className="block text-14 break-words">{task.title}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {view === "archived" ? (
+        address && (
+          <>
+            <ProjectViewLayoutRoot
+              tasks={tasks.results}
+              address={address}
+              displayFilters={displayFilters}
+              displayProperties={displayProperties}
+              cohortComplete={tasks.status === "Exhausted"}
+            />
+            <TaskPeek workspaceSlug={address.workspace.slug} />
+          </>
+        )
+      ) : (
+        <ul className="divide-y divide-subtle-1">
+          {tasks.results.map((task) => (
+            <li key={task._id}>
+              <button className="w-full space-y-1 py-3 text-left" onClick={() => onSelect(task._id)}>
+                <span className="block text-12 text-secondary">
+                  {project.identifier}-{task.sequence}
+                </span>
+                <span className="block text-14 break-words">{task.title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {tasks.status === "LoadingFirstPage" && <p role="status">Loading tasks…</p>}
       {tasks.status === "Exhausted" && !tasks.results.length && (
         <p className="text-14 text-secondary">No tasks available in this view.</p>

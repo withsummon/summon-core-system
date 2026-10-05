@@ -56,6 +56,8 @@ function useProjectFilterChoices(projectId: Id<"projects">) {
   const states = useQuery(api.tasks.states.list, { projectId }),
     labels = useQuery(api.tasks.labels.list, { projectId });
   const people = usePaginatedQuery(api.modules.members.choices, { projectId }, { initialNumItems: 50 });
+  const cycles = usePaginatedQuery(api.cycles.index.list, { projectId, deleted: false }, { initialNumItems: 50 });
+  const modules = usePaginatedQuery(api.modules.index.list, { projectId, deleted: false }, { initialNumItems: 50 });
   return {
     choices: {
       users: people.results.map((person) => ({
@@ -64,8 +66,26 @@ function useProjectFilterChoices(projectId: Id<"projects">) {
       })),
       states: (states ?? []).map((state) => ({ id: state._id, label: state.name })),
       labels: (labels ?? []).map((label) => ({ id: label._id, label: label.name })),
+      cycles: cycles.results.map((cycle) => ({ id: cycle._id, label: cycle.name })),
+      modules: modules.results.map((module) => ({ id: module._id, label: module.name })),
     },
-    taxonomyControls: !states || !labels ? <p role="status">Loading project choices…</p> : null,
+    taxonomyControls: (
+      <>
+        {(!states || !labels || cycles.status === "LoadingFirstPage" || modules.status === "LoadingFirstPage") && (
+          <p role="status">Loading project choices…</p>
+        )}
+        {cycles.status === "CanLoadMore" && (
+          <Button variant="secondary" onClick={() => cycles.loadMore(50)}>
+            Load more cycle choices
+          </Button>
+        )}
+        {modules.status === "CanLoadMore" && (
+          <Button variant="secondary" onClick={() => modules.loadMore(50)}>
+            Load more module choices
+          </Button>
+        )}
+      </>
+    ),
     peopleControls: (
       <>
         {people.status === "LoadingFirstPage" && <p role="status">Loading member choices…</p>}
@@ -327,11 +347,19 @@ export function ViewDefinitionForm({
 }
 
 export function ViewDisplayFields({
+  layouts = [
+    EIssueLayoutTypes.LIST,
+    EIssueLayoutTypes.KANBAN,
+    EIssueLayoutTypes.CALENDAR,
+    EIssueLayoutTypes.SPREADSHEET,
+    EIssueLayoutTypes.GANTT,
+  ],
   displayFilters,
   displayProperties,
   disabled,
   onChange,
 }: {
+  layouts?: ComponentProps<typeof LayoutSelection>["layouts"];
   displayFilters: DisplayFilters;
   displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
   disabled: boolean;
@@ -348,13 +376,7 @@ export function ViewDisplayFields({
   return (
     <>
       <LayoutSelection
-        layouts={[
-          EIssueLayoutTypes.LIST,
-          EIssueLayoutTypes.KANBAN,
-          EIssueLayoutTypes.CALENDAR,
-          EIssueLayoutTypes.SPREADSHEET,
-          EIssueLayoutTypes.GANTT,
-        ]}
+        layouts={layouts}
         selectedLayout={displayFilters.layout}
         disabled={disabled}
         onChange={(layout) =>

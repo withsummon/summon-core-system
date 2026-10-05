@@ -53,15 +53,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             ),
           ]),
         ]),
-
-        // Project Archives - Issues, Cycles, Modules
-        // Project Archives - Issues - List
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/:projectId/archives/issues",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx"
-          ),
-        ]),
       ]),
     ]),
   ]),
