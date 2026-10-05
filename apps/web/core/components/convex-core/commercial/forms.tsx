@@ -14,7 +14,7 @@ export function mutationMessage(error: unknown) {
   if (error instanceof ConvexError) {
     if (typeof error.data === "string") return error.data;
     const failure = projectApiFailure.safeParse(error.data);
-    if (failure.success) return failure.data.detail;
+    if (failure.success) return "detail" in failure.data ? failure.data.detail : failure.data.error;
   }
   return "The change could not be saved. Check your connection and access, then try again.";
 }

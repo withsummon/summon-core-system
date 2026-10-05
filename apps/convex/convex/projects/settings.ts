@@ -4,8 +4,11 @@ import { canAdministerProject } from "./administration";
 import { requireNetworkScope } from "./network_access";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { changeFavoriteDeleted } from "../favorites/write";
 import { requireProject, requireWorkspace } from "../identity/access";
 
 export function projectMetadata(project: Doc<"projects">) {
@@ -88,16 +91,72 @@ export const setArchived = mutation({
     const { project, user, member } = await requireNetworkScope(ctx, args.projectId, true);
     if (!(await canAdministerProject(ctx, project, user._id, member.role)))
       throw new ConvexError("Only workspace or project administrators can archive or restore projects.");
-    const metadataRevision = checkRevision(project, args.expectedRevision);
-    if (project.archived === args.archived) return;
-    const updatedAt = Date.now();
-    await ctx.db.patch(project._id, {
-      archived: args.archived,
-      archivedAt: args.archived ? updatedAt : null,
-      metadataRevision,
-      updatedAt,
-      updatedById: user._id,
-    });
+    if (project.archived === args.archived) {
+      checkRevision(project, args.expectedRevision);
+      return;
+    }
+    await writeProjectArchived(ctx, { project, user }, args.expectedRevision, args.archived);
+  },
+});
+
+// UI and REST authorize independently; this transaction owns their common effects.
+export async function writeProjectArchived(
+  ctx: MutationCtx,
+  { project, user }: Pick<Awaited<ReturnType<typeof requireNetworkScope>>, "project" | "user">,
+  expectedRevision: number,
+  isArchived: boolean
+) {
+  const metadataRevision = checkRevision(project, expectedRevision);
+  const updatedAt = Date.now();
+  await ctx.db.patch(project._id, {
+    archived: isArchived,
+    archivedAt: isArchived ? updatedAt : null,
+    metadataRevision,
+    updatedAt,
+    updatedById: user._id,
+    ...(isArchived ? { archivedFavoriteRevision: metadataRevision } : {}),
+  });
+  if (!isArchived) return;
+  await ctx.scheduler.runAfter(0, internal.projects.settings.archiveFavorites, {
+    projectId: project._id,
+    workspaceId: project.workspaceId,
+    archiveRevision: metadataRevision,
+    cursor: null,
+  });
+}
+export const archiveFavorites = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    archiveRevision: v.number(),
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (
+      !project ||
+      project.workspaceId !== args.workspaceId ||
+      project.archivedFavoriteRevision === undefined ||
+      project.archivedFavoriteRevision < args.archiveRevision
+    )
+      throw new Error("Archive favorite scope or revision changed.");
+    const rows = await ctx.db
+      .query("favorites")
+      .withIndex("by_project_type_deleted", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("targetProjectId", args.projectId)
+      )
+      .paginate({ cursor: args.cursor, numItems: 50, maximumRowsRead: 50, maximumBytesRead: 1048576 });
+    await Promise.all(
+      rows.page.map(async (row) => {
+        if (row.deletedAt === null && (row.projectRevision === undefined || row.projectRevision < args.archiveRevision))
+          await changeFavoriteDeleted(ctx, row, true);
+      })
+    );
+    if (!rows.isDone)
+      await ctx.scheduler.runAfter(0, internal.projects.settings.archiveFavorites, {
+        ...args,
+        cursor: rows.continueCursor,
+      });
   },
 });
 

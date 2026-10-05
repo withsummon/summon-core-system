@@ -180,10 +180,12 @@ export const projectApiReadOptions = z.object({
     .default("false")
     .transform((value) => ["true", "1"].includes(value.toLowerCase())),
 });
-export const projectApiFailure = z.object({
-  status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(409), z.literal(503)]),
-  detail: z.string(),
-});
+export const projectApiFailure = z
+  .object({
+    status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(409), z.literal(503)]),
+    detail: z.string(),
+  })
+  .or(z.object({ status: z.literal(404), error: z.string() }));
 
 export const inactivityMonths = v.union(
   v.literal(1),

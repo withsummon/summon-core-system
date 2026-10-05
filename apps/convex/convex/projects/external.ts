@@ -18,6 +18,7 @@ import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
 import { apiIdSchema, apiRequestMetadata } from "../identity/schema";
 import { createProject } from "./create";
 import { beginProjectDeletion } from "./deletion";
+import { writeProjectArchived } from "./settings";
 import {
   projectApiCreate,
   projectApiPatch,
@@ -638,6 +639,33 @@ export const remove = internalMutation({
     await beginProjectDeletion(ctx, { project, user: access.user });
   },
 });
+export const archive = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string(), archived: v.boolean() },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    // The inherited public POST authority is workspace Admin/Member. It is
+    // intentionally separate from both UI authority and public DELETE authority.
+    if (args.archived && access.member.role === "guest")
+      throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
+    if (!args.archived) {
+      const membership =
+        project && project.workspaceId === access.workspace._id
+          ? await apiProjectMembership(ctx, project, access)
+          : null;
+      if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+        throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
+    }
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    // REST writes even an unchanged state, matching Django save's timestamp effect.
+    await writeProjectArchived(ctx, { project, user: access.user }, project.metadataRevision, args.archived);
+  },
+});
+
 const headers = {
   ...externalApiHeaders,
   "Access-Control-Allow-Headers": "X-Api-Key, Content-Type",
@@ -681,14 +709,22 @@ async function writeProjectResponse(
 }
 async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"users">, responseHeaders: HeadersInit) {
   const url = new URL(request.url);
-  const match = /^\/api\/v1\/workspaces\/([^/]+)\/(projects|projects-lite)\/(?:([^/]+)\/)?$/.exec(url.pathname);
+  const match = /^\/api\/v1\/workspaces\/([^/]+)\/(projects|projects-lite)\/(?:([^/]+)\/(archive\/)?)?$/.exec(
+    url.pathname
+  );
   if (!match || (match[2] === "projects-lite" && match[3])) {
     return Response.json({ detail: "Not found." }, { status: 404, headers: responseHeaders });
   }
   const slug = decodeURIComponent(match[1]);
   const lite = match[2] === "projects-lite";
   const projectApiId = match[3];
-  const methods = lite ? ["GET", "HEAD"] : projectApiId ? ["GET", "HEAD", "PATCH", "DELETE"] : ["GET", "HEAD", "POST"];
+  const methods = match[4]
+    ? ["POST", "DELETE"]
+    : lite
+      ? ["GET", "HEAD"]
+      : projectApiId
+        ? ["GET", "HEAD", "PATCH", "DELETE"]
+        : ["GET", "HEAD", "POST"];
   if (!methods.includes(request.method)) {
     return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
   }
@@ -696,7 +732,16 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
   if (parsedId && !parsedId.success) {
     return Response.json({ detail: "Project not found." }, { status: 404, headers: responseHeaders });
   }
-  if (request.method === "DELETE" && parsedId?.success) {
+  if (match[4] && parsedId) {
+    await ctx.runMutation(internal.projects.external.archive, {
+      userId,
+      slug,
+      projectApiId: parsedId.data,
+      archived: request.method === "POST",
+    });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+  if (request.method === "DELETE" && parsedId) {
     await ctx.runMutation(internal.projects.external.remove, { userId, slug, projectApiId: parsedId.data });
     return new Response(null, { status: 204, headers: responseHeaders });
   }
@@ -718,7 +763,7 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
     expand: readOptions.data.expand,
     assetOrigin: url.origin,
   };
-  if (parsedId?.success)
+  if (parsedId)
     bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
   else
     bodyJson = await ctx.runQuery(internal.projects.external.list, {
@@ -754,8 +799,9 @@ export const projects = httpAction(async (ctx, request) => {
     if (error instanceof ConvexError) {
       const failure = projectApiFailure.safeParse(error.data);
       if (failure.success) {
-        status = failure.data.status;
-        return Response.json({ detail: failure.data.detail }, { status, headers: responseHeaders });
+        const { status: failureStatus, ...body } = failure.data;
+        status = failureStatus;
+        return Response.json(body, { status, headers: responseHeaders });
       }
     }
     throw error;

@@ -43,10 +43,10 @@ export function FavoriteEditor({
       <Dialog.Panel width={EDialogWidth.LG}>
         <div className="max-h-[85dvh] space-y-4 overflow-y-auto p-4 sm:p-6">
           <Dialog.Title className="text-20 font-semibold">
-            {row.deletedAt === null ? "Manage favorite" : "Restore favorite"}
+            {!row.isRemoved ? "Manage favorite" : "Restore favorite"}
           </Dialog.Title>
           <p className="text-14 break-words">{label}</p>
-          {row.deletedAt === null && !removing && (
+          {!row.isRemoved && !removing && (
             <form
               className="space-y-4"
               onSubmit={async (event) => {
@@ -121,7 +121,7 @@ export function FavoriteEditor({
               </fieldset>
             </form>
           )}
-          {row.deletedAt === null && !removing && (
+          {!row.isRemoved && !removing && (
             <div className="flex flex-wrap gap-2">
               {(["up", "down"] as const).map((direction) => (
                 <Button
@@ -156,13 +156,13 @@ export function FavoriteEditor({
               ))}
             </div>
           )}
-          {hasEdits && !removing && row.deletedAt === null && (
+          {hasEdits && !removing && !row.isRemoved && (
             <p className="text-12 text-secondary">Save changes before reordering.</p>
           )}
-          {(removing || row.deletedAt !== null) && (
+          {(removing || row.isRemoved) && (
             <div className="space-y-3">
               <p className="text-14">
-                {row.deletedAt !== null
+                {row.isRemoved
                   ? "Restore this favorite in its original folder?"
                   : row.target.type === "folder"
                     ? "Remove this folder? Its nested favorites will be hidden until the folder is restored."
@@ -177,7 +177,7 @@ export function FavoriteEditor({
                     await lifecycle({
                       favoriteId: row._id,
                       expectedUpdatedAt: row.updatedAt,
-                      deleted: row.deletedAt === null,
+                      deleted: !row.isRemoved,
                     });
                     onClose();
                   } catch (failure) {
@@ -187,7 +187,7 @@ export function FavoriteEditor({
                   }
                 }}
               >
-                {row.deletedAt !== null ? "Confirm restore favorite" : "Confirm remove favorite"}
+                {row.isRemoved ? "Confirm restore favorite" : "Confirm remove favorite"}
               </Button>
               {removing && (
                 <Button variant="secondary" disabled={pending} onClick={() => setRemoving(false)}>

@@ -4,7 +4,7 @@ import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { visibleTarget } from "./targets";
-import { ancestors, viewFavorite } from "./access";
+import { ancestors, viewFavorite, favoriteRemoved } from "./access";
 // Both existing saved-view entrypoints keep their Boolean idempotent contract.
 // Stored folder placement is preserved; unstar is reversible soft removal.
 export async function setViewFavorite(
@@ -21,7 +21,7 @@ export async function setViewFavorite(
   if (row) {
     if (favorite && (await ancestors(ctx, row)).some((parent) => parent.deletedAt !== null))
       throw new ConvexError("Restore the parent favorite folder first.");
-    if ((row.deletedAt === null) === favorite) return;
+    if (!(await favoriteRemoved(ctx, row)) === favorite) return;
     await changeFavoriteDeleted(ctx, row, !favorite);
     return;
   }

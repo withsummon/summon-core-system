@@ -144,7 +144,7 @@ function FavoriteRow({
             type="button"
             className="flex min-w-0 flex-1 items-center gap-1 py-1 text-left text-13 font-medium"
             aria-expanded={open}
-            disabled={row.deletedAt !== null}
+            disabled={row.isRemoved}
             onClick={() => setOpen(!open)}
             title={name}
           >
@@ -176,7 +176,7 @@ function FavoriteRow({
           </button>
         )}
       </SidebarNavItem>
-      {folder && open && row.deletedAt === null && (
+      {folder && open && !row.isRemoved && (
         <div className="ml-1 min-w-0 border-l border-subtle-1 pl-1">
           <FavoriteBoundary>
             <FolderContents
