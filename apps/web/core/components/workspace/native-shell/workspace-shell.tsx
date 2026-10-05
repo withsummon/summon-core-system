@@ -5,7 +5,7 @@ import { Logo } from "@plane/propel/emoji-icon-picker";
 import { ProjectSettingsSidebarView } from "@/components/settings/project/sidebar/root";
 import { ProjectSettingsSidebarHeaderView } from "@/components/settings/project/sidebar/header";
 import { ProjectSettingsSidebarItemCategoriesView } from "@/components/settings/project/sidebar/item-categories";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,7 +20,7 @@ import {
   SUMMON_ASSISTANT_NAVIGATION_ITEM,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
 } from "@plane/constants";
-import { useLocalStorage, useOutsideClickDetector } from "@plane/hooks";
+import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { IconButton } from "@plane/propel/icon-button";
 import { InboxIcon } from "@plane/propel/icons";
@@ -241,10 +241,6 @@ export function PreservedWorkspaceShell({
   const [width, setWidth] = useState(storedValue ?? SIDEBAR_WIDTH);
   const { storedValue: storedCollapsed, setValue: storeCollapsed } = useLocalStorage("app_sidebar_collapsed", false);
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768 || storedCollapsed === true);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  useOutsideClickDetector(sidebarRef, () => {
-    if (window.innerWidth < 768) setCollapsed(true);
-  });
   const [peek, setPeek] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   useEffect(() => {
@@ -337,7 +333,7 @@ export function PreservedWorkspaceShell({
               ) : undefined
             }
           >
-            <SidebarContent title="Summon Core" actions={toggleButton} containerRef={sidebarRef}>
+            <SidebarContent title="Summon Core" actions={toggleButton}>
               <div className="flex min-h-full flex-col">
                 <div className="flex flex-col gap-0.5">
                   {SUMMON_WORKSPACE_NAVIGATION_ITEMS.filter((item) => item.access.includes(role)).map(link)}
