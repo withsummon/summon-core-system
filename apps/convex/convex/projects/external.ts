@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { ConvexError, v } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
+import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
 import {
   httpAction,
   internalMutation,
@@ -27,6 +27,8 @@ import {
   projectApiOrder,
   projectApiReference,
   projectApiReadOptions,
+  projectApiSummaryField,
+  projectApiSummaryFields,
   projectApiFailure,
   projectJson,
   projectJsonText,
@@ -54,7 +56,8 @@ async function workspaceAccess(ctx: QueryCtx, slug: string, userId: Id<"users">,
     .query("workspaces")
     .withIndex("by_slug", (q) => q.eq("slug", slug))
     .unique();
-  if (!workspace || workspace.deletedAt != null) throw new ConvexError({ status: 404, detail: "Workspace not found." });
+  if (!workspace || workspace.deletedAt != null)
+    throw new ConvexError({ status: 403, detail: "You do not have access to this workspace." });
   try {
     return await requireWorkspaceForUser(ctx, workspace._id, user, write);
   } catch (error) {
@@ -109,6 +112,67 @@ async function userReference(
   return expand.includes(field)
     ? externalUserLite(ctx, account, assetOrigin, access.workspace)
     : apiIdSchema.parse(account.apiId);
+}
+async function projectCount(ctx: QueryCtx, project: Doc<"projects">, field: z.infer<typeof projectApiSummaryField>) {
+  switch (field) {
+    case "members":
+      return (
+        await ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.active && row.workspaceId === project.workspaceId).length;
+    case "states":
+      return (
+        await ctx.db
+          .query("taskStates")
+          .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.status !== "triage" && row.workspaceId === project.workspaceId).length;
+    case "labels":
+      return (
+        await ctx.db
+          .query("taskLabels")
+          .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => !row.retiring && row.workspaceId === project.workspaceId).length;
+    case "cycles":
+      return (
+        await ctx.db
+          .query("cycles")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
+          .collect()
+      ).length;
+    case "modules":
+      return (
+        await ctx.db
+          .query("modules")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
+          .collect()
+      ).length;
+    case "issues":
+      return (
+        await ctx.db
+          .query("tasks")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.deletedAt === null && row.status !== "triage" && row.workspaceId === project.workspaceId)
+        .length;
+    case "intakes":
+      return (
+        await ctx.db
+          .query("intakeTasks")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.deletedAt === null).length;
+    case "pages":
+      return (
+        await ctx.db
+          .query("documents")
+          .withIndex("by_workspace", (q) => q.eq("workspaceId", project.workspaceId).eq("deleted", false))
+          .collect()
+      ).filter((row) => row.projectIds.includes(project._id)).length;
+  }
 }
 async function projectWire(
   ctx: QueryCtx,
@@ -204,27 +268,9 @@ async function projectWire(
         return unsupportedReference("default_state");
       return apiIdSchema.parse(state.apiId);
     },
-    total_members: async () =>
-      (
-        await ctx.db
-          .query("projectMembers")
-          .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
-          .collect()
-      ).filter((member) => member.active && member.workspaceId === access.workspace._id).length,
-    total_cycles: async () =>
-      (
-        await ctx.db
-          .query("cycles")
-          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
-          .collect()
-      ).length,
-    total_modules: async () =>
-      (
-        await ctx.db
-          .query("modules")
-          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
-          .collect()
-      ).length,
+    total_members: () => projectCount(ctx, project, "members"),
+    total_cycles: () => projectCount(ctx, project, "cycles"),
+    total_modules: () => projectCount(ctx, project, "modules"),
     is_member: () => membership !== null,
     member_role: () => (membership ? { admin: 20, member: 15, guest: 5 }[membership.role] : null),
     is_deployed: async () => {
@@ -266,6 +312,35 @@ export const read = internalQuery({
     const row = project && (await visibleProject(ctx, project, access));
     if (!row) throw new ConvexError({ status: 404, detail: "Project not found." });
     return JSON.stringify(await projectWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, false));
+  },
+});
+export const summary = internalQuery({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    fields: v.array(zodToConvex(projectApiSummaryField)),
+  },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId, true);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, error: "Project not found" });
+    const counts: Partial<Record<z.infer<typeof projectApiSummaryField>, number>> = {};
+    await Promise.all(
+      args.fields.map(async (field) => {
+        counts[field] = await projectCount(ctx, project, field);
+      })
+    );
+    return {
+      id: apiIdSchema.parse(project.apiId),
+      name: project.name,
+      identifier: project.identifier,
+      counts,
+    };
   },
 });
 export const list = internalQuery({
@@ -709,22 +784,24 @@ async function writeProjectResponse(
 }
 async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"users">, responseHeaders: HeadersInit) {
   const url = new URL(request.url);
-  const match = /^\/api\/v1\/workspaces\/([^/]+)\/(projects|projects-lite)\/(?:([^/]+)\/(archive\/)?)?$/.exec(
-    url.pathname
-  );
-  if (!match || (match[2] === "projects-lite" && match[3])) {
+  const match =
+    /^\/api\/v1\/workspaces\/([^/]+)\/(projects-lite(?=\/$)|projects)\/(?:([^/]+)\/((?:archive|summary)\/)?)?$/.exec(
+      url.pathname
+    );
+  if (!match) {
     return Response.json({ detail: "Not found." }, { status: 404, headers: responseHeaders });
   }
   const slug = decodeURIComponent(match[1]);
   const lite = match[2] === "projects-lite";
   const projectApiId = match[3];
-  const methods = match[4]
-    ? ["POST", "DELETE"]
-    : lite
-      ? ["GET", "HEAD"]
-      : projectApiId
-        ? ["GET", "HEAD", "PATCH", "DELETE"]
-        : ["GET", "HEAD", "POST"];
+  const methods =
+    match[4] === "archive/"
+      ? ["POST", "DELETE"]
+      : lite || match[4] === "summary/"
+        ? ["GET", "HEAD"]
+        : projectApiId
+          ? ["GET", "HEAD", "PATCH", "DELETE"]
+          : ["GET", "HEAD", "POST"];
   if (!methods.includes(request.method)) {
     return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
   }
@@ -733,6 +810,15 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
     return Response.json({ detail: "Project not found." }, { status: 404, headers: responseHeaders });
   }
   if (match[4] && parsedId) {
+    if (match[4] === "summary/") {
+      const body = await ctx.runQuery(internal.projects.external.summary, {
+        userId,
+        slug,
+        projectApiId: parsedId.data,
+        fields: projectApiSummaryFields.parse(url.searchParams.getAll("fields").at(-1)),
+      });
+      return Response.json(body, { status: 200, headers: responseHeaders });
+    }
     await ctx.runMutation(internal.projects.external.archive, {
       userId,
       slug,

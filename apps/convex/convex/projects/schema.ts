@@ -157,6 +157,24 @@ export const projectApiReference = projectApiField.extract([
   "estimate",
   "cover_image_asset",
 ]);
+export const projectApiSummaryField = z.enum([
+  "members",
+  "states",
+  "labels",
+  "cycles",
+  "modules",
+  "issues",
+  "intakes",
+  "pages",
+]);
+export const projectApiSummaryFields = z
+  .string()
+  .nullish()
+  .transform((value) => {
+    const requested = new Set((value ?? "").split(",").map((field) => field.trim()));
+    const fields = projectApiSummaryField.options.filter((field) => requested.has(field));
+    return fields.length ? fields : projectApiSummaryField.options;
+  });
 export const projectApiReadOptions = z.object({
   fields: z
     .string()
