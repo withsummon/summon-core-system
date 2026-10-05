@@ -9,6 +9,7 @@ import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquar
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/components/workspace/native-shell/session";
+import { opportunitiesHref } from "@/components/summon/opportunities/opportunity-pipeline";
 import { CommandSearchView } from "@/components/navigation/command-search-view";
 import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
 import { PowerKModalCommandItem } from "@/components/power-k/ui/modal/command-item";
@@ -124,7 +125,7 @@ export function WorkspaceCommands({
           isDisabled: workspace.membershipRole === "guest",
           onSelect: () => {
             handleClose();
-            navigate(`/${workspace.slug}/summon/opportunities/`);
+            navigate(opportunitiesHref(workspace.slug, { create: true }));
           },
         },
         {
