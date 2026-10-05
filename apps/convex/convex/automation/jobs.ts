@@ -1,8 +1,10 @@
 import { allocateAssetApiId } from "../assets/schema";
-import { v, ConvexError, compareValues } from "convex/values";
+import { v, ConvexError, compareValues, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { query, mutation, internalMutation, internalQuery } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { internal } from "../_generated/api";
 import { requireProject, requireWorkspace, requireUser } from "../identity/access";
@@ -156,13 +158,39 @@ export const resolve = query({
     return (await requireJob(ctx, jobId)).job;
   },
 });
+const searchFields = {
+  search: v.optional(v.string()),
+  searchScope: v.optional(v.literal("studio")),
+};
+
+function requesterJobs(ctx: QueryCtx, workspaceId: Id<"workspaces">, requesterId: Id<"users">) {
+  return stream(ctx.db, schema)
+    .query("automationJobs")
+    .withIndex("by_workspace_requester", (q) => q.eq("workspaceId", workspaceId).eq("requesterId", requesterId))
+    .order("desc");
+}
+
+async function matchesSearch(
+  ctx: QueryCtx,
+  job: Doc<"automationJobs">,
+  search: string,
+  scope: Infer<typeof searchFields.searchScope>
+) {
+  if (!search) return true;
+  const values =
+    scope === "studio"
+      ? [job.title, job.template.type, (await ctx.db.get(job.projectId))?.name ?? ""]
+      : [job.title, job.template.name, ...Object.values(job.input)];
+  return values.some((value) => value.toLowerCase().includes(search));
+}
+
 export const list = query({
   args: {
     workspaceId: v.id("workspaces"),
     projectId: v.optional(v.id("projects")),
     type: v.optional(v.string()),
     status: v.optional(v.union(...jobStatus.members, v.literal("published"))),
-    search: v.optional(v.string()),
+    ...searchFields,
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -172,23 +200,31 @@ export const list = query({
       if (project.workspaceId !== args.workspaceId) throw new ConvexError("Project belongs to another workspace.");
     }
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
-    return stream(ctx.db, schema)
-      .query("automationJobs")
-      .withIndex("by_workspace_requester", (q) => q.eq("workspaceId", args.workspaceId).eq("requesterId", user._id))
-      .order("desc")
+    return requesterJobs(ctx, args.workspaceId, user._id)
       .filterWith(
         async (job) =>
-          job.deletedAt === undefined &&
           (!args.projectId || job.projectId === args.projectId) &&
           (!args.type || job.template.type === args.type) &&
           (!args.status ||
             (args.status === "published" ? job.publishedDocumentId !== null : job.status === args.status)) &&
-          (!search ||
-            [job.title, job.template.name, ...Object.values(job.input)].some((value) =>
-              value.toLowerCase().includes(search)
-            )) &&
-          (await canReadJob(ctx, job, user._id))
+          (await canReadJob(ctx, job, user._id)) &&
+          (await matchesSearch(ctx, job, search, args.searchScope))
       )
+      .paginate(pageBudget(args.paginationOpts));
+  },
+});
+
+export const counts = query({
+  args: { workspaceId: v.id("workspaces"), ...searchFields, paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const { user } = await requireWorkspace(ctx, args.workspaceId);
+    const search = text(args.search ?? "", "Search", 255).toLowerCase();
+    return requesterJobs(ctx, args.workspaceId, user._id)
+      .filterWith((job) => canReadJob(ctx, job, user._id))
+      .map(async (job) => ({
+        type: job.template.type,
+        matchesSearch: await matchesSearch(ctx, job, search, args.searchScope),
+      }))
       .paginate(pageBudget(args.paginationOpts));
   },
 });
