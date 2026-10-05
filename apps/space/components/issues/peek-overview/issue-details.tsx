@@ -4,43 +4,36 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
 import { usePublish } from "@/hooks/store/publish";
-// types
-import type { IIssue } from "@/types/issue";
-// local imports
 import { IssueReactions } from "./issue-reaction";
 
-type Props = {
+export function PeekOverviewIssueDetails({
+  anchor,
+  issueDetails,
+}: {
   anchor: string;
-  issueDetails: IIssue;
-};
-
-export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetails(props: Props) {
-  const { anchor, issueDetails } = props;
-  // store hooks
-  const { project_details, workspace: workspaceID } = usePublish(anchor);
-  // derived values
-  const description = issueDetails.description_html;
-
+  issueDetails: FunctionReturnType<typeof api.publicSharing.index.getTask>;
+}) {
+  const publication = usePublish(anchor);
   return (
     <div className="space-y-2">
       <h6 className="text-14 font-medium text-placeholder">
-        {project_details?.identifier}-{issueDetails?.sequence_id}
+        {publication?.project.identifier}-{issueDetails.sequence}
       </h6>
-      <h4 className="text-20 font-medium break-words">{issueDetails.name}</h4>
-      {description && description !== "" && description !== "<p></p>" && (
+      <h4 className="text-20 font-medium break-words">{issueDetails.title}</h4>
+      {issueDetails.descriptionHtml && issueDetails.descriptionHtml !== "<p></p>" && (
         <RichTextEditor
           editable={false}
           anchor={anchor}
-          id={issueDetails.id}
-          initialValue={description}
-          workspaceId={workspaceID?.toString() ?? ""}
+          id={issueDetails._id}
+          initialValue={issueDetails.descriptionHtml}
+          target={{ anchor, taskId: issueDetails._id }}
         />
       )}
-      <IssueReactions anchor={anchor} />
+      <IssueReactions anchor={anchor} taskId={issueDetails._id} />
     </div>
   );
-});
+}

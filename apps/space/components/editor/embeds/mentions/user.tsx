@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 // helpers
 import { cn } from "@plane/utils";
 // hooks
@@ -15,18 +14,18 @@ type Props = {
   id: string;
 };
 
-export const EditorUserMention = observer(function EditorUserMention(props: Props) {
+export function EditorUserMention(props: Props) {
   const { id } = props;
   // store hooks
-  const { data: currentUser } = useUser();
-  const { getMemberById } = useMember();
+  const { profile: currentUser } = useUser();
+  const { results, status } = useMember();
   // derived values
-  const userDetails = getMemberById(id);
+  const userDetails = results.find((member) => member.userId === id);
 
   if (!userDetails) {
     return (
       <div className="not-prose inline rounded-sm bg-layer-1 px-1 py-0.5 text-tertiary no-underline">
-        @deactivated user
+        @{status === "Exhausted" ? "deactivated user" : "loading user…"}
       </div>
     );
   }
@@ -37,7 +36,7 @@ export const EditorUserMention = observer(function EditorUserMention(props: Prop
         "bg-yellow-500/20 text-yellow-500": id === currentUser?.id,
       })}
     >
-      @{userDetails?.member__display_name}
+      @{userDetails.name}
     </div>
   );
-});
+}

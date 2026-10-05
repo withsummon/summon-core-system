@@ -5,12 +5,12 @@
  */
 
 import React, { useState } from "react";
-import { observer } from "mobx-react";
 // ui
 import { EIconSize } from "@plane/constants";
 import { StateGroupIcon } from "@plane/propel/icons";
 import { Loader } from "@plane/ui";
 // hooks
+import { stateGroups } from "@/helpers/issue.helper";
 import { useStates } from "@/hooks/store/use-state";
 // local imports
 import { FilterHeader } from "./helpers/filter-header";
@@ -22,10 +22,10 @@ type Props = {
   searchQuery: string;
 };
 
-export const FilterState = observer(function FilterState(props: Props) {
+export function FilterState(props: Props) {
   const { appliedFilters, handleUpdate, searchQuery } = props;
 
-  const { sortedStates: states } = useStates();
+  const states = useStates();
 
   const [itemsToRender, setItemsToRender] = useState(5);
   const [previewEnabled, setPreviewEnabled] = useState(true);
@@ -55,10 +55,12 @@ export const FilterState = observer(function FilterState(props: Props) {
               <>
                 {filteredOptions.slice(0, itemsToRender).map((state) => (
                   <FilterOption
-                    key={state.id}
-                    isChecked={appliedFilters?.includes(state.id) ? true : false}
-                    onClick={() => handleUpdate(state.id)}
-                    icon={<StateGroupIcon stateGroup={state.group} color={state.color} size={EIconSize.MD} />}
+                    key={state._id}
+                    isChecked={appliedFilters?.includes(state._id) ?? false}
+                    onClick={() => handleUpdate(state._id)}
+                    icon={
+                      <StateGroupIcon stateGroup={stateGroups[state.status]} color={state.color} size={EIconSize.MD} />
+                    }
                     title={state.name}
                   />
                 ))}
@@ -86,4 +88,4 @@ export const FilterState = observer(function FilterState(props: Props) {
       )}
     </>
   );
-});
+}

@@ -7,11 +7,12 @@
 import React from "react";
 // plane imports
 import { LiteTextEditorWithRef } from "@plane/editor";
-import type { EditorRefApi, ILiteTextEditorProps, TFileHandler } from "@plane/editor";
+import type { EditorRefApi, ILiteTextEditorProps } from "@plane/editor";
 import type { MakeOptional } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 // helpers
-import { getEditorFileHandlers } from "@/helpers/editor.helper";
+import type { EditorTarget } from "@/helpers/editor.helper";
+import { useEditorFileHandlers } from "@/helpers/editor.helper";
 // hooks
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 // plane web imports
@@ -27,16 +28,9 @@ type LiteTextEditorWrapperProps = MakeOptional<
   anchor: string;
   isSubmitting?: boolean;
   showSubmitButton?: boolean;
-  workspaceId: string;
-} & (
-    | {
-        editable: false;
-      }
-    | {
-        editable: true;
-        uploadFile: TFileHandler["upload"];
-      }
-  );
+  target: EditorTarget;
+  editable: boolean;
+};
 
 export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   props: LiteTextEditorWrapperProps,
@@ -49,21 +43,20 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
     editable,
     isSubmitting = false,
     showSubmitButton = true,
-    workspaceId,
+    target,
     ...rest
   } = props;
-  function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
-    return !!ref && typeof ref === "object" && "current" in ref;
-  }
   // derived values
   const isEmpty = isCommentEmpty(props.initialValue);
-  const editorRef = isMutableRefObject<EditorRefApi>(ref) ? ref.current : null;
+  const editorRef = ref && typeof ref === "object" ? ref.current : null;
   const { liteText: liteTextEditorExtensions } = useEditorFlagging(anchor);
   // parse content
   const { getEditorMetaData } = useParseEditorContent({
-    anchor,
+    target,
   });
 
+  const fileHandler = useEditorFileHandlers(target);
+  if (!fileHandler) return <p role="status">Loading editor…</p>;
   return (
     <div className="space-y-3 rounded-sm border border-subtle p-3">
       <LiteTextEditorWithRef
@@ -71,14 +64,10 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
         disabledExtensions={[...liteTextEditorExtensions.disabled, ...additionalDisabledExtensions]}
         flaggedExtensions={liteTextEditorExtensions.flagged}
         editable={editable}
-        fileHandler={getEditorFileHandlers({
-          anchor,
-          uploadFile: editable ? props.uploadFile : async () => "",
-          workspaceId,
-        })}
+        fileHandler={fileHandler}
         getEditorMetaData={getEditorMetaData}
         mentionHandler={{
-          renderComponent: (props) => <EditorMentionsRoot {...props} />,
+          renderComponent: (mentionProps) => <EditorMentionsRoot {...mentionProps} />,
         }}
         extendedEditorProps={{}}
         {...rest}

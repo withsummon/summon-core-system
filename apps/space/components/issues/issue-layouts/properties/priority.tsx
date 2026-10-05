@@ -9,7 +9,8 @@ import { useTranslation } from "@plane/i18n";
 // types
 import { PriorityIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssuePriorities } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 // constants
 import { cn, getIssuePriorityFilters } from "@plane/utils";
 
@@ -17,7 +18,7 @@ export function IssueBlockPriority({
   priority,
   shouldShowName = false,
 }: {
-  priority: TIssuePriorities | null;
+  priority: FunctionReturnType<typeof api.publicSharing.index.list>["page"][number]["priority"];
   shouldShowName?: boolean;
 }) {
   // hooks

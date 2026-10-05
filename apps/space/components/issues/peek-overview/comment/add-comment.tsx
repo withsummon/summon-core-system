@@ -4,111 +4,61 @@
  * See the LICENSE file for details.
  */
 
-import React, { useRef, useState } from "react";
-import { observer } from "mobx-react";
-import { useForm, Controller } from "react-hook-form";
-// plane imports
+import { useRef, useState } from "react";
+import { useMutation } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 import type { EditorRefApi } from "@plane/editor";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { SitesFileService } from "@plane/services";
-import type { TIssuePublicComment } from "@plane/types";
-// editor components
+import { isCommentEmpty } from "@plane/utils";
 import { LiteTextEditor } from "@/components/editor/lite-text-editor";
-// hooks
-import { usePublish } from "@/hooks/store/publish";
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
-import { useUser } from "@/hooks/store/use-user";
-// services
-const fileService = new SitesFileService();
 
-const defaultValues: Partial<TIssuePublicComment> = {
-  comment_html: "",
-};
-
-type Props = {
-  anchor: string;
-  disabled?: boolean;
-};
-
-export const AddComment = observer(function AddComment(props: Props) {
-  const { anchor } = props;
-  // states
-  const [uploadedAssetIds, setUploadAssetIds] = useState<string[]>([]);
-  // refs
-  const editorRef = useRef<EditorRefApi>(null);
-  // store hooks
-  const { peekId: issueId, addIssueComment, uploadCommentAsset } = useIssueDetails();
-  const { data: currentUser } = useUser();
-  const { workspace: workspaceID } = usePublish(anchor);
-  // form info
-  const {
-    handleSubmit,
-    control,
-    watch,
-    formState: { isSubmitting },
-    reset,
-  } = useForm<TIssuePublicComment>({ defaultValues });
-
-  const onSubmit = async (formData: TIssuePublicComment) => {
-    if (!anchor || !issueId || isSubmitting || !formData.comment_html) return;
-
-    await addIssueComment(anchor, issueId, formData)
-      .then(async (res) => {
-        reset(defaultValues);
-        editorRef.current?.clearEditor();
-        if (uploadedAssetIds.length > 0) {
-          await fileService.updateBulkAssetsUploadStatus(anchor, res.id, {
-            asset_ids: uploadedAssetIds,
-          });
-          setUploadAssetIds([]);
-        }
-      })
-      .catch(() =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Comment could not be posted. Please try again.",
-        })
-      );
+export function AddComment({
+  anchor,
+  taskId,
+}: Omit<FunctionArgs<typeof api.tasks.comments.publicCreate>, "requestId" | "html">) {
+  const [html, setHtml] = useState("");
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [pending, setPending] = useState(false);
+  const editor = useRef<EditorRefApi>(null);
+  const create = useMutation(api.tasks.comments.publicCreate);
+  const submit = async () => {
+    if (pending || isCommentEmpty(html)) return;
+    setPending(true);
+    try {
+      await create({ anchor, taskId, requestId, html });
+      setHtml("");
+      editor.current?.clearEditor();
+      setRequestId(crypto.randomUUID());
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Comment could not be posted",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setPending(false);
+    }
   };
-
-  // TODO: on click if he user is not logged in redirect to login page
   return (
-    <div>
-      <div className="issue-comments-section">
-        <Controller
-          name="comment_html"
-          control={control}
-          render={({ field: { value, onChange } }) => (
-            <LiteTextEditor
-              editable
-              onEnterKeyPress={(e) => {
-                if (currentUser) handleSubmit(onSubmit)(e);
-              }}
-              anchor={anchor}
-              workspaceId={workspaceID?.toString() ?? ""}
-              ref={editorRef}
-              id="peek-overview-add-comment"
-              initialValue={
-                !value || value === "" || (typeof value === "object" && Object.keys(value).length === 0)
-                  ? watch("comment_html")
-                  : value
-              }
-              onChange={(comment_json, comment_html) => onChange(comment_html)}
-              isSubmitting={isSubmitting}
-              placeholder="Add comment..."
-              uploadFile={async (blockId, file) => {
-                const { asset_id } = await uploadCommentAsset(file, anchor);
-                setUploadAssetIds((prev) => [...prev, asset_id]);
-                return asset_id;
-              }}
-              displayConfig={{
-                fontSize: "small-font",
-              }}
-            />
-          )}
-        />
-      </div>
-    </div>
+    <fieldset disabled={pending} className="issue-comments-section">
+      <LiteTextEditor
+        key={requestId}
+        editable={!pending}
+        anchor={anchor}
+        ref={editor}
+        id={requestId}
+        target={{ comment: { anchor, taskId, requestId } }}
+        initialValue={html}
+        onChange={(_json, content) => setHtml(content)}
+        onEnterKeyPress={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+        isSubmitting={pending}
+        placeholder="Add comment..."
+        displayConfig={{ fontSize: "small-font" }}
+      />
+    </fieldset>
   );
-});
+}

@@ -1,17 +1,16 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
+import { useConvexAuth, useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 
-import { useContext } from "react";
-// lib
-import { StoreContext } from "@/lib/store-provider";
-// store
-import type { IUserStore } from "@/store/user.store";
-
-export const useUser = (): IUserStore => {
-  const context = useContext(StoreContext);
-  if (context === undefined) throw new Error("useUser must be used within StoreProvider");
-  return context.user;
-};
+export function useUser() {
+  const auth = useConvexAuth();
+  const status = useQuery(api.identity.session.status, auth.isAuthenticated ? {} : "skip");
+  const profile = useQuery(api.identity.profile.get, status?.valid ? {} : "skip");
+  return {
+    profile,
+    isAuthenticated: status?.valid === true,
+    isInitializing:
+      auth.isLoading ||
+      (auth.isAuthenticated && status === undefined) ||
+      (status?.valid === true && profile === undefined),
+  };
+}

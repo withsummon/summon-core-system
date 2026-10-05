@@ -6,12 +6,10 @@
 
 import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
-import { observer } from "mobx-react";
 // icons
 import { CircleAlert, XCircle } from "lucide-react";
 // types
 import { Button } from "@plane/propel/button";
-import type { IEmailCheckData } from "@plane/types";
 // ui
 import { Input, Spinner } from "@plane/ui";
 // helpers
@@ -20,11 +18,12 @@ import { checkEmailValidity } from "@/helpers/string.helper";
 
 type TAuthEmailForm = {
   defaultEmail: string;
-  onSubmit: (data: IEmailCheckData) => Promise<void>;
+  disabled: boolean;
+  onSubmit: (email: string) => Promise<void>;
 };
 
-export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailForm) {
-  const { onSubmit, defaultEmail } = props;
+export function AuthEmailForm(props: TAuthEmailForm) {
+  const { onSubmit, defaultEmail, disabled } = props;
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
@@ -37,14 +36,14 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
   const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    const payload: IEmailCheckData = {
-      email: email,
-    };
-    await onSubmit(payload);
-    setIsSubmitting(false);
+    try {
+      await onSubmit(email);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const isButtonDisabled = email.length === 0 || Boolean(emailError?.email) || isSubmitting;
+  const isButtonDisabled = disabled || email.length === 0 || Boolean(emailError?.email) || isSubmitting;
 
   const [isFocused, setIsFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +68,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         >
           <Input
             id="email"
+            disabled={disabled}
             name="email"
             type="email"
             value={email}
@@ -76,12 +76,12 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             placeholder="name@company.com"
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder autofill:bg-danger-subtle focus:bg-none active:bg-transparent`}
             autoComplete="off"
-            autoFocus
             ref={inputRef}
           />
           {email.length > 0 && (
             <button
               type="button"
+              disabled={disabled}
               aria-label="Clear email"
               onClick={() => {
                 setEmail("");
@@ -105,4 +105,4 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
       </Button>
     </form>
   );
-});
+}

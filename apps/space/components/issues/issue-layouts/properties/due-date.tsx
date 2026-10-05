@@ -1,45 +1,32 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { observer } from "mobx-react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { DueDatePropertyIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
-// helpers
+import { shouldHighlightIssueDueDate, stateGroups } from "@/helpers/issue.helper";
 import { renderFormattedDate } from "@/helpers/date-time.helper";
-import { shouldHighlightIssueDueDate } from "@/helpers/issue.helper";
-// hooks
-import { useStates } from "@/hooks/store/use-state";
 
-type Props = {
-  due_date: string | undefined;
-  stateId: string | undefined;
-  shouldHighLight?: boolean;
+export function IssueBlockDate({
+  targetDate,
+  status,
+  shouldShowBorder = true,
+}: {
+  targetDate: FunctionReturnType<typeof api.publicSharing.index.list>["page"][number]["targetDate"];
+  status: FunctionReturnType<typeof api.publicSharing.index.list>["page"][number]["status"];
   shouldShowBorder?: boolean;
-};
-
-export const IssueBlockDate = observer(function IssueBlockDate(props: Props) {
-  const { due_date, stateId, shouldHighLight = true, shouldShowBorder = true } = props;
-  const { getStateById } = useStates();
-
-  const state = getStateById(stateId);
-
-  const formattedDate = renderFormattedDate(due_date);
-
+}) {
+  const formattedDate = renderFormattedDate(targetDate);
   return (
     <Tooltip tooltipHeading="Due Date" tooltipContent={formattedDate}>
       <div
         className={cn("flex h-full items-center gap-1 rounded-sm px-2.5 py-1 text-11 text-primary", {
-          "text-danger-primary": shouldHighLight && due_date && shouldHighlightIssueDueDate(due_date, state?.group),
+          "text-danger-primary": shouldHighlightIssueDueDate(targetDate, stateGroups[status]),
           "border-[0.5px] border-strong": shouldShowBorder,
         })}
       >
-        <DueDatePropertyIcon className="size-3 flex-shrink-0" />
-        {formattedDate ? formattedDate : "No Date"}
+        <DueDatePropertyIcon className="size-3 shrink-0" />
+        {formattedDate}
       </div>
     </Tooltip>
   );
-});
+}

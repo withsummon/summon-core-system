@@ -4,162 +4,100 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
+import { useLocation, useNavigate } from "react-router";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { observer } from "mobx-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-// plane imports
 import { Tooltip } from "@plane/propel/tooltip";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
-// helpers
-import { queryParamGenerator } from "@/helpers/query-param-generator";
-// hooks
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
 import { useUser } from "@/hooks/store/use-user";
 import useIsInIframe from "@/hooks/use-is-in-iframe";
 
-type TIssueVotes = {
-  anchor: string;
-  issueIdFromProps?: string;
-  size?: "md" | "sm";
-};
-
-export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
-  const { anchor, issueIdFromProps, size = "md" } = props;
-  // states
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // router
-  const router = useRouter();
-  const pathName = usePathname();
-  const searchParams = useSearchParams();
-  // query params
-  const peekId = searchParams.get("peekId") || undefined;
-  const board = searchParams.get("board") || undefined;
-  const state = searchParams.get("state") || undefined;
-  const priority = searchParams.get("priority") || undefined;
-  const labels = searchParams.get("labels") || undefined;
-  // store hooks
-  const issueDetailsStore = useIssueDetails();
-  const { data: user } = useUser();
-
+export function IssueVotes({
+  anchor,
+  taskId,
+  size = "md",
+}: FunctionArgs<typeof api.tasks.votes.summary> & { size?: "md" | "sm" }) {
+  const [pending, setPending] = useState(false);
+  const { profile: user } = useUser();
   const isInIframe = useIsInIframe();
-
-  const issueId = issueIdFromProps ?? issueDetailsStore.peekId;
-
-  const votes = issueDetailsStore.details[issueId ?? ""]?.vote_items ?? [];
-
-  const allUpVotes = votes.filter((vote) => vote.vote === 1);
-  const allDownVotes = votes.filter((vote) => vote.vote === -1);
-
-  const isUpVotedByUser = allUpVotes.some((vote) => vote.actor_details?.id === user?.id);
-  const isDownVotedByUser = allDownVotes.some((vote) => vote.actor_details?.id === user?.id);
-
-  const handleVote = async (e: any, voteValue: 1 | -1) => {
-    if (!issueId) return;
-
-    setIsSubmitting(true);
-
-    const actionPerformed = votes?.find((vote) => vote.actor_details?.id === user?.id && vote.vote === voteValue);
-
-    if (actionPerformed) await issueDetailsStore.removeIssueVote(anchor, issueId);
-    else {
-      await issueDetailsStore.addIssueVote(anchor, issueId, {
-        vote: voteValue,
-      });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const summary = useQuery(api.tasks.votes.summary, { anchor, taskId });
+  const viewer = useQuery(api.tasks.votes.viewer, user ? { anchor, taskId } : "skip");
+  const up = usePaginatedQuery(api.tasks.votes.actors, { anchor, taskId, vote: 1 }, { initialNumItems: 50 });
+  const down = usePaginatedQuery(api.tasks.votes.actors, { anchor, taskId, vote: -1 }, { initialNumItems: 50 });
+  const { status: upStatus, loadMore: loadMoreUp } = up;
+  useEffect(() => {
+    if (upStatus === "CanLoadMore") loadMoreUp(50);
+  }, [upStatus, loadMoreUp]);
+  const { status: downStatus, loadMore: loadMoreDown } = down;
+  useEffect(() => {
+    if (downStatus === "CanLoadMore") loadMoreDown(50);
+  }, [downStatus, loadMoreDown]);
+  const setVote = useMutation(api.tasks.votes.set);
+  const vote = async (choice: 1 | -1) => {
+    if (pending || isInIframe) return;
+    if (!user) {
+      navigate(`/?${new URLSearchParams({ next_path: location.pathname + location.search })}`);
+      return;
     }
-
-    setIsSubmitting(false);
+    setPending(true);
+    try {
+      await setVote({ anchor, taskId, vote: viewer === choice ? null : choice });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Vote could not be saved",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setPending(false);
+    }
   };
-
-  const VOTES_LIMIT = 1000;
-
-  // derived values
-  const { queryParam } = queryParamGenerator({ peekId, board, state, priority, labels });
-  const votingDimensions = size === "sm" ? "px-1 h-6 min-w-9" : "px-2 h-7";
-
   return (
     <div className="flex items-center gap-2">
-      {/* upvote button 👇 */}
-      <Tooltip
-        tooltipContent={
-          <div>
-            {allUpVotes.length > 0 ? (
-              <>
-                {allUpVotes
-                  .map((r) => r.actor_details?.display_name)
-                  .splice(0, VOTES_LIMIT)
-                  .join(", ")}
-                {allUpVotes.length > VOTES_LIMIT && " and " + (allUpVotes.length - VOTES_LIMIT) + " more"}
-              </>
-            ) : (
-              "No upvotes yet"
-            )}
-          </div>
-        }
-      >
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={(e) => {
-            if (isInIframe) return;
-            if (user) handleVote(e, 1);
-            else router.push(`/?next_path=${pathName}?${queryParam}`);
-          }}
-          className={cn(
-            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus:outline-none",
-            votingDimensions,
-            {
-              "border-accent-strong-200 text-accent-secondary": isUpVotedByUser,
-              "border-strong": !isUpVotedByUser,
-              "cursor-default": isInIframe,
+      {([1, -1] satisfies (1 | -1)[]).map((choice) => {
+        const actors = choice === 1 ? up : down;
+        const count = choice === 1 ? summary?.upVotes : summary?.downVotes;
+        const Icon = choice === 1 ? ArrowUp : ArrowDown;
+        return (
+          <Tooltip
+            key={choice}
+            tooltipContent={
+              actors.status !== "Exhausted"
+                ? "Loading voters…"
+                : count === 0
+                  ? `No ${choice === 1 ? "upvotes" : "downvotes"} yet`
+                  : actors.results.flatMap((row) => (row.actorName === null ? [] : [row.actorName])).join(", ")
             }
-          )}
-        >
-          <ArrowUp className="size-3.5 shrink-0" />
-          <span className="text-13 font-regular transition-opacity ease-in-out">{allUpVotes.length}</span>
-        </button>
-      </Tooltip>
-
-      {/* downvote button 👇 */}
-      <Tooltip
-        tooltipContent={
-          <div>
-            {allDownVotes.length > 0 ? (
-              <>
-                {allDownVotes
-                  .map((r) => r.actor_details.display_name)
-                  .splice(0, VOTES_LIMIT)
-                  .join(", ")}
-                {allDownVotes.length > VOTES_LIMIT && " and " + (allDownVotes.length - VOTES_LIMIT) + " more"}
-              </>
-            ) : (
-              "No downvotes yet"
-            )}
-          </div>
-        }
-      >
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={(e) => {
-            if (isInIframe) return;
-            if (user) handleVote(e, -1);
-            else router.push(`/?next_path=${pathName}?${queryParam}`);
-          }}
-          className={cn(
-            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus:outline-none",
-            votingDimensions,
-            {
-              "border-danger-strong text-danger-primary": isDownVotedByUser,
-              "border-strong": !isDownVotedByUser,
-              "cursor-default": isInIframe,
-            }
-          )}
-        >
-          <ArrowDown className="size-3.5 shrink-0" />
-          <span className="text-13 font-regular transition-opacity ease-in-out">{allDownVotes.length}</span>
-        </button>
-      </Tooltip>
+          >
+            <button
+              type="button"
+              aria-label={choice === 1 ? "Upvote work item" : "Downvote work item"}
+              aria-pressed={viewer === choice}
+              disabled={pending || isInIframe || summary === undefined || (!!user && viewer === undefined)}
+              onClick={() => vote(choice)}
+              className={cn(
+                "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover",
+                size === "sm" ? "h-6 min-w-9 px-1" : "h-7 px-2",
+                {
+                  "border-accent-strong-200 text-accent-secondary": viewer === 1 && choice === 1,
+                  "border-danger-strong text-danger-primary": viewer === -1 && choice === -1,
+                  "border-strong": viewer !== choice,
+                  "cursor-default": isInIframe,
+                }
+              )}
+            >
+              <Icon className="size-3.5 shrink-0" />
+              <span className="text-13 font-regular">{count ?? "…"}</span>
+            </button>
+          </Tooltip>
+        );
+      })}
     </div>
   );
-});
+}

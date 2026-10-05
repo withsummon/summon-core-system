@@ -23,17 +23,12 @@ export const renderEmoji = (
   else return isNaN(parseInt(emoji)) ? emoji : String.fromCodePoint(parseInt(emoji));
 };
 
-export const groupReactions = <T extends { reaction: string }>(reactions: T[], key: string) => {
-  const groupedReactions = reactions.reduce(
-    (acc: { [key: string]: T[] }, reaction: any) => {
-      if (!acc[reaction[key]]) {
-        acc[reaction[key]] = [];
-      }
-      acc[reaction[key]].push(reaction);
-      return acc;
-    },
-    {} as { [key: string]: T[] }
-  );
-
-  return groupedReactions;
-};
+export function groupReactions<T extends { reaction: string }>(reactions: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const reaction of reactions) {
+    const group = groups.get(reaction.reaction);
+    if (group) group.push(reaction);
+    else groups.set(reaction.reaction, [reaction]);
+  }
+  return groups;
+}

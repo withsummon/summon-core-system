@@ -221,15 +221,11 @@ export const catalog = query({
         .collect(),
     ]);
     return {
-      states: states
-        .filter((state) => state.workspaceId === project.workspaceId && state.status !== "triage")
-        .map((state) => ({
-          _id: state._id,
-          name: state.name,
-          status: state.status,
-          color: state.color,
-          sortOrder: state.sortOrder,
-        })),
+      states: states.flatMap((state) =>
+        state.workspaceId !== project.workspaceId || state.status === "triage"
+          ? []
+          : [{ _id: state._id, name: state.name, status: state.status, color: state.color, sortOrder: state.sortOrder }]
+      ),
       labels: labels
         .filter((label) => label.workspaceId === project.workspaceId && !label.retiring)
         .map((label) => ({ _id: label._id, name: label.name, color: label.color, parentId: label.parentId })),

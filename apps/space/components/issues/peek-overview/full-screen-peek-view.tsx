@@ -4,34 +4,38 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import type { ComponentProps } from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 // plane imports
 import { Loader } from "@plane/ui";
+import { usePublish } from "@/hooks/store/publish";
 // types
-import type { IIssue } from "@/types/issue";
+
 // local imports
 import { PeekOverviewHeader } from "./header";
 import { PeekOverviewIssueActivity } from "./issue-activity";
 import { PeekOverviewIssueDetails } from "./issue-details";
 import { PeekOverviewIssueProperties } from "./issue-properties";
 
-type Props = {
+type Props = ComponentProps<typeof PeekOverviewHeader> & {
   anchor: string;
   handleClose: () => void;
-  issueDetails: IIssue | undefined;
+  issueDetails: FunctionReturnType<typeof api.publicSharing.index.getTask> | undefined;
 };
 
-export const FullScreenPeekView = observer(function FullScreenPeekView(props: Props) {
-  const { anchor, handleClose, issueDetails } = props;
+export function FullScreenPeekView(props: Props) {
+  const { anchor, issueDetails } = props;
+  const publication = usePublish(anchor);
 
   return (
-    <div className="grid h-full w-full grid-cols-10 divide-x divide-subtle-1 overflow-hidden">
-      <div className="col-span-7 flex h-full w-full flex-col overflow-hidden">
+    <div className="flex h-full w-full flex-col overflow-y-auto sm:grid sm:grid-cols-10 sm:divide-x sm:divide-subtle-1 sm:overflow-hidden">
+      <div className="flex w-full shrink-0 flex-col sm:col-span-7 sm:h-full sm:overflow-hidden">
         <div className="w-full p-5">
-          <PeekOverviewHeader handleClose={handleClose} issueDetails={issueDetails} />
+          <PeekOverviewHeader {...props} />
         </div>
         {issueDetails ? (
-          <div className="h-full w-full overflow-y-auto px-6">
+          <div className="w-full px-6 sm:h-full sm:overflow-y-auto">
             {/* issue title and description */}
             <div className="w-full">
               <PeekOverviewIssueDetails anchor={anchor} issueDetails={issueDetails} />
@@ -39,9 +43,11 @@ export const FullScreenPeekView = observer(function FullScreenPeekView(props: Pr
             {/* divider */}
             <div className="my-5 h-[1] w-full border-t border-subtle" />
             {/* issue activity/comments */}
-            <div className="w-full pb-5">
-              <PeekOverviewIssueActivity anchor={anchor} issueDetails={issueDetails} />
-            </div>
+            {publication?.settings.commentsEnabled && (
+              <div className="w-full pb-5">
+                <PeekOverviewIssueActivity anchor={anchor} issueDetails={issueDetails} />
+              </div>
+            )}
           </div>
         ) : (
           <Loader className="px-6">
@@ -54,11 +60,11 @@ export const FullScreenPeekView = observer(function FullScreenPeekView(props: Pr
           </Loader>
         )}
       </div>
-      <div className="col-span-3 h-full w-full overflow-y-auto">
+      <div className="w-full shrink-0 border-t border-subtle-1 sm:col-span-3 sm:h-full sm:overflow-y-auto sm:border-t-0">
         {/* issue properties */}
         <div className="w-full px-6 py-5">
           {issueDetails ? (
-            <PeekOverviewIssueProperties issueDetails={issueDetails} />
+            <PeekOverviewIssueProperties issueDetails={issueDetails} mode="full" />
           ) : (
             <Loader className="mt-11 space-y-4">
               <Loader.Item height="30px" />
@@ -71,4 +77,4 @@ export const FullScreenPeekView = observer(function FullScreenPeekView(props: Pr
       </div>
     </div>
   );
-});
+}
