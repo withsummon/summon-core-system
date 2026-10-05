@@ -1,7 +1,7 @@
 import { RecordVisit } from "../navigation/record-visit";
 import { FavoriteToggle } from "../favorites/toggle";
-import { Component, useState } from "react";
-import type { ReactNode } from "react";
+import { useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
@@ -12,7 +12,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { cardClass, DeleteRecord, mutationMessage } from "../commercial/forms";
 import { MetadataForm } from "./metadata-form";
-import { DocumentEditor } from "./editor";
+import { DocumentAccessBoundary, DocumentEditor } from "./editor";
 import { DocumentHierarchy } from "./hierarchy";
 import { DocumentLabels } from "./labels";
 import { DocumentHistory } from "./history";
@@ -41,14 +41,25 @@ export function Documents({ workspace }: { workspace: FunctionReturnType<typeof 
   const [trash, setTrash] = useState(false);
   if (selected)
     return (
-      <DocumentAccessBoundary key={selected} onBack={() => setSelected(null)}>
-        <DocumentDetail
-          workspaceId={workspace._id}
-          documentId={selected}
-          workspaceSlug={workspace.slug}
-          workspaceRole={workspace.membershipRole}
-          onBack={() => setSelected(null)}
-        />
+      <DocumentAccessBoundary
+        key={selected}
+        documentId={selected}
+        onBack={() => setSelected(null)}
+        unavailableTitle="This document is unavailable"
+        backLabel="Back to documents"
+      >
+        {(onCapture, isSaving, recovery) => (
+          <DocumentDetail
+            workspaceId={workspace._id}
+            documentId={selected}
+            workspaceSlug={workspace.slug}
+            workspaceRole={workspace.membershipRole}
+            onBack={() => setSelected(null)}
+            onCapture={onCapture}
+            isSaving={isSaving}
+            recovery={recovery(false)}
+          />
+        )}
       </DocumentAccessBoundary>
     );
   return (
@@ -133,12 +144,18 @@ export function DocumentDetail({
   workspaceSlug,
   workspaceRole,
   onBack,
+  onCapture,
+  isSaving,
+  recovery,
 }: {
   workspaceId: Id<"workspaces">;
   documentId: string;
   workspaceSlug: string;
   workspaceRole: Doc<"workspaceMembers">["role"];
   onBack: () => void;
+  onCapture: ComponentProps<typeof DocumentEditor>["onCapture"];
+  isSaving: boolean;
+  recovery: ReactNode;
 }) {
   const resolved = useQuery(api.documents.index.resolveWorkspace, { workspaceId, documentId });
   const context = resolved?.context;
@@ -173,7 +190,13 @@ export function DocumentDetail({
           onCancel={() => setSettings(false)}
         />
       )}
-      <DocumentEditor context={context} document={document} />
+      <DocumentEditor
+        context={context}
+        document={document}
+        onCapture={onCapture}
+        isSaving={isSaving}
+        recovery={recovery}
+      />
       <DocumentHierarchy document={document} canWrite={context.canWrite} workspaceSlug={workspaceSlug} />
       <DocumentLabels document={document} canWrite={context.canWrite} />
       <DocumentHistory document={document} canWrite={context.canWrite} />
@@ -336,28 +359,4 @@ function Lifecycle({ document, onDeleted }: { document: Doc<"documents">; onDele
       </div>
     </details>
   );
-}
-
-export class DocumentAccessBoundary extends Component<
-  { children: ReactNode; onBack: () => void },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    if (!this.state.failed) return this.props.children;
-    return (
-      <section className="space-y-4">
-        <h1 className="text-xl font-semibold">This document is unavailable</h1>
-        <p role="alert" className="text-sm text-secondary">
-          It may have been removed, or your access may have changed.
-        </p>
-        <Button variant="secondary" onClick={this.props.onBack}>
-          Back to documents
-        </Button>
-      </section>
-    );
-  }
 }

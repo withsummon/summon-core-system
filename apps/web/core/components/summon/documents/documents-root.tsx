@@ -10,7 +10,8 @@ import { useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
 import { type WorkspaceSession } from "@/components/workspace/native-shell/session";
-import { DocumentAccessBoundary, DocumentDetail } from "@/components/convex-core/documents/documents";
+import { DocumentDetail } from "@/components/convex-core/documents/documents";
+import { DocumentAccessBoundary } from "@/components/convex-core/documents/editor";
 import Link from "next/link";
 import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -61,14 +62,25 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
   const isLoading = status === "LoadingFirstPage";
   if (selected)
     return (
-      <DocumentAccessBoundary key={selected} onBack={() => setParams({})}>
-        <DocumentDetail
-          workspaceId={workspace._id}
-          documentId={selected}
-          workspaceSlug={workspaceSlug}
-          workspaceRole={workspace.membershipRole}
-          onBack={() => setParams({})}
-        />
+      <DocumentAccessBoundary
+        key={selected}
+        documentId={selected}
+        onBack={() => setParams({})}
+        unavailableTitle="This document is unavailable"
+        backLabel="Back to documents"
+      >
+        {(onCapture, isSaving, recovery) => (
+          <DocumentDetail
+            workspaceId={workspace._id}
+            documentId={selected}
+            workspaceSlug={workspaceSlug}
+            workspaceRole={workspace.membershipRole}
+            onBack={() => setParams({})}
+            onCapture={onCapture}
+            isSaving={isSaving}
+            recovery={recovery(false)}
+          />
+        )}
       </DocumentAccessBoundary>
     );
   return (
