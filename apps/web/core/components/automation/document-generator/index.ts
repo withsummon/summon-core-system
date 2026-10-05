@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-export * from "./types";
-export * from "./mock-data";
 export * from "./type-icon";
 export * from "./top-templates-row";
 export * from "./ai-generator-form";

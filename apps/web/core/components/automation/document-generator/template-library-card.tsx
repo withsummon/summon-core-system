@@ -3,55 +3,52 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-import React from "react";
 import { ArrowRight } from "lucide-react";
-import { TEMPLATE_LIBRARY } from "./mock-data";
+import type { Doc } from "@summon/convex/data-model";
 import { TypeIcon } from "./type-icon";
-import type { TDocumentType } from "./types";
-
-interface ITemplateLibraryCardProps {
-  onSelectTemplate?: (tpl: TDocumentType) => void;
-  onViewAllTemplates?: () => void;
-}
-
-export const TemplateLibraryCard: React.FC<ITemplateLibraryCardProps> = ({ onSelectTemplate, onViewAllTemplates }) => {
+export function TemplateLibraryCard({
+  templates,
+  expanded,
+  disabled,
+  onSelectTemplate,
+  onViewAllTemplates,
+}: {
+  templates: Doc<"automationTemplates">[];
+  expanded: boolean;
+  disabled: boolean;
+  onSelectTemplate: (template: Doc<"automationTemplates">) => void;
+  onViewAllTemplates: () => void;
+}) {
   return (
     <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-primary">Template Library</h2>
         <button
           type="button"
           onClick={onViewAllTemplates}
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+          className="text-xs flex items-center gap-1 font-medium text-accent-primary"
         >
-          <span>View all templates</span>
+          View all templates
           <ArrowRight size={13} />
         </button>
       </div>
-
-      {/* Grid of 4 cards */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {TEMPLATE_LIBRARY.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => onSelectTemplate?.(item.name)}
-            className="group hover:border-blue-400 hover:shadow-md flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-2/60 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-1"
+        {(expanded ? templates : templates.slice(0, 4)).map((template) => (
+          <button
+            type="button"
+            key={template._id}
+            disabled={disabled || !template.isActive}
+            onClick={() => onSelectTemplate(template)}
+            className="group hover:border-blue-400 flex flex-col justify-between rounded-xl border border-subtle bg-surface-2/60 p-3.5 text-left transition-all hover:bg-surface-1 disabled:opacity-50"
           >
             <div className="space-y-2">
-              <TypeIcon type={item.name} boxed size={16} />
-              <div>
-                <h3 className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 font-semibold text-primary transition-colors">
-                  {item.title}
-                </h3>
-                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-secondary">{item.description}</p>
-              </div>
+              <TypeIcon type={template.type} boxed size={16} />
+              <h3 className="text-xs font-semibold text-primary">{template.name}</h3>
+              <p className="line-clamp-2 text-[11px] leading-snug text-secondary">{template.description}</p>
             </div>
-            {item.lastUsed && <p className="mt-3 text-[10px] font-medium text-placeholder">{item.lastUsed}</p>}
-          </div>
+          </button>
         ))}
       </div>
     </div>
   );
-};
+}

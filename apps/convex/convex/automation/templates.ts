@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireWorkspace } from "../identity/access";
 import { text, pageBudget } from "../commercial/validation";
-import { templateFields } from "./schema";
+import { templateFields, generationPreferences, jobStatus, artifactFields } from "./schema";
 export const save = mutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -108,3 +108,16 @@ export async function ensureDefaultTemplates(ctx: MutationCtx, workspaceId: Id<"
   );
   return { created: added.filter((id) => id !== null).length };
 }
+
+export const options = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    await requireWorkspace(ctx, args.workspaceId);
+    return {
+      tones: generationPreferences.fields.tone.members.map((member) => member.value),
+      detailLevels: generationPreferences.fields.detailLevel.members.map((member) => member.value),
+      statuses: jobStatus.members.map((member) => member.value),
+      formats: artifactFields.format.members.map((member) => member.value),
+    };
+  },
+});

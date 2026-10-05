@@ -7,7 +7,7 @@ import { canReadMeetingProject } from "../meetings/access";
 import { authorizedContext } from "../assistant/context";
 export async function requireJob(ctx: QueryCtx, jobId: Id<"automationJobs">, write = false) {
   const job = await ctx.db.get(jobId);
-  if (!job) throw new ConvexError("Generation job not found.");
+  if (!job || job.deletedAt !== undefined) throw new ConvexError("Generation job not found.");
   const access = await requireWorkspace(ctx, job.workspaceId, write);
   if (access.user._id !== job.requesterId) throw new ConvexError("Generation job access denied.");
   await requireProject(ctx, job.projectId, write);
@@ -18,6 +18,7 @@ export async function requireJob(ctx: QueryCtx, jobId: Id<"automationJobs">, wri
 
 // Workspace membership and requester identity are established by the indexed list owner.
 export async function canReadJob(ctx: QueryCtx, job: Doc<"automationJobs">, userId: Id<"users">) {
+  if (job.deletedAt !== undefined) return false;
   if (!(await canReadMeetingProject(ctx, job.projectId, userId))) return false;
   if (!(await canReadJobAttachments(ctx, job, userId))) return false;
   if (job.context.clientId) {
