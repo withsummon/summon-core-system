@@ -57,31 +57,33 @@ better-auth-server-api	better-auth:getVerificationOTP	apps/convex/node_modules/b
 better-auth-server-api	better-auth:rotateKeys	apps/convex/node_modules/@convex-dev/better-auth/src/plugins/convex/index.ts:530	Native Better Auth SDK candidate	identity	convex | POST | server-only | /api/auth/convex/rotate-keys	OPEN
 better-auth-server-api	better-auth:setPassword	apps/convex/node_modules/better-auth/dist/api/routes/update-user.mjs:195	Native Better Auth SDK candidate	identity	better-auth-core | POST | server-only	OPEN
 better-auth-server-api	better-auth:verifyApiKey	apps/convex/node_modules/@better-auth/api-key/dist/index.mjs:1952	Native Better Auth SDK candidate	account	api-key | POST | server-only	OPEN
-convex-http-handler	assets/http:options	apps/convex/convex/assets/http.ts:18	Convex source candidate	assets	http-action | HTTP-mount-only | app | direct native constructor	OPEN
-convex-http-handler	assets/http:read	apps/convex/convex/assets/http.ts:19	Convex source candidate	assets	http-action | HTTP-mount-only | app | direct native constructor	OPEN
+convex-http-handler	assets/http:options	apps/convex/convex/assets/http.ts:19	Convex source candidate	assets	http-action | HTTP-mount-only | app | direct native constructor	OPEN
+convex-http-handler	assets/http:read	apps/convex/convex/assets/http.ts:20	Convex source candidate	assets	http-action | HTTP-mount-only | app | direct native constructor	OPEN
 convex-http-handler	assistant/http:options	apps/convex/convex/assistant/http.ts:7	Convex source candidate	assistant	http-action | HTTP-mount-only | app | direct native constructor	OPEN
 convex-http-handler	assistant/http:reply	apps/convex/convex/assistant/http.ts:18	Convex source candidate	assistant	http-action | HTTP-mount-only | app | direct native constructor	OPEN
 convex-http-handler	identity/external:currentUser	apps/convex/convex/identity/external.ts:53	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
 convex-http-handler	identity/external:options	apps/convex/convex/identity/external.ts:52	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
-convex-http-handler	projects/external:options	apps/convex/convex/projects/external.ts:423	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
-convex-http-handler	projects/external:projects	apps/convex/convex/projects/external.ts:424	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
+convex-http-handler	projects/external:options	apps/convex/convex/projects/external.ts:646	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
+convex-http-handler	projects/external:projects	apps/convex/convex/projects/external.ts:735	Convex native external-api owner; full production acceptance OPEN	external-api	http-action | HTTP-mount-only | app | direct native constructor	OPEN
 convex-http-mount	legacy GET /.well-known/jwks.json	apps/convex/node_modules/@convex-dev/auth/src/server/implementation/index.ts:220	Convex HTTP factory candidate	identity	Always when !betterAuthEnabled | apps/convex/convex/http.ts:14	OPEN
 convex-http-mount	legacy GET /.well-known/openid-configuration	apps/convex/node_modules/@convex-dev/auth/src/server/implementation/index.ts:196	Convex HTTP factory candidate	identity	Always when !betterAuthEnabled | apps/convex/convex/http.ts:14	OPEN
 convex-http-mount	legacy GET /api/auth/callback/*	apps/convex/node_modules/@convex-dev/auth/src/server/implementation/index.ts:368	Convex HTTP factory candidate	identity	!betterAuthEnabled && configured OAuth provider | apps/convex/convex/http.ts:14	OPEN
 convex-http-mount	legacy GET /api/auth/signin/*	apps/convex/node_modules/@convex-dev/auth/src/server/implementation/index.ts:236	Convex HTTP factory candidate	identity	!betterAuthEnabled && configured OAuth provider | apps/convex/convex/http.ts:14	OPEN
 convex-http-mount	legacy POST /api/auth/callback/*	apps/convex/node_modules/@convex-dev/auth/src/server/implementation/index.ts:374	Convex HTTP factory candidate	identity	!betterAuthEnabled && configured OAuth provider | apps/convex/convex/http.ts:14	OPEN
+convex-http-mount	native DELETE /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:735	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:26	OPEN
 convex-http-mount	native GET /.well-known/openid-configuration	apps/convex/node_modules/@convex-dev/better-auth/src/client/create-client.ts:530	Convex HTTP factory candidate	identity	betterAuthEnabled | apps/convex/convex/http.ts:10	OPEN
 convex-http-mount	native GET /api/auth/*	apps/convex/node_modules/@convex-dev/better-auth/src/client/create-client.ts:595	Convex HTTP factory candidate	identity	betterAuthEnabled | apps/convex/convex/http.ts:10	OPEN
 convex-http-mount	native GET /api/v1/users/me/	apps/convex/convex/identity/external.ts:53	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:21	OPEN
-convex-http-mount	native GET /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:424	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:23	OPEN
-convex-http-mount	native GET /assets/*	apps/convex/convex/assets/http.ts:19	Convex HTTP factory candidate	assets	Unconditional | apps/convex/convex/http.ts:17	OPEN
+convex-http-mount	native GET /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:735	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:23	OPEN
+convex-http-mount	native GET /assets/*	apps/convex/convex/assets/http.ts:20	Convex HTTP factory candidate	assets	Unconditional | apps/convex/convex/http.ts:17	OPEN
 convex-http-mount	native OPTIONS /api/auth/*	apps/convex/node_modules/convex-helpers/server/cors.ts:204	Convex HTTP factory candidate	identity	betterAuthEnabled | apps/convex/convex/http.ts:10	OPEN
 convex-http-mount	native OPTIONS /api/v1/users/me/	apps/convex/convex/identity/external.ts:52	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:22	OPEN
-convex-http-mount	native OPTIONS /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:423	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:25	OPEN
-convex-http-mount	native OPTIONS /assets/*	apps/convex/convex/assets/http.ts:18	Convex HTTP factory candidate	assets	Unconditional | apps/convex/convex/http.ts:18	OPEN
+convex-http-mount	native OPTIONS /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:646	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:27	OPEN
+convex-http-mount	native OPTIONS /assets/*	apps/convex/convex/assets/http.ts:19	Convex HTTP factory candidate	assets	Unconditional | apps/convex/convex/http.ts:18	OPEN
 convex-http-mount	native OPTIONS /assistant/reply	apps/convex/convex/assistant/http.ts:7	Convex HTTP factory candidate	assistant	Unconditional | apps/convex/convex/http.ts:20	OPEN
+convex-http-mount	native PATCH /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:735	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:25	OPEN
 convex-http-mount	native POST /api/auth/*	apps/convex/node_modules/@convex-dev/better-auth/src/client/create-client.ts:601	Convex HTTP factory candidate	identity	betterAuthEnabled | apps/convex/convex/http.ts:10	OPEN
-convex-http-mount	native POST /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:424	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:24	OPEN
+convex-http-mount	native POST /api/v1/workspaces/*	apps/convex/convex/projects/external.ts:735	Convex native external API transport candidate; runtime acceptance OPEN	external-api	Unconditional | apps/convex/convex/http.ts:24	OPEN
 convex-http-mount	native POST /assistant/reply	apps/convex/convex/assistant/http.ts:18	Convex HTTP factory candidate	assistant	Unconditional | apps/convex/convex/http.ts:19	OPEN
 convex-rpc	assets/cleanup:expire	apps/convex/convex/assets/cleanup.ts:5	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	assets/cleanup:sweep	apps/convex/convex/assets/cleanup.ts:23	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
@@ -92,21 +94,21 @@ convex-rpc	assets/draftAttachments:get	apps/convex/convex/assets/draftAttachment
 convex-rpc	assets/draftAttachments:list	apps/convex/convex/assets/draftAttachments.ts:46	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
 convex-rpc	assets/draftAttachments:pending	apps/convex/convex/assets/draftAttachments.ts:108	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
 convex-rpc	assets/draftAttachments:prepare	apps/convex/convex/assets/draftAttachments.ts:30	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:apiAsset	apps/convex/convex/assets/index.ts:234	Convex generated assets.index contextual PAT asset byte boundary candidate; full production acceptance OPEN	assets	query | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:claim	apps/convex/convex/assets/index.ts:62	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:commit	apps/convex/convex/assets/index.ts:92	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:download	apps/convex/convex/assets/index.ts:217	Convex source candidate	assets	query | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:get	apps/convex/convex/assets/index.ts:126	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:policy	apps/convex/convex/assets/index.ts:295	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:prepare	apps/convex/convex/assets/index.ts:49	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:prepareCommentImage	apps/convex/convex/assets/index.ts:144	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:preparePublicCommentImage	apps/convex/convex/assets/index.ts:151	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:publicImage	apps/convex/convex/assets/index.ts:197	Convex generated assets.index public-description/comment image byte boundary candidate; full production acceptance OPEN	assets	query | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:reject	apps/convex/convex/assets/index.ts:116	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assets/index:remove	apps/convex/convex/assets/index.ts:245	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:resolveCommentImage	apps/convex/convex/assets/index.ts:182	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	query | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:resolveDocumentAsset	apps/convex/convex/assets/index.ts:267	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
-convex-rpc	assets/index:restore	apps/convex/convex/assets/index.ts:279	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:apiAsset	apps/convex/convex/assets/index.ts:243	Convex generated assets.index contextual PAT asset byte boundary candidate; full production acceptance OPEN	assets	query | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:claim	apps/convex/convex/assets/index.ts:67	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:commit	apps/convex/convex/assets/index.ts:97	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:download	apps/convex/convex/assets/index.ts:226	Convex source candidate	assets	query | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:get	apps/convex/convex/assets/index.ts:131	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:policy	apps/convex/convex/assets/index.ts:304	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:prepare	apps/convex/convex/assets/index.ts:54	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:prepareCommentImage	apps/convex/convex/assets/index.ts:149	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:preparePublicCommentImage	apps/convex/convex/assets/index.ts:156	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:publicImage	apps/convex/convex/assets/index.ts:202	Convex generated assets.index public-description/comment image byte boundary candidate; full production acceptance OPEN	assets	query | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:reject	apps/convex/convex/assets/index.ts:121	Convex source candidate	assets	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assets/index:remove	apps/convex/convex/assets/index.ts:254	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:resolveCommentImage	apps/convex/convex/assets/index.ts:187	Convex generated assets.index comment-image API candidate; full production acceptance OPEN	assets	query | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:resolveDocumentAsset	apps/convex/convex/assets/index.ts:276	Convex source candidate	assets	query | public | app | direct native constructor	OPEN
+convex-rpc	assets/index:restore	apps/convex/convex/assets/index.ts:288	Convex source candidate	assets	mutation | public | app | direct native constructor	OPEN
 convex-rpc	assets/meetingRecordings:discard	apps/convex/convex/assets/meetingRecordings.ts:60	Convex native Meeting owner; scoped local proof, production acceptance OPEN	assets	mutation | public | app | direct native constructor	OPEN
 convex-rpc	assets/meetingRecordings:get	apps/convex/convex/assets/meetingRecordings.ts:12	Convex native Meeting owner; scoped local proof, production acceptance OPEN	assets	query | public | app | direct native constructor	OPEN
 convex-rpc	assets/meetingRecordings:policy	apps/convex/convex/assets/meetingRecordings.ts:36	Convex native Meeting owner; scoped local proof, production acceptance OPEN	assets	query | public | app | direct native constructor	OPEN
@@ -121,14 +123,14 @@ convex-rpc	assets/upload:duplicateDescriptionImage	apps/convex/convex/assets/upl
 convex-rpc	assets/upload:finalize	apps/convex/convex/assets/upload.ts:9	Convex source candidate	assets	action | public | app | direct native constructor	OPEN
 convex-rpc	assistant/actions:cancel	apps/convex/convex/assistant/actions.ts:79	Convex source candidate	assistant	mutation | public | app | direct native constructor	OPEN
 convex-rpc	assistant/actions:confirm	apps/convex/convex/assistant/actions.ts:57	Convex source candidate	assistant	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assistant/actions:documentFailed	apps/convex/convex/assistant/actions.ts:330	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assistant/actions:documentJob	apps/convex/convex/assistant/actions.ts:273	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	assistant/actions:documentResult	apps/convex/convex/assistant/actions.ts:292	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/actions:documentFailed	apps/convex/convex/assistant/actions.ts:331	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/actions:documentJob	apps/convex/convex/assistant/actions.ts:274	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/actions:documentResult	apps/convex/convex/assistant/actions.ts:293	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	assistant/actions:get	apps/convex/convex/assistant/actions.ts:45	Convex source candidate	assistant	query | public | app | direct native constructor	OPEN
 convex-rpc	assistant/actions:list	apps/convex/convex/assistant/actions.ts:90	Convex source candidate	assistant	query | public | app | direct native constructor	OPEN
-convex-rpc	assistant/actions:prepareDocument	apps/convex/convex/assistant/actions.ts:221	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	assistant/actions:prepareDocument	apps/convex/convex/assistant/actions.ts:222	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	assistant/actions:propose	apps/convex/convex/assistant/actions.ts:17	Convex source candidate	assistant	mutation | public | app | direct native constructor	OPEN
-convex-rpc	assistant/actions:selectDocument	apps/convex/convex/assistant/actions.ts:192	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | public | app | direct native constructor	OPEN
+convex-rpc	assistant/actions:selectDocument	apps/convex/convex/assistant/actions.ts:193	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | public | app | direct native constructor	OPEN
 convex-rpc	assistant/attachment_upload:audioStep	apps/convex/convex/assistant/attachment_upload.ts:28	Convex native assistant owner; full production acceptance OPEN	assistant	action | internal | app | direct native constructor	OPEN
 convex-rpc	assistant/attachment_upload:finalize	apps/convex/convex/assistant/attachment_upload.ts:7	Convex source candidate	assistant	action | public | app | direct native constructor	OPEN
 convex-rpc	assistant/attachments:audioComplete	apps/convex/convex/assistant/attachments.ts:347	Convex native assistant owner; full production acceptance OPEN	assistant	mutation | internal | app | direct native constructor	OPEN
@@ -161,26 +163,28 @@ convex-rpc	auth:isAuthenticated	apps/convex/convex/auth.ts:10	Convex source cand
 convex-rpc	auth:signIn	apps/convex/convex/auth.ts:10	Convex source candidate	identity	action | public | app | convexAuth native factory	OPEN
 convex-rpc	auth:signOut	apps/convex/convex/auth.ts:10	Convex source candidate	identity	action | public | app | convexAuth native factory	OPEN
 convex-rpc	auth:store	apps/convex/convex/auth.ts:10	Convex source candidate	identity	mutation | internal | app | convexAuth native factory	OPEN
-convex-rpc	automation/generate:extract	apps/convex/convex/automation/generate.ts:162	Convex native automation owner; full production acceptance OPEN	automation	action | public | app | direct native constructor	OPEN
+convex-rpc	automation/generate:extract	apps/convex/convex/automation/generate.ts:165	Convex native automation owner; full production acceptance OPEN	automation	action | public | app | direct native constructor	OPEN
 convex-rpc	automation/generate:preview	apps/convex/convex/automation/generate.ts:86	Convex source candidate	automation	action | public | app | direct native constructor	OPEN
-convex-rpc	automation/generate:render	apps/convex/convex/automation/generate.ts:126	Convex native automation owner; full production acceptance OPEN	automation	action | public | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:artifactLinks	apps/convex/convex/automation/jobs.ts:223	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:begin	apps/convex/convex/automation/jobs.ts:29	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:complete	apps/convex/convex/automation/jobs.ts:110	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:discardRendered	apps/convex/convex/automation/jobs.ts:235	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:expire	apps/convex/convex/automation/jobs.ts:247	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:fail	apps/convex/convex/automation/jobs.ts:127	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:get	apps/convex/convex/automation/jobs.ts:140	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:list	apps/convex/convex/automation/jobs.ts:152	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:publication	apps/convex/convex/automation/jobs.ts:176	Convex source candidate	automation	query | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:rendered	apps/convex/convex/automation/jobs.ts:186	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:resolve	apps/convex/convex/automation/jobs.ts:144	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
-convex-rpc	automation/jobs:sourceFile	apps/convex/convex/automation/jobs.ts:164	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/generate:render	apps/convex/convex/automation/generate.ts:129	Convex native automation owner; full production acceptance OPEN	automation	action | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:artifactLinks	apps/convex/convex/automation/jobs.ts:274	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:begin	apps/convex/convex/automation/jobs.ts:30	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:complete	apps/convex/convex/automation/jobs.ts:117	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:discardRendered	apps/convex/convex/automation/jobs.ts:286	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:expire	apps/convex/convex/automation/jobs.ts:298	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:fail	apps/convex/convex/automation/jobs.ts:134	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:get	apps/convex/convex/automation/jobs.ts:147	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:list	apps/convex/convex/automation/jobs.ts:159	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:publication	apps/convex/convex/automation/jobs.ts:227	Convex source candidate	automation	query | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:rendered	apps/convex/convex/automation/jobs.ts:237	Convex native automation owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:resolve	apps/convex/convex/automation/jobs.ts:151	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:retire	apps/convex/convex/automation/jobs.ts:195	Convex native automation owner; full production acceptance OPEN	automation	mutation | public | app | direct native constructor	OPEN
+convex-rpc	automation/jobs:sourceFile	apps/convex/convex/automation/jobs.ts:215	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
 convex-rpc	automation/publication:commit	apps/convex/convex/automation/publication.ts:9	Convex source candidate	automation	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	automation/publish:document	apps/convex/convex/automation/publish.ts:7	Convex source candidate	automation	action | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:get	apps/convex/convex/automation/templates.ts:60	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:installDefaults	apps/convex/convex/automation/templates.ts:80	Convex source candidate	automation	mutation | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:list	apps/convex/convex/automation/templates.ts:50	Convex source candidate	automation	query | public | app | direct native constructor	OPEN
+convex-rpc	automation/templates:options	apps/convex/convex/automation/templates.ts:112	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:remove	apps/convex/convex/automation/templates.ts:69	Convex source candidate	automation	mutation | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:save	apps/convex/convex/automation/templates.ts:10	Convex source candidate	automation	mutation | public | app | direct native constructor	OPEN
 convex-rpc	betterAuth/adapter:create	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
@@ -191,13 +195,14 @@ convex-rpc	betterAuth/adapter:findOne	apps/convex/convex/betterAuth/adapter.ts:1
 convex-rpc	betterAuth/adapter:listApiKeys	apps/convex/convex/betterAuth/adapter.ts:24	Convex source candidate	account	query | component-export | component | direct native constructor	OPEN
 convex-rpc	betterAuth/adapter:updateMany	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
 convex-rpc	betterAuth/adapter:updateOne	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	better_auth:consumeHttpRateLimit	apps/convex/convex/better_auth.ts:178	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:expireRateLimits	apps/convex/convex/better_auth.ts:195	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:migrateAccount	apps/convex/convex/better_auth.ts:77	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:onCreate	apps/convex/convex/better_auth.ts:61	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:onDelete	apps/convex/convex/better_auth.ts:61	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:onUpdate	apps/convex/convex/better_auth.ts:61	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:recordSignIn	apps/convex/convex/better_auth.ts:63	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:authenticationPolicy	apps/convex/convex/better_auth.ts:217	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:consumeHttpRateLimit	apps/convex/convex/better_auth.ts:182	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:expireRateLimits	apps/convex/convex/better_auth.ts:199	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:migrateAccount	apps/convex/convex/better_auth.ts:81	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:onCreate	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:onDelete	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:onUpdate	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:recordSignIn	apps/convex/convex/better_auth.ts:67	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:counts	apps/convex/convex/commercial/clients.ts:51	Convex native Commercial owner; production acceptance OPEN	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:get	apps/convex/convex/commercial/clients.ts:62	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:list	apps/convex/convex/commercial/clients.ts:35	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
@@ -221,25 +226,28 @@ convex-rpc	commercial/opportunities:save	apps/convex/convex/commercial/opportuni
 convex-rpc	commercial/opportunities:transition	apps/convex/convex/commercial/opportunities.ts:193	Convex source candidate	commercial	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/burndown:frozen	apps/convex/convex/cycles/burndown.ts:44	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	cycles/burndown:page	apps/convex/convex/cycles/burndown.ts:9	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:address	apps/convex/convex/cycles/index.ts:130	Convex bounded Cycle directory and scoped project-bound address owner	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:browse	apps/convex/convex/cycles/index.ts:87	Convex bounded Cycle directory and scoped project-bound address owner	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:create	apps/convex/convex/cycles/index.ts:19	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:get	apps/convex/convex/cycles/index.ts:81	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:lifecycle	apps/convex/convex/cycles/index.ts:159	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:list	apps/convex/convex/cycles/index.ts:141	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:resolve	apps/convex/convex/cycles/index.ts:122	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/index:update	apps/convex/convex/cycles/index.ts:37	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:address	apps/convex/convex/cycles/index.ts:132	Convex bounded Cycle directory and scoped project-bound address owner	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:browse	apps/convex/convex/cycles/index.ts:89	Convex bounded Cycle directory and scoped project-bound address owner	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:create	apps/convex/convex/cycles/index.ts:21	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:get	apps/convex/convex/cycles/index.ts:83	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:getTaskPreferences	apps/convex/convex/cycles/index.ts:202	Convex native cycles owner; full production acceptance OPEN	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:lifecycle	apps/convex/convex/cycles/index.ts:164	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:list	apps/convex/convex/cycles/index.ts:143	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:resolve	apps/convex/convex/cycles/index.ts:124	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:saveTaskPreferences	apps/convex/convex/cycles/index.ts:209	Convex native cycles owner; full production acceptance OPEN	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/index:update	apps/convex/convex/cycles/index.ts:39	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/progress:page	apps/convex/convex/cycles/progress.ts:6	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/tasks:assign	apps/convex/convex/cycles/tasks.ts:14	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/tasks:current	apps/convex/convex/cycles/tasks.ts:32	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/tasks:list	apps/convex/convex/cycles/tasks.ts:41	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/tasks:remove	apps/convex/convex/cycles/tasks.ts:23	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:begin	apps/convex/convex/cycles/transfer.ts:75	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:cancel	apps/convex/convex/cycles/transfer.ts:223	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:inspect	apps/convex/convex/cycles/transfer.ts:52	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:list	apps/convex/convex/cycles/transfer.ts:41	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:skipChanged	apps/convex/convex/cycles/transfer.ts:194	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
-convex-rpc	cycles/transfer:step	apps/convex/convex/cycles/transfer.ts:141	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/tasks:assign	apps/convex/convex/cycles/tasks.ts:16	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/tasks:current	apps/convex/convex/cycles/tasks.ts:34	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/tasks:list	apps/convex/convex/cycles/tasks.ts:42	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/tasks:remove	apps/convex/convex/cycles/tasks.ts:25	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:begin	apps/convex/convex/cycles/transfer.ts:150	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:buckets	apps/convex/convex/cycles/transfer.ts:140	Convex native cycles owner; full production acceptance OPEN	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:cancel	apps/convex/convex/cycles/transfer.ts:283	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:inspect	apps/convex/convex/cycles/transfer.ts:117	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:list	apps/convex/convex/cycles/transfer.ts:106	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:skipChanged	apps/convex/convex/cycles/transfer.ts:251	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
+convex-rpc	cycles/transfer:step	apps/convex/convex/cycles/transfer.ts:205	Convex source candidate	cycles	mutation | public | app | direct native constructor	OPEN
 convex-rpc	cycles/workspace:list	apps/convex/convex/cycles/workspace.ts:9	Convex source candidate	cycles	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/copy:availability	apps/convex/convex/documents/copy.ts:261	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/copy:begin	apps/convex/convex/documents/copy.ts:85	Convex source candidate	documents	mutation | internal | app | direct native constructor	OPEN
@@ -266,10 +274,10 @@ convex-rpc	documents/index:get	apps/convex/convex/documents/index.ts:83	Convex s
 convex-rpc	documents/index:list	apps/convex/convex/documents/index.ts:144	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/index:resolve	apps/convex/convex/documents/index.ts:125	Convex scoped document address owner	documents	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/index:resolveWorkspace	apps/convex/convex/documents/index.ts:115	Convex native documents owner; full production acceptance OPEN	documents	query | public | app | direct native constructor	OPEN
-convex-rpc	documents/index:saveSnapshot	apps/convex/convex/documents/index.ts:316	Convex internal canonical document writer	documents	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	documents/index:setLifecycle	apps/convex/convex/documents/index.ts:256	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
-convex-rpc	documents/index:snapshot	apps/convex/convex/documents/index.ts:318	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
-convex-rpc	documents/index:update	apps/convex/convex/documents/index.ts:252	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
+convex-rpc	documents/index:saveSnapshot	apps/convex/convex/documents/index.ts:324	Convex internal canonical document writer	documents	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	documents/index:setLifecycle	apps/convex/convex/documents/index.ts:264	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
+convex-rpc	documents/index:snapshot	apps/convex/convex/documents/index.ts:326	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
+convex-rpc	documents/index:update	apps/convex/convex/documents/index.ts:260	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
 convex-rpc	documents/labels:list	apps/convex/convex/documents/labels.ts:8	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/labels:set	apps/convex/convex/documents/labels.ts:33	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
 convex-rpc	documents/lifecycle:restore	apps/convex/convex/documents/lifecycle.ts:23	Convex source candidate	documents	mutation | public | app | direct native constructor	OPEN
@@ -280,13 +288,13 @@ convex-rpc	documents/references:backfill	apps/convex/convex/documents/references
 convex-rpc	documents/references:cleanup	apps/convex/convex/documents/references.ts:71	Convex source candidate	documents	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	documents/references:issues	apps/convex/convex/documents/references.ts:91	Convex source candidate	documents	query | public | app | direct native constructor	OPEN
 convex-rpc	documents/references:step	apps/convex/convex/documents/references.ts:31	Convex source candidate	documents	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	estimates/index:create	apps/convex/convex/estimates/index.ts:80	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:createPoint	apps/convex/convex/estimates/index.ts:200	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:get	apps/convex/convex/estimates/index.ts:67	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:list	apps/convex/convex/estimates/index.ts:48	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:select	apps/convex/convex/estimates/index.ts:163	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:update	apps/convex/convex/estimates/index.ts:143	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	estimates/index:updatePoint	apps/convex/convex/estimates/index.ts:225	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:create	apps/convex/convex/estimates/index.ts:81	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:createPoint	apps/convex/convex/estimates/index.ts:208	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:get	apps/convex/convex/estimates/index.ts:68	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:list	apps/convex/convex/estimates/index.ts:49	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:select	apps/convex/convex/estimates/index.ts:199	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:update	apps/convex/convex/estimates/index.ts:144	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	estimates/index:updatePoint	apps/convex/convex/estimates/index.ts:233	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	estimates/remap:begin	apps/convex/convex/estimates/remap.ts:6	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	estimates/remap:get	apps/convex/convex/estimates/remap.ts:61	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	estimates/remap:page	apps/convex/convex/estimates/remap.ts:70	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
@@ -306,7 +314,7 @@ convex-rpc	favorites/index:access	apps/convex/convex/favorites/index.ts:13	Conve
 convex-rpc	favorites/index:create	apps/convex/convex/favorites/index.ts:49	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	favorites/index:lifecycle	apps/convex/convex/favorites/index.ts:113	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	favorites/index:list	apps/convex/convex/favorites/index.ts:20	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
-convex-rpc	favorites/index:state	apps/convex/convex/favorites/index.ts:132	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
+convex-rpc	favorites/index:state	apps/convex/convex/favorites/index.ts:128	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	favorites/index:update	apps/convex/convex/favorites/index.ts:83	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	favorites/reorder:move	apps/convex/convex/favorites/reorder.ts:7	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/accounts/unlink:disconnect	apps/convex/convex/identity/accounts/unlink.ts:10	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
@@ -332,21 +340,30 @@ convex-rpc	identity/emailChange/notifications:record	apps/convex/convex/identity
 convex-rpc	identity/entry:check	apps/convex/convex/identity/entry.ts:7	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
 convex-rpc	identity/external:user	apps/convex/convex/identity/external.ts:35	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
 convex-rpc	identity/index:current	apps/convex/convex/identity/index.ts:5	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
-convex-rpc	identity/instance/configuration:availability	apps/convex/convex/identity/instance/configuration.ts:56	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
-convex-rpc	identity/instance/configuration:get	apps/convex/convex/identity/instance/configuration.ts:9	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
-convex-rpc	identity/instance/configuration:save	apps/convex/convex/identity/instance/configuration.ts:33	Convex native identity owner; full production acceptance OPEN	identity	mutation | public | app | direct native constructor	OPEN
-convex-rpc	identity/instance/index:bootstrap	apps/convex/convex/identity/instance/index.ts:23	Convex source candidate	instance	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	identity/instance/index:me	apps/convex/convex/identity/instance/index.ts:52	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/authentication:adopt	apps/convex/convex/identity/instance/authentication.ts:101	Convex native identity owner; full production acceptance OPEN	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	identity/instance/authentication:get	apps/convex/convex/identity/instance/authentication.ts:62	Convex native identity owner; full production acceptance OPEN	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/authentication:save	apps/convex/convex/identity/instance/authentication.ts:74	Convex native identity owner; full production acceptance OPEN	identity	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/configuration:adoptWorkspaceCreation	apps/convex/convex/identity/instance/configuration.ts:83	Convex native identity owner; full production acceptance OPEN	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	identity/instance/configuration:availability	apps/convex/convex/identity/instance/configuration.ts:68	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/configuration:get	apps/convex/convex/identity/instance/configuration.ts:10	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/configuration:save	apps/convex/convex/identity/instance/configuration.ts:34	Convex native identity owner; full production acceptance OPEN	identity	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/configuration:saveWorkspaceCreation	apps/convex/convex/identity/instance/configuration.ts:69	Convex native identity owner; full production acceptance OPEN	identity	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/index:bootstrap	apps/convex/convex/identity/instance/index.ts:26	Convex source candidate	instance	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	identity/instance/index:me	apps/convex/convex/identity/instance/index.ts:57	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
 convex-rpc	identity/instance/roster:grant	apps/convex/convex/identity/instance/roster.ts:34	Convex source candidate	instance	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/instance/roster:list	apps/convex/convex/identity/instance/roster.ts:7	Convex source candidate	instance	query | public | app | direct native constructor	OPEN
 convex-rpc	identity/instance/roster:revoke	apps/convex/convex/identity/instance/roster.ts:59	Convex source candidate	instance	mutation | public | app | direct native constructor	OPEN
-convex-rpc	identity/mail/availability:get	apps/convex/convex/identity/mail/availability.ts:4	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
-convex-rpc	identity/oauth/availability:list	apps/convex/convex/identity/oauth/availability.ts:3	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/workspaces:create	apps/convex/convex/identity/instance/workspaces.ts:65	Convex native identity owner; full production acceptance OPEN	identity	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/workspaces:list	apps/convex/convex/identity/instance/workspaces.ts:12	Convex native identity owner; full production acceptance OPEN	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/workspaces:members	apps/convex/convex/identity/instance/workspaces.ts:46	Convex native identity owner; full production acceptance OPEN	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/instance/workspaces:projects	apps/convex/convex/identity/instance/workspaces.ts:32	Convex native identity owner; full production acceptance OPEN	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/mail/availability:get	apps/convex/convex/identity/mail/availability.ts:3	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
+convex-rpc	identity/oauth/availability:list	apps/convex/convex/identity/oauth/availability.ts:4	Convex source candidate	identity	query | public | app | direct native constructor	OPEN
 convex-rpc	identity/onboarding:complete	apps/convex/convex/identity/onboarding.ts:37	Convex source candidate	identity	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/onboarding:completePreserved	apps/convex/convex/identity/onboarding.ts:41	Convex source candidate	identity	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/password/index:capabilities	apps/convex/convex/identity/password/index.ts:9	Convex source candidate	account	query | public | app | direct native constructor	OPEN
-convex-rpc	identity/password/index:change	apps/convex/convex/identity/password/index.ts:27	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
-convex-rpc	identity/password/index:set	apps/convex/convex/identity/password/index.ts:59	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/password/index:change	apps/convex/convex/identity/password/index.ts:28	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
+convex-rpc	identity/password/index:set	apps/convex/convex/identity/password/index.ts:61	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/preferences:destination	apps/convex/convex/identity/preferences.ts:58	Convex source candidate	account	query | public | app | direct native constructor	OPEN
 convex-rpc	identity/preferences:save	apps/convex/convex/identity/preferences.ts:24	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
 convex-rpc	identity/preferences:selectWorkspace	apps/convex/convex/identity/preferences.ts:41	Convex source candidate	account	mutation | public | app | direct native constructor	OPEN
@@ -448,28 +465,30 @@ convex-rpc	meetings/transcription/runs:prepare	apps/convex/convex/meetings/trans
 convex-rpc	meetings/transcription/runs:removeRecording	apps/convex/convex/meetings/transcription/runs.ts:180	Convex native Meeting owner; scoped local proof, production acceptance OPEN	meetings	mutation | public | app | direct native constructor	OPEN
 convex-rpc	meetings/transcription/runs:start	apps/convex/convex/meetings/transcription/runs.ts:39	Convex native Meeting owner; scoped local proof, production acceptance OPEN	meetings	mutation | public | app | direct native constructor	OPEN
 convex-rpc	meetings/transcription/runs:tick	apps/convex/convex/meetings/transcription/runs.ts:82	Convex native Meeting owner; scoped local proof, production acceptance OPEN	meetings	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	modules/index:address	apps/convex/convex/modules/index.ts:135	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:catalogue	apps/convex/convex/modules/index.ts:161	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:create	apps/convex/convex/modules/index.ts:44	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:directory	apps/convex/convex/modules/index.ts:193	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:get	apps/convex/convex/modules/index.ts:123	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:lifecycle	apps/convex/convex/modules/index.ts:245	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:list	apps/convex/convex/modules/index.ts:146	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:patch	apps/convex/convex/modules/index.ts:96	Convex canonical Module catalogue/directory/address/metadata owner	modules	mutation | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:resolve	apps/convex/convex/modules/index.ts:127	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/index:update	apps/convex/convex/modules/index.ts:88	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:address	apps/convex/convex/modules/index.ts:138	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:catalogue	apps/convex/convex/modules/index.ts:164	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:create	apps/convex/convex/modules/index.ts:47	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:directory	apps/convex/convex/modules/index.ts:196	Convex canonical Module catalogue/directory/address/metadata owner	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:get	apps/convex/convex/modules/index.ts:126	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:getTaskPreferences	apps/convex/convex/modules/index.ts:289	Convex native modules owner; full production acceptance OPEN	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:lifecycle	apps/convex/convex/modules/index.ts:251	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:list	apps/convex/convex/modules/index.ts:149	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:patch	apps/convex/convex/modules/index.ts:99	Convex canonical Module catalogue/directory/address/metadata owner	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:resolve	apps/convex/convex/modules/index.ts:130	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:saveTaskPreferences	apps/convex/convex/modules/index.ts:296	Convex native modules owner; full production acceptance OPEN	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/index:update	apps/convex/convex/modules/index.ts:91	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/links:create	apps/convex/convex/modules/links.ts:49	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/links:list	apps/convex/convex/modules/links.ts:31	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
 convex-rpc	modules/links:remove	apps/convex/convex/modules/links.ts:78	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/links:update	apps/convex/convex/modules/links.ts:68	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
-convex-rpc	modules/members:choices	apps/convex/convex/modules/members.ts:48	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/members:list	apps/convex/convex/modules/members.ts:30	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/members:set	apps/convex/convex/modules/members.ts:7	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/members:choices	apps/convex/convex/modules/members.ts:53	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/members:list	apps/convex/convex/modules/members.ts:33	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/members:set	apps/convex/convex/modules/members.ts:10	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/progress:page	apps/convex/convex/modules/progress.ts:6	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/tasks:forTask	apps/convex/convex/modules/tasks.ts:74	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/tasks:list	apps/convex/convex/modules/tasks.ts:50	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
-convex-rpc	modules/tasks:set	apps/convex/convex/modules/tasks.ts:14	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
-convex-rpc	modules/tasks:setMany	apps/convex/convex/modules/tasks.ts:24	Convex atomic current-permission module task selection	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/tasks:forTask	apps/convex/convex/modules/tasks.ts:119	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/tasks:list	apps/convex/convex/modules/tasks.ts:52	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
+convex-rpc	modules/tasks:set	apps/convex/convex/modules/tasks.ts:16	Convex source candidate	modules	mutation | public | app | direct native constructor	OPEN
+convex-rpc	modules/tasks:setMany	apps/convex/convex/modules/tasks.ts:26	Convex atomic current-permission module task selection	modules	mutation | public | app | direct native constructor	OPEN
 convex-rpc	modules/workspace:list	apps/convex/convex/modules/workspace.ts:9	Convex source candidate	modules	query | public | app | direct native constructor	OPEN
 convex-rpc	navigation/address:resolveMeetingId	apps/convex/convex/navigation/address.ts:125	Convex native Meeting owner; scoped local proof, production acceptance OPEN	meetings	query | public | app | direct native constructor	OPEN
 convex-rpc	navigation/address:resolveProject	apps/convex/convex/navigation/address.ts:40	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
@@ -504,11 +523,14 @@ convex-rpc	projects/cover:remove	apps/convex/convex/projects/cover.ts:43	Convex 
 convex-rpc	projects/cover:removed	apps/convex/convex/projects/cover.ts:51	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/cover:restore	apps/convex/convex/projects/cover.ts:70	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/cover:setExternal	apps/convex/convex/projects/cover.ts:90	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/directory:members	apps/convex/convex/projects/directory.ts:29	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/directory:memberships	apps/convex/convex/projects/directory.ts:48	Convex complete currently authorized project roster contributions	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/external:create	apps/convex/convex/projects/external.ts:344	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	projects/external:list	apps/convex/convex/projects/external.ts:248	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
-convex-rpc	projects/external:read	apps/convex/convex/projects/external.ts:235	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
+convex-rpc	projects/deletion:step	apps/convex/convex/projects/deletion.ts:325	Convex native projects owner; full production acceptance OPEN	projects	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/directory:members	apps/convex/convex/projects/directory.ts:55	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/directory:memberships	apps/convex/convex/projects/directory.ts:74	Convex complete currently authorized project roster contributions	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/external:create	apps/convex/convex/projects/external.ts:387	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/external:list	apps/convex/convex/projects/external.ts:270	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
+convex-rpc	projects/external:patch	apps/convex/convex/projects/external.ts:577	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/external:read	apps/convex/convex/projects/external.ts:257	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
+convex-rpc	projects/external:remove	apps/convex/convex/projects/external.ts:622	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/features:backfill	apps/convex/convex/projects/features.ts:71	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/features:get	apps/convex/convex/projects/features.ts:23	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/features:resolve	apps/convex/convex/projects/features.ts:34	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
@@ -520,22 +542,24 @@ convex-rpc	projects/inactivity:get	apps/convex/convex/projects/inactivity.ts:22	
 convex-rpc	projects/inactivity:run	apps/convex/convex/projects/inactivity.ts:138	Convex native projects owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/inactivity:save	apps/convex/convex/projects/inactivity.ts:42	Convex native projects owner; full production acceptance OPEN	automation	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/inactivity:sweep	apps/convex/convex/projects/inactivity.ts:111	Convex native projects owner; full production acceptance OPEN	automation	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	projects/index:addMembers	apps/convex/convex/projects/index.ts:247	Convex native projects owner; full production acceptance OPEN	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:availableMembers	apps/convex/convex/projects/index.ts:172	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:create	apps/convex/convex/projects/index.ts:56	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:grantMember	apps/convex/convex/projects/index.ts:224	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:leave	apps/convex/convex/projects/index.ts:308	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:list	apps/convex/convex/projects/index.ts:28	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:members	apps/convex/convex/projects/index.ts:127	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:resolveMember	apps/convex/convex/projects/index.ts:202	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/index:revokeMember	apps/convex/convex/projects/index.ts:289	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/lifecycle:backfill	apps/convex/convex/projects/lifecycle.ts:68	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	projects/lifecycle:get	apps/convex/convex/projects/lifecycle.ts:31	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/lifecycle:list	apps/convex/convex/projects/lifecycle.ts:35	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/lifecycle:setDeleted	apps/convex/convex/projects/lifecycle.ts:50	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/navigation:get	apps/convex/convex/projects/navigation.ts:18	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
-convex-rpc	projects/navigation:reset	apps/convex/convex/projects/navigation.ts:39	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	projects/navigation:save	apps/convex/convex/projects/navigation.ts:29	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:addMembers	apps/convex/convex/projects/index.ts:231	Convex native projects owner; full production acceptance OPEN	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:availableMembers	apps/convex/convex/projects/index.ts:150	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:create	apps/convex/convex/projects/index.ts:51	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:grantMember	apps/convex/convex/projects/index.ts:208	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:leave	apps/convex/convex/projects/index.ts:292	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:list	apps/convex/convex/projects/index.ts:23	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:members	apps/convex/convex/projects/index.ts:99	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:resolveMember	apps/convex/convex/projects/index.ts:186	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/index:revokeMember	apps/convex/convex/projects/index.ts:273	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/lifecycle:backfill	apps/convex/convex/projects/lifecycle.ts:88	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	projects/lifecycle:get	apps/convex/convex/projects/lifecycle.ts:35	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/lifecycle:list	apps/convex/convex/projects/lifecycle.ts:39	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/lifecycle:setDeleted	apps/convex/convex/projects/lifecycle.ts:80	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/navigation:get	apps/convex/convex/projects/navigation.ts:20	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/navigation:getTaskPreferences	apps/convex/convex/projects/navigation.ts:51	Convex native projects owner; full production acceptance OPEN	projects	query | public | app | direct native constructor	OPEN
+convex-rpc	projects/navigation:reset	apps/convex/convex/projects/navigation.ts:41	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/navigation:save	apps/convex/convex/projects/navigation.ts:31	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
+convex-rpc	projects/navigation:saveTaskPreferences	apps/convex/convex/projects/navigation.ts:58	Convex native projects owner; full production acceptance OPEN	projects	mutation | public | app | direct native constructor	OPEN
 convex-rpc	projects/network:backfill	apps/convex/convex/projects/network.ts:157	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/network:get	apps/convex/convex/projects/network.ts:65	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/network:join	apps/convex/convex/projects/network.ts:124	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
@@ -554,32 +578,39 @@ convex-rpc	projects/settings:setArchived	apps/convex/convex/projects/settings.ts
 convex-rpc	projects/timezone:backfill	apps/convex/convex/projects/timezone.ts:37	Convex source candidate	projects	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	projects/timezone:get	apps/convex/convex/projects/timezone.ts:11	Convex source candidate	projects	query | public | app | direct native constructor	OPEN
 convex-rpc	projects/timezone:save	apps/convex/convex/projects/timezone.ts:21	Convex source candidate	projects	mutation | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:catalog	apps/convex/convex/publicSharing/index.ts:185	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:cycles	apps/convex/convex/publicSharing/index.ts:237	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:get	apps/convex/convex/publicSharing/index.ts:24	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:getTask	apps/convex/convex/publicSharing/index.ts:163	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:list	apps/convex/convex/publicSharing/index.ts:148	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:members	apps/convex/convex/publicSharing/index.ts:216	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:modules	apps/convex/convex/publicSharing/index.ts:251	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:resolveDescriptionImage	apps/convex/convex/publicSharing/index.ts:265	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:resolveProject	apps/convex/convex/publicSharing/index.ts:94	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:revoke	apps/convex/convex/publicSharing/index.ts:61	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:save	apps/convex/convex/publicSharing/index.ts:40	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:settings	apps/convex/convex/publicSharing/index.ts:75	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	publicSharing/index:summary	apps/convex/convex/publicSharing/index.ts:155	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:catalog	apps/convex/convex/publicSharing/index.ts:209	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:cycles	apps/convex/convex/publicSharing/index.ts:263	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:get	apps/convex/convex/publicSharing/index.ts:29	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:getTask	apps/convex/convex/publicSharing/index.ts:185	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:list	apps/convex/convex/publicSharing/index.ts:170	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:members	apps/convex/convex/publicSharing/index.ts:240	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:modules	apps/convex/convex/publicSharing/index.ts:277	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:resolveDescriptionImage	apps/convex/convex/publicSharing/index.ts:291	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:resolveProject	apps/convex/convex/publicSharing/index.ts:111	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:revoke	apps/convex/convex/publicSharing/index.ts:66	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:save	apps/convex/convex/publicSharing/index.ts:45	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:settings	apps/convex/convex/publicSharing/index.ts:80	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	publicSharing/index:summary	apps/convex/convex/publicSharing/index.ts:177	Convex generated publicSharing.index API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
 convex-rpc	quickLinks/index:create	apps/convex/convex/quickLinks/index.ts:50	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	quickLinks/index:get	apps/convex/convex/quickLinks/index.ts:46	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	quickLinks/index:list	apps/convex/convex/quickLinks/index.ts:35	Convex source candidate	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	quickLinks/index:remove	apps/convex/convex/quickLinks/index.ts:94	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
 convex-rpc	quickLinks/index:update	apps/convex/convex/quickLinks/index.ts:72	Convex source candidate	shared-shell	mutation | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:activeProjects	apps/convex/convex/reporting/analytics.ts:449	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:chart	apps/convex/convex/reporting/analytics.ts:278	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:entities	apps/convex/convex/reporting/analytics.ts:314	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:people	apps/convex/convex/reporting/analytics.ts:394	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:projects	apps/convex/convex/reporting/analytics.ts:427	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:tasks	apps/convex/convex/reporting/analytics.ts:117	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/analytics:trend	apps/convex/convex/reporting/analytics.ts:170	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/commercial:clients	apps/convex/convex/reporting/commercial.ts:56	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/commercial:opportunities	apps/convex/convex/reporting/commercial.ts:26	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/documents:page	apps/convex/convex/reporting/documents.ts:4	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/meetings:page	apps/convex/convex/reporting/meetings.ts:3	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
-convex-rpc	reporting/overview:activity	apps/convex/convex/reporting/overview.ts:88	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
-convex-rpc	reporting/overview:files	apps/convex/convex/reporting/overview.ts:105	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/overview:activity	apps/convex/convex/reporting/overview.ts:90	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/overview:files	apps/convex/convex/reporting/overview.ts:107	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/overview:project	apps/convex/convex/reporting/overview.ts:14	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
-convex-rpc	reporting/overview:resources	apps/convex/convex/reporting/overview.ts:65	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
+convex-rpc	reporting/overview:resources	apps/convex/convex/reporting/overview.ts:67	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/projects:page	apps/convex/convex/reporting/projects.ts:3	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/scope:resolve	apps/convex/convex/reporting/scope.ts:83	Convex native reporting owner; full production acceptance OPEN	reporting	query | public | app | direct native constructor	OPEN
 convex-rpc	reporting/tasks:page	apps/convex/convex/reporting/tasks.ts:13	Convex source candidate	reporting	query | public | app | direct native constructor	OPEN
@@ -592,26 +623,26 @@ convex-rpc	resources/index:remove	apps/convex/convex/resources/index.ts:128	Conv
 convex-rpc	resources/index:update	apps/convex/convex/resources/index.ts:107	Convex source candidate	resources-mcp	mutation | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/favorites:list	apps/convex/convex/savedViews/favorites.ts:19	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	savedViews/favorites:set	apps/convex/convex/savedViews/favorites.ts:11	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:access	apps/convex/convex/savedViews/index.ts:93	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:create	apps/convex/convex/savedViews/index.ts:14	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:get	apps/convex/convex/savedViews/index.ts:51	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:lifecycle	apps/convex/convex/savedViews/index.ts:79	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:list	apps/convex/convex/savedViews/index.ts:63	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:resolve	apps/convex/convex/savedViews/index.ts:55	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/index:update	apps/convex/convex/savedViews/index.ts:32	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/results:list	apps/convex/convex/savedViews/results.ts:7	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:create	apps/convex/convex/savedViews/workspace.ts:17	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:favorite	apps/convex/convex/savedViews/workspace.ts:109	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:favorites	apps/convex/convex/savedViews/workspace.ts:117	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:get	apps/convex/convex/savedViews/workspace.ts:57	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:lifecycle	apps/convex/convex/savedViews/workspace.ts:95	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:list	apps/convex/convex/savedViews/workspace.ts:69	Convex source candidate	views-search	query | public | app | native directory, pre-page case-insensitive name search and workspace access	OPEN
-convex-rpc	savedViews/workspace:resolve	apps/convex/convex/savedViews/workspace.ts:61	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:results	apps/convex/convex/savedViews/workspace.ts:147	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspace:update	apps/convex/convex/savedViews/workspace.ts:35	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:labels	apps/convex/convex/savedViews/workspaceChoices.ts:28	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:people	apps/convex/convex/savedViews/workspaceChoices.ts:46	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
-convex-rpc	savedViews/workspaceChoices:states	apps/convex/convex/savedViews/workspaceChoices.ts:10	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:access	apps/convex/convex/savedViews/index.ts:154	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:create	apps/convex/convex/savedViews/index.ts:15	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:get	apps/convex/convex/savedViews/index.ts:72	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:lifecycle	apps/convex/convex/savedViews/index.ts:143	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:list	apps/convex/convex/savedViews/index.ts:84	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:resolve	apps/convex/convex/savedViews/index.ts:76	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/index:update	apps/convex/convex/savedViews/index.ts:41	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/results:list	apps/convex/convex/savedViews/results.ts:9	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:create	apps/convex/convex/savedViews/workspace.ts:18	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:favorite	apps/convex/convex/savedViews/workspace.ts:127	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:favorites	apps/convex/convex/savedViews/workspace.ts:135	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:get	apps/convex/convex/savedViews/workspace.ts:75	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:lifecycle	apps/convex/convex/savedViews/workspace.ts:113	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:list	apps/convex/convex/savedViews/workspace.ts:87	Convex source candidate	views-search	query | public | app | native directory, pre-page case-insensitive name search and workspace access	OPEN
+convex-rpc	savedViews/workspace:resolve	apps/convex/convex/savedViews/workspace.ts:79	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:results	apps/convex/convex/savedViews/workspace.ts:165	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspace:update	apps/convex/convex/savedViews/workspace.ts:44	Convex source candidate	views-search	mutation | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:labels	apps/convex/convex/savedViews/workspaceChoices.ts:29	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:people	apps/convex/convex/savedViews/workspaceChoices.ts:47	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
+convex-rpc	savedViews/workspaceChoices:states	apps/convex/convex/savedViews/workspaceChoices.ts:11	Convex source candidate	views-search	query | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:checkMcp	apps/convex/convex/settings/index.ts:103	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	action | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:integrationStatus	apps/convex/convex/settings/index.ts:82	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | public | app | direct native constructor	OPEN
 convex-rpc	settings/index:metadata	apps/convex/convex/settings/index.ts:43	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
@@ -646,18 +677,18 @@ convex-rpc	tasks/commentReactions:list	apps/convex/convex/tasks/commentReactions
 convex-rpc	tasks/commentReactions:publicList	apps/convex/convex/tasks/commentReactions.ts:70	Convex generated tasks/commentReactions public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:publicSet	apps/convex/convex/tasks/commentReactions.ts:83	Convex generated tasks/commentReactions public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/commentReactions:set	apps/convex/convex/tasks/commentReactions.ts:63	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:access	apps/convex/convex/tasks/comments.ts:21	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:create	apps/convex/convex/tasks/comments.ts:183	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:get	apps/convex/convex/tasks/comments.ts:242	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:list	apps/convex/convex/tasks/comments.ts:160	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:publicCreate	apps/convex/convex/tasks/comments.ts:301	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:publicGet	apps/convex/convex/tasks/comments.ts:296	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:publicList	apps/convex/convex/tasks/comments.ts:284	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:publicRemove	apps/convex/convex/tasks/comments.ts:322	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:publicUpdate	apps/convex/convex/tasks/comments.ts:315	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:remove	apps/convex/convex/tasks/comments.ts:222	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:restore	apps/convex/convex/tasks/comments.ts:230	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/comments:update	apps/convex/convex/tasks/comments.ts:209	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:access	apps/convex/convex/tasks/comments.ts:27	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:create	apps/convex/convex/tasks/comments.ts:189	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:get	apps/convex/convex/tasks/comments.ts:248	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:list	apps/convex/convex/tasks/comments.ts:166	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:publicCreate	apps/convex/convex/tasks/comments.ts:324	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:publicGet	apps/convex/convex/tasks/comments.ts:315	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:publicList	apps/convex/convex/tasks/comments.ts:303	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:publicRemove	apps/convex/convex/tasks/comments.ts:345	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:publicUpdate	apps/convex/convex/tasks/comments.ts:338	Convex generated tasks.comments public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:remove	apps/convex/convex/tasks/comments.ts:228	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:restore	apps/convex/convex/tasks/comments.ts:236	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/comments:update	apps/convex/convex/tasks/comments.ts:215	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/description:get	apps/convex/convex/tasks/description.ts:18	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/description:save	apps/convex/convex/tasks/description.ts:37	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/copy:commit	apps/convex/convex/tasks/drafts/copy.ts:97	Convex source candidate	tasks	mutation | internal | app | direct native constructor	OPEN
@@ -667,9 +698,9 @@ convex-rpc	tasks/drafts/copy:snapshot	apps/convex/convex/tasks/drafts/copy.ts:42
 convex-rpc	tasks/drafts/copy:taskCommit	apps/convex/convex/tasks/drafts/copy.ts:175	Convex internal source CAS and independent private draft/image commit	tasks	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/copy:taskSnapshot	apps/convex/convex/tasks/drafts/copy.ts:174	Convex internal source/task/content/image snapshot owner	tasks	query | internal | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/index:create	apps/convex/convex/tasks/drafts/index.ts:33	Convex authenticated private draft creation	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:lifecycle	apps/convex/convex/tasks/drafts/index.ts:127	Convex authenticated private draft lifecycle with revision proof	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:lifecycle	apps/convex/convex/tasks/drafts/index.ts:135	Convex authenticated private draft lifecycle with revision proof	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/index:list	apps/convex/convex/tasks/drafts/index.ts:59	Convex authenticated owner draft list; permission-aware project/priority/search before pagination	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/drafts/index:publish	apps/convex/convex/tasks/drafts/index.ts:137	Convex atomic draft publication, canonical task creation and image binding transfer	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/drafts/index:publish	apps/convex/convex/tasks/drafts/index.ts:145	Convex atomic draft publication, canonical task creation and image binding transfer	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/index:resolve	apps/convex/convex/tasks/drafts/index.ts:75	Convex canonical private draft read and publication capability	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/drafts/index:save	apps/convex/convex/tasks/drafts/index.ts:85	Convex private draft content/property/relationship save and acknowledgment	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/hierarchy:children	apps/convex/convex/tasks/hierarchy.ts:53	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
@@ -680,13 +711,13 @@ convex-rpc	tasks/history:get	apps/convex/convex/tasks/history.ts:93	Convex sourc
 convex-rpc	tasks/history:list	apps/convex/convex/tasks/history.ts:72	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/history:prune	apps/convex/convex/tasks/history.ts:129	Convex source candidate	tasks	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	tasks/history:restore	apps/convex/convex/tasks/history.ts:102	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:create	apps/convex/convex/tasks/index.ts:67	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:editSnapshot	apps/convex/convex/tasks/index.ts:122	Convex canonical editable task content/properties/relationship receipts	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:get	apps/convex/convex/tasks/index.ts:84	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:list	apps/convex/convex/tasks/index.ts:35	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:setStatus	apps/convex/convex/tasks/index.ts:77	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:setTitle	apps/convex/convex/tasks/index.ts:196	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/index:update	apps/convex/convex/tasks/index.ts:132	Convex atomic task property/content/relationship writer with source receipts	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:create	apps/convex/convex/tasks/index.ts:100	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:editSnapshot	apps/convex/convex/tasks/index.ts:155	Convex canonical editable task content/properties/relationship receipts	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:get	apps/convex/convex/tasks/index.ts:117	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:list	apps/convex/convex/tasks/index.ts:37	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:setStatus	apps/convex/convex/tasks/index.ts:110	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:setTitle	apps/convex/convex/tasks/index.ts:229	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/index:update	apps/convex/convex/tasks/index.ts:165	Convex atomic task property/content/relationship writer with source receipts	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/label_removal:begin	apps/convex/convex/tasks/label_removal.ts:19	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/label_removal:cancel	apps/convex/convex/tasks/label_removal.ts:55	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/label_removal:list	apps/convex/convex/tasks/label_removal.ts:8	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
@@ -694,22 +725,22 @@ convex-rpc	tasks/label_removal:step	apps/convex/convex/tasks/label_removal.ts:72
 convex-rpc	tasks/labels:list	apps/convex/convex/tasks/labels.ts:18	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/labels:save	apps/convex/convex/tasks/labels.ts:37	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/labels:settings	apps/convex/convex/tasks/labels.ts:25	Convex native tasks owner; full production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/lifecycle:bulk	apps/convex/convex/tasks/lifecycle.ts:52	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/lifecycle:bulkAccess	apps/convex/convex/tasks/lifecycle.ts:44	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/lifecycle:change	apps/convex/convex/tasks/lifecycle.ts:38	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/lifecycle:get	apps/convex/convex/tasks/lifecycle.ts:107	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/lifecycle:list	apps/convex/convex/tasks/lifecycle.ts:80	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/lifecycle:bulk	apps/convex/convex/tasks/lifecycle.ts:66	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/lifecycle:bulkAccess	apps/convex/convex/tasks/lifecycle.ts:58	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/lifecycle:change	apps/convex/convex/tasks/lifecycle.ts:52	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/lifecycle:get	apps/convex/convex/tasks/lifecycle.ts:143	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/lifecycle:list	apps/convex/convex/tasks/lifecycle.ts:94	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:access	apps/convex/convex/tasks/links.ts:36	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:create	apps/convex/convex/tasks/links.ts:65	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:get	apps/convex/convex/tasks/links.ts:61	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:lifecycle	apps/convex/convex/tasks/links.ts:116	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:list	apps/convex/convex/tasks/links.ts:46	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/links:update	apps/convex/convex/tasks/links.ts:91	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:list	apps/convex/convex/tasks/profile.ts:252	Convex permission-filtered Profile task list and generated task projections; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:preferences	apps/convex/convex/tasks/profile.ts:73	Convex authenticated viewer workspace profile preferences	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:savePreferences	apps/convex/convex/tasks/profile.ts:90	Convex canonical viewer preference writer with revision and label access	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:subject	apps/convex/convex/tasks/profile.ts:217	Convex workspace Profile subject and membership boundary; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/profile:summary	apps/convex/convex/tasks/profile.ts:332	Convex paginated authorized Profile summary contributions; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:list	apps/convex/convex/tasks/profile.ts:241	Convex permission-filtered Profile task list and generated task projections; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:preferences	apps/convex/convex/tasks/profile.ts:62	Convex authenticated viewer workspace profile preferences	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:savePreferences	apps/convex/convex/tasks/profile.ts:79	Convex canonical viewer preference writer with revision and label access	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:subject	apps/convex/convex/tasks/profile.ts:206	Convex workspace Profile subject and membership boundary; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/profile:summary	apps/convex/convex/tasks/profile.ts:321	Convex paginated authorized Profile summary contributions; production acceptance OPEN	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:access	apps/convex/convex/tasks/reactions.ts:36	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:list	apps/convex/convex/tasks/reactions.ts:40	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/reactions:publicList	apps/convex/convex/tasks/reactions.ts:62	Convex generated tasks/reactions public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
@@ -717,16 +748,16 @@ convex-rpc	tasks/reactions:publicSet	apps/convex/convex/tasks/reactions.ts:75	Co
 convex-rpc	tasks/reactions:set	apps/convex/convex/tasks/reactions.ts:54	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/relationships:add	apps/convex/convex/tasks/relationships.ts:107	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/relationships:list	apps/convex/convex/tasks/relationships.ts:42	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/relationships:remove	apps/convex/convex/tasks/relationships.ts:156	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/relationships:remove	apps/convex/convex/tasks/relationships.ts:168	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:list	apps/convex/convex/tasks/states.ts:11	Convex source candidate	tasks	query | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:markDefault	apps/convex/convex/tasks/states.ts:171	Convex native tasks owner; full production acceptance OPEN	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:remove	apps/convex/convex/tasks/states.ts:207	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:reorder	apps/convex/convex/tasks/states.ts:186	Convex native tasks owner; full production acceptance OPEN	tasks	mutation | public | app | direct native constructor	OPEN
 convex-rpc	tasks/states:save	apps/convex/convex/tasks/states.ts:129	Convex source candidate	tasks	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/votes:actors	apps/convex/convex/tasks/votes.ts:28	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/votes:set	apps/convex/convex/tasks/votes.ts:63	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
-convex-rpc	tasks/votes:summary	apps/convex/convex/tasks/votes.ts:19	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
-convex-rpc	tasks/votes:viewer	apps/convex/convex/tasks/votes.ts:49	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:actors	apps/convex/convex/tasks/votes.ts:29	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:set	apps/convex/convex/tasks/votes.ts:64	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	mutation | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:summary	apps/convex/convex/tasks/votes.ts:20	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
+convex-rpc	tasks/votes:viewer	apps/convex/convex/tasks/votes.ts:50	Convex generated tasks.votes public API candidate; full production acceptance OPEN	public-sharing	query | public | app | direct native constructor	OPEN
 convex-rpc	webhooks/actions:create	apps/convex/convex/webhooks/actions.ts:8	Convex native external-api owner; full production acceptance OPEN	external-api	action | public | app | direct native constructor	OPEN
 convex-rpc	webhooks/actions:regenerate	apps/convex/convex/webhooks/actions.ts:20	Convex native external-api owner; full production acceptance OPEN	external-api	action | public | app | direct native constructor	OPEN
 convex-rpc	webhooks/index:authorizeCreate	apps/convex/convex/webhooks/index.ts:92	Convex native external-api owner; full production acceptance OPEN	external-api	query | internal | app | direct native constructor	OPEN
@@ -739,12 +770,12 @@ convex-rpc	webhooks/index:remove	apps/convex/convex/webhooks/index.ts:141	Convex
 convex-rpc	webhooks/index:rotateEncrypted	apps/convex/convex/webhooks/index.ts:156	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	webhooks/index:setActive	apps/convex/convex/webhooks/index.ts:127	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | public | app | direct native constructor	OPEN
 convex-rpc	webhooks/index:update	apps/convex/convex/webhooks/index.ts:116	Convex native external-api owner; full production acceptance OPEN	external-api	mutation | public | app | direct native constructor	OPEN
-convex-rpc	workspaces/index:changeMemberRole	apps/convex/convex/workspaces/index.ts:150	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
-convex-rpc	workspaces/index:create	apps/convex/convex/workspaces/index.ts:47	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
-convex-rpc	workspaces/index:leave	apps/convex/convex/workspaces/index.ts:189	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
+convex-rpc	workspaces/index:changeMemberRole	apps/convex/convex/workspaces/index.ts:155	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
+convex-rpc	workspaces/index:create	apps/convex/convex/workspaces/index.ts:75	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
+convex-rpc	workspaces/index:leave	apps/convex/convex/workspaces/index.ts:194	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/index:list	apps/convex/convex/workspaces/index.ts:23	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
-convex-rpc	workspaces/index:members	apps/convex/convex/workspaces/index.ts:93	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
-convex-rpc	workspaces/index:revokeMember	apps/convex/convex/workspaces/index.ts:174	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
+convex-rpc	workspaces/index:members	apps/convex/convex/workspaces/index.ts:98	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
+convex-rpc	workspaces/index:revokeMember	apps/convex/convex/workspaces/index.ts:179	Convex source candidate	workspace	mutation | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/lifecycle:backfill	apps/convex/convex/workspaces/lifecycle.ts:66	Convex source candidate	workspace	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	workspaces/lifecycle:get	apps/convex/convex/workspaces/lifecycle.ts:32	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
 convex-rpc	workspaces/lifecycle:list	apps/convex/convex/workspaces/lifecycle.ts:36	Convex source candidate	workspace	query | public | app | direct native constructor	OPEN
