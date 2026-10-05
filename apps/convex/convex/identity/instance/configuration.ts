@@ -4,7 +4,7 @@ import { zodToConvexFields } from "convex-helpers/server/zod4";
 import { internalMutation, mutation, query, type QueryCtx } from "../../_generated/server";
 import { requireInstanceAdmin } from "./access";
 import { oauthForInstance } from "./oauth";
-import { mailConfiguration } from "../mail/config";
+import { mailForInstance } from "./email";
 import type { Doc } from "../../_generated/dataModel";
 import { instanceGeneral } from "../schema";
 export const get = query({
@@ -27,7 +27,7 @@ export const get = query({
       administratorEmail: administrator?.email ?? null,
       ...workspaceCreationForInstance(instance),
       passwordSignIn: authenticationForInstance(instance).passwordEnabled,
-      mailConfigured: mailConfiguration(process.env) !== null,
+      mailConfigured: mailForInstance(instance).configured,
       oauthProviders: oauth.configurations.map((provider) => provider.id),
       oauthAdoptionRequired: oauth.adoptionRequired,
     };

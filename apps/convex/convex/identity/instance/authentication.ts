@@ -4,7 +4,7 @@ import { internalMutation, mutation, query, type QueryCtx } from "../../_generat
 import { instanceAuthentication, instanceAuthenticationPatch } from "../schema";
 import { oauthConfigurations, oauthProviderIds } from "../oauth/config";
 import { oauthForInstance } from "./oauth";
-import { mailConfiguration } from "../mail/config";
+import { mailForInstance } from "./email";
 import { accountRestricted } from "../deactivation/access";
 import { instanceAdminAccess, requireInstanceAdmin } from "./access";
 import type { Doc } from "../../_generated/dataModel";
@@ -68,7 +68,7 @@ export const get = query({
     return {
       authentication: authenticationForInstance(instance),
       revision: instance.revision,
-      mailConfigured: mailConfiguration(process.env) !== null,
+      mailConfigured: mailForInstance(instance).configured,
       configuredProviders: oauth.configurations.map((provider) => provider.id),
       oauthAdoptionRequired: oauth.adoptionRequired,
     };

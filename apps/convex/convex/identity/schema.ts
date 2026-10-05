@@ -1,3 +1,4 @@
+import { encryptedFields } from "../webhooks/schema";
 import { preferences } from "./preferences_fields";
 import { oauthSettings, oauthProviderIds } from "./oauth/config";
 import { defineTable, ROUTABLE_HTTP_METHODS } from "convex/server";
@@ -56,6 +57,8 @@ export const identityTables = {
   betterAuthLinks: defineTable({
     authId: v.string(),
     userId: v.id("users"),
+    // Recorded only by the canonical account-link creation transaction.
+    createdAppUser: v.optional(v.boolean()),
     lastLoginMedium: v.optional(lastLoginMedium),
     lastLoginAt: v.optional(v.number()),
   })
@@ -93,6 +96,7 @@ export const identityTables = {
     authentication: zodToConvex(instanceAuthentication.optional()),
     workspaceCreationDisabled: v.optional(v.boolean()),
     oauth: zodToConvex(oauthSettings.optional()),
+    resendKey: v.optional(v.union(v.object(encryptedFields), v.null())),
     ...zodToConvexFields(instanceGeneral.shape),
     instanceId: zodToConvex(instanceIdentifier),
     revision: v.number(),

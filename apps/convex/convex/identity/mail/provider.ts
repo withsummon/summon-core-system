@@ -1,4 +1,5 @@
 import { Email } from "@convex-dev/auth/providers/Email";
+import { mailConfiguration } from "./config";
 import { sendAccountEmail } from "./sender";
 export function verificationEmail(purpose: "reset" | "verify" | "magic") {
   const minutes = purpose === "magic" ? 10 : 15;
@@ -8,7 +9,10 @@ export function verificationEmail(purpose: "reset" | "verify" | "magic") {
     maxAge: minutes * 60,
     async sendVerificationRequest({ identifier, token }) {
       // Convex Auth owns token generation, expiry and single-use consumption.
+      const config = mailConfiguration(process.env);
+      if (!config) throw new Error("Account email delivery is not configured.");
       await sendAccountEmail(
+        config,
         identifier,
         purpose === "reset"
           ? "Reset your Summon password"

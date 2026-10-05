@@ -26,7 +26,10 @@ export const deliver = internalAction({
     if (!job || job.status !== "pending") return;
     let sent = false;
     try {
+      const config = await ctx.runQuery(internal.identity.instance.email.runtime, {});
+      if (!config) throw new Error("Account email delivery is not configured.");
       await sendAccountEmail(
+        config,
         job.recipient,
         "Your Summon email address changed",
         "The email address for your Summon account was changed. All previous sessions were signed out. If you did not request this change, contact your instance administrator.",

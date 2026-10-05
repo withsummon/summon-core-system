@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { authenticationDecision } from "./instance/authentication";
+import { currentMailReadiness } from "./instance/email";
 import { mailConfiguration } from "./mail/config";
 /** Operator env policy; defaults match inherited runtime providers, not DB seed overrides. */
 export function signInPolicy(env: Record<string, string | undefined>) {
@@ -23,7 +24,7 @@ export async function currentSignInPolicy(ctx: QueryCtx, subject?: Parameters<ty
     ...signInAvailability(
       authentication.passwordEnabled || administratorPassword,
       authentication.magicEnabled,
-      mailConfiguration(process.env) !== null
+      (await currentMailReadiness(ctx)).configured
     ),
     signupEnabled: authentication.signupEnabled,
     providers: authentication.providers,

@@ -1,7 +1,8 @@
 import type { AuthProviderConfig } from "@convex-dev/auth/server";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { z } from "zod";
-import { oauthConfigurations, providerNames } from "./config";
+import { z as z4 } from "zod/v4";
+import { oauthConfigurations, oauthProviderIds, providerNames } from "./config";
 
 type OAuthProvider = Extract<AuthProviderConfig, { type: "oauth" | "oidc" }>;
 type Configuration = ReturnType<typeof oauthConfigurations>[number];
@@ -17,9 +18,53 @@ const email = z
   .email()
   .transform((value) => value.toLowerCase());
 const verifiedIdentity = z.object({ ...identityFields, email, emailVerified: z.literal(true) });
-const googleIdentity = z.object({ ...identityFields, email, verified_email: z.literal(true) });
-const gitlabIdentity = z.object({ ...identityFields, email, confirmed_at: z.string().min(1) });
-const providerIdentity = z.object({ ...identityFields, login: z.string().optional() });
+const avatarUrl = z
+  .string()
+  .max(2048)
+  .nullish()
+  .transform((value) => value || null);
+const familyName = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? "");
+const googleIdentity = z.object({
+  ...identityFields,
+  email,
+  verified_email: z.literal(true),
+  given_name: familyName,
+  family_name: familyName,
+  picture: avatarUrl,
+});
+const gitlabIdentity = z.object({
+  ...identityFields,
+  email,
+  confirmed_at: z.string().min(1),
+  family_name: familyName,
+  avatar_url: avatarUrl,
+});
+const providerIdentity = z.object({
+  ...identityFields,
+  login: z.string().optional(),
+  full_name: z.string().nullish(),
+  family_name: familyName,
+  avatar_url: avatarUrl,
+});
+// Native issuer identity stays four fields; only this internal verified event
+// carries the provider-owned profile to the canonical profile publisher.
+export const verifiedProviderProfile = z4.object({
+  provider: z4.enum(oauthProviderIds),
+  accountId: z4.string().min(1),
+  email: z4.email(),
+  firstName: z4.string(),
+  lastName: z4.string(),
+  avatarUrl: z4.string().max(2048).nullable(),
+  configurationDigest: z4.string(),
+});
+export async function configurationDigest(configuration: Configuration) {
+  const fields = Object.entries(configuration).toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(fields)));
+  return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+}
 const providerEmails = z.array(z.object({ email, primary: z.boolean().optional(), verified: z.boolean() }));
 const membership = z.object({ state: z.literal("active") });
 async function read(url: string, accessToken: string): Promise<unknown> {
@@ -63,19 +108,43 @@ function endpoints(configuration: Configuration) {
             scopes: ["email", "profile", "read:user"],
           };
 }
-async function providerUser(configuration: Configuration, accessToken?: string) {
+async function providerUser(
+  configuration: Configuration,
+  accessToken?: string,
+  verified?: (profile: z4.infer<typeof verifiedProviderProfile>) => void
+) {
   if (!accessToken) throw new Error("OAuth access token unavailable.");
   const { id } = configuration;
   const host = "host" in configuration ? configuration.host : undefined;
   const organization = "organization" in configuration ? configuration.organization : undefined;
   const rawProfile = await read(endpoints(configuration).user, accessToken);
+  const digest = verified ? await configurationDigest(configuration) : undefined;
+  const capture = (
+    identity: { id: string; email: string },
+    firstName: string,
+    lastName: string,
+    avatar: string | null
+  ) => {
+    if (verified && digest)
+      verified({
+        provider: id,
+        accountId: identity.id,
+        email: identity.email,
+        firstName,
+        lastName,
+        avatarUrl: avatar,
+        configurationDigest: digest,
+      });
+  };
   if (id === "google") {
-    const { verified_email, ...profile } = googleIdentity.parse(rawProfile);
-    return { ...profile, emailVerified: verified_email };
+    const profile = googleIdentity.parse(rawProfile);
+    capture(profile, profile.given_name, profile.family_name, profile.picture);
+    return { id: profile.id, name: profile.name, email: profile.email, emailVerified: profile.verified_email };
   }
   if (id === "gitlab") {
-    const { id: subject, email: address, name } = gitlabIdentity.parse(rawProfile);
-    return { id: subject, email: address, name, emailVerified: true };
+    const profile = gitlabIdentity.parse(rawProfile);
+    capture(profile, profile.name ?? "", profile.family_name, profile.avatar_url);
+    return { id: profile.id, email: profile.email, name: profile.name, emailVerified: true };
   }
   const profile = providerIdentity.parse(rawProfile);
   const emails = providerEmails.parse(
@@ -94,9 +163,18 @@ async function providerUser(configuration: Configuration, accessToken?: string) 
       )
     );
   }
+  capture(
+    { id: profile.id, email: verifiedEmail.email },
+    id === "gitea" ? profile.full_name || profile.login || "" : (profile.name ?? ""),
+    id === "gitea" ? "" : profile.family_name,
+    profile.avatar_url
+  );
   return { id: profile.id, name: profile.name, email: verifiedEmail.email, emailVerified: true };
 }
-export function nativeOAuthProviders(configurations: Configuration[]): GenericOAuthConfig[] {
+export function nativeOAuthProviders(
+  configurations: Configuration[],
+  verified?: (profile: z4.infer<typeof verifiedProviderProfile>) => void
+): GenericOAuthConfig[] {
   return configurations.map((configuration) => {
     const urls = endpoints(configuration);
     return {
@@ -108,7 +186,7 @@ export function nativeOAuthProviders(configurations: Configuration[]): GenericOA
       scopes: urls.scopes,
       pkce: true,
       authentication: "post",
-      getUserInfo: (tokens) => providerUser(configuration, tokens.accessToken),
+      getUserInfo: (tokens) => providerUser(configuration, tokens.accessToken, verified),
     };
   });
 }

@@ -5,6 +5,15 @@ import { role } from "../schema";
 import { requireUser } from "./access";
 import { defaultPreferences } from "./preferences_fields";
 import { accountRestricted } from "./deactivation/access";
+import { text } from "../commercial/validation";
+
+export function personalName(value: string, label: string, required = false) {
+  const name = text(value, label, 255, required);
+  if (/https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,6}|(?:\d{1,3}\.){3}\d{1,3}/i.test(name))
+    throw new ConvexError(`${label} cannot contain a URL.`);
+  return name;
+}
+
 export const defaultProfile = {
   firstName: "",
   lastName: "",
@@ -67,13 +76,15 @@ export function sortMemberDirectory<
     return Number(b.active) - Number(a.active) || comparison * direction || a.userId.localeCompare(b.userId);
   });
 }
-export async function ownProfile(ctx: QueryCtx) {
-  const user = await requireUser(ctx);
+export async function profileForUser(ctx: QueryCtx, user: Doc<"users">) {
   const profile = await ctx.db
     .query("userProfiles")
     .withIndex("by_user", (q) => q.eq("userId", user._id))
     .unique();
   return { user, profile };
+}
+export async function ownProfile(ctx: QueryCtx) {
+  return profileForUser(ctx, await requireUser(ctx));
 }
 export function profileRevision(profile: Doc<"userProfiles"> | null, expected: number) {
   if (!Number.isSafeInteger(expected) || expected !== (profile?.revision ?? 0))

@@ -157,7 +157,7 @@ def _request_to_ip(method, scheme, hostname, ip, port, path, *, headers, timeout
     return response
 
 
-def _fetch_validated_hop(method, url, *, allowed_ips, allowed_hosts, headers, timeout, **kwargs):
+def _fetch_validated_hop(method, url, *, allowed_ips, allowed_hosts, headers, timeout, reject_url_credentials=False, **kwargs):
     """
     Resolve ``url``'s host, validate it, then issue a single (non-redirecting)
     request pinned to a resolved IP. Returns ``(response, normalized_host)``.
@@ -168,6 +168,9 @@ def _fetch_validated_hop(method, url, *, allowed_ips, allowed_hosts, headers, ti
     be rebound to a different internal target between validation and connect.
     """
     scheme, hostname, port, path, auth = _split_target(url)
+    # Other callers own URL Basic Auth. Avatar imports reject it at every hop.
+    if reject_url_credentials and auth is not None:
+        raise ValueError("URL credentials are not allowed.")
 
     normalized_host = hostname.rstrip(".").lower()
     trusted = bool(allowed_hosts) and normalized_host in {
