@@ -25,14 +25,6 @@ export const coreRoutes: RouteConfigEntry[] = [
         // WORKSPACE LEVEL ROUTES
         // --------------------------------------------------------------------
 
-        // Workspace Home
-        route(":workspaceSlug", "./(all)/[workspaceSlug]/(projects)/page.tsx"),
-
-        // Active Cycles
-        layout("./(all)/[workspaceSlug]/(projects)/active-cycles/layout.tsx", [
-          route(":workspaceSlug/active-cycles", "./(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx"),
-        ]),
-
         // Analytics
         layout("./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/layout.tsx", [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
@@ -68,14 +60,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(
             ":workspaceSlug/projects/:projectId/archives/issues",
             "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx"
-          ),
-        ]),
-
-        // Project Archives - Issues - Detail
-        layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/layout.tsx", [
-          route(
-            ":workspaceSlug/projects/:projectId/archives/issues/:archivedIssueId",
-            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx"
           ),
         ]),
       ]),

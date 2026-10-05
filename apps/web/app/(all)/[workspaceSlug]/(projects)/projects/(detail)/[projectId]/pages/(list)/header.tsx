@@ -75,7 +75,7 @@ export function PagesListHeader({
                 component={
                   <BreadcrumbLink
                     label={address.project.name}
-                    href={`/${address.workspace.slug}/projects/${address.project._id}`}
+                    href={`/${address.workspace.slug}/projects/${address.project._id}/issues/`}
                   />
                 }
               />
