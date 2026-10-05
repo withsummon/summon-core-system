@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -199,12 +199,14 @@ export function ProjectViewLayoutRoot({
   displayFilters,
   displayProperties,
   cohortComplete,
+  taskActions,
 }: {
   tasks: Tasks;
   address: Address;
   displayFilters: Display;
   displayProperties: Properties;
   cohortComplete: boolean;
+  taskActions?: (task: Tasks[number]) => ComponentProps<typeof TaskLifecycle>["children"];
 }) {
   const catalogs = useGroupCatalogs(address.project._id, displayFilters);
   const update = useMutation(api.tasks.index.update);
@@ -275,14 +277,22 @@ export function ProjectViewLayoutRoot({
       kanban={kanban}
       disabled={pending}
       renderContent={renderContent}
-    />
+    >
+      {taskActions?.(task)}
+    </NativeSavedViewTask>
   );
   const dateProps = { tasks, address, displayFilters, displayProperties, cohortComplete, renderTask };
   if (displayFilters.layout === "calendar") return <NativeCalendar {...dateProps} />;
   if (displayFilters.layout === "gantt_chart") return <NativeTimeline {...dateProps} />;
   if (displayFilters.layout === "spreadsheet")
     return (
-      <NativeSpreadsheet tasks={tasks} address={address} displayProperties={displayProperties} disabled={pending} />
+      <NativeSpreadsheet
+        tasks={tasks}
+        address={address}
+        displayProperties={displayProperties}
+        disabled={pending}
+        taskActions={taskActions}
+      />
     );
   const complete = cohortComplete && catalogs.complete;
   const groups = grouped(tasks, displayFilters.groupBy, catalogs, displayFilters.showEmptyGroups);
@@ -437,6 +447,7 @@ export function NativeSavedViewTask({
   kanban = false,
   disabled = false,
   renderContent,
+  children,
 }: {
   task: Tasks[number];
   address: Address;
@@ -444,6 +455,7 @@ export function NativeSavedViewTask({
   kanban?: boolean;
   disabled?: boolean;
   renderContent?: (row: ReactNode, writer: ReturnType<typeof useTaskPropertyWriter>) => ReactNode;
+  children?: ComponentProps<typeof TaskLifecycle>["children"];
 }) {
   const lifecycle = useTaskLifecycle(() => {});
   const writer = useTaskPropertyWriter(task, lifecycle.pending, disabled);
@@ -482,7 +494,9 @@ export function NativeSavedViewTask({
         );
         return renderContent ? renderContent(row, writer) : row;
       }}
-    />
+    >
+      {children}
+    </TaskLifecycle>
   );
 }
 function NativeSpreadsheet({
@@ -490,11 +504,13 @@ function NativeSpreadsheet({
   address,
   displayProperties,
   disabled,
+  taskActions,
 }: {
   tasks: Tasks;
   address: Address;
   displayProperties: Properties;
   disabled: boolean;
+  taskActions?: (task: Tasks[number]) => ComponentProps<typeof TaskLifecycle>["children"];
 }) {
   const columns = taskDisplayPropertiesSchema
     .keyof()
@@ -544,7 +560,9 @@ function NativeSpreadsheet({
                   ))}
                 </div>
               )}
-            />
+            >
+              {taskActions?.(task)}
+            </NativeSavedViewTask>
           ))}
         </div>
       </div>

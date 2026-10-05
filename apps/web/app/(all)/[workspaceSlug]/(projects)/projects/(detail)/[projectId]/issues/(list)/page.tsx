@@ -15,44 +15,46 @@ import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 // components
 import { PageHead } from "@/components/core/page-title";
-import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
 import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loader";
-import { taskStatusOptions } from "@/components/convex-core/tasks/options";
 import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
-import { ProjectIssueRow } from "@/components/convex-core/tasks/lifecycle";
+import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
 
 export default function ProjectIssuesPage() {
   const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
   // i18n
   const { t } = useTranslation();
   const { project, workspace } = address;
-  const tasks = usePaginatedQuery(api.tasks.index.list, { projectId: project._id }, { initialNumItems: 50 });
-  const states = useQuery(api.tasks.states.list, { projectId: project._id });
+  const preferences = useQuery(api.projects.navigation.getTaskPreferences, { projectId: project._id });
+  const tasks = usePaginatedQuery(
+    api.tasks.index.list,
+    preferences
+      ? {
+          projectId: project._id,
+          filters: preferences.filters,
+          order: preferences.displayFilters.order,
+          includeSubtasks: preferences.displayFilters.includeSubtasks,
+        }
+      : "skip",
+    { initialNumItems: 50 }
+  );
   return (
     <>
       <PageHead title={`${project.name} - ${t("issue.label", { count: 2 })}`} />
       <div className="relative flex h-full w-full flex-col bg-surface-1" aria-label="Project work items">
-        {tasks.status === "LoadingFirstPage" ? (
+        {!preferences || tasks.status === "LoadingFirstPage" ? (
           <ListLayoutLoader />
         ) : (
           <>
             {tasks.status === "Exhausted" && !tasks.results.length && (
               <EmptyStateCompact assetKey="work-item" title="No work items yet" assetClassName="size-20" />
             )}
-            <ul className="divide-y divide-subtle">
-              {tasks.results.map((task) => (
-                <ProjectIssueRow
-                  key={task._id}
-                  task={task}
-                  identifier={`${project.identifier}-${task.sequence}`}
-                  identifierWidth={calculateIdentifierWidth(project.identifier.length, project.nextSequence)}
-                  href={`/${workspace.slug}/browse/${project.identifier}-${task.sequence}/`}
-                  stateName={
-                    states?.find((state) => state._id === task.stateId)?.name ?? taskStatusOptions[task.status].label
-                  }
-                />
-              ))}
-            </ul>
+            <ProjectViewLayoutRoot
+              tasks={tasks.results}
+              address={address}
+              displayFilters={preferences.displayFilters}
+              displayProperties={preferences.displayProperties}
+              cohortComplete={tasks.status === "Exhausted"}
+            />
           </>
         )}
         {tasks.status === "CanLoadMore" && (

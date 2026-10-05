@@ -13,6 +13,7 @@ import { ModuleTasks } from "./tasks";
 import { ModuleLinks } from "./links";
 import { ModuleMembers } from "./members";
 import { TaskRichEditor } from "../tasks/rich-editor";
+import { TaskPeek } from "../tasks/task-detail";
 type Project = FunctionReturnType<typeof api.projects.index.list>[number];
 type Module = FunctionReturnType<typeof api.modules.index.get>;
 export function Modules({ project }: { project: Project }) {
@@ -116,6 +117,10 @@ export function Modules({ project }: { project: Project }) {
 }
 function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project: Project; onBack: () => void }) {
   const module = useQuery(api.modules.index.address, { projectId: project._id, moduleId });
+  const address = useQuery(api.navigation.address.resolveProjectId, {
+    workspaceId: project.workspaceId,
+    projectId: project._id,
+  });
   const [editing, setEditing] = useState(false);
   if (module === undefined) return <p role="status">Opening module…</p>;
   if (module === null) return <ModuleUnavailable onBack={onBack} />;
@@ -181,7 +186,8 @@ function ModuleDetail({ moduleId, project, onBack }: { moduleId: string; project
         <>
           <ModuleMembers module={module} />
           {module.canWrite && <ModuleProgress key={module._id} moduleId={module._id} />}
-          <ModuleTasks module={module} />
+          {address ? <ModuleTasks module={module} address={address} /> : <p role="status">Loading project…</p>}
+          {address && <TaskPeek workspaceSlug={address.workspace.slug} />}
           <ModuleLinks module={module} />
         </>
       )}

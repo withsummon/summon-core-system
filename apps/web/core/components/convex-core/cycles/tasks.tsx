@@ -3,12 +3,11 @@ import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery as useTaskPages } from "convex-helpers/react";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { Select } from "@plane/propel/select";
-import { ProjectIssueRow } from "../tasks/lifecycle";
+import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
+import { TaskPreferencesControls } from "../../../../app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/header";
 import { TaskPeek, CreateProjectIssue } from "../tasks/task-detail";
-import { taskStatusOptions } from "../tasks/options";
-import { calculateIdentifierWidth } from "@/components/issues/issue-layouts/utils";
 import useKeypress from "@/hooks/use-keypress";
-import useReloadConfirmations from "@/hooks/use-reload-confirmation";
+import useReloadConfirmations, { useReloadSubmitting } from "@/hooks/use-reload-confirmation";
 import { api } from "@summon/convex/api";
 import type { Doc, Id } from "@summon/convex/data-model";
 import type { FunctionReturnType } from "convex/server";
@@ -28,16 +27,29 @@ export function CycleTasks({
   const [now] = useCycleClock();
   const capabilities = useQuery(api.cycles.index.get, { cycleId: cycle._id, now });
   const canEdit = capabilities?.canEdit === true;
-  const tasks = useTaskPages(api.cycles.tasks.list, cycle.deleted ? "skip" : { cycleId: cycle._id }, {
-    initialNumItems: 50,
-  });
+  const preferences = useQuery(api.cycles.index.getTaskPreferences, cycle.deleted ? "skip" : { cycleId: cycle._id });
+  const savePreferences = useMutation(api.cycles.index.saveTaskPreferences);
+  const busy = useReloadSubmitting();
+  const tasks = useTaskPages(
+    api.cycles.tasks.list,
+    !cycle.deleted && preferences
+      ? {
+          cycleId: cycle._id,
+          filters: preferences.filters,
+          order: preferences.displayFilters.order,
+          includeSubtasks: preferences.displayFilters.includeSubtasks,
+        }
+      : "skip",
+    { initialNumItems: 50 }
+  );
   const states = useQuery(api.tasks.states.list, { projectId: cycle.projectId });
   const [assigning, setAssigning] = useState(false);
   const [creating, setCreating] = useState(false);
   const [removing, setRemoving] = useState<Membership | null>(null);
   const [moving, setMoving] = useState<NonNullable<Membership["task"]> | null>(null);
   useKeypress("c", (event) => {
-    if (!canEdit || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    if (!canEdit || busy || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
+      return;
     if (
       event.target instanceof HTMLElement &&
       event.target.closest("input, textarea, select, [contenteditable], [role=dialog]")
@@ -50,57 +62,64 @@ export function CycleTasks({
     <section className="h-full min-w-0" hidden={cycle.deleted}>
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-subtle px-5 py-2">
         <h2 className="text-13 font-medium">Work items</h2>
-        {canEdit && (
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setAssigning(true)}>
-              Add existing work item
-            </Button>
-            <Button size="sm" onClick={() => setCreating(true)}>
-              Add work item
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <TaskPreferencesControls
+            key={cycle._id}
+            projectId={cycle.projectId}
+            preferences={preferences}
+            onApply={(changes) => savePreferences({ cycleId: cycle._id, ...changes })}
+          />
+          {canEdit && (
+            <>
+              <Button variant="secondary" size="sm" disabled={busy} onClick={() => setAssigning(true)}>
+                Add existing work item
+              </Button>
+              <Button size="sm" disabled={busy} onClick={() => setCreating(true)}>
+                Add work item
+              </Button>
+            </>
+          )}
+        </div>
       </header>
       {assigning && <AssignTask cycle={cycle} canEdit={canEdit} onClose={() => setAssigning(false)} />}
+      {preferences && (
+        <ProjectViewLayoutRoot
+          tasks={tasks.results.flatMap((row) => (row.task ? [row.task] : []))}
+          address={address}
+          displayFilters={preferences.displayFilters}
+          displayProperties={preferences.displayProperties}
+          cohortComplete={tasks.status === "Exhausted"}
+          taskActions={(task) => (Item) => (
+            <>
+              <Item disabled={!canEdit || busy} onClick={() => setMoving(task)}>
+                Move to another cycle
+              </Item>
+              <Item
+                disabled={!canEdit || busy}
+                onClick={() => {
+                  const membership = tasks.results.find((row) => row.taskId === task._id);
+                  if (membership) setRemoving(membership);
+                }}
+              >
+                Remove from cycle
+              </Item>
+            </>
+          )}
+        />
+      )}
       <ul className="divide-y divide-subtle">
-        {tasks.results.map((row) =>
-          row.task ? (
-            <ProjectIssueRow
-              key={row.taskId}
-              task={row.task}
-              identifier={`${address.project.identifier}-${row.task.sequence}`}
-              identifierWidth={calculateIdentifierWidth(
-                address.project.identifier.length,
-                address.project.nextSequence
-              )}
-              href={`/${address.workspace.slug}/browse/${address.project.identifier}-${row.task.sequence}/`}
-              stateName={
-                states?.find((state) => state._id === row.task?.stateId)?.name ??
-                taskStatusOptions[row.task.status].label
-              }
-            >
-              {(Item) => (
-                <>
-                  <Item disabled={!canEdit} onClick={() => setMoving(row.task)}>
-                    Move to another cycle
-                  </Item>
-                  <Item disabled={!canEdit} onClick={() => setRemoving(row)}>
-                    Remove from cycle
-                  </Item>
-                </>
-              )}
-            </ProjectIssueRow>
-          ) : (
+        {tasks.results
+          .filter((row) => row.task === null)
+          .map((row) => (
             <li key={row.taskId} className="flex items-center justify-between gap-3 px-5 py-3">
               <span className="text-13 text-secondary">Work item unavailable</span>
-              <Button variant="secondary" size="sm" disabled={!canEdit} onClick={() => setRemoving(row)}>
+              <Button variant="secondary" size="sm" disabled={!canEdit || busy} onClick={() => setRemoving(row)}>
                 Remove from cycle
               </Button>
             </li>
-          )
-        )}
+          ))}
       </ul>
-      {tasks.status === "LoadingFirstPage" && (
+      {(!preferences || tasks.status === "LoadingFirstPage") && (
         <p role="status" className="p-5">
           Loading cycle work items…
         </p>
