@@ -4,48 +4,30 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import useSWR from "swr";
-// plane package imports
 import { useTranslation } from "@plane/i18n";
 import { Loader } from "@plane/ui";
-// plane web hooks
-import { useAnalytics } from "@/hooks/store/use-analytics";
-import { useProject } from "@/hooks/store/use-project";
-// plane web components
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import AnalyticsSectionWrapper from "../analytics-section-wrapper";
 import ActiveProjectItem from "./active-project-item";
-
-const ActiveProjects = observer(function ActiveProjects() {
+export default function ActiveProjects({
+  projects,
+  isLoading,
+}: {
+  projects?: (FunctionReturnType<typeof api.reporting.analytics.projects>["contribution"][number] & {
+    total: number;
+    completed: number;
+  })[];
+  isLoading: boolean;
+}) {
   const { t } = useTranslation();
-  const { fetchProjectAnalyticsCount } = useProject();
-  const { workspaceSlug } = useParams();
-  const { selectedDurationLabel } = useAnalytics();
-  const { data: projectAnalyticsCount, isLoading: isProjectAnalyticsCountLoading } = useSWR(
-    workspaceSlug ? ["projectAnalyticsCount", workspaceSlug] : null,
-    workspaceSlug
-      ? () =>
-          fetchProjectAnalyticsCount(workspaceSlug.toString(), {
-            fields: "total_work_items,total_completed_work_items",
-          })
-      : null
-  );
   return (
-    <AnalyticsSectionWrapper
-      title={`${t("workspace_analytics.active_projects")}`}
-      subtitle={selectedDurationLabel}
-      className="md:col-span-2"
-    >
+    <AnalyticsSectionWrapper title={t("workspace_analytics.active_projects")} className="md:col-span-2">
       <div className="flex h-[350px] flex-col gap-4 overflow-auto">
-        {isProjectAnalyticsCountLoading &&
-          Array.from({ length: 5 }).map((_, index) => <Loader.Item key={index} height="40px" width="100%" />)}
-        {!isProjectAnalyticsCountLoading &&
-          projectAnalyticsCount?.map((project) => <ActiveProjectItem key={project.id} project={project} />)}
+        {isLoading
+          ? Array.from({ length: 5 }, (_, i) => <Loader.Item key={i} height="40px" width="100%" />)
+          : projects?.map((project) => <ActiveProjectItem key={project.id} project={project} />)}
       </div>
     </AnalyticsSectionWrapper>
   );
-});
-
-export default ActiveProjects;
+}

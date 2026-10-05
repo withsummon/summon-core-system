@@ -201,6 +201,7 @@ import type * as publicSharing_access from "../publicSharing/access.js";
 import type * as publicSharing_index from "../publicSharing/index.js";
 import type * as quickLinks_index from "../quickLinks/index.js";
 import type * as quickLinks_validation from "../quickLinks/validation.js";
+import type * as reporting_analytics from "../reporting/analytics.js";
 import type * as reporting_commercial from "../reporting/commercial.js";
 import type * as reporting_documents from "../reporting/documents.js";
 import type * as reporting_meetings from "../reporting/meetings.js";
@@ -467,6 +468,7 @@ declare const fullApi: ApiFromModules<{
   "publicSharing/index": typeof publicSharing_index;
   "quickLinks/index": typeof quickLinks_index;
   "quickLinks/validation": typeof quickLinks_validation;
+  "reporting/analytics": typeof reporting_analytics;
   "reporting/commercial": typeof reporting_commercial;
   "reporting/documents": typeof reporting_documents;
   "reporting/meetings": typeof reporting_meetings;

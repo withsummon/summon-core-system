@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "react-router";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -21,47 +21,71 @@ import { BasicFilters } from "@/components/convex-core/saved-views/filters";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import useReloadConfirmations, { usePendingConfirmation, useReloadSubmitting } from "@/hooks/use-reload-confirmation";
 
+import { WorkItemsModal } from "@/components/analytics/work-items/modal";
+
 type Preferences = FunctionReturnType<typeof api.projects.navigation.getTaskPreferences>;
 type Address = FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
 
 export function ProjectIssuesHeader({ address, onCreate }: { address: Address; onCreate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const analyticsScope = useMemo(
+    () => ({
+      workspaceId: address.workspace._id,
+      projectIds: [],
+      focus: { projectId: address.project._id, cycleId: null, moduleId: null },
+    }),
+    [address.workspace._id, address.project._id]
+  );
   const preferences = useQuery(api.projects.navigation.getTaskPreferences, { projectId: address.project._id });
   const save = useMutation(api.projects.navigation.saveTaskPreferences);
   const busy = useReloadSubmitting();
   return (
-    <Header>
-      <Header.LeftItem>
-        <Breadcrumbs onBack={() => navigate(-1)} className="flex-grow-0">
-          <Breadcrumbs.Item component={<BreadcrumbLink label={address.project.name} />} />
-          <Breadcrumbs.Item
-            component={
-              <BreadcrumbLink
-                label="Work Items"
-                href={`/${address.workspace.slug}/projects/${address.project._id}/issues/`}
-                icon={<WorkItemsIcon className="size-4 text-tertiary" />}
-                isLast
-              />
-            }
-            isLast
-          />
-        </Breadcrumbs>
-      </Header.LeftItem>
-      <Header.RightItem>
-        <TaskPreferencesControls
-          key={address.project._id}
-          projectId={address.project._id}
-          preferences={preferences}
-          onApply={(changes) => save({ projectId: address.project._id, ...changes })}
-        />
-        {onCreate && (
-          <Button size="lg" disabled={busy} onClick={onCreate}>
-            {t("issue.add.label")}
+    <>
+      <WorkItemsModal
+        key={JSON.stringify([address.workspaceRole, address.projectRole])}
+        isOpen={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
+        scope={analyticsScope}
+        title={address.project.name}
+        workspaceSlug={address.workspace.slug}
+      />
+      <Header>
+        <Header.LeftItem>
+          <Breadcrumbs onBack={() => navigate(-1)} className="flex-grow-0">
+            <Breadcrumbs.Item component={<BreadcrumbLink label={address.project.name} />} />
+            <Breadcrumbs.Item
+              component={
+                <BreadcrumbLink
+                  label="Work Items"
+                  href={`/${address.workspace.slug}/projects/${address.project._id}/issues/`}
+                  icon={<WorkItemsIcon className="size-4 text-tertiary" />}
+                  isLast
+                />
+              }
+              isLast
+            />
+          </Breadcrumbs>
+        </Header.LeftItem>
+        <Header.RightItem>
+          <Button variant="secondary" size="lg" disabled={busy} onClick={() => setAnalyticsOpen(true)}>
+            Analytics
           </Button>
-        )}
-      </Header.RightItem>
-    </Header>
+          <TaskPreferencesControls
+            key={address.project._id}
+            projectId={address.project._id}
+            preferences={preferences}
+            onApply={(changes) => save({ projectId: address.project._id, ...changes })}
+          />
+          {onCreate && (
+            <Button size="lg" disabled={busy} onClick={onCreate}>
+              {t("issue.add.label")}
+            </Button>
+          )}
+        </Header.RightItem>
+      </Header>
+    </>
   );
 }
 

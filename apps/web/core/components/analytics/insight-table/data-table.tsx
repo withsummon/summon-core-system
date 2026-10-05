@@ -64,6 +64,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  const searchValue = table.getColumn(table.getHeaderGroups()?.[0]?.headers?.[0]?.id)?.getFilterValue();
   return (
     <div className="space-y-4">
       <div className="flex w-full items-center justify-between">
@@ -77,6 +78,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
             <button
               type="button"
               className="-mr-5 grid place-items-center rounded-sm p-2 text-placeholder hover:bg-layer-1"
+              aria-label="Search analytics table"
               onClick={() => {
                 setIsSearchOpen(true);
                 inputRef.current?.focus();
@@ -98,7 +100,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
               ref={inputRef}
               className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
               placeholder="Search"
-              value={table.getColumn(table.getHeaderGroups()?.[0]?.headers?.[0]?.id)?.getFilterValue() as string}
+              value={typeof searchValue === "string" ? searchValue : ""}
               onChange={(e) => {
                 const columnId = table.getHeaderGroups()?.[0]?.headers?.[0]?.id;
                 if (columnId) table.getColumn(columnId)?.setFilterValue(e.target.value);
@@ -113,6 +115,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
               <button
                 type="button"
                 className="grid place-items-center"
+                aria-label="Close search"
                 onClick={() => {
                   const columnId = table.getHeaderGroups()?.[0]?.headers?.[0]?.id;
                   if (columnId) {
@@ -136,9 +139,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id} colSpan={header.colSpan} className="whitespace-nowrap">
-                    {header.isPlaceholder
-                      ? null
-                      : (flexRender(header.column.columnDef.header, header.getContext()) as any)}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -149,9 +150,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext()) as any}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))

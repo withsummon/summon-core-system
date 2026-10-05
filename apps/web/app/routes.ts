@@ -55,6 +55,10 @@ const routes: RouteConfigEntry[] = [
 
     route("core", "./core.tsx"),
     layout("./native-workspace.tsx", [
+      route(":workspaceSlug/analytics", "routes/redirects/core/analytics.tsx"),
+      layout("./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/layout.tsx", [
+        route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
+      ]),
       layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/automation/layout.tsx", [
         route(
           ":workspaceSlug/projects/:projectId/automation",
