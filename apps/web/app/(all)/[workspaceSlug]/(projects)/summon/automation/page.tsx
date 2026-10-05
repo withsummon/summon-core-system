@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import { useOutletContext, useSearchParams } from "react-router";
 import { api } from "@summon/convex/api";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Doc } from "@summon/convex/data-model";
 import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { uploadFileAsset } from "@/components/convex-core/assets/upload-file";
@@ -571,6 +571,7 @@ function AutomationGenerator({
     { initialNumItems: 100 }
   );
   const generate = useAction(api.automation.generate.preview);
+  const options = useQuery(api.automation.templates.options, { workspaceId: workspace._id });
   const extract = useAction(api.automation.generate.extract);
   const prepare = useMutation(api.assets.index.prepare);
   const finalize = useAction(api.assets.upload.finalize);
@@ -596,8 +597,9 @@ function AutomationGenerator({
   const [enteredTitle, setTitle] = useState<string | null>(opportunity?.title ?? null);
   const title = enteredTitle ?? templates.find((item) => item._id === template)?.name ?? "";
   const [brief, setBrief] = useState(opportunity?.description ?? "");
-  const [tone, setTone] = useState("Professional");
-  const [detailLevel, setDetailLevel] = useState("Comprehensive");
+  const [preferences, setPreferences] = useState<
+    NonNullable<FunctionArgs<typeof api.automation.generate.preview>["preferences"]>
+  >({ tone: "Professional", detailLevel: "Comprehensive" });
   const [workspaceContext, setWorkspaceContext] = useState(false);
   const [clientId, setClientId] = useState<string>(opportunity?.clientId ?? "");
   const [meetingId, setMeetingId] = useState("");
@@ -620,6 +622,7 @@ function AutomationGenerator({
     template,
     outputProject,
     title.trim(),
+    options,
     !selectedMeeting || transcript?.canGenerateDocument,
   ].every(Boolean);
 
@@ -725,11 +728,7 @@ function AutomationGenerator({
         projects.map((row) => ({ id: row._id }))
       );
       if (!destination) throw new Error("Choose a destination project.");
-      const input = {
-        ...buildAutomationInput(selectedTemplate.variables, title, brief, variableValues),
-        tone,
-        detail_level: detailLevel,
-      };
+      const input = buildAutomationInput(selectedTemplate.variables, title, brief, variableValues);
       const context = {
         workspace: workspaceContext,
         projectId: destination,
@@ -754,6 +753,7 @@ function AutomationGenerator({
         title,
         input,
         context,
+        preferences,
       };
       const signature = JSON.stringify(args);
       if (request.current?.signature !== signature) request.current = { signature, requestId: crypto.randomUUID() };
@@ -941,24 +941,24 @@ function AutomationGenerator({
           <div className="mt-2 grid grid-cols-2 gap-2">
             <SummonField label="Tone">
               <Select
-                value={tone}
-                onValueChange={(value) => setTone(value)}
-                options={[
-                  { value: "Professional", label: "Professional" },
-                  { value: "Concise", label: "Concise" },
-                  { value: "Formal", label: "Formal" },
-                ]}
+                value={preferences.tone}
+                disabled={!options}
+                onValueChange={(value) => {
+                  const selected = options?.tones.find((tone) => tone === value);
+                  if (selected) setPreferences({ ...preferences, tone: selected });
+                }}
+                options={options?.tones.map((tone) => ({ value: tone, label: tone })) ?? []}
               />
             </SummonField>
             <SummonField label="Detail Level">
               <Select
-                value={detailLevel}
-                onValueChange={(value) => setDetailLevel(value)}
-                options={[
-                  { value: "Comprehensive", label: "Comprehensive" },
-                  { value: "Standard", label: "Standard" },
-                  { value: "Summary", label: "Summary" },
-                ]}
+                value={preferences.detailLevel}
+                disabled={!options}
+                onValueChange={(value) => {
+                  const selected = options?.detailLevels.find((level) => level === value);
+                  if (selected) setPreferences({ ...preferences, detailLevel: selected });
+                }}
+                options={options?.detailLevels.map((level) => ({ value: level, label: level })) ?? []}
               />
             </SummonField>
           </div>
