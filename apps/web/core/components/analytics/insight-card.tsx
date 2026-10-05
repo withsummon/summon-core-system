@@ -4,33 +4,24 @@
  * See the LICENSE file for details.
  */
 
-// plane package imports
-import React from "react";
-import type { IAnalyticsResponseFields } from "@plane/types";
 import { Loader } from "@plane/ui";
-
-export type InsightCardProps = {
-  data?: IAnalyticsResponseFields;
+export default function InsightCard({
+  count,
+  label,
+  isLoading = false,
+}: {
+  count?: number;
   label: string;
   isLoading?: boolean;
-};
-
-function InsightCard(props: InsightCardProps) {
-  const { data, label, isLoading = false } = props;
-  const count = data?.count ?? 0;
-
+}) {
   return (
     <div className="flex flex-col gap-3">
       <div className="text-13 text-tertiary">{label}</div>
-      {!isLoading ? (
-        <div className="flex flex-col gap-1">
-          <div className="text-20 font-bold text-primary">{count}</div>
-        </div>
-      ) : (
+      {isLoading ? (
         <Loader.Item height="50px" width="100%" />
+      ) : (
+        <div className="text-20 font-bold text-primary">{count ?? 0}</div>
       )}
     </div>
   );
 }
-
-export default InsightCard;

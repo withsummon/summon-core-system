@@ -5,17 +5,11 @@
  */
 
 import { lazy, Suspense } from "react";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import useSWR from "swr";
 // plane package imports
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { TChartData } from "@plane/types";
 // hooks
-import { useAnalytics } from "@/hooks/store/use-analytics";
 // services
-import { AnalyticsService } from "@/services/analytics.service";
 // plane web components
 import AnalyticsSectionWrapper from "../analytics-section-wrapper";
 import { ProjectInsightsLoader } from "../loaders";
@@ -26,37 +20,16 @@ const RadarChart = lazy(function RadarChart() {
   }));
 });
 
-const analyticsService = new AnalyticsService();
-
-const ProjectInsights = observer(function ProjectInsights() {
-  const params = useParams();
+const ProjectInsights = function ProjectInsights({
+  data: projectInsightsData,
+  isLoading: isLoadingProjectInsight,
+}: {
+  data?: { key: string; name: string; count: number }[];
+  isLoading: boolean;
+}) {
   const { t } = useTranslation();
-  const workspaceSlug = params.workspaceSlug.toString();
-  const { selectedDuration, selectedDurationLabel, selectedProjects, selectedCycle, selectedModule, isPeekView } =
-    useAnalytics();
-
-  const { data: projectInsightsData, isLoading: isLoadingProjectInsight } = useSWR(
-    `radar-chart-project-insights-${workspaceSlug}-${selectedDuration}-${selectedProjects}-${selectedCycle}-${selectedModule}-${isPeekView}`,
-    () =>
-      analyticsService.getAdvanceAnalyticsCharts<TChartData<string, string>[]>(
-        workspaceSlug,
-        "projects",
-        {
-          // date_filter: selectedDuration,
-          ...(selectedProjects?.length > 0 && { project_ids: selectedProjects?.join(",") }),
-          ...(selectedCycle ? { cycle_id: selectedCycle } : {}),
-          ...(selectedModule ? { module_id: selectedModule } : {}),
-        },
-        isPeekView
-      )
-  );
-
   return (
-    <AnalyticsSectionWrapper
-      title={`${t("workspace_analytics.project_insights")}`}
-      subtitle={selectedDurationLabel}
-      className="md:col-span-3"
-    >
+    <AnalyticsSectionWrapper title={`${t("workspace_analytics.project_insights")}`} className="md:col-span-3">
       {isLoadingProjectInsight ? (
         <ProjectInsightsLoader />
       ) : projectInsightsData && projectInsightsData?.length == 0 ? (
@@ -118,6 +91,6 @@ const ProjectInsights = observer(function ProjectInsights() {
       )}
     </AnalyticsSectionWrapper>
   );
-});
+};
 
 export default ProjectInsights;
