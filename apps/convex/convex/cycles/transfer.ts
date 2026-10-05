@@ -43,7 +43,12 @@ async function pendingEntries(ctx: QueryCtx, job: Doc<"cycleTransfers">) {
     .withIndex("by_transfer_outcome", (q) => q.eq("transferId", job._id).eq("outcome", "pending"))
     .take(TRANSFER_BATCH_SIZE);
 }
-async function capture(ctx: MutationCtx, job: Doc<"cycleTransfers">, source: Doc<"cycles">) {
+async function capture(
+  ctx: MutationCtx,
+  job: Doc<"cycleTransfers">,
+  source: Doc<"cycles">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
+) {
   requireCycleRevision(source, job.sourceUpdatedAt);
   const page = await ctx.db
     .query("cycleTasks")
@@ -80,7 +85,7 @@ async function capture(ctx: MutationCtx, job: Doc<"cycleTransfers">, source: Doc
       return ctx.db.insert("cycleTransferEntries", entry);
     })
   );
-  const captured = await snapshot(ctx, tasks, source, job);
+  const captured = await snapshot(ctx, tasks, source, job, viewerWorkspaceRole);
   const captureCompletedAt = page.isDone ? Date.now() : null;
   const update = {
     snapshot: {
@@ -200,14 +205,14 @@ export const begin = mutation({
 export const step = mutation({
   args: { transferId: v.id("cycleTransfers"), expectedRevision: v.number() },
   handler: async (ctx, args) => {
-    const { job, user } = await requireJob(ctx, args.transferId);
+    const { job, user, member } = await requireJob(ctx, args.transferId);
     revision(job, args.expectedRevision);
     if (job.status !== "running") throw new ConvexError("Transfer is not running.");
     const { cycle: source } = await requireCycle(ctx, job.sourceId, true);
     sourceAvailable(source);
     const { cycle: destination } = await requireCycle(ctx, job.destinationId, true);
     requireOpenCycle(destination);
-    if (job.phase === "capturing") return capture(ctx, job, source);
+    if (job.phase === "capturing") return capture(ctx, job, source, member.role);
     const batch = await pendingEntries(ctx, job);
     const checked = await Promise.all(batch.map((entry) => changed(ctx, job, entry)));
     if (checked.some((row) => row.reason))

@@ -36,9 +36,10 @@ export async function snapshot(
   ctx: MutationCtx,
   tasks: Doc<"tasks">[],
   cycle: Doc<"cycles">,
-  job: Doc<"cycleTransfers">
+  job: Doc<"cycleTransfers">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
 ) {
-  const progress = await progressTotals(ctx, tasks);
+  const progress = await progressTotals(ctx, tasks, viewerWorkspaceRole);
   const kinds = ["statuses", "assignees", "labels"] as const;
   // Five capture tasks, each with at most 100 assignees and 100 labels, bound these native bucket writes.
   await Promise.all(

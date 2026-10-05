@@ -6,7 +6,7 @@ import { requireCycle } from "./access";
 export const page = query({
   args: { cycleId: v.id("cycles"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, { cycleId, paginationOpts }) => {
-    const { project, user } = await requireCycle(ctx, cycleId);
+    const { project, user, member } = await requireCycle(ctx, cycleId);
     const result = await ctx.db
       .query("cycleTasks")
       .withIndex("by_cycle", (q) => q.eq("cycleId", cycleId))
@@ -19,7 +19,8 @@ export const page = query({
           ctx,
           result.page.map((row) => row.taskId),
           project,
-          user._id
+          user._id,
+          member.role
         ),
       ],
     };
