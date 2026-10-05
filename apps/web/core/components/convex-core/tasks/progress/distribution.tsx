@@ -15,7 +15,7 @@ export function Distribution({
 }: {
   kind: Kind;
   heading: "h4" | "h5";
-  rows: (TaskProgress["labels"][number] | Doc<"cycleTransfers">["snapshot"]["labels"][number])[];
+  rows: (TaskProgress["labels"][number] | Doc<"cycleTransferBuckets">)[];
 }) {
   const title = titles[kind];
   const [visible, setVisible] = useState(50);

@@ -42,13 +42,39 @@ export const page = query({
 });
 
 export const frozen = query({
-  args: { transferId: v.id("cycleTransfers") },
-  handler: async (ctx, { transferId }) => {
+  args: { transferId: v.id("cycleTransfers"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { transferId, paginationOpts }) => {
     const job = await ctx.db.get(transferId);
     if (!job) throw new ConvexError("Transfer not found.");
     await requireCycle(ctx, job.sourceId, true);
-    return job.snapshot.completionCurve
-      ? { status: "available" as const, curve: job.snapshot.completionCurve }
-      : { status: "unavailable" as const, curve: null };
+    const result = await ctx.db
+      .query("cycleTransferBuckets")
+      .withIndex("by_transfer_kind_id", (q) => q.eq("transferId", transferId).eq("kind", "completion"))
+      .paginate(progressPageBudget(paginationOpts));
+    return {
+      ...result,
+      page: [
+        {
+          status: job.snapshot.captureCompletedAt === null ? ("capturing" as const) : ("available" as const),
+          captureStartedAt: job.snapshot.captureStartedAt,
+          captureCompletedAt: job.snapshot.captureCompletedAt,
+          curve: {
+            startDate: job.snapshot.startDate,
+            endDate: job.snapshot.endDate,
+            timezone: job.snapshot.timezone,
+            asOfDay: job.snapshot.asOfDay,
+            count: job.snapshot.count,
+            points: job.snapshot.numericEstimates,
+            unquantified: job.snapshot.unquantifiedEstimates,
+            completed: result.page.map((row) => ({
+              day: row.name,
+              count: row.count,
+              points: row.numericEstimates,
+              unquantified: row.unquantifiedEstimates,
+            })),
+          },
+        },
+      ],
+    };
   },
 });
