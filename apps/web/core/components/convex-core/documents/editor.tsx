@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { getAuthToken } from "@/components/convex-core/provider";
 import {
@@ -49,6 +49,12 @@ type Props = {
   context: FunctionReturnType<typeof api.documents.index.collaborationContext>;
   document: Doc<"documents">;
   renderHeader?: (state: CollaborationState, actions: ReactNode, isSaving: boolean) => ReactNode;
+  onCapture: (
+    content: ReturnType<EditorRefApi["getDocument"]> | null,
+    persisted: ReturnType<typeof createSnapshot> | null
+  ) => void;
+  isSaving: boolean;
+  recovery: ReactNode;
 };
 
 export function DocumentEditor(props: Props) {
@@ -66,7 +72,15 @@ export function DocumentEditor(props: Props) {
   );
 }
 
-function AuthenticatedEditor({ context, document, renderHeader, url }: Props & { url: string }) {
+function AuthenticatedEditor({
+  context,
+  document,
+  renderHeader,
+  onCapture,
+  isSaving,
+  recovery,
+  url,
+}: Props & { url: string }) {
   const mentionHandler = useDocumentMentions(context.documentId);
   const editorRef = useRef<EditorRefApi>(null);
   const titleRef = useRef<EditorTitleRefApi>(null);
@@ -80,18 +94,18 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
     isServerDisconnected: false,
   });
   const snapshot = useQuery(api.documents.index.snapshot, { documentId: context.documentId });
-  const [binary, setBinary] = useState<Uint8Array | null>(null);
-  const capture = useCallback(() => setBinary(editorRef.current?.getDocument().binary ?? null), []);
-  useEffect(() => {
-    if (ready) capture();
-  }, [ready, capture]);
   const persisted = useMemo(() => {
     if (!snapshot) return null;
     const bytes = new Uint8Array(snapshot.descriptionBinary);
     return createSnapshot(decodeUpdate(bytes).ds, decodeStateVector(encodeStateVectorFromUpdate(bytes)));
   }, [snapshot]);
-  const isSaving = binary !== null && (persisted === null || !snapshotContainsUpdate(persisted, binary));
-  useReloadConfirmations(isSaving, "The latest document changes have not been saved yet.");
+  const capture = useCallback(
+    () => onCapture(editorRef.current?.getDocument() ?? null, persisted),
+    [onCapture, persisted]
+  );
+  useEffect(() => {
+    if (ready) capture();
+  }, [ready, capture]);
   const { fontSize, fontStyle, isFullWidth, isStickyToolbarEnabled, handleFullWidth, handleStickyToolbar } =
     usePageFilters();
   const realtimeConfig: TRealtimeConfig = useMemo(
@@ -172,11 +186,7 @@ function AuthenticatedEditor({ context, document, renderHeader, url }: Props & {
             </div>
           )}
           <div className="vertical-scrollbar relative min-h-0 flex-1 overflow-y-auto">
-            <EditorRecovery
-              disconnected={state.isServerDisconnected}
-              documentId={context.documentId}
-              editor={editorRef.current}
-            />
+            {state.isServerDisconnected && recovery}
             {!pane && (
               <button
                 type="button"
@@ -349,44 +359,101 @@ function DocumentIcon({
   );
 }
 
-function EditorRecovery({
-  disconnected,
+export function DocumentAccessBoundary({
+  children,
   documentId,
-  editor,
+  onBack,
+  unavailableTitle,
+  backLabel,
 }: {
-  disconnected: boolean;
-  documentId: Props["context"]["documentId"];
-  editor: EditorRefApi | null;
+  children: (
+    capture: Props["onCapture"],
+    isSaving: boolean,
+    recovery: (unavailable: boolean) => ReactNode
+  ) => ReactNode;
+  documentId: string;
+  onBack: () => void;
+  unavailableTitle: string;
+  backLabel: string;
 }) {
-  if (!disconnected) return null;
-  return (
-    <div className="space-y-2 px-page-x py-3">
+  const [content, setContent] = useState<ReturnType<EditorRefApi["getDocument"]> | null>(null);
+  const [persisted, setPersisted] = useState<ReturnType<typeof createSnapshot> | null>(null);
+  const capture = useCallback<Props["onCapture"]>((local, saved) => {
+    if (local) {
+      setContent(local);
+      setPersisted(saved);
+    }
+  }, []);
+  const isSaving =
+    content?.binary !== undefined &&
+    content?.binary !== null &&
+    (persisted === null || !snapshotContainsUpdate(persisted, content.binary));
+  const discard = useCallback(() => {
+    setContent(null);
+    setPersisted(null);
+  }, []);
+  const release = useReloadConfirmations(isSaving, "The latest document changes have not been saved yet.", discard);
+  const recovery = (unavailable: boolean) => (
+    <section className="space-y-2 px-page-x py-3">
+      {unavailable && <h1 className="text-xl font-semibold">{unavailableTitle}</h1>}
       <p role="alert" className="text-13 text-danger-primary">
-        The editor connection closed. Local changes may not be saved. Download your local copy before leaving, then
-        reconnect after resolving access.
+        {unavailable
+          ? "This document is unavailable or your access may have changed."
+          : "The editor connection closed."}
+        {isSaving && " Local changes may not be saved. Download your local copy before leaving."}
       </p>
-      <Button
-        variant="secondary"
-        disabled={!editor}
-        onClick={() => {
-          const content = editor?.getDocument();
-          if (!content) return;
-          const data = {
-            documentId,
-            html: content.html,
-            json: content.json,
-            binary: content.binary ? Array.from(content.binary) : null,
-          };
-          const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-          const link = window.document.createElement("a");
-          link.href = url;
-          link.download = "document-local-recovery.json";
-          link.click();
-          URL.revokeObjectURL(url);
-        }}
-      >
-        Download local copy
-      </Button>
-    </div>
+      {content && (
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const data = {
+                documentId,
+                html: content.html,
+                json: content.json,
+                binary: content.binary ? Array.from(content.binary) : null,
+              };
+              const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+              const link = window.document.createElement("a");
+              link.href = url;
+              link.download = "document-local-recovery.json";
+              link.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download local copy
+          </Button>
+          {isSaving && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                release((allow) => {
+                  discard();
+                  if (allow) onBack();
+                })
+              }
+            >
+              Discard local changes
+            </Button>
+          )}
+        </>
+      )}
+      {unavailable && (
+        <Button variant="secondary" onClick={onBack}>
+          {backLabel}
+        </Button>
+      )}
+    </section>
   );
+  return <DocumentReadBoundary recovery={recovery(true)}>{children(capture, isSaving, recovery)}</DocumentReadBoundary>;
+}
+
+class DocumentReadBoundary extends Component<{ children: ReactNode; recovery: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.recovery : this.props.children;
+  }
 }
