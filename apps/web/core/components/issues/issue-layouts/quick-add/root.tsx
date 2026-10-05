@@ -127,7 +127,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
         },
         error: {
           title: t("common.error.label"),
-          message: (err) => err?.message || t("common.error.message"),
+          message: (err) => (err instanceof Error && err.message ? err.message : t("common.error.message")),
         },
       });
 
