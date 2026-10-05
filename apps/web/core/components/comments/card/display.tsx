@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { useHashScroll } from "@plane/hooks";
-import { GlobeIcon, LockIcon } from "@plane/propel/icons";
+import { GlobeIcon, LockIcon, AddReactionIcon } from "@plane/propel/icons";
 import { EIssueCommentAccessSpecifier } from "@plane/types";
 import type { TCommentsOperations, TIssueComment } from "@plane/types";
 import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
@@ -20,7 +20,8 @@ import { LiteTextEditor } from "@/components/editor/lite-text";
 // local imports
 import { CommentReactions } from "../comment-reaction";
 import { CommentCardEditForm } from "./edit-form";
-import { EmojiReactionButton, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
+import { EmojiReactionPicker } from "@plane/propel/emoji-reaction";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import { Avatar, Tooltip } from "@plane/ui";
 import { useMember } from "@/hooks/store/use-member";
 
@@ -139,8 +140,8 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
               isOpen={isPickerOpen}
               handleToggle={setIsPickerOpen}
               onChange={handleEmojiSelect}
-              disabled={disabled}
-              label={<EmojiReactionButton onAddReaction={() => setIsPickerOpen(true)} />}
+              label={<AddReactionIcon className="size-3.5" aria-hidden="true" />}
+              buttonClassName={getIconButtonStyling("ghost", "sm")}
               placement="bottom-start"
             />
             {renderQuickActions ? renderQuickActions() : null}
