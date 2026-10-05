@@ -4,6 +4,7 @@ import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { taskCanRead, taskIsActive } from "./access";
+import { memberIdentity } from "../projects/directory";
 
 export function progressPageBudget(options: PaginationOptions) {
   if (!Number.isSafeInteger(options.numItems) || options.numItems < 1 || options.numItems > 20)
@@ -14,7 +15,8 @@ export async function currentProgress(
   ctx: QueryCtx,
   taskIds: Id<"tasks">[],
   project: Doc<"projects">,
-  userId: Id<"users">
+  userId: Id<"users">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
 ) {
   const tasks = await Promise.all(
     taskIds.map(async (taskId) => {
@@ -30,7 +32,8 @@ export async function currentProgress(
   );
   return progressTotals(
     ctx,
-    tasks.filter((task) => task !== null)
+    tasks.filter((task) => task !== null),
+    viewerWorkspaceRole
   );
 }
 type Totals = { count: number; numericEstimates: number; unquantifiedEstimates: number };
@@ -63,7 +66,11 @@ function add(
   contribute(value, estimate, hasEstimate, completed);
   map.set(id, value);
 }
-export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
+export async function progressTotals(
+  ctx: QueryCtx,
+  tasks: Doc<"tasks">[],
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
+) {
   const statuses = new Map<string | null, Bucket>(),
     assignees = new Map<string | null, Bucket>(),
     labels = new Map<string | null, Bucket>();
@@ -78,11 +85,13 @@ export async function progressTotals(ctx: QueryCtx, tasks: Doc<"tasks">[]) {
         add(assignees, null, "Unassigned", estimate, task.estimatePointId !== null, completed);
       await Promise.all(
         task.assigneeIds.map(async (id) => {
-          const user = await ctx.db.get(id);
+          const identity = await memberIdentity(ctx, task.workspaceId, viewerWorkspaceRole, id, "");
           add(
             assignees,
             id,
-            memberLabel(user ? { id: user._id, name: user.name ?? null, email: user.email ?? null } : null),
+            memberLabel(
+              identity ? { id, name: identity.fullName || identity.displayName, email: identity.email } : null
+            ),
             estimate,
             task.estimatePointId !== null,
             completed
