@@ -119,8 +119,8 @@ export async function prepareModuleTask(
     expectedModuleUpdatedAt: number;
   }
 ) {
-  const { module, user } = await requireModule(ctx, args.moduleId, true);
-  requireEditableModule(module);
+  const { module, user } = await requireModule(ctx, args.moduleId, true, !args.assigned);
+  if (!module.deleted) requireEditableModule(module);
   requireModuleRevision(module, args.expectedModuleUpdatedAt);
   const task = args.assigned ? await requireTask(ctx, args.taskId) : await ctx.db.get(args.taskId);
   if (!task) throw new ConvexError("Task not found.");
