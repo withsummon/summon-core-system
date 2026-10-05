@@ -70,46 +70,47 @@ export function ProjectDetailsForm({
     },
   });
   const pending = isSubmitting || coverPending;
-  const release = useReloadConfirmations(isDirty || pending, "This project has unsaved changes.", undefined, pending);
+  const release = useReloadConfirmations(isDirty, "This project has unsaved changes.", undefined, pending);
   const selectedCover = watch("cover");
   const cover = selectedCover ? coverPreview : project.appearance.cover;
+  const externalCover = selectedCover
+    ? "externalCoverUrl" in selectedCover
+      ? selectedCover.externalCoverUrl
+      : null
+    : project.appearance.externalCoverUrl;
   const logo = watch("logoProps");
   const currentNetwork = NETWORK_CHOICES.find((entry) => entry.key === watch("network"));
   const disabled = pending || !project.canManage;
   const changeCover = async (selection: File | string) => {
     if (!policy) throw new Error("Cover upload policy is unavailable. Your selection is retained.");
-    setCoverPending(true);
-    try {
-      const file =
-        typeof selection === "string"
-          ? await transfers.run(async (signal) => {
-              const response = await fetch(selection, { signal });
-              if (!response.ok) throw new Error("The selected cover could not be loaded. Retry its upload.");
-              const blob = await response.blob();
-              return new File([blob], "project-cover.jpg", { type: blob.type });
-            })
-          : selection;
-      const assetId = await transfers.run((signal) =>
-        uploadFileAsset(
-          file,
-          policy,
-          (metadata) =>
-            prepare({
-              projectId: project.input.projectId,
-              expectedRevision: getValues("expectedRevision"),
-              expectedCoverRevision: project.appearance.revision,
-              ...metadata,
-            }),
-          finalize,
-          signal
-        )
-      );
-      const image = await client.query(api.assets.index.get, { assetId });
-      setCoverPreview(image);
-      setValue("cover", { assetId, expectedRevision: project.appearance.revision }, { shouldDirty: true });
-    } finally {
-      setCoverPending(false);
-    }
+
+    const file =
+      typeof selection === "string"
+        ? await transfers.run(async (signal) => {
+            const response = await fetch(selection, { signal });
+            if (!response.ok) throw new Error("The selected cover could not be loaded. Retry its upload.");
+            const blob = await response.blob();
+            return new File([blob], "project-cover.jpg", { type: blob.type });
+          })
+        : selection;
+    const assetId = await transfers.run((signal) =>
+      uploadFileAsset(
+        file,
+        policy,
+        (metadata) =>
+          prepare({
+            projectId: project.input.projectId,
+            expectedRevision: getValues("expectedRevision"),
+            expectedCoverRevision: project.appearance.revision,
+            ...metadata,
+          }),
+        finalize,
+        signal
+      )
+    );
+    const image = await client.query(api.assets.index.get, { assetId });
+    setCoverPreview(image);
+    setValue("cover", { assetId, expectedRevision: project.appearance.revision }, { shouldDirty: true });
   };
   return (
     <>
@@ -141,11 +142,7 @@ export function ProjectDetailsForm({
               className="h-44 w-full rounded-md object-cover"
             />
           ) : (
-            <CoverImage
-              src={selectedCover ? null : project.appearance.externalCoverUrl}
-              alt="Project cover image"
-              className="h-44 w-full rounded-md"
-            />
+            <CoverImage src={externalCover} alt="Project cover image" className="h-44 w-full rounded-md" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="absolute bottom-4 z-5 flex w-full items-end justify-between gap-3 px-4">
@@ -191,7 +188,7 @@ export function ProjectDetailsForm({
             <div className="flex flex-shrink-0 justify-center">
               <ImagePickerPopoverView
                 label={t("change_cover")}
-                value={null}
+                value={externalCover}
                 currentImage={
                   cover && (
                     <AuthenticatedAssetImage
@@ -202,7 +199,16 @@ export function ProjectDetailsForm({
                   )
                 }
                 disabled={disabled || !policy}
+                onBusy={setCoverPending}
                 onSelect={changeCover}
+                onStockSelect={async (url) => {
+                  setCoverPreview(null);
+                  setValue(
+                    "cover",
+                    { externalCoverUrl: url, expectedRevision: project.appearance.revision },
+                    { shouldDirty: true }
+                  );
+                }}
                 onUpload={changeCover}
               />
             </div>

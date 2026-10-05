@@ -49,8 +49,9 @@ export async function replaceProjectCover(
   projectId: Id<"projects">,
   appearance: Doc<"projectAppearance"> | null,
   assetId: Id<"assets"> | null,
-  clearExternal = false
+  external?: string | null
 ) {
+  const url = external === undefined ? undefined : externalCoverUrl(external);
   if (appearance?.coverAssetId && appearance.coverAssetId !== assetId) {
     const previous = await ctx.db.get(appearance.coverAssetId);
     if (!previous || previous.purpose !== "projectCover" || previous.projectId !== projectId)
@@ -61,9 +62,15 @@ export async function replaceProjectCover(
     await ctx.db.patch(appearance._id, {
       coverAssetId: assetId,
       revision: appearance.revision + 1,
-      ...(clearExternal ? { externalCoverUrl: undefined } : {}),
+      ...(external === undefined ? {} : { externalCoverUrl: url }),
     });
-  else await ctx.db.insert("projectAppearance", { projectId, coverAssetId: assetId, revision: 1 });
+  else
+    await ctx.db.insert("projectAppearance", {
+      projectId,
+      coverAssetId: assetId,
+      revision: 1,
+      ...(external === undefined ? {} : { externalCoverUrl: url }),
+    });
 }
 export async function setExternalCover(
   ctx: MutationCtx,

@@ -1,5 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { z } from "zod/v4";
 
 export const assetTypesByExtension = {
   ".png": "image/png",
@@ -119,4 +120,46 @@ export function externalCoverUrl(value: string | null) {
   if (!["https:", "http:"].includes(url.protocol) || !url.hostname || url.username || url.password)
     throw new ConvexError("Use an http or https cover URL without credentials.");
   return value;
+}
+
+export const stockPhotoId = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9_-]+$/);
+export const publicStockUrl = z
+  .url({ protocol: /^https$/ })
+  .max(8192)
+  .refine((value) => {
+    const url = new URL(value);
+    return !url.username && !url.password && !url.port;
+  });
+const imageUrl = publicStockUrl.refine((value) => new URL(value).hostname === "images.unsplash.com");
+const attributionUrl = publicStockUrl.refine((value) => new URL(value).hostname === "unsplash.com");
+export const stockPhoto = z.object({
+  id: stockPhotoId,
+  alt_description: z.string().max(4096).nullable(),
+  urls: z.object({
+    small: imageUrl,
+    regular: imageUrl.refine((value) => {
+      externalCoverUrl(value);
+      return true;
+    }),
+  }),
+  links: z.object({ html: attributionUrl }),
+  user: z.object({ name: z.string().max(255), links: z.object({ html: attributionUrl }) }),
+});
+
+export function withStockAttribution(photo: z.infer<typeof stockPhoto>) {
+  const photographer = new URL(photo.user.links.html);
+  const source = new URL(photo.links.html);
+  for (const url of [photographer, source]) {
+    url.searchParams.set("utm_source", "summon");
+    url.searchParams.set("utm_medium", "referral");
+  }
+  return stockPhoto.parse({
+    ...photo,
+    links: { html: source.href },
+    user: { ...photo.user, links: { html: photographer.href } },
+  });
 }

@@ -1,4 +1,4 @@
-import { ConvexError, compareValues } from "convex/values";
+import { ConvexError, compareValues, v } from "convex/values";
 import { z } from "zod/v4";
 import { zodToConvex, zodToConvexFields } from "convex-helpers/server/zod4";
 import { action, internalMutation, internalQuery, mutation, query, type QueryCtx } from "../../_generated/server";
@@ -7,6 +7,7 @@ import { internal } from "../../_generated/api";
 import { requireInstanceAdmin } from "./access";
 import { requireUser } from "../session";
 import { encrypt, decrypt } from "../../mcp/crypto";
+import { publicStockUrl, stockPhoto, stockPhotoId, withStockAttribution } from "../../assets/content";
 
 const revision = z.int().nonnegative();
 const unsplashKey = z
@@ -19,31 +20,10 @@ const saveInput = z.object({
   expectedRevision: revision,
   apiKey: unsplashKey.or(z.literal("")).nullable(),
 });
-const photoId = z
-  .string()
-  .min(1)
-  .max(128)
-  .regex(/^[A-Za-z0-9_-]+$/);
 const listInput = z.object({ search: z.string().trim().max(255) });
-const publicUrl = z
-  .url({ protocol: /^https$/ })
-  .max(8192)
-  .refine((value) => {
-    const url = new URL(value);
-    return !url.username && !url.password && !url.port;
-  });
-const imageUrl = publicUrl.refine((value) => new URL(value).hostname === "images.unsplash.com");
-const attributionUrl = publicUrl.refine((value) => new URL(value).hostname === "unsplash.com");
-const photo = z.object({
-  id: photoId,
-  alt_description: z.string().max(4096).nullable(),
-  urls: z.object({ small: imageUrl, regular: imageUrl }),
-  links: z.object({ html: attributionUrl }),
-  user: z.object({ name: z.string().max(255), links: z.object({ html: attributionUrl }) }),
-});
-const selectionPhoto = photo.extend({
-  links: photo.shape.links.extend({
-    download_location: publicUrl.refine((value) => new URL(value).hostname === "api.unsplash.com"),
+const selectionPhoto = stockPhoto.extend({
+  links: stockPhoto.shape.links.extend({
+    download_location: publicStockUrl.refine((value) => new URL(value).hostname === "api.unsplash.com"),
   }),
 });
 const trackingAcceptance = z.object({ url: z.url({ protocol: /^https$/ }).max(8192) });
@@ -120,21 +100,55 @@ export const availability = query({
     return { ...imageForInstance(instance), revision: instance?.revision ?? null };
   },
 });
-// Only authenticated actions receive the decrypted credential. Initialized missing config never falls back to env.
+const stockConfigurationFields = {
+  userId: v.id("users"),
+  revision: v.union(zodToConvex(revision), v.null()),
+  apiKey: zodToConvex(unsplashKey),
+};
+async function currentStockConfiguration(ctx: QueryCtx) {
+  const user = await requireUser(ctx);
+  const instance = await imageInstance(ctx);
+  if (!imageForInstance(instance).configured) throw new ConvexError("Unsplash is not configured.");
+  const apiKey = instance?.unsplashKey
+    ? await decrypt(instance.unsplashKey)
+    : unsplashKey.parse(process.env.UNSPLASH_ACCESS_KEY);
+  return { userId: user._id, revision: instance?.revision ?? null, apiKey: unsplashKey.parse(apiKey) };
+}
+// Internal server calls alone receive the credential; it is never stored with public photo metadata.
 export const stockConfiguration = internalQuery({
   args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx);
-    const instance = await imageInstance(ctx);
-    if (!imageForInstance(instance).configured) throw new ConvexError("Unsplash is not configured.");
-    const apiKey = instance?.unsplashKey
-      ? await decrypt(instance.unsplashKey)
-      : unsplashKey.parse(process.env.UNSPLASH_ACCESS_KEY);
-    return {
-      userId: user._id,
-      revision: instance?.revision ?? null,
-      apiKey: unsplashKey.parse(apiKey),
-    };
+  returns: v.object(stockConfigurationFields),
+  handler: currentStockConfiguration,
+});
+export const recordPhoto = internalMutation({
+  args: { configuration: v.object(stockConfigurationFields), photo: zodToConvex(stockPhoto) },
+  returns: zodToConvex(stockPhoto),
+  handler: async (ctx, args) => {
+    if (compareValues(await currentStockConfiguration(ctx), args.configuration) !== 0)
+      throw new ConvexError("Image configuration or account changed. Choose the image again.");
+    const photo = withStockAttribution(stockPhoto.parse(args.photo));
+    const existing = await ctx.db
+      .query("stockPhotos")
+      .withIndex("by_regular_url", (q) => q.eq("urls.regular", photo.urls.regular))
+      .unique();
+    if (existing) {
+      if (compareValues(stockPhoto.parse(existing), photo) !== 0) await ctx.db.patch(existing._id, photo);
+    } else await ctx.db.insert("stockPhotos", photo);
+    return photo;
+  },
+});
+const attributionInput = z.string().min(1).max(8192);
+// These records contain public provider metadata only; arbitrary URLs never cause a provider fetch.
+export const attribution = query({
+  args: { url: zodToConvex(attributionInput) },
+  returns: zodToConvex(stockPhoto.nullable()),
+  handler: async (ctx, args) => {
+    const url = attributionInput.parse(args.url);
+    const existing = await ctx.db
+      .query("stockPhotos")
+      .withIndex("by_regular_url", (q) => q.eq("urls.regular", url))
+      .unique();
+    return existing ? stockPhoto.parse(existing) : null;
   },
 });
 async function providerResponse(url: URL, apiKey: string): Promise<unknown> {
@@ -167,34 +181,34 @@ async function providerResponse(url: URL, apiKey: string): Promise<unknown> {
 }
 export const list = action({
   args: zodToConvexFields(listInput.shape),
-  returns: zodToConvex(z.array(photo).max(20)),
-  handler: async (ctx, input): Promise<z.infer<typeof photo>[]> => {
+  returns: zodToConvex(z.array(stockPhoto).max(20)),
+  handler: async (ctx, input): Promise<z.infer<typeof stockPhoto>[]> => {
     const args = listInput.parse(input);
     const configuration = await ctx.runQuery(internal.identity.instance.image.stockConfiguration, {});
     const url = new URL(args.search ? "/search/photos" : "/photos", "https://api.unsplash.com");
     url.searchParams.set("page", "1");
     url.searchParams.set("per_page", "20");
     if (args.search) url.searchParams.set("query", args.search);
-    let photos: z.infer<typeof photo>[];
+    let photos: z.infer<typeof stockPhoto>[];
     try {
       const response = await providerResponse(url, configuration.apiKey);
       photos = args.search
-        ? z.object({ results: z.array(photo).max(20) }).parse(response).results
-        : z.array(photo).max(20).parse(response);
+        ? z.object({ results: z.array(stockPhoto).max(20) }).parse(response).results
+        : z.array(stockPhoto).max(20).parse(response);
     } catch {
       throw new ConvexError("Unsplash images could not be loaded. Try again.");
     }
     const current = await ctx.runQuery(internal.identity.instance.image.stockConfiguration, {});
     if (compareValues(configuration, current) !== 0)
       throw new ConvexError("Image configuration changed. Search again.");
-    return photos;
+    return photos.map(withStockAttribution);
   },
 });
 export const select = action({
-  args: { photoId: zodToConvex(photoId) },
-  returns: zodToConvex(photo),
-  handler: async (ctx, input): Promise<z.infer<typeof photo>> => {
-    const id = photoId.parse(input.photoId);
+  args: { photoId: zodToConvex(stockPhotoId) },
+  returns: zodToConvex(stockPhoto),
+  handler: async (ctx, input): Promise<z.infer<typeof stockPhoto>> => {
+    const id = stockPhotoId.parse(input.photoId);
     const configuration = await ctx.runQuery(internal.identity.instance.image.stockConfiguration, {});
     let selected: z.infer<typeof selectionPhoto>;
     try {
@@ -218,6 +232,9 @@ export const select = action({
     const latest = await ctx.runQuery(internal.identity.instance.image.stockConfiguration, {});
     if (compareValues(current, latest) !== 0)
       throw new ConvexError("Image configuration changed. Choose the image again.");
-    return photo.parse(selected);
+    return ctx.runMutation(internal.identity.instance.image.recordPhoto, {
+      configuration: latest,
+      photo: stockPhoto.parse(selected),
+    });
   },
 });

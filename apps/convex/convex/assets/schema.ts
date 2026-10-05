@@ -4,6 +4,7 @@ import { defineTable } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { commentRequestId } from "../tasks/schema";
+import { stockPhoto } from "./content";
 
 export const commentImageTarget = v.union(
   v.object({ taskId: v.id("tasks"), requestId: zodToConvex(commentRequestId), anchor: v.union(v.string(), v.null()) }),
@@ -32,6 +33,7 @@ export const assetScope = {
   documentId: v.union(v.id("documents"), v.null()),
 };
 export const assetTables = {
+  stockPhotos: defineTable(zodToConvex(stockPhoto)).index("by_regular_url", ["urls.regular"]),
   assets: defineTable({
     apiId: zodToConvex(apiIdSchema),
     ...assetScope,

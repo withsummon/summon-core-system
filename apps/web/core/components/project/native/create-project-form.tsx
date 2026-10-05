@@ -5,6 +5,7 @@ import type { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Input, TextArea } from "@plane/ui";
 import { projectIdentifierSanitizer } from "@plane/utils";
+import { CoverImage } from "@/components/common/cover-image";
 import { ImagePickerPopoverView } from "@/components/core/image-picker-popover";
 import { attachmentContentType } from "@/components/convex-core/tasks/attachments/upload-file";
 import { ProjectCreateHeaderView, ProjectLogoPicker } from "../create/header";
@@ -24,6 +25,7 @@ export function NativeProjectCreateForm({
   onCover,
   policy,
   pending,
+  onBusy,
   canCreate,
   onClose,
   onSubmit,
@@ -36,6 +38,7 @@ export function NativeProjectCreateForm({
   onCover: (cover: string | File) => void;
   policy: FunctionReturnType<typeof api.assets.index.policy> | undefined;
   pending: boolean;
+  onBusy: (pending: boolean) => void;
   canCreate: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -59,7 +62,7 @@ export function NativeProjectCreateForm({
         disabled={pending}
         cover={
           coverUrl && (
-            <img
+            <CoverImage
               src={coverUrl}
               alt={t("project_cover_image_alt")}
               className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
@@ -71,14 +74,22 @@ export function NativeProjectCreateForm({
             label={t("change_cover")}
             value={coverUrl}
             disabled={disabled || !policy}
+            onBusy={onBusy}
             onSelect={async (url) => {
               if (disabled) throw new Error("Project creation is read-only. Your draft is retained.");
+              onChange({ externalCoverUrl: null });
+              onCover(url);
+            }}
+            onStockSelect={async (url) => {
+              if (disabled) throw new Error("Project creation is read-only. Your draft is retained.");
+              onChange({ externalCoverUrl: url });
               onCover(url);
             }}
             onUpload={async (file) => {
               if (disabled || !policy) throw new Error("Project creation is read-only. Your draft is retained.");
               if (!attachmentContentType(file, policy).startsWith("image/"))
                 throw new Error("Choose a supported image.");
+              onChange({ externalCoverUrl: null });
               onCover(file);
             }}
           />
