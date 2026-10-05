@@ -7,6 +7,7 @@ import { projectReader } from "./scope";
 import { viewFilters } from "./schema";
 import { readTaskCycle } from "../cycles/tasks";
 import { readTaskModules } from "../modules/tasks";
+import { memberIdentity } from "../projects/directory";
 type Filters = Infer<typeof viewFilters>;
 export function checkRange(range: Filters["startDate"]) {
   if (!range) return;
@@ -104,15 +105,21 @@ export async function matchesFilters(ctx: QueryCtx, task: Doc<"tasks">, filters:
 }
 
 // Keep saved selections visible without relying on a currently loaded directory page.
-export async function filterSelections(ctx: QueryCtx, view: Doc<"savedViews"> & { projectId: Id<"projects"> }) {
+export async function filterSelections(
+  ctx: QueryCtx,
+  view: Doc<"savedViews"> & { projectId: Id<"projects"> },
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
+) {
   const users = await Promise.all(
     [...new Set([...view.filters.assigneeIds, ...view.filters.creatorIds])].map(async (id) => {
       const membership = await ctx.db
         .query("projectMembers")
         .withIndex("by_project_user", (q) => q.eq("projectId", view.projectId).eq("userId", id))
         .unique();
-      const user = membership ? await ctx.db.get(id) : null;
-      return { id, name: user?.name ?? null };
+      const identity = membership?.active
+        ? await memberIdentity(ctx, view.workspaceId, viewerWorkspaceRole, id, "")
+        : null;
+      return { id, name: identity ? identity.fullName || identity.displayName : null };
     })
   );
   const states = await Promise.all(
@@ -184,17 +191,14 @@ export async function validateWorkspaceFilters(
 export async function workspaceFilterSelections(
   ctx: QueryCtx,
   view: Doc<"savedViews"> & { workspaceId: Id<"workspaces"> },
-  userId: Id<"users">
+  userId: Id<"users">,
+  viewerWorkspaceRole: Doc<"workspaceMembers">["role"]
 ) {
   const read = projectReader(ctx, view.workspaceId, userId);
   const users = await Promise.all(
     [...new Set([...view.filters.assigneeIds, ...view.filters.creatorIds])].map(async (id) => {
-      const member = await ctx.db
-        .query("workspaceMembers")
-        .withIndex("by_workspace_user", (q) => q.eq("workspaceId", view.workspaceId).eq("userId", id))
-        .unique();
-      const user = member?.active ? await ctx.db.get(id) : null;
-      return { id, name: user?.name ?? null };
+      const identity = await memberIdentity(ctx, view.workspaceId, viewerWorkspaceRole, id, "");
+      return { id, name: identity ? identity.fullName || identity.displayName : null };
     })
   );
   const states = await Promise.all(

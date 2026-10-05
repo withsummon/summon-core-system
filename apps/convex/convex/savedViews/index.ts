@@ -64,7 +64,10 @@ export const update = mutation({
 });
 async function detail(ctx: QueryCtx, viewId: Id<"savedViews">) {
   const { view, access } = await requireView(ctx, viewId, true);
-  return { ...(await projectView(ctx, view, access)), selections: await filterSelections(ctx, view) };
+  return {
+    ...(await projectView(ctx, view, access)),
+    selections: await filterSelections(ctx, view, access.member.role),
+  };
 }
 export const get = query({
   args: { viewId: v.id("savedViews") },

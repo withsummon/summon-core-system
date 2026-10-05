@@ -8,7 +8,6 @@ import { observer } from "mobx-react";
 import { useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import { Button } from "@plane/propel/button";
@@ -175,12 +174,12 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
 const nativeTimelineSidebarWidth = `min(${SIDEBAR_WIDTH}px, 45vw)`;
 
 type TimelineProps = ComponentProps<typeof NativeCalendar> & {
-  address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+  taskLink: (task: ComponentProps<typeof NativeCalendar>["tasks"][number]) => Parameters<typeof useTaskRowNavigation>;
 };
 
 function NativeTimelineTask({
   task,
-  address,
+  taskLink,
   renderTask,
   cohortComplete,
   days,
@@ -188,7 +187,7 @@ function NativeTimelineTask({
   weekStartsOn,
 }: {
   task: TimelineProps["tasks"][number];
-  address: TimelineProps["address"];
+  taskLink: TimelineProps["taskLink"];
   renderTask: TimelineProps["renderTask"];
   cohortComplete: boolean;
   days: NonNullable<ReturnType<typeof getWeeksBetweenTwoDates>[number]["children"]>;
@@ -204,8 +203,8 @@ function NativeTimelineTask({
   const start = firstDate ? differenceInCalendarDays(firstDate, days[0].date) : 0;
   const end = lastDate ? differenceInCalendarDays(lastDate, days[0].date) : 0;
   const visible = firstDate && lastDate && end >= 0 && start < days.length;
-  const identifier = `${address.project.identifier}-${task.sequence}`;
-  const { open } = useTaskRowNavigation(identifier, `/${address.workspace.slug}/browse/${identifier}/`);
+  const [identifier, href] = taskLink(task);
+  const { open } = useTaskRowNavigation(identifier, href);
   return renderTask(task, false, (row, writer) => {
     const beginDrag = (mode: "move" | "start" | "end", clientX: number) => {
       const grid = gridRef.current;
@@ -288,12 +287,9 @@ function NativeTimelineTask({
                 width: (Math.min(days.length - 1, end) - Math.max(0, start) + 1) * dayWidth,
               }}
             >
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-3 shrink-0 px-0"
-                aria-label={`Resize start date of ${task.title}`}
-                disabled={writer.disabled || !cohortComplete}
+              <span
+                aria-hidden="true"
+                className="flex w-3 shrink-0 items-center justify-center px-0"
                 draggable={!writer.disabled && cohortComplete}
                 onDragStart={(event) => {
                   event.dataTransfer.setData("text/plain", task._id);
@@ -302,7 +298,7 @@ function NativeTimelineTask({
                 onDragEnd={() => setDragCommand(null)}
               >
                 <GripVertical className="size-3" />
-              </Button>
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -319,12 +315,9 @@ function NativeTimelineTask({
               >
                 {task.title}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-3 shrink-0 px-0"
-                aria-label={`Resize due date of ${task.title}`}
-                disabled={writer.disabled || !cohortComplete}
+              <span
+                aria-hidden="true"
+                className="flex w-3 shrink-0 items-center justify-center px-0"
                 draggable={!writer.disabled && cohortComplete}
                 onDragStart={(event) => {
                   event.dataTransfer.setData("text/plain", task._id);
@@ -333,7 +326,7 @@ function NativeTimelineTask({
                 onDragEnd={() => setDragCommand(null)}
               >
                 <GripVertical className="size-3" />
-              </Button>
+              </span>
             </div>
           ) : (
             <p className="sticky p-3 text-13 text-secondary" style={{ left: nativeTimelineSidebarWidth }}>
@@ -346,7 +339,7 @@ function NativeTimelineTask({
   });
 }
 
-export function NativeTimeline({ tasks, address, renderTask, cohortComplete }: TimelineProps) {
+export function NativeTimeline({ tasks, taskLink, renderTask, cohortComplete }: TimelineProps) {
   const profile = useQuery(api.identity.profile.get, {});
   const [activeDate, setActiveDate] = useState(() => new Date());
   const [scale, setScale] = useState<TGanttViews>("month");
@@ -448,7 +441,7 @@ export function NativeTimeline({ tasks, address, renderTask, cohortComplete }: T
             <NativeTimelineTask
               key={task._id}
               task={task}
-              address={address}
+              taskLink={taskLink}
               renderTask={renderTask}
               cohortComplete={cohortComplete}
               days={days}
@@ -468,7 +461,7 @@ export function NativeTimeline({ tasks, address, renderTask, cohortComplete }: T
                 <NativeTimelineTask
                   key={task._id}
                   task={task}
-                  address={address}
+                  taskLink={taskLink}
                   renderTask={renderTask}
                   cohortComplete={cohortComplete}
                   days={days}
