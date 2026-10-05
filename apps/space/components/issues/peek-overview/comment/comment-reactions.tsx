@@ -11,6 +11,8 @@ import { api } from "@summon/convex/api";
 import { useLocation, useNavigate } from "react-router";
 import { stringToEmoji } from "@plane/propel/emoji-icon-picker";
 import { EmojiReactionGroup, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
+import { AddReactionIcon } from "@plane/propel/icons";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { groupReactions } from "@/helpers/emoji.helper";
 import { useUser } from "@/hooks/store/use-user";
@@ -72,15 +74,11 @@ export function CommentReactions({
     }
   };
   return (
-    <EmojiReactionPicker
-      isOpen={isPickerOpen && !pending && !isInIframe}
-      handleToggle={setIsPickerOpen}
-      disabled={pending || isInIframe || status !== "Exhausted"}
-      onChange={choose}
-      placement="bottom-start"
-      label={
-        status === "Exhausted" ? (
+    <div className="flex flex-wrap items-center gap-2">
+      {status === "Exhausted" ? (
+        <>
           <EmojiReactionGroup
+            className="contents"
             reactions={reactions}
             onReactionClick={(emoji) =>
               choose(
@@ -89,15 +87,26 @@ export function CommentReactions({
                   .join("-")
               )
             }
-            showAddButton={!isInIframe}
-            onAddReaction={() => setIsPickerOpen(true)}
+            showAddButton={false}
+            disabled={pending || isInIframe}
           />
-        ) : (
-          <span role="status" className="text-11 text-secondary">
-            Loading reactions…
-          </span>
-        )
-      }
-    />
+          {!isInIframe && (
+            <EmojiReactionPicker
+              isOpen={isPickerOpen && !pending}
+              handleToggle={setIsPickerOpen}
+              disabled={pending}
+              onChange={choose}
+              placement="bottom-start"
+              label={<AddReactionIcon className="size-3.5" aria-hidden="true" />}
+              buttonClassName={getIconButtonStyling("ghost", "sm")}
+            />
+          )}
+        </>
+      ) : (
+        <span role="status" className="text-11 text-secondary">
+          Loading reactions…
+        </span>
+      )}
+    </div>
   );
 }
