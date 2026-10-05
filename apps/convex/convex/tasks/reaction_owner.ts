@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { taskChanged } from "./revision";
+import { publicProfileIdentity } from "../identity/profile_owner";
 export function reactionCode(value: string) {
   if (!/^\d{1,7}(?:-\d{1,7}){0,31}$/.test(value)) throw new ConvexError("Choose a supported reaction code.");
   const points = value.split("-").map(Number);
@@ -40,6 +41,6 @@ export async function reactionActor<T extends { actorId: Id<"users"> }>(ctx: Que
   return { ...row, actorName: actor?.name ?? null, isMine: row.actorId === userId };
 }
 export async function publicReaction(ctx: QueryCtx, row: Doc<"taskReactions"> | Doc<"taskCommentReactions">) {
-  const actor = await ctx.db.get(row.actorId);
+  const actor = await publicProfileIdentity(ctx, row.actorId);
   return { _id: row._id, reaction: row.reaction, actorId: row.actorId, actorName: actor?.name ?? null };
 }

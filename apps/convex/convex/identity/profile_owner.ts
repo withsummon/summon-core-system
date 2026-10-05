@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { role } from "../schema";
 import { requireUser } from "./access";
 import { defaultPreferences } from "./preferences_fields";
+import { accountRestricted } from "./deactivation/access";
 export const defaultProfile = {
   firstName: "",
   lastName: "",
@@ -40,6 +41,12 @@ export async function profileIdentity(ctx: QueryCtx, userId: Id<"users">) {
     fullName: `${names.firstName} ${names.lastName}`.trim(),
     email: user.email ?? null,
   };
+}
+// Public participants need no workspace membership; names never fall back to email.
+export async function publicProfileIdentity(ctx: QueryCtx, userId: Id<"users">) {
+  if (await accountRestricted(ctx, userId)) return null;
+  const identity = await profileIdentity(ctx, userId);
+  return identity ? { userId: identity.userId, name: identity.fullName || identity.displayName?.trim() || null } : null;
 }
 export function sortMemberDirectory<
   T extends NonNullable<Awaited<ReturnType<typeof profileIdentity>>> &

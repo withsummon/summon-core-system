@@ -13,8 +13,7 @@ import {
   requirePublishedDiscussion,
   requirePublishedCommentAvatar,
 } from "../publicSharing/access";
-import { profileIdentity } from "../identity/profile_owner";
-import { accountRestricted } from "../identity/deactivation/access";
+import { publicProfileIdentity } from "../identity/profile_owner";
 import { userAppearance } from "../identity/avatar_owner";
 import schema from "../schema";
 import { requireCommentAccess, requireEditableComment, discussionIsActive } from "./discussion_access";
@@ -262,7 +261,7 @@ export const get = query({
 
 // Anonymous publication reads expose the external comment only, never mention or account metadata.
 async function publicComment(ctx: QueryCtx, anchor: string, comment: Doc<"taskComments">) {
-  const author = (await accountRestricted(ctx, comment.authorId)) ? null : await profileIdentity(ctx, comment.authorId);
+  const author = await publicProfileIdentity(ctx, comment.authorId);
   const appearance = author ? await userAppearance(ctx, comment.authorId) : null;
   const avatar = appearance?.avatarAssetId
     ? await requirePublishedCommentAvatar(ctx, anchor, comment.taskId, comment._id, appearance.avatarAssetId)
@@ -277,7 +276,7 @@ async function publicComment(ctx: QueryCtx, anchor: string, comment: Doc<"taskCo
     audience: comment.audience,
     updatedAt: comment.updatedAt,
     editedAt: comment.editedAt,
-    authorName: author ? author.fullName || author.displayName?.trim() || null : null,
+    authorName: author?.name ?? null,
     authorAvatar: avatar
       ? {
           id: avatar._id,
