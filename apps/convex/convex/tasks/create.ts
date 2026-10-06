@@ -1,3 +1,4 @@
+import { taskStateIsSelectable } from "./schema";
 import { requireUsableLabel } from "./label_access";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
@@ -119,10 +120,11 @@ export async function createPreparedTask(ctx: MutationCtx, args: Infer<typeof pr
   const parent = args.parent
     ? await requireParent(ctx, project._id, args.parent.taskId, args.parent.expectedUpdatedAt)
     : null;
-  const defaultState = await ctx.db
+  const configuredDefault = await ctx.db
     .query("taskStates")
     .withIndex("by_project_default", (q) => q.eq("projectId", project._id).eq("isDefault", true))
     .unique();
+  const defaultState = configuredDefault && taskStateIsSelectable(configuredDefault) ? configuredDefault : null;
   const properties = args.properties ?? initialProperties;
   const { data, state } = await validateProperties(ctx, project, {
     ...properties,
