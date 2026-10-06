@@ -57,6 +57,9 @@ export async function createTask(
     apiId: await allocateTaskApiId(ctx),
     // The creation actor remains createdBy; no updater exists until a later native revision.
     updatedBy: null,
+    type: null,
+    externalSource: null,
+    externalId: null,
     archivedAt: null,
     deletedAt: null,
     workspaceId: project.workspaceId,
