@@ -15,10 +15,10 @@ import { createPreparedTask, taskCreateFields } from "./create";
 import { changeTaskStatus } from "./status";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { v, ConvexError } from "convex/values";
-import { query, mutation } from "../_generated/server";
+import { compareValues, v, ConvexError } from "convex/values";
+import { internalMutation, query, mutation } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
-import { status, taskPosition, taskProperties, taskOrder, viewFilters } from "./schema";
+import { allocateTaskApiId, taskTables, status, taskPosition, taskProperties, taskOrder, viewFilters } from "./schema";
 import { parseTaskText } from "./properties";
 import { taskChanged } from "./revision";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
@@ -238,5 +238,41 @@ export const setTitle = mutation({
     await ctx.db.patch(task._id, { title });
     const titleUpdatedAt = await taskChanged(ctx, task, user._id);
     return { titleUpdatedAt, title };
+  },
+});
+
+// Temporary internal owner: removed after full coverage and required-field activation.
+export const adoptApiIdentity = internalMutation({
+  args: {
+    expected: v.array(
+      v.object({
+        ...taskTables.tasks.validator.fields,
+        _id: v.id("tasks"),
+        _creationTime: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.expected.length < 1 || args.expected.length > 20)
+      throw new ConvexError("Adopt between 1 and 20 exact Task preimages.");
+    const changes = [];
+    // Missing fields are independent: a real staged revision may already record its actor.
+    /* oxlint-disable no-await-in-loop */
+    for (const expected of args.expected) {
+      const current = await ctx.db.get(expected._id);
+      if (!current || compareValues(current, expected) !== 0)
+        throw new ConvexError("Task changed. Capture its current preimage before adoption.");
+      if (current.apiId !== undefined && current.updatedBy !== undefined) continue;
+      const project = await ctx.db.get(current.projectId);
+      if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
+        throw new ConvexError("Task scope is inconsistent.");
+      await ctx.db.patch(current._id, {
+        ...(current.apiId === undefined ? { apiId: await allocateTaskApiId(ctx) } : {}),
+        ...(current.updatedBy === undefined ? { updatedBy: null } : {}),
+      });
+      changes.push({ before: current, after: await ctx.db.get(current._id) });
+    }
+    /* oxlint-enable no-await-in-loop */
+    return changes;
   },
 });
