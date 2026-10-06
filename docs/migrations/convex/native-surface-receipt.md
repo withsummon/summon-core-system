@@ -1,5 +1,15 @@
 # Native registered surfaces
 
+## Current committed-source registration reconciliation, 2026-10-06
+
+Exact immutable source `525c52ddb5e1994d555adb0c1203c96770bcdee0` has **835 native entries**: 749 RPC declarations, seven direct HTTP handlers, 21 mount registrations, 51 Better Auth HTTP SDK endpoints and seven server-only APIs. The inherited ledger has **1,005 entries**: 110 routes, three indexes, 303 recognized dialog mounts, 94 command identifiers, seven native action mounts, 18 native command mounts, 22 scheduled jobs, 435 Django URLs, ten Django mounts and three conditional declarations. All remain OPEN. Ten scheduled jobs are native crons; twelve retain their inherited owners.
+
+Compared with the committed ledgers' dated df5 source inventory, this adds eleven RPC declarations, the PUT wildcard mount, two mail crons and three dynamic CmdK item roots, and removes the obsolete external Projects OPTIONS handler. Workspace, entity and continuation item roots remain distinct from the thirteen translated workspace commands; their dynamic runtime cardinality is not a registration count. Routes, dialogs and command identifiers are unchanged. All 448 Django URL/mount/conditional rows and 79 legacy Power K command rows are preserved exactly.
+
+The reused AST owner verifies 870 source hashes, all 742 direct native declarations plus 14 factory exports, exact route/dialog/cron sets and the new item-root multiset. Only source anchors and enumerated registrations change; owner/acceptance metadata remain preserved. The inventory does not establish current deployment, configured CORS, notification delivery, keyboard journeys, dynamic popup completeness or production cutover. Dated receipts below retain their original counts and scope.
+
+Proof: `/tmp/summon-ledger-refresh-525c52dd-20261006/ledger-verification.json`. Native TSV SHA-256 `516660e6c42fb011dc3daeced11b1b6d8b4f177c99006e243eee14a030747460`; inherited TSV SHA-256 `cdf2fbf00638063588772e083f1f05b35bd5104a1408a8127fc10b8854f4ea5b`.
+
 ## Committed-source registration reconciliation, 2026-10-05
 
 Exact source `11f478d3b61208a0d9eb1c48d6d49177a8c0e573` has 782 native entries: 696 RPC declarations, eight direct HTTP handlers, 20 mount registrations, 51 Better Auth HTTP SDK endpoints and seven server-only APIs. The inherited ledger has 996 entries: 110 routes, three indexes, 300 recognized dialog mounts, 93 command identifiers, seven native action mounts, 15 native command mounts, 20 scheduled jobs, 435 Django URLs, ten Django mounts and three conditional declarations. All remain OPEN.
