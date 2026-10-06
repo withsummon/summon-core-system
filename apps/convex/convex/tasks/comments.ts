@@ -56,9 +56,10 @@ function commentEvent(
   commentId: Id<"taskComments">,
   kind: Extract<Doc<"taskEvents">["kind"], `comment_${string}`>,
   delivery: NonNullable<Parameters<typeof taskChanged>[4]>,
-  mentionedUserIds: Id<"users">[] = []
+  mentionedUserIds: Id<"users">[] = [],
+  commentBefore: string | null = null
 ) {
-  return taskChanged(ctx, task, actorId, { kind, commentId }, delivery, mentionedUserIds);
+  return taskChanged(ctx, task, actorId, { kind, commentId }, delivery, mentionedUserIds, commentBefore);
 }
 async function insertComment(
   ctx: MutationCtx,
@@ -146,7 +147,8 @@ async function updateComment(
     comment._id,
     "comment_updated",
     delivery,
-    mentionedUserIds.filter((id) => !previousMentions.includes(id))
+    mentionedUserIds.filter((id) => !previousMentions.includes(id)),
+    comment.text
   );
   return comment._id;
 }
@@ -161,7 +163,7 @@ async function removeComment(
   requireCommentRevision(comment, expectedUpdatedAt);
   const updatedAt = Math.max(Date.now(), comment.updatedAt + 1);
   await ctx.db.patch(comment._id, { deletedAt: updatedAt, updatedAt });
-  await commentEvent(ctx, task, actorId, comment._id, "comment_deleted", delivery);
+  await commentEvent(ctx, task, actorId, comment._id, "comment_deleted", delivery, [], comment.text);
 }
 export const list = query({
   args: { taskId: v.id("tasks"), deleted: v.optional(v.boolean()), paginationOpts: paginationOptsValidator },

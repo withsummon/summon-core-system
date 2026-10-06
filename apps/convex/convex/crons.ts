@@ -20,4 +20,13 @@ crons.daily("Prune document history", { hourUTC: 3, minuteUTC: 0 }, internal.doc
 crons.daily("Prune task description history", { hourUTC: 3, minuteUTC: 15 }, internal.tasks.history.prune, {
   cursor: null,
 });
+crons.interval("Batch task notification emails", { minutes: 5 }, internal.notifications.index.dispatchEmail, {
+  cutoff: null,
+});
+crons.daily(
+  "Delete accepted task notification email logs",
+  { hourUTC: 2, minuteUTC: 45 },
+  internal.notifications.cleanup.expireEmail,
+  {}
+);
 export default crons;
