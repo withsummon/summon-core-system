@@ -8,7 +8,8 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
-import authSchema, { authOptions } from "./betterAuth/schema";
+import { authOptions } from "./auth.config";
+import authSchema from "./betterAuth/schema";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { deactivateAccount } from "./identity/deactivation/index";
 import { sendAccountEmail } from "./identity/mail/sender";
@@ -27,7 +28,7 @@ import { normalizedEmail } from "./invitations/access";
 import { instanceAuthentication, lastLoginMedium } from "./identity/schema";
 import { allocateUserApiId } from "./identity/user_owner";
 
-export { siteUrl } from "./betterAuth/schema";
+export { siteUrl } from "./auth.config";
 
 const authFunctions: AuthFunctions = internal.better_auth;
 export const authComponent = createClient<DataModel, typeof authSchema>(components.betterAuth, {

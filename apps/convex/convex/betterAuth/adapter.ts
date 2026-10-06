@@ -4,7 +4,8 @@ import { paginator } from "convex-helpers/server/pagination";
 import { v } from "convex/values";
 import { z } from "zod";
 import { query } from "./_generated/server";
-import schema, { authOptions } from "./schema";
+import { authOptions } from "../auth.config";
+import schema from "./schema";
 
 export const { create, findOne, findMany, updateOne, updateMany, deleteOne, deleteMany } = createApi(
   schema,
