@@ -781,9 +781,8 @@ export const archive = internalMutation({
 const headers = {
   ...externalApiHeaders,
   "Access-Control-Allow-Headers": "X-Api-Key, Content-Type",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
-export const options = httpAction(async () => new Response(null, { status: 204, headers }));
 async function writeProjectResponse(
   ctx: ActionCtx,
   request: Request,
@@ -841,7 +840,7 @@ async function catalogueAccess(
   const allowed =
     args.resource === "labels" && method === "POST"
       ? access.member.role !== "guest"
-      : membership && (method === "GET" || method === "HEAD" || membership.role !== "guest");
+      : membership && (method === "GET" || method === "HEAD" || method === "OPTIONS" || membership.role !== "guest");
   if (!allowed) throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
   if (!project || project.workspaceId !== access.workspace._id || project.deletedAt !== null)
     throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
@@ -1150,6 +1149,8 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
   return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
 }
 export const projects = httpAction(async (ctx, request) => {
+  if (request.method === "OPTIONS" && request.headers.has("Access-Control-Request-Method"))
+    return new Response(null, { status: 200, headers });
   const startedAt = Date.now();
   let status = 500;
   let userId: Id<"users"> | null = null;
