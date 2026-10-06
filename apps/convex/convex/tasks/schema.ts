@@ -607,6 +607,10 @@ export const taskTables = {
     .index("by_pair", ["fromId", "toId"])
     .index("by_workspace_kind", ["workspaceId", "kind"]),
   tasks: defineTable({
+    // Optional only during exact-preimage adoption; allocated UUIDs are immutable.
+    apiId: v.optional(zodToConvex(apiIdSchema)),
+    // Null means no updater at creation, or explicitly unrecorded historical provenance.
+    updatedBy: v.optional(v.union(v.id("users"), v.null())),
     archivedAt: v.union(v.number(), v.null()),
     deletedAt: v.union(v.number(), v.null()),
     workspaceId: v.id("workspaces"),
@@ -629,6 +633,7 @@ export const taskTables = {
     ...taskProperties,
     completedAt: v.union(v.number(), v.null()),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
     .index("by_project_sequence", ["projectId", "sequence"])
@@ -712,6 +717,16 @@ export const taskTables = {
     .index("by_project_order", ["projectId", "sortOrder"])
     .index("by_parent", ["parentId"]),
 };
+
+export async function allocateTaskApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("tasks")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Task API identifier already exists.");
+  return apiId;
+}
 
 export async function allocateTaskStateApiId(ctx: MutationCtx) {
   const apiId = apiIdSchema.parse(crypto.randomUUID());

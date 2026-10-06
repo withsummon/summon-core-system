@@ -26,6 +26,7 @@ export async function taskChanged(
   else if (changes.some((change) => change.field === "state")) kind = "status_changed";
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   await ctx.db.patch(task._id, {
+    updatedBy: actorId,
     updatedAt,
     titleUpdatedAt: current.title !== task.title ? updatedAt : current.titleUpdatedAt,
     startDateMissing: current.startDate === null,

@@ -3,7 +3,7 @@ import { requireUsableLabel } from "./label_access";
 import { ConvexError } from "convex/values";
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
-import { priority, status, taskProperties } from "./schema";
+import { allocateTaskApiId, priority, status, taskProperties } from "./schema";
 import { requireProject } from "../identity/access";
 import { requireParent } from "./hierarchy";
 import { initialProperties, validateProperties, parseTaskText, creationAssignees } from "./properties";
@@ -54,6 +54,9 @@ export async function createTask(
     throw new ConvexError("Task ordering has reached its numeric limit.");
   const updatedAt = Date.now();
   const taskId = await ctx.db.insert("tasks", {
+    apiId: await allocateTaskApiId(ctx),
+    // The creation actor remains createdBy; no updater exists until a later native revision.
+    updatedBy: null,
     archivedAt: null,
     deletedAt: null,
     workspaceId: project.workspaceId,
