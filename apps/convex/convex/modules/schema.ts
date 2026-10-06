@@ -82,6 +82,7 @@ export const moduleTables = {
     archived: v.boolean(),
     deleted: v.boolean(),
   })
+    .index("by_workspace_created", ["workspaceId", "deleted"])
     .index("by_workspace", ["workspaceId", "deleted", "archived"])
     .index("by_project", ["projectId", "deleted"])
     .index("by_project_due", ["projectId", "deleted", "targetDate"])

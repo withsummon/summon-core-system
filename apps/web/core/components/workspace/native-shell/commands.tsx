@@ -1,11 +1,27 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
+import { useQuery } from "convex/react";
+import type { UsePaginatedQueryReturnType } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Command } from "cmdk";
-import { StickyNote, Plus, Briefcase, FolderPlus, CalendarDays, Layers, PenSquare, BarChart2 } from "lucide-react";
+import {
+  StickyNote,
+  Plus,
+  Briefcase,
+  FolderPlus,
+  CalendarDays,
+  Layers,
+  PenSquare,
+  BarChart2,
+  LayoutGrid,
+  FileText,
+} from "lucide-react";
+import { ContrastIcon, DiceIcon } from "@plane/propel/icons";
+import { generateWorkItemLink } from "@plane/utils";
+import useDebounce from "@/hooks/use-debounce";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { NativeProjectCreateContext, NativeTaskCreateContext } from "@/components/workspace/native-shell/session";
@@ -20,17 +36,22 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { NativeWorkspace } from "./session";
 export function WorkspaceCommands({
   workspace,
+  workspaces,
   onCreateSticky,
   onOpenStickies,
   commands,
 }: {
   workspace: NativeWorkspace;
+  workspaces: NativeWorkspace[];
   onCreateSticky: () => Promise<void>;
   onOpenStickies: () => void;
   commands?: (close: () => void) => ReactNode;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [choosingProject, setChoosingProject] = useState(false);
+  const [isWorkspaceLevel, setWorkspaceLevel] = useState(false);
+  const debouncedTerm = useDebounce(searchTerm, 500);
+  const params = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const createProject = useContext(NativeProjectCreateContext);
@@ -41,6 +62,12 @@ export function WorkspaceCommands({
   }, []);
   const search = useExpandableSearch({ onClose: onSearchClose });
   const { openPanel, inputRef, isOpen, handleClose } = search;
+  const browse = useQuery(
+    api.navigation.address.resolveTask,
+    isOpen && params.workItem ? { workspaceSlug: workspace.slug, workItem: params.workItem } : "skip"
+  );
+  const currentProjectId = params.projectId ?? browse?.project._id;
+  const scopeProjectId = isWorkspaceLevel ? undefined : currentProjectId;
   const workspaceCommands = useMemo(
     () =>
       [
@@ -237,7 +264,13 @@ export function WorkspaceCommands({
             ?.dispatchEvent(new KeyboardEvent("keydown", { key: event.key, bubbles: true, cancelable: true }));
         }
       }}
-      footer={<PowerKModalFooter isWorkspaceLevel={false} projectId={undefined} onWorkspaceLevelChange={() => {}} />}
+      footer={
+        <PowerKModalFooter
+          isWorkspaceLevel={!currentProjectId || isWorkspaceLevel}
+          projectId={currentProjectId}
+          onWorkspaceLevelChange={setWorkspaceLevel}
+        />
+      }
     >
       {choosingProject ? (
         <ProjectPicker
@@ -249,7 +282,28 @@ export function WorkspaceCommands({
         />
       ) : (
         <>
-          <Command.Empty className="p-3 text-13 text-tertiary">No commands found.</Command.Empty>
+          {!searchTerm && <Command.Empty className="p-3 text-13 text-tertiary">No commands found.</Command.Empty>}
+          {searchTerm && debouncedTerm !== searchTerm && (
+            <p role="status" className="p-3 text-13 text-secondary">
+              Searching…
+            </p>
+          )}
+          {searchTerm &&
+            debouncedTerm === searchTerm &&
+            (params.workItem && !params.projectId && !isWorkspaceLevel && browse == null ? (
+              <p role="status" className="p-3 text-13 text-secondary">
+                {browse === undefined ? "Resolving project…" : "Work item unavailable."}
+              </p>
+            ) : (
+              <EntitySearchResults
+                key={`${workspace._id}:${scopeProjectId ?? "workspace"}:${debouncedTerm}`}
+                workspace={workspace}
+                workspaces={workspaces}
+                projectId={scopeProjectId}
+                term={debouncedTerm}
+                onClose={search.handleClose}
+              />
+            ))}
           {workspaceCommands
             .filter((item) => !item.isDisabled)
             .map((item) => (
@@ -313,5 +367,199 @@ function ProjectPicker({
     <p role="status" className="p-3 text-13 text-secondary">
       Loading projects…
     </p>
+  );
+}
+
+function EntitySearchResults({
+  workspace,
+  workspaces,
+  projectId,
+  term,
+  onClose,
+}: {
+  workspace: NativeWorkspace;
+  workspaces: NativeWorkspace[];
+  projectId?: string;
+  term: string;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const scope = { workspaceId: workspace._id, projectId, search: term };
+  const projects = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { workspaceId: workspace._id, search: term, entity: "project" },
+    { initialNumItems: 20 }
+  );
+  const tasks = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { ...scope, entity: "task" },
+    { initialNumItems: 20 }
+  );
+  const cycles = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { ...scope, entity: "cycle" },
+    { initialNumItems: 20 }
+  );
+  const modules = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { ...scope, entity: "module" },
+    { initialNumItems: 20 }
+  );
+  const views = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { ...scope, entity: "view" },
+    { initialNumItems: 20 }
+  );
+  const documents = usePaginatedQuery(
+    api.workspaces.index.searchEntities,
+    { ...scope, entity: "document" },
+    { initialNumItems: 20 }
+  );
+  const matchedWorkspaces = workspaces
+    .filter((row) => row.name.toLowerCase().includes(term.toLowerCase()))
+    .toSorted((a, b) => b._creationTime - a._creationTime);
+  const statuses = [projects.status, tasks.status, cycles.status, modules.status, views.status, documents.status];
+  const loading = statuses.some((status) => status === "LoadingFirstPage" || status === "LoadingMore");
+  const exhausted = statuses.every((status) => status === "Exhausted");
+  const noEntityMatches =
+    projects.results.length +
+      tasks.results.length +
+      cycles.results.length +
+      modules.results.length +
+      views.results.length +
+      documents.results.length ===
+    0;
+  return (
+    <>
+      <p className="px-3 py-2 text-13 text-secondary">Search results in {projectId ? "this project" : "workspace"}:</p>
+      {loading && (
+        <p role="status" className="p-3 text-13 text-secondary">
+          Searching…
+        </p>
+      )}
+      {exhausted && noEntityMatches && !matchedWorkspaces.length && (
+        <Command.Empty className="p-3 text-13 text-tertiary">No matching commands or entities.</Command.Empty>
+      )}
+      {matchedWorkspaces.length > 0 && (
+        <Command.Group heading="Workspaces">
+          {matchedWorkspaces.map((row) => (
+            <PowerKModalCommandItem
+              key={row._id}
+              icon={LayoutGrid}
+              value={`workspace-${term}-${row._id}-${row.name}`}
+              label={row.name}
+              onSelect={() => {
+                onClose();
+                navigate(`/${row.slug}/`);
+              }}
+            />
+          ))}
+        </Command.Group>
+      )}
+      <EntitySearchGroup entity="project" page={projects} workspace={workspace} term={term} onClose={onClose} />
+      <EntitySearchGroup entity="task" page={tasks} workspace={workspace} term={term} onClose={onClose} />
+      <EntitySearchGroup entity="cycle" page={cycles} workspace={workspace} term={term} onClose={onClose} />
+      <EntitySearchGroup entity="module" page={modules} workspace={workspace} term={term} onClose={onClose} />
+      <EntitySearchGroup entity="view" page={views} workspace={workspace} term={term} onClose={onClose} />
+      <EntitySearchGroup entity="document" page={documents} workspace={workspace} term={term} onClose={onClose} />
+    </>
+  );
+}
+
+function EntitySearchGroup({
+  entity,
+  page,
+  workspace,
+  term,
+  onClose,
+}: {
+  entity: FunctionArgs<typeof api.workspaces.index.searchEntities>["entity"];
+  page: UsePaginatedQueryReturnType<typeof api.workspaces.index.searchEntities>;
+  workspace: NativeWorkspace;
+  term: string;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const headings = {
+    project: "Projects",
+    task: "Work items",
+    cycle: "Cycles",
+    module: "Modules",
+    view: "Views",
+    document: "Pages",
+  } satisfies Record<FunctionArgs<typeof api.workspaces.index.searchEntities>["entity"], string>;
+  const icons = {
+    project: Briefcase,
+    task: Layers,
+    cycle: ContrastIcon,
+    module: DiceIcon,
+    view: Layers,
+    document: FileText,
+  };
+  const rows = entity === "task" ? page.results.slice(0, 100) : page.results;
+  const capped = entity === "task" && rows.length === 100;
+  if (!rows.length && page.status === "Exhausted") return null;
+  return (
+    <Command.Group heading={headings[entity]}>
+      {rows.map((row) => (
+        <PowerKModalCommandItem
+          key={row.id}
+          icon={icons[entity]}
+          value={`${row.entity}-${term}-${row.id}-${row.name}`}
+          label={
+            row.entity === "project" ? (
+              row.name
+            ) : (
+              <span>
+                <span className="text-11 text-tertiary">
+                  {row.projectIdentifier}
+                  {row.entity === "task" ? `-${row.sequence}` : ""}
+                </span>{" "}
+                {row.name}
+              </span>
+            )
+          }
+          onSelect={() => {
+            onClose();
+            switch (row.entity) {
+              case "project":
+                navigate(`/${workspace.slug}/projects/${row.id}/issues/`);
+                break;
+              case "task":
+                navigate(
+                  generateWorkItemLink({
+                    workspaceSlug: workspace.slug,
+                    projectId: row.projectId,
+                    issueId: row.id,
+                    projectIdentifier: row.projectIdentifier,
+                    sequenceId: row.sequence,
+                  })
+                );
+                break;
+              case "cycle":
+                navigate(`/${workspace.slug}/projects/${row.projectId}/cycles/${row.id}/`);
+                break;
+              case "module":
+                navigate(`/${workspace.slug}/projects/${row.projectId}/modules/${row.id}/`);
+                break;
+              case "view":
+                navigate(`/${workspace.slug}/projects/${row.projectId}/views/${row.id}/`);
+                break;
+              case "document":
+                navigate(`/${workspace.slug}/projects/${row.projectId}/pages/${row.id}/`);
+                break;
+            }
+          }}
+        />
+      ))}
+      {page.status === "CanLoadMore" && !capped && (
+        <PowerKModalCommandItem
+          value={`continue-${term}-${entity}`}
+          label={`Continue searching ${headings[entity].toLowerCase()}`}
+          onSelect={() => page.loadMore(entity === "task" ? Math.min(20, 100 - rows.length) : 20)}
+        />
+      )}
+      {capped && <p className="p-3 text-13 text-tertiary">Showing the first 100 matching work items.</p>}
+    </Command.Group>
   );
 }

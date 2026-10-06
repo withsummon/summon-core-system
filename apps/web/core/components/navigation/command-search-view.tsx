@@ -66,12 +66,12 @@ export function CommandSearchView({
             onMouseDown={handleMouseDown}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            placeholder="Search commands..."
-            aria-label="Search commands"
+            placeholder="Search commands and workspace..."
+            aria-label="Search commands and workspace"
             className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
           />
           {searchTerm && (
-            <button type="button" aria-label="Clear command search" onClick={handleClear} className="ml-2 shrink-0">
+            <button type="button" aria-label="Clear search" onClick={handleClear} className="ml-2 shrink-0">
               <CloseIcon className="size-3.5 text-placeholder hover:text-primary" />
             </button>
           )}

@@ -16,7 +16,15 @@ import { personalImageDescriptor, userAppearance } from "../identity/avatar_owne
 import { v, ConvexError, type Infer } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { apiIdSchema } from "../identity/schema";
-import { role } from "../schema";
+import schema, { role } from "../schema";
+import { paginationOptsValidator } from "convex/server";
+import { stream } from "convex-helpers/server/stream";
+import { pageBudget } from "../commercial/validation";
+import { projectReader } from "../savedViews/scope";
+import { viewCapabilities } from "../savedViews/access";
+import { canAccessDocument } from "../documents/access";
+import { taskIsActive, taskRoleCanRead } from "../tasks/access";
+import { requireProjectForUser } from "../identity/access";
 import type { MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { requireUser, requireWorkspace, requireAnotherWorkspaceAdmin } from "../identity/access";
@@ -44,6 +52,205 @@ export const list = query({
     return workspaces.filter((w) => w !== null);
   },
 });
+
+// CmdK preserves substring/sequence search over current joined, readable entities.
+// A cursor belongs to one selected entity and one current workspace/project scope.
+export const searchEntities = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.string()),
+    entity: v.union(
+      v.literal("project"),
+      v.literal("task"),
+      v.literal("cycle"),
+      v.literal("module"),
+      v.literal("view"),
+      v.literal("document")
+    ),
+    search: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const access = await requireWorkspace(ctx, args.workspaceId);
+    const { entity } = args;
+    const projectId = args.projectId === undefined ? null : ctx.db.normalizeId("projects", args.projectId);
+    if (args.projectId !== undefined) {
+      if (!projectId) throw new ConvexError("Project not found.");
+      const scoped = await requireProjectForUser(ctx, projectId, access.user);
+      if (scoped.workspace._id !== args.workspaceId) throw new ConvexError("Project not found.");
+    }
+    const read = projectReader(ctx, args.workspaceId, access.user._id);
+    const term = args.search.toLowerCase();
+    const budget = pageBudget(args.paginationOpts);
+    switch (entity) {
+      case "project":
+        return stream(ctx.db, schema)
+          .query("projects")
+          .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+          .order("desc")
+          .map(async (project) => {
+            if (!(await read(project._id))) return null;
+            if (!project.name.toLowerCase().includes(term) && !project.identifier.toLowerCase().includes(term))
+              return null;
+            return { entity, id: project._id, name: project.name, projectIdentifier: project.identifier };
+          })
+          .paginate(budget);
+      case "task": {
+        const sequences = new Set((args.search.match(/\b\d+\b/g) ?? []).map(Number));
+        const rows = projectId
+          ? stream(ctx.db, schema)
+              .query("tasks")
+              .withIndex("by_project", (q) => q.eq("projectId", projectId))
+          : stream(ctx.db, schema)
+              .query("tasks")
+              .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId));
+        return rows
+          .order("desc")
+          .map(async (task) => {
+            if (task.workspaceId !== args.workspaceId || !taskIsActive(task)) return null;
+            const readable = await read(task.projectId);
+            if (
+              !readable ||
+              !taskRoleCanRead(
+                task,
+                access.user._id,
+                access.member.role,
+                readable.member.role,
+                !!readable.project.guestViewAllFeatures
+              )
+            )
+              return null;
+            if (
+              !task.title.toLowerCase().includes(term) &&
+              !readable.project.identifier.toLowerCase().includes(term) &&
+              !sequences.has(task.sequence)
+            )
+              return null;
+            return {
+              entity,
+              id: task._id,
+              name: task.title,
+              sequence: task.sequence,
+              projectId: task.projectId,
+              projectIdentifier: readable.project.identifier,
+            };
+          })
+          .paginate(budget);
+      }
+      case "cycle": {
+        const rows = projectId
+          ? stream(ctx.db, schema)
+              .query("cycles")
+              .withIndex("by_project", (q) => q.eq("projectId", projectId).eq("deleted", false))
+          : stream(ctx.db, schema)
+              .query("cycles")
+              .withIndex("by_workspace_created", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false));
+        return rows
+          .order("desc")
+          .map(async (cycle) => {
+            if (cycle.workspaceId !== args.workspaceId) return null;
+            const readable = await read(cycle.projectId);
+            if (!readable || !cycle.name.toLowerCase().includes(term)) return null;
+            return {
+              entity,
+              id: cycle._id,
+              name: cycle.name,
+              projectId: cycle.projectId,
+              projectIdentifier: readable.project.identifier,
+            };
+          })
+          .paginate(budget);
+      }
+      case "module": {
+        const rows = projectId
+          ? stream(ctx.db, schema)
+              .query("modules")
+              .withIndex("by_project", (q) => q.eq("projectId", projectId).eq("deleted", false))
+          : stream(ctx.db, schema)
+              .query("modules")
+              .withIndex("by_workspace_created", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false));
+        return rows
+          .order("desc")
+          .map(async (module) => {
+            if (module.workspaceId !== args.workspaceId) return null;
+            const readable = await read(module.projectId);
+            if (!readable || !module.name.toLowerCase().includes(term)) return null;
+            return {
+              entity,
+              id: module._id,
+              name: module.name,
+              projectId: module.projectId,
+              projectIdentifier: readable.project.identifier,
+            };
+          })
+          .paginate(budget);
+      }
+      case "view": {
+        const rows = projectId
+          ? stream(ctx.db, schema)
+              .query("savedViews")
+              .withIndex("by_project_deleted", (q) => q.eq("projectId", projectId).eq("deletedAt", null))
+          : stream(ctx.db, schema)
+              .query("savedViews")
+              .withIndex("by_workspace_deleted", (q) => q.eq("workspaceId", args.workspaceId).eq("deletedAt", null));
+        return rows
+          .order("desc")
+          .map(async (view) => {
+            if (view.workspaceId !== args.workspaceId || view.projectId === null) return null;
+            const readable = await read(view.projectId);
+            if (
+              !readable ||
+              !viewCapabilities(
+                view,
+                access.user._id,
+                readable.member.role === "admin",
+                access.member.role === "guest" || readable.member.role === "guest",
+                !!readable.project.guestViewAllFeatures
+              ).canRead
+            )
+              return null;
+            if (!view.name.toLowerCase().includes(term)) return null;
+            return {
+              entity,
+              id: view._id,
+              name: view.name,
+              projectId: view.projectId,
+              projectIdentifier: readable.project.identifier,
+            };
+          })
+          .paginate(budget);
+      }
+      case "document":
+        return stream(ctx.db, schema)
+          .query("documents")
+          .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId).eq("deleted", false))
+          .order("desc")
+          .map(async (document) => {
+            const linked = projectId ? document.projectIds.filter((id) => id === projectId) : document.projectIds;
+            const readable = (
+              await Promise.all(
+                linked.map(async (linkedId) => {
+                  const project = await read(linkedId);
+                  return project && (await canAccessDocument(ctx, document, access.user._id, false, linkedId))
+                    ? project
+                    : null;
+                })
+              )
+            ).find((project) => project !== null);
+            if (!readable || !document.name.toLowerCase().includes(term)) return null;
+            return {
+              entity,
+              id: document._id,
+              name: document.name,
+              projectId: readable.project._id,
+              projectIdentifier: readable.project.identifier,
+            };
+          })
+          .paginate(budget);
+    }
+  },
+});
+
 export const workspaceCreateInput = v.object({
   name: v.string(),
   slug: v.string(),
