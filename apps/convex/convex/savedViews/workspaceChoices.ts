@@ -37,7 +37,7 @@ export const labels = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
       .map(async (row) => {
-        const permission = await read(row.projectId);
+        const permission = row.projectId === null ? null : await read(row.projectId);
         return permission && !row.retiring
           ? { id: row._id, name: row.name, color: row.color, project: projectSummary(permission.project) }
           : null;

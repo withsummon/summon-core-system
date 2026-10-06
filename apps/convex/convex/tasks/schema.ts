@@ -509,6 +509,15 @@ export const taskChange = v.union(
   }),
   v.object({ field: v.literal("modules"), added: v.array(activityModule), removed: v.array(activityModule) })
 );
+const labelRemovalPhase = v.union(
+  v.literal("discover"),
+  v.literal("tasks"),
+  v.literal("drafts"),
+  v.literal("documents"),
+  v.literal("views"),
+  v.literal("delete")
+);
+
 export const taskTables = {
   profileTaskPreferences: defineTable({
     workspaceId: v.id("workspaces"),
@@ -666,21 +675,33 @@ export const taskTables = {
   labelRemovalJobs: defineTable({
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
-    labelIds: v.array(v.id("taskLabels")),
+    rootLabelId: v.optional(v.id("taskLabels")),
+    // Historical completed/cancelled jobs never captured an owned root revision.
+    rootRevision: v.optional(v.number()),
     name: v.string(),
-    phase: v.union(v.literal("tasks"), v.literal("drafts"), v.literal("documents"), v.literal("views")),
-    documentLabelIndex: v.number(),
-    cursor: v.union(v.string(), v.null()),
+    phase: labelRemovalPhase,
     changed: v.number(),
     started: v.boolean(),
     status: v.union(v.literal("running"), v.literal("completed"), v.literal("cancelled")),
+    // Migration only; remove after exact historical coverage and second zero pass.
+    labelIds: v.optional(v.array(v.id("taskLabels"))),
+    documentLabelIndex: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
   }).index("by_project", ["projectId"]),
+  labelRemovalWork: defineTable({
+    jobId: v.id("labelRemovalJobs"),
+    labelId: v.id("taskLabels"),
+    phase: labelRemovalPhase,
+    cursor: v.union(v.string(), v.null()),
+  })
+    .index("by_job_label", ["jobId", "labelId"])
+    .index("by_job_phase", ["jobId", "phase"]),
   taskLabels: defineTable({
     ...catalogueHistoryFields,
     apiId: v.optional(zodToConvex(apiIdSchema)),
     ...labelFields,
     workspaceId: v.id("workspaces"),
-    projectId: v.id("projects"),
+    projectId: v.union(v.id("projects"), v.null()),
     parentId: v.union(v.id("taskLabels"), v.null()),
     revision: v.number(),
     retiring: v.boolean(),
@@ -688,7 +709,8 @@ export const taskTables = {
     .index("by_api_id", ["apiId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
-    .index("by_project_order", ["projectId", "sortOrder"]),
+    .index("by_project_order", ["projectId", "sortOrder"])
+    .index("by_parent", ["parentId"]),
 };
 
 export async function allocateTaskStateApiId(ctx: MutationCtx) {

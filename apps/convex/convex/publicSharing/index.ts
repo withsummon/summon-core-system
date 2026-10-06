@@ -229,7 +229,16 @@ export const catalog = query({
       ),
       labels: labels
         .filter((label) => label.workspaceId === project.workspaceId && !label.retiring)
-        .map((label) => ({ _id: label._id, name: label.name, color: label.color, parentId: label.parentId })),
+        .map((label) => ({
+          _id: label._id,
+          name: label.name,
+          color: label.color,
+          parentId: labels.some(
+            (parent) => parent._id === label.parentId && parent.workspaceId === project.workspaceId && !parent.retiring
+          )
+            ? label.parentId
+            : null,
+        })),
     };
   },
 });

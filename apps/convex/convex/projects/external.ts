@@ -1,5 +1,6 @@
+import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
-import { writeTaskLabel, validateLabelGroups } from "../tasks/labels";
+import { writeTaskLabel } from "../tasks/labels";
 import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
   catalogueApiResource,
@@ -900,17 +901,13 @@ async function catalogueWire(
       if (state) return undefined;
       if (!row.parentId) return expand.includes("parent") ? {} : null;
       const parent = await ctx.db.get(row.parentId);
-      if (
-        !parent ||
-        parent.projectId !== access.project._id ||
-        parent.workspaceId !== access.workspace._id ||
-        parent.retiring
-      )
-        throw new ConvexError({ status: 503, detail: "The parent label public reference is unavailable." });
+      if (!parent || !(await canReadLabel(ctx, parent, access.user))) return expand.includes("parent") ? {} : null;
       const id = apiIdSchema.parse(known("parent", parent.apiId));
       // The inherited BaseSerializer selects IssueLiteSerializer for this field;
       // its read-only sequence_id is absent on Label, so id/project_id are exposed.
-      return expand.includes("parent") ? { id, project_id: apiIdSchema.parse(access.project.apiId) } : id;
+      if (!expand.includes("parent")) return id;
+      const project = parent.projectId === null ? null : await ctx.db.get(parent.projectId);
+      return { id, project_id: project ? apiIdSchema.parse(project.apiId) : null };
     },
   } satisfies Record<z.infer<typeof catalogueApiField>, () => unknown>;
   return Object.fromEntries(
@@ -1325,20 +1322,24 @@ export const writeLabels = internalMutation({
     if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
     const data = parsed.data;
     requireCatalogueUnique(rows, existing, raw, data, "labels");
-    const parentApiId = data.parent;
-    const parent = parentApiId
-      ? await ctx.db
-          .query("taskLabels")
-          .withIndex("by_api_id", (q) => q.eq("apiId", parentApiId))
-          .unique()
-      : null;
-    if (data.parent && !parent)
-      throw new ConvexError({ status: 400, errors: { parent: ["Invalid label reference."] } });
+    let parentId = existing?.parentId ?? null;
+    if (Object.hasOwn(raw, "parent") || !existing) {
+      const parentApiId = data.parent;
+      const parent = parentApiId
+        ? await ctx.db
+            .query("taskLabels")
+            .withIndex("by_api_id", (q) => q.eq("apiId", parentApiId))
+            .unique()
+        : null;
+      if (data.parent && !(await canReadLabel(ctx, parent, access.user)))
+        throw new ConvexError({ status: 400, errors: { parent: ["Invalid label reference."] } });
+      parentId = parent === null ? null : parent._id;
+    }
     const id = await writeTaskLabel(ctx, access.project, access.user, existing ?? null, {
       name: data.name,
       description: data.description,
       color: data.color,
-      parentId: parent?._id ?? null,
+      parentId,
       sortOrder: existing
         ? data.sort_order
         : rows.length
@@ -1349,7 +1350,6 @@ export const writeLabels = internalMutation({
     });
     const row = await ctx.db.get(id);
     if (!row) throw new Error("The label writer did not produce its saved row.");
-    await validateLabelGroups(ctx, [...rows.filter((previous) => previous._id !== row._id), row], row, row.parentId);
     return JSON.stringify(await catalogueWire(ctx, row, access, null, [], args.assetOrigin));
   },
 });

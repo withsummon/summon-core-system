@@ -17,12 +17,19 @@ export const list = query({
     const page = await Promise.all(
       result.page.map(async (relation) => {
         const label = await ctx.db.get(relation.labelId);
-        const permission = label && label.workspaceId === document.workspaceId ? await read(label.projectId) : null;
+        const permission =
+          label && label.workspaceId === document.workspaceId && label.projectId !== null
+            ? await read(label.projectId)
+            : null;
         return {
           labelId: relation.labelId,
           label:
-            label && permission
-              ? { name: label.name, color: label.color, project: projectSummary(permission.project) }
+            label && label.workspaceId === document.workspaceId && (label.projectId === null || permission)
+              ? {
+                  name: label.name,
+                  color: label.color,
+                  project: permission ? projectSummary(permission.project) : null,
+                }
               : null,
         };
       })
@@ -49,7 +56,11 @@ export const set = mutation({
       if (existing) return;
       const label = await requireUsableLabel(ctx, args.labelId);
       const read = projectReader(ctx, document.workspaceId, user._id);
-      if (!label || label.workspaceId !== document.workspaceId || !(await read(label.projectId)))
+      if (
+        !label ||
+        label.workspaceId !== document.workspaceId ||
+        (label.projectId !== null && !(await read(label.projectId)))
+      )
         throw new ConvexError("Label is unavailable.");
       await ctx.db.insert("documentLabels", { documentId: document._id, labelId: label._id });
     } else {

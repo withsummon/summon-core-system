@@ -21,6 +21,7 @@ import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { CreateUpdateLabelInline } from "./create-update-label-inline";
 import type { ProjectLabel } from "./create-update-label-inline";
 import { DeleteLabelModal } from "./delete-label-modal";
+import { getLabelRoots } from "./label-utils";
 import { ProjectSettingLabelGroup } from "./project-setting-label-group";
 import { ProjectSettingLabelItem } from "./project-setting-label-item";
 import { SettingsHeading } from "../settings/heading";
@@ -106,7 +107,7 @@ export function ProjectSettingsLabelList({
     />
   );
   const labels = settings?.labels;
-  const roots = labels?.filter((label) => label.parentId === null);
+  const roots = labels === undefined ? undefined : getLabelRoots(labels);
   return (
     <>
       {deletion && <DeleteLabelModal label={deletion} canManage={canManage} onClose={() => setDeletion(null)} />}

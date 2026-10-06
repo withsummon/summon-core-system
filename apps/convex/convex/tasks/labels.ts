@@ -13,7 +13,7 @@ async function projectLabels(ctx: QueryCtx, projectId: Id<"projects">) {
     .withIndex("by_project_order", (q) => q.eq("projectId", projectId))
     .take(1001);
   if (rows.length > 1000) throw new ConvexError("A project supports up to 1000 labels.");
-  return rows;
+  return rows.filter((row): row is typeof row & { projectId: Id<"projects"> } => row.projectId === projectId);
 }
 export const list = query({
   args: { projectId: v.id("projects") },
@@ -93,7 +93,7 @@ export const save = mutation({
     }
     if (!existing) throw new ConvexError("Choose an existing label to move.");
     const { parentId, position } = args.change;
-    await validateLabelGroups(ctx, rows, existing, parentId);
+    await validateLabelGroups(ctx, existing, parentId);
     if (position.targetId === null && existing.parentId === parentId) return existing._id;
     const siblings = rows.filter((row) => row._id !== existing._id && row.parentId === parentId);
     let index = siblings.length;
@@ -129,33 +129,31 @@ export const save = mutation({
 
 export async function validateLabelGroups(
   ctx: QueryCtx,
-  rows: Doc<"taskLabels">[],
   existing: Doc<"taskLabels">,
   parentId: Id<"taskLabels"> | null
 ) {
-  if (parentId) {
-    const parent = await ctx.db.get(parentId);
-    if (!parent || parent.retiring)
+  if (parentId === null || parentId === existing.parentId) return;
+  const visited = new Set<Id<"taskLabels">>([existing._id]);
+  let current: Id<"taskLabels"> | null = parentId;
+  // Ancestry is sequential; every next parent belongs to the preceding row.
+  /* oxlint-disable no-await-in-loop */
+  while (current) {
+    if (visited.has(current))
+      throw new ConvexError({ status: 400, errors: { parent: ["A label cannot contain itself or its ancestors."] } });
+    visited.add(current);
+    if (visited.size > 20)
+      throw new ConvexError({ status: 400, errors: { parent: ["Label groups support at most 20 levels."] } });
+    const parent: Doc<"taskLabels"> | null = await ctx.db.get(current);
+    if (
+      !parent ||
+      parent.retiring ||
+      parent.projectId !== existing.projectId ||
+      parent.workspaceId !== existing.workspaceId
+    )
       throw new ConvexError({ status: 400, errors: { parent: ["Choose an active group in this project."] } });
-    if (parent.projectId !== existing.projectId || parent.workspaceId !== existing.workspaceId)
-      throw new ConvexError({
-        status: 503,
-        detail: "Cross-project label parent references have not been adopted by the native hierarchy owner.",
-      });
+    current = parent.parentId;
   }
-  const parents = new Map(rows.map((row) => [row._id, row._id === existing._id ? parentId : row.parentId]));
-  for (const row of rows) {
-    const visited = new Set<Id<"taskLabels">>();
-    let current: Id<"taskLabels"> | null = row._id;
-    while (current) {
-      if (visited.has(current))
-        throw new ConvexError({ status: 400, errors: { parent: ["A label cannot contain itself or its ancestors."] } });
-      visited.add(current);
-      if (visited.size > 20)
-        throw new ConvexError({ status: 400, errors: { parent: ["Label groups support at most 20 levels."] } });
-      current = parents.get(current) ?? null;
-    }
-  }
+  /* oxlint-enable no-await-in-loop */
 }
 
 const labelWrite = v.object(labelWriteFields);
@@ -166,6 +164,11 @@ export async function writeTaskLabel(
   existing: Doc<"taskLabels"> | null,
   data: Infer<typeof labelWrite>
 ) {
+  if (data.parentId !== null && data.parentId !== existing?.parentId) {
+    const parent = await ctx.db.get(data.parentId);
+    if (!parent || parent.retiring)
+      throw new ConvexError({ status: 400, errors: { parent: ["Invalid label reference."] } });
+  }
   if (existing) {
     if (existing.projectId !== project._id || existing.workspaceId !== project.workspaceId || existing.retiring)
       throw new ConvexError("Label is unavailable or being removed.");
@@ -224,8 +227,11 @@ export const adoptCatalogue = internalMutation({
       if (fields.every((value) => value !== undefined)) continue;
       if (fields.some((value) => value !== undefined))
         throw new ConvexError("Partial Label adoption requires explicit review.");
-      const project = await ctx.db.get(current.projectId);
-      if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
+      const project = current.projectId === null ? null : await ctx.db.get(current.projectId);
+      if (
+        (current.projectId !== null && (!project || project.workspaceId !== current.workspaceId)) ||
+        !(await ctx.db.get(current.workspaceId))
+      )
         throw new ConvexError("Label scope is inconsistent.");
       await ctx.db.patch(current._id, {
         apiId: await allocateTaskLabelApiId(ctx),

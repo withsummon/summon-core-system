@@ -171,7 +171,8 @@ export async function validateWorkspaceFilters(
   await Promise.all(
     filters.labelIds.map(async (id) => {
       const row = await requireUsableLabel(ctx, id);
-      if (!row || !(await read(row.projectId))) throw new ConvexError("Choose a label from an accessible project.");
+      if (row.projectId === null || !(await read(row.projectId)))
+        throw new ConvexError("Choose a label from an accessible project.");
     })
   );
   await Promise.all(
@@ -217,7 +218,10 @@ export async function workspaceFilterSelections(
   const labels = await Promise.all(
     view.filters.labelIds.map(async (id) => {
       const row = await ctx.db.get(id);
-      return { id, name: row && !row.retiring && (await read(row.projectId)) ? row.name : null };
+      return {
+        id,
+        name: row && row.projectId !== null && !row.retiring && (await read(row.projectId)) ? row.name : null,
+      };
     })
   );
   const cycles = await Promise.all(

@@ -1,7 +1,8 @@
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import type { Doc, Id } from "@summon/convex/data-model";
+import type { Id } from "@summon/convex/data-model";
 import { Button } from "@plane/propel/button";
 import { ProjectSettingsLabelList } from "@/components/labels/project-setting-label-list";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
@@ -71,7 +72,7 @@ function RemovalJob({
   pending,
   run,
 }: {
-  job: Doc<"labelRemovalJobs">;
+  job: FunctionReturnType<typeof api.tasks.label_removal.list>["page"][number];
   pending: boolean;
   run: (jobId: Id<"labelRemovalJobs">, kind: "step" | "cancel") => Promise<void>;
 }) {
