@@ -40,6 +40,17 @@ export async function validateEstimatePoint(
     throw new ConvexError("Choose a point from the active estimate system.");
 }
 
-export async function retireEstimate(ctx: MutationCtx, row: Doc<"estimateSystems"> | Doc<"estimatePoints">) {
-  await ctx.db.patch(row._id, { deleted: true, retiring: false, revision: row.revision + 1 });
+export async function retireEstimate(
+  ctx: MutationCtx,
+  row: Doc<"estimateSystems"> | Doc<"estimatePoints">,
+  actorId: Id<"users">
+) {
+  const now = Date.now();
+  await ctx.db.patch(row._id, {
+    deleted: true,
+    retiring: false,
+    revision: row.revision + 1,
+    // systemId distinguishes the two real stored table shapes at this shared retirement owner.
+    ...("systemId" in row ? { updatedBy: actorId, updatedAt: now, deletedAt: now } : {}),
+  });
 }

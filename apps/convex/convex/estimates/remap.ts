@@ -42,7 +42,14 @@ export const begin = mutation({
       revision: 0,
     });
     await Promise.all(
-      selected.map((point) => ctx.db.patch(point._id, { retiring: true, revision: point.revision + 1 }))
+      selected.map((point) =>
+        ctx.db.patch(point._id, {
+          retiring: true,
+          updatedBy: user._id,
+          updatedAt: Date.now(),
+          revision: point.revision + 1,
+        })
+      )
     );
     await ctx.db.patch(system._id, { retiring: args.pointId === null, revision: system.revision + 1 });
     const config = await estimateConfig(ctx, system.projectId);
@@ -120,10 +127,12 @@ export const page = mutation({
       cursor = rows.continueCursor;
       if (rows.isDone) {
         const sourcePoints = await Promise.all(job.pointIds.map((id) => ctx.db.get(id)));
-        await Promise.all(sourcePoints.filter((point) => point !== null).map((point) => retireEstimate(ctx, point)));
+        await Promise.all(
+          sourcePoints.filter((point) => point !== null).map((point) => retireEstimate(ctx, point, user._id))
+        );
         const system = await ctx.db.get(job.systemId);
         if (!system) throw new ConvexError("Estimate system is missing.");
-        if (job.deleteSystem) await retireEstimate(ctx, system);
+        if (job.deleteSystem) await retireEstimate(ctx, system, user._id);
         else {
           await ctx.db.patch(system._id, { revision: system.revision + 1 });
           const removed = sourcePoints[0];
@@ -135,7 +144,14 @@ export const page = mutation({
             await Promise.all(
               remaining
                 .filter((point) => point.key > removed.key)
-                .map((point) => ctx.db.patch(point._id, { key: point.key - 1, revision: point.revision + 1 }))
+                .map((point) =>
+                  ctx.db.patch(point._id, {
+                    key: point.key - 1,
+                    updatedBy: user._id,
+                    updatedAt: Date.now(),
+                    revision: point.revision + 1,
+                  })
+                )
             );
         }
         await ctx.db.patch(config._id, {

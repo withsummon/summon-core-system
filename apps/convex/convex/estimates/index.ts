@@ -86,7 +86,7 @@ export const create = mutation({
     rememberSelection: v.optional(v.object({ expectedRevision: v.number() })),
   },
   handler: async (ctx, args) => {
-    const { project, projectMember, member } = await requireProject(ctx, args.projectId, true);
+    const { project, projectMember, member, user } = await requireProject(ctx, args.projectId, true);
     const config = await estimateConfig(ctx, project._id);
     if (config?.jobId) throw new ConvexError("Finish the estimate replacement first.");
     if (args.rememberSelection) {
@@ -122,6 +122,10 @@ export const create = mutation({
       // oxlint-disable-next-line no-await-in-loop
       await ctx.db.insert("estimatePoints", {
         apiId,
+        createdBy: user._id,
+        updatedBy: null,
+        updatedAt: Date.now(),
+        deletedAt: null,
         ...point,
         systemId,
         projectId: project._id,
@@ -211,7 +215,7 @@ export const select = mutation({
 export const createPoint = mutation({
   args: { systemId: v.id("estimateSystems"), expectedSystemRevision: v.number(), ...pointFields },
   handler: async (ctx, args) => {
-    const { system } = await requireSystem(ctx, args.systemId, true);
+    const { system, user } = await requireSystem(ctx, args.systemId, true);
     checkEstimateRevision(system.revision, args.expectedSystemRevision);
     const rows = await ctx.db
       .query("estimatePoints")
@@ -223,6 +227,10 @@ export const createPoint = mutation({
     validatePointValues(system.type, [...rows, fields]);
     const id = await ctx.db.insert("estimatePoints", {
       apiId: await allocateEstimatePointApiId(ctx),
+      createdBy: user._id,
+      updatedBy: null,
+      updatedAt: Date.now(),
+      deletedAt: null,
       ...fields,
       systemId,
       projectId: system.projectId,
@@ -239,7 +247,7 @@ export const updatePoint = mutation({
   handler: async (ctx, args) => {
     const point = await ctx.db.get(args.pointId);
     if (!point || point.deleted) throw new ConvexError("Estimate point not found.");
-    const { system } = await requireSystem(ctx, point.systemId, true);
+    const { system, user } = await requireSystem(ctx, point.systemId, true);
     checkEstimateRevision(point.revision, args.expectedRevision);
     const { pointId, expectedRevision, ...fields } = args;
     pointContent(fields);
@@ -248,7 +256,12 @@ export const updatePoint = mutation({
       .withIndex("by_system", (q) => q.eq("systemId", system._id).eq("deleted", false))
       .take(101);
     validatePointValues(system.type, [...rows.filter((row) => row._id !== pointId), fields]);
-    await ctx.db.patch(pointId, { ...fields, revision: point.revision + 1 });
+    await ctx.db.patch(pointId, {
+      ...fields,
+      updatedBy: user._id,
+      updatedAt: Date.now(),
+      revision: point.revision + 1,
+    });
     await ctx.db.patch(system._id, { revision: system.revision + 1 });
   },
 });
