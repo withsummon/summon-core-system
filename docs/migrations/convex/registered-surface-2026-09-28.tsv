@@ -234,7 +234,7 @@ dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/tasks.tsx:398	Co
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:135	Convex native cycles dialog composition; production acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/cycles/transfer.tsx:254	Convex native cycles dialog composition; production acceptance OPEN	cycles		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/documents/duplicate.tsx:65	Convex native documents dialog composition; production acceptance OPEN	documents	Recognized primitive/wrapper source mount; full dialog and command acceptance OPEN	OPEN
-dialog-mount	Dialog	apps/web/core/components/convex-core/documents/editor.tsx:270	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
+dialog-mount	Dialog	apps/web/core/components/convex-core/documents/editor.tsx:273	Convex source candidate; mounting route and full dialog acceptance OPEN	documents		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/documents/hierarchy.tsx:96	Convex documents.hierarchy.move source candidate	documents	Acceptance: Choose an authorized parent and move with revision proof; cycle/stale/denied recovery, cancel and reactive hierarchy update	OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/documents/metadata-form.tsx:204	Convex native documents dialog composition; production acceptance OPEN	documents		OPEN
 dialog-mount	Dialog	apps/web/core/components/convex-core/favorites/editor.tsx:231	Convex favorites.index.create folder source candidate	shared-shell	Acceptance: Create named folder, verify ordered tree publication, permissions, validation, cancellation and retry	OPEN
