@@ -188,24 +188,24 @@ convex-rpc	automation/templates:list	apps/convex/convex/automation/templates.ts:
 convex-rpc	automation/templates:options	apps/convex/convex/automation/templates.ts:112	Convex native automation owner; full production acceptance OPEN	automation	query | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:remove	apps/convex/convex/automation/templates.ts:69	Convex source candidate	automation	mutation | public | app | direct native constructor	OPEN
 convex-rpc	automation/templates:save	apps/convex/convex/automation/templates.ts:10	Convex source candidate	automation	mutation | public | app | direct native constructor	OPEN
-convex-rpc	betterAuth/adapter:create	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:currentIdentity	apps/convex/convex/betterAuth/adapter.ts:15	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | public | component | direct native constructor	OPEN
-convex-rpc	betterAuth/adapter:deleteMany	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:deleteOne	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:findMany	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	query | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:findOne	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	query | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:listApiKeys	apps/convex/convex/betterAuth/adapter.ts:44	Convex source candidate	account	query | component-export | component | direct native constructor	OPEN
-convex-rpc	betterAuth/adapter:updateMany	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	betterAuth/adapter:updateOne	apps/convex/convex/betterAuth/adapter.ts:10	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
-convex-rpc	better_auth:authenticationPolicy	apps/convex/convex/better_auth.ts:242	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:consumeHttpRateLimit	apps/convex/convex/better_auth.ts:207	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:expireRateLimits	apps/convex/convex/better_auth.ts:224	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:migrateAccount	apps/convex/convex/better_auth.ts:106	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:oauthConfiguration	apps/convex/convex/better_auth.ts:302	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | internal | app | direct native constructor	OPEN
-convex-rpc	better_auth:onCreate	apps/convex/convex/better_auth.ts:68	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:onDelete	apps/convex/convex/better_auth.ts:68	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:onUpdate	apps/convex/convex/better_auth.ts:68	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
-convex-rpc	better_auth:recordSignIn	apps/convex/convex/better_auth.ts:70	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	betterAuth/adapter:create	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:currentIdentity	apps/convex/convex/betterAuth/adapter.ts:65	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | public | component | direct native constructor	OPEN
+convex-rpc	betterAuth/adapter:deleteMany	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:deleteOne	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:findMany	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	query | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:findOne	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	query | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:listApiKeys	apps/convex/convex/betterAuth/adapter.ts:94	Convex source candidate	account	query | component-export | component | direct native constructor	OPEN
+convex-rpc	betterAuth/adapter:updateMany	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
+convex-rpc	betterAuth/adapter:updateOne	apps/convex/convex/betterAuth/adapter.ts:60	Convex source candidate	identity	mutation | component-export | component | createApi native factory	OPEN
+convex-rpc	better_auth:authenticationPolicy	apps/convex/convex/better_auth.ts:239	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:consumeHttpRateLimit	apps/convex/convex/better_auth.ts:204	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:expireRateLimits	apps/convex/convex/better_auth.ts:221	Convex source candidate	operations	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:migrateAccount	apps/convex/convex/better_auth.ts:103	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:oauthConfiguration	apps/convex/convex/better_auth.ts:299	Convex native shared-shell owner; full production acceptance OPEN	shared-shell	query | internal | app | direct native constructor	OPEN
+convex-rpc	better_auth:onCreate	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:onDelete	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:onUpdate	apps/convex/convex/better_auth.ts:65	Convex source candidate	identity	mutation | internal | app | authComponent.triggersApi native factory	OPEN
+convex-rpc	better_auth:recordSignIn	apps/convex/convex/better_auth.ts:67	Convex source candidate	identity	mutation | internal | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:counts	apps/convex/convex/commercial/clients.ts:51	Convex native Commercial owner; production acceptance OPEN	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:get	apps/convex/convex/commercial/clients.ts:62	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
 convex-rpc	commercial/clients:list	apps/convex/convex/commercial/clients.ts:35	Convex source candidate	commercial	query | public | app | direct native constructor	OPEN
