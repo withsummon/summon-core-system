@@ -211,7 +211,7 @@ export const projectApiReadOptions = z.object({
 });
 export const projectApiFailure = z
   .object({
-    status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(409), z.literal(503)]),
+    status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(405), z.literal(409), z.literal(503)]),
     detail: z.string(),
   })
   .or(z.object({ status: z.literal(404), error: z.string() }));
