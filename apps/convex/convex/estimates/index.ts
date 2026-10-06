@@ -1,10 +1,10 @@
 import { apiIdSchema } from "../identity/schema";
 import type { Id } from "../_generated/dataModel";
-import { ConvexError, v, type Infer } from "convex/values";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod";
-import { query, mutation, type MutationCtx } from "../_generated/server";
+import { internalMutation, query, mutation, type MutationCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
-import { systemFields, pointFields, pointInput } from "./schema";
+import { estimateTables, systemFields, pointFields, pointInput } from "./schema";
 import { estimateConfig, requireSystem, checkEstimateRevision } from "./access";
 function details(name: string, description: string) {
   if (!name.trim() || name.length > 255 || description.length > 20000)
@@ -115,18 +115,21 @@ export const create = mutation({
       deleted: false,
       retiring: false,
     });
-    await Promise.all(
-      points.map((point) =>
-        ctx.db.insert("estimatePoints", {
-          ...point,
-          systemId,
-          projectId: project._id,
-          revision: 0,
-          deleted: false,
-          retiring: false,
-        })
-      )
-    );
+    for (const point of points) {
+      // Sequential inserts make the indexed UUID check observe earlier allocations in this transaction.
+      // oxlint-disable-next-line no-await-in-loop
+      const apiId = await allocateEstimatePointApiId(ctx);
+      // oxlint-disable-next-line no-await-in-loop
+      await ctx.db.insert("estimatePoints", {
+        apiId,
+        ...point,
+        systemId,
+        projectId: project._id,
+        revision: 0,
+        deleted: false,
+        retiring: false,
+      });
+    }
     if (args.rememberSelection) {
       if (config) await ctx.db.patch(config._id, { lastUsedSystemId: systemId, revision: config.revision + 1 });
       else
@@ -219,6 +222,7 @@ export const createPoint = mutation({
     pointContent(fields);
     validatePointValues(system.type, [...rows, fields]);
     const id = await ctx.db.insert("estimatePoints", {
+      apiId: await allocateEstimatePointApiId(ctx),
       ...fields,
       systemId,
       projectId: system.projectId,
@@ -258,3 +262,53 @@ async function allocateEstimateSystemApiId(ctx: MutationCtx) {
   if (existing) throw new ConvexError("Estimate API identifier already exists.");
   return apiId;
 }
+
+async function allocateEstimatePointApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("estimatePoints")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Estimate point API identifier already exists.");
+  return apiId;
+}
+
+// Temporary internal owner: removed after full coverage and required-field activation.
+export const adoptPointApiIdentity = internalMutation({
+  args: {
+    expected: v.array(
+      v.object({
+        ...estimateTables.estimatePoints.validator.fields,
+        _id: v.id("estimatePoints"),
+        _creationTime: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.expected.length < 1 || args.expected.length > 20)
+      throw new ConvexError("Adopt between 1 and 20 exact estimate point preimages.");
+    const changes = [];
+    // Each UUID allocation sees preceding row writes in this transaction.
+    /* oxlint-disable no-await-in-loop */
+    for (const expected of args.expected) {
+      const current = await ctx.db.get(expected._id);
+      if (!current || compareValues(current, expected) !== 0)
+        throw new ConvexError("Estimate point changed. Capture its current preimage before adoption.");
+      if (current.apiId !== undefined) continue;
+      const system = await ctx.db.get(current.systemId);
+      const project = await ctx.db.get(current.projectId);
+      if (
+        !system ||
+        !project ||
+        system.projectId !== project._id ||
+        system.workspaceId !== project.workspaceId ||
+        !(await ctx.db.get(project.workspaceId))
+      )
+        throw new ConvexError("Estimate point scope is inconsistent.");
+      await ctx.db.patch(current._id, { apiId: await allocateEstimatePointApiId(ctx) });
+      changes.push({ before: current, after: await ctx.db.get(current._id) });
+    }
+    /* oxlint-enable no-await-in-loop */
+    return changes;
+  },
+});

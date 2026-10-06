@@ -22,13 +22,17 @@ export const estimateTables = {
     .index("by_api_id", ["apiId"])
     .index("by_project", ["projectId", "deleted"]),
   estimatePoints: defineTable({
+    // Optional only during exact-preimage adoption; allocated UUIDs are immutable.
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     ...pointFields,
     systemId: v.id("estimateSystems"),
     projectId: v.id("projects"),
     revision: v.number(),
     deleted: v.boolean(),
     retiring: v.boolean(),
-  }).index("by_system", ["systemId", "deleted"]),
+  })
+    .index("by_api_id", ["apiId"])
+    .index("by_system", ["systemId", "deleted"]),
   projectEstimates: defineTable({
     projectId: v.id("projects"),
     activeSystemId: v.union(v.id("estimateSystems"), v.null()),
