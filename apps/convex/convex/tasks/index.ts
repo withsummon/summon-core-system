@@ -266,6 +266,7 @@ export const adoptApiIdentity = internalMutation({
         current.apiId !== undefined &&
         current.updatedBy !== undefined &&
         current.type !== undefined &&
+        current.point !== undefined &&
         current.externalSource !== undefined &&
         current.externalId !== undefined
       )
@@ -277,6 +278,7 @@ export const adoptApiIdentity = internalMutation({
         ...(current.apiId === undefined ? { apiId: await allocateTaskApiId(ctx) } : {}),
         ...(current.updatedBy === undefined ? { updatedBy: null } : {}),
         ...(current.type === undefined ? { type: null } : {}),
+        ...(current.point === undefined ? { point: null } : {}),
         ...(current.externalSource === undefined ? { externalSource: null } : {}),
         ...(current.externalId === undefined ? { externalId: null } : {}),
       });

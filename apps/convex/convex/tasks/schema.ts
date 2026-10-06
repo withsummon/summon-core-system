@@ -613,6 +613,8 @@ export const taskTables = {
     updatedBy: v.optional(v.union(v.id("users"), v.null())),
     // The current native product has no IssueType assignment producer.
     type: v.optional(v.null()),
+    // Legacy integer points are separate from estimatePointId; current native creation is unassigned.
+    point: v.optional(v.union(v.number(), v.null())),
     // Optional only until exact-preimage adoption records explicit unassigned metadata.
     externalSource: v.optional(v.union(v.string(), v.null())),
     externalId: v.optional(v.union(v.string(), v.null())),
