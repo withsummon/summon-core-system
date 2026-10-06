@@ -262,13 +262,23 @@ export const adoptApiIdentity = internalMutation({
       const current = await ctx.db.get(expected._id);
       if (!current || compareValues(current, expected) !== 0)
         throw new ConvexError("Task changed. Capture its current preimage before adoption.");
-      if (current.apiId !== undefined && current.updatedBy !== undefined) continue;
+      if (
+        current.apiId !== undefined &&
+        current.updatedBy !== undefined &&
+        current.type !== undefined &&
+        current.externalSource !== undefined &&
+        current.externalId !== undefined
+      )
+        continue;
       const project = await ctx.db.get(current.projectId);
       if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
         throw new ConvexError("Task scope is inconsistent.");
       await ctx.db.patch(current._id, {
         ...(current.apiId === undefined ? { apiId: await allocateTaskApiId(ctx) } : {}),
         ...(current.updatedBy === undefined ? { updatedBy: null } : {}),
+        ...(current.type === undefined ? { type: null } : {}),
+        ...(current.externalSource === undefined ? { externalSource: null } : {}),
+        ...(current.externalId === undefined ? { externalId: null } : {}),
       });
       changes.push({ before: current, after: await ctx.db.get(current._id) });
     }

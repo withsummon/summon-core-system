@@ -611,6 +611,11 @@ export const taskTables = {
     apiId: v.optional(zodToConvex(apiIdSchema)),
     // Null means no updater at creation, or explicitly unrecorded historical provenance.
     updatedBy: v.optional(v.union(v.id("users"), v.null())),
+    // The current native product has no IssueType assignment producer.
+    type: v.optional(v.null()),
+    // Optional only until exact-preimage adoption records explicit unassigned metadata.
+    externalSource: v.optional(v.union(v.string(), v.null())),
+    externalId: v.optional(v.union(v.string(), v.null())),
     archivedAt: v.union(v.number(), v.null()),
     deletedAt: v.union(v.number(), v.null()),
     workspaceId: v.id("workspaces"),
@@ -634,6 +639,7 @@ export const taskTables = {
     completedAt: v.union(v.number(), v.null()),
   })
     .index("by_api_id", ["apiId"])
+    .index("by_project_external", ["projectId", "externalSource", "externalId", "deletedAt"])
     .index("by_project", ["projectId"])
     .index("by_project_status", ["projectId", "status"])
     .index("by_project_sequence", ["projectId", "sequence"])
