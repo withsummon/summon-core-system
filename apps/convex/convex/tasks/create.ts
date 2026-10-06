@@ -58,6 +58,7 @@ export async function createTask(
     // The creation actor remains createdBy; no updater exists until a later native revision.
     updatedBy: null,
     type: null,
+    point: null,
     externalSource: null,
     externalId: null,
     archivedAt: null,
