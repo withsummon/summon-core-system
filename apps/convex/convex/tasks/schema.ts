@@ -392,6 +392,38 @@ export const labelApiInput = z.object({
   external_id: catalogueApiExternal.default(null),
 });
 export const catalogueApiBody = z.record(z.string(), z.json());
+// Registered Issue/Work Item detail serializer fields; list/write contracts are separate.
+export const taskApiField = z.enum([
+  "parent",
+  "state",
+  "point",
+  "estimate_point",
+  "name",
+  "description_html",
+  "description_binary",
+  "priority",
+  "start_date",
+  "target_date",
+  "assignees",
+  "sequence_id",
+  "labels",
+  "sort_order",
+  "completed_at",
+  "archived_at",
+  "is_draft",
+  "external_source",
+  "external_id",
+  "type",
+  "project",
+  "workspace",
+  "id",
+  "created_at",
+  "updated_at",
+  "created_by",
+  "updated_by",
+  "deleted_at",
+  "type_id",
+]);
 export const catalogueApiResource = z.enum(["states", "labels"]);
 export const catalogueApiField = z.enum([
   "id",

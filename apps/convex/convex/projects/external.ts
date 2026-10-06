@@ -1,8 +1,11 @@
+import { plainDescriptionHtml } from "../tasks/rich_content";
+import { taskIsActive } from "../tasks/access";
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
 import { writeTaskLabel } from "../tasks/labels";
 import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
+  taskApiField,
   catalogueApiResource,
   catalogueApiField,
   stateApiField,
@@ -20,7 +23,7 @@ import {
   taskStateIsSelectable,
 } from "../tasks/schema";
 import { z } from "zod/v4";
-import { ConvexError, v, type Infer } from "convex/values";
+import { Base64, ConvexError, v, type Infer } from "convex/values";
 import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
 import {
   httpAction,
@@ -826,9 +829,9 @@ const catalogueArgs = {
   resource: zodToConvex(catalogueApiResource),
 };
 const catalogueIdentity = v.object(catalogueArgs);
-async function catalogueAccess(
+async function projectEntityAccess(
   ctx: QueryCtx,
-  args: Infer<typeof catalogueIdentity>,
+  args: Omit<Infer<typeof catalogueIdentity>, "resource"> & Partial<Pick<Infer<typeof catalogueIdentity>, "resource">>,
   method: z.infer<typeof apiRequestMetadata>["method"]
 ) {
   const access = await workspaceAccess(ctx, args.slug, args.userId);
@@ -850,7 +853,7 @@ async function catalogueAccess(
 async function catalogueWire(
   ctx: QueryCtx,
   row: Doc<"taskStates"> | Doc<"taskLabels">,
-  access: Awaited<ReturnType<typeof catalogueAccess>>,
+  access: Awaited<ReturnType<typeof projectEntityAccess>>,
   fields: string[] | null,
   expand: string[],
   assetOrigin: string
@@ -930,7 +933,7 @@ export const catalogueRead = internalQuery({
     page: v.number(),
   },
   handler: async (ctx, args) => {
-    const access = await catalogueAccess(ctx, args, args.method);
+    const access = await projectEntityAccess(ctx, args, args.method);
     if (args.method !== "GET") return null;
     const perPage = z.int().min(1).max(1000).parse(args.perPage),
       page = z.int().nonnegative().parse(args.page);
@@ -1145,6 +1148,239 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
   status = 200;
   return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
 }
+// REST project membership owns this boundary, including Guest reads of another member's task.
+// UI requireTask/taskDetail enforce a different own-task contract and cannot be reused here.
+export const taskRead = internalQuery({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    taskApiId: v.optional(v.string()),
+    method: zodToConvex(apiRequestMetadata.shape.method),
+    fields: v.union(v.array(v.string()), v.null()),
+    expand: v.array(v.string()),
+    assetOrigin: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, args.method);
+    if (args.method !== "GET") throw new ConvexError({ status: 405, detail: `Method "${args.method}" not allowed.` });
+    if (args.taskApiId === undefined)
+      throw new ConvexError({ status: 503, detail: "Task list API ordering and pagination are not available yet." });
+    const task = await ctx.db
+      .query("tasks")
+      .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+      .unique();
+    if (
+      !task ||
+      task.projectId !== access.project._id ||
+      task.workspaceId !== access.workspace._id ||
+      !taskIsActive(task) ||
+      access.project.archived
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const fields = taskApiField.options.filter((field) => args.fields === null || args.fields.includes(field));
+    const rich = fields.some(
+      (field) => (field === "description_html" || field === "description_binary") && !args.expand.includes(field)
+    )
+      ? await ctx.db
+          .query("taskDescriptions")
+          .withIndex("by_task", (q) => q.eq("taskId", task._id))
+          .unique()
+      : null;
+    const values = {
+      id: () => apiIdSchema.parse(known("id", task.apiId)),
+      created_at: () => new Date(task._creationTime).toISOString(),
+      updated_at: () => new Date(task.updatedAt).toISOString(),
+      deleted_at: () => (task.deletedAt === null ? null : new Date(task.deletedAt).toISOString()),
+      created_by: () => userReference(ctx, task.createdBy, "created_by", args.expand, access, args.assetOrigin),
+      updated_by: () => userReference(ctx, task.updatedBy, "updated_by", args.expand, access, args.assetOrigin),
+      name: () => task.title,
+      // Same stored-rich/plain historical meaning as tasks/description:get and createTask.
+      description_html: () => rich?.html ?? plainDescriptionHtml(task.description),
+      description_binary: () =>
+        rich?.descriptionBinary ? Base64.fromByteArray(new Uint8Array(rich.descriptionBinary)) : null,
+      priority: () => task.priority,
+      point: () => known("point", task.point),
+      start_date: () => (task.startDate === null ? null : new Date(task.startDate).toISOString().slice(0, 10)),
+      target_date: () => (task.targetDate === null ? null : new Date(task.targetDate).toISOString().slice(0, 10)),
+      sequence_id: () => task.sequence,
+      sort_order: () => task.sortOrder,
+      completed_at: () => (task.completedAt === null ? null : new Date(task.completedAt).toISOString()),
+      archived_at: () => (task.archivedAt === null ? null : new Date(task.archivedAt).toISOString().slice(0, 10)),
+      // Materialized Tasks have no draft flag; taskDrafts is a separate native entity/table.
+      is_draft: () => false,
+      external_source: () => known("external_source", task.externalSource),
+      external_id: () => known("external_id", task.externalId),
+      type: () => known("type", task.type),
+      type_id: () => known("type_id", task.type),
+      workspace: () =>
+        args.expand.includes("workspace")
+          ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
+          : apiIdSchema.parse(access.workspace.apiId),
+      project: () =>
+        args.expand.includes("project")
+          ? projectWire(
+              ctx,
+              { project: access.project, membership: access.membership },
+              access,
+              projectApiLiteField.options,
+              [],
+              args.assetOrigin,
+              false
+            )
+          : apiIdSchema.parse(access.project.apiId),
+      state: async () => {
+        if (task.stateId === null) return args.expand.includes("state") ? {} : null;
+        const state = await ctx.db.get(task.stateId);
+        if (!state) return unsupportedReference("state");
+        const id = apiIdSchema.parse(state.apiId);
+        return args.expand.includes("state")
+          ? { id, name: state.name, color: state.color, group: stateApiGroupFromStatus(state.status) }
+          : id;
+      },
+      parent: async () => {
+        const relation = await ctx.db
+          .query("taskParents")
+          .withIndex("by_child", (q) => q.eq("childId", task._id))
+          .unique();
+        if (!relation) return args.expand.includes("parent") ? {} : null;
+        const parent = await ctx.db.get(relation.parentId);
+        if (!parent) return unsupportedReference("parent");
+        const project = parent.projectId === access.project._id ? access.project : await ctx.db.get(parent.projectId);
+        // Native parent assignment permits another Project. Its current membership must still own disclosure.
+        if (
+          !project ||
+          (project._id !== access.project._id && !(await visibleProject(ctx, project, access))?.membership)
+        )
+          return unsupportedReference("parent");
+        const id = apiIdSchema.parse(known("parent", parent.apiId));
+        return args.expand.includes("parent")
+          ? { id, sequence_id: parent.sequence, project_id: apiIdSchema.parse(project.apiId) }
+          : id;
+      },
+      estimate_point: async () => {
+        if (task.estimatePointId === null) return args.expand.includes("estimate_point") ? {} : null;
+        const point = await ctx.db.get(task.estimatePointId);
+        if (!point) return unsupportedReference("estimate_point");
+        const id = apiIdSchema.parse(known("estimate_point", point.apiId));
+        if (!args.expand.includes("estimate_point")) return id;
+        const system = await ctx.db.get(point.systemId);
+        const project = await ctx.db.get(point.projectId);
+        if (!system || !project) return unsupportedReference("estimate_point.estimate");
+        const workspace = await ctx.db.get(project.workspaceId);
+        if (!workspace) return unsupportedReference("estimate_point.workspace");
+        const deletedAt = known("estimate_point.deleted_at", point.deletedAt);
+        return {
+          id,
+          key: point.key,
+          value: point.value,
+          description: point.description,
+          estimate: apiIdSchema.parse(system.apiId),
+          project: apiIdSchema.parse(project.apiId),
+          workspace: apiIdSchema.parse(workspace.apiId),
+          created_at: new Date(point._creationTime).toISOString(),
+          updated_at: new Date(known("estimate_point.updated_at", point.updatedAt)).toISOString(),
+          created_by: await userReference(ctx, point.createdBy, "created_by", [], access, args.assetOrigin),
+          updated_by: await userReference(ctx, point.updatedBy, "updated_by", [], access, args.assetOrigin),
+          deleted_at: deletedAt === null ? null : new Date(deletedAt).toISOString(),
+        };
+      },
+      assignees: async () => {
+        const users = await Promise.all(
+          task.assigneeIds.map(async (id) => {
+            const user = await ctx.db.get(id);
+            if (!user) return unsupportedReference("assignees");
+            return user;
+          })
+        );
+        return args.expand.includes("assignees")
+          ? Promise.all(
+              users
+                .toSorted((a, b) => b._creationTime - a._creationTime)
+                .map((user) => externalUserLite(ctx, user, args.assetOrigin, access.workspace))
+            )
+          : users.map((user) => apiIdSchema.parse(user.apiId));
+      },
+      labels: async () => {
+        const labels = await Promise.all(
+          task.labelIds.map(async (id) => {
+            const label = await ctx.db.get(id);
+            if (!label) return unsupportedReference("labels");
+            return label;
+          })
+        );
+        return args.expand.includes("labels")
+          ? Promise.all(
+              labels
+                .filter((label) => !label.retiring)
+                .toSorted((a, b) => b._creationTime - a._creationTime)
+                .map((label) => catalogueWire(ctx, label, access, labelApiField.options, [], args.assetOrigin))
+            )
+          : labels.map((label) => apiIdSchema.parse(known("labels", label.apiId)));
+      },
+    } satisfies Record<z.infer<typeof taskApiField>, () => unknown>;
+    const mapped = new Set([
+      "parent",
+      "state",
+      "estimate_point",
+      "project",
+      "workspace",
+      "created_by",
+      "updated_by",
+      "assignees",
+      "labels",
+    ]);
+    return JSON.stringify(
+      Object.fromEntries(
+        await Promise.all(
+          fields.map(async (field) => {
+            // BaseSerializer overwrites selected non-mapped expansions with <field>_id (absent except type).
+            return [
+              field,
+              args.expand.includes(field) && !mapped.has(field)
+                ? field === "type"
+                  ? known("type", task.type)
+                  : null
+                : await values[field](),
+            ];
+          })
+        )
+      )
+    );
+  },
+});
+
+async function taskResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]);
+  const taskId = route[4] ? apiIdSchema.safeParse(route[4]) : null;
+  if (!projectId.success || (taskId && !taskId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const url = new URL(request.url);
+  const options = projectApiReadOptions
+    .pick({ fields: true, expand: true })
+    .parse(Object.fromEntries(url.searchParams));
+  const bodyJson = await ctx.runQuery(internal.projects.external.taskRead, {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    taskApiId: taskId?.data,
+    method: apiRequestMetadata.shape.method.parse(request.method),
+    ...options,
+    assetOrigin: url.origin,
+  });
+  return Response.json(projectJsonText.parse(bodyJson), { status: 200, headers: responseHeaders });
+}
+
 export const projects = httpAction(async (ctx, request) => {
   if (request.method === "OPTIONS" && request.headers.has("Access-Control-Request-Method"))
     return new Response(null, { status: 200, headers });
@@ -1155,8 +1391,15 @@ export const projects = httpAction(async (ctx, request) => {
   const catalogue = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(states|labels)\/(?:([^/]+)\/)?$/.exec(
     new URL(request.url).pathname
   );
+  const task = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
   const methods = catalogue?.[4] ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
-  let responseHeaders: HeadersInit = catalogue ? { ...headers, Allow: methods.join(", ") } : headers;
+  let responseHeaders: HeadersInit = catalogue
+    ? { ...headers, Allow: methods.join(", ") }
+    : task?.[4]
+      ? { ...headers, Allow: "GET" }
+      : headers;
   try {
     const credential = await verifyRequest(ctx, request);
     userId = credential.userId;
@@ -1166,9 +1409,11 @@ export const projects = httpAction(async (ctx, request) => {
       status = credential.status;
       return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
     }
-    const response = catalogue
-      ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
-      : await projectResponse(ctx, request, credential.userId, responseHeaders);
+    const response = task
+      ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
+      : catalogue
+        ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
+        : await projectResponse(ctx, request, credential.userId, responseHeaders);
     status = response.status;
     return response;
   } catch (error) {
@@ -1211,7 +1456,7 @@ const catalogueWriteArgs = v.object({
   assetOrigin: v.string(),
 });
 async function prepareCatalogueWrite(ctx: MutationCtx, args: Infer<typeof catalogueWriteArgs>) {
-  const access = await catalogueAccess(ctx, args, args.entityApiId ? "PATCH" : "POST");
+  const access = await projectEntityAccess(ctx, args, args.entityApiId ? "PATCH" : "POST");
   const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
   if (!raw.success)
     throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
@@ -1358,7 +1603,7 @@ export const catalogueRemove = internalMutation({
   args: { ...catalogueIdentity.fields, entityApiId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const access = await catalogueAccess(ctx, args, "DELETE");
+    const access = await projectEntityAccess(ctx, args, "DELETE");
     if (args.resource === "states") {
       const state = await ctx.db
         .query("taskStates")
