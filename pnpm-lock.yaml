@@ -573,7 +573,7 @@ overrides:
 patchedDependencies:
   '@better-auth/api-key@1.6.33': f608b81d542870562278c6c42f59bafa1aa59081d4ff8881a5568bcd02eecba1
   '@convex-dev/auth@0.0.95': 893f368a07f462d0c0df822f2c3ee33cf9b5e2aef737d9047df7264fd5bb8460
-  '@convex-dev/better-auth@0.12.5': d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3
+  '@convex-dev/better-auth@0.12.5': ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35
 
 importers:
 
@@ -608,7 +608,7 @@ importers:
         version: 1.3.4
       '@convex-dev/better-auth':
         specifier: 0.12.5
-        version: 0.12.5(patch_hash=d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
+        version: 0.12.5(patch_hash=ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
       '@fontsource-variable/inter':
         specifier: 'catalog:'
         version: 5.2.8
@@ -740,7 +740,7 @@ importers:
         version: 0.0.95(patch_hash=893f368a07f462d0c0df822f2c3ee33cf9b5e2aef737d9047df7264fd5bb8460)(@auth/core@0.41.3)(convex@1.46.0(react@18.3.1))(react@18.3.1)
       '@convex-dev/better-auth':
         specifier: 0.12.5
-        version: 0.12.5(patch_hash=d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
+        version: 0.12.5(patch_hash=ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
       '@plane/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -931,7 +931,7 @@ importers:
         version: 1.3.4
       '@convex-dev/better-auth':
         specifier: 0.12.5
-        version: 0.12.5(patch_hash=d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
+        version: 0.12.5(patch_hash=ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
       '@fontsource-variable/inter':
         specifier: 'catalog:'
         version: 5.2.8
@@ -1088,7 +1088,7 @@ importers:
         version: 1.3.4
       '@convex-dev/better-auth':
         specifier: 0.12.5
-        version: 0.12.5(patch_hash=d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
+        version: 0.12.5(patch_hash=ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)
       '@fontsource-variable/inter':
         specifier: 'catalog:'
         version: 5.2.8
@@ -10677,7 +10677,7 @@ snapshots:
     optionalDependencies:
       react: 18.3.1
 
-  '@convex-dev/better-auth@0.12.5(patch_hash=d69b348850d1f27fdd4c372dbf41749f00bb4669b88844a13a28d8ede351e9e3)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)':
+  '@convex-dev/better-auth@0.12.5(patch_hash=ec9a4f7423e194a5410a587f0c182a90053e410d95db2a94fce763f1e05b9f35)(@standard-schema/spec@1.1.0)(better-auth@1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8))(convex@1.46.0(react@18.3.1))(react@18.3.1)(typescript@7.0.2)':
     dependencies:
       '@better-fetch/fetch': 1.3.2
       better-auth: 1.6.33(@opentelemetry/api@1.9.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vitest@4.1.8)
