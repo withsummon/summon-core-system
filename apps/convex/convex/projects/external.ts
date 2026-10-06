@@ -501,6 +501,7 @@ export const create = internalMutation({
         name: input.name,
         identifier: input.identifier,
         description: input.description,
+        network: input.network,
         leadId,
         defaultAssigneeId: assigneeId,
         timezone: input.timezone,
