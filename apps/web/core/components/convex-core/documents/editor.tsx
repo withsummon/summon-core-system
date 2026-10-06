@@ -191,7 +191,10 @@ function AuthenticatedEditor({
               <button
                 type="button"
                 aria-label="Open page navigation pane"
-                className="absolute top-4 right-4 z-10 grid size-7 place-items-center rounded-sm text-secondary hover:bg-layer-1"
+                className={cn(
+                  "absolute top-4 right-4 z-10 grid size-7 place-items-center rounded-sm text-secondary hover:bg-layer-1",
+                  { "md:hidden": isStickyToolbarEnabled && editable }
+                )}
                 onClick={() => setPane("outline")}
               >
                 <PanelRight className="size-3.5" />
