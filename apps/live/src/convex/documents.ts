@@ -27,8 +27,7 @@ class DocumentSession {
   watch(connection: Connection) {
     const live = new ConvexClient(this.url);
     this.live = live;
-    const deny = () =>
-      connection.close({ code: 4003, reason: "Document access changed. Reconnect with a current token." });
+    const deny = () => connection.close();
     live.subscribeToConnectionState((state) => {
       if (state.hasEverConnected && !state.isWebSocketConnected) deny();
     });
@@ -166,7 +165,12 @@ export function convexDocuments(url: string) {
     },
     async beforeHandleMessage({ context, connection, document }) {
       if (rejectedDocuments.has(document)) throw new Error("Reload document after failed save.");
-      const access = await session(context).authorize();
+      const access = await session(context)
+        .authorize()
+        .catch((error) => {
+          connection.close();
+          throw error;
+        });
       connection.readOnly = !access.canWrite;
     },
     async onStoreDocument({ context, document, instance }) {
