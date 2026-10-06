@@ -1,3 +1,4 @@
+import { taskStateDeletedAt, taskStateIsTriage } from "../tasks/schema";
 import { compareValues, ConvexError, v, type Infer } from "convex/values";
 import { query, mutation, internalMutation, type QueryCtx, type MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -35,7 +36,12 @@ export const get = query({
       revision: current?.revision ?? null,
       canConfigure: await canAdministerProject(ctx, project, user._id, member.role),
       months: inactivityMonths.members.map((entry) => entry.value),
-      cancelledStates: states.filter((state) => state.status === "cancelled"),
+      cancelledStates: states.filter(
+        (state) =>
+          taskStateDeletedAt(state.deletedAt) === null &&
+          !taskStateIsTriage(state.isTriage) &&
+          state.status === "cancelled"
+      ),
     };
   },
 });
@@ -74,7 +80,13 @@ export async function writeInactivityPolicy(
 ) {
   if (next.close) {
     const state = await ctx.db.get(next.close.stateId);
-    if (state?.projectId !== scope.projectId || state.workspaceId !== scope.workspaceId || state.status !== "cancelled")
+    if (
+      state?.projectId !== scope.projectId ||
+      state.workspaceId !== scope.workspaceId ||
+      taskStateDeletedAt(state.deletedAt) !== null ||
+      taskStateIsTriage(state.isTriage) ||
+      state.status !== "cancelled"
+    )
       throw new ConvexError("Choose a cancellation state in this project.");
   }
   if (compareValues({ archiveMonths: current?.archiveMonths ?? 0, close: current?.close ?? null }, next) === 0)
@@ -181,7 +193,13 @@ export const run = internalMutation({
           await ctx.db.patch(task._id, { archivedAt: Date.now() });
           await taskChanged(ctx, task, actor._id, { kind: "archived", automation: true });
         } else {
-          if (state?.projectId !== project._id || state.workspaceId !== workspace._id || state.status !== "cancelled")
+          if (
+            state?.projectId !== project._id ||
+            state.workspaceId !== workspace._id ||
+            taskStateDeletedAt(state.deletedAt) !== null ||
+            taskStateIsTriage(state.isTriage) ||
+            state.status !== "cancelled"
+          )
             throw new ConvexError("The inactivity policy's cancellation state is unavailable.");
           await applyPropertyUpdate(
             ctx,

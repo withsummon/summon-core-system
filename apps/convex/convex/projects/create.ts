@@ -1,3 +1,4 @@
+import { stateSlug } from "../tasks/schema";
 import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
 import { grantProjectMembership } from "./index";
 import { renderedProjectLogo } from "./branding_schema";
@@ -97,6 +98,14 @@ export async function createProject(
     // oxlint-disable-next-line no-await-in-loop
     await ctx.db.insert("taskStates", {
       apiId,
+      deletedAt: null,
+      isTriage: state.value === "triage",
+      createdBy: user._id,
+      updatedBy: null,
+      updatedAt: Date.now(),
+      externalSource: null,
+      externalId: null,
+      slug: stateSlug(defaultStates[state.value].name),
       ...defaultStates[state.value],
       status: state.value,
       description: "",

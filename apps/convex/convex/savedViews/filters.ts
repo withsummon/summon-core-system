@@ -1,3 +1,4 @@
+import { taskStateIsSelectable } from "../tasks/schema";
 import { requireUsableLabel } from "../tasks/label_access";
 import { ConvexError, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
@@ -50,7 +51,7 @@ export async function validateFilters(ctx: QueryCtx, projectId: Id<"projects">, 
   await Promise.all(
     filters.stateIds.map(async (id) => {
       const row = await ctx.db.get(id);
-      if (!row || row.projectId !== projectId || row.status === "triage")
+      if (!row || row.projectId !== projectId || !taskStateIsSelectable(row))
         throw new ConvexError("States must belong to this project and cannot be triage.");
     })
   );
@@ -125,7 +126,10 @@ export async function filterSelections(
   const states = await Promise.all(
     view.filters.stateIds.map(async (id) => {
       const state = await ctx.db.get(id);
-      return { id, name: state?.projectId === view.projectId ? state.name : null };
+      return {
+        id,
+        name: state?.projectId === view.projectId && taskStateIsSelectable(state) ? state.name : null,
+      };
     })
   );
   const labels = await Promise.all(
@@ -160,7 +164,7 @@ export async function validateWorkspaceFilters(
   await Promise.all(
     filters.stateIds.map(async (id) => {
       const row = await ctx.db.get(id);
-      if (!row || row.status === "triage" || !(await read(row.projectId)))
+      if (!row || !taskStateIsSelectable(row) || !(await read(row.projectId)))
         throw new ConvexError("Choose a state from an accessible project.");
     })
   );
@@ -204,7 +208,10 @@ export async function workspaceFilterSelections(
   const states = await Promise.all(
     view.filters.stateIds.map(async (id) => {
       const row = await ctx.db.get(id);
-      return { id, name: row && (await read(row.projectId)) ? row.name : null };
+      return {
+        id,
+        name: row && taskStateIsSelectable(row) && (await read(row.projectId)) ? row.name : null,
+      };
     })
   );
   const labels = await Promise.all(

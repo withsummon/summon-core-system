@@ -13,7 +13,15 @@ import { pageBudget } from "../commercial/validation";
 import { checkRange, inRange, matchesFilters, validateShape } from "../savedViews/filters";
 import { createTask } from "../tasks/create";
 import { initialProperties, parseTaskText, validateNonStateProperties, creationAssignees } from "../tasks/properties";
-import { priority, nonStateTaskProperties, allocateTaskStateApiId } from "../tasks/schema";
+import {
+  taskStateDeletedAt,
+  taskStateIsTriage,
+  taskStateIsSelectable,
+  stateSlug,
+  priority,
+  nonStateTaskProperties,
+  allocateTaskStateApiId,
+} from "../tasks/schema";
 import { taskRichContent, plainDescriptionHtml } from "../tasks/rich_content";
 import { taskChanged } from "../tasks/revision";
 import { requireTask, taskCanRead } from "../tasks/access";
@@ -98,16 +106,25 @@ export const submit = mutation({
     });
     const content = taskRichContent(args.html);
     const { title } = parseTaskText(args.title, content.description);
-    let state = await ctx.db
+    const triageStates = await ctx.db
       .query("taskStates")
       .withIndex("by_project_name", (q) => q.eq("projectId", project._id).eq("name", "Triage"))
-      .unique();
-    if (state && state.status !== "triage")
+      .collect();
+    const state = triageStates.find((row) => taskStateDeletedAt(row.deletedAt) === null);
+    if (state && (!taskStateIsTriage(state.isTriage) || state.status !== "triage"))
       throw new ConvexError("Rename the existing Triage state before enabling submissions.");
     const stateId =
       state?._id ??
       (await ctx.db.insert("taskStates", {
         apiId: await allocateTaskStateApiId(ctx),
+        deletedAt: null,
+        isTriage: true,
+        createdBy: user._id,
+        updatedBy: null,
+        updatedAt: Date.now(),
+        externalSource: null,
+        externalId: null,
+        slug: stateSlug("Triage"),
         projectId: project._id,
         workspaceId: project.workspaceId,
         name: "Triage",
@@ -312,7 +329,7 @@ export const decide = mutation({
         .query("taskStates")
         .withIndex("by_project_default", (q) => q.eq("projectId", task.projectId).eq("isDefault", true))
         .unique();
-      if (!state || state.status === "triage")
+      if (!state || !taskStateIsSelectable(state))
         throw new ConvexError("Cannot accept: no default state exists for this project.");
       await ctx.db.patch(task._id, {
         stateId: state._id,

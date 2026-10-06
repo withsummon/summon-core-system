@@ -1,3 +1,4 @@
+import { taskStateDeletedAt, taskStateIsTriage } from "./schema";
 import { requireUsableLabel } from "./label_access";
 import { validateEstimatePoint } from "../estimates/access";
 import { ConvexError, v, type Infer } from "convex/values";
@@ -99,7 +100,13 @@ export async function validateProperties(
   const state = data.stateId ? await ctx.db.get(data.stateId) : null;
   if (data.stateId && (!state || state.projectId !== project._id))
     throw new ConvexError("State must belong to this project.");
-  if (state?.status === "triage") throw new ConvexError("Use intake to manage triage tasks.");
+  if (
+    state &&
+    (((taskStateDeletedAt(state.deletedAt) !== null || taskStateIsTriage(state.isTriage)) &&
+      data.stateId !== retainedTask?.stateId) ||
+      state.status === "triage")
+  )
+    throw new ConvexError("Use intake to manage triage tasks.");
   return { data: { ...validated, stateId: data.stateId }, state: state ? { ...state, status: state.status } : null };
 }
 

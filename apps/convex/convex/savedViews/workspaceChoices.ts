@@ -1,3 +1,4 @@
+import { taskStateIsSelectable } from "../tasks/schema";
 import { v } from "convex/values";
 import { stream } from "convex-helpers/server/stream";
 import schema from "../schema";
@@ -19,7 +20,7 @@ export const states = query({
       .order("desc")
       .map(async (row) => {
         const permission = await read(row.projectId);
-        return permission && row.status !== "triage"
+        return permission && taskStateIsSelectable(row)
           ? { id: row._id, name: row.name, project: projectSummary(permission.project) }
           : null;
       })

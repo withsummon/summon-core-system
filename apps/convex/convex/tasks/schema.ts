@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { apiIdSchema } from "../identity/schema";
 import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
@@ -254,6 +255,110 @@ export const taskPosition = v.object({
   previous: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
   next: v.union(v.object({ taskId: v.id("tasks"), expectedUpdatedAt: v.number() }), v.null()),
 });
+// Optional only until every historical catalogue row has evidence-based adoption.
+export const stateTriage = v.optional(v.boolean());
+export const stateRetirement = v.optional(v.union(v.number(), v.null()));
+export function taskStateDeletedAt(value: Infer<typeof stateRetirement>) {
+  if (value === undefined)
+    throw new ConvexError({ status: 503, detail: "This state's retirement history has not been adopted." });
+  return value;
+}
+export function taskStateIsTriage(value: Infer<typeof stateTriage>) {
+  if (value === undefined)
+    throw new ConvexError({ status: 503, detail: "This state's triage classification has not been adopted." });
+  return value;
+}
+export function taskStateIsSelectable(
+  state: Pick<Doc<"taskStates">, "deletedAt" | "isTriage" | "status">
+): state is Pick<Doc<"taskStates">, "deletedAt" | "isTriage" | "status"> & {
+  status: Infer<typeof status>;
+  deletedAt: null;
+  isTriage: false;
+} {
+  return (
+    taskStateDeletedAt(state.deletedAt) === null && !taskStateIsTriage(state.isTriage) && state.status !== "triage"
+  );
+}
+export const catalogueHistoryFields = {
+  createdBy: v.optional(v.union(v.id("users"), v.null())),
+  updatedBy: v.optional(v.union(v.id("users"), v.null())),
+  updatedAt: v.optional(v.number()),
+  externalSource: v.optional(v.union(v.string(), v.null())),
+  externalId: v.optional(v.union(v.string(), v.null())),
+};
+export const stateApiGroup = z.enum(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
+export const stateApiNativeGroup = {
+  backlog: "backlog",
+  unstarted: "todo",
+  started: "in_progress",
+  completed: "done",
+  cancelled: "cancelled",
+  triage: "triage",
+} satisfies Record<z.infer<typeof stateApiGroup>, Infer<typeof taskStatus>>;
+export function stateApiGroupFromStatus(value: Infer<typeof taskStatus>) {
+  const group = stateApiGroup.options.find((entry) => stateApiNativeGroup[entry] === value);
+  if (group === undefined) throw new Error("State group is absent from its canonical external enumeration.");
+  return group;
+}
+const catalogueApiText = z.string().trim().max(255);
+const catalogueApiExternal = catalogueApiText.nullable();
+export const stateApiInput = z.object({
+  name: catalogueApiText.min(1),
+  color: catalogueApiText,
+  description: z.string().trim().default(""),
+  group: stateApiGroup.exclude(["triage"]).default("backlog"),
+  sequence: z.number().finite().default(65535),
+  default: z.boolean().default(false),
+  is_triage: z.boolean().default(false),
+  external_source: catalogueApiExternal.default(null),
+  external_id: catalogueApiExternal.default(null),
+});
+// Validate only supplied PATCH fields. Its defaulted partial output is never applied.
+export const stateApiSupplied = stateApiInput.extend({ color: catalogueApiText.min(1) }).partial();
+export const labelApiInput = z.object({
+  name: catalogueApiText.min(1),
+  color: catalogueApiText.default(""),
+  description: z.string().trim().default(""),
+  parent: apiIdSchema.nullable().default(null),
+  sort_order: z.number().finite().default(65535),
+  external_source: catalogueApiExternal.default(null),
+  external_id: catalogueApiExternal.default(null),
+});
+export const catalogueApiBody = z.record(z.string(), z.json());
+export const catalogueApiResource = z.enum(["states", "labels"]);
+export const catalogueApiField = z.enum([
+  "id",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "workspace",
+  "project",
+  "name",
+  "description",
+  "color",
+  "slug",
+  "sequence",
+  "group",
+  "is_triage",
+  "default",
+  "external_source",
+  "external_id",
+  "parent",
+  "sort_order",
+]);
+export const stateApiField = catalogueApiField.exclude(["parent", "sort_order"]);
+export const labelApiField = catalogueApiField.exclude(["slug", "sequence", "group", "is_triage", "default"]);
+export const catalogueApiValidationFailure = z.object({
+  status: z.literal(400),
+  errors: z.record(z.string(), z.array(z.string())),
+});
+export const catalogueApiFailure = z.object({
+  status: z.union([z.literal(400), z.literal(404), z.literal(409)]),
+  error: z.string(),
+  id: apiIdSchema.optional(),
+});
 export const stateContentFields = {
   name: v.string(),
   description: v.string(),
@@ -265,7 +370,19 @@ export const stateFields = {
   sortOrder: v.number(),
   isDefault: v.boolean(),
 };
+export const stateWriteFields = {
+  ...stateFields,
+  isTriage: v.boolean(),
+  externalSource: v.optional(v.union(v.string(), v.null())),
+  externalId: v.optional(v.union(v.string(), v.null())),
+};
 export const labelFields = { name: v.string(), description: v.string(), color: v.string(), sortOrder: v.number() };
+export const labelWriteFields = {
+  ...labelFields,
+  parentId: v.union(v.id("taskLabels"), v.null()),
+  externalSource: v.optional(v.union(v.string(), v.null())),
+  externalId: v.optional(v.union(v.string(), v.null())),
+};
 export const relationKind = v.union(
   v.literal("blocks"),
   v.literal("relates_to"),
@@ -464,6 +581,10 @@ export const taskTables = {
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_actor", ["workspaceId", "actorId"]),
   taskStates: defineTable({
+    ...catalogueHistoryFields,
+    isTriage: stateTriage,
+    deletedAt: stateRetirement,
+    slug: v.optional(v.string()),
     apiId: zodToConvex(apiIdSchema),
     ...stateFields,
     status: taskStatus,
@@ -488,6 +609,8 @@ export const taskTables = {
     status: v.union(v.literal("running"), v.literal("completed"), v.literal("cancelled")),
   }).index("by_project", ["projectId"]),
   taskLabels: defineTable({
+    ...catalogueHistoryFields,
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     ...labelFields,
     workspaceId: v.id("workspaces"),
     projectId: v.id("projects"),
@@ -495,6 +618,7 @@ export const taskTables = {
     revision: v.number(),
     retiring: v.boolean(),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_project_name", ["projectId", "name"])
     .index("by_project_order", ["projectId", "sortOrder"]),
@@ -508,4 +632,41 @@ export async function allocateTaskStateApiId(ctx: MutationCtx) {
     .unique();
   if (existing) throw new ConvexError("State API identifier already exists.");
   return apiId;
+}
+
+export async function allocateTaskLabelApiId(ctx: MutationCtx) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  if (
+    await ctx.db
+      .query("taskLabels")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+      .unique()
+  )
+    throw new ConvexError("Label API identifier already exists.");
+  return apiId;
+}
+export function stateSlug(name: string) {
+  return name
+    .normalize("NFKD")
+    .split("")
+    .filter((character) => character.charCodeAt(0) < 128)
+    .join("")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[-\s]+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "");
+}
+
+// Temporary native write gate. Delete after adoption is complete and these
+// stored fields are required by the table schema.
+export function requireTaskLabelAdopted(label: Doc<"taskLabels">) {
+  if (
+    label.apiId === undefined ||
+    label.createdBy === undefined ||
+    label.updatedBy === undefined ||
+    label.updatedAt === undefined ||
+    label.externalSource === undefined ||
+    label.externalId === undefined
+  )
+    throw new ConvexError("Label catalogue requires explicit adoption before writing.");
 }

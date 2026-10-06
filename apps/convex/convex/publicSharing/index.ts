@@ -1,3 +1,4 @@
+import { taskStateIsSelectable } from "../tasks/schema";
 import { ConvexError, v, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -222,7 +223,7 @@ export const catalog = query({
     ]);
     return {
       states: states.flatMap((state) =>
-        state.workspaceId !== project.workspaceId || state.status === "triage"
+        state.workspaceId !== project.workspaceId || !taskStateIsSelectable(state)
           ? []
           : [{ _id: state._id, name: state.name, status: state.status, color: state.color, sortOrder: state.sortOrder }]
       ),

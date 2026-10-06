@@ -1,9 +1,9 @@
-import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
+import { internalMutation, mutation, query } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { canAdministerProject } from "../projects/administration";
-import { labelFields } from "./schema";
+import { taskTables, requireTaskLabelAdopted, labelFields, labelWriteFields, allocateTaskLabelApiId } from "./schema";
 import { requireLabelManagement } from "./label_access";
 import { text } from "../commercial/validation";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -59,8 +59,9 @@ export const save = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { project } = await requireLabelManagement(ctx, args.projectId);
+    const { project, user } = await requireLabelManagement(ctx, args.projectId);
     const rows = await projectLabels(ctx, project._id);
+    rows.forEach(requireTaskLabelAdopted);
     const existing = rows.find((row) => row._id === args.labelId);
     if (args.labelId && (!existing || existing.retiring))
       throw new ConvexError("Label is unavailable or being removed.");
@@ -73,24 +74,26 @@ export const save = mutation({
       if (rows.some((row) => row._id !== args.labelId && row.name.toLocaleLowerCase() === name.toLocaleLowerCase()))
         throw new ConvexError("This label name already exists.");
       const data = { name, description, color };
-      if (existing) {
-        await ctx.db.patch(existing._id, { ...data, revision: existing.revision + 1 });
-        return existing._id;
-      }
+      if (existing)
+        return writeTaskLabel(ctx, project, user, existing, {
+          ...data,
+          sortOrder: existing.sortOrder,
+          parentId: existing.parentId,
+          externalSource: existing.externalSource,
+          externalId: existing.externalId,
+        });
       if (rows.length >= 1000) throw new ConvexError("A project supports up to 1000 labels.");
-      return ctx.db.insert("taskLabels", {
+      return writeTaskLabel(ctx, project, user, null, {
         ...data,
         sortOrder: (rows.at(-1)?.sortOrder ?? 0) + 10000,
         parentId: null,
-        workspaceId: project.workspaceId,
-        projectId: project._id,
-        revision: 0,
-        retiring: false,
+        externalSource: null,
+        externalId: null,
       });
     }
     if (!existing) throw new ConvexError("Choose an existing label to move.");
     const { parentId, position } = args.change;
-    validateLabelGroups(rows, existing, parentId);
+    await validateLabelGroups(ctx, rows, existing, parentId);
     if (position.targetId === null && existing.parentId === parentId) return existing._id;
     const siblings = rows.filter((row) => row._id !== existing._id && row.parentId === parentId);
     let index = siblings.length;
@@ -104,32 +107,138 @@ export const save = mutation({
     await Promise.all(
       siblings.map(async (row, siblingIndex) => {
         const sortOrder = (siblingIndex + (siblingIndex >= index ? 2 : 1)) * 10000;
-        if (row.sortOrder !== sortOrder) await ctx.db.patch(row._id, { sortOrder, revision: row.revision + 1 });
+        if (row.sortOrder !== sortOrder)
+          await ctx.db.patch(row._id, {
+            sortOrder,
+            updatedBy: user._id,
+            updatedAt: Date.now(),
+            revision: row.revision + 1,
+          });
       })
     );
-    await ctx.db.patch(existing._id, { parentId, sortOrder: (index + 1) * 10000, revision: existing.revision + 1 });
+    await ctx.db.patch(existing._id, {
+      parentId,
+      sortOrder: (index + 1) * 10000,
+      updatedBy: user._id,
+      updatedAt: Date.now(),
+      revision: existing.revision + 1,
+    });
     return existing._id;
   },
 });
 
-function validateLabelGroups(
+export async function validateLabelGroups(
+  ctx: QueryCtx,
   rows: Doc<"taskLabels">[],
   existing: Doc<"taskLabels">,
   parentId: Id<"taskLabels"> | null
 ) {
   if (parentId) {
-    const parent = rows.find((row) => row._id === parentId);
-    if (!parent || parent.retiring) throw new ConvexError("Choose an active group in this project.");
+    const parent = await ctx.db.get(parentId);
+    if (!parent || parent.retiring)
+      throw new ConvexError({ status: 400, errors: { parent: ["Choose an active group in this project."] } });
+    if (parent.projectId !== existing.projectId || parent.workspaceId !== existing.workspaceId)
+      throw new ConvexError({
+        status: 503,
+        detail: "Cross-project label parent references have not been adopted by the native hierarchy owner.",
+      });
   }
   const parents = new Map(rows.map((row) => [row._id, row._id === existing._id ? parentId : row.parentId]));
   for (const row of rows) {
     const visited = new Set<Id<"taskLabels">>();
     let current: Id<"taskLabels"> | null = row._id;
     while (current) {
-      if (visited.has(current)) throw new ConvexError("A label cannot contain itself or its ancestors.");
+      if (visited.has(current))
+        throw new ConvexError({ status: 400, errors: { parent: ["A label cannot contain itself or its ancestors."] } });
       visited.add(current);
-      if (visited.size > 20) throw new ConvexError("Label groups support at most 20 levels.");
+      if (visited.size > 20)
+        throw new ConvexError({ status: 400, errors: { parent: ["Label groups support at most 20 levels."] } });
       current = parents.get(current) ?? null;
     }
   }
 }
+
+const labelWrite = v.object(labelWriteFields);
+export async function writeTaskLabel(
+  ctx: MutationCtx,
+  project: Doc<"projects">,
+  user: Doc<"users">,
+  existing: Doc<"taskLabels"> | null,
+  data: Infer<typeof labelWrite>
+) {
+  if (existing) {
+    if (existing.projectId !== project._id || existing.workspaceId !== project.workspaceId || existing.retiring)
+      throw new ConvexError("Label is unavailable or being removed.");
+    await ctx.db.patch(existing._id, {
+      ...data,
+      updatedBy: user._id,
+      updatedAt: Date.now(),
+      revision: existing.revision + 1,
+    });
+    return existing._id;
+  }
+  return ctx.db.insert("taskLabels", {
+    ...data,
+    apiId: await allocateTaskLabelApiId(ctx),
+    workspaceId: project.workspaceId,
+    projectId: project._id,
+    createdBy: user._id,
+    updatedBy: null,
+    updatedAt: Date.now(),
+    revision: 0,
+    retiring: false,
+  });
+}
+
+// Temporary missing-only migration. Remove after complete field coverage and a
+// second zero-write pass on every deployment, then require the stored fields.
+export const adoptCatalogue = internalMutation({
+  args: {
+    expected: v.array(
+      v.object({
+        ...taskTables.taskLabels.validator.fields,
+        _id: v.id("taskLabels"),
+        _creationTime: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.expected.length < 1 || args.expected.length > 20)
+      throw new ConvexError("Adopt between 1 and 20 exact Label preimages.");
+    const changes = [];
+    const updatedAt = Date.now();
+    // Each UUID allocation sees earlier inserts; capture exact native before/after rows.
+    /* oxlint-disable no-await-in-loop */
+    for (const expected of args.expected) {
+      const current = await ctx.db.get(expected._id);
+      if (!current || compareValues(current, expected) !== 0)
+        throw new ConvexError("Label changed. Capture its current preimage before adoption.");
+      const fields = [
+        current.apiId,
+        current.createdBy,
+        current.updatedBy,
+        current.updatedAt,
+        current.externalSource,
+        current.externalId,
+      ];
+      if (fields.every((value) => value !== undefined)) continue;
+      if (fields.some((value) => value !== undefined))
+        throw new ConvexError("Partial Label adoption requires explicit review.");
+      const project = await ctx.db.get(current.projectId);
+      if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
+        throw new ConvexError("Label scope is inconsistent.");
+      await ctx.db.patch(current._id, {
+        apiId: await allocateTaskLabelApiId(ctx),
+        createdBy: null,
+        updatedBy: null,
+        updatedAt,
+        externalSource: null,
+        externalId: null,
+        revision: current.revision + 1,
+      });
+      changes.push({ before: current, after: await ctx.db.get(current._id) });
+    }
+    /* oxlint-enable no-await-in-loop */
+    return changes;
+  },
+});
