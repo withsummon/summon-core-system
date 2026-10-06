@@ -194,7 +194,14 @@ function PreservedSettingsFrame({
           workspace={workspace}
           workspaces={workspaces}
           user={user}
-          powerK={<WorkspaceCommands workspace={workspace} onCreateSticky={create} onOpenStickies={commands.openAll} />}
+          powerK={
+            <WorkspaceCommands
+              workspace={workspace}
+              workspaces={workspaces}
+              onCreateSticky={create}
+              onOpenStickies={commands.openAll}
+            />
+          }
           beforeLeave={commands.flushAll}
         />
       }
@@ -298,6 +305,7 @@ export function PreservedWorkspaceShell({
           powerK={
             <WorkspaceCommands
               workspace={workspace}
+              workspaces={workspaces}
               onCreateSticky={onCreateSticky}
               onOpenStickies={onOpenStickies}
               commands={commands}

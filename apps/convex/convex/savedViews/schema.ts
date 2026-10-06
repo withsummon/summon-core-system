@@ -45,6 +45,7 @@ export const savedViewTables = {
     .index("by_project_name", ["projectId", "nameFolded"])
     .index("by_project_updated", ["projectId", "updatedAt"])
     .index("by_project_created", ["projectId"])
+    .index("by_workspace_deleted", ["workspaceId", "deletedAt"])
     .index("by_workspace_project_deleted", ["workspaceId", "projectId", "deletedAt"]),
   savedViewFavorites: defineTable({
     workspaceId: v.id("workspaces"),

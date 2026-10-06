@@ -74,6 +74,7 @@ export const cycleTables = {
     deleted: v.boolean(),
   })
     .index("by_project", ["projectId", "deleted"])
+    .index("by_workspace_created", ["workspaceId", "deleted"])
     .index("by_workspace", ["workspaceId", "deleted", "archived"]),
   cycleTasks: defineTable({ cycleId: v.id("cycles"), taskId: v.id("tasks") })
     .index("by_task", ["taskId"])
