@@ -3,9 +3,8 @@ import { paginationOptsValidator, paginationResultValidator } from "convex/serve
 import { paginator } from "convex-helpers/server/pagination";
 import { v } from "convex/values";
 import { z } from "zod";
-import { authOptions } from "../better_auth";
 import { query } from "./_generated/server";
-import schema from "./schema";
+import schema, { authOptions } from "./schema";
 
 export const { create, findOne, findMany, updateOne, updateMany, deleteOne, deleteMany } = createApi(
   schema,

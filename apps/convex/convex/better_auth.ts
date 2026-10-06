@@ -1,8 +1,6 @@
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
-import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { requireRunMutationCtx } from "@convex-dev/better-auth/utils";
-import { apiKey } from "@better-auth/api-key";
-import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
+import { betterAuth } from "better-auth/minimal";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, genericOAuth } from "better-auth/plugins";
 import type { BetterAuthRateLimitOptions, RateLimit } from "better-auth/types";
@@ -10,14 +8,12 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
-import authConfig from "./auth.config";
-import authSchema from "./betterAuth/schema";
+import authSchema, { authOptions } from "./betterAuth/schema";
 import { requireUnrestrictedAccount } from "./identity/deactivation/access";
 import { deactivateAccount } from "./identity/deactivation/index";
 import { sendAccountEmail } from "./identity/mail/sender";
 import { signInAvailability } from "./identity/signin_policy";
 import { authenticationDecision } from "./identity/instance/authentication";
-import { mailConfiguration } from "./identity/mail/config";
 import { currentMailReadiness, runtimeMail } from "./identity/instance/email";
 import { z } from "zod/v4";
 import { zodToConvex } from "convex-helpers/server/zod4";
@@ -25,13 +21,13 @@ import { requireSignup } from "./identity/signup_policy";
 import { nativeOAuthProviders, verifiedProviderProfile } from "./identity/oauth/providers";
 import { profileForUser } from "./identity/profile_owner";
 import { runtimeOAuth } from "./identity/instance/oauth";
-import { oauthProviderIds, oauthConfigurations } from "./identity/oauth/config";
+import { oauthProviderIds } from "./identity/oauth/config";
 import { passwordAttemptWindowMs } from "./identity/password/policy";
 import { normalizedEmail } from "./invitations/access";
 import { instanceAuthentication, lastLoginMedium } from "./identity/schema";
 import { allocateUserApiId } from "./identity/user_owner";
 
-export const siteUrl = process.env.SITE_URL ?? "";
+export { siteUrl } from "./betterAuth/schema";
 
 const authFunctions: AuthFunctions = internal.better_auth;
 export const authComponent = createClient<DataModel, typeof authSchema>(components.betterAuth, {
@@ -308,11 +304,29 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   let verifiedProfile: z.infer<typeof verifiedProviderProfile> | undefined;
   let createdNativeUserId: string | undefined;
   const requestMail = emailOTP({
-    ...emailOTPOptions,
+    overrideDefaultEmailVerification: true,
+    changeEmail: { enabled: true, verifyCurrentEmail: true },
+    expiresIn: 600,
+    allowedAttempts: 5,
+    storeOTP: "encrypted",
     async sendVerificationOTP(data) {
       const configuration =
         "db" in ctx ? await runtimeMail(ctx) : await ctx.runQuery(internal.identity.instance.email.runtime, {});
-      await sendVerificationOTP(configuration, data);
+      if (!configuration) throw new Error("Account email delivery is not configured.");
+      const purpose =
+        data.type === "sign-in"
+          ? "Sign in"
+          : data.type === "email-verification"
+            ? "Verify your email"
+            : data.type === "forget-password"
+              ? "Reset your password"
+              : "Change your email";
+      await sendAccountEmail(
+        configuration,
+        data.email,
+        `${purpose} · Summon Core`,
+        `${purpose} code: ${data.otp}\nThis code expires in 10 minutes.`
+      );
     },
   });
   const oauthOptions: Parameters<typeof genericOAuth>[0] = { config: [] };
@@ -345,9 +359,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     ...authOptions,
     database: authComponent.adapter(ctx),
-    plugins: authOptions.plugins.map((plugin) =>
-      plugin.id === "generic-oauth" ? requestOAuth : plugin.id === "email-otp" ? requestMail : plugin
-    ),
+    plugins: [...authOptions.plugins, requestOAuth, requestMail],
     rateLimit: { ...authOptions.rateLimit, customStorage: rateLimitStorage },
     databaseHooks: {
       user: {
@@ -430,82 +442,3 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
   });
 };
-
-async function sendVerificationOTP(
-  configuration: ReturnType<typeof mailConfiguration>,
-  { email, otp, type }: Parameters<Parameters<typeof emailOTP>[0]["sendVerificationOTP"]>[0]
-) {
-  if (!configuration) throw new Error("Account email delivery is not configured.");
-  const purpose =
-    type === "sign-in"
-      ? "Sign in"
-      : type === "email-verification"
-        ? "Verify your email"
-        : type === "forget-password"
-          ? "Reset your password"
-          : "Change your email";
-  await sendAccountEmail(
-    configuration,
-    email,
-    `${purpose} · Summon Core`,
-    `${purpose} code: ${otp}\nThis code expires in 10 minutes.`
-  );
-}
-const emailOTPOptions = {
-  overrideDefaultEmailVerification: true,
-  changeEmail: { enabled: true, verifyCurrentEmail: true },
-  expiresIn: 600,
-  allowedAttempts: 5,
-  storeOTP: "encrypted",
-  async sendVerificationOTP(data) {
-    await sendVerificationOTP(mailConfiguration(process.env), data);
-  },
-} satisfies Parameters<typeof emailOTP>[0];
-
-// The documented local component and runtime share the native plugin schema.
-// The database adapter, HTTP limiter, and sign-in recorder require a runtime context.
-export const authOptions = {
-  baseURL: process.env.CONVEX_SITE_URL,
-  trustedOrigins: [siteUrl],
-  rateLimit: { enabled: true, storage: "database", customRules: { "/convex/jwks": false } },
-  session: { freshAge: 300 },
-  user: { deleteUser: { enabled: true } },
-  // Public unlink is disabled; the canonical disconnect mutation owns the live method floor.
-  account: { accountLinking: { allowUnlinkingAll: true } },
-  disabledPaths: [
-    "/delete-user",
-    "/delete-user/callback",
-    "/unlink-account",
-    "/change-password",
-    "/verify-password",
-    "/update-user",
-    "/api-key/create",
-    "/api-key/list",
-    "/api-key/get",
-    "/api-key/update",
-    "/api-key/delete",
-  ],
-  emailAndPassword: {
-    // Native verification serves the current administrator exception; issuer hooks own policy.
-    enabled: true,
-    requireEmailVerification: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 1024,
-    revokeSessionsOnPasswordReset: true,
-  },
-  emailVerification: { sendOnSignUp: true, sendOnSignIn: true },
-  plugins: [
-    crossDomain({ siteUrl }),
-    convex({ authConfig }),
-    apiKey({
-      defaultPrefix: "plane_api_",
-      requireName: true,
-      maximumNameLength: 255,
-      enableMetadata: true,
-      keyExpiration: { minExpiresIn: 0, maxExpiresIn: Infinity },
-      rateLimit: { timeWindow: 60_000, maxRequests: 60 },
-    }),
-    genericOAuth({ config: nativeOAuthProviders(oauthConfigurations(process.env)) }),
-    emailOTP(emailOTPOptions),
-  ],
-} satisfies BetterAuthOptions;
