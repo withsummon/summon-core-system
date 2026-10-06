@@ -300,27 +300,94 @@ export function stateApiGroupFromStatus(value: Infer<typeof taskStatus>) {
   if (group === undefined) throw new Error("State group is absent from its canonical external enumeration.");
   return group;
 }
-const catalogueApiText = z.string().trim().max(255);
+// DRF's REST fields accept these representations; native UI schemas remain strict.
+const catalogueApiString = z.preprocess(
+  (value) => (typeof value === "number" ? String(value) : value),
+  z
+    .string({
+      error: (issue) =>
+        issue.input === undefined
+          ? "This field is required."
+          : issue.input === null
+            ? "This field may not be null."
+            : "Not a valid string.",
+    })
+    .transform((value) =>
+      value.replace(
+        // Python str.strip owns U+001C–001F whitespace for these REST fields.
+        // eslint-disable-next-line no-control-regex
+        /^[\t-\r \u001c-\u001f\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t-\r \u001c-\u001f\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/gu,
+        ""
+      )
+    )
+    .refine((value) => !value.includes("\0"), "Null characters are not allowed.")
+    .refine((value) => !/[\uD800-\uDFFF]/u.test(value), "Surrogate characters are not allowed.")
+);
+const catalogueApiText = catalogueApiString.refine(
+  (value) => [...value].length <= 255,
+  "Ensure this field has no more than 255 characters."
+);
+const catalogueApiRequiredText = catalogueApiText.refine((value) => value.length > 0, "This field may not be blank.");
 const catalogueApiExternal = catalogueApiText.nullable();
-export const stateApiInput = z.object({
-  name: catalogueApiText.min(1),
+const catalogueApiBoolean = z.preprocess(
+  (value) => (value === 0 ? false : value === 1 ? true : value),
+  z.union(
+    [
+      z.boolean(),
+      z.stringbool({ truthy: ["t", "y", "yes", "true", "on", "1"], falsy: ["f", "n", "no", "false", "off", "0"] }),
+    ],
+    { error: (issue) => (issue.input === null ? "This field may not be null." : "Must be a valid boolean.") }
+  )
+);
+const catalogueApiNumber = z.preprocess(
+  (value) =>
+    typeof value === "boolean"
+      ? Number(value)
+      : typeof value === "string" &&
+          value.length <= 1000 &&
+          /^[+-]?(?:(?:\d(?:_?\d)*)?(?:\.\d(?:_?\d)*)|\d(?:_?\d)*\.?)(?:[eE][+-]?\d(?:_?\d)*)?$/.test(value.trim())
+        ? Number(value.replaceAll("_", ""))
+        : value,
+  z.number({
+    error: (issue) =>
+      issue.input === null
+        ? "This field may not be null."
+        : typeof issue.input === "string" && [...issue.input].length > 1000
+          ? "String value too large."
+          : "A valid number is required.",
+  })
+);
+const stateApiFields = z.object({
+  name: catalogueApiRequiredText,
   color: catalogueApiText,
-  description: z.string().trim().default(""),
-  group: stateApiGroup.exclude(["triage"]).default("backlog"),
-  sequence: z.number().finite().default(65535),
-  default: z.boolean().default(false),
-  is_triage: z.boolean().default(false),
+  description: catalogueApiString.default(""),
+  group: stateApiGroup.default("backlog"),
+  sequence: catalogueApiNumber.default(65535),
+  default: catalogueApiBoolean.default(false),
+  is_triage: catalogueApiBoolean.default(false),
   external_source: catalogueApiExternal.default(null),
   external_id: catalogueApiExternal.default(null),
 });
 // Validate only supplied PATCH fields. Its defaulted partial output is never applied.
-export const stateApiSupplied = stateApiInput.extend({ color: catalogueApiText.min(1) }).partial();
+export const stateApiSupplied = stateApiFields.extend({ color: catalogueApiRequiredText }).partial();
+export const stateApiInput = stateApiFields.transform(({ group, ...fields }, ctx) => {
+  if (group === "triage") {
+    ctx.issues.push({
+      code: "custom",
+      input: group,
+      message: "Cannot create triage state",
+      path: ["non_field_errors"],
+    });
+    return z.NEVER;
+  }
+  return { ...fields, group };
+});
 export const labelApiInput = z.object({
-  name: catalogueApiText.min(1),
+  name: catalogueApiRequiredText,
   color: catalogueApiText.default(""),
-  description: z.string().trim().default(""),
+  description: catalogueApiString.default(""),
   parent: apiIdSchema.nullable().default(null),
-  sort_order: z.number().finite().default(65535),
+  sort_order: catalogueApiNumber.default(65535),
   external_source: catalogueApiExternal.default(null),
   external_id: catalogueApiExternal.default(null),
 });

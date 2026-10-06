@@ -829,7 +829,7 @@ const catalogueIdentity = v.object(catalogueArgs);
 async function catalogueAccess(
   ctx: QueryCtx,
   args: Infer<typeof catalogueIdentity>,
-  method: "GET" | "POST" | "PATCH" | "DELETE"
+  method: z.infer<typeof apiRequestMetadata>["method"]
 ) {
   const access = await workspaceAccess(ctx, args.slug, args.userId);
   const project = await ctx.db
@@ -841,7 +841,7 @@ async function catalogueAccess(
   const allowed =
     args.resource === "labels" && method === "POST"
       ? access.member.role !== "guest"
-      : membership && (method === "GET" || membership.role !== "guest");
+      : membership && (method === "GET" || method === "HEAD" || membership.role !== "guest");
   if (!allowed) throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
   if (!project || project.workspaceId !== access.workspace._id || project.deletedAt !== null)
     throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
@@ -925,6 +925,7 @@ async function catalogueWire(
 export const catalogueRead = internalQuery({
   args: {
     ...catalogueIdentity.fields,
+    method: zodToConvex(apiRequestMetadata.shape.method),
     entityApiId: v.optional(v.string()),
     fields: v.union(v.array(v.string()), v.null()),
     expand: v.array(v.string()),
@@ -933,7 +934,8 @@ export const catalogueRead = internalQuery({
     page: v.number(),
   },
   handler: async (ctx, args) => {
-    const access = await catalogueAccess(ctx, args, "GET");
+    const access = await catalogueAccess(ctx, args, args.method);
+    if (args.method !== "GET") return null;
     const perPage = z.int().min(1).max(1000).parse(args.perPage),
       page = z.int().nonnegative().parse(args.page);
     const rows =
@@ -992,13 +994,11 @@ async function catalogueResponse(
   request: Request,
   userId: Id<"users">,
   responseHeaders: HeadersInit,
-  route: RegExpExecArray
+  route: RegExpExecArray,
+  methods: string[]
 ) {
   const url = new URL(request.url);
   const resource = catalogueApiResource.parse(route[3]);
-  const methods = route[4] ? ["GET", "HEAD", "PATCH", "DELETE"] : ["GET", "HEAD", "POST"];
-  if (!methods.includes(request.method))
-    return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
   const projectId = apiIdSchema.safeParse(route[2]);
   const entity = route[4] ? apiIdSchema.safeParse(route[4]) : null;
   if (!projectId.success || (entity && !entity.success))
@@ -1013,6 +1013,21 @@ async function catalogueResponse(
     resource,
     entityApiId: entity?.data,
   };
+  if (!methods.includes(request.method)) {
+    await ctx.runQuery(internal.projects.external.catalogueRead, {
+      ...input,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+      fields: null,
+      expand: [],
+      perPage: 1000,
+      page: 0,
+      assetOrigin: url.origin,
+    });
+    return Response.json(
+      { detail: `Method "${request.method}" not allowed.` },
+      { status: 405, headers: responseHeaders }
+    );
+  }
   if (request.method === "DELETE" && entity?.success) {
     await ctx.runMutation(internal.projects.external.catalogueRemove, { ...input, entityApiId: entity.data });
     return new Response(null, { status: 204, headers: responseHeaders });
@@ -1038,9 +1053,13 @@ async function catalogueResponse(
     .pick({ fields: true, expand: true, per_page: true, cursor: true })
     .safeParse(fullLabelDetail ? {} : Object.fromEntries(url.searchParams));
   if (!readOptions.success)
-    return Response.json({ detail: "Invalid catalogue query parameter." }, { status: 400, headers: responseHeaders });
+    return Response.json(
+      { detail: readOptions.error.issues.map((issue) => issue.message).join(" ") },
+      { status: 400, headers: responseHeaders }
+    );
   const bodyJson = await ctx.runQuery(internal.projects.external.catalogueRead, {
     ...input,
+    method: "GET",
     fields: readOptions.data.fields,
     expand: readOptions.data.expand,
     perPage: readOptions.data.per_page,
@@ -1135,21 +1154,22 @@ export const projects = httpAction(async (ctx, request) => {
   let status = 500;
   let userId: Id<"users"> | null = null;
   let keyId: string | null = null;
-  let responseHeaders = headers;
+  const catalogue = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(states|labels)\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
+  const methods = catalogue?.[4] ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+  let responseHeaders: HeadersInit = catalogue ? { ...headers, Allow: methods.join(", ") } : headers;
   try {
     const credential = await verifyRequest(ctx, request);
     userId = credential.userId;
     keyId = credential.keyId;
-    responseHeaders = { ...headers, ...credential.headers };
+    responseHeaders = { ...responseHeaders, ...credential.headers };
     if (credential.status !== 200) {
       status = credential.status;
       return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
     }
-    const catalogue = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(states|labels)\/(?:([^/]+)\/)?$/.exec(
-      new URL(request.url).pathname
-    );
     const response = catalogue
-      ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue)
+      ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
       : await projectResponse(ctx, request, credential.userId, responseHeaders);
     status = response.status;
     return response;
@@ -1250,7 +1270,7 @@ export const writeStates = internalMutation({
     if (!supplied.success) throw new ConvexError({ status: 400, errors: z.flattenError(supplied.error).fieldErrors });
     const parsed = stateApiInput.safeParse({
       ...(existing
-        ? await catalogueWire(ctx, existing, access, stateApiInput.keyof().options, [], args.assetOrigin)
+        ? await catalogueWire(ctx, existing, access, stateApiInput.in.keyof().options, [], args.assetOrigin)
         : {}),
       ...raw,
     });
