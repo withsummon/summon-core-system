@@ -9,8 +9,15 @@ import { CollapsiblePrimitive } from "@plane/propel/collapsible";
 import { ChevronDownIcon } from "@plane/propel/icons";
 import { ProjectSettingLabelItem } from "./project-setting-label-item";
 
-export function ProjectSettingLabelGroup(props: ComponentProps<typeof ProjectSettingLabelItem>) {
-  const children = props.labels.filter((row) => row.parentId === props.label._id);
+export function ProjectSettingLabelGroup({
+  ancestors = new Set(),
+  ...props
+}: ComponentProps<typeof ProjectSettingLabelItem> & {
+  ancestors?: ReadonlySet<ComponentProps<typeof ProjectSettingLabelItem>["label"]["_id"]>;
+}) {
+  const path = new Set(ancestors);
+  path.add(props.label._id);
+  const children = props.labels.filter((row) => row.parentId === props.label._id && !path.has(row._id));
   return (
     <CollapsiblePrimitive.Root
       defaultOpen
@@ -29,7 +36,7 @@ export function ProjectSettingLabelGroup(props: ComponentProps<typeof ProjectSet
             {children.map((label, index) => {
               const childProps = { ...props, label, isChild: true, isLastChild: index === children.length - 1 };
               return props.labels.some((row) => row.parentId === label._id) ? (
-                <ProjectSettingLabelGroup key={label._id} {...childProps} />
+                <ProjectSettingLabelGroup key={label._id} {...childProps} ancestors={path} />
               ) : (
                 <ProjectSettingLabelItem key={label._id} {...childProps} />
               );

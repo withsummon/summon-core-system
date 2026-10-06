@@ -33,7 +33,13 @@ export function DocumentLabels({ document, canWrite }: { document: Doc<"document
       <ul className="space-y-2">
         {rows.results.map((row) => (
           <li key={row.labelId} className="flex flex-wrap items-center justify-between gap-2 text-14">
-            <span>{row.label ? `${row.label.name} · ${row.label.project.identifier}` : "Unavailable label"}</span>
+            <span>
+              {row.label
+                ? row.label.project
+                  ? `${row.label.name} · ${row.label.project.identifier}`
+                  : row.label.name
+                : "Unavailable label"}
+            </span>
             {canWrite && (
               <Button
                 variant="secondary"

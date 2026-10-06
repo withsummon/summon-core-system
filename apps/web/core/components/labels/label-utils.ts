@@ -27,3 +27,30 @@ export function getCanDrop(source: TDropTarget, label: ProjectLabel, isCurrentCh
     !(isCurrentChild && source.data.isGroup === true)
   );
 }
+
+// Render each local row once, including retained foreign-parent and cyclic groups.
+export function getLabelRoots(labels: ProjectLabel[]) {
+  const ids = new Set(labels.map((row) => row._id));
+  const seen = new Set<ProjectLabel["_id"]>();
+  const roots: ProjectLabel[] = [];
+  const children = new Map<ProjectLabel["_id"], ProjectLabel[]>();
+  for (const row of labels) {
+    if (row.parentId === null) continue;
+    const group = children.get(row.parentId) ?? [];
+    group.push(row);
+    children.set(row.parentId, group);
+  }
+  const natural = labels.filter((row) => row.parentId === null || !ids.has(row.parentId));
+  for (const root of [...natural, ...labels]) {
+    if (seen.has(root._id)) continue;
+    roots.push(root);
+    const pending = [root];
+    while (pending.length) {
+      const row = pending.pop();
+      if (!row || seen.has(row._id)) continue;
+      seen.add(row._id);
+      pending.push(...(children.get(row._id) ?? []));
+    }
+  }
+  return roots;
+}

@@ -101,7 +101,8 @@ export const savePreferences = mutation({
         await Promise.all(
           ids.map(async (id) => {
             const label = await requireUsableLabel(ctx, id);
-            if (!(await read(label.projectId))) throw new ConvexError("Choose a label from an accessible project.");
+            if (label.projectId === null || !(await read(label.projectId)))
+              throw new ConvexError("Choose a label from an accessible project.");
           })
         );
       })
