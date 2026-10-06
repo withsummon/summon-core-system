@@ -5,7 +5,7 @@ import { betterAuthEnabled } from "./auth.config";
 import { authComponent, createAuth, siteUrl } from "./better_auth";
 import { read, options } from "./assets/http";
 import { currentUser, options as externalUserOptions } from "./identity/external";
-import { projects as externalProjects, options as externalProjectOptions } from "./projects/external";
+import { projects as externalProjects } from "./projects/external";
 const http = httpRouter();
 if (betterAuthEnabled) {
   if (!siteUrl) throw new Error("SITE_URL is required for Better Auth.");
@@ -23,6 +23,7 @@ http.route({ path: "/api/v1/users/me/", method: "OPTIONS", handler: externalUser
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "GET", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "POST", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "PATCH", handler: externalProjects });
+http.route({ pathPrefix: "/api/v1/workspaces/", method: "PUT", handler: externalProjects });
 http.route({ pathPrefix: "/api/v1/workspaces/", method: "DELETE", handler: externalProjects });
-http.route({ pathPrefix: "/api/v1/workspaces/", method: "OPTIONS", handler: externalProjectOptions });
+http.route({ pathPrefix: "/api/v1/workspaces/", method: "OPTIONS", handler: externalProjects });
 export default http;

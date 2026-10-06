@@ -185,7 +185,18 @@ export const projectApiReadOptions = z.object({
     .string()
     .default("")
     .transform((value) => value.split(",").filter(Boolean)),
-  per_page: z.coerce.number().int().min(1).max(1000).default(1000),
+  per_page: z
+    .string()
+    .trim()
+    .regex(/^[+-]?\d(?:_?\d)*$/, "Invalid per_page parameter.")
+    .transform((value) => Number(value.replaceAll("_", "")))
+    .pipe(
+      z
+        .int({ error: "Invalid per_page parameter." })
+        .min(1, "Invalid per_page parameter.")
+        .max(1000, "Invalid per_page value. Cannot exceed 1000.")
+    )
+    .prefault("1000"),
   cursor: z
     .string()
     .regex(/^\d+(?:\.\d+)?:\d+:[01]$/)
