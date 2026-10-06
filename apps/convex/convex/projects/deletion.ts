@@ -293,7 +293,7 @@ async function estimatePage(ctx: MutationCtx, job: Job) {
         cursor: rows.isDone ? null : rows.continueCursor,
       } satisfies Partial<Job>;
     if (system.workspaceId !== job.workspaceId) throw new Error("Retired estimate belongs to another workspace.");
-    if (!system.deleted) await retireEstimate(ctx, system);
+    if (!system.deleted) await retireEstimate(ctx, system, job.actorId);
     return {
       phase: "estimatePoints",
       systemId: system._id,
@@ -312,7 +312,7 @@ async function estimatePage(ctx: MutationCtx, job: Job) {
   await Promise.all(
     rows.page.map(async (point) => {
       if (point.projectId !== job.projectId) throw new Error("Retired estimate point belongs to another project.");
-      if (!point.deleted) await retireEstimate(ctx, point);
+      if (!point.deleted) await retireEstimate(ctx, point, job.actorId);
     })
   );
   return {

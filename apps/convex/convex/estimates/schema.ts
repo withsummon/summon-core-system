@@ -24,6 +24,11 @@ export const estimateTables = {
   estimatePoints: defineTable({
     // Optional only during exact-preimage adoption; allocated UUIDs are immutable.
     apiId: v.optional(zodToConvex(apiIdSchema)),
+    // Absent audit fields are unrecorded history, never derived from revision or creation time.
+    createdBy: v.optional(v.union(v.id("users"), v.null())),
+    updatedBy: v.optional(v.union(v.id("users"), v.null())),
+    updatedAt: v.optional(v.number()),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
     ...pointFields,
     systemId: v.id("estimateSystems"),
     projectId: v.id("projects"),
