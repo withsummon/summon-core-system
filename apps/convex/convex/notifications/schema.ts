@@ -1,13 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
+import { taskChange } from "../tasks/schema";
 const category = v.union(v.literal("assigned"), v.literal("subscribed"), v.literal("created"));
 export const selectionFields = {
   view: v.union(v.literal("inbox"), v.literal("archived"), v.literal("snoozed")),
   mentionsOnly: v.optional(v.boolean()),
   categories: v.optional(v.array(category)),
 };
-export const MAX_TASK_SUBSCRIBERS = 100;
 export const emailPreferenceSettings = v.object({
   propertyChange: v.boolean(),
   stateChange: v.boolean(),
@@ -23,6 +23,35 @@ export const defaultEmailPreferenceSettings: Infer<typeof emailPreferenceSetting
   issueCompleted: true,
 };
 export const notificationTables = {
+  notificationEventDeliveries: defineTable({
+    eventId: v.id("taskEvents"),
+    subscribers: v.array(v.id("users")),
+    mentions: v.array(v.id("users")),
+    commentBefore: v.union(v.string(), v.null()),
+    commentAfter: v.union(v.string(), v.null()),
+    cursor: v.union(v.string(), v.null()),
+    completed: v.boolean(),
+  }),
+  notificationEmailBatches: defineTable({
+    taskId: v.id("tasks"),
+    receiverId: v.id("users"),
+    processedAt: v.union(v.number(), v.null()),
+    providerId: v.union(v.string(), v.null()),
+    acceptedAt: v.union(v.number(), v.null()),
+    failure: v.union(v.null(), v.literal("unavailable"), v.literal("too_large"), v.literal("unconfirmed")),
+  })
+    .index("by_receiver_task_processed", ["receiverId", "taskId", "processedAt"])
+    .index("by_processed", ["processedAt"])
+    .index("by_accepted", ["acceptedAt"]),
+  notificationEmailLogs: defineTable({
+    batchId: v.id("notificationEmailBatches"),
+    deliveryId: v.id("notificationEventDeliveries"),
+    fields: v.array(v.union(...taskChange.members.map((member) => member.fields.field))),
+    mention: v.boolean(),
+    comment: v.boolean(),
+  })
+    .index("by_batch", ["batchId"])
+    .index("by_delivery", ["deliveryId"]),
   notificationPreferences: defineTable({
     userId: v.id("users"),
     revision: v.number(),
