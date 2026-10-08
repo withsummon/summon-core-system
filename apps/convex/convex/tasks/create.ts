@@ -36,11 +36,12 @@ export async function createTask(
     | "startDate"
     | "targetDate"
     | "stateId"
-  >,
+  > &
+    Partial<Pick<Doc<"tasks">, "externalSource" | "externalId">>,
   parent: Doc<"tasks"> | null = null,
   html?: string
 ) {
-  const { title, description, status: nextStatus, ...data } = fields;
+  const { title, description, status: nextStatus, externalSource = null, externalId = null, ...data } = fields;
   await Promise.all(fields.labelIds.map((id) => requireUsableLabel(ctx, id)));
   const last = await ctx.db
     .query("tasks")
@@ -57,10 +58,12 @@ export async function createTask(
     apiId: await allocateTaskApiId(ctx),
     // The creation actor remains createdBy; no updater exists until a later native revision.
     updatedBy: null,
+    // Fresh native Projects have no IssueType/link producer. Imported type
+    // catalogues remain a separate migration contract, never inferred here.
     type: null,
     point: null,
-    externalSource: null,
-    externalId: null,
+    externalSource,
+    externalId,
     archivedAt: null,
     deletedAt: null,
     workspaceId: project.workspaceId,
