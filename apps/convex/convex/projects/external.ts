@@ -1,4 +1,6 @@
 import { plainDescriptionHtml } from "../tasks/rich_content";
+import { createTask } from "../tasks/create";
+import { initialProperties } from "../tasks/properties";
 import { taskIsActive } from "../tasks/access";
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
@@ -6,6 +8,8 @@ import { writeTaskLabel } from "../tasks/labels";
 import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
   taskApiField,
+  taskApiCreate,
+  taskApiUnsupportedCreation,
   taskApiCollectionOptions,
   taskApiUnsupportedFilter,
   catalogueApiResource,
@@ -1384,6 +1388,86 @@ export const taskRead = internalQuery({
   },
 });
 
+export const createTaskApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    bodyJson: v.string(),
+    assetOrigin: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, "POST");
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const parsed = taskApiCreate.safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const unsupported = taskApiUnsupportedCreation.options.filter((field) => Object.hasOwn(raw.data, field));
+    if (unsupported.length)
+      throw new ConvexError({
+        status: 503,
+        detail: `Task creation for ${unsupported.join(", ")} is not available yet.`,
+      });
+    const data = parsed.data;
+    // Validation owns accepted scalar types; duplicate lookup uses the original
+    // request values before the serializer trims them for insertion.
+    if (raw.data.external_id && raw.data.external_source) {
+      const duplicate = await ctx.db
+        .query("tasks")
+        .withIndex("by_project_external", (q) =>
+          q
+            .eq("projectId", access.project._id)
+            .eq("externalSource", String(raw.data.external_source))
+            .eq("externalId", String(raw.data.external_id))
+            .eq("deletedAt", null)
+        )
+        .order("desc")
+        .first();
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Issue with the same external id and external source already exists",
+          id: known("id", duplicate.apiId),
+        });
+    }
+    let state: Doc<"taskStates"> | null = null;
+    for await (const candidate of ctx.db
+      .query("taskStates")
+      .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))) {
+      if (!taskStateIsSelectable(candidate)) continue;
+      state ??= candidate;
+      if (candidate.isDefault) {
+        state = candidate;
+        break;
+      }
+    }
+    if (!state)
+      throw new ConvexError({ status: 503, detail: "Task creation requires an adopted ordinary project state." });
+    const defaultAssigneeId = access.project.defaultAssigneeId;
+    const defaultAssignee = defaultAssigneeId
+      ? await ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", defaultAssigneeId))
+          .unique()
+      : null;
+    const taskId = await createTask(ctx, access.project, access.user._id, {
+      ...initialProperties,
+      title: data.name,
+      description: "",
+      stateId: state._id,
+      status: state.status,
+      assigneeIds: defaultAssignee?.active && defaultAssignee.role !== "guest" ? [defaultAssignee.userId] : [],
+      externalSource: data.external_source,
+      externalId: data.external_id,
+    });
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("The Task writer did not produce its saved row.");
+    return taskWire(ctx, task, access, null, [], args.assetOrigin);
+  },
+});
+
 async function taskResponse(
   ctx: ActionCtx,
   request: Request,
@@ -1399,6 +1483,16 @@ async function taskResponse(
       { status: 404, headers: responseHeaders }
     );
   const url = new URL(request.url);
+  if (request.method === "POST" && !taskId) {
+    const bodyJson = await ctx.runMutation(internal.projects.external.createTaskApi, {
+      userId,
+      slug: decodeURIComponent(route[1]),
+      projectApiId: projectId.data,
+      bodyJson: await request.text(),
+      assetOrigin: url.origin,
+    });
+    return Response.json(projectJsonText.parse(bodyJson), { status: 201, headers: responseHeaders });
+  }
   const options = projectApiReadOptions
     .pick({ fields: true, expand: true })
     .extend(taskApiCollectionOptions.shape)
@@ -1433,7 +1527,9 @@ export const projects = httpAction(async (ctx, request) => {
     ? { ...headers, Allow: methods.join(", ") }
     : task?.[4]
       ? { ...headers, Allow: "GET" }
-      : headers;
+      : task
+        ? { ...headers, Allow: "GET, POST" }
+        : headers;
   try {
     const credential = await verifyRequest(ctx, request);
     userId = credential.userId;

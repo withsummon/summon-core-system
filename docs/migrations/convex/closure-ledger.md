@@ -1,5 +1,7 @@
 # Full migration closure ledger
 
+The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-08) and [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-08) supersede historical owner/count/runtime descriptions below. All 24 acceptance families and five retirement gates remain OPEN. Registration, bounded API/browser checks and worker health are separate evidence.
+
 ## Committed-source registration reconciliation, 2026-10-05
 
 Exact source `11f478d3b61208a0d9eb1c48d6d49177a8c0e573` has 782 native entries: 696 RPC declarations, eight direct HTTP handlers, 20 mount registrations, 51 Better Auth HTTP SDK endpoints and seven server-only APIs. The inherited ledger has 996 entries: 110 routes, three indexes, 300 recognized dialog mounts, 93 command identifiers, seven native action mounts, 15 native command mounts, 20 scheduled jobs, 435 Django URLs, ten Django mounts and three conditional declarations. All remain OPEN.
@@ -10,7 +12,7 @@ Proofs: `/tmp/summon-ledger-refresh-11f478d3-20261005/ledger-verification.json` 
 
 **Current cutover requirement:** the user selected the currently deployed production UI as the visual/interaction baseline. [Production UI preservation contract](production-ui-contract.md) takes precedence over earlier standalone-native-screen proposals. `/core` receipts prove scoped migration behavior, not approved product UI parity. Production presentation/data-owner integration is mandatory before retirement.
 
-## Latest preserved-UI and local backend checkpoint
+## Historical preserved-UI and local backend checkpoint
 
 [Preserved UI local checkpoint](preserved-ui-local-checkpoint.md) records exact backend `2d2374e776` activation on local3210,639 archive tests,65 web behaviors and two complete scans of project lifecycle/features and workspace lifecycle backfills. This supersedes older **local** undeployed wording below for those owners, cycle curves and description-token cleanup. Remote activation/backfills remain open.
 

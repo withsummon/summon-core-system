@@ -2,7 +2,9 @@
 
 Source inspection: 2026-09-27, checkout `ba52bcfca9` at inspection. This is a read-only contract inventory, not a cutover, deployment or benchmark receipt. No legacy route/service was removed. The user subsequently confirmed that every inherited Plane feature must be retained.
 
-## Current ownership
+The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-08) and [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-08) supersede the older ownership and missing-capability descriptions below. This dated table is retained as a contract baseline, not current closure status.
+
+## Ownership at the dated inspection
 
 `apps/api/plane/urls.py` registers `/api/summon/`, inherited `/api/`, public `/api/public/`, external `/api/v1/`, `/auth/` and instance endpoints. `apps/web/app/routes.ts` separately registers native `/core`, then merges legacy `routes/core.ts` and `routes/extended.ts` under `legacy-layout.tsx`. Legacy Summon therefore still executes Django code even when the corresponding native module works.
 

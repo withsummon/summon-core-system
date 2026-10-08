@@ -432,6 +432,23 @@ export const taskApiField = z.enum([
   "deleted_at",
   "type_id",
 ]);
+export const taskApiCreate = z.object({
+  name: catalogueApiRequiredText,
+  external_source: catalogueApiExternal.default(null),
+  external_id: catalogueApiExternal.default(null),
+});
+// Ignore serializer read-only and unknown inputs. Other writable fields remain
+// explicit migration gaps, including the endpoint's manual provenance overrides.
+export const taskApiUnsupportedCreation = taskApiField.exclude([
+  ...taskApiCreate.keyof().options,
+  "id",
+  "workspace",
+  "project",
+  "updated_by",
+  "updated_at",
+  "completed_at",
+  "description_binary",
+]);
 export const catalogueApiResource = z.enum(["states", "labels"]);
 export const catalogueApiField = z.enum([
   "id",
