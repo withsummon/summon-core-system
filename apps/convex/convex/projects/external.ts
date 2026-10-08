@@ -2,6 +2,7 @@ import { plainDescriptionHtml } from "../tasks/rich_content";
 import { createTask } from "../tasks/create";
 import { initialProperties } from "../tasks/properties";
 import { taskIsActive } from "../tasks/access";
+import { taskCollection } from "../tasks/revision";
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
 import { writeTaskLabel } from "../tasks/labels";
@@ -1311,24 +1312,40 @@ async function taskWire(
     "assignees",
     "labels",
   ]);
-  return JSON.stringify(
-    Object.fromEntries(
-      await Promise.all(
-        fields.map(async (field) => {
-          // BaseSerializer overwrites selected non-mapped expansions with <field>_id (absent except type).
-          return [
-            field,
-            expand.includes(field) && !mapped.has(field)
-              ? field === "type"
-                ? known("type", task.type)
-                : null
-              : await values[field](),
-          ];
-        })
-      )
+  return Object.fromEntries(
+    await Promise.all(
+      fields.map(async (field) => {
+        // BaseSerializer overwrites selected non-mapped expansions with <field>_id (absent except type).
+        return [
+          field,
+          expand.includes(field) && !mapped.has(field)
+            ? field === "type"
+              ? known("type", task.type)
+              : null
+            : await values[field](),
+        ];
+      })
     )
   );
 }
+
+// Registered REST allowlist; the UI ordering menu owns a different vocabulary.
+const taskApiOrder = z.enum([
+  "created_at",
+  "updated_at",
+  "sequence_id",
+  "sort_order",
+  "target_date",
+  "start_date",
+  "completed_at",
+  "archived_at",
+  "priority",
+  "state__name",
+  "state__group",
+  "assignees__first_name",
+  "labels__name",
+  "issue_module__module__name",
+]);
 
 // REST project membership owns this boundary, including Guest reads of another member's task.
 // UI requireTask/taskDetail enforce a different own-task contract and cannot be reused here.
@@ -1342,6 +1359,7 @@ export const taskRead = internalQuery({
     fields: v.union(v.array(v.string()), v.null()),
     expand: v.array(v.string()),
     assetOrigin: v.string(),
+    queryString: v.optional(v.string()),
     ...zodToConvex(taskApiCollectionOptions).fields,
   },
   returns: v.string(),
@@ -1359,8 +1377,73 @@ export const taskRead = internalQuery({
           "a Plane edition that supports work item query filtering.",
         unsupported_parameters: unsupported,
       });
-    if (collection && !(args.external_id && args.external_source))
-      throw new ConvexError({ status: 503, detail: "Task list API ordering and pagination are not available yet." });
+    if (collection && !(args.external_id && args.external_source)) {
+      // Detail and integration lookup ignore pagination, matching the registered API.
+      const options = projectApiReadOptions.pick({ per_page: true, cursor: true, order_by: true }).safeParse({
+        order_by: "-created_at",
+        ...Object.fromEntries(new URLSearchParams(args.queryString)),
+      });
+      if (!options.success)
+        throw new ConvexError({
+          status: 400,
+          detail: options.error.issues
+            .map((issue) => (issue.path[0] === "cursor" ? "Invalid cursor parameter." : issue.message))
+            .join(" "),
+        });
+      const { per_page: perPage, cursor: page, order_by: orderBy } = options.data;
+      const order = taskApiOrder.safeParse(orderBy.startsWith("-") ? orderBy.slice(1) : orderBy);
+      if (order.success && order.data !== "created_at")
+        throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
+      // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
+      const descending = !order.success || orderBy.startsWith("-");
+      const offset = page * perPage;
+      if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(page + 1))
+        throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
+      // IssueManager excludes archived Projects without changing REST membership authority.
+      const total = access.project.archived ? 0 : await taskCollection.count(ctx, { namespace: access.project._id });
+      let results: Awaited<ReturnType<typeof taskWire>>[] = [];
+      if (offset < total) {
+        const first = await taskCollection.at(ctx, descending ? -offset - 1 : offset, {
+          namespace: access.project._id,
+        });
+        const rows = await taskCollection.paginate(ctx, {
+          namespace: access.project._id,
+          order: descending ? "desc" : "asc",
+          bounds: {
+            [descending ? "upper" : "lower"]: { key: first.key, id: first.id, inclusive: true },
+          },
+          pageSize: perPage,
+        });
+        results = await Promise.all(
+          rows.page.map(async (item) => {
+            const task = await ctx.db.get(item.id);
+            if (
+              !task ||
+              task.projectId !== access.project._id ||
+              task.workspaceId !== access.workspace._id ||
+              task._creationTime !== item.key ||
+              !taskIsActive(task)
+            )
+              throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+            return taskWire(ctx, task, access, args.fields, args.expand, args.assetOrigin);
+          })
+        );
+      }
+      return JSON.stringify({
+        grouped_by: null,
+        sub_grouped_by: null,
+        total_count: total,
+        next_cursor: `${perPage}:${page + 1}:0`,
+        prev_cursor: `${perPage}:${page - 1}:1`,
+        next_page_results: offset + perPage < total,
+        prev_page_results: page > 0,
+        count: results.length,
+        total_pages: Math.ceil(total / perPage),
+        total_results: total,
+        extra_stats: null,
+        results,
+      });
+    }
     const task = collection
       ? await ctx.db
           .query("tasks")
@@ -1384,7 +1467,7 @@ export const taskRead = internalQuery({
       (!collection && (!taskIsActive(task) || access.project.archived))
     )
       throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
-    return taskWire(ctx, task, access, args.fields, args.expand, args.assetOrigin);
+    return JSON.stringify(await taskWire(ctx, task, access, args.fields, args.expand, args.assetOrigin));
   },
 });
 
@@ -1464,7 +1547,7 @@ export const createTaskApi = internalMutation({
     });
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("The Task writer did not produce its saved row.");
-    return taskWire(ctx, task, access, null, [], args.assetOrigin);
+    return JSON.stringify(await taskWire(ctx, task, access, null, [], args.assetOrigin));
   },
 });
 
@@ -1504,6 +1587,7 @@ async function taskResponse(
     taskApiId: taskId?.data,
     method: apiRequestMetadata.shape.method.parse(request.method),
     ...options,
+    queryString: url.search,
     assetOrigin: url.origin,
   });
   return Response.json(projectJsonText.parse(bodyJson), { status: 200, headers: responseHeaders });
