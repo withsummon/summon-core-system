@@ -13,6 +13,23 @@ const server = new ConvexHocuspocus({
   extensions: [convexDocuments(url)],
   debounce: 250,
   maxDebounce: 1000,
+  onRequest({ request, response }) {
+    const path = request.url?.split("?")[0];
+    const health = path === "/live/health" || path === "/live/health/";
+    const status = !health ? 404 : request.method === "GET" ? 200 : 405;
+    response.writeHead(status, {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      ...(health ? { Allow: "GET" } : {}),
+    });
+    response.end(
+      JSON.stringify(
+        status === 200 ? { status: "OK" } : { message: status === 405 ? "Method Not Allowed" : "Not Found" }
+      )
+    );
+    // Hocuspocus 2.15 stops its default HTTP response on an empty rejection.
+    return Promise.reject();
+  },
 });
 await server.listen();
 async function shutdown() {
