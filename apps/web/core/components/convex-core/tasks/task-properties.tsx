@@ -60,9 +60,11 @@ export function TaskProperties<T extends TaskPropertyValues>({
   draft,
   onChange,
   allowDefaultState = false,
+  allowStatusGroups = allowDefaultState,
 }: {
   projectId: Id<"projects"> | null;
   allowDefaultState?: boolean;
+  allowStatusGroups?: boolean;
   draft: T;
   onChange: (draft: T) => void;
 }) {
@@ -88,23 +90,32 @@ export function TaskProperties<T extends TaskPropertyValues>({
           }}
         >
           {allowDefaultState && <option value="">Project default at publication</option>}
-          <optgroup label="Status groups">
-            {statusOptions.map((item) => (
-              <option value={item.value} key={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </optgroup>
+          {(!projectId || allowStatusGroups) && (
+            <optgroup label="Status groups">
+              {statusOptions.map((item) => (
+                <option value={item.value} key={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
           {draft.stateId && !states?.some((state) => state._id === draft.stateId) && (
             <option value={draft.stateId}>Selected state unavailable or not loaded</option>
           )}
-          <optgroup label="Project states">
-            {states?.map((state) => (
-              <option value={state._id} key={state._id}>
-                {state.name}
-              </option>
-            ))}
-          </optgroup>
+          {projectId && (
+            <optgroup label="Project states">
+              {!allowStatusGroups && !draft.stateId && draft.status && (
+                <option value={draft.status} disabled>
+                  Status group: {taskStatusOptions[draft.status].label}
+                </option>
+              )}
+              {states?.map((state) => (
+                <option value={state._id} key={state._id}>
+                  {state.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </SummonField>
     </TaskNonStateProperties>

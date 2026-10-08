@@ -96,7 +96,7 @@ export function BulkProperties({
           Only checked properties change. Assignees and labels are added to existing selections. Checked empty dates and
           No estimate clear those values. Choosing a status group replaces any custom state. All tasks update together.
         </p>
-        <TaskProperties projectId={projectId} draft={draft} onChange={setDraft} />
+        <TaskProperties projectId={projectId} allowStatusGroups draft={draft} onChange={setDraft} />
         <div className="flex flex-wrap gap-2">
           <Button type="submit" loading={pending} disabled={!enabled.length}>
             Apply checked properties
