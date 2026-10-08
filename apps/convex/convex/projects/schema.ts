@@ -7,7 +7,7 @@ import { defaultProjectFeatures, projectFeatures } from "./feature_schema";
 import { z } from "zod/v4";
 import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
 import { apiIdSchema } from "../identity/schema";
-import { taskPreferences } from "../tasks/schema";
+import { taskPreferences, taskApiUnsupportedFilter } from "../tasks/schema";
 
 export const projectJson = z.json();
 export const projectJsonText = z
@@ -214,7 +214,14 @@ export const projectApiFailure = z
     status: z.union([z.literal(400), z.literal(403), z.literal(404), z.literal(405), z.literal(409), z.literal(503)]),
     detail: z.string(),
   })
-  .or(z.object({ status: z.literal(404), error: z.string() }));
+  .or(z.object({ status: z.literal(404), error: z.string() }))
+  .or(
+    z.object({
+      status: z.literal(400),
+      pql: z.string(),
+      unsupported_parameters: z.array(taskApiUnsupportedFilter),
+    })
+  );
 
 export const inactivityMonths = v.union(
   v.literal(1),

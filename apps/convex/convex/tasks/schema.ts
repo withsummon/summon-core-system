@@ -392,7 +392,15 @@ export const labelApiInput = z.object({
   external_id: catalogueApiExternal.default(null),
 });
 export const catalogueApiBody = z.record(z.string(), z.json());
-// Registered Issue/Work Item detail serializer fields; list/write contracts are separate.
+// The registered collection accepts integration lookup and reports unsupported edition filters.
+export const taskApiCollectionOptions = z.object({
+  external_id: z.string().optional(),
+  external_source: z.string().optional(),
+  pql: z.string().optional(),
+  filters: z.string().optional(),
+});
+export const taskApiUnsupportedFilter = taskApiCollectionOptions.pick({ pql: true, filters: true }).keyof();
+// Registered Issue/Work Item serializer fields; paginated list/write contracts are separate.
 export const taskApiField = z.enum([
   "parent",
   "state",
