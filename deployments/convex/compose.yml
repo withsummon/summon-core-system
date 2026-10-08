@@ -61,5 +61,21 @@ services:
     tmpfs: ["/tmp:size=64m,mode=1777"]
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
+  transcription:
+    build:
+      context: ../../apps/transcription
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose: ["8091"]
+    environment:
+      TRANSCRIPTION_API_KEY: ${TRANSCRIPTION_API_KEY:?Set a private transcription key}
+    volumes:
+      - transcription_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 volumes:
   data:
+  transcription_data:
