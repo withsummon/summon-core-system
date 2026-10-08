@@ -20,7 +20,7 @@ import { internalMutation, query, mutation } from "../_generated/server";
 import { requireProject, requireProjectForUser, requireUser } from "../identity/access";
 import { allocateTaskApiId, taskTables, status, taskPosition, taskProperties, taskOrder, viewFilters } from "./schema";
 import { parseTaskText } from "./properties";
-import { taskChanged } from "./revision";
+import { indexTaskCollection, taskChanged } from "./revision";
 import { plainDescriptionHtml, taskRichContent } from "./rich_content";
 import schema from "../schema";
 import type { QueryCtx } from "../_generated/server";
@@ -33,6 +33,31 @@ import { text as validateText } from "../commercial/validation";
 // Application-owned page budgets; callers cannot expand them with pagination hints.
 const MAX_PAGE_TASKS = 100;
 const MAX_PAGE_BYTES = 1_048_576;
+
+// Keep the public collection reader unavailable until every page has been reconciled and verified.
+export const backfillCollection = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
+    if (!Number.isSafeInteger(paginationOpts.numItems) || paginationOpts.numItems < 1 || paginationOpts.numItems > 20)
+      throw new ConvexError("Backfill between 1 and 20 tasks per page.");
+    const page = await ctx.db.query("tasks").paginate({
+      cursor: paginationOpts.cursor,
+      numItems: paginationOpts.numItems,
+      maximumRowsRead: 20,
+      maximumBytesRead: MAX_PAGE_BYTES,
+    });
+    // Each row and its index entry publish in this mutation; repeating a page is idempotent.
+    /* oxlint-disable no-await-in-loop */
+    for (const task of page.page) await indexTaskCollection(ctx, task);
+    /* oxlint-enable no-await-in-loop */
+    return {
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+      scanned: page.page.length,
+      eligible: page.page.filter(taskIsActive).length,
+    };
+  },
+});
 
 export const list = query({
   args: {

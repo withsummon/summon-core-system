@@ -115,23 +115,6 @@ export function IssueListBlockView({
         )}
         onDragStart={onDragStart}
       >
-        <Tooltip
-          tooltipContent={name}
-          isMobile={isMobile}
-          position="top-start"
-          disabled={isDragging}
-          renderByDefault={false}
-        >
-          <ControlLink
-            href={href}
-            aria-label={ariaLabel}
-            onClick={onOpen}
-            className="absolute inset-0 z-[1] cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
-            disabled={pending || disabled}
-          >
-            <span className="sr-only">{name}</span>
-          </ControlLink>
-        </Tooltip>
         <div className="flex w-full gap-2 truncate">
           <div className="flex flex-grow items-center gap-0.5 truncate">
             <div className="flex items-center gap-1" style={{ marginLeft: indent }}>
@@ -142,7 +125,23 @@ export function IssueListBlockView({
                 <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
               )}
             </div>
-            <p className="cursor-pointer truncate text-body-xs-medium text-primary">{name}</p>
+            <Tooltip
+              tooltipContent={name}
+              isMobile={isMobile}
+              position="top-start"
+              disabled={isDragging}
+              renderByDefault={false}
+            >
+              <ControlLink
+                href={href}
+                aria-label={ariaLabel}
+                onClick={onOpen}
+                className="min-w-0 flex-1 cursor-pointer truncate text-body-xs-medium text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+                disabled={pending || disabled}
+              >
+                {name}
+              </ControlLink>
+            </Tooltip>
           </div>
         </div>
         <div className="relative z-[2] col-span-2 flex min-w-0 items-center gap-2 @3xl/list-row:col-span-1 @3xl/list-row:col-start-2 @3xl/list-row:row-start-1">

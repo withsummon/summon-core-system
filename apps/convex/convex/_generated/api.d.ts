@@ -576,4 +576,5 @@ export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, 
 
 export declare const components: {
   betterAuth: import("../betterAuth/_generated/component.js").ComponentApi<"betterAuth">;
+  taskCollection: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"taskCollection">;
 };
