@@ -4,6 +4,23 @@ import { compareValues, ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { priority } from "./schema";
+import { DirectAggregate } from "@convex-dev/aggregate";
+import { components } from "../_generated/api";
+import { taskIsActive } from "./access";
+
+export const taskCollection = new DirectAggregate<{
+  Namespace: Id<"projects">;
+  Key: number;
+  Id: Id<"tasks">;
+}>(components.taskCollection);
+
+// Synchronous tolerant writes keep live mutations and a paginated backfill in one transaction.
+export async function indexTaskCollection(ctx: MutationCtx, task: Doc<"tasks">) {
+  const item = { namespace: task.projectId, key: task._creationTime, id: task._id };
+  if (taskIsActive(task)) await taskCollection.insertIfDoesNotExist(ctx, item);
+  else await taskCollection.deleteIfExists(ctx, item);
+}
+
 export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: number) {
   if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt !== task.updatedAt)
     throw new ConvexError("This task changed while you were editing. Reopen the latest task before saving.");
@@ -33,6 +50,7 @@ export async function taskChanged(
     targetDateMissing: current.targetDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === current.priority),
   });
+  if (taskIsActive(task) !== taskIsActive(current)) await indexTaskCollection(ctx, current);
   // Manual reordering advances the revision without creating a subscriber activity.
   if (
     !event &&
