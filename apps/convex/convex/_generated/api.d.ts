@@ -127,6 +127,7 @@ import type * as identity_session from "../identity/session.js";
 import type * as identity_signin_policy from "../identity/signin_policy.js";
 import type * as identity_signup_policy from "../identity/signup_policy.js";
 import type * as identity_user_owner from "../identity/user_owner.js";
+import type * as imports_index from "../imports/index.js";
 import type * as intakes_access from "../intakes/access.js";
 import type * as intakes_configuration_owner from "../intakes/configuration_owner.js";
 import type * as intakes_description from "../intakes/description.js";
@@ -401,6 +402,7 @@ declare const fullApi: ApiFromModules<{
   "identity/signin_policy": typeof identity_signin_policy;
   "identity/signup_policy": typeof identity_signup_policy;
   "identity/user_owner": typeof identity_user_owner;
+  "imports/index": typeof imports_index;
   "intakes/access": typeof intakes_access;
   "intakes/configuration_owner": typeof intakes_configuration_owner;
   "intakes/description": typeof intakes_description;
