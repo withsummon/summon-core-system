@@ -3,11 +3,11 @@ import { BulkProperties } from "./bulk-properties";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@summon/convex/api";
-import type { Doc, Id } from "@summon/convex/data-model";
-import type { FunctionArgs } from "convex/server";
+import type { Id } from "@summon/convex/data-model";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Button } from "@plane/propel/button";
 import { mutationMessage } from "../commercial/forms";
-type Capture = Pick<Doc<"tasks">, "_id" | "updatedAt" | "title" | "sequence">;
+type Capture = FunctionReturnType<typeof api.tasks.lifecycle.list>["page"][number];
 type Operation = FunctionArgs<typeof api.tasks.lifecycle.bulk>["operation"];
 const operationLabels: Record<Operation, string> = {
   archive: "Archive",
@@ -26,7 +26,11 @@ export function BulkLifecycle({
 }) {
   const access = useQuery(api.tasks.lifecycle.bulkAccess, { projectId });
   const bulk = useMutation(api.tasks.lifecycle.bulk);
-  const [selected, setSelected] = useState<Capture[]>([]);
+  const [captured, setCaptured] = useState<Capture[]>([]);
+  const selectable = view === "deleted" ? rows.filter((row) => row.canRestore) : rows;
+  const selected = captured.filter((capture) =>
+    selectable.some((row) => row._id === capture._id && row.updatedAt === capture.updatedAt)
+  );
   const [confirmation, setConfirmation] = useState<Operation | null>(null);
   const [membershipsEditing, setMembershipsEditing] = useState(false);
   const [propertiesEditing, setPropertiesEditing] = useState(false);
@@ -46,15 +50,15 @@ export function BulkLifecycle({
           disabled={pending || confirmation !== null || propertiesEditing || membershipsEditing}
           className="max-h-64 space-y-2 overflow-y-auto"
         >
-          {rows.map((row) => (
+          {selectable.map((row) => (
             <label key={row._id} className="flex items-center gap-2 text-14">
               <input
                 type="checkbox"
                 checked={selected.some((item) => item._id === row._id)}
                 disabled={selected.length >= access.maxTasks && !selected.some((item) => item._id === row._id)}
                 onChange={(event) =>
-                  setSelected((current) =>
-                    event.target.checked ? [...current, row] : current.filter((item) => item._id !== row._id)
+                  setCaptured(
+                    event.target.checked ? [...selected, row] : selected.filter((item) => item._id !== row._id)
                   )
                 }
               />
@@ -80,7 +84,7 @@ export function BulkLifecycle({
             onClose={() => setMembershipsEditing(false)}
             onSaved={() => {
               setMembershipsEditing(false);
-              setSelected([]);
+              setCaptured([]);
             }}
           />
         )}
@@ -91,7 +95,7 @@ export function BulkLifecycle({
             onClose={() => setPropertiesEditing(false)}
             onSaved={() => {
               setPropertiesEditing(false);
-              setSelected([]);
+              setCaptured([]);
             }}
           />
         )}
@@ -112,6 +116,7 @@ export function BulkLifecycle({
               </ul>
               <Button
                 loading={pending}
+                disabled={!selected.length}
                 onClick={async () => {
                   setPending(true);
                   setError("");
@@ -121,7 +126,7 @@ export function BulkLifecycle({
                       operation: confirmation,
                       tasks: selected.map((row) => ({ taskId: row._id, expectedUpdatedAt: row.updatedAt })),
                     });
-                    setSelected([]);
+                    setCaptured([]);
                     setConfirmation(null);
                   } catch (cause) {
                     setError(mutationMessage(cause));
@@ -157,7 +162,7 @@ export function BulkLifecycle({
           variant="secondary"
           disabled={pending || propertiesEditing || membershipsEditing}
           onClick={() => {
-            setSelected([]);
+            setCaptured([]);
             setConfirmation(null);
             setError("");
           }}

@@ -69,6 +69,8 @@ export const assetTables = {
     .index("by_draft_status_expiry", ["draftId", "status", "expiresAt"])
     .index("by_storage", ["storageId"])
     .index("by_task_status", ["taskId", "status"])
+    .index("by_comment", ["commentId"])
+    .index("by_comment_upload_task", ["commentUpload.taskId"])
     .index("by_status_expiry", ["status", "expiresAt"]),
 };
 

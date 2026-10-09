@@ -207,17 +207,12 @@ export async function taskChanged(
   task: Doc<"tasks">,
   actorId: Id<"users">,
   event?: Pick<Doc<"taskEvents">, "kind" | "changes" | "commentId" | "automation">,
-  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]> = "subscribers",
+  delivery: NonNullable<Parameters<typeof recordTaskEvent>[3]> | "none" = "subscribers",
   mentionedUserIds: Id<"users">[] = [],
   commentBefore: string | null = null
 ) {
   const current = await ctx.db.get(task._id);
   if (!current) throw new ConvexError("Task not found.");
-  const changes = [...(await taskPropertyChanges(ctx, task, current)), ...(event?.changes ?? [])];
-  let kind: Doc<"taskEvents">["kind"] = event?.kind ?? "updated";
-  if (task.deletedAt !== current.deletedAt) kind = current.deletedAt === null ? "restored" : "deleted";
-  else if (task.archivedAt !== current.archivedAt) kind = current.archivedAt === null ? "unarchived" : "archived";
-  else if (changes.some((change) => change.field === "state")) kind = "status_changed";
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   const revision = {
     updatedBy: actorId,
@@ -229,6 +224,7 @@ export async function taskChanged(
   };
   await ctx.db.patch(task._id, revision);
   await indexTaskCollection(ctx, { ...current, ...revision }, { ...task, updatedAt: current.updatedAt });
+  if (delivery === "none") return updatedAt;
   // Manual reordering advances the revision without creating a subscriber activity.
   if (
     !event &&
@@ -236,6 +232,11 @@ export async function taskChanged(
     compareValues({ ...task, sortOrder: current.sortOrder }, current) === 0
   )
     return updatedAt;
+  const changes = [...(await taskPropertyChanges(ctx, task, current)), ...(event?.changes ?? [])];
+  let kind: Doc<"taskEvents">["kind"] = event?.kind ?? "updated";
+  if (task.deletedAt !== current.deletedAt) kind = current.deletedAt === null ? "restored" : "deleted";
+  else if (task.archivedAt !== current.archivedAt) kind = current.archivedAt === null ? "unarchived" : "archived";
+  else if (changes.some((change) => change.field === "state")) kind = "status_changed";
   await recordTaskEvent(
     ctx,
     {

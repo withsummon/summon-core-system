@@ -49,49 +49,53 @@ export const deliver = internalMutation({
     const delivery = await ctx.db.get(args.deliveryId);
     if (!delivery || delivery.completed || delivery.cursor !== args.cursor) return;
     const event = await ctx.db.get(delivery.eventId);
-    const task = event ? await ctx.db.get(event.taskId) : null;
-    if (!event || !task) throw new ConvexError("Task event delivery lost its source.");
-    if (args.cursor === null) {
-      const eligible = await Promise.all(
-        delivery.subscribers.map(async (id) => ((await discussionCanRead(ctx, task, id)) ? id : null))
+    if (!event) throw new ConvexError("Task event delivery lost its source.");
+    const task = await ctx.db.get(event.taskId);
+    if (task) {
+      if (args.cursor === null) {
+        const eligible = await Promise.all(
+          delivery.subscribers.map(async (id) => ((await discussionCanRead(ctx, task, id)) ? id : null))
+        );
+        await addSubscribers(
+          ctx,
+          task._id,
+          eligible.filter((id) => id !== null)
+        );
+      }
+      const page = await ctx.db
+        .query("taskSubscriptions")
+        .withIndex("by_task_user", (q) => q.eq("taskId", task._id))
+        .paginate({ cursor: args.cursor, numItems: 20, maximumRowsRead: 20, maximumBytesRead: 1_048_576 });
+      const mentions = new Set(delivery.mentions);
+      await Promise.all(
+        page.page.map(async ({ userId: receiverId }) => {
+          if (receiverId === event.actorId || !(await discussionCanRead(ctx, task, receiverId))) return;
+          const mention = mentions.has(receiverId);
+          await ctx.db.insert("notifications", {
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            taskId: task._id,
+            eventId: event._id,
+            receiverId,
+            isMention: mention,
+            actorId: event.actorId,
+            readAt: null,
+            archivedAt: null,
+            snoozedUntil: null,
+          });
+          if (taskIsActive(task)) await queueEmail(ctx, task, event, delivery, receiverId, mention);
+        })
       );
-      await addSubscribers(
-        ctx,
-        task._id,
-        eligible.filter((id) => id !== null)
-      );
-    }
-    const page = await ctx.db
-      .query("taskSubscriptions")
-      .withIndex("by_task_user", (q) => q.eq("taskId", task._id))
-      .paginate({ cursor: args.cursor, numItems: 20, maximumRowsRead: 20, maximumBytesRead: 1_048_576 });
-    const mentions = new Set(delivery.mentions);
-    await Promise.all(
-      page.page.map(async ({ userId: receiverId }) => {
-        if (receiverId === event.actorId || !(await discussionCanRead(ctx, task, receiverId))) return;
-        const mention = mentions.has(receiverId);
-        await ctx.db.insert("notifications", {
-          workspaceId: task.workspaceId,
-          projectId: task.projectId,
-          taskId: task._id,
-          eventId: event._id,
-          receiverId,
-          isMention: mention,
-          actorId: event.actorId,
-          readAt: null,
-          archivedAt: null,
-          snoozedUntil: null,
+      await ctx.db.patch(delivery._id, { cursor: page.continueCursor, completed: page.isDone });
+      if (!page.isDone) {
+        await ctx.scheduler.runAfter(0, internal.notifications.delivery.deliver, {
+          deliveryId: delivery._id,
+          cursor: page.continueCursor,
         });
-        if (taskIsActive(task)) await queueEmail(ctx, task, event, delivery, receiverId, mention);
-      })
-    );
-    await ctx.db.patch(delivery._id, { cursor: page.continueCursor, completed: page.isDone });
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.notifications.delivery.deliver, {
-        deliveryId: delivery._id,
-        cursor: page.continueCursor,
-      });
-    } else if (
+        return;
+      }
+    } else await ctx.db.patch(delivery._id, { completed: true });
+    if (
       !(await ctx.db
         .query("notificationEmailLogs")
         .withIndex("by_delivery", (q) => q.eq("deliveryId", delivery._id))
