@@ -4,7 +4,7 @@ import { publishPersonalImage } from "../identity/avatar_owner";
 import { publishProjectCover, requireApiProjectCover } from "../projects/cover_owner";
 import { publishWorkspaceLogo } from "../settings/logo_owner";
 import { draftAttachmentChanged } from "./draft_access";
-import { requireTaskAttachmentAccess } from "./task_access";
+import { requireTaskAttachmentAccess, requireApiTaskAttachmentAccess, requireTaskImageAsset } from "./task_access";
 import { taskChanged } from "../tasks/revision";
 import type { Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -247,6 +247,11 @@ export const apiAsset = internalQuery({
     const asset = id ? await ctx.db.get(id) : null;
     if (asset?.purpose === "userAvatar") return requireApiAvatar(ctx, userId, assetId, readWorkspaceApiId);
     if (asset?.purpose === "projectCover") return requireApiProjectCover(ctx, userId, assetId);
+    if (asset?.taskId) {
+      if (readWorkspaceApiId !== undefined) throw new ConvexError("Task images do not accept another workspace scope.");
+      const { task } = await requireApiTaskAttachmentAccess(ctx, userId, asset.taskId);
+      return requireTaskImageAsset(asset, task);
+    }
     throw new ConvexError("API asset access denied.");
   },
 });

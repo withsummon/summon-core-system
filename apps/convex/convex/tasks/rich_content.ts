@@ -76,6 +76,10 @@ function sanitizeRichContent(input: string, images: boolean) {
       "*": { color: [safeColor], "background-color": [safeColor], "text-align": [/^(?:left|right|center|justify)$/] },
     },
     transformTags: {
+      img: (tagName, attribs) => {
+        if (images) throw new ConvexError("Description images must use uploaded work item image nodes.");
+        return { tagName, attribs };
+      },
       span: (tagName, attributes) => {
         const attribs = { ...attributes };
         for (const key of ["data-text-color", "data-background-color"]) {

@@ -1,8 +1,12 @@
 import { plainDescriptionHtml } from "../tasks/rich_content";
+import { boundDescriptionContent } from "../tasks/description_images";
+import { writeDescription } from "../tasks/description_content";
+import { applyPropertyUpdate } from "../tasks/property_updates";
+import { checkAncestors, applyParentChange } from "../tasks/hierarchy";
 import { createTask } from "../tasks/create";
 import { initialProperties } from "../tasks/properties";
 import { taskIsActive } from "../tasks/access";
-import { taskCollection, taskCollectionEntries } from "../tasks/revision";
+import { taskCollection, taskCollectionEntries, taskChanged } from "../tasks/revision";
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
 import { writeTaskLabel } from "../tasks/labels";
@@ -10,7 +14,8 @@ import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
   taskApiField,
   taskApiCreate,
-  taskApiUnsupportedCreation,
+  taskApiPatch,
+  taskApiUnsupportedWrite,
   taskApiCollectionOptions,
   taskApiUnsupportedFilter,
   catalogueApiResource,
@@ -1491,38 +1496,185 @@ export const taskRead = internalQuery({
   },
 });
 
-export const createTaskApi = internalMutation({
+export const writeTaskApi = internalMutation({
   args: {
     userId: v.id("users"),
     slug: v.string(),
     projectApiId: v.string(),
+    taskApiId: v.optional(v.string()),
     bodyJson: v.string(),
     assetOrigin: v.string(),
   },
   returns: v.string(),
   handler: async (ctx, args) => {
-    const access = await projectEntityAccess(ctx, args, "POST");
+    const access = await projectEntityAccess(ctx, args, args.taskApiId ? "PATCH" : "POST");
+    const task = args.taskApiId
+      ? await ctx.db
+          .query("tasks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+          .unique()
+      : null;
+    if (
+      args.taskApiId &&
+      (!task ||
+        task.projectId !== access.project._id ||
+        task.workspaceId !== access.workspace._id ||
+        task.deletedAt !== null)
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (task?.status === "triage")
+      throw new ConvexError({ status: 503, detail: "Triage writes require the intake owner." });
     const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
     if (!raw.success)
       throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
-    const parsed = taskApiCreate.safeParse(raw.data);
+    const parsed = (task ? taskApiPatch : taskApiCreate).safeParse(raw.data);
     if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
-    const unsupported = taskApiUnsupportedCreation.options.filter((field) => Object.hasOwn(raw.data, field));
+    const unsupported = taskApiUnsupportedWrite.options.filter((field) => Object.hasOwn(raw.data, field));
     if (unsupported.length)
       throw new ConvexError({
         status: 503,
-        detail: `Task creation for ${unsupported.join(", ")} is not available yet.`,
+        detail: `Task writes for ${unsupported.join(", ")} are not available yet.`,
       });
     const data = parsed.data;
-    // Validation owns accepted scalar types; duplicate lookup uses the original
-    // request values before the serializer trims them for insertion.
-    if (raw.data.external_id && raw.data.external_source) {
+    if (data.start_date && data.target_date && data.start_date > data.target_date)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: ["Start date cannot exceed target date"] } });
+    const parentApiId = data.parent;
+    const parent = parentApiId
+      ? await ctx.db
+          .query("tasks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", parentApiId))
+          .unique()
+      : null;
+    if (
+      parentApiId &&
+      (!parent ||
+        parent.workspaceId !== access.workspace._id ||
+        parent.projectId !== access.project._id ||
+        parent.deletedAt !== null)
+    )
+      throw new ConvexError({
+        status: 400,
+        errors: { parent: ["Parent is not valid issue_id please pass a valid issue_id"] },
+      });
+    const existingParent =
+      task && data.parent !== undefined
+        ? await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique()
+        : null;
+    const parentChanged =
+      task !== null && data.parent !== undefined && (existingParent?.parentId ?? null) !== (parent?._id ?? null);
+    const previousParent = parentChanged && existingParent ? await ctx.db.get(existingParent.parentId) : null;
+    if (parentChanged) {
+      if (parent) await checkAncestors(ctx, task._id, parent);
+      if (existingParent) {
+        if (!previousParent || previousParent.workspaceId !== task.workspaceId)
+          throw new ConvexError({ status: 503, detail: "Previous parent task is unavailable in this workspace." });
+        if (previousParent.projectId !== access.project._id)
+          await projectEntityAccess(
+            ctx,
+            { ...args, projectApiId: known("parent project", (await ctx.db.get(previousParent.projectId))?.apiId) },
+            "PATCH"
+          );
+      }
+    }
+    const estimateApiId = data.estimate_point;
+    const [assignees, labels, estimatePoint] = await Promise.all([
+      data.assignees === undefined
+        ? undefined
+        : Promise.all(
+            data.assignees.map(async (apiId) => {
+              const user = await ctx.db
+                .query("users")
+                .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+                .unique();
+              if (!user) throw new ConvexError({ status: 400, errors: { assignees: ["Invalid user ID."] } });
+              const member = await ctx.db
+                .query("projectMembers")
+                .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", user._id))
+                .unique();
+              return member?.active && member.role !== "guest" ? user._id : null;
+            })
+          ),
+      data.labels === undefined
+        ? undefined
+        : Promise.all(
+            data.labels.map(async (apiId) => {
+              const label = await ctx.db
+                .query("taskLabels")
+                .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+                .unique();
+              if (!label) throw new ConvexError({ status: 400, errors: { labels: ["Invalid label ID."] } });
+              if (label.projectId !== access.project._id) return null;
+              if (label.workspaceId !== access.workspace._id || label.retiring)
+                throw new ConvexError({ status: 503, detail: "Label is unavailable or being removed." });
+              return label._id;
+            })
+          ),
+      estimateApiId === undefined
+        ? undefined
+        : estimateApiId === null
+          ? null
+          : ctx.db
+              .query("estimatePoints")
+              .withIndex("by_api_id", (q) => q.eq("apiId", estimateApiId))
+              .unique(),
+    ]);
+    if (
+      data.estimate_point &&
+      (!estimatePoint || estimatePoint.projectId !== access.project._id || estimatePoint.deleted)
+    )
+      throw new ConvexError({
+        status: 400,
+        errors: { estimate_point: ["Estimate point is not valid please pass a valid estimate_point_id"] },
+      });
+    if (estimatePoint?.retiring) throw new ConvexError({ status: 503, detail: "Estimate point is being removed." });
+    const stateApiId = data.state;
+    let state = stateApiId
+      ? await ctx.db
+          .query("taskStates")
+          .withIndex("by_api_id", (q) => q.eq("apiId", stateApiId))
+          .unique()
+      : null;
+    if (
+      data.state &&
+      (!state ||
+        state.projectId !== access.project._id ||
+        state.workspaceId !== access.workspace._id ||
+        taskStateDeletedAt(state.deletedAt) !== null)
+    )
+      throw new ConvexError({ status: 400, errors: { state: ["State is not valid please pass a valid state_id"] } });
+    if (data.state === null || !task) {
+      if (!state)
+        for await (const candidate of ctx.db
+          .query("taskStates")
+          .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))) {
+          if (!taskStateIsSelectable(candidate)) continue;
+          state ??= candidate;
+          if (candidate.isDefault) {
+            state = candidate;
+            break;
+          }
+        }
+      if (!state)
+        throw new ConvexError({ status: 503, detail: "Task creation requires an adopted ordinary project state." });
+    }
+    if (state && !taskStateIsSelectable(state))
+      throw new ConvexError({ status: 503, detail: "Triage writes require the intake owner." });
+    // DRF validates fields first, then checks duplicates using the original request values.
+    const duplicateSource = Object.hasOwn(raw.data, "external_source")
+      ? raw.data.external_source
+      : task
+        ? known("external_source", task.externalSource)
+        : null;
+    if (raw.data.external_id && (task ? task.externalId !== String(raw.data.external_id) : raw.data.external_source)) {
       const duplicate = await ctx.db
         .query("tasks")
         .withIndex("by_project_external", (q) =>
           q
             .eq("projectId", access.project._id)
-            .eq("externalSource", String(raw.data.external_source))
+            .eq("externalSource", duplicateSource === null ? null : String(duplicateSource))
             .eq("externalId", String(raw.data.external_id))
             .eq("deletedAt", null)
         )
@@ -1532,42 +1684,91 @@ export const createTaskApi = internalMutation({
         throw new ConvexError({
           status: 409,
           error: "Issue with the same external id and external source already exists",
-          id: known("id", duplicate.apiId),
+          id: known("id", (task ?? duplicate).apiId),
         });
     }
-    let state: Doc<"taskStates"> | null = null;
-    for await (const candidate of ctx.db
-      .query("taskStates")
-      .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))) {
-      if (!taskStateIsSelectable(candidate)) continue;
-      state ??= candidate;
-      if (candidate.isDefault) {
-        state = candidate;
-        break;
-      }
+    const content =
+      data.description_html === undefined
+        ? undefined
+        : await boundDescriptionContent(ctx, task ? { task } : null, data.description_html);
+    const properties = {
+      ...(state ? { stateId: state._id } : {}),
+      ...(data.priority === undefined ? {} : { priority: data.priority }),
+      ...(data.start_date === undefined ? {} : { startDate: data.start_date }),
+      ...(data.target_date === undefined ? {} : { targetDate: data.target_date }),
+      ...(assignees === undefined ? {} : { assigneeIds: assignees.filter((id) => id !== null) }),
+      ...(labels === undefined ? {} : { labelIds: labels.filter((id) => id !== null) }),
+      ...(estimatePoint === undefined ? {} : { estimatePointId: estimatePoint?._id ?? null }),
+    };
+    if (task) {
+      if (parentChanged)
+        await applyParentChange(ctx, {
+          task,
+          user: access.user,
+          next: parent,
+          previous: previousParent,
+          existing: existingParent,
+        });
+      // The native transaction owns OCC; the public serializer accepts partial last-write updates.
+      const descriptionChanged = content ? await writeDescription(ctx, task, access.user._id, content) : false;
+      const changed = await applyPropertyUpdate(
+        ctx,
+        {
+          task,
+          user: access.user,
+          data: properties,
+          status: state?.status ?? task.status,
+        },
+        {
+          ...(data.name === undefined ? {} : { title: data.name }),
+          ...(content ? { description: content.description } : {}),
+          ...(data.point === undefined ? {} : { point: data.point }),
+          ...(data.sort_order === undefined ? {} : { sortOrder: data.sort_order }),
+          ...(data.external_source === undefined ? {} : { externalSource: data.external_source }),
+          ...(data.external_id === undefined ? {} : { externalId: data.external_id }),
+        }
+      );
+      if (!changed && (parentChanged || descriptionChanged)) await taskChanged(ctx, task, access.user._id);
+    } else {
+      if (!state || !taskStateIsSelectable(state)) throw new Error("The ordinary Task writer requires its state.");
+      const defaultAssigneeId = access.project.defaultAssigneeId;
+      const defaultAssignee = defaultAssigneeId
+        ? await ctx.db
+            .query("projectMembers")
+            .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", defaultAssigneeId))
+            .unique()
+        : null;
+      const taskId = await createTask(
+        ctx,
+        access.project,
+        access.user._id,
+        {
+          ...initialProperties,
+          ...properties,
+          title: known("name", data.name),
+          description: content?.description ?? "",
+          stateId: state._id,
+          status: state.status,
+          assigneeIds: properties.assigneeIds?.length
+            ? properties.assigneeIds
+            : defaultAssignee?.active && defaultAssignee.role !== "guest"
+              ? [defaultAssignee.userId]
+              : [],
+          externalSource: data.external_source,
+          externalId: data.external_id,
+          point: data.point,
+          sortOrder: data.sort_order,
+        },
+        parent,
+        content?.html
+      );
+      const created = await ctx.db.get(taskId);
+      if (!created) throw new Error("The Task writer did not produce its saved row.");
+      return JSON.stringify(await taskWire(ctx, created, access, null, [], args.assetOrigin));
     }
-    if (!state)
-      throw new ConvexError({ status: 503, detail: "Task creation requires an adopted ordinary project state." });
-    const defaultAssigneeId = access.project.defaultAssigneeId;
-    const defaultAssignee = defaultAssigneeId
-      ? await ctx.db
-          .query("projectMembers")
-          .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", defaultAssigneeId))
-          .unique()
-      : null;
-    const taskId = await createTask(ctx, access.project, access.user._id, {
-      ...initialProperties,
-      title: data.name,
-      description: "",
-      stateId: state._id,
-      status: state.status,
-      assigneeIds: defaultAssignee?.active && defaultAssignee.role !== "guest" ? [defaultAssignee.userId] : [],
-      externalSource: data.external_source,
-      externalId: data.external_id,
-    });
-    const task = await ctx.db.get(taskId);
-    if (!task) throw new Error("The Task writer did not produce its saved row.");
-    return JSON.stringify(await taskWire(ctx, task, access, null, [], args.assetOrigin));
+    const saved = await ctx.db.get(task._id);
+    if (!saved) throw new Error("The Task writer did not produce its saved row.");
+    return JSON.stringify(await taskWire(ctx, saved, access, null, [], args.assetOrigin));
   },
 });
 
@@ -1586,15 +1787,16 @@ async function taskResponse(
       { status: 404, headers: responseHeaders }
     );
   const url = new URL(request.url);
-  if (request.method === "POST" && !taskId) {
-    const bodyJson = await ctx.runMutation(internal.projects.external.createTaskApi, {
+  if ((request.method === "POST" && !taskId) || (request.method === "PATCH" && taskId)) {
+    const bodyJson = await ctx.runMutation(internal.projects.external.writeTaskApi, {
       userId,
       slug: decodeURIComponent(route[1]),
       projectApiId: projectId.data,
+      taskApiId: taskId?.data,
       bodyJson: await request.text(),
       assetOrigin: url.origin,
     });
-    return Response.json(projectJsonText.parse(bodyJson), { status: 201, headers: responseHeaders });
+    return Response.json(projectJsonText.parse(bodyJson), { status: taskId ? 200 : 201, headers: responseHeaders });
   }
   const options = projectApiReadOptions
     .pick({ fields: true, expand: true })
@@ -1630,7 +1832,7 @@ export const projects = httpAction(async (ctx, request) => {
   let responseHeaders: HeadersInit = catalogue
     ? { ...headers, Allow: methods.join(", ") }
     : task?.[4]
-      ? { ...headers, Allow: "GET" }
+      ? { ...headers, Allow: "GET, PATCH" }
       : task
         ? { ...headers, Allow: "GET, POST" }
         : headers;
@@ -1652,6 +1854,10 @@ export const projects = httpAction(async (ctx, request) => {
     return response;
   } catch (error) {
     if (error instanceof ConvexError) {
+      if (task && typeof error.data === "string") {
+        status = 400;
+        return Response.json({ non_field_errors: [error.data] }, { status, headers: responseHeaders });
+      }
       const validation = catalogueApiValidationFailure.safeParse(error.data);
       if (validation.success) {
         status = validation.data.status;
