@@ -7,7 +7,7 @@ import { ConvexError, v, compareValues } from "convex/values";
 import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { internalMutation, mutation, query } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
@@ -20,7 +20,6 @@ import { targetKey } from "../favorites/targets";
 import { effectiveFavorite } from "../favorites/access";
 import {
   moduleFields,
-  moduleTables,
   moduleChanges,
   moduleStatus,
   moduleDirectoryView,
@@ -253,37 +252,6 @@ export const get = query({
   handler: (ctx, args) => detail(ctx, args.moduleId),
 });
 
-// Temporary migration owner; remove after exact whole-cohort readback and strict schema activation.
-export const adoptDescriptionHtml = internalMutation({
-  args: {
-    expected: v.array(
-      moduleTables.modules.validator.omit("descriptionHtmlJson").extend({
-        descriptionHtml: moduleFields.descriptionHtml,
-        _id: v.id("modules"),
-        _creationTime: v.number(),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    if (args.expected.length < 1 || args.expected.length > 20)
-      throw new ConvexError("Adopt between 1 and 20 exact Module preimages.");
-    const changes = [];
-    /* oxlint-disable no-await-in-loop */
-    for (const expected of args.expected) {
-      const current = await ctx.db.get(expected._id);
-      if (!current || compareValues(current, expected) !== 0)
-        throw new ConvexError("Module changed. Capture its current preimage before adoption.");
-      const project = await ctx.db.get(current.projectId);
-      if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
-        throw new ConvexError("Module scope is inconsistent.");
-      const { _id, _creationTime: _created, descriptionHtml, ...fields } = expected;
-      await ctx.db.replace(_id, { ...fields, descriptionHtmlJson: JSON.stringify(descriptionHtml) });
-      changes.push({ before: expected, after: await ctx.db.get(_id) });
-    }
-    /* oxlint-enable no-await-in-loop */
-    return changes;
-  },
-});
 export const resolve = query({
   args: { moduleId: v.string() },
   handler: async (ctx, args) => {
