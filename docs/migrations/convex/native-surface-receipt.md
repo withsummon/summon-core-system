@@ -2,15 +2,17 @@
 
 ## Current committed-source registration reconciliation, 2026-10-09
 
-Immutable source `533250855c1a5abd925bb427e18416dc724c3873` (tree `9f1d91b08988141b12d0faa5d2a663bd602fb4bd`) retains **866 native and 1,030 inherited registration units**. These include 763 RPC declarations, 111 routes, three indexes, 304 recognized dialog mounts, ten native crons and the existing HTTP, SDK, command, worker, proxy and Django declarations. Mixed registration units are not API or accepted-journey totals. Every row and all 24 families/five retirement gates remain OPEN.
+Immutable source `bfe4211f58cd5a2dc15e1eacc0304d57067b1c02` retains **866 native and 1,029 inherited registration units**: 763 RPC declarations (749 direct plus 14 SDK factory exports), 111 routes, three indexes, 303 recognized dialog mounts, ten native crons and the existing HTTP, SDK, command, worker, proxy and Django declarations. Mixed registration units are not API or accepted-journey totals. Every row and all 24 families/five retirement gates remain OPEN.
 
-The unchanged Babel AST scanners run against an immutable Git archive without dependency links or generated build files. Full registration multisets match the prior `6c60a858f7` census: no added or removed declarations. Twenty-nine moved source anchors are reconciled; retained non-AST owner files are byte-identical. Task acceptance criteria now name all 13 orderings and the inverse assignment index. Static dialog vocabulary excludes dynamic/unrecognized popups; ad hoc jobs, framework defaults and external-image internals still need separate acceptance.
+The unchanged Babel AST scanners run against the exact 6,069-blob Git archive. Relative to the preceding a61 ledger, the canonical filter change adds no registration: 36 existing source anchors move; all semantic columns and OPEN statuses are preserved. Root checks every changed anchor against frozen Git source and samples the actual declaration/dialog lines. The two retained lifecycle Menu/ContextMenu opening lines are exact; 78 other non-AST owners are byte-identical. Twenty SDK/external paths retain qualified baseline evidence. Dynamic popups still require rendered acceptance.
+
+Canonical filters now share the task schema, generated queries and native draft editor. Twelve interaction obligations cover URL Apply/Clear/Save-as, incomplete dates and AND/OR, revision adoption, project/cycle/module preferences, raw archive recovery, Trash isolation and the restricted anonymous Space grammar. These are acceptance cases, not new registrations or completed journeys. The strict schema requires the prepared 23-row storage conversion before activation.
 
 **Imports:** the existing native owner covers one-time GitHub repository preview, identity comparison, durable attempts/pages, canonical Task creation, active/Trash deduplication and current authority/cooldown recovery. Real provider/browser/bulk acceptance remains OPEN. Jira, labels, assignees, comments, invitations and ongoing sync are required gaps.
 
-**Task collections:** creation, seven scalar orderings, two state aliases, MAX-label, MAX-assignee and joined-module names share the canonical transactional writers. Profile and relationship changes maintain their indexes; the fixed 1–20-row/1 MiB backfill reconciles the active cohort. Component SDK contracts remain separate from product registration. Genuine public API, writable fields, relationship lifecycle and capacity remain OPEN; source registration does not close rollout.
+**Task collections and API:** all 13 ordering/assignment indexes share canonical transactional writers. Public POST/PATCH now reuse the Task property, description, hierarchy, activity and image owners in committed source. Genuine PAT HTTP, writable-field edge cases, relationships, rollout and capacity remain OPEN. Registration does not prove these newer writers are served.
 
-Private proof: parent `.codex-artifacts/registration-5332508-20261009/{SOURCE-RECEIPT.private.json,RECONCILIATION.private.json}`. Native/inherited TSV SHA-256: `9adc3e9f4148c3b7a8fdf8aef2dc3e76ce3dd40b8b856bcb0f3f1ec86d412ba5` / `af83526e8f6169ba5510c6d38d8c16646c460e47b2f87d10ce293be9243d385c`. Served identity and behavioral acceptance are recorded separately in the [current checklist](current-parity-checklist.md#current-served-candidate--2026-10-09). Dated receipts below retain their original scope.
+Private proof: parent `.codex-artifacts/registration-bfe4211-20261009/{SOURCE-RECEIPT.private.json,INDEPENDENT-READBACK.private.json,INTERACTION-ACCEPTANCE.private.tsv}`. Current native/inherited TSV SHA-256: `144e06e2e86a00a06c3c644b6ec351ddac98c9e04023a3a062a865800d9384f9` / `92c74c9baae7f6afb9a7830f08abaaf79d3f35c81197ff23a956511308637145`. Served identity and behavioral acceptance remain separate in the [current checklist](current-parity-checklist.md#current-served-candidate--2026-10-09). Dated receipts below retain their original scope.
 
 ## Committed-source registration reconciliation, 2026-10-08
 
@@ -32,23 +34,25 @@ Independent regeneration matches 748 scoped source hashes and both TSVs exactly.
 
 Proofs: `/tmp/summon-ledger-refresh-11f478d3-20261005/ledger-verification.json` and `/tmp/summon-ledger-cold-review-11f478d3-20261005/successor-v2/cold-source-review.json`. Native TSV SHA-256 `a90109bde9576adbc809c4808174e8a6a01664e2e78f24262a3ec0f34d36ec88`; inherited TSV SHA-256 `d0a5ec78f92c4bbf8ed5fd018546dbc30e588fd8d006caecc84ca6408f607e69`. Uncommitted candidates and runtime acceptance are excluded. Historical receipts below retain their dated scope.
 
-Inventory baseline: 2026-09-29, immutable committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, with dated owner deltas retained below. Current registration matches committed `5c24c067b69aaa3cd1df23484efc88928b698ca3`: **741 native rows and 995 inherited rows, all OPEN**. This refresh adds two internal external-request audit RPCs and the eighth native cron. The earlier 3e34 user/UUID/PAT-avatar declarations and ten native-layout aliases remain registered. Unrelated dirty files are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) complements the [inherited ledger](registered-surface-2026-09-28.tsv); registration is not runtime acceptance or a served deployment. Dated 260/3e34 and earlier counts/hashes below retain their original coverage.
+Inventory baseline: 2026-09-29, immutable committed `26fbe4bbf338073c324ba9e8ead55fb341a823d0`, with dated owner deltas retained below. That historical registration matched committed `5c24c067b69aaa3cd1df23484efc88928b698ca3`: **741 native rows and 995 inherited rows, all OPEN**. This refresh adds two internal external-request audit RPCs and the eighth native cron. The earlier 3e34 user/UUID/PAT-avatar declarations and ten native-layout aliases remain registered. Unrelated dirty files are excluded. The [native ledger](registered-native-surface-2026-09-28.tsv) complements the [inherited ledger](registered-surface-2026-09-28.tsv); registration is not runtime acceptance or a served deployment. Dated 260/3e34 and earlier counts/hashes below retain their original coverage.
 
 On 2026-09-30, the list-owner refresh checked all 44 direct RPC declarations in nine changed query files against committed `2a9b29a2aaf1d559a37f07864440900e388ac7f6` and corrected 36 source anchors. It changes no registration, visibility or acceptance status. 2026-09-30 ledger SHA-256: `2acccf4998fbc24383b897c17afeebb45d9d146772c880ad49e7be1ca26ced99`. Receipt: `/tmp/summon-paging-20260930-native-anchor-refresh.json`. This scoped refresh does not rerun the historical SDK/factory/HTTP inventory audit.
 
 ## Registered boundaries
 
-| Surface                     |    Rows | Meaning                                                                                           |
-| --------------------------- | ------: | ------------------------------------------------------------------------------------------------- |
-| App RPC                     |     654 | 536 public and 118 internal declarations across generated app modules.                            |
-| Component export            |       8 | Local Better Auth adapter exports; parent references remain internal.                             |
-| HTTP action declaration     |       6 | Asset, assistant and external-user handlers; mounts are separate.                                 |
-| HTTP routing mount          |      15 | Six common mounts, four native-auth factory mounts and five alternate Convex Auth factory mounts. |
-| Better Auth HTTP descriptor |      51 | Retained pathful SDK candidates, including disabled paths/provider parameters.                    |
-| Better Auth server API      |       7 | Retained SDK operations excluded from HTTP routing.                                               |
-| **Total**                   | **741** | **All OPEN.**                                                                                     |
+| Surface                     |    Rows | Meaning                                                       |
+| --------------------------- | ------: | ------------------------------------------------------------- |
+| Convex RPC                  |     763 | 749 direct declarations plus 14 retained SDK factory exports. |
+| HTTP handler                |       7 | Declared actions; routing mounts are counted separately.      |
+| HTTP routing mount          |      21 | Conditional factory and direct mounts.                        |
+| Better Auth HTTP descriptor |      51 | SDK paths, including disabled/provider-dependent operations.  |
+| Better Auth server API      |       7 | SDK operations excluded from HTTP routing.                    |
+| Standalone HTTP             |      14 | Live and sidecar declarations.                                |
+| Standalone WebSocket        |       1 | Native Live listener.                                         |
+| Standalone background job   |       2 | Transcription worker threads.                                 |
+| **Total**                   | **866** | **All OPEN; not simultaneously reachable endpoints.**         |
 
-The current ledger records 668 declarations: 660 app exports (654 RPCs and six HTTP handlers) and eight component exports. The four retained `auth` factory RPCs are included in that count; switching HTTP factories does not unregister them. Plain helpers, schemas and generated copies are excluded. The eight native cron registrations already have rows in the inherited ledger; their target functions are counted here once as declarations.
+The current declaration total is 770: 763 RPCs and seven HTTP handlers. Helpers, schemas and generated copies are excluded. Ten native cron registrations have inherited-ledger rows; their target declarations are counted here once.
 
 This snapshot includes viewer-owned profile preferences and their canonical revision/filter writer, the generated profile subject/list/summary reads, field-specific title acknowledgement, raw project/task-ID address resolvers, Members directory/role writer, sign-in recorder and ID-based invitation owners, preserved Pages address resolution, the canonical Yjs snapshot action and current-permission member activity/day-export reads. Deleted `better_auth:sessionUser`, `intakes/index:get`, `tasks/index:resolve`, invitation token functions and superseded member/invitation RPCs have no rows. Creator name/avatar and rendered project logo are projections from existing task/address owners, not additional RPCs. Intake selection requires the canonical project scope; open/closed cohorts are part of the list view contract. The generated project feature resolver adds the raw address and effective settings role; its scoped local Chrome receipt is in the [current checklist](current-parity-checklist.md#preserved-project-feature-settings-2026-09-29). These source contracts still need complete production acceptance.
 
@@ -68,17 +72,17 @@ Apply the existing [24-family journeys and acceptance rule](current-parity-check
 
 | Family         | Declarations | Family        | Declarations |
 | -------------- | -----------: | ------------- | -----------: |
-| Identity       |           24 | Account       |           27 |
-| Instance       |            7 | Workspace     |           39 |
-| Shared shell   |           24 | Projects      |           66 |
-| Tasks          |           81 | Cycles        |           22 |
-| Modules        |           23 | Intake        |           13 |
+| Identity       |           62 | Account       |           27 |
+| Instance       |            7 | Workspace     |           49 |
+| Shared shell   |           28 | Projects      |           71 |
+| Tasks          |           89 | Cycles        |           25 |
+| Modules        |           25 | Intake        |           13 |
 | Views/search   |           22 | Documents     |           39 |
 | Assets         |           38 | Commercial    |           21 |
 | Meetings       |           32 | Resources/MCP |           37 |
-| Assistant      |           40 | Automation    |           26 |
-| Reporting      |           20 | Notifications |           14 |
-| Public sharing |           24 | External API  |           18 |
+| Assistant      |           41 | Automation    |           29 |
+| Reporting      |           27 | Notifications |           21 |
+| Public sharing |           26 | External API  |           30 |
 | Stickies       |            9 | Operations    |            2 |
 
 ## Seven concrete owner mappings
