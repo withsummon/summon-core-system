@@ -90,6 +90,8 @@ import { writeInactivityPolicy } from "./inactivity";
 import { selectEstimateSystem } from "../estimates/index";
 import { descriptor } from "../assets/access";
 import { publicationForProject } from "../publicSharing/access";
+import { createModule, writeModule } from "../modules/index";
+import { moduleApiCreate, moduleApiPatch, moduleApiField, moduleApiCreateConflict } from "../modules/schema";
 
 async function workspaceAccess(ctx: QueryCtx, slug: string, userId: Id<"users">, write = false) {
   let user;
@@ -2369,6 +2371,280 @@ async function taskResponse(
   return Response.json(projectJsonText.parse(bodyJson), { status: 200, headers: responseHeaders });
 }
 
+const moduleApiIdentity = v.object({
+  userId: v.id("users"),
+  slug: v.string(),
+  projectApiId: v.string(),
+  moduleApiId: v.optional(v.string()),
+});
+async function moduleApiAccess(
+  ctx: QueryCtx,
+  args: Infer<typeof moduleApiIdentity>,
+  method: z.infer<typeof apiRequestMetadata>["method"]
+) {
+  const access = await projectEntityAccess(ctx, args, method);
+  const module = args.moduleApiId
+    ? await ctx.db
+        .query("modules")
+        .withIndex("by_api_id", (q) => q.eq("apiId", args.moduleApiId))
+        .unique()
+    : null;
+  if (
+    args.moduleApiId &&
+    (!module ||
+      module.projectId !== access.project._id ||
+      module.workspaceId !== access.workspace._id ||
+      module.deleted)
+  )
+    throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+  if (method === "DELETE" && module && module.createdBy !== access.user._id && access.membership?.role !== "admin")
+    throw new ConvexError({ status: 403, error: "Only admin or creator can delete the module" });
+  return { ...access, module };
+}
+async function moduleApiWire(
+  ctx: QueryCtx,
+  module: Doc<"modules">,
+  access: Awaited<ReturnType<typeof moduleApiAccess>>,
+  created: boolean
+) {
+  const values = {
+    id: () => apiIdSchema.parse(known("module.id", module.apiId)),
+    created_at: () => new Date(module._creationTime).toISOString(),
+    updated_at: () => new Date(module.updatedAt).toISOString(),
+    deleted_at: () => {
+      const value = known("module.deleted_at", module.deletedAt);
+      return value === null ? null : new Date(value).toISOString();
+    },
+    created_by: () => userReference(ctx, module.createdBy, "created_by", [], access, ""),
+    updated_by: () => userReference(ctx, module.updatedBy, "updated_by", [], access, ""),
+    workspace: () => apiIdSchema.parse(known("workspace", access.workspace.apiId)),
+    project: () => apiIdSchema.parse(access.project.apiId),
+    name: () => module.name,
+    description: () => module.description,
+    description_text: () => {
+      const value = known("module.description_text", module.descriptionTextJson);
+      return value === null ? null : projectJsonText.parse(value);
+    },
+    description_html: () => projectJsonText.parse(module.descriptionHtmlJson),
+    start_date: () => module.startDate,
+    target_date: () => module.targetDate,
+    status: () => module.status,
+    lead: () => userReference(ctx, module.leadId, "lead", [], access, ""),
+    view_props: () => projectJsonText.parse(known("module.view_props", module.viewPropsJson)),
+    sort_order: () => known("module.sort_order", module.sortOrder),
+    external_source: () => known("module.external_source", module.externalSource),
+    external_id: () => known("module.external_id", module.externalId),
+    archived_at: () => {
+      const value = known("module.archived_at", module.archivedAt);
+      return value === null ? null : new Date(value).toISOString();
+    },
+    logo_props: () => projectJsonText.parse(known("module.logo_props", module.logoPropsJson)),
+    members: async () => {
+      const ids = [];
+      for await (const member of ctx.db
+        .query("moduleMembers")
+        .withIndex("by_module_user", (q) => q.eq("moduleId", module._id))) {
+        const user = await ctx.db.get(member.userId);
+        if (!user) return unsupportedReference("module.members");
+        ids.push(apiIdSchema.parse(user.apiId));
+      }
+      return ids;
+    },
+  } satisfies Record<z.infer<typeof moduleApiField>, () => unknown>;
+  const fields = created ? moduleApiField.options : moduleApiPatch.keyof().exclude(["members"]).options;
+  return Object.fromEntries(await Promise.all(fields.map(async (field) => [field, await values[field]()])));
+}
+export const moduleApiUnavailable = internalQuery({
+  args: { ...moduleApiIdentity.fields, method: zodToConvex(apiRequestMetadata.shape.method) },
+  handler: async (ctx, args) => {
+    await moduleApiAccess(ctx, args, args.method);
+    const registered = args.moduleApiId ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+    throw new ConvexError({
+      status: registered.includes(args.method) ? 503 : 405,
+      detail: registered.includes(args.method)
+        ? "Module reads and retirement are not available through this API yet."
+        : `Method "${args.method}" not allowed.`,
+    });
+  },
+});
+export const writeModuleApi = internalMutation({
+  args: { ...moduleApiIdentity.fields, bodyJson: v.string() },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await moduleApiAccess(ctx, args, args.moduleApiId ? "PATCH" : "POST");
+    const module = access.module;
+    if (module?.archived) throw new ConvexError({ status: 400, error: "Archived module cannot be edited" });
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const input = module
+      ? { existing: module, parsed: moduleApiPatch.safeParse(raw.data) }
+      : { existing: null, parsed: moduleApiCreate.safeParse(raw.data) };
+    if (!input.parsed.success)
+      throw new ConvexError({ status: 400, errors: z.flattenError(input.parsed.error).fieldErrors });
+    const data = input.parsed.data;
+    if (!access.project.features?.modules)
+      throw new ConvexError({
+        status: 400,
+        errors: { non_field_errors: ["Modules are not enabled for this project"] },
+      });
+    if (data.start_date && data.target_date && data.start_date > data.target_date)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: ["Start date cannot exceed target date"] } });
+    const leadApiId = data.lead;
+    const lead = leadApiId
+      ? await ctx.db
+          .query("users")
+          .withIndex("by_api_id", (q) => q.eq("apiId", leadApiId))
+          .unique()
+      : null;
+    if (data.lead && !lead)
+      throw new ConvexError({ status: 400, errors: { lead: [`Invalid pk "${data.lead}" - object does not exist.`] } });
+    const members =
+      data.members === undefined
+        ? undefined
+        : (
+            await Promise.all(
+              data.members.map(async (id) => {
+                const user = await ctx.db
+                  .query("users")
+                  .withIndex("by_api_id", (q) => q.eq("apiId", id))
+                  .unique();
+                if (!user)
+                  throw new ConvexError({
+                    status: 400,
+                    errors: { members: [`Invalid pk "${id}" - object does not exist.`] },
+                  });
+                const member = await ctx.db
+                  .query("projectMembers")
+                  .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", user._id))
+                  .unique();
+                return member ? user._id : null;
+              })
+            )
+          ).filter((id) => id !== null);
+    const rawId = raw.data.external_id,
+      rawSource = raw.data.external_source;
+    if (rawId && (module ? rawId !== module.externalId : rawSource)) {
+      const source =
+        rawSource === undefined && module ? known("module.external_source", module.externalSource) : rawSource;
+      const id = typeof rawId === "number" ? String(rawId) : rawId;
+      const externalSource = typeof source === "number" ? String(source) : source;
+      const duplicate = await ctx.db
+        .query("modules")
+        .withIndex("by_project", (q) => q.eq("projectId", access.project._id).eq("deleted", false))
+        .filter((q) => q.and(q.eq(q.field("externalSource"), externalSource), q.eq(q.field("externalId"), id)))
+        .first();
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Module with the same external id and external source already exists",
+          id: known("module.id", module?.apiId ?? duplicate.apiId),
+        });
+    }
+    const name = data.name;
+    if (name !== undefined) {
+      const duplicate = await ctx.db
+        .query("modules")
+        .withIndex("by_project_name", (q) =>
+          q.eq("projectId", access.project._id).eq("deleted", false).eq("name", name)
+        )
+        .filter((q) => q.neq(q.field("_id"), module?._id ?? null))
+        .first();
+      if (duplicate) {
+        const error = "Module with this name already exists";
+        if (!module)
+          throw new ConvexError({
+            status: 400,
+            error,
+            id: known("module.id", duplicate.apiId),
+            code: "MODULE_NAME_ALREADY_EXISTS",
+            message: error,
+          });
+        throw new ConvexError({ status: 400, error });
+      }
+    }
+    // Temporary capability refusal: remove once the canonical Module event/delivery owner is installed.
+    for await (const subscription of ctx.db
+      .query("webhooks")
+      .withIndex("by_workspace_deleted", (q) => q.eq("workspaceId", access.workspace._id).eq("deletedAt", null)))
+      if (subscription.isActive && subscription.events.includes("module"))
+        throw new ConvexError({ status: 503, detail: "Module webhook delivery is not available yet." });
+    let moduleId;
+    if (input.existing === null) {
+      const created = input.parsed.data;
+      moduleId = await createModule(
+        ctx,
+        access.project,
+        access.user._id,
+        {
+          name: created.name,
+          description: created.description,
+          descriptionHtmlJson: "null",
+          startDate: created.start_date,
+          targetDate: created.target_date,
+          status: created.status,
+          leadId: lead?._id ?? null,
+          externalSource: created.external_source,
+          externalId: created.external_id,
+        },
+        members ?? []
+      );
+    } else {
+      await writeModule(
+        ctx,
+        input.existing,
+        {
+          ...(data.name === undefined ? {} : { name: data.name }),
+          ...(data.description === undefined ? {} : { description: data.description }),
+          ...(data.start_date === undefined ? {} : { startDate: data.start_date }),
+          ...(data.target_date === undefined ? {} : { targetDate: data.target_date }),
+          ...(data.status === undefined ? {} : { status: data.status }),
+          ...(data.lead === undefined ? {} : { leadId: lead?._id ?? null }),
+          ...(data.external_source === undefined ? {} : { externalSource: data.external_source }),
+          ...(data.external_id === undefined ? {} : { externalId: data.external_id }),
+        },
+        access.user._id,
+        members
+      );
+      moduleId = input.existing._id;
+    }
+    const current = await ctx.db.get(moduleId);
+    if (!current) throw new Error("Written Module is missing.");
+    return JSON.stringify(await moduleApiWire(ctx, current, access, input.existing === null));
+  },
+});
+async function moduleResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]),
+    moduleId = route[3] ? apiIdSchema.safeParse(route[3]) : null;
+  if (!projectId.success || (moduleId && !moduleId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const identity = {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    moduleApiId: moduleId?.data,
+  };
+  if ((request.method !== "POST" || moduleId) && (request.method !== "PATCH" || !moduleId))
+    await ctx.runQuery(internal.projects.external.moduleApiUnavailable, {
+      ...identity,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+    });
+  const body = await ctx.runMutation(internal.projects.external.writeModuleApi, {
+    ...identity,
+    bodyJson: await request.text(),
+  });
+  return Response.json(projectJsonText.parse(body), { status: moduleId ? 200 : 201, headers: responseHeaders });
+}
+
 export const projects = httpAction(async (ctx, request) => {
   if (request.method === "OPTIONS" && request.headers.has("Access-Control-Request-Method"))
     return new Response(null, { status: 200, headers });
@@ -2382,20 +2658,25 @@ export const projects = httpAction(async (ctx, request) => {
   const task = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/(?:([^/]+)\/)?$/.exec(
     new URL(request.url).pathname
   );
+  const module = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/modules\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
   const link =
     /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/([^/]+)\/(links|comments)\/(?:([^/]+)\/)?$/.exec(
       new URL(request.url).pathname
     );
   const methods = catalogue?.[4] ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
-  let responseHeaders: HeadersInit = link
-    ? { ...headers, Allow: link[6] ? "GET, PATCH, DELETE" : "GET, POST" }
-    : catalogue
-      ? { ...headers, Allow: methods.join(", ") }
-      : task?.[4]
-        ? { ...headers, Allow: "GET, PATCH, DELETE" }
-        : task
-          ? { ...headers, Allow: "GET, POST" }
-          : headers;
+  let responseHeaders: HeadersInit = module
+    ? { ...headers, Allow: module[3] ? "GET, PATCH, DELETE" : "GET, POST" }
+    : link
+      ? { ...headers, Allow: link[6] ? "GET, PATCH, DELETE" : "GET, POST" }
+      : catalogue
+        ? { ...headers, Allow: methods.join(", ") }
+        : task?.[4]
+          ? { ...headers, Allow: "GET, PATCH, DELETE" }
+          : task
+            ? { ...headers, Allow: "GET, POST" }
+            : headers;
   try {
     const credential = await verifyRequest(ctx, request);
     userId = credential.userId;
@@ -2405,13 +2686,15 @@ export const projects = httpAction(async (ctx, request) => {
       status = credential.status;
       return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
     }
-    const response = link
-      ? await taskCompanionResponse(ctx, request, credential.userId, responseHeaders, link)
-      : task
-        ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
-        : catalogue
-          ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
-          : await projectResponse(ctx, request, credential.userId, responseHeaders);
+    const response = module
+      ? await moduleResponse(ctx, request, credential.userId, responseHeaders, module)
+      : link
+        ? await taskCompanionResponse(ctx, request, credential.userId, responseHeaders, link)
+        : task
+          ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
+          : catalogue
+            ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
+            : await projectResponse(ctx, request, credential.userId, responseHeaders);
     status = response.status;
     return response;
   } catch (error) {
@@ -2425,7 +2708,7 @@ export const projects = httpAction(async (ctx, request) => {
         status = validation.data.status;
         return Response.json(validation.data.errors, { status, headers: responseHeaders });
       }
-      const failure = z.union([projectApiFailure, catalogueApiFailure]).safeParse(error.data);
+      const failure = z.union([moduleApiCreateConflict, projectApiFailure, catalogueApiFailure]).safeParse(error.data);
       if (failure.success) {
         const { status: failureStatus, ...body } = failure.data;
         status = failureStatus;

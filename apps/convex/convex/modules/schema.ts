@@ -1,7 +1,9 @@
-import { taskPreferences } from "../tasks/schema";
+import { taskPreferences, taskApiCreate, labelApiInput } from "../tasks/schema";
 import { apiIdSchema } from "../identity/schema";
 import { projectJsonText } from "../projects/schema";
-import { zodToConvex } from "convex-helpers/server/zod4";
+import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
+import { calendarDate } from "../commercial/validation";
+import { z } from "zod/v4";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
@@ -13,6 +15,60 @@ export const moduleStatus = v.union(
   v.literal("completed"),
   v.literal("cancelled")
 );
+const moduleApiWrite = z.object({
+  name: taskApiCreate.shape.name,
+  description: labelApiInput.shape.description.removeDefault(),
+  start_date: calendarDate.nullable(),
+  target_date: calendarDate.nullable(),
+  status: convexToZod(moduleStatus),
+  lead: apiIdSchema.nullable(),
+  members: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),
+  external_source: labelApiInput.shape.external_source.removeDefault(),
+  external_id: labelApiInput.shape.external_id.removeDefault(),
+});
+export const moduleApiPatch = moduleApiWrite.partial();
+export const moduleApiCreate = moduleApiWrite.extend({
+  description: moduleApiWrite.shape.description.default(""),
+  start_date: moduleApiWrite.shape.start_date.default(null),
+  target_date: moduleApiWrite.shape.target_date.default(null),
+  status: moduleApiWrite.shape.status.default("planned"),
+  lead: moduleApiWrite.shape.lead.default(null),
+  members: moduleApiWrite.shape.members.default([]),
+  external_source: moduleApiWrite.shape.external_source.default(null),
+  external_id: moduleApiWrite.shape.external_id.default(null),
+});
+export const moduleApiField = z.enum([
+  "id",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "workspace",
+  "project",
+  "name",
+  "description",
+  "description_text",
+  "description_html",
+  "start_date",
+  "target_date",
+  "status",
+  "lead",
+  "view_props",
+  "sort_order",
+  "external_source",
+  "external_id",
+  "archived_at",
+  "logo_props",
+  "members",
+]);
+export const moduleApiCreateConflict = z.object({
+  status: z.literal(400),
+  id: apiIdSchema,
+  code: z.literal("MODULE_NAME_ALREADY_EXISTS"),
+  error: z.string(),
+  message: z.string(),
+});
 export const moduleFields = {
   name: v.string(),
   descriptionHtml: v.string(),

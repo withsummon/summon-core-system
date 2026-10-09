@@ -51,6 +51,61 @@ function content(args: Pick<Doc<"modules">, "name" | "startDate" | "targetDate">
     targetDate,
   };
 }
+export async function createModule(
+  ctx: MutationCtx,
+  project: Doc<"projects">,
+  actorId: Id<"users">,
+  fields: Pick<
+    Doc<"modules">,
+    | "name"
+    | "startDate"
+    | "targetDate"
+    | "status"
+    | "leadId"
+    | "descriptionHtmlJson"
+    | "description"
+    | "externalSource"
+    | "externalId"
+  >,
+  members: Id<"users">[]
+) {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  const existing = await ctx.db
+    .query("modules")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (existing) throw new ConvexError("Module API identifier already exists.");
+  const first = await ctx.db
+    .query("modules")
+    .withIndex("by_project_order", (q) => q.eq("projectId", project._id).eq("deleted", false))
+    .order("asc")
+    .first();
+  const moduleId = await ctx.db.insert("modules", {
+    apiId,
+    descriptionTextJson: null,
+    viewPropsJson: "{}",
+    logoPropsJson: "{}",
+    externalSource: null,
+    externalId: null,
+    ...fields,
+    ...(first === null
+      ? { sortOrder: 65535 }
+      : first.sortOrder === undefined
+        ? {}
+        : { sortOrder: first.sortOrder - 10000 }),
+    workspaceId: project.workspaceId,
+    projectId: project._id,
+    createdBy: actorId,
+    updatedBy: null,
+    updatedAt: Date.now(),
+    deleted: false,
+    deletedAt: null,
+    archived: false,
+    archivedAt: null,
+  });
+  await Promise.all(members.map((userId) => ctx.db.insert("moduleMembers", { moduleId, userId })));
+  return moduleId;
+}
 export const create = mutation({
   args: { projectId: v.id("projects"), ...moduleFields, memberIds: v.optional(v.array(v.id("users"))) },
   handler: async (ctx, args) => {
@@ -60,50 +115,68 @@ export const create = mutation({
     const rich = taskRichContent(args.descriptionHtml);
     await requireAvailableName(ctx, project._id, data.name);
     if (args.leadId) await requireModulePerson(ctx, project, args.leadId);
-    const { memberIds = [], descriptionHtml: _descriptionHtml, ...fields } = args;
-    if (memberIds.length > 100) throw new ConvexError("Add at most 100 members in one operation.");
-    const members = [...new Set(memberIds)];
+    const members = [...new Set(args.memberIds ?? [])];
+    if ((args.memberIds?.length ?? 0) > 100) throw new ConvexError("Add at most 100 members in one operation.");
     await Promise.all(members.map((id) => requireModulePerson(ctx, project, id)));
-    const apiId = apiIdSchema.parse(crypto.randomUUID());
-    const existing = await ctx.db
-      .query("modules")
-      .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
-      .unique();
-    if (existing) throw new ConvexError("Module API identifier already exists.");
-    const first = await ctx.db
-      .query("modules")
-      .withIndex("by_project_order", (q) => q.eq("projectId", project._id).eq("deleted", false))
-      .order("asc")
-      .first();
-    const moduleId = await ctx.db.insert("modules", {
-      ...fields,
-      ...data,
-      descriptionHtmlJson: JSON.stringify(rich.html),
-      description: rich.description,
-      apiId,
-      descriptionTextJson: null,
-      viewPropsJson: "{}",
-      logoPropsJson: "{}",
-      externalSource: null,
-      externalId: null,
-      ...(first === null
-        ? { sortOrder: 65535 }
-        : first.sortOrder === undefined
-          ? {}
-          : { sortOrder: first.sortOrder - 10000 }),
-      workspaceId: project.workspaceId,
-      createdBy: user._id,
-      updatedBy: null,
-      updatedAt: Date.now(),
-      deleted: false,
-      deletedAt: null,
-      archived: false,
-      archivedAt: null,
-    });
-    await Promise.all(members.map((userId) => ctx.db.insert("moduleMembers", { moduleId, userId })));
-    return moduleId;
+    return createModule(
+      ctx,
+      project,
+      user._id,
+      {
+        ...data,
+        status: args.status,
+        leadId: args.leadId,
+        descriptionHtmlJson: JSON.stringify(rich.html),
+        description: rich.description,
+      },
+      members
+    );
   },
 });
+export async function writeModule(
+  ctx: MutationCtx,
+  module: Doc<"modules">,
+  changes: Partial<
+    Pick<
+      Doc<"modules">,
+      | "name"
+      | "startDate"
+      | "targetDate"
+      | "status"
+      | "leadId"
+      | "descriptionHtmlJson"
+      | "description"
+      | "externalSource"
+      | "externalId"
+    >
+  >,
+  actorId: Id<"users">,
+  memberIds?: Id<"users">[]
+) {
+  await ctx.db.patch(module._id, {
+    ...changes,
+    updatedBy: actorId,
+    updatedAt: Math.max(Date.now(), module.updatedAt + 1),
+  });
+  if (memberIds !== undefined) {
+    for await (const member of ctx.db
+      .query("moduleMembers")
+      .withIndex("by_module_user", (q) => q.eq("moduleId", module._id)))
+      await ctx.db.delete(member._id);
+    await Promise.all(memberIds.map((userId) => ctx.db.insert("moduleMembers", { moduleId: module._id, userId })));
+  }
+  if (changes.name !== undefined && changes.name !== module.name) {
+    for await (const membership of ctx.db
+      .query("moduleTasks")
+      .withIndex("by_module_task", (q) => q.eq("moduleId", module._id))) {
+      const task = await ctx.db.get(membership.taskId);
+      if (!task || task.projectId !== module.projectId || task.workspaceId !== module.workspaceId)
+        throw new ConvexError("Module work item reference not found in this project.");
+      if (taskIsActive(task))
+        await Promise.all([indexTaskModuleName(ctx, task, module.name), indexTaskModuleName(ctx, task, changes.name)]);
+    }
+  }
+}
 async function updateModule(
   ctx: MutationCtx,
   module: Doc<"modules">,
@@ -125,25 +198,17 @@ async function updateModule(
   if (fields.leadId && fields.leadId !== module.leadId) {
     await requireModulePerson(ctx, project, fields.leadId);
   }
-  await ctx.db.patch(module._id, {
-    ...data,
-    ...(rich === null ? {} : { descriptionHtmlJson: JSON.stringify(rich.html), description: rich.description }),
-    status: fields.status,
-    leadId: fields.leadId,
-    updatedBy: actorId,
-    updatedAt: Math.max(Date.now(), module.updatedAt + 1),
-  });
-  if (data.name !== module.name) {
-    for await (const membership of ctx.db
-      .query("moduleTasks")
-      .withIndex("by_module_task", (q) => q.eq("moduleId", module._id))) {
-      const task = await ctx.db.get(membership.taskId);
-      if (!task || task.projectId !== module.projectId || task.workspaceId !== module.workspaceId)
-        throw new ConvexError("Module work item reference not found in this project.");
-      if (taskIsActive(task))
-        await Promise.all([indexTaskModuleName(ctx, task, module.name), indexTaskModuleName(ctx, task, data.name)]);
-    }
-  }
+  await writeModule(
+    ctx,
+    module,
+    {
+      ...data,
+      ...(rich === null ? {} : { descriptionHtmlJson: JSON.stringify(rich.html), description: rich.description }),
+      status: fields.status,
+      leadId: fields.leadId,
+    },
+    actorId
+  );
 }
 export const update = mutation({
   args: { moduleId: v.id("modules"), expectedUpdatedAt: v.number(), ...moduleFields },
