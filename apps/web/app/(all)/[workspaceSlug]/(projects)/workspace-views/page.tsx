@@ -87,9 +87,11 @@ export default function WorkspaceViewsPage() {
               </Breadcrumbs>
             </Header.LeftItem>
             <Header.RightItem>
-              <Button variant="primary" size="lg" onClick={() => setCreating(true)}>
-                {t("workspace_views.add_view")}
-              </Button>
+              {session.workspace.membershipRole !== "guest" && (
+                <Button variant="primary" size="lg" onClick={() => setCreating(true)}>
+                  {t("workspace_views.add_view")}
+                </Button>
+              )}
             </Header.RightItem>
           </Header>
         </Row>
