@@ -7,10 +7,12 @@ import { priority, stateApiGroup, stateApiGroupFromStatus } from "./schema";
 import { DirectAggregate } from "@convex-dev/aggregate";
 import { components } from "../_generated/api";
 import { taskIsActive } from "./access";
+import { profileIdentity } from "../identity/profile_owner";
 
 export const taskCollection = new DirectAggregate<{
   Namespace:
     | Id<"projects">
+    | [Id<"users">, "assigned_tasks"]
     | [
         Id<"projects">,
         (
@@ -24,17 +26,39 @@ export const taskCollection = new DirectAggregate<{
           | "state__group"
           | "-state__group"
           | "labels__name"
+          | "assignees__first_name"
         ),
       ];
   Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string];
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
+// SQL MAX retains blank first names; only a task with no assignees has a null key.
+export async function taskAssigneeCollectionEntry(
+  ctx: QueryCtx,
+  task: Doc<"tasks">,
+  resolved?: NonNullable<Awaited<ReturnType<typeof profileIdentity>>>[]
+): Promise<Parameters<typeof taskCollection.insertIfDoesNotExist>[1]> {
+  const identities = resolved ?? (await Promise.all(task.assigneeIds.map((id) => profileIdentity(ctx, id))));
+  const names = new Map(
+    identities.filter((identity) => identity !== null).map((identity) => [identity.userId, identity.firstName])
+  );
+  let firstName: string | null = null;
+  for (const id of task.assigneeIds) {
+    const name = names.get(id);
+    if (name === undefined)
+      throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+    if (firstName === null || compareValues(name, firstName) > 0) firstName = name;
+  }
+  return { namespace: [task.projectId, "assignees__first_name"], key: [firstName === null, firstName], id: task._id };
+}
+
 export async function taskCollectionEntries(
   ctx: QueryCtx,
   task: Doc<"tasks">,
   resolvedLabels?: Doc<"taskLabels">[],
-  namespace?: Parameters<typeof taskCollection.count>[1]["namespace"]
+  namespace?: Parameters<typeof taskCollection.count>[1]["namespace"],
+  resolvedAssignees?: NonNullable<Awaited<ReturnType<typeof profileIdentity>>>[]
 ): Promise<Parameters<typeof taskCollection.insertIfDoesNotExist>[1][]> {
   const defaultStateRank = stateApiGroup.options.indexOf("triage");
   const stateRank =
@@ -55,6 +79,8 @@ export async function taskCollectionEntries(
       id: task._id,
     },
   ];
+  if (namespace === undefined || compareValues(namespace, [task.projectId, "assignees__first_name"]) === 0)
+    entries.push(await taskAssigneeCollectionEntry(ctx, task, resolvedAssignees));
   if (namespace !== undefined && compareValues(namespace, [task.projectId, "labels__name"]) !== 0) return entries;
   const labels = resolvedLabels
     ? new Map(resolvedLabels.map((label) => [label._id, label] as const))
@@ -84,9 +110,16 @@ export async function indexTaskCollection(
       return label;
     })
   );
-  const items = await taskCollectionEntries(ctx, task, labels);
+  const assignees = await Promise.all(
+    [...new Set([...task.assigneeIds, ...(previous?.assigneeIds ?? [])])].map(async (id) => {
+      const identity = await profileIdentity(ctx, id);
+      if (!identity) throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+      return identity;
+    })
+  );
+  const items = await taskCollectionEntries(ctx, task, labels, undefined, assignees);
   // One producer keeps entry positions identical for the real before/current documents.
-  const before = previousEntries ?? (await taskCollectionEntries(ctx, previous ?? task, labels));
+  const before = previousEntries ?? (await taskCollectionEntries(ctx, previous ?? task, labels, undefined, assignees));
   await Promise.all(
     items.map(async (item, index) => {
       const old = before[index];
@@ -95,6 +128,19 @@ export async function indexTaskCollection(
           if (compareValues(old.key, item.key) !== 0) await taskCollection.replaceOrInsert(ctx, old, item);
         } else await taskCollection.insertIfDoesNotExist(ctx, item);
       } else if (!previous || taskIsActive(previous)) await taskCollection.deleteIfExists(ctx, old);
+    })
+  );
+  const current = new Set(taskIsActive(task) ? task.assigneeIds : []);
+  const old = new Set(previous && taskIsActive(previous) ? previous.assigneeIds : []);
+  await Promise.all(
+    [...new Set([...task.assigneeIds, ...(previous?.assigneeIds ?? [])])].map(async (userId) => {
+      const entry: Parameters<typeof taskCollection.insertIfDoesNotExist>[1] = {
+        namespace: [userId, "assigned_tasks"],
+        key: task._creationTime,
+        id: task._id,
+      };
+      if (current.has(userId) && (!previous || !old.has(userId))) await taskCollection.insertIfDoesNotExist(ctx, entry);
+      else if (!current.has(userId) && (!previous || old.has(userId))) await taskCollection.deleteIfExists(ctx, entry);
     })
   );
 }

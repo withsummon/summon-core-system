@@ -1,4 +1,4 @@
-import { ConvexError, v, type Infer } from "convex/values";
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { role } from "../schema";
@@ -6,6 +6,8 @@ import { requireUser } from "./access";
 import { defaultPreferences } from "./preferences_fields";
 import { accountRestricted } from "./deactivation/access";
 import { text } from "../commercial/validation";
+import { taskCollection, taskAssigneeCollectionEntry } from "../tasks/revision";
+import { taskIsActive } from "../tasks/access";
 
 export function personalName(value: string, label: string, required = false) {
   const name = text(value, label, 255, required);
@@ -100,6 +102,26 @@ export async function writeProfile(
     revision: number;
   }
 ) {
+  const tasks: Doc<"tasks">[] = [];
+  if (fields.firstName !== undefined && fields.firstName !== (owner.profile ?? defaultProfile).firstName) {
+    const namespace: [Id<"users">, "assigned_tasks"] = [owner.user._id, "assigned_tasks"];
+    const count = await taskCollection.count(ctx, { namespace });
+    if (count)
+      for await (const entry of taskCollection.iter(ctx, { namespace, pageSize: 20 })) {
+        const task = await ctx.db.get(entry.id);
+        if (!task || !taskIsActive(task) || !task.assigneeIds.includes(owner.user._id))
+          throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+        tasks.push(task);
+      }
+  }
+  const assignees = await Promise.all(
+    [...new Set(tasks.flatMap((task) => task.assigneeIds))].map(async (id) => {
+      const identity = await profileIdentity(ctx, id);
+      if (!identity) throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+      return identity;
+    })
+  );
+  const before = await Promise.all(tasks.map((task) => taskAssigneeCollectionEntry(ctx, task, assignees)));
   if (owner.profile) await ctx.db.patch(owner.profile._id, fields);
   else
     await ctx.db.insert("userProfiles", {
@@ -107,4 +129,16 @@ export async function writeProfile(
       ...defaultProfile,
       ...fields,
     });
+  if (tasks.length) {
+    const current = await profileIdentity(ctx, owner.user._id);
+    if (!current) throw new ConvexError("Profile owner not found.");
+    const identities = assignees.map((identity) => (identity.userId === current.userId ? current : identity));
+    await Promise.all(
+      tasks.map(async (task, index) => {
+        const next = await taskAssigneeCollectionEntry(ctx, task, identities);
+        if (compareValues(before[index].key, next.key) !== 0)
+          await taskCollection.replaceOrInsert(ctx, before[index], next);
+      })
+    );
+  }
 }
