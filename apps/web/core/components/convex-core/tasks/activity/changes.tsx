@@ -12,6 +12,7 @@ const labels = {
   cycle: "Cycle",
   state: "State",
   estimate: "Estimate",
+  point: "Point",
   assignees: "Assignees",
   labels: "Labels",
   modules: "Modules",
@@ -21,7 +22,15 @@ const voteLabels = { 1: "Upvote", "-1": "Downvote" } satisfies Record<
   NonNullable<Extract<Change, { field: "vote" }>["before"]>,
   string
 >;
-function Scalar({ label, before, after }: { label: string; before: string | null; after: string | null }) {
+function Scalar({
+  label,
+  before,
+  after,
+}: {
+  label: string;
+  before: string | number | null;
+  after: string | number | null;
+}) {
   return (
     <li className="break-words">
       <span className="font-medium">{label}:</span> {before ?? "Not set"} → {after ?? "Not set"}

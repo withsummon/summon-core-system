@@ -127,7 +127,9 @@ export async function prepareParentChange(
 }
 export async function applyParentChange(
   ctx: MutationCtx,
-  prepared: NonNullable<Awaited<ReturnType<typeof prepareParentChange>>>
+  prepared: Omit<NonNullable<Awaited<ReturnType<typeof prepareParentChange>>>, "next"> & {
+    next: Doc<"tasks"> | null;
+  }
 ) {
   const { task, user, next, previous, existing } = prepared;
   if (existing) await ctx.db.delete(existing._id);

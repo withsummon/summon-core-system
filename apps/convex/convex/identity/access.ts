@@ -37,11 +37,11 @@ export async function requireProjectForUser(
   return requireProjectMembershipForUser(ctx, project, user, write);
 }
 
-// Shared membership owner; only lifecycle recovery may call this for an archived project.
+// Shared membership owner for archived lifecycle recovery and public asset reads.
 export async function requireProjectMembership(ctx: QueryCtx, project: Doc<"projects">, write = false) {
   return requireProjectMembershipForUser(ctx, project, await requireUser(ctx), write);
 }
-async function requireProjectMembershipForUser(
+export async function requireProjectMembershipForUser(
   ctx: QueryCtx,
   project: Doc<"projects">,
   user: Doc<"users">,
@@ -54,7 +54,7 @@ async function requireProjectMembershipForUser(
     .query("projectMembers")
     .withIndex("by_project_user", (q) => q.eq("projectId", projectId).eq("userId", access.user._id))
     .unique();
-  if (!member?.active || (write && member.role === "guest"))
+  if (!member?.active || member.workspaceId !== project.workspaceId || (write && member.role === "guest"))
     throw new ConvexError("You do not have access to this project.");
   return { ...access, project, projectMember: member };
 }

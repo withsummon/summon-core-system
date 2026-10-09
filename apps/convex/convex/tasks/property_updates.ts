@@ -93,10 +93,13 @@ export async function applyRelationshipUpdate(
 }
 export async function applyPropertyUpdate(
   ctx: MutationCtx,
-  prepared: Omit<Awaited<ReturnType<typeof preparePropertyUpdate>>, "data"> & {
+  prepared: Omit<Awaited<ReturnType<typeof preparePropertyUpdate>>, "data" | "task"> & {
+    task: Doc<"tasks">;
     data: Partial<Awaited<ReturnType<typeof preparePropertyUpdate>>["data"]>;
   },
-  fields?: Partial<Pick<Doc<"tasks">, "title" | "description" | "sortOrder">>,
+  fields?: Partial<
+    Pick<Doc<"tasks">, "title" | "description" | "sortOrder" | "point" | "externalSource" | "externalId">
+  >,
   event?: Parameters<typeof taskChanged>[3],
   delivery?: Parameters<typeof taskChanged>[4]
 ) {

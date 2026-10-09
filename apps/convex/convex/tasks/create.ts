@@ -37,11 +37,20 @@ export async function createTask(
     | "targetDate"
     | "stateId"
   > &
-    Partial<Pick<Doc<"tasks">, "externalSource" | "externalId">>,
+    Partial<Pick<Doc<"tasks">, "externalSource" | "externalId" | "point" | "sortOrder">>,
   parent: Doc<"tasks"> | null = null,
   html?: string
 ) {
-  const { title, description, status: nextStatus, externalSource = null, externalId = null, ...data } = fields;
+  const {
+    title,
+    description,
+    status: nextStatus,
+    externalSource = null,
+    externalId = null,
+    point = null,
+    sortOrder: requestedSortOrder = 65535,
+    ...data
+  } = fields;
   await Promise.all(fields.labelIds.map((id) => requireUsableLabel(ctx, id)));
   const last = await ctx.db
     .query("tasks")
@@ -50,7 +59,7 @@ export async function createTask(
     )
     .order("desc")
     .first();
-  const sortOrder = last ? last.sortOrder + 10000 : 65535;
+  const sortOrder = last ? last.sortOrder + 10000 : requestedSortOrder;
   if (!Number.isFinite(sortOrder) || (last && sortOrder <= last.sortOrder))
     throw new ConvexError("Task ordering has reached its numeric limit.");
   const updatedAt = Date.now();
@@ -61,7 +70,7 @@ export async function createTask(
     // Fresh native Projects have no IssueType/link producer. Imported type
     // catalogues remain a separate migration contract, never inferred here.
     type: null,
-    point: null,
+    point,
     externalSource,
     externalId,
     archivedAt: null,

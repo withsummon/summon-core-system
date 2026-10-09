@@ -31,6 +31,22 @@ export const priority = v.union(
   v.literal("low"),
   v.literal("none")
 );
+export const taskPoint = v.union(
+  v.literal(0),
+  v.literal(1),
+  v.literal(2),
+  v.literal(3),
+  v.literal(4),
+  v.literal(5),
+  v.literal(6),
+  v.literal(7),
+  v.literal(8),
+  v.literal(9),
+  v.literal(10),
+  v.literal(11),
+  v.literal(12),
+  v.null()
+);
 const dateRange = v.union(
   v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
   v.null()
@@ -357,6 +373,13 @@ const catalogueApiNumber = z.preprocess(
           : "A valid number is required.",
   })
 );
+const catalogueApiInteger = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.length <= 1000 && /^[+-]?\d(?:_?\d)*(?:\.0*)?$/.test(value.trim())
+      ? Number(value.replaceAll("_", ""))
+      : value,
+  z.int({ error: "A valid integer is required." })
+);
 const stateApiFields = z.object({
   name: catalogueApiRequiredText,
   color: catalogueApiText,
@@ -432,14 +455,31 @@ export const taskApiField = z.enum([
   "deleted_at",
   "type_id",
 ]);
-export const taskApiCreate = z.object({
+const taskApiWrite = z.object({
   name: catalogueApiRequiredText,
-  external_source: catalogueApiExternal.default(null),
-  external_id: catalogueApiExternal.default(null),
+  description_html: catalogueApiString.refine((value) => value.length > 0, "Invalid HTML passed"),
+  priority: convexToZod(priority),
+  point: catalogueApiInteger.nullable().pipe(convexToZod(taskPoint)),
+  sort_order: catalogueApiNumber,
+  parent: apiIdSchema.nullable(),
+  state: apiIdSchema.nullable(),
+  estimate_point: apiIdSchema.nullable(),
+  start_date: calendarDate.nullable(),
+  target_date: calendarDate.nullable(),
+  assignees: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),
+  labels: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),
+  external_source: catalogueApiExternal,
+  external_id: catalogueApiExternal,
+});
+export const taskApiPatch = taskApiWrite.partial();
+export const taskApiCreate = taskApiPatch.extend({
+  name: taskApiWrite.shape.name,
+  external_source: taskApiWrite.shape.external_source.default(null),
+  external_id: taskApiWrite.shape.external_id.default(null),
 });
 // Ignore serializer read-only and unknown inputs. Other writable fields remain
 // explicit migration gaps, including the endpoint's manual provenance overrides.
-export const taskApiUnsupportedCreation = taskApiField.exclude([
+export const taskApiUnsupportedWrite = taskApiField.exclude([
   ...taskApiCreate.keyof().options,
   "id",
   "workspace",
@@ -548,6 +588,7 @@ export const taskChange = v.union(
   v.object({ field: v.literal("vote"), before: v.union(taskVote, v.null()), after: v.union(taskVote, v.null()) }),
   v.object({ field: v.literal("title"), before: v.string(), after: v.string() }),
   v.object({ field: v.literal("priority"), before: priority, after: priority }),
+  v.object({ field: v.literal("point"), before: taskPoint, after: taskPoint }),
   v.object({ field: v.literal("state"), before: activityState, after: activityState }),
   v.object({ field: v.literal("startDate"), before: taskProperties.startDate, after: taskProperties.startDate }),
   v.object({ field: v.literal("targetDate"), before: taskProperties.targetDate, after: taskProperties.targetDate }),
@@ -670,8 +711,8 @@ export const taskTables = {
     updatedBy: v.optional(v.union(v.id("users"), v.null())),
     // The current native product has no IssueType assignment producer.
     type: v.optional(v.null()),
-    // Legacy integer points are separate from estimatePointId; current native creation is unassigned.
-    point: v.optional(v.union(v.number(), v.null())),
+    // Legacy integer points remain independent of estimatePointId.
+    point: v.optional(taskPoint),
     // Optional only until exact-preimage adoption records explicit unassigned metadata.
     externalSource: v.optional(v.union(v.string(), v.null())),
     externalId: v.optional(v.union(v.string(), v.null())),

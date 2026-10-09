@@ -1,4 +1,4 @@
-import type { Infer } from "convex/values";
+import { ConvexError, type Infer } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { taskLifecycleField, type taskChange } from "./schema";
@@ -42,6 +42,11 @@ export async function taskPropertyChanges(ctx: QueryCtx, before: Doc<"tasks">, a
   if (before.title !== after.title) changes.push({ field: "title", before: before.title, after: after.title });
   if (before.priority !== after.priority)
     changes.push({ field: "priority", before: before.priority, after: after.priority });
+  if (before.point !== after.point) {
+    if (before.point === undefined || after.point === undefined)
+      throw new ConvexError({ status: 503, detail: "Task point history requires adoption before changing points." });
+    changes.push({ field: "point", before: before.point, after: after.point });
+  }
   if (before.status !== after.status || before.stateId !== after.stateId)
     changes.push({ field: "state", before: await stateSnapshot(ctx, before), after: await stateSnapshot(ctx, after) });
   if (before.startDate !== after.startDate)

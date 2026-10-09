@@ -10,7 +10,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
 import { Avatar } from "@plane/propel/avatar";
-import { CycleIcon, ModuleIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { CycleIcon, HashPropertyIcon, ModuleIcon, WorkItemsIcon } from "@plane/propel/icons";
 import { calculateTimeAgo } from "@plane/utils";
 import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 import { ProfileActivityMessage } from "@/components/convex-core/tasks/activity/activity";
@@ -29,6 +29,7 @@ const icons = {
   cycle: <CycleIcon className="size-3 text-secondary" aria-hidden="true" />,
   modules: <ModuleIcon className="size-3 text-secondary" aria-hidden="true" />,
   estimate: <Triangle className="size-3 text-secondary" aria-hidden="true" />,
+  point: <HashPropertyIcon className="size-3 text-secondary" aria-hidden="true" />,
   assignees: <Users className="size-3 text-secondary" aria-hidden="true" />,
   labels: <Tag className="size-3 text-secondary" aria-hidden="true" />,
   vote: <History className="size-3 text-secondary" aria-hidden="true" />,

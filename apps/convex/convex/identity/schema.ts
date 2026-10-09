@@ -8,7 +8,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { z } from "zod/v4";
 import { convexToZod, zodToConvexFields, zodToConvex } from "convex-helpers/server/zod4";
 
-export const apiIdSchema = z.uuid();
+export const apiIdSchema = z.uuid().toLowerCase();
 export const instanceGeneral = z.object({
   instanceName: z.string().trim().min(1).max(255),
   telemetryEnabled: z.boolean(),
