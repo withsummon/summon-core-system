@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { observer } from "mobx-react";
+import { taskExpression } from "@summon/convex/task-schema";
+import { useTaskFilterDraft } from "./filters";
+import { useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import { useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -166,6 +169,7 @@ export function WorkspaceViewDetail({
     throw new Error("View belongs to another scope.");
   return (
     <WorkspaceViewContent
+      key={detail.view._id}
       workspace={workspace}
       detail={detail}
       onBack={onBack}
@@ -174,7 +178,7 @@ export function WorkspaceViewDetail({
     />
   );
 }
-function WorkspaceViewContent({
+const WorkspaceViewContent = observer(function WorkspaceViewContent({
   workspace,
   detail,
   onBack,
@@ -188,11 +192,21 @@ function WorkspaceViewContent({
   onCreated: (id: Id<"savedViews">) => void;
 }) {
   const { t } = useTranslation();
+  const filter = useTaskFilterDraft(detail.view.filters, detail.view._id);
+  const filterSnapshot = useRef(detail);
   const [preview, setPreview] = useState<{
     snapshot: Detail;
     input: FunctionArgs<typeof api.savedViews.workspace.create> &
       Pick<Detail["view"], "displayFilters" | "displayProperties">;
   } | null>(null);
+  useEffect(() => {
+    if (!filter.hasChanges && !preview) filterSnapshot.current = detail;
+  }, [detail, filter, filter.hasChanges, preview]);
+  const parsedFilters = taskExpression.safeParse(filter.expression);
+  const discardPreview = () => {
+    filter.resetExpression(detail.view.filters);
+    setPreview(null);
+  };
   const [editor, setEditor] = useState<
     { snapshot: Detail } | { seed?: NonNullable<ComponentProps<typeof WorkspaceViewForm>["createSeed"]> } | null
   >(null);
@@ -218,14 +232,11 @@ function WorkspaceViewContent({
       };
   const { displayFilters, displayProperties } = input;
   const dirty =
-    preview !== null &&
-    JSON.stringify([input.filters, displayFilters, displayProperties]) !==
-      JSON.stringify([
-        preview.snapshot.view.filters,
-        preview.snapshot.view.displayFilters,
-        preview.snapshot.view.displayProperties,
-      ]);
-  const release = useReloadConfirmations(dirty, "This view has unsaved changes.", () => setPreview(null), pending);
+    filter.hasChanges ||
+    (preview !== null &&
+      JSON.stringify([displayFilters, displayProperties]) !==
+        JSON.stringify([preview.snapshot.view.displayFilters, preview.snapshot.view.displayProperties]));
+  const release = useReloadConfirmations(dirty, "This view has unsaved changes.", discardPreview, pending);
   const command = async (operation: () => Promise<unknown>) => {
     if (pending || isSubmitting) return;
     const complete = beginPending();
@@ -240,11 +251,9 @@ function WorkspaceViewContent({
       complete();
     }
   };
-  const change = (
-    criteria: Pick<NonNullable<typeof preview>["input"], "filters" | "displayFilters" | "displayProperties">
-  ) => {
+  const change = (criteria: Pick<NonNullable<typeof preview>["input"], "displayFilters" | "displayProperties">) => {
     if (!pending && !isSubmitting)
-      setPreview({ snapshot: preview?.snapshot ?? detail, input: { ...input, ...criteria } });
+      setPreview({ snapshot: preview?.snapshot ?? filterSnapshot.current, input: { ...input, ...criteria } });
   };
   const busy = pending || isSubmitting || editor !== null || lifecycle !== null;
   const path = `/${workspace.slug}/workspace-views/${detail.view._id}/`;
@@ -340,15 +349,14 @@ function WorkspaceViewContent({
           <>
             <ViewPreviewControls
               canEdit={detail.canEdit}
-              filters={input.filters}
               displayFilters={displayFilters}
               displayProperties={displayProperties}
               referenceFilters={
                 <WorkspaceReferenceFilters
                   workspaceId={workspace._id}
-                  filters={input.filters}
+                  filter={filter}
                   selections={detail.selections}
-                  onChange={(filters) => change({ filters, displayFilters, displayProperties })}
+                  disabled={busy}
                 />
               }
               busy={busy}
@@ -357,34 +365,51 @@ function WorkspaceViewContent({
               canCreate
               onChange={change}
               onDiscard={() => {
-                if (!isSubmitting) setPreview(null);
+                if (!isSubmitting) discardPreview();
               }}
-              onSaveAs={() => {
-                const { workspaceId: _workspaceId, ...definition } = input;
-                setEditor({ seed: { input: { ...definition, name: `${input.name} 2` }, logo: detail.logo } });
-              }}
+              onSaveAs={() =>
+                void command(async () => {
+                  const { workspaceId: _workspaceId, ...definition } = input;
+                  setEditor({
+                    seed: {
+                      input: {
+                        ...definition,
+                        filters: taskExpression.parse(filter.expression),
+                        name: `${input.name} 2`,
+                      },
+                      logo: detail.logo,
+                    },
+                  });
+                })
+              }
               onUpdate={() =>
                 void command(async () => {
-                  if (!preview) return;
-                  const { workspaceId: _workspaceId, ...definition } = preview.input;
+                  const { workspaceId: _workspaceId, ...definition } = input;
                   await update({
                     ...definition,
+                    filters: taskExpression.parse(filter.expression),
                     viewId: detail.view._id,
-                    expectedUpdatedAt: preview.snapshot.view.updatedAt,
+                    expectedUpdatedAt: (preview?.snapshot ?? filterSnapshot.current).view.updatedAt,
                   });
-                  release(() => setPreview(null));
+                  release(discardPreview);
                 })
               }
             />
-            <ViewBoundary key={JSON.stringify([input.filters, displayFilters])} onBack={() => setPreview(null)}>
-              <WorkspaceResults
-                viewId={detail.view._id}
-                workspace={workspace}
-                filters={input.filters}
-                displayFilters={displayFilters}
-                displayProperties={displayProperties}
-              />
-            </ViewBoundary>
+            {parsedFilters.success ? (
+              <ViewBoundary key={JSON.stringify([parsedFilters.data, displayFilters])} onBack={discardPreview}>
+                <WorkspaceResults
+                  viewId={detail.view._id}
+                  workspace={workspace}
+                  filters={parsedFilters.data}
+                  displayFilters={displayFilters}
+                  displayProperties={displayProperties}
+                />
+              </ViewBoundary>
+            ) : (
+              <p role="alert" className="p-5 text-13 text-danger-primary">
+                Complete each filter before previewing or saving this view.
+              </p>
+            )}
           </>
         ) : (
           <p className="p-5 text-13 text-secondary">This view is in Trash. Restore it to see matching work items.</p>
@@ -430,7 +455,7 @@ function WorkspaceViewContent({
       </Button>
     </div>
   );
-}
+});
 function WorkspaceDefinitionCommand({
   editor,
   workspaceId,

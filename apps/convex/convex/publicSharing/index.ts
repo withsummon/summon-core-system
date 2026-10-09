@@ -1,4 +1,4 @@
-import { taskStateIsSelectable } from "../tasks/schema";
+import { taskStateIsSelectable, publicViewFilters } from "../tasks/schema";
 import { ConvexError, v, type Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -10,7 +10,6 @@ import { accountRestricted } from "../identity/deactivation/access";
 import { projectAppearance } from "../projects/cover_owner";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { pageBudget } from "../commercial/validation";
-import { viewFilters } from "../savedViews/schema";
 import { matchesFilters, validateShape } from "../savedViews/filters";
 import { plainDescriptionHtml } from "../tasks/rich_content";
 import { descriptor } from "../assets/access";
@@ -149,7 +148,7 @@ function publicTask(task: Awaited<ReturnType<typeof requirePublishedTask>>["task
 
 const listArgs = v.object({
   anchor: v.string(),
-  filters: v.optional(viewFilters),
+  filters: v.optional(publicViewFilters),
   stateId: v.optional(v.union(v.id("taskStates"), v.null())),
   paginationOpts: paginationOptsValidator,
 });

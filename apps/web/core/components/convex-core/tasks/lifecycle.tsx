@@ -1,3 +1,5 @@
+import { observer } from "mobx-react";
+import { useTaskFilterDraft } from "../saved-views/filters";
 import { useNavigate, useSearchParams } from "react-router";
 import { PriorityIcon } from "@plane/propel/icons";
 import { renderFormattedDate } from "@plane/utils";
@@ -12,13 +14,12 @@ import type { ComponentProps, ReactNode } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
-import { defaultTaskPreferences, taskPreferencesSchema } from "@summon/convex/task-schema";
+import { defaultTaskPreferences, taskPreferencesSchema, taskExpression } from "@summon/convex/task-schema";
 import { useLocalStorage } from "@plane/hooks";
 import { ArchivedIssuesHeader } from "@/components/issues/archived-issues-header";
 import { Popover } from "@plane/propel/popover";
 import { EIssueLayoutTypes } from "@plane/types";
 import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
-import { BasicFilters } from "../saved-views/filters";
 import { ProjectReferenceFilters, ViewDisplayFields } from "../saved-views/form";
 import { Input } from "@plane/propel/input";
 import { Button } from "@plane/propel/button";
@@ -251,134 +252,227 @@ export function TaskLifecycle({
     </>
   );
 }
-export function TaskRecoveryList({
-  project,
-  view,
-  onSelect,
-}: {
-  project: Pick<Project, "_id" | "workspaceId" | "identifier">;
-} & ({ view: "archived"; onSelect?: never } | { view: "deleted"; onSelect: (id: string) => void })) {
-  const busy = useReloadSubmitting();
-  const { storedValue, setValue } = useLocalStorage<unknown>(
+export function TaskRecoveryList(
+  props: {
+    project: Pick<Project, "_id" | "workspaceId" | "identifier">;
+  } & ({ view: "archived"; onSelect?: never } | { view: "deleted"; onSelect: (id: string) => void })
+) {
+  return props.view === "deleted" ? (
+    <DeletedTasks project={props.project} onSelect={props.onSelect} />
+  ) : (
+    <ArchivePreferences project={props.project} />
+  );
+}
+const archivePreferencesSchema = taskPreferencesSchema.refine(
+  (preferences) => preferences.displayFilters.layout === EIssueLayoutTypes.LIST,
+  "Archived work items use the list layout."
+);
+function ArchivePreferences({ project }: Pick<ComponentProps<typeof TaskRecoveryList>, "project">) {
+  const { rawValue, setValue, clearValue } = useLocalStorage<unknown>(
     `native-archive:${project.workspaceId}:${project._id}`,
     defaultTaskPreferences
   );
-  const parsed = taskPreferencesSchema.safeParse(storedValue);
-  const preferences =
-    parsed.success && parsed.data.displayFilters.layout === "list" ? parsed.data : defaultTaskPreferences;
-  const { filters, displayFilters, displayProperties } = preferences;
+  let preferences: ReturnType<typeof archivePreferencesSchema.safeParse> | undefined;
+  try {
+    preferences = archivePreferencesSchema.safeParse(rawValue === null ? defaultTaskPreferences : JSON.parse(rawValue));
+  } catch {
+    // Keep malformed storage until the user explicitly resets it.
+  }
+  if (!preferences?.success)
+    return (
+      <section className="space-y-3 p-5">
+        <p role="alert" className="text-14 text-danger-primary">
+          Your saved archive preferences cannot be opened. Reset them to use the archive again.
+        </p>
+        <Button variant="secondary" onClick={clearValue}>
+          Reset archive preferences
+        </Button>
+      </section>
+    );
+  return <ArchivedTasks key={project._id} project={project} preferences={preferences.data} onApply={setValue} />;
+}
+const ArchivedTasks = observer(function ArchivedTasks({
+  project,
+  preferences,
+  onApply,
+}: {
+  project: ComponentProps<typeof TaskRecoveryList>["project"];
+  preferences: ReturnType<typeof taskPreferencesSchema.parse>;
+  onApply: (preferences: ReturnType<typeof taskPreferencesSchema.parse>) => void;
+}) {
+  const busy = useReloadSubmitting();
+  const filter = useTaskFilterDraft(preferences.filters, project._id);
+  const parsedFilters = taskExpression.safeParse(filter.expression);
+  const { displayFilters, displayProperties } = preferences;
   const [search, setSearch] = useState("");
-  const address = useQuery(
-    api.navigation.address.resolveProjectId,
-    view === "archived" ? { workspaceId: project.workspaceId, projectId: project._id } : "skip"
-  );
-  const features = useQuery(api.projects.features.get, view === "archived" ? { projectId: project._id } : "skip");
+  const [error, setError] = useState("");
+  const address = useQuery(api.navigation.address.resolveProjectId, {
+    workspaceId: project.workspaceId,
+    projectId: project._id,
+  });
+  const features = useQuery(api.projects.features.get, { projectId: project._id });
   const tasks = usePaginatedQuery(
     api.tasks.lifecycle.list,
-    {
-      projectId: project._id,
-      view,
-      ...(view === "archived"
-        ? {
-            filters,
-            search,
-            order: displayFilters.order,
-            includeSubtasks: displayFilters.includeSubtasks,
-          }
-        : {}),
-    },
+    parsedFilters.success
+      ? {
+          projectId: project._id,
+          view: "archived",
+          filters: parsedFilters.data,
+          search,
+          order: displayFilters.order,
+          includeSubtasks: displayFilters.includeSubtasks,
+        }
+      : "skip",
+    { initialNumItems: 50 }
+  );
+  const apply = (display: Pick<typeof preferences, "displayFilters" | "displayProperties">) => {
+    try {
+      const next = archivePreferencesSchema.parse({
+        ...preferences,
+        ...display,
+        filters: taskExpression.parse(filter.expression),
+      });
+      onApply(next);
+      filter.resetExpression(next.filters);
+      setError("");
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    }
+  };
+  return (
+    <section className="space-y-3">
+      {address && features && (
+        <ArchivedIssuesHeader address={address} features={features.features}>
+          <Input
+            aria-label="Search archived work items"
+            placeholder="Search"
+            disabled={busy}
+            className="w-40"
+            value={search}
+            maxLength={255}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Popover>
+            <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
+              Filters
+            </Popover.Button>
+            <Popover.Panel
+              side="bottom"
+              align="end"
+              sideOffset={4}
+              className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
+            >
+              <fieldset disabled={busy} className="space-y-4">
+                <ProjectReferenceFilters
+                  projectId={project._id}
+                  filter={filter}
+                  selections={undefined}
+                  disabled={busy}
+                />
+                <Button onClick={() => apply({ displayFilters, displayProperties })}>Apply filters</Button>
+                {filter.hasChanges && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      filter.resetExpression(preferences.filters);
+                      setError("");
+                    }}
+                  >
+                    Discard changes
+                  </Button>
+                )}
+              </fieldset>
+            </Popover.Panel>
+          </Popover>
+          <Popover>
+            <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
+              Display
+            </Popover.Button>
+            <Popover.Panel
+              side="bottom"
+              align="end"
+              sideOffset={4}
+              className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
+            >
+              <fieldset disabled={busy}>
+                <ViewDisplayFields
+                  layouts={[EIssueLayoutTypes.LIST]}
+                  displayFilters={displayFilters}
+                  displayProperties={displayProperties}
+                  disabled={busy}
+                  onChange={apply}
+                />
+              </fieldset>
+            </Popover.Panel>
+          </Popover>
+        </ArchivedIssuesHeader>
+      )}
+      {error && (
+        <p role="alert" className="text-14 text-danger-primary">
+          {error}
+        </p>
+      )}
+      {parsedFilters.success ? (
+        <>
+          <BulkLifecycle projectId={project._id} rows={tasks.results} view="archived" />
+          {address && (
+            <>
+              <ProjectViewLayoutRoot
+                tasks={tasks.results}
+                address={address}
+                displayFilters={displayFilters}
+                displayProperties={displayProperties}
+                cohortComplete={tasks.status === "Exhausted"}
+              />
+              <TaskPeek workspaceSlug={address.workspace.slug} />
+            </>
+          )}
+          {tasks.status === "LoadingFirstPage" && <p role="status">Loading tasks…</p>}
+          {tasks.status === "Exhausted" && !tasks.results.length && (
+            <p className="text-14 text-secondary">No tasks available in this view.</p>
+          )}
+          {tasks.status === "CanLoadMore" && (
+            <Button variant="secondary" onClick={() => tasks.loadMore(50)}>
+              Load more tasks
+            </Button>
+          )}
+        </>
+      ) : (
+        <p role="alert" className="text-14 text-danger-primary">
+          Complete each filter before previewing or saving archive preferences.
+        </p>
+      )}
+    </section>
+  );
+});
+function DeletedTasks({
+  project,
+  onSelect,
+}: {
+  project: ComponentProps<typeof TaskRecoveryList>["project"];
+  onSelect: (id: string) => void;
+}) {
+  const tasks = usePaginatedQuery(
+    api.tasks.lifecycle.list,
+    { projectId: project._id, view: "deleted" },
     { initialNumItems: 50 }
   );
   return (
     <section className="space-y-3">
-      {view === "archived" ? (
-        address &&
-        features && (
-          <ArchivedIssuesHeader address={address} features={features.features}>
-            <Input
-              aria-label="Search archived work items"
-              placeholder="Search"
-              disabled={busy}
-              className="w-40"
-              value={search}
-              maxLength={255}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Popover>
-              <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
-                Filters
-              </Popover.Button>
-              <Popover.Panel
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
-              >
-                <fieldset disabled={busy} className="space-y-4">
-                  <BasicFilters filters={filters} onChange={(value) => setValue({ ...preferences, filters: value })} />
-                  <ProjectReferenceFilters
-                    projectId={project._id}
-                    filters={filters}
-                    selections={undefined}
-                    onChange={(value) => setValue({ ...preferences, filters: value })}
-                  />
-                </fieldset>
-              </Popover.Panel>
-            </Popover>
-            <Popover>
-              <Popover.Button disabled={busy} className="rounded px-3 py-2 text-13 hover:bg-layer-1">
-                Display
-              </Popover.Button>
-              <Popover.Panel
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                className="max-h-[80vh] w-[min(34rem,calc(100vw-2rem))] space-y-4 overflow-auto rounded-md border border-subtle bg-surface-1 p-4 shadow-raised-200"
-              >
-                <fieldset disabled={busy}>
-                  <ViewDisplayFields
-                    layouts={[EIssueLayoutTypes.LIST]}
-                    displayFilters={displayFilters}
-                    displayProperties={displayProperties}
-                    disabled={busy}
-                    onChange={(display) => setValue({ ...preferences, ...display })}
-                  />
-                </fieldset>
-              </Popover.Panel>
-            </Popover>
-          </ArchivedIssuesHeader>
-        )
-      ) : (
-        <h2 className="text-20 font-semibold">Task trash</h2>
-      )}
-      <BulkLifecycle key={view} projectId={project._id} rows={tasks.results} view={view} />
-      {view === "archived" ? (
-        address && (
-          <>
-            <ProjectViewLayoutRoot
-              tasks={tasks.results}
-              address={address}
-              displayFilters={displayFilters}
-              displayProperties={displayProperties}
-              cohortComplete={tasks.status === "Exhausted"}
-            />
-            <TaskPeek workspaceSlug={address.workspace.slug} />
-          </>
-        )
-      ) : (
-        <ul className="divide-y divide-subtle-1">
-          {tasks.results.map((task) => (
-            <li key={task._id}>
-              <button className="w-full space-y-1 py-3 text-left" onClick={() => onSelect(task._id)}>
-                <span className="block text-12 text-secondary">
-                  {project.identifier}-{task.sequence}
-                </span>
-                <span className="block text-14 break-words">{task.title}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <h2 className="text-20 font-semibold">Task trash</h2>
+      <BulkLifecycle projectId={project._id} rows={tasks.results} view="deleted" />
+      <ul className="divide-y divide-subtle-1">
+        {tasks.results.map((task) => (
+          <li key={task._id}>
+            <button className="w-full space-y-1 py-3 text-left" onClick={() => onSelect(task._id)}>
+              <span className="block text-12 text-secondary">
+                {project.identifier}-{task.sequence}
+              </span>
+              <span className="block text-14 break-words">{task.title}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
       {tasks.status === "LoadingFirstPage" && <p role="status">Loading tasks…</p>}
       {tasks.status === "Exhausted" && !tasks.results.length && (
         <p className="text-14 text-secondary">No tasks available in this view.</p>

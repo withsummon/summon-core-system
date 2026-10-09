@@ -20,8 +20,7 @@ import type {
   TLogicalOperator,
   TFilterConditionPayload,
 } from "@plane/types";
-import { LOGICAL_OPERATOR } from "@plane/types";
-import { addAndCondition, createConditionNode, updateNodeInExpression } from "@plane/utils";
+import { addGroupCondition, createConditionNode, updateNodeInExpression } from "@plane/utils";
 // local imports
 import type { IFilterInstance } from "./filter";
 
@@ -252,13 +251,7 @@ export class FilterInstanceHelper<
     groupOperator: TLogicalOperator,
     conditionToAdd: TFilterExpression<P>
   ): TFilterExpression<P> | null {
-    switch (groupOperator) {
-      case LOGICAL_OPERATOR.AND:
-        return addAndCondition(expression, conditionToAdd);
-      default:
-        console.warn(`Unsupported logical operator: ${groupOperator}`);
-        return expression;
-    }
+    return addGroupCondition(expression, conditionToAdd, groupOperator);
   }
 
   /**

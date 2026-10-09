@@ -14,4 +14,11 @@ export type TExtendedInOperatorConfigs = never;
 export type TExtendedRangeOperatorConfigs = never;
 
 // ----------------------------- Extended Operator Specific Configs -----------------------------
-export type TExtendedOperatorSpecificConfigs = unknown;
+import type { TFilterValue } from "../expression";
+import type { TDateFilterFieldConfig } from "../field-types";
+import type { EXTENDED_COMPARISON_OPERATOR } from "../operators";
+
+export type TExtendedOperatorSpecificConfigs = {
+  [EXTENDED_COMPARISON_OPERATOR.GTE]: TDateFilterFieldConfig<TFilterValue>;
+  [EXTENDED_COMPARISON_OPERATOR.LTE]: TDateFilterFieldConfig<TFilterValue>;
+};

@@ -1,11 +1,13 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
+import { observer } from "mobx-react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
 import { api } from "@summon/convex/api";
 import {
   defaultTaskPreferences,
+  taskExpression,
   taskDisplayFiltersSchema,
   taskDisplayPropertiesSchema,
 } from "@summon/convex/task-schema";
@@ -18,7 +20,7 @@ import { SummonField } from "@/components/summon/forms";
 import { ProjectLogoPicker } from "@/components/project/create/header";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { mutationMessage } from "../commercial/forms";
-import { BasicFilters, ReferenceFilters } from "./filters";
+import { ReferenceFilters, useTaskFilterDraft } from "./filters";
 type Detail =
   | FunctionReturnType<typeof api.savedViews.index.get>
   | FunctionReturnType<typeof api.savedViews.workspace.get>;
@@ -40,19 +42,8 @@ const orderLabels = {
   priority: "Priority",
   targetDate: "Due date",
 } satisfies Record<DisplayFilters["order"], string>;
-type Filters = FunctionArgs<typeof api.savedViews.index.create>["filters"];
-const emptyFilters: Filters = {
-  match: "all",
-  statuses: [],
-  stateIds: [],
-  priorities: [],
-  assigneeIds: [],
-  labelIds: [],
-  creatorIds: [],
-  startDate: null,
-  targetDate: null,
-};
 function useProjectFilterChoices(projectId: Id<"projects">) {
+  const project = useQuery(api.projects.settings.get, { projectId });
   const states = useQuery(api.tasks.states.list, { projectId }),
     labels = useQuery(api.tasks.labels.list, { projectId });
   const people = usePaginatedQuery(api.modules.members.choices, { projectId }, { initialNumItems: 50 });
@@ -60,6 +51,7 @@ function useProjectFilterChoices(projectId: Id<"projects">) {
   const modules = usePaginatedQuery(api.modules.index.list, { projectId, deleted: false }, { initialNumItems: 50 });
   return {
     choices: {
+      projects: project ? [{ id: projectId, label: project.name }] : [],
       users: people.results.map((person) => ({
         id: person.userId,
         label: person.name,
@@ -100,17 +92,17 @@ function useProjectFilterChoices(projectId: Id<"projects">) {
 }
 export function ProjectReferenceFilters({
   projectId,
-  filters,
+  filter,
   selections,
-  onChange,
+  disabled,
 }: {
   projectId: Id<"projects">;
-  filters: Filters;
+  filter: ComponentProps<typeof ReferenceFilters>["filter"];
   selections: ComponentProps<typeof ReferenceFilters>["selections"];
-  onChange: (filters: Filters) => void;
+  disabled?: boolean;
 }) {
   const choices = useProjectFilterChoices(projectId);
-  return <ReferenceFilters {...choices} filters={filters} selections={selections} onChange={onChange} />;
+  return <ReferenceFilters key={filter.id} {...choices} filter={filter} selections={selections} disabled={disabled} />;
 }
 export function SavedViewForm({
   projectId,
@@ -135,6 +127,7 @@ export function SavedViewForm({
   return (
     <ViewDefinitionForm
       initial={initial}
+      ownerId={initial?.view._id ?? projectId}
       createSeed={createSeed}
       defaultDisplayFilters={{
         ...defaultTaskPreferences.displayFilters,
@@ -161,8 +154,9 @@ export function SavedViewForm({
     />
   );
 }
-export function ViewDefinitionForm({
+export const ViewDefinitionForm = observer(function ViewDefinitionForm({
   initial,
+  ownerId,
   createSeed,
   onSave,
   onDone,
@@ -177,6 +171,7 @@ export function ViewDefinitionForm({
 }: {
   defaultDisplayFilters: DisplayFilters;
   initial: Detail | null;
+  ownerId: string;
   createSeed?: { input: Omit<FunctionArgs<typeof api.savedViews.index.create>, "projectId">; logo: Detail["logo"] };
   onSave: (
     definition: Pick<
@@ -216,18 +211,19 @@ export function ViewDefinitionForm({
       : {
           name: createSeed?.input.name ?? "",
           description: createSeed?.input.description ?? "",
-          filters: createSeed?.input.filters ?? emptyFilters,
+          filters: createSeed?.input.filters ?? defaultTaskPreferences.filters,
           displayFilters: createSeed?.input.displayFilters ?? defaultDisplayFilters,
           displayProperties: createSeed?.input.displayProperties ?? defaultTaskPreferences.displayProperties,
           access: createSeed?.input.access ?? "public",
           logo: createSeed?.logo ?? undefined,
         }
   );
+  const filter = useTaskFilterDraft(original.filters, ownerId);
   const [draft, setDraft] = useState(original);
-  const { name, description, filters, access, logo, displayFilters, displayProperties } = draft;
+  const { name, description, access, logo, displayFilters, displayProperties } = draft;
   const [pending, setPending] = useState(false),
     [error, setError] = useState("");
-  const dirty = JSON.stringify(draft) !== JSON.stringify(original);
+  const dirty = filter.hasChanges || JSON.stringify(draft) !== JSON.stringify(original);
   const release = useReloadConfirmations(dirty, "This view has unsaved changes.", onCancel, pending);
   return (
     <form
@@ -242,7 +238,7 @@ export function ViewDefinitionForm({
           const data = {
             name,
             description,
-            filters,
+            filters: taskExpression.parse(filter.expression),
             access,
             displayFilters,
             displayProperties,
@@ -318,12 +314,12 @@ export function ViewDefinitionForm({
           disabled={pending || !canEdit}
           onChange={(display) => setDraft({ ...draft, ...display })}
         />
-        <BasicFilters filters={filters} onChange={(value) => setDraft({ ...draft, filters: value })} />
         <ReferenceFilters
+          key={filter.id}
           choices={choices}
+          disabled={pending || !canEdit}
           selections={initial?.selections}
-          filters={filters}
-          onChange={(value) => setDraft({ ...draft, filters: value })}
+          filter={filter}
           taxonomyControls={taxonomyControls}
           peopleControls={peopleControls}
         />
@@ -344,7 +340,7 @@ export function ViewDefinitionForm({
       )}
     </form>
   );
-}
+});
 
 export function ViewDisplayFields({
   layouts = [

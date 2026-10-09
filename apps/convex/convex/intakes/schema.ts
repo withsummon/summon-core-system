@@ -1,6 +1,6 @@
 import { defineTable } from "convex/server";
 import { v, type Infer } from "convex/values";
-import { viewFilters } from "../savedViews/schema";
+import { dateRange, priority } from "../tasks/schema";
 export const intakeStatus = v.union(
   v.literal("pending"),
   v.literal("rejected"),
@@ -11,12 +11,12 @@ export const intakeStatus = v.union(
 export const intakeView = v.union(...intakeStatus.members, v.literal("open"), v.literal("closed"));
 export const intakeSelection = v.object({
   statuses: v.array(intakeStatus),
-  priorities: viewFilters.fields.priorities,
-  creatorIds: viewFilters.fields.creatorIds,
-  assigneeIds: viewFilters.fields.assigneeIds,
-  labelIds: viewFilters.fields.labelIds,
-  createdAt: viewFilters.fields.startDate,
-  updatedAt: viewFilters.fields.targetDate,
+  priorities: v.array(priority),
+  creatorIds: v.array(v.id("users")),
+  assigneeIds: v.array(v.id("users")),
+  labelIds: v.array(v.id("taskLabels")),
+  createdAt: dateRange,
+  updatedAt: dateRange,
   order: v.union(v.literal("createdAt"), v.literal("updatedAt"), v.literal("sequence")),
   direction: v.union(v.literal("asc"), v.literal("desc")),
 });

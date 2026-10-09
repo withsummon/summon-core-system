@@ -4,6 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { observer } from "mobx-react";
+import { taskExpression } from "@summon/convex/task-schema";
+import { useTaskFilterDraft } from "@/components/convex-core/saved-views/filters";
 import { useCallback, useState, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "react-router";
@@ -17,7 +20,6 @@ import { Breadcrumbs, Header } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 
 import { ViewDisplayFields, ProjectReferenceFilters } from "@/components/convex-core/saved-views/form";
-import { BasicFilters } from "@/components/convex-core/saved-views/filters";
 import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import useReloadConfirmations, { usePendingConfirmation, useReloadSubmitting } from "@/hooks/use-reload-confirmation";
 
@@ -75,6 +77,7 @@ export function ProjectIssuesHeader({ address, onCreate }: { address: Address; o
           <TaskPreferencesControls
             key={address.project._id}
             projectId={address.project._id}
+            ownerId={address.project._id}
             preferences={preferences}
             onApply={(changes) => save({ projectId: address.project._id, ...changes })}
           />
@@ -89,12 +92,14 @@ export function ProjectIssuesHeader({ address, onCreate }: { address: Address; o
   );
 }
 
-export function TaskPreferencesControls({
+export const TaskPreferencesControls = observer(function TaskPreferencesControls({
   projectId,
+  ownerId,
   preferences,
   onApply,
 }: {
   projectId: Address["project"]["_id"];
+  ownerId: string;
   preferences: Preferences | undefined;
   onApply: (
     args: Pick<FunctionArgs<typeof api.projects.navigation.saveTaskPreferences>, "expectedRevision" | "changes">
@@ -104,6 +109,7 @@ export function TaskPreferencesControls({
     original: Preferences;
     draft: Preferences;
   } | null>(null);
+  const filter = useTaskFilterDraft(preferences?.filters ?? null, ownerId);
   const [openSection, setOpenSection] = useState<"Display" | "Filters" | null>(null);
   const discard = useCallback(() => {
     setEditor(null);
@@ -114,7 +120,7 @@ export function TaskPreferencesControls({
   const isSubmitting = useReloadSubmitting();
   const busy = pending || isSubmitting;
   const releaseDraft = useReloadConfirmations(
-    !!editor && JSON.stringify(editor.draft) !== JSON.stringify(editor.original),
+    !!editor && (filter.hasChanges || JSON.stringify(editor.draft) !== JSON.stringify(editor.original)),
     "Your work item display and filter changes have not been saved.",
     discard
   );
@@ -129,6 +135,7 @@ export function TaskPreferencesControls({
             if (busy) return;
             if (open && preferences) {
               setError("");
+              if (!editor) filter.resetExpression(preferences.filters);
               setEditor((current) => current ?? { original: preferences, draft: preferences });
               setOpenSection(section);
             } else if (!open) setOpenSection(null);
@@ -160,7 +167,7 @@ export function TaskPreferencesControls({
                     const { revision: _revision, ...changes } = snapshot.draft;
                     await onApply({
                       expectedRevision: snapshot.original.revision,
-                      changes,
+                      changes: { ...changes, filters: taskExpression.parse(filter.expression) },
                     });
                     releaseDraft();
                     discard();
@@ -182,18 +189,12 @@ export function TaskPreferencesControls({
                       onChange={(display) => setEditor({ ...editor, draft: { ...editor.draft, ...display } })}
                     />
                   ) : (
-                    <>
-                      <BasicFilters
-                        filters={editor.draft.filters}
-                        onChange={(filters) => setEditor({ ...editor, draft: { ...editor.draft, filters } })}
-                      />
-                      <ProjectReferenceFilters
-                        projectId={projectId}
-                        filters={editor.draft.filters}
-                        selections={undefined}
-                        onChange={(filters) => setEditor({ ...editor, draft: { ...editor.draft, filters } })}
-                      />
-                    </>
+                    <ProjectReferenceFilters
+                      projectId={projectId}
+                      filter={filter}
+                      selections={undefined}
+                      disabled={busy}
+                    />
                   )}
                 </fieldset>
                 <div className="flex gap-2">
@@ -216,4 +217,4 @@ export function TaskPreferencesControls({
       ))}
     </>
   );
-}
+});

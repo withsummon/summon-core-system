@@ -8,7 +8,8 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { requireWorkspace } from "../identity/access";
 import { date, pageBudget, text } from "../commercial/validation";
-import { priority, taskDisplayFilters } from "./schema";
+import { priority, taskDisplayFilters, viewFilters } from "./schema";
+import { matchesFilters, validateShape } from "../savedViews/filters";
 import { projectReader, projectSummary } from "../savedViews/scope";
 
 const scope = v.union(
@@ -66,6 +67,7 @@ const listArgs = v.object({
   attention: v.optional(v.boolean()),
   order: v.optional(taskDisplayFilters.fields.order),
   includeSubtasks: v.optional(taskDisplayFilters.fields.includeSubtasks),
+  filters: v.optional(viewFilters),
 });
 async function scopedTasks(
   ctx: QueryCtx,
@@ -107,6 +109,7 @@ async function scopedTasks(
 export const list = query({
   args: listArgs.fields,
   handler: async (ctx, args) => {
+    if (args.filters !== undefined) validateShape(args.filters);
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
     return (await scopedTasks(ctx, args))
       .map(async ({ task, project, access }) => {
@@ -119,7 +122,7 @@ export const list = query({
           dueEligibility(task, args.today)[args.due],
           `${task.title} ${project.name} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search),
         ];
-        if (!matches.every(Boolean)) return null;
+        if (!matches.every(Boolean) || !(await matchesFilters(ctx, task, args.filters ?? null))) return null;
         if (
           args.includeSubtasks === false &&
           (await ctx.db

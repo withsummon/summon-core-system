@@ -19,6 +19,7 @@ import { FilterItem } from "./filter-item/root";
 
 export type TFiltersRowProps<K extends TFilterProperty, E extends TExternalFilter> = {
   buttonConfig?: TAddFilterButtonProps<K, E>["buttonConfig"];
+  logicalOperator?: TAddFilterButtonProps<K, E>["logicalOperator"];
   disabledAllOperations?: boolean;
   filter: IFilterInstance<K, E>;
   variant?: "modal" | "header";
@@ -34,6 +35,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
 ) {
   const {
     buttonConfig,
+    logicalOperator,
     disabledAllOperations: disabledAllOperationsProp = false,
     filter,
     variant = "header",
@@ -70,6 +72,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
         <FilterItem key={condition.id} filter={filter} condition={condition} isDisabled={disabledAllOperations} />
       ))}
       <AddFilterButton
+        logicalOperator={logicalOperator}
         filter={filter}
         buttonConfig={{
           label: null,

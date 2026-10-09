@@ -67,6 +67,7 @@ export function ModuleTasks({ module, address }: { module: Module; address: Addr
                 </Button>
                 <TaskPreferencesControls
                   key={module._id}
+                  ownerId={module._id}
                   projectId={module.projectId}
                   preferences={preferences}
                   onApply={(changes) => savePreferences({ moduleId: module._id, ...changes })}

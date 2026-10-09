@@ -18,7 +18,7 @@ import type {
   TWorkItemFilterProperty,
 } from "@plane/types";
 import { LOGICAL_OPERATOR, MULTI_VALUE_OPERATORS, WORK_ITEM_FILTER_PROPERTY_KEYS } from "@plane/types";
-import { createConditionNode, createAndGroupNode, isAndGroupNode, isConditionNode } from "@plane/utils";
+import { createConditionNode, createGroupNode, isAndGroupNode, isConditionNode } from "@plane/utils";
 // local imports
 import { FilterAdapter } from "../rich-filters/adapter";
 
@@ -78,7 +78,7 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
       }
 
       const convertedConditions = andConditions.map((item) => this._convertExpressionToInternal(item));
-      return createAndGroupNode(convertedConditions);
+      return createGroupNode(LOGICAL_OPERATOR.AND, convertedConditions);
     }
 
     throw new Error(`Invalid expression: unknown structure with keys [${expressionKeys.join(", ")}]`);

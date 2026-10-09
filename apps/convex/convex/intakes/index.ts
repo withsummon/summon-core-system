@@ -10,7 +10,7 @@ import type { DataModel, Doc } from "../_generated/dataModel";
 import { projectMetadata } from "../projects/settings";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { checkRange, inRange, matchesFilters, validateShape } from "../savedViews/filters";
+import { checkRange, inRange } from "../savedViews/filters";
 import { createTask } from "../tasks/create";
 import { initialProperties, parseTaskText, validateNonStateProperties, creationAssignees } from "../tasks/properties";
 import {
@@ -208,15 +208,11 @@ export const list = query({
     const selection = args.selection ?? intakeDefaults(args.view);
     if (new Set(selection.statuses).size !== selection.statuses.length)
       throw new ConvexError("Choose distinct intake statuses.");
-    const filters = {
-      ...selection,
-      match: "all",
-      statuses: [],
-      stateIds: [],
-      startDate: null,
-      targetDate: null,
-    } satisfies Parameters<typeof validateShape>[0];
-    validateShape(filters);
+    for (const values of [selection.priorities, selection.creatorIds, selection.assigneeIds, selection.labelIds])
+      if (values.length > 50 || new Set<string>(values).size !== values.length)
+        throw new ConvexError("Choose up to 50 distinct values per filter.");
+    if (new Set([...selection.creatorIds, ...selection.assigneeIds]).size + selection.labelIds.length > 100)
+      throw new ConvexError("Choose at most 100 referenced filter values.");
     checkRange(selection.createdAt);
     checkRange(selection.updatedAt);
     const indexes = {
@@ -253,7 +249,11 @@ export const list = query({
         )
           return null;
         if (selection.statuses.length && !selection.statuses.includes(effectiveStatus)) return null;
-        if (!(await matchesFilters(ctx, task, filters))) return null;
+        if (selection.priorities.length && !selection.priorities.includes(task.priority)) return null;
+        if (selection.creatorIds.length && !selection.creatorIds.includes(task.createdBy)) return null;
+        if (selection.assigneeIds.length && !selection.assigneeIds.some((id) => task.assigneeIds.includes(id)))
+          return null;
+        if (selection.labelIds.length && !selection.labelIds.some((id) => task.labelIds.includes(id))) return null;
         for (const [value, range] of [
           [task._creationTime, selection.createdAt],
           [task.updatedAt, selection.updatedAt],

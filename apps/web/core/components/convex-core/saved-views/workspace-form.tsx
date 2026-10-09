@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { Id } from "@summon/convex/data-model";
@@ -10,6 +10,7 @@ import { ViewDefinitionForm } from "./form";
 import { ReferenceFilters } from "./filters";
 type Detail = FunctionReturnType<typeof api.savedViews.workspace.get>;
 function useWorkspaceFilterChoices(workspaceId: Id<"workspaces">) {
+  const projects = useQuery(api.projects.index.list, { workspaceId });
   const states = usePaginatedQuery(api.savedViews.workspaceChoices.states, { workspaceId }, { initialNumItems: 50 });
   const labels = usePaginatedQuery(api.savedViews.workspaceChoices.labels, { workspaceId }, { initialNumItems: 50 });
   const people = usePaginatedQuery(api.savedViews.workspaceChoices.people, { workspaceId }, { initialNumItems: 50 });
@@ -17,6 +18,10 @@ function useWorkspaceFilterChoices(workspaceId: Id<"workspaces">) {
   const modules = usePaginatedQuery(api.modules.workspace.list, { workspaceId }, { initialNumItems: 50 });
   return {
     choices: {
+      projects: (projects ?? []).map((project) => ({
+        id: project._id,
+        label: `${project.identifier} · ${project.name}`,
+      })),
       users: people.results.map((person) => ({ id: person.id, label: person.name ?? "Unnamed member" })),
       states: states.results.map((state) => ({ id: state.id, label: `${state.project.identifier} · ${state.name}` })),
       labels: labels.results.map((label) => ({ id: label.id, label: `${label.project.identifier} · ${label.name}` })),
@@ -72,17 +77,17 @@ function useWorkspaceFilterChoices(workspaceId: Id<"workspaces">) {
 }
 export function WorkspaceReferenceFilters({
   workspaceId,
-  filters,
+  filter,
   selections,
-  onChange,
+  disabled,
 }: {
   workspaceId: Id<"workspaces">;
-  filters: FunctionArgs<typeof api.savedViews.workspace.create>["filters"];
+  filter: ComponentProps<typeof ReferenceFilters>["filter"];
   selections: ComponentProps<typeof ReferenceFilters>["selections"];
-  onChange: (filters: FunctionArgs<typeof api.savedViews.workspace.create>["filters"]) => void;
+  disabled?: boolean;
 }) {
   const choices = useWorkspaceFilterChoices(workspaceId);
-  return <ReferenceFilters {...choices} filters={filters} selections={selections} onChange={onChange} />;
+  return <ReferenceFilters key={filter.id} {...choices} filter={filter} selections={selections} disabled={disabled} />;
 }
 export function WorkspaceViewForm({
   workspaceId,
@@ -111,6 +116,7 @@ export function WorkspaceViewForm({
     <ViewDefinitionForm
       {...choices}
       initial={initial}
+      ownerId={initial?.view._id ?? workspaceId}
       createSeed={createSeed}
       defaultDisplayFilters={{
         ...defaultTaskPreferences.displayFilters,

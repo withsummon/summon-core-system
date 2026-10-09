@@ -1,4 +1,4 @@
-import { requireTaskLabelAdopted, taskTables } from "./schema";
+import { requireTaskLabelAdopted, taskTables, taskExpression } from "./schema";
 import { internal } from "../_generated/api";
 import { requireProjectForUser } from "../identity/access";
 import { requireAccountUser } from "../identity/session";
@@ -8,7 +8,27 @@ import { paginationOptsValidator } from "convex/server";
 import { pageBudget } from "../commercial/validation";
 import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
 import { requireLabelManagement } from "./label_access";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+function removeLabelFilter(
+  filters: Doc<"savedViews">["filters"],
+  labelId: Id<"taskLabels">
+): Doc<"savedViews">["filters"] {
+  if (filters === null) return null;
+  if (filters.type === "condition") {
+    if (filters.property !== "labelId") return filters;
+    if (filters.operator === "exact") return filters.value === labelId ? null : filters;
+    const value = filters.value.filter((id) => id !== labelId);
+    return value.length === filters.value.length ? filters : value.length ? { ...filters, value } : null;
+  }
+  const children = filters.children.map((child) => removeLabelFilter(child, labelId));
+  if (children.every((child, index) => child === filters.children[index])) return filters;
+  const retained = children.filter((child) => child !== null);
+  return retained.length === 0
+    ? null
+    : retained.length === 1
+      ? retained[0]
+      : taskExpression.parse({ ...filters, children: retained });
+}
 export const list = query({
   args: { projectId: v.id("projects"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
@@ -187,10 +207,10 @@ async function stepLabelReferences(
     .paginate(opts);
   await Promise.all(
     page.page.map(async (row) => {
-      const labelIds = row.filters.labelIds.filter((id) => id !== label._id);
-      if (labelIds.length !== row.filters.labelIds.length) {
+      const filters = removeLabelFilter(row.filters, label._id);
+      if (filters !== row.filters) {
         await ctx.db.patch(row._id, {
-          filters: { ...row.filters, labelIds },
+          filters,
           updatedAt: Math.max(Date.now(), row.updatedAt + 1),
         });
         changed++;

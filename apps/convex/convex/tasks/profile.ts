@@ -11,6 +11,7 @@ import { personalImageDescriptor, userAppearance } from "../identity/avatar_owne
 import { defaultProfile } from "../identity/profile_owner";
 import { renderedProjectLogo } from "../projects/branding_schema";
 import { projectReader, projectSummary } from "../savedViews/scope";
+import { matchesFilters } from "../savedViews/filters";
 import schema from "../schema";
 import { taskDetail, taskIsActive, taskRoleCanRead, taskOrdering } from "./access";
 import { requireUsableLabel } from "./label_access";
@@ -120,27 +121,6 @@ export const savePreferences = mutation({
     return next;
   },
 });
-function matchesCondition(task: Doc<"tasks">, condition: z.infer<typeof profileCondition>) {
-  switch (condition.property) {
-    case "priority":
-    case "status":
-      return condition.operator === "exact"
-        ? task[condition.property] === condition.value
-        : condition.value.some((value) => value === task[condition.property]);
-    case "labelId":
-      return condition.operator === "exact"
-        ? task.labelIds.includes(condition.value)
-        : condition.value.some((id) => task.labelIds.includes(id));
-    case "startDate":
-    case "targetDate": {
-      const value = task[condition.property];
-      if (value === null) return false;
-      return condition.operator === "exact"
-        ? value === condition.value
-        : value >= condition.value[0] && value <= condition.value[1];
-    }
-  }
-}
 function matchesGroup(task: Doc<"tasks">, group: Infer<typeof profileGroup>) {
   if (group === null) return true;
   switch (group.by) {
@@ -255,7 +235,6 @@ export const list = query({
     if (access.member.role === "guest") throw new ConvexError("Only workspace members can view profile task tabs.");
     const parsed = profileExpression.safeParse(args.filters);
     if (!parsed.success) throw new ConvexError(z.prettifyError(parsed.error));
-    const conditions = profileConditions(parsed.data);
     if (args.group && args.subgroup && args.group.by === args.subgroup.by)
       throw new ConvexError("Group and subgroup must use different properties.");
     const read = projectReader(ctx, args.workspaceId, access.user._id);
@@ -271,13 +250,7 @@ export const list = query({
       .withIndex(selectedOrder.index, (q) => q.eq("workspaceId", args.workspaceId))
       .order(selectedOrder.direction)
       .map(async (task) => {
-        if (
-          !taskIsActive(task) ||
-          !conditions.every((condition) => matchesCondition(task, condition)) ||
-          !matchesGroup(task, args.group) ||
-          !matchesGroup(task, args.subgroup)
-        )
-          return null;
+        if (!taskIsActive(task) || !matchesGroup(task, args.group) || !matchesGroup(task, args.subgroup)) return null;
         const scope = await read(task.projectId);
         if (
           !scope ||
@@ -290,6 +263,7 @@ export const list = query({
           )
         )
           return null;
+        if (!(await matchesFilters(ctx, task, parsed.data))) return null;
         if (args.view === "assigned" && !task.assigneeIds.includes(target._id)) return null;
         if (args.view === "created" && task.createdBy !== target._id) return null;
         if (
