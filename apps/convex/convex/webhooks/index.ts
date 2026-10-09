@@ -3,17 +3,24 @@ import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireWorkspace } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
 import { internal } from "../_generated/api";
 import { apiIdSchema } from "../identity/schema";
 import { externalUserLite } from "../identity/external";
-import { taskWire } from "../projects/external";
-import { projectJson } from "../projects/schema";
+import { taskWire, moduleApiWire } from "../projects/external";
+import { projectJson, projectJsonText } from "../projects/schema";
 import { encryptedFields } from "../mcp/schema";
-import { webhookInput, webhookFields, webhookEvent, webhookUrlLimit, webhookOutcome } from "./schema";
+import {
+  webhookInput,
+  webhookFields,
+  webhookEvent,
+  webhookUrlLimit,
+  webhookOutcome,
+  moduleWebhookEvent,
+} from "./schema";
 
 async function requireAdmin(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   const access = await requireWorkspace(ctx, workspaceId);
@@ -179,9 +186,9 @@ export const rotateEncrypted = internalMutation({
 
 // This authority belongs to the workspace's configured integration, not its creator's session.
 async function currentSubscription(ctx: QueryCtx, delivery: Doc<"webhookDeliveries">) {
-  const [webhook, task, workspace] = await Promise.all([
+  const [webhook, entity, workspace] = await Promise.all([
     ctx.db.get(delivery.webhookId),
-    ctx.db.get(delivery.taskId),
+    ctx.db.get("moduleId" in delivery ? delivery.moduleId : delivery.taskId),
     ctx.db.get(delivery.workspaceId),
   ]);
   if (
@@ -190,60 +197,81 @@ async function currentSubscription(ctx: QueryCtx, delivery: Doc<"webhookDeliveri
     webhook.deletedAt !== null ||
     !webhook.isActive ||
     webhook.revision !== delivery.webhookRevision ||
-    !webhook.events.includes("issue") ||
-    !task ||
-    task.workspaceId !== delivery.workspaceId ||
-    task.deletedAt !== null ||
+    !webhook.events.includes("moduleId" in delivery ? "module" : "issue") ||
+    !entity ||
+    entity.workspaceId !== delivery.workspaceId ||
+    ("deleted" in entity ? entity.deleted : entity.deletedAt !== null) ||
     !workspace ||
     workspace.deletedAt != null
   )
     return null;
-  const project = await ctx.db.get(task.projectId);
-  if (!project || project.workspaceId !== workspace._id || project.deletedAt !== null) return null;
-  return { webhook, task, workspace, project };
+  const project = await ctx.db.get(entity.projectId);
+  if (
+    !project ||
+    project.workspaceId !== workspace._id ||
+    project.deletedAt !== null ||
+    ("moduleId" in delivery && project._id !== delivery.projectId)
+  )
+    return null;
+  return { webhook, entity, workspace, project };
 }
 
+async function fanoutEvent(
+  ctx: MutationCtx,
+  event: Doc<"taskEvents"> | Infer<typeof moduleWebhookEvent>,
+  cursor: string | null
+): Promise<string | null> {
+  const entity = await ctx.db.get("moduleId" in event ? event.moduleId : event.taskId);
+  if (
+    !entity ||
+    ("deleted" in entity ? entity.deleted : entity.deletedAt !== null) ||
+    entity.workspaceId !== event.workspaceId ||
+    entity.projectId !== event.projectId
+  )
+    return null;
+  const eventId = "moduleId" in event ? event.eventId : event._id;
+  const page = await ctx.db
+    .query("webhooks")
+    .withIndex("by_workspace_deleted", (q) => q.eq("workspaceId", event.workspaceId).eq("deletedAt", null))
+    .paginate({ cursor, numItems: 1, maximumRowsRead: 1, maximumBytesRead: 1_048_576 });
+  await Promise.all(
+    page.page.map(async (webhook) => {
+      if (!webhook.isActive || !webhook.events.includes("moduleId" in event ? "module" : "issue")) return;
+      const previous = await ctx.db
+        .query("webhookDeliveries")
+        .withIndex("by_event_webhook", (q) => q.eq("eventId", eventId).eq("webhookId", webhook._id))
+        .unique();
+      if (previous) return;
+      const deliveryId = await ctx.db.insert("webhookDeliveries", {
+        ...("moduleId" in event ? event : { workspaceId: event.workspaceId, eventId: event._id, taskId: event.taskId }),
+        webhookId: webhook._id,
+        webhookRevision: webhook.revision,
+        apiId: crypto.randomUUID(),
+        phase: "pending",
+        payloadStorageId: null,
+        attempts: [],
+      });
+      await ctx.scheduler.runAfter(0, internal.webhooks.index.claim, { deliveryId, expectedAttempt: 0 });
+    })
+  );
+  return page.isDone ? null : page.continueCursor;
+}
 export const fanout = internalMutation({
   args: { eventId: v.id("taskEvents"), cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { eventId, cursor }): Promise<void> => {
-    const event = await ctx.db.get(eventId);
+  handler: async (ctx, args): Promise<void> => {
+    const event = await ctx.db.get(args.eventId);
     if (!event || !event.changes?.some((change) => change.field === "title" && change.before !== change.after)) return;
-    const task = await ctx.db.get(event.taskId);
-    if (
-      !task ||
-      task.deletedAt !== null ||
-      task.workspaceId !== event.workspaceId ||
-      task.projectId !== event.projectId
-    )
-      return;
-    const page = await ctx.db
-      .query("webhooks")
-      .withIndex("by_workspace_deleted", (q) => q.eq("workspaceId", event.workspaceId).eq("deletedAt", null))
-      .paginate({ cursor, numItems: 1, maximumRowsRead: 1, maximumBytesRead: 1_048_576 });
-    await Promise.all(
-      page.page.map(async (webhook) => {
-        if (!webhook.isActive || !webhook.events.includes("issue")) return;
-        const previous = await ctx.db
-          .query("webhookDeliveries")
-          .withIndex("by_event_webhook", (q) => q.eq("eventId", eventId).eq("webhookId", webhook._id))
-          .unique();
-        if (previous) return;
-        const deliveryId = await ctx.db.insert("webhookDeliveries", {
-          workspaceId: event.workspaceId,
-          eventId,
-          taskId: task._id,
-          webhookId: webhook._id,
-          webhookRevision: webhook.revision,
-          apiId: crypto.randomUUID(),
-          phase: "pending",
-          payloadStorageId: null,
-          attempts: [],
-        });
-        await ctx.scheduler.runAfter(0, internal.webhooks.index.claim, { deliveryId, expectedAttempt: 0 });
-      })
-    );
-    if (!page.isDone)
-      await ctx.scheduler.runAfter(0, internal.webhooks.index.fanout, { eventId, cursor: page.continueCursor });
+    const cursor = await fanoutEvent(ctx, event, args.cursor);
+    if (cursor !== null)
+      await ctx.scheduler.runAfter(0, internal.webhooks.index.fanout, { eventId: args.eventId, cursor });
+  },
+});
+export const fanoutModule = internalMutation({
+  args: { event: moduleWebhookEvent, cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args): Promise<void> => {
+    const cursor = await fanoutEvent(ctx, args.event, args.cursor);
+    if (cursor !== null)
+      await ctx.scheduler.runAfter(0, internal.webhooks.index.fanoutModule, { event: args.event, cursor });
   },
 });
 
@@ -262,7 +290,11 @@ export const claim = internalMutation({
     if (!(await currentSubscription(ctx, delivery))) {
       if (delivery.payloadStorageId && (await ctx.db.system.get(delivery.payloadStorageId)))
         await ctx.storage.delete(delivery.payloadStorageId);
-      await ctx.db.patch(delivery._id, { phase: "cancelled", payloadStorageId: null });
+      await ctx.db.patch(delivery._id, {
+        phase: "cancelled",
+        payloadStorageId: null,
+        ...("moduleId" in delivery ? { activity: null } : {}),
+      });
       return;
     }
     const attempt = delivery.attempts.length + 1;
@@ -300,20 +332,44 @@ export const snapshot = internalQuery({
     if (!delivery || delivery.phase !== "sending" || delivery.attempts.length !== args.expectedAttempt) return null;
     const current = await currentSubscription(ctx, delivery);
     if (!current) return null;
+    const origin = process.env.CONVEX_SITE_URL;
+    if (!origin) throw new ConvexError("Webhook snapshot is unavailable.");
+    const assetOrigin = new URL(origin).origin;
+    if ("moduleId" in delivery) {
+      const actor = await ctx.db.get(delivery.actorId);
+      if (!("deleted" in current.entity) || !delivery.activity || !actor)
+        throw new ConvexError("Webhook delivery lost its Module activity.");
+      return JSON.stringify({
+        event: "module",
+        action: delivery.activity.action,
+        webhook_id: apiIdSchema.parse(current.webhook.apiId),
+        workspace_id: apiIdSchema.parse(current.workspace.apiId),
+        workspace_slug: current.workspace.slug,
+        data: await moduleApiWire(ctx, current.entity, current, true),
+        activity: {
+          field: delivery.activity.field,
+          old_value:
+            delivery.activity.oldValueJson === null ? null : projectJsonText.parse(delivery.activity.oldValueJson),
+          new_value:
+            delivery.activity.newValueJson === null ? null : projectJsonText.parse(delivery.activity.newValueJson),
+          actor: await externalUserLite(ctx, actor, assetOrigin, current.workspace),
+          old_identifier: null,
+          new_identifier: null,
+        },
+      });
+    }
     const event = await ctx.db.get(delivery.eventId);
     if (
+      "deleted" in current.entity ||
       !event ||
-      event.taskId !== current.task._id ||
+      event.taskId !== current.entity._id ||
       event.projectId !== current.project._id ||
       event.workspaceId !== current.workspace._id
     )
       throw new ConvexError("Webhook delivery lost its Task event.");
     const change = event.changes?.find((item) => item.field === "title");
     const actor = await ctx.db.get(event.actorId);
-    const origin = process.env.CONVEX_SITE_URL;
-    if (!change || change.before === change.after || !actor || !origin)
-      throw new ConvexError("Webhook snapshot is unavailable.");
-    const assetOrigin = new URL(origin).origin;
+    if (!change || change.before === change.after || !actor) throw new ConvexError("Webhook snapshot is unavailable.");
     return JSON.stringify({
       event: "issue",
       action: "updated",
@@ -321,7 +377,7 @@ export const snapshot = internalQuery({
       workspace_id: apiIdSchema.parse(current.workspace.apiId),
       workspace_slug: current.workspace.slug,
       data: projectJson.parse(
-        await taskWire(ctx, current.task, current, null, ["state", "labels", "assignees"], assetOrigin, "webhook")
+        await taskWire(ctx, current.entity, current, null, ["state", "labels", "assignees"], assetOrigin, "webhook")
       ),
       activity: {
         field: "name",
@@ -377,6 +433,7 @@ export const finish = internalMutation({
     await ctx.db.patch(delivery._id, {
       attempts,
       payloadStorageId: null,
+      ...("moduleId" in delivery ? { activity: null } : {}),
       phase:
         outcome.kind === "cancelled"
           ? "cancelled"

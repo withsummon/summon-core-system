@@ -92,6 +92,7 @@ import { descriptor } from "../assets/access";
 import { publicationForProject } from "../publicSharing/access";
 import { createModule, writeModule } from "../modules/index";
 import { moduleApiCreate, moduleApiPatch, moduleApiField, moduleApiCreateConflict } from "../modules/schema";
+import { webhookValueEqual, moduleWebhookValue } from "../webhooks/schema";
 
 async function workspaceAccess(ctx: QueryCtx, slug: string, userId: Id<"users">, write = false) {
   let user;
@@ -2401,11 +2402,12 @@ async function moduleApiAccess(
     throw new ConvexError({ status: 403, error: "Only admin or creator can delete the module" });
   return { ...access, module };
 }
-async function moduleApiWire(
+export async function moduleApiWire(
   ctx: QueryCtx,
   module: Doc<"modules">,
-  access: Awaited<ReturnType<typeof moduleApiAccess>>,
-  created: boolean
+  access: Pick<Awaited<ReturnType<typeof moduleApiAccess>>, "workspace" | "project">,
+  created: boolean,
+  fields = created ? moduleApiField.options : moduleApiPatch.keyof().exclude(["members"]).options
 ) {
   const values = {
     id: () => apiIdSchema.parse(known("module.id", module.apiId)),
@@ -2451,8 +2453,9 @@ async function moduleApiWire(
       return ids;
     },
   } satisfies Record<z.infer<typeof moduleApiField>, () => unknown>;
-  const fields = created ? moduleApiField.options : moduleApiPatch.keyof().exclude(["members"]).options;
-  return Object.fromEntries(await Promise.all(fields.map(async (field) => [field, await values[field]()])));
+  return catalogueApiBody.parse(
+    Object.fromEntries(await Promise.all(fields.map(async (field) => [field, await values[field]()])))
+  );
 }
 export const moduleApiUnavailable = internalQuery({
   args: { ...moduleApiIdentity.fields, method: zodToConvex(apiRequestMetadata.shape.method) },
@@ -2563,12 +2566,24 @@ export const writeModuleApi = internalMutation({
         throw new ConvexError({ status: 400, error });
       }
     }
-    // Temporary capability refusal: remove once the canonical Module event/delivery owner is installed.
-    for await (const subscription of ctx.db
-      .query("webhooks")
-      .withIndex("by_workspace_deleted", (q) => q.eq("workspaceId", access.workspace._id).eq("deletedAt", null)))
-      if (subscription.isActive && subscription.events.includes("module"))
-        throw new ConvexError({ status: 503, detail: "Module webhook delivery is not available yet." });
+    const requestedFields = Object.keys(raw.data);
+    const fields = moduleApiField.options
+      .filter((field) => Object.hasOwn(raw.data, field))
+      .toSorted((a, b) => requestedFields.indexOf(a) - requestedFields.indexOf(b));
+    const before = module ? await moduleApiWire(ctx, module, access, true, fields) : null;
+    const changes =
+      before === null
+        ? []
+        : fields.filter((field) => {
+            const previous = moduleWebhookValue.safeParse(before[field]),
+              requested = moduleWebhookValue.safeParse(raw.data[field]);
+            if (!previous.success || !requested.success)
+              throw new ConvexError({
+                status: 503,
+                detail: "Module webhook activity cannot preserve integral JSON numbers outside the safe integer range.",
+              });
+            return !webhookValueEqual(previous.data, requested.data);
+          });
     let moduleId;
     if (input.existing === null) {
       const created = input.parsed.data;
@@ -2610,6 +2625,40 @@ export const writeModuleApi = internalMutation({
     }
     const current = await ctx.db.get(moduleId);
     if (!current) throw new Error("Written Module is missing.");
+    const event = {
+      workspaceId: access.workspace._id,
+      projectId: access.project._id,
+      moduleId,
+      actorId: access.user._id,
+    };
+    if (before === null) {
+      await ctx.scheduler.runAfter(0, internal.webhooks.index.fanoutModule, {
+        event: {
+          ...event,
+          eventId: crypto.randomUUID(),
+          activity: { action: "created", field: null, oldValueJson: null, newValueJson: null },
+        },
+        cursor: null,
+      });
+    } else {
+      await Promise.all(
+        changes.map((field) =>
+          ctx.scheduler.runAfter(0, internal.webhooks.index.fanoutModule, {
+            event: {
+              ...event,
+              eventId: crypto.randomUUID(),
+              activity: {
+                action: "updated",
+                field,
+                oldValueJson: JSON.stringify(before[field]),
+                newValueJson: JSON.stringify(raw.data[field]),
+              },
+            },
+            cursor: null,
+          })
+        )
+      );
+    }
     return JSON.stringify(await moduleApiWire(ctx, current, access, input.existing === null));
   },
 });
