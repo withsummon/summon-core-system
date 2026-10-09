@@ -1393,19 +1393,25 @@ export const taskRead = internalQuery({
       const { per_page: perPage, cursor: page, order_by: orderBy } = options.data;
       const order = taskApiOrder.safeParse(orderBy.startsWith("-") ? orderBy.slice(1) : orderBy);
       // IssueManager makes archived_at null for every row; creation supplies deterministic tied-row traversal.
-      const indexedOrder = order.success && order.data !== "archived_at" ? order.data : "created_at";
+      let indexedOrder = order.success ? order.data : "created_at";
+      if (indexedOrder === "archived_at") indexedOrder = "created_at";
+      else if (indexedOrder === "state__name") indexedOrder = "state__group";
       if (
-        indexedOrder === "state__name" ||
-        indexedOrder === "state__group" ||
         indexedOrder === "assignees__first_name" ||
         indexedOrder === "labels__name" ||
         indexedOrder === "issue_module__module__name"
       )
         throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
-      const descending = !order.success || orderBy.startsWith("-");
+      // The registered state CASE always sorts ascending, reversing known ranks while keeping default5 last.
+      const descending = indexedOrder !== "state__group" && (!order.success || orderBy.startsWith("-"));
       const namespace: Parameters<typeof taskCollection.count>[1]["namespace"] =
-        indexedOrder === "created_at" ? access.project._id : [access.project._id, indexedOrder];
+        indexedOrder === "created_at"
+          ? access.project._id
+          : [
+              access.project._id,
+              indexedOrder === "state__group" && orderBy.startsWith("-") ? "-state__group" : indexedOrder,
+            ];
       const offset = page * perPage;
       if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(page + 1))
         throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
