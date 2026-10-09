@@ -1,4 +1,4 @@
-import { taskAssignee, taskDetail, taskIsActive, taskRoleCanRead } from "./access";
+import { taskAssignee, taskDetail, taskIsActive, taskOrdering, taskRoleCanRead } from "./access";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
@@ -8,7 +8,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { Infer } from "convex/values";
 import { requireWorkspace } from "../identity/access";
 import { date, pageBudget, text } from "../commercial/validation";
-import { priority } from "./schema";
+import { priority, taskDisplayFilters } from "./schema";
 import { projectReader, projectSummary } from "../savedViews/scope";
 
 const scope = v.union(
@@ -57,15 +57,29 @@ const centerArgs = v.object({
   scope,
   today: v.string(),
 });
-async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs> & { attention?: boolean }) {
+const listArgs = v.object({
+  ...centerArgs.fields,
+  due,
+  priority: v.optional(priority),
+  projectId: v.optional(v.id("projects")),
+  search: v.optional(v.string()),
+  attention: v.optional(v.boolean()),
+  order: v.optional(taskDisplayFilters.fields.order),
+  includeSubtasks: v.optional(taskDisplayFilters.fields.includeSubtasks),
+});
+async function scopedTasks(
+  ctx: QueryCtx,
+  args: Infer<typeof centerArgs> & Pick<Infer<typeof listArgs>, "attention" | "order">
+) {
   const workspaceAccess = await requireWorkspace(ctx, args.workspaceId);
   const { user, member } = workspaceAccess;
   date(args.today);
   const read = projectReader(ctx, args.workspaceId, user._id);
   const tasks = stream(ctx.db, schema).query("tasks");
+  const ordering = taskOrdering[args.order ?? "createdAt"];
   const ordered = args.attention
     ? tasks.withIndex("by_workspace_target", (q) => q.eq("workspaceId", args.workspaceId)).order("asc")
-    : tasks.withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId)).order("desc");
+    : tasks.withIndex(ordering.index, (q) => q.eq("workspaceId", args.workspaceId)).order(ordering.direction);
   return ordered.map(async (task) => {
     if (!taskIsActive(task)) return null;
     if (args.scope === "subscribed") {
@@ -91,14 +105,7 @@ async function scopedTasks(ctx: QueryCtx, args: Infer<typeof centerArgs> & { att
   });
 }
 export const list = query({
-  args: {
-    ...centerArgs.fields,
-    due,
-    priority: v.optional(priority),
-    projectId: v.optional(v.id("projects")),
-    search: v.optional(v.string()),
-    attention: v.optional(v.boolean()),
-  },
+  args: listArgs.fields,
   handler: async (ctx, args) => {
     const search = text(args.search ?? "", "Search", 255).toLowerCase();
     return (await scopedTasks(ctx, args))
@@ -113,6 +120,14 @@ export const list = query({
           `${task.title} ${project.name} ${project.identifier}-${task.sequence}`.toLowerCase().includes(search),
         ];
         if (!matches.every(Boolean)) return null;
+        if (
+          args.includeSubtasks === false &&
+          (await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique())
+        )
+          return null;
         const state = task.stateId ? await ctx.db.get(task.stateId) : null;
         return {
           task: await taskDetail(ctx, task, access),

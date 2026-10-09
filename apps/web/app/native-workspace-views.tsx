@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
-import { defaultTaskPreferences } from "@summon/convex/task-schema";
+import { defaultTaskPreferences, taskPreferencesSchema } from "@summon/convex/task-schema";
 import { DEFAULT_GLOBAL_VIEWS_LIST } from "@plane/constants";
+import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
+import { EIssueLayoutTypes } from "@plane/types";
 import { Button } from "@plane/propel/button";
 import { SearchIcon, ViewsIcon } from "@plane/propel/icons";
 import {
@@ -23,6 +25,7 @@ import { PageHead } from "@/components/core/page-title";
 import { WorkspaceViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
 import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
 import { WorkspaceViewForm } from "@/components/convex-core/saved-views/workspace-form";
+import { ViewDisplayFields } from "@/components/convex-core/saved-views/form";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { DefaultWorkspaceViewQuickActions } from "@/components/workspace/views/default-view-quick-action";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
@@ -34,6 +37,13 @@ export default function NativeWorkspaceView() {
   const view = DEFAULT_GLOBAL_VIEWS_LIST.find((item) => item.key === globalViewId);
   if (!view) throw new Response("Not Found", { status: 404 });
   const session = useOutletContext<WorkspaceSession>();
+  const { storedValue, setValue } = useLocalStorage<unknown>(
+    `native-workspace-view:${session.workspace._id}:${view.key}`,
+    defaultTaskPreferences
+  );
+  const parsed = taskPreferencesSchema.pick({ displayFilters: true, displayProperties: true }).safeParse(storedValue);
+  const preferences = parsed.success ? parsed.data : defaultTaskPreferences;
+  const displayFilters = { ...preferences.displayFilters, layout: EIssueLayoutTypes.SPREADSHEET };
   const commands = useStickiesCommands();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -51,7 +61,15 @@ export default function NativeWorkspaceView() {
           : "all";
   const { results, status, loadMore } = usePaginatedQuery(
     api.tasks.center.list,
-    { workspaceId: session.workspace._id, scope, due: "all", today, search },
+    {
+      workspaceId: session.workspace._id,
+      scope,
+      due: "all",
+      today,
+      search,
+      order: displayFilters.order,
+      includeSubtasks: displayFilters.includeSubtasks,
+    },
     { initialNumItems: 50 }
   );
 
@@ -124,11 +142,20 @@ export default function NativeWorkspaceView() {
                 className="w-full bg-transparent !p-0 text-11 leading-5 text-secondary placeholder:text-placeholder focus:outline-none"
               />
             </div>
+            <div className="space-y-3 border-b border-subtle px-5 py-3">
+              <ViewDisplayFields
+                layouts={[EIssueLayoutTypes.SPREADSHEET]}
+                displayFilters={displayFilters}
+                displayProperties={preferences.displayProperties}
+                disabled={false}
+                onChange={setValue}
+              />
+            </div>
             <WorkspaceViewLayoutRoot
               rows={results}
               workspace={session.workspace}
-              displayFilters={{ ...defaultTaskPreferences.displayFilters, layout: "spreadsheet" }}
-              displayProperties={defaultTaskPreferences.displayProperties}
+              displayFilters={displayFilters}
+              displayProperties={preferences.displayProperties}
               cohortComplete={status === "Exhausted"}
             />
             {status === "LoadingFirstPage" || (status === "LoadingMore" && results.length === 0) ? (
@@ -139,7 +166,7 @@ export default function NativeWorkspaceView() {
             {status === "Exhausted" && results.length === 0 && (
               <p className="p-8 text-center text-13">No work items available.</p>
             )}
-            {status === "CanLoadMore" && results.length > 0 && (
+            {status === "CanLoadMore" && (
               <Button variant="secondary" className="m-4" onClick={() => loadMore(50)}>
                 Load more work items
               </Button>
