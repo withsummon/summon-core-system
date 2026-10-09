@@ -19,7 +19,7 @@ import { SidebarAddButton } from "@/components/sidebar/add-button";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 
 export const SidebarQuickActions = observer(function SidebarQuickActions() {
   const { t } = useTranslation();

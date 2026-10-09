@@ -15,7 +15,7 @@ import { useCollaborativePageActions } from "@/hooks/use-collaborative-page-acti
 // store types
 import type { TPageInstance } from "@/store/pages/base-page";
 // local storage
-import useLocalStorage from "./use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 
 export type TPageOperations = {
   toggleLock: () => void;

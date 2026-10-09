@@ -22,7 +22,7 @@ import type { TStateGroupData } from "@/components/core/sidebar/progress-stats/s
 import { StateGroupStatComponent } from "@/components/core/sidebar/progress-stats/state_group";
 // helpers
 // hooks
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 
 type TCycleProgressStats = {
   cycleId: string;

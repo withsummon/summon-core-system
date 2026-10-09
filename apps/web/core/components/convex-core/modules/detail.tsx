@@ -10,7 +10,7 @@ import { PanelRight } from "lucide-react";
 import { Breadcrumbs, Header, Row } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { PageHead } from "@/components/core/page-title";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 import { ModuleActions } from "./actions";
 import { ModuleSummary } from "./overview";
 import { ModuleBoundary } from "./actions";
