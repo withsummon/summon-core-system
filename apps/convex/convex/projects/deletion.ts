@@ -204,7 +204,7 @@ async function projectPage(ctx: MutationCtx, job: Job) {
       await Promise.all(
         rows.page.map(async (row) => {
           if (row.workspaceId !== job.workspaceId) throw new Error("Retired module belongs to another workspace.");
-          if (!row.deleted) await changeModuleDeleted(ctx, row, true);
+          if (!row.deleted) await changeModuleDeleted(ctx, row, true, job.actorId);
         })
       );
       return {

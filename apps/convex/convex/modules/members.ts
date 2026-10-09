@@ -15,7 +15,7 @@ export const set = mutation({
     expectedUpdatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const { module, project } = await requireModule(ctx, args.moduleId, true);
+    const { module, project, user } = await requireModule(ctx, args.moduleId, true);
     requireEditableModule(module);
     requireModuleRevision(module, args.expectedUpdatedAt);
     const previous = await ctx.db
@@ -27,7 +27,7 @@ export const set = mutation({
       await requireModulePerson(ctx, project, args.userId);
       await ctx.db.insert("moduleMembers", { moduleId: module._id, userId: args.userId });
     } else if (previous) await ctx.db.delete(previous._id);
-    await ctx.db.patch(module._id, { updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+    await ctx.db.patch(module._id, { updatedBy: user._id, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
   },
 });
 export const list = query({

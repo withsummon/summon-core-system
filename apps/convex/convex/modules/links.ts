@@ -61,7 +61,7 @@ export const create = mutation({
       updatedBy: user._id,
       updatedAt: Date.now(),
     });
-    await ctx.db.patch(module._id, { updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+    await ctx.db.patch(module._id, { updatedBy: user._id, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
     return id;
   },
 });
@@ -72,7 +72,7 @@ export const update = mutation({
     const data = content(args);
     await uniqueUrl(ctx, module._id, data.url, link._id);
     await ctx.db.patch(link._id, { ...data, updatedBy: user._id, updatedAt: Math.max(Date.now(), link.updatedAt + 1) });
-    await ctx.db.patch(module._id, { updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+    await ctx.db.patch(module._id, { updatedBy: user._id, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
   },
 });
 export const remove = mutation({
@@ -84,6 +84,6 @@ export const remove = mutation({
       updatedAt: Math.max(Date.now(), link.updatedAt + 1),
       updatedBy: user._id,
     });
-    await ctx.db.patch(module._id, { updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+    await ctx.db.patch(module._id, { updatedBy: user._id, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
   },
 });

@@ -1,4 +1,6 @@
 import { taskPreferences } from "../tasks/schema";
+import { apiIdSchema } from "../identity/schema";
+import { zodToConvex } from "convex-helpers/server/zod4";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
@@ -74,17 +76,29 @@ export const moduleTables = {
     .index("by_module_url", ["moduleId", "url", "deletedAt"]),
   modules: defineTable({
     ...moduleFields,
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     description: v.string(),
+    descriptionTextJson: v.optional(v.union(v.string(), v.null())),
+    viewPropsJson: v.optional(v.string()),
+    logoPropsJson: v.optional(v.string()),
+    externalSource: v.optional(v.union(v.string(), v.null())),
+    externalId: v.optional(v.union(v.string(), v.null())),
+    sortOrder: v.optional(v.number()),
     projectId: v.id("projects"),
     workspaceId: v.id("workspaces"),
     createdBy: v.id("users"),
+    updatedBy: v.optional(v.union(v.id("users"), v.null())),
     updatedAt: v.number(),
     archived: v.boolean(),
+    archivedAt: v.optional(v.union(v.number(), v.null())),
     deleted: v.boolean(),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_workspace_created", ["workspaceId", "deleted"])
     .index("by_workspace", ["workspaceId", "deleted", "archived"])
     .index("by_project", ["projectId", "deleted"])
+    .index("by_project_order", ["projectId", "deleted", "sortOrder"])
     .index("by_project_due", ["projectId", "deleted", "targetDate"])
     .index("by_project_name", ["projectId", "deleted", "name"]),
   moduleMembers: defineTable({ moduleId: v.id("modules"), userId: v.id("users") }).index("by_module_user", [

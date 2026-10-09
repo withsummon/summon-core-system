@@ -11,6 +11,7 @@ import { mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
+import { apiIdSchema } from "../identity/schema";
 import schema from "../schema";
 import { date, text, pageBudget } from "../commercial/validation";
 import { taskRichContent } from "../tasks/rich_content";
@@ -58,14 +59,39 @@ export const create = mutation({
     if (memberIds.length > 100) throw new ConvexError("Add at most 100 members in one operation.");
     const members = [...new Set(memberIds)];
     await Promise.all(members.map((id) => requireModulePerson(ctx, project, id)));
+    const apiId = apiIdSchema.parse(crypto.randomUUID());
+    const existing = await ctx.db
+      .query("modules")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+      .unique();
+    if (existing) throw new ConvexError("Module API identifier already exists.");
+    const first = await ctx.db
+      .query("modules")
+      .withIndex("by_project_order", (q) => q.eq("projectId", project._id).eq("deleted", false))
+      .order("asc")
+      .first();
     const moduleId = await ctx.db.insert("modules", {
       ...fields,
       ...data,
+      apiId,
+      descriptionTextJson: null,
+      viewPropsJson: "{}",
+      logoPropsJson: "{}",
+      externalSource: null,
+      externalId: null,
+      ...(first === null
+        ? { sortOrder: 65535 }
+        : first.sortOrder === undefined
+          ? {}
+          : { sortOrder: first.sortOrder - 10000 }),
       workspaceId: project.workspaceId,
       createdBy: user._id,
+      updatedBy: null,
       updatedAt: Date.now(),
       deleted: false,
+      deletedAt: null,
       archived: false,
+      archivedAt: null,
     });
     await Promise.all(members.map((userId) => ctx.db.insert("moduleMembers", { moduleId, userId })));
     return moduleId;
@@ -75,7 +101,8 @@ async function updateModule(
   ctx: MutationCtx,
   module: Doc<"modules">,
   project: Doc<"projects">,
-  fields: Infer<typeof moduleInput>
+  fields: Infer<typeof moduleInput>,
+  actorId: Id<"users">
 ) {
   requireEditableModule(module);
   const data = content(fields);
@@ -87,6 +114,7 @@ async function updateModule(
     ...data,
     status: fields.status,
     leadId: fields.leadId,
+    updatedBy: actorId,
     updatedAt: Math.max(Date.now(), module.updatedAt + 1),
   });
   if (data.name !== module.name) {
@@ -104,17 +132,17 @@ async function updateModule(
 export const update = mutation({
   args: { moduleId: v.id("modules"), expectedUpdatedAt: v.number(), ...moduleFields },
   handler: async (ctx, args) => {
-    const { module, project } = await requireModule(ctx, args.moduleId, true);
+    const { module, project, user } = await requireModule(ctx, args.moduleId, true);
     requireModuleRevision(module, args.expectedUpdatedAt);
-    await updateModule(ctx, module, project, args);
+    await updateModule(ctx, module, project, args, user._id);
   },
 });
 export const patch = mutation({
   args: { moduleId: v.id("modules"), expectedUpdatedAt: v.number(), changes: moduleChanges },
   handler: async (ctx, args) => {
-    const { module, project } = await requireModule(ctx, args.moduleId, true);
+    const { module, project, user } = await requireModule(ctx, args.moduleId, true);
     requireModuleRevision(module, args.expectedUpdatedAt);
-    await updateModule(ctx, module, project, { ...module, ...args.changes });
+    await updateModule(ctx, module, project, { ...module, ...args.changes }, user._id);
   },
 });
 async function detail(ctx: QueryCtx, moduleId: Id<"modules">) {
@@ -258,8 +286,19 @@ export const directory = query({
       .paginate(pageBudget(args.paginationOpts));
   },
 });
-export async function changeModuleDeleted(ctx: MutationCtx, module: Doc<"modules">, deleted: boolean) {
-  await ctx.db.patch(module._id, { deleted, updatedAt: Math.max(Date.now(), module.updatedAt + 1) });
+export async function changeModuleDeleted(
+  ctx: MutationCtx,
+  module: Doc<"modules">,
+  deleted: boolean,
+  actorId: Id<"users">
+) {
+  const now = Date.now();
+  await ctx.db.patch(module._id, {
+    deleted,
+    deletedAt: deleted ? now : null,
+    updatedBy: actorId,
+    updatedAt: Math.max(now, module.updatedAt + 1),
+  });
 }
 export const lifecycle = mutation({
   args: {
@@ -275,15 +314,18 @@ export const lifecycle = mutation({
         throw new ConvexError("Only the module creator or a project administrator can delete or restore it.");
       if (module.deleted === (args.operation === "delete")) return;
       if (args.operation === "restore") await requireAvailableName(ctx, module.projectId, module.name);
-      await changeModuleDeleted(ctx, module, args.operation === "delete");
+      await changeModuleDeleted(ctx, module, args.operation === "delete", user._id);
     } else {
       if (module.deleted) throw new ConvexError("Restore this module first.");
       if (args.operation === "archive" && module.status !== "completed" && module.status !== "cancelled")
         throw new ConvexError("Only completed or cancelled modules can be archived.");
       if (module.archived === (args.operation === "archive")) return;
+      const now = Date.now();
       await ctx.db.patch(module._id, {
         archived: args.operation === "archive",
-        updatedAt: Math.max(Date.now(), module.updatedAt + 1),
+        archivedAt: args.operation === "archive" ? now : null,
+        updatedBy: user._id,
+        updatedAt: Math.max(now, module.updatedAt + 1),
       });
     }
   },
