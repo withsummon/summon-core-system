@@ -2,7 +2,7 @@ import { plainDescriptionHtml } from "../tasks/rich_content";
 import { createTask } from "../tasks/create";
 import { initialProperties } from "../tasks/properties";
 import { taskIsActive } from "../tasks/access";
-import { taskCollection } from "../tasks/revision";
+import { taskCollection, taskCollectionEntries } from "../tasks/revision";
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
 import { writeTaskLabel } from "../tasks/labels";
@@ -30,7 +30,7 @@ import {
   taskStateIsSelectable,
 } from "../tasks/schema";
 import { z } from "zod/v4";
-import { Base64, ConvexError, v, type Infer } from "convex/values";
+import { Base64, compareValues, ConvexError, v, type Infer } from "convex/values";
 import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
 import {
   httpAction,
@@ -1392,20 +1392,30 @@ export const taskRead = internalQuery({
         });
       const { per_page: perPage, cursor: page, order_by: orderBy } = options.data;
       const order = taskApiOrder.safeParse(orderBy.startsWith("-") ? orderBy.slice(1) : orderBy);
-      if (order.success && order.data !== "created_at" && order.data !== "sequence_id")
+      // IssueManager makes archived_at null for every row; creation supplies deterministic tied-row traversal.
+      const indexedOrder = order.success && order.data !== "archived_at" ? order.data : "created_at";
+      if (
+        indexedOrder === "state__name" ||
+        indexedOrder === "state__group" ||
+        indexedOrder === "assignees__first_name" ||
+        indexedOrder === "labels__name" ||
+        indexedOrder === "issue_module__module__name"
+      )
         throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
       const descending = !order.success || orderBy.startsWith("-");
-      const sequenceOrder = order.success && order.data === "sequence_id";
-      const namespace: Parameters<typeof taskCollection.count>[1]["namespace"] = sequenceOrder
-        ? [access.project._id, "sequence_id"]
-        : access.project._id;
+      const namespace: Parameters<typeof taskCollection.count>[1]["namespace"] =
+        indexedOrder === "created_at" ? access.project._id : [access.project._id, indexedOrder];
       const offset = page * perPage;
       if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(page + 1))
         throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
       // IssueManager excludes archived Projects without changing REST membership authority.
       const total = access.project.archived ? 0 : await taskCollection.count(ctx, { namespace: access.project._id });
-      if (sequenceOrder && !access.project.archived && (await taskCollection.count(ctx, { namespace })) !== total)
+      if (
+        indexedOrder !== "created_at" &&
+        !access.project.archived &&
+        (await taskCollection.count(ctx, { namespace })) !== total
+      )
         throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
       let results: Awaited<ReturnType<typeof taskWire>>[] = [];
       if (offset < total) {
@@ -1427,7 +1437,9 @@ export const taskRead = internalQuery({
               !task ||
               task.projectId !== access.project._id ||
               task.workspaceId !== access.workspace._id ||
-              (sequenceOrder ? task.sequence : task._creationTime) !== item.key ||
+              !taskCollectionEntries(task).some(
+                (entry) => compareValues(entry.namespace, namespace) === 0 && compareValues(entry.key, item.key) === 0
+              ) ||
               !taskIsActive(task)
             )
               throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });

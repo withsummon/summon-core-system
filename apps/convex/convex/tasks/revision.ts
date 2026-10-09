@@ -9,21 +9,43 @@ import { components } from "../_generated/api";
 import { taskIsActive } from "./access";
 
 export const taskCollection = new DirectAggregate<{
-  Namespace: Id<"projects"> | [Id<"projects">, "sequence_id"];
-  Key: number;
+  Namespace:
+    | Id<"projects">
+    | [
+        Id<"projects">,
+        "sequence_id" | "sort_order" | "updated_at" | "start_date" | "target_date" | "completed_at" | "priority",
+      ];
+  Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"]];
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
-// Synchronous tolerant writes keep live mutations and a paginated backfill in one transaction.
-export async function indexTaskCollection(ctx: MutationCtx, task: Doc<"tasks">) {
-  const items: Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] = [
+export function taskCollectionEntries(task: Doc<"tasks">): Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] {
+  return [
     { namespace: task.projectId, key: task._creationTime, id: task._id },
     { namespace: [task.projectId, "sequence_id"], key: task.sequence, id: task._id },
+    { namespace: [task.projectId, "sort_order"], key: task.sortOrder, id: task._id },
+    { namespace: [task.projectId, "updated_at"], key: task.updatedAt, id: task._id },
+    { namespace: [task.projectId, "start_date"], key: [task.startDate === null, task.startDate], id: task._id },
+    { namespace: [task.projectId, "target_date"], key: [task.targetDate === null, task.targetDate], id: task._id },
+    { namespace: [task.projectId, "completed_at"], key: [task.completedAt === null, task.completedAt], id: task._id },
+    { namespace: [task.projectId, "priority"], key: task.priorityOrder, id: task._id },
   ];
+}
+
+// Synchronous tolerant writes keep live mutations and a paginated backfill in one transaction.
+export async function indexTaskCollection(ctx: MutationCtx, task: Doc<"tasks">, previous?: Doc<"tasks">) {
+  const items = taskCollectionEntries(task);
+  // One producer keeps entry positions identical for the real before/current documents.
+  const before = taskCollectionEntries(previous ?? task);
   await Promise.all(
-    items.map((item) =>
-      taskIsActive(task) ? taskCollection.insertIfDoesNotExist(ctx, item) : taskCollection.deleteIfExists(ctx, item)
-    )
+    items.map(async (item, index) => {
+      const old = before[index];
+      if (taskIsActive(task)) {
+        if (previous && taskIsActive(previous)) {
+          if (compareValues(old.key, item.key) !== 0) await taskCollection.replaceOrInsert(ctx, old, item);
+        } else await taskCollection.insertIfDoesNotExist(ctx, item);
+      } else if (!previous || taskIsActive(previous)) await taskCollection.deleteIfExists(ctx, old);
+    })
   );
 }
 
@@ -48,15 +70,16 @@ export async function taskChanged(
   else if (task.archivedAt !== current.archivedAt) kind = current.archivedAt === null ? "unarchived" : "archived";
   else if (changes.some((change) => change.field === "state")) kind = "status_changed";
   const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
-  await ctx.db.patch(task._id, {
+  const revision = {
     updatedBy: actorId,
     updatedAt,
     titleUpdatedAt: current.title !== task.title ? updatedAt : current.titleUpdatedAt,
     startDateMissing: current.startDate === null,
     targetDateMissing: current.targetDate === null,
     priorityOrder: priority.members.findIndex(({ value }) => value === current.priority),
-  });
-  if (taskIsActive(task) !== taskIsActive(current)) await indexTaskCollection(ctx, current);
+  };
+  await ctx.db.patch(task._id, revision);
+  await indexTaskCollection(ctx, { ...current, ...revision }, { ...task, updatedAt: current.updatedAt });
   // Manual reordering advances the revision without creating a subscriber activity.
   if (
     !event &&
