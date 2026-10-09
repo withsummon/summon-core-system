@@ -134,7 +134,13 @@ export async function taskDetail(
     canEdit: writer && taskIsActive(task),
     canArchive: writer && taskIsActive(task) && (task.status === "done" || task.status === "cancelled"),
     canDelete: recovery && task.deletedAt === null,
-    canRestore: recovery && task.deletedAt != null,
+    canRestore:
+      recovery &&
+      task.deletedAt != null &&
+      !(await ctx.db
+        .query("taskDeletionJobs")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .unique()),
     canUnarchive: writer && task.deletedAt === null && task.archivedAt != null,
   };
 }

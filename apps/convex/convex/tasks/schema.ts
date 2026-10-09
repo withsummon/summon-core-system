@@ -683,7 +683,48 @@ const labelRemovalPhase = v.union(
   v.literal("delete")
 );
 
+export const taskDeletionPhase = v.union(
+  v.literal("children"),
+  v.literal("parent"),
+  v.literal("draftParents"),
+  v.literal("relationsFrom"),
+  v.literal("relationsTo"),
+  v.literal("cycles"),
+  v.literal("modules"),
+  v.literal("subscriptions"),
+  v.literal("intake"),
+  v.literal("comments"),
+  v.literal("commentReactions"),
+  v.literal("commentAssets"),
+  v.literal("reactions"),
+  v.literal("votes"),
+  v.literal("links"),
+  v.literal("assets"),
+  v.literal("commentUploads"),
+  v.literal("waiting"),
+  v.literal("versions"),
+  v.literal("descriptions"),
+  v.literal("purged")
+);
 export const taskTables = {
+  taskDeletionJobs: defineTable({
+    taskId: v.id("tasks"),
+    rootTaskId: v.id("tasks"),
+    parentJobId: v.union(v.id("taskDeletionJobs"), v.null()),
+    workspaceId: v.id("workspaces"),
+    actorId: v.id("users"),
+    deletedAt: v.number(),
+    purgeAt: v.number(),
+    phase: taskDeletionPhase,
+    cursor: v.union(v.string(), v.null()),
+    revision: v.number(),
+    purging: v.boolean(),
+    commentId: v.union(v.id("taskComments"), v.null()),
+    commentCursor: v.union(v.string(), v.null()),
+    commentsDone: v.boolean(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_parent_phase", ["parentJobId", "phase"]),
   profileTaskPreferences: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),

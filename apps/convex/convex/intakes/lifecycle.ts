@@ -4,13 +4,21 @@ import type { Doc } from "../_generated/dataModel";
 import { query, mutation } from "../_generated/server";
 import { requireProject } from "../identity/access";
 import { pageBudget } from "../commercial/validation";
-import { taskChanged } from "../tasks/revision";
+import type { QueryCtx } from "../_generated/server";
+import { writeTaskLifecycle } from "../tasks/lifecycle";
 import { plainDescriptionHtml } from "../tasks/rich_content";
 import { intakeCapabilities, requireIntakeTask, requireIntakeRevision } from "./access";
 
 // A bridge can undo only the task deletion committed by its own removal.
 // Current task CAS alone is insufficient: an independently deleted task can have a fresh captured revision.
-function restoration(intake: Doc<"intakeTasks">, task: Doc<"tasks">) {
+async function restoration(ctx: QueryCtx, intake: Doc<"intakeTasks">, task: Doc<"tasks">) {
+  if (
+    await ctx.db
+      .query("taskDeletionJobs")
+      .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .unique()
+  )
+    return { canRestore: false, restoresTask: false, restoreBlockedReason: "API-retired tasks cannot be restored." };
   if (intake.status === "accepted" || task.deletedAt == null)
     return { canRestore: true, restoresTask: false, restoreBlockedReason: null };
   const ownsDeletion =
@@ -40,7 +48,7 @@ export const list = query({
         if (intake.deletedAt === null || !intakeCapabilities(access, intake.createdBy).canRemove) return null;
         const task = await ctx.db.get(intake.taskId);
         if (!task) return null;
-        return { intake, task, ...restoration(intake, task) };
+        return { intake, task, ...(await restoration(ctx, intake, task)) };
       })
     );
     return { ...result, page: rows.filter((row) => row !== null) };
@@ -57,7 +65,12 @@ export const get = query({
       .query("taskDescriptions")
       .withIndex("by_task", (q) => q.eq("taskId", taskId))
       .unique();
-    return { task, intake, html: rich?.html ?? plainDescriptionHtml(task.description), ...restoration(intake, task) };
+    return {
+      task,
+      intake,
+      html: rich?.html ?? plainDescriptionHtml(task.description),
+      ...(await restoration(ctx, intake, task)),
+    };
   },
 });
 export const restore = mutation({
@@ -65,11 +78,10 @@ export const restore = mutation({
   handler: async (ctx, args) => {
     const { task, intake, access } = await requireIntakeTask(ctx, args.taskId, "removed");
     requireIntakeRevision(intake, task, args.expectedUpdatedAt, args.expectedTaskUpdatedAt);
-    const plan = restoration(intake, task);
+    const plan = await restoration(ctx, intake, task);
     if (plan.restoreBlockedReason !== null) throw new ConvexError(plan.restoreBlockedReason);
     if (plan.restoresTask) {
-      await ctx.db.patch(task._id, { deletedAt: null });
-      await taskChanged(ctx, task, access.user._id);
+      await writeTaskLifecycle(ctx, task, access.user._id, "deletedAt", false);
     }
     await ctx.db.patch(intake._id, {
       deletedAt: null,

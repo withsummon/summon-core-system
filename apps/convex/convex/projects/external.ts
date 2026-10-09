@@ -4,6 +4,7 @@ import { writeDescription } from "../tasks/description_content";
 import { applyPropertyUpdate } from "../tasks/property_updates";
 import { checkAncestors, applyParentChange } from "../tasks/hierarchy";
 import { createTask } from "../tasks/create";
+import { beginTaskDeletion } from "../tasks/lifecycle";
 import { initialProperties } from "../tasks/properties";
 import { taskIsActive } from "../tasks/access";
 import { taskCollection, taskCollectionEntries, taskChanged } from "../tasks/revision";
@@ -1772,6 +1773,27 @@ export const writeTaskApi = internalMutation({
   },
 });
 
+export const removeTask = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string(), taskApiId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, "DELETE");
+    const task = await ctx.db
+      .query("tasks")
+      .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+      .unique();
+    if (
+      !task ||
+      task.projectId !== access.project._id ||
+      task.workspaceId !== access.workspace._id ||
+      task.deletedAt !== null
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (task.createdBy !== access.user._id && access.membership?.role !== "admin")
+      throw new ConvexError({ status: 403, error: "Only admin or creator can delete the work item" });
+    await beginTaskDeletion(ctx, task, access.user._id);
+  },
+});
+
 async function taskResponse(
   ctx: ActionCtx,
   request: Request,
@@ -1786,6 +1808,15 @@ async function taskResponse(
       { error: "The requested resource does not exist." },
       { status: 404, headers: responseHeaders }
     );
+  if (request.method === "DELETE" && taskId) {
+    await ctx.runMutation(internal.projects.external.removeTask, {
+      userId,
+      slug: decodeURIComponent(route[1]),
+      projectApiId: projectId.data,
+      taskApiId: taskId.data,
+    });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
   const url = new URL(request.url);
   if ((request.method === "POST" && !taskId) || (request.method === "PATCH" && taskId)) {
     const bodyJson = await ctx.runMutation(internal.projects.external.writeTaskApi, {
@@ -1832,7 +1863,7 @@ export const projects = httpAction(async (ctx, request) => {
   let responseHeaders: HeadersInit = catalogue
     ? { ...headers, Allow: methods.join(", ") }
     : task?.[4]
-      ? { ...headers, Allow: "GET, PATCH" }
+      ? { ...headers, Allow: "GET, PATCH, DELETE" }
       : task
         ? { ...headers, Allow: "GET, POST" }
         : headers;
