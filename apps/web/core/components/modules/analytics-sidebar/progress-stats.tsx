@@ -20,7 +20,7 @@ import { createFilterUpdateHandler, PROGRESS_STATS } from "@/components/core/sid
 import type { TStateGroupData } from "@/components/core/sidebar/progress-stats/state_group";
 import { StateGroupStatComponent } from "@/components/core/sidebar/progress-stats/state_group";
 // hooks
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 
 type TModuleProgressStats = {
   distribution: TModuleDistribution | TModuleEstimateDistribution | undefined;

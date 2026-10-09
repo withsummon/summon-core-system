@@ -4,36 +4,37 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect, useCallback } from "react";
-
-export const getValueFromLocalStorage = (key: string, defaultValue: any) => {
-  if (typeof window === "undefined" || typeof window === "undefined") return defaultValue;
-  try {
-    const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (_error) {
-    window.localStorage.removeItem(key);
-    return defaultValue;
-  }
-};
-
-export const setValueIntoLocalStorage = (key: string, value: any) => {
-  if (typeof window === "undefined" || typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (_error) {
-    return false;
-  }
-};
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 export const useLocalStorage = <T,>(key: string, initialValue: T) => {
-  const [storedValue, setStoredValue] = useState<T | null>(() => getValueFromLocalStorage(key, initialValue));
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      window.addEventListener(`local-storage:${key}`, onStoreChange);
+      return () => window.removeEventListener(`local-storage:${key}`, onStoreChange);
+    },
+    [key]
+  );
+  const getSnapshot = useCallback(() => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (_error) {
+      return null;
+    }
+  }, [key]);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  // The legacy generic result is unvalidated. Schema-sensitive callers use unknown.
+  const storedValue = useMemo<T | null | undefined>(() => {
+    if (snapshot === null) return undefined;
+    try {
+      return JSON.parse(snapshot);
+    } catch (_error) {
+      return undefined;
+    }
+  }, [snapshot]);
 
   const setValue = useCallback(
     (value: T) => {
       window.localStorage.setItem(key, JSON.stringify(value));
-      setStoredValue(value);
       window.dispatchEvent(new Event(`local-storage:${key}`));
     },
     [key]
@@ -41,21 +42,7 @@ export const useLocalStorage = <T,>(key: string, initialValue: T) => {
 
   const clearValue = useCallback(() => {
     window.localStorage.removeItem(key);
-    setStoredValue(null);
     window.dispatchEvent(new Event(`local-storage:${key}`));
   }, [key]);
-
-  const reHydrate = useCallback(() => {
-    const data = getValueFromLocalStorage(key, initialValue);
-    setStoredValue(data);
-  }, [key, initialValue]);
-
-  useEffect(() => {
-    window.addEventListener(`local-storage:${key}`, reHydrate);
-    return () => {
-      window.removeEventListener(`local-storage:${key}`, reHydrate);
-    };
-  }, [key, reHydrate]);
-
-  return { storedValue, setValue, clearValue } as const;
+  return { storedValue: storedValue === undefined ? initialValue : storedValue, setValue, clearValue } as const;
 };

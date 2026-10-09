@@ -38,7 +38,7 @@ import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifi
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 // store
 import type { ActiveCycleIssueDetails } from "@/store/issue/cycle";
 
@@ -159,26 +159,29 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                         <div
                           key={issue.id}
                           className="group flex cursor-pointer items-center justify-between gap-2 rounded-md p-1 hover:bg-surface-2"
-                          onClick={() => {
-                            if (issue.id) {
-                              setPeekIssue({
-                                workspaceSlug,
-                                projectId,
-                                issueId: issue.id,
-                                isArchived: !!issue.archived_at,
-                              });
-                              handleFiltersUpdate([
-                                { property: "priority", operator: "in", value: ["urgent", "high"] },
-                              ]);
-                            }
-                          }}
                         >
-                          <div className="flex w-full min-w-24 flex-grow items-center gap-1.5 truncate">
+                          <button
+                            type="button"
+                            className="flex w-full min-w-24 flex-grow items-center gap-1.5 truncate text-left"
+                            onClick={() => {
+                              if (issue.id) {
+                                setPeekIssue({
+                                  workspaceSlug,
+                                  projectId,
+                                  issueId: issue.id,
+                                  isArchived: !!issue.archived_at,
+                                });
+                                handleFiltersUpdate([
+                                  { property: "priority", operator: "in", value: ["urgent", "high"] },
+                                ]);
+                              }
+                            }}
+                          >
                             <IssueIdentifier issueId={issue.id} projectId={projectId} size="xs" variant="secondary" />
                             <Tooltip position="top-start" tooltipHeading="Title" tooltipContent={issue.name}>
                               <span className="truncate text-13 text-primary">{issue.name}</span>
                             </Tooltip>
-                          </div>
+                          </button>
                           <PriorityIcon priority={issue.priority} withContainer size={12} />
                           <div className="flex flex-shrink-0 items-center gap-1.5">
                             <StateDropdown
@@ -236,7 +239,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
           >
             {cycle && !isEmpty(cycle.distribution) ? (
               cycle?.distribution?.assignees && cycle.distribution.assignees.length > 0 ? (
-                cycle.distribution?.assignees?.map((assignee, index) => {
+                cycle.distribution?.assignees?.map((assignee) => {
                   if (assignee.assignee_id)
                     return (
                       <SingleProgressStats
@@ -265,7 +268,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                   else
                     return (
                       <SingleProgressStats
-                        key={`unassigned-${index}`}
+                        key="unassigned"
                         title={
                           <div className="flex items-center gap-2">
                             <div className="h-5 w-5 rounded-full border-2 border-subtle bg-layer-1">
@@ -298,9 +301,9 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
           >
             {cycle && !isEmpty(cycle.distribution) ? (
               cycle?.distribution?.labels && cycle.distribution.labels.length > 0 ? (
-                cycle.distribution.labels?.map((label, index) => (
+                cycle.distribution.labels?.map((label) => (
                   <SingleProgressStats
-                    key={label.label_id ?? `no-label-${index}`}
+                    key={label.label_id ?? "no-label"}
                     title={
                       <div className="flex items-center gap-2 truncate">
                         <span

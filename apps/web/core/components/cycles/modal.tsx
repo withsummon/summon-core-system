@@ -8,14 +8,14 @@ import { useEffect, useState } from "react";
 import { mutate } from "swr";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { CycleDateCheckData, ICycle, TCycleTabOptions } from "@plane/types";
+import type { ICycle, TCycleTabOptions } from "@plane/types";
 // ui
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
 import { renderFormattedPayloadDate } from "@plane/utils";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useProject } from "@/hooks/store/use-project";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // services
 import { CycleService } from "@/services/cycle.service";
@@ -60,7 +60,7 @@ export function CycleCreateUpdateModal(props: CycleModalProps) {
           }
         }
 
-        setToast({
+        return setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "Success!",
           message: "Cycle created successfully.",
@@ -81,7 +81,7 @@ export function CycleCreateUpdateModal(props: CycleModalProps) {
     const selectedProjectId = payload.project_id ?? projectId.toString();
     await updateCycleDetails(workspaceSlug, selectedProjectId, cycleId, payload)
       .then((_res) => {
-        setToast({
+        return setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "Success!",
           message: "Cycle updated successfully.",
@@ -94,16 +94,6 @@ export function CycleCreateUpdateModal(props: CycleModalProps) {
           message: err?.detail ?? "Error in updating cycle. Please try again.",
         });
       });
-  };
-
-  const dateChecker = async (projectId: string, payload: CycleDateCheckData) => {
-    let status = false;
-
-    await cycleService.cycleDateCheck(workspaceSlug, projectId, payload).then((res) => {
-      status = res.status;
-    });
-
-    return status;
   };
 
   const handleFormSubmit = async (formData: Partial<ICycle>) => {
@@ -125,27 +115,30 @@ export function CycleCreateUpdateModal(props: CycleModalProps) {
         const hasDateChanged = payload.start_date !== originalStartDate || payload.end_date !== originalEndDate;
 
         if (hasDateChanged) {
-          isDateValid = await dateChecker(projectId, {
-            start_date: payload.start_date,
-            end_date: payload.end_date,
-            cycle_id: data.id,
-          });
+          isDateValid = (
+            await cycleService.cycleDateCheck(workspaceSlug, projectId, {
+              start_date: payload.start_date,
+              end_date: payload.end_date,
+              cycle_id: data.id,
+            })
+          ).status;
         }
       } else {
         // Create new cycle - always check dates
-        isDateValid = await dateChecker(projectId, {
-          start_date: payload.start_date,
-          end_date: payload.end_date,
-        });
+        isDateValid = (
+          await cycleService.cycleDateCheck(workspaceSlug, projectId, {
+            start_date: payload.start_date,
+            end_date: payload.end_date,
+          })
+        ).status;
       }
     }
 
     if (isDateValid) {
       if (data?.id) await handleUpdateCycle(data.id, payload);
       else {
-        await handleCreateCycle(payload).then(() => {
-          setCycleTab("all");
-        });
+        await handleCreateCycle(payload);
+        setCycleTab("all");
       }
       handleClose();
     } else

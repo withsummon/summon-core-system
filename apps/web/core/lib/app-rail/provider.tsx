@@ -7,7 +7,7 @@
 import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 import { AppRailVisibilityContext } from "./context";
 import type { IAppRailVisibilityContext } from "./types";
 

@@ -13,7 +13,7 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@summon/convex/api";
 import { defaultTaskPreferences, taskPreferencesSchema } from "@summon/convex/task-schema";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 import { ArchivedIssuesHeader } from "@/components/issues/archived-issues-header";
 import { Popover } from "@plane/propel/popover";
 import { EIssueLayoutTypes } from "@plane/types";

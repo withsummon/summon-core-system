@@ -7,7 +7,7 @@ import { PanelRight } from "lucide-react";
 import { CycleSidebar } from "./overview";
 import { CycleTasks } from "./tasks";
 import { useCycleClock } from "./use-cycle-clock";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 import { PageHead } from "@/components/core/page-title";
 type Address = FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
 
