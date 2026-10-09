@@ -3,7 +3,7 @@ import { recordTaskEvent } from "../notifications/delivery";
 import { compareValues, ConvexError } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { priority } from "./schema";
+import { priority, stateApiGroup, stateApiGroupFromStatus } from "./schema";
 import { DirectAggregate } from "@convex-dev/aggregate";
 import { components } from "../_generated/api";
 import { taskIsActive } from "./access";
@@ -13,13 +13,26 @@ export const taskCollection = new DirectAggregate<{
     | Id<"projects">
     | [
         Id<"projects">,
-        "sequence_id" | "sort_order" | "updated_at" | "start_date" | "target_date" | "completed_at" | "priority",
+        (
+          | "sequence_id"
+          | "sort_order"
+          | "updated_at"
+          | "start_date"
+          | "target_date"
+          | "completed_at"
+          | "priority"
+          | "state__group"
+          | "-state__group"
+        ),
       ];
   Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"]];
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
 export function taskCollectionEntries(task: Doc<"tasks">): Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] {
+  const defaultStateRank = stateApiGroup.options.indexOf("triage");
+  const stateRank =
+    task.stateId === null ? defaultStateRank : stateApiGroup.options.indexOf(stateApiGroupFromStatus(task.status));
   return [
     { namespace: task.projectId, key: task._creationTime, id: task._id },
     { namespace: [task.projectId, "sequence_id"], key: task.sequence, id: task._id },
@@ -29,6 +42,12 @@ export function taskCollectionEntries(task: Doc<"tasks">): Parameters<typeof tas
     { namespace: [task.projectId, "target_date"], key: [task.targetDate === null, task.targetDate], id: task._id },
     { namespace: [task.projectId, "completed_at"], key: [task.completedAt === null, task.completedAt], id: task._id },
     { namespace: [task.projectId, "priority"], key: task.priorityOrder, id: task._id },
+    { namespace: [task.projectId, "state__group"], key: stateRank, id: task._id },
+    {
+      namespace: [task.projectId, "-state__group"],
+      key: stateRank === defaultStateRank ? defaultStateRank : defaultStateRank - 1 - stateRank,
+      id: task._id,
+    },
   ];
 }
 
