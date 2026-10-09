@@ -1,17 +1,21 @@
 import base64
 import hmac
+import ipaddress
 import json
 import multiprocessing
 import os
 import socket
 import sys
 import threading
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import unquote
 
-from plane.utils.url_security import pinned_fetch_following_redirects
+import requests
+
+from plane.utils.url_security import pinned_fetch, pinned_fetch_following_redirects
 
 from summon_documents.context import DOCUMENT_TYPES, MAX_UPLOAD_BYTES, extract_context_document
 from summon_documents.renderer import render_document_files
@@ -20,6 +24,27 @@ from summon_documents.exporter import export_workspace
 MAX_RESPONSE_BYTES = 20 * 1024 * 1024
 TIMEOUT_SECONDS = 30
 _slots = threading.BoundedSemaphore(2)
+
+
+def send_webhook(data):
+    try:
+        response = pinned_fetch("POST", data["url"],
+            allowed_ips=[ipaddress.ip_network(value.strip(), strict=False)
+                for value in os.environ.get("WEBHOOK_ALLOWED_IPS", "").split(",") if value.strip()],
+            allowed_hosts=[value.strip().rstrip(".").lower()
+                for value in os.environ.get("WEBHOOK_ALLOWED_HOSTS", "").split(",") if value.strip()],
+            headers={"Content-Type": "application/json", "User-Agent": "Autopilot",
+                "X-Plane-Delivery": data["delivery_id"], "X-Plane-Event": "issue",
+                "X-Plane-Signature": data["signature"]},
+            data=data["body"].encode("utf-8"), timeout=30, stream=True)
+        try:
+            return {"kind": "http", "status": response.status_code}
+        finally:
+            response.close()
+    except requests.RequestException:
+        return {"kind": "transport"}
+    except ValueError:
+        return {"kind": "blocked"}
 
 
 def import_avatar(data):
@@ -62,6 +87,8 @@ def execute(path, data, name, connection):
             result = extract_context_document(upload)
         elif path == "/import-avatar":
             result = import_avatar(data)
+        elif path == "/webhook":
+            result = send_webhook(data)
         elif path == "/export":
             result = export_workspace(data)
         else:
@@ -139,7 +166,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authenticated():
             return
-        if self.path not in {"/extract", "/render", "/export", "/import-avatar"}:
+        if self.path not in {"/extract", "/render", "/export", "/import-avatar", "/webhook"}:
             self.reply(404, b'{"error":"Endpoint not found."}')
             return
         if not _slots.acquire(blocking=False):
@@ -173,6 +200,17 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(415, b'{"error":"Use application/json."}')
                     return
                 data = json.loads(data)
+                if self.path == "/webhook":
+                    if not isinstance(data, dict) or set(data) != {"url", "body", "delivery_id", "signature"}:
+                        raise ValueError("Invalid webhook request.")
+                    if any(not isinstance(data[field], str) for field in data):
+                        raise ValueError("Invalid webhook request.")
+                    if not 0 < len(data["url"]) <= 1024 or not 0 < len(data["body"].encode("utf-8")) <= MAX_UPLOAD_BYTES:
+                        raise ValueError("Invalid webhook request.")
+                    if str(uuid.UUID(data["delivery_id"])) != data["delivery_id"]:
+                        raise ValueError("Invalid webhook delivery identity.")
+                    if len(data["signature"]) != 64 or any(char not in "0123456789abcdef" for char in data["signature"]):
+                        raise ValueError("Invalid webhook signature.")
                 if self.path == "/import-avatar":
                     if not isinstance(data, dict) or set(data) != {"url", "max_bytes"}:
                         raise ValueError("Invalid avatar import request.")

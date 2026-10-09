@@ -522,6 +522,13 @@ export const taskApiField = z.enum([
   "deleted_at",
   "type_id",
 ]);
+// Actual IssueExpandSerializer output: reverse cycle/module managers are omitted by DRF.
+export const taskWebhookField = z.enum([
+  ...taskApiField.exclude(["type_id"]).options,
+  "description",
+  "description_json",
+  "description_stripped",
+]);
 const taskApiWrite = z.object({
   name: catalogueApiRequiredText,
   description_html: catalogueApiString.refine((value) => value.length > 0, "Invalid HTML passed"),

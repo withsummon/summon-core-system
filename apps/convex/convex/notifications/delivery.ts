@@ -20,6 +20,8 @@ export async function recordTaskEvent(
   if (!task || task.workspaceId !== event.workspaceId || task.projectId !== event.projectId)
     throw new ConvexError("Task event scope does not match its task.");
   const eventId = await ctx.db.insert("taskEvents", event);
+  if (event.changes?.some((change) => change.field === "title" && change.before !== change.after))
+    await ctx.scheduler.runAfter(0, internal.webhooks.index.fanout, { eventId, cursor: null });
   if (delivery === "activity") return eventId;
   const addedAssignees =
     event.kind === "created"

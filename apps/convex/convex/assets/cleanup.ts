@@ -18,8 +18,8 @@ export const expire = internalMutation({
     if (pending.length === 100) await ctx.scheduler.runAfter(0, internal.assets.cleanup.expire, {});
   },
 });
-// Assets is currently the sole _storage reference owner. Future storage domains
-// must register here before storing blobs; otherwise unclaimed blobs expire.
+// Every native _storage reference owner must register here before storing blobs;
+// otherwise unclaimed blobs expire.
 export const sweep = internalMutation({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, { cursor }) => {
@@ -28,6 +28,11 @@ export const sweep = internalMutation({
       result.page
         .filter((blob) => blob._creationTime < Date.now() - 24 * 60 * 60 * 1000)
         .map(async (blob) => {
+          const delivery = await ctx.db
+            .query("webhookDeliveries")
+            .withIndex("by_storage", (q) => q.eq("payloadStorageId", blob._id))
+            .unique();
+          if (delivery) return;
           const asset = await ctx.db
             .query("assets")
             .withIndex("by_storage", (q) => q.eq("storageId", blob._id))

@@ -14,6 +14,7 @@ import { writeTaskLabel } from "../tasks/labels";
 import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
   taskApiField,
+  taskWebhookField,
   taskApiCreate,
   taskApiPatch,
   taskApiUnsupportedWrite,
@@ -139,7 +140,7 @@ async function userReference(
   userId: Id<"users"> | null | undefined,
   field: string,
   expand: string[],
-  access: Awaited<ReturnType<typeof workspaceAccess>>,
+  access: Pick<Awaited<ReturnType<typeof workspaceAccess>>, "workspace">,
   assetOrigin: string
 ) {
   const id = known(field, userId);
@@ -1161,17 +1162,25 @@ async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"use
   status = 200;
   return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
 }
-async function taskWire(
+export async function taskWire(
   ctx: QueryCtx,
   task: Doc<"tasks">,
-  access: Awaited<ReturnType<typeof projectEntityAccess>>,
+  access:
+    | Awaited<ReturnType<typeof projectEntityAccess>>
+    | Pick<Awaited<ReturnType<typeof projectEntityAccess>>, "workspace" | "project">,
   selectedFields: string[] | null,
   expand: string[],
-  assetOrigin: string
+  assetOrigin: string,
+  format: "api" | "webhook" = "api"
 ) {
-  const fields = taskApiField.options.filter((field) => selectedFields === null || selectedFields.includes(field));
+  const fields = (format === "webhook" ? taskWebhookField : taskApiField).options.filter(
+    (field) => selectedFields === null || selectedFields.includes(field)
+  );
   const rich = fields.some(
-    (field) => (field === "description_html" || field === "description_binary") && !expand.includes(field)
+    (field) =>
+      ["description_html", "description_binary", "description", "description_json", "description_stripped"].includes(
+        field
+      ) && !expand.includes(field)
   )
     ? await ctx.db
         .query("taskDescriptions")
@@ -1190,6 +1199,10 @@ async function taskWire(
     description_html: () => rich?.html ?? plainDescriptionHtml(task.description),
     description_binary: () =>
       rich?.descriptionBinary ? Base64.fromByteArray(new Uint8Array(rich.descriptionBinary)) : null,
+    // HTML writes clear opaque editor JSON; the inherited model's empty JSON default remains {}.
+    description: () => projectJson.parse(rich?.descriptionJson ?? {}),
+    description_json: () => projectJson.parse(rich?.descriptionJson ?? {}),
+    description_stripped: () => (rich?.html === "" ? null : task.description),
     priority: () => task.priority,
     point: () => known("point", task.point),
     start_date: () => (task.startDate === null ? null : new Date(task.startDate).toISOString().slice(0, 10)),
@@ -1208,22 +1221,24 @@ async function taskWire(
       expand.includes("workspace")
         ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
         : apiIdSchema.parse(access.workspace.apiId),
-    project: () =>
-      expand.includes("project")
-        ? projectWire(
-            ctx,
-            { project: access.project, membership: access.membership },
-            access,
-            projectApiLiteField.options,
-            [],
-            assetOrigin,
-            false
-          )
-        : apiIdSchema.parse(access.project.apiId),
+    project: () => {
+      if (!expand.includes("project")) return apiIdSchema.parse(access.project.apiId);
+      if (!("membership" in access)) return unsupportedReference("project");
+      return projectWire(
+        ctx,
+        { project: access.project, membership: access.membership },
+        access,
+        projectApiLiteField.options,
+        [],
+        assetOrigin,
+        false
+      );
+    },
     state: async () => {
-      if (task.stateId === null) return expand.includes("state") ? {} : null;
+      if (task.stateId === null) return format === "webhook" ? null : expand.includes("state") ? {} : null;
       const state = await ctx.db.get(task.stateId);
-      if (!state) return unsupportedReference("state");
+      if (!state || state.workspaceId !== task.workspaceId || state.projectId !== task.projectId)
+        return unsupportedReference("state");
       const id = apiIdSchema.parse(state.apiId);
       return expand.includes("state")
         ? { id, name: state.name, color: state.color, group: stateApiGroupFromStatus(state.status) }
@@ -1239,7 +1254,13 @@ async function taskWire(
       if (!parent) return unsupportedReference("parent");
       const project = parent.projectId === access.project._id ? access.project : await ctx.db.get(parent.projectId);
       // Native parent assignment permits another Project. Its current membership must still own disclosure.
-      if (!project || (project._id !== access.project._id && !(await visibleProject(ctx, project, access))?.membership))
+      if (
+        !project ||
+        project.workspaceId !== access.workspace._id ||
+        ("membership" in access &&
+          project._id !== access.project._id &&
+          !(await visibleProject(ctx, project, access))?.membership)
+      )
         return unsupportedReference("parent");
       const id = apiIdSchema.parse(known("parent", parent.apiId));
       return expand.includes("parent")
@@ -1283,9 +1304,9 @@ async function taskWire(
       );
       return expand.includes("assignees")
         ? Promise.all(
-            users
-              .toSorted((a, b) => b._creationTime - a._creationTime)
-              .map((user) => externalUserLite(ctx, user, assetOrigin, access.workspace))
+            (format === "webhook" ? users : users.toSorted((a, b) => b._creationTime - a._creationTime)).map((user) =>
+              externalUserLite(ctx, user, assetOrigin, access.workspace)
+            )
           )
         : users.map((user) => apiIdSchema.parse(user.apiId));
     },
@@ -1298,6 +1319,13 @@ async function taskWire(
           return label;
         })
       );
+      if (format === "webhook")
+        return labels.map((label) => ({
+          id: apiIdSchema.parse(known("labels", label.apiId)),
+          name: label.name,
+          color: label.color,
+        }));
+      if (!("membership" in access)) return unsupportedReference("labels");
       return expand.includes("labels")
         ? Promise.all(
             labels
@@ -1307,7 +1335,7 @@ async function taskWire(
           )
         : labels.map((label) => apiIdSchema.parse(known("labels", label.apiId)));
     },
-  } satisfies Record<z.infer<typeof taskApiField>, () => unknown>;
+  } satisfies Record<z.infer<typeof taskApiField> | z.infer<typeof taskWebhookField>, () => unknown>;
   const mapped = new Set([
     "parent",
     "state",
