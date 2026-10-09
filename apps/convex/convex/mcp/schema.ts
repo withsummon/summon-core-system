@@ -2,6 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { z } from "zod/v4";
 import { convexToZod, zodToConvexFields } from "convex-helpers/server/zod4";
+export const encryptedFields = { ciphertext: v.string(), nonce: v.string(), keyVersion: v.literal(2) };
 export const operation = v.union(v.literal("reveal"), v.literal("rotate"), v.literal("revoke"), v.literal("delete"));
 export const permission = v.union(v.literal("view"), v.literal("use"), v.literal("manage"));
 const metadataText = z.string().trim().max(255);
@@ -45,9 +46,7 @@ export const mcpTables = {
   }).index("by_workspace", ["workspaceId"]),
   mcpSecrets: defineTable({
     credentialId: v.id("mcpCredentials"),
-    ciphertext: v.string(),
-    nonce: v.string(),
-    keyVersion: v.literal(2),
+    ...encryptedFields,
   }).index("by_credential", ["credentialId"]),
   mcpGrants: defineTable({
     credentialId: v.id("mcpCredentials"),

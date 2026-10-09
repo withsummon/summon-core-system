@@ -12,7 +12,8 @@ import { apiIdSchema } from "../identity/schema";
 import { externalUserLite } from "../identity/external";
 import { taskWire } from "../projects/external";
 import { projectJson } from "../projects/schema";
-import { webhookInput, webhookFields, webhookEvent, webhookUrlLimit, encryptedFields, webhookOutcome } from "./schema";
+import { encryptedFields } from "../mcp/schema";
+import { webhookInput, webhookFields, webhookEvent, webhookUrlLimit, webhookOutcome } from "./schema";
 
 async function requireAdmin(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   const access = await requireWorkspace(ctx, workspaceId);

@@ -1,5 +1,5 @@
 import { storedAiConfiguration } from "../assistant/provider";
-import { encryptedFields } from "../webhooks/schema";
+import { encryptedFields } from "../mcp/schema";
 import { preferences } from "./preferences_fields";
 import { oauthSettings, oauthProviderIds } from "./oauth/config";
 import { defineTable, ROUTABLE_HTTP_METHODS } from "convex/server";

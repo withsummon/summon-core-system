@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { v } from "convex/values";
-import { encryptedFields } from "../webhooks/schema";
+import { encryptedFields } from "../mcp/schema";
 
 export const aiProvider = z.enum(["openai", "openai_compatible", "anthropic", "codex", "gemini"]);
 export const aiProviderNames = {

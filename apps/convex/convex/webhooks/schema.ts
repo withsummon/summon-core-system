@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { z } from "zod/v4";
 import { zodToConvexFields, zodToConvex } from "convex-helpers/server/zod4";
 import { apiIdSchema } from "../identity/schema";
+import { encryptedFields } from "../mcp/schema";
 
 export const webhookUrlLimit = 1024;
 export const webhookEvent = z.enum(["project", "cycle", "issue", "module", "issue_comment"]);
@@ -15,7 +16,6 @@ export const webhookInput = z.strictObject({
   isActive: z.boolean(),
 });
 export const webhookFields = zodToConvexFields(webhookInput.shape);
-export const encryptedFields = { ciphertext: v.string(), nonce: v.string(), keyVersion: v.literal(2) };
 // The worker publishes classifications, never its receiver body, headers or credentials.
 export const webhookTransportOutcome = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("http"), status: z.int().min(100).max(599) }),
