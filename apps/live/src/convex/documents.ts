@@ -25,14 +25,16 @@ class DocumentSession {
     return this.http.query(api.documents.index.collaborationContext, { documentId: this.access.documentId });
   }
   watch(connection: Connection) {
-    const live = new ConvexClient(this.url);
+    const live = new ConvexClient(this.url, { initialAuthTokenReuse: true });
     this.live = live;
     const deny = () => connection.close();
     live.subscribeToConnectionState((state) => {
       if (state.hasEverConnected && !state.isWebSocketConnected) deny();
     });
     live.setAuth(
-      async () => this.token,
+      // Hocuspocus authenticates once per connection. Reconnect at Convex's
+      // refresh boundary so the provider fetches a fresh Better Auth token.
+      async ({ forceRefreshToken }) => (forceRefreshToken ? null : this.token),
       (authenticated) => {
         if (!authenticated) deny();
       }
