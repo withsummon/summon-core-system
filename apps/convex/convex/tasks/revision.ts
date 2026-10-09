@@ -8,6 +8,7 @@ import { DirectAggregate } from "@convex-dev/aggregate";
 import { components } from "../_generated/api";
 import { taskIsActive } from "./access";
 import { profileIdentity } from "../identity/profile_owner";
+import { taskModuleMemberships, taskHasModuleName } from "../modules/tasks";
 
 export const taskCollection = new DirectAggregate<{
   Namespace:
@@ -27,11 +28,56 @@ export const taskCollection = new DirectAggregate<{
           | "-state__group"
           | "labels__name"
           | "assignees__first_name"
+          | "issue_module__module__name"
         ),
       ];
   Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string];
   Id: Id<"tasks">;
 }>(components.taskCollection);
+
+// Direct-join DISTINCT uses one key per real Task and distinct Module name.
+export function taskModuleCollectionEntry(task: Doc<"tasks">, name: string | null) {
+  return {
+    namespace: [task.projectId, "issue_module__module__name"],
+    key: [name === null, name],
+    id: task._id,
+  } satisfies Parameters<typeof taskCollection.insertIfDoesNotExist>[1];
+}
+
+// Single assignments and renames touch only names whose memberships changed.
+export async function indexTaskModuleName(ctx: MutationCtx, task: Doc<"tasks">, name: string | null) {
+  const entry = taskModuleCollectionEntry(task, name);
+  if (taskIsActive(task) && (await taskHasModuleName(ctx, task, name)))
+    await taskCollection.insertIfDoesNotExist(ctx, entry);
+  else await taskCollection.deleteIfExists(ctx, entry);
+}
+
+// Whole relationship edits replace their real preimage after the complete batch.
+export async function indexTaskModuleCollection(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  previous?: Doc<"tasks">,
+  previousEntries?: Awaited<ReturnType<typeof taskCollectionEntries>>
+) {
+  const namespace = taskModuleCollectionEntry(task, null).namespace;
+  const before = previousEntries ?? (await taskCollectionEntries(ctx, previous ?? task, undefined, namespace));
+  const items = taskIsActive(task)
+    ? previous || previousEntries
+      ? await taskCollectionEntries(ctx, task, undefined, namespace)
+      : before
+    : [];
+  const old = !previous || taskIsActive(previous) ? before : [];
+  await Promise.all([
+    ...items.map(async (entry) => {
+      if (!previous || !old.some((item) => compareValues(item.key, entry.key) === 0))
+        await taskCollection.insertIfDoesNotExist(ctx, entry);
+    }),
+    ...old.map(async (entry) => {
+      if (!items.some((item) => compareValues(item.key, entry.key) === 0))
+        await taskCollection.deleteIfExists(ctx, entry);
+    }),
+  ]);
+}
 
 // SQL MAX retains blank first names; only a task with no assignees has a null key.
 export async function taskAssigneeCollectionEntry(
@@ -60,6 +106,12 @@ export async function taskCollectionEntries(
   namespace?: Parameters<typeof taskCollection.count>[1]["namespace"],
   resolvedAssignees?: NonNullable<Awaited<ReturnType<typeof profileIdentity>>>[]
 ): Promise<Parameters<typeof taskCollection.insertIfDoesNotExist>[1][]> {
+  if (namespace && compareValues(namespace, [task.projectId, "issue_module__module__name"]) === 0) {
+    const names = new Set<string | null>();
+    for await (const { module } of taskModuleMemberships(ctx, task)) names.add(module.name);
+    if (!names.size) names.add(null);
+    return [...names].map((name) => taskModuleCollectionEntry(task, name));
+  }
   const defaultStateRank = stateApiGroup.options.indexOf("triage");
   const stateRank =
     task.stateId === null ? defaultStateRank : stateApiGroup.options.indexOf(stateApiGroupFromStatus(task.status));
@@ -130,6 +182,7 @@ export async function indexTaskCollection(
       } else if (!previous || taskIsActive(previous)) await taskCollection.deleteIfExists(ctx, old);
     })
   );
+  if (!previous || taskIsActive(task) !== taskIsActive(previous)) await indexTaskModuleCollection(ctx, task, previous);
   const current = new Set(taskIsActive(task) ? task.assigneeIds : []);
   const old = new Set(previous && taskIsActive(previous) ? previous.assigneeIds : []);
   await Promise.all(

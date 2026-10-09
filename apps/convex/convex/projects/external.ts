@@ -1397,8 +1397,6 @@ export const taskRead = internalQuery({
       let indexedOrder = order.success ? order.data : "created_at";
       if (indexedOrder === "archived_at") indexedOrder = "created_at";
       else if (indexedOrder === "state__name") indexedOrder = "state__group";
-      if (indexedOrder === "issue_module__module__name")
-        throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
       // The registered state CASE always sorts ascending, reversing known ranks while keeping default5 last.
       const descending = indexedOrder !== "state__group" && (!order.success || orderBy.startsWith("-"));
@@ -1414,14 +1412,15 @@ export const taskRead = internalQuery({
         throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
       // IssueManager excludes archived Projects without changing REST membership authority.
       const total = access.project.archived ? 0 : await taskCollection.count(ctx, { namespace: access.project._id });
-      if (
-        indexedOrder !== "created_at" &&
-        !access.project.archived &&
-        (await taskCollection.count(ctx, { namespace })) !== total
-      )
+      const joined = indexedOrder === "issue_module__module__name";
+      const rowCount =
+        access.project.archived || indexedOrder === "created_at"
+          ? total
+          : await taskCollection.count(ctx, { namespace });
+      if (joined ? rowCount < total : rowCount !== total)
         throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
       let results: Awaited<ReturnType<typeof taskWire>>[] = [];
-      if (offset < total) {
+      if (offset < rowCount) {
         const first = await taskCollection.at(ctx, descending ? -offset - 1 : offset, {
           namespace,
         });
@@ -1456,7 +1455,7 @@ export const taskRead = internalQuery({
         total_count: total,
         next_cursor: `${perPage}:${page + 1}:0`,
         prev_cursor: `${perPage}:${page - 1}:1`,
-        next_page_results: offset + perPage < total,
+        next_page_results: offset + perPage < rowCount,
         prev_page_results: page > 0,
         count: results.length,
         total_pages: Math.ceil(total / perPage),

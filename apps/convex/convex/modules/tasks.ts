@@ -7,7 +7,7 @@ import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireTask, taskIsActive, taskCanRead, taskDetail, taskOrdering } from "../tasks/access";
 import { requireProject } from "../identity/access";
-import { requireTaskRevision, taskChanged } from "../tasks/revision";
+import { requireTaskRevision, taskChanged, indexTaskModuleName } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
 import { requireModule, requireModuleRevision, requireEditableModule } from "./access";
 import { draftFields, validateModuleReferences } from "../tasks/drafts/fields";
@@ -132,20 +132,48 @@ export const forTask = query({
   },
 });
 
+export async function* taskModuleMemberships(ctx: QueryCtx, task: Doc<"tasks">) {
+  for await (const membership of ctx.db.query("moduleTasks").withIndex("by_task", (q) => q.eq("taskId", task._id))) {
+    const module = await ctx.db.get(membership.moduleId);
+    if (!module || module.projectId !== task.projectId || module.workspaceId !== task.workspaceId)
+      throw new ConvexError("Module reference not found in this project.");
+    yield { membership, module };
+  }
+}
+export async function taskHasModuleName(ctx: QueryCtx, task: Doc<"tasks">, name: string | null) {
+  if (name === null)
+    return !(await ctx.db
+      .query("moduleTasks")
+      .withIndex("by_task", (q) => q.eq("taskId", task._id))
+      .first());
+  // Deleted Modules retain their real join names; do not turn this into a visible-only lookup.
+  for (const deleted of [false, true]) {
+    // Exit at the first real matching membership without collecting either name partition.
+    // oxlint-disable-next-line no-await-in-loop
+    for await (const module of ctx.db
+      .query("modules")
+      .withIndex("by_project_name", (q) => q.eq("projectId", task.projectId).eq("deleted", deleted).eq("name", name))) {
+      if (
+        await ctx.db
+          .query("moduleTasks")
+          .withIndex("by_module_task", (q) => q.eq("moduleId", module._id).eq("taskId", task._id))
+          .unique()
+      ) {
+        if (module.workspaceId !== task.workspaceId)
+          throw new ConvexError("Module reference not found in this project.");
+        return true;
+      }
+    }
+  }
+  return false;
+}
 export async function readTaskModules(ctx: QueryCtx, task: Doc<"tasks">) {
-  const memberships = await ctx.db
-    .query("moduleTasks")
-    .withIndex("by_task", (q) => q.eq("taskId", task._id))
-    .take(101);
-  if (memberships.length > 100) throw new ConvexError("A work item can edit at most 100 module memberships at once.");
-  return Promise.all(
-    memberships.map(async (membership) => {
-      const module = await ctx.db.get(membership.moduleId);
-      if (!module || module.projectId !== task.projectId || module.workspaceId !== task.workspaceId)
-        throw new ConvexError("Module reference not found in this project.");
-      return { membership, module };
-    })
-  );
+  const source = [];
+  for await (const row of taskModuleMemberships(ctx, task)) {
+    source.push(row);
+    if (source.length > 100) throw new ConvexError("A work item can edit at most 100 module memberships at once.");
+  }
+  return source;
 }
 export async function currentTaskModules(ctx: QueryCtx, task: Doc<"tasks">) {
   const source = await readTaskModules(ctx, task);
@@ -234,9 +262,12 @@ export async function applyModuleTask(
 }
 export async function setModuleTask(ctx: MutationCtx, args: Parameters<typeof prepareModuleTask>[1]) {
   const prepared = await prepareModuleTask(ctx, args);
-  if (prepared)
-    await taskChanged(ctx, prepared.task, prepared.user._id, {
-      kind: "updated",
-      changes: await applyModuleTask(ctx, prepared),
-    });
+  if (prepared) {
+    const changes = await applyModuleTask(ctx, prepared);
+    await Promise.all([
+      indexTaskModuleName(ctx, prepared.task, prepared.module.name),
+      indexTaskModuleName(ctx, prepared.task, null),
+    ]);
+    await taskChanged(ctx, prepared.task, prepared.user._id, { kind: "updated", changes });
+  }
 }

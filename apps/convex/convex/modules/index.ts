@@ -1,4 +1,6 @@
 import { directoryPerson } from "../projects/directory";
+import { taskIsActive } from "../tasks/access";
+import { indexTaskModuleName } from "../tasks/revision";
 import { defaultTaskPreferences, taskPreferences, taskPreferencesSchema } from "../tasks/schema";
 import { validateFilters } from "../savedViews/filters";
 import { ConvexError, v, compareValues } from "convex/values";
@@ -87,6 +89,17 @@ async function updateModule(
     leadId: fields.leadId,
     updatedAt: Math.max(Date.now(), module.updatedAt + 1),
   });
+  if (data.name !== module.name) {
+    for await (const membership of ctx.db
+      .query("moduleTasks")
+      .withIndex("by_module_task", (q) => q.eq("moduleId", module._id))) {
+      const task = await ctx.db.get(membership.taskId);
+      if (!task || task.projectId !== module.projectId || task.workspaceId !== module.workspaceId)
+        throw new ConvexError("Module work item reference not found in this project.");
+      if (taskIsActive(task))
+        await Promise.all([indexTaskModuleName(ctx, task, module.name), indexTaskModuleName(ctx, task, data.name)]);
+    }
+  }
 }
 export const update = mutation({
   args: { moduleId: v.id("modules"), expectedUpdatedAt: v.number(), ...moduleFields },

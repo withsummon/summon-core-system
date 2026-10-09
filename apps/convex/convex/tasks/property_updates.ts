@@ -3,7 +3,13 @@ import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireTask } from "./access";
 import { requireProject } from "../identity/access";
-import { requireTaskRevision, taskChanged } from "./revision";
+import {
+  requireTaskRevision,
+  taskChanged,
+  taskCollectionEntries,
+  taskModuleCollectionEntry,
+  indexTaskModuleCollection,
+} from "./revision";
 import { validateProperties } from "./properties";
 import { status, taskPosition, taskProperties } from "./schema";
 import { draftFields } from "./drafts/fields";
@@ -70,11 +76,16 @@ export async function applyRelationshipUpdate(
   ctx: MutationCtx,
   prepared: Awaited<ReturnType<typeof prepareRelationshipUpdate>>
 ) {
+  const task = prepared.modules[0]?.task;
+  const before = task
+    ? await taskCollectionEntries(ctx, task, undefined, taskModuleCollectionEntry(task, null).namespace)
+    : undefined;
   if (prepared.parent) await applyParentChange(ctx, prepared.parent);
   const [cycle, modules] = await Promise.all([
     prepared.cycle ? applyCycleChange(ctx, prepared.cycle) : [],
     Promise.all(prepared.modules.map((change) => applyModuleTask(ctx, change))),
   ]);
+  if (task) await indexTaskModuleCollection(ctx, task, task, before);
   return {
     changed: prepared.parent !== null || prepared.cycle !== null || prepared.modules.length > 0,
     changes: [...cycle, ...modules.flat()],
