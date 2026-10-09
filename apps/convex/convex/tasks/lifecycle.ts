@@ -13,7 +13,7 @@ import { pageBudget, text } from "../commercial/validation";
 import { taskOrder, viewFilters, taskDeletionPhase } from "./schema";
 import { matchesFilters, validateShape } from "../savedViews/filters";
 import { requireTask, taskDetail, taskCanRead, taskRoleCanRead, taskOrdering } from "./access";
-import { requireTaskRevision, taskChanged } from "./revision";
+import { requireTaskRevision, taskChanged, indexTaskModuleApi } from "./revision";
 const MAX_BULK_TASKS = 20;
 export const lifecycleOperation = v.union(
   v.literal("archive"),
@@ -301,8 +301,12 @@ async function retireRelations(ctx: MutationCtx, job: Doc<"taskDeletionJobs">, t
         .query("moduleTasks")
         .withIndex("by_task", (q) => q.eq("taskId", task._id))
         .paginate(pagination);
-      // The canonical tombstone already removed every joined collection key.
-      await Promise.all(rows.page.map((row) => ctx.db.delete(row._id)));
+      await Promise.all(
+        rows.page.map(async (row) => {
+          await ctx.db.delete(row._id);
+          await indexTaskModuleApi(ctx, task, row.moduleId, false);
+        })
+      );
       return rows;
     }
     case "subscriptions": {

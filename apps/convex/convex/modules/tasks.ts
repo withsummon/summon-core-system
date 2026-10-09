@@ -7,7 +7,7 @@ import schema from "../schema";
 import { mutation, query } from "../_generated/server";
 import { requireTask, taskIsActive, taskCanRead, taskDetail, taskOrdering } from "../tasks/access";
 import { requireProject } from "../identity/access";
-import { requireTaskRevision, taskChanged, indexTaskModuleName } from "../tasks/revision";
+import { requireTaskRevision, taskChanged, indexTaskModuleName, indexTaskModuleApi } from "../tasks/revision";
 import { pageBudget } from "../commercial/validation";
 import { requireModule, requireModuleRevision, requireEditableModule } from "./access";
 import { draftFields, validateModuleReferences } from "../tasks/drafts/fields";
@@ -252,6 +252,7 @@ export async function applyModuleTask(
   const { module, task, previous, assigned } = prepared;
   if (assigned) await ctx.db.insert("moduleTasks", { moduleId: module._id, taskId: task._id });
   else if (previous) await ctx.db.delete(previous._id);
+  await indexTaskModuleApi(ctx, task, module._id, assigned);
   return [
     {
       field: "modules",

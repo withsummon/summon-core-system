@@ -14,6 +14,7 @@ export const taskCollection = new DirectAggregate<{
   Namespace:
     | Id<"projects">
     | [Id<"users">, "assigned_tasks"]
+    | [Id<"modules">, "api_metrics"]
     | [
         Id<"projects">,
         (
@@ -34,6 +35,30 @@ export const taskCollection = new DirectAggregate<{
   Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string];
   Id: Id<"tasks">;
 }>(components.taskCollection);
+
+function taskModuleApiEntry(task: Doc<"tasks">, moduleId: Id<"modules">) {
+  return {
+    namespace: [moduleId, "api_metrics"],
+    key: [task.stateId === null, task.stateId === null ? null : stateApiGroupFromStatus(task.status)],
+    id: task._id,
+  } satisfies Parameters<typeof taskCollection.insertIfDoesNotExist>[1];
+}
+
+// The public API counts live joins, including triage and tombstoned tasks until unlink.
+export async function indexTaskModuleApi(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  moduleId: Id<"modules">,
+  assigned = true,
+  previous?: Doc<"tasks">
+) {
+  const item = taskModuleApiEntry(task, moduleId);
+  const old = previous ? taskModuleApiEntry(previous, moduleId) : item;
+  if (!assigned || task.archivedAt !== null) await taskCollection.deleteIfExists(ctx, old);
+  else if (previous?.archivedAt === null) {
+    if (compareValues(old.key, item.key) !== 0) await taskCollection.replaceOrInsert(ctx, old, item);
+  } else await taskCollection.insertIfDoesNotExist(ctx, item);
+}
 
 // Direct-join DISTINCT uses one key per real Task and distinct Module name.
 export function taskModuleCollectionEntry(task: Doc<"tasks">, name: string | null) {
@@ -183,6 +208,17 @@ export async function indexTaskCollection(
     })
   );
   if (!previous || taskIsActive(task) !== taskIsActive(previous)) await indexTaskModuleCollection(ctx, task, previous);
+  if (
+    !previous ||
+    task.archivedAt !== previous.archivedAt ||
+    task.stateId !== previous.stateId ||
+    task.status !== previous.status
+  ) {
+    // The all-task backfill and state/archive writers use the same live membership owner.
+    // oxlint-disable-next-line no-await-in-loop
+    for await (const { module } of taskModuleMemberships(ctx, task))
+      await indexTaskModuleApi(ctx, task, module._id, true, previous);
+  }
   const current = new Set(taskIsActive(task) ? task.assigneeIds : []);
   const old = new Set(previous && taskIsActive(previous) ? previous.assigneeIds : []);
   await Promise.all(
