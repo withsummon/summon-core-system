@@ -7,6 +7,7 @@
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { HydratedRouter } from "react-router/dom";
+import { initPromise } from "@plane/i18n";
 
 document.querySelectorAll("body > script").forEach((script) => {
   if (script.textContent?.includes("/cdn-cgi/challenge-platform/")) script.remove();
@@ -14,6 +15,8 @@ document.querySelectorAll("body > script").forEach((script) => {
 document
   .querySelectorAll('body > iframe[height="1"][width="1"][style*="visibility: hidden"]')
   .forEach((iframe) => iframe.remove());
+
+await initPromise;
 
 startTransition(() => {
   hydrateRoot(

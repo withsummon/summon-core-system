@@ -5,6 +5,7 @@
  */
 
 import { Links, Meta, Outlet, Scripts } from "react-router";
+import { initPromise } from "@plane/i18n";
 // assets
 import appleTouchIcon from "@/app/assets/favicon/apple-touch-icon.png?url";
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
@@ -27,6 +28,11 @@ import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wgh
 
 const APP_TITLE = "Plane Publish | Make your Plane boards public with one-click";
 const APP_DESCRIPTION = "Plane Publish is a customer feedback management tool built on top of plane.so";
+
+export async function loader() {
+  await initPromise;
+  return null;
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "180x180", href: appleTouchIcon },
