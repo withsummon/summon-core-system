@@ -23,4 +23,4 @@ Build the web app with `VITE_CONVEX_LIVE_URL=ws://127.0.0.1:3235` and the matchi
 
 ## Remaining integration and limits
 
-Transient awareness is limited to one live process. Document access currently requires an HTTP query before each incoming message; its latency and load need equivalent benchmarks. Parent notifications, administration force-close endpoints and PDF side effects still need integration with this process. Workspace document size limits apply. Local source or build verification does not establish production deployment, full editor parity or capacity.
+Transient awareness is limited to one live process. Document access currently requires an HTTP query before each incoming message; its latency and load need equivalent benchmarks. Parent notification and cross-process awareness parity remain unverified. Registered PDF and conversion endpoints still need runtime acceptance. Workspace document size limits apply. Local source or build verification does not establish production deployment, full editor parity or capacity.
