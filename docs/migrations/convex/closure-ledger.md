@@ -1,6 +1,6 @@
 # Full migration closure ledger
 
-The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-09) and [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-09) supersede historical owner/count/runtime descriptions below. All 24 acceptance families and five retirement gates remain OPEN. Registration, bounded API/browser checks and worker health are separate evidence.
+The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-09), [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-10) and [current source/isolated restore receipt](current-parity-checklist.md#current-source-and-isolated-remote-data-progress--2026-10-10) supersede historical owner/count/runtime descriptions below. All 24 acceptance families and five retirement gates remain OPEN. Registration, bounded API/browser checks and worker health are separate evidence.
 
 ## Committed-source registration reconciliation, 2026-10-05
 
