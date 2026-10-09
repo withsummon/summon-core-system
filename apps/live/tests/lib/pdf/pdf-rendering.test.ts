@@ -520,7 +520,7 @@ describe("PDF Rendering Integration", () => {
   describe("metadata rendering", () => {
     it("should render user mentions with resolved display name", async () => {
       const metadata: PDFExportMetadata = {
-        userMentions: [{ id: "user-123", display_name: "John Doe" }],
+        userMentions: new Map([["user-123", "John Doe"]]),
       };
 
       const doc: TipTapDocument = {

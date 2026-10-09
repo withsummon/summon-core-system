@@ -5,6 +5,9 @@
  */
 
 import { observer } from "mobx-react";
+import type { ReactNode } from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { setPromiseToast } from "@plane/propel/toast";
@@ -26,6 +29,8 @@ type Props = {
   projectId: string;
   isAdmin: boolean;
 };
+
+type Feature = keyof FunctionReturnType<typeof api.projects.features.get>["features"];
 
 const PROJECT_FEATURES_LIST = {
   cycles: {
@@ -64,7 +69,7 @@ const PROJECT_FEATURES_LIST = {
     isPro: false,
     isEnabled: true,
   },
-  inbox: {
+  intake: {
     key: "intake",
     property: "inbox_view",
     title: "Intake",
@@ -73,22 +78,33 @@ const PROJECT_FEATURES_LIST = {
     isPro: false,
     isEnabled: true,
   },
-};
+} as const satisfies Record<
+  Feature,
+  {
+    key: Feature;
+    property: keyof IProject;
+    title: string;
+    description: string;
+    icon: ReactNode;
+    isPro: boolean;
+    isEnabled: boolean;
+  }
+>;
 
 export const ProjectFeaturesList = observer(function ProjectFeaturesList(props: Props) {
   const { workspaceSlug, projectId, isAdmin } = props;
   // store hooks
-  const { t } = useTranslation();
   const { getProjectById, updateProject } = useProject();
   // derived values
   const currentProjectDetails = getProjectById(projectId);
 
-  const handleSubmit = (_featureKey: string, featureProperty: string) => {
+  const handleSubmit = (feature: Feature) => {
+    const featureProperty = PROJECT_FEATURES_LIST[feature].property;
     if (!workspaceSlug || !projectId || !currentProjectDetails) return;
 
     // making the request to update the project feature
     const settingsPayload = {
-      [featureProperty]: !currentProjectDetails?.[featureProperty as keyof IProject],
+      [featureProperty]: !currentProjectDetails?.[featureProperty],
     };
     const updateProjectPromise = updateProject(workspaceSlug, projectId, settingsPayload);
 
@@ -109,42 +125,48 @@ export const ProjectFeaturesList = observer(function ProjectFeaturesList(props: 
   };
 
   return (
-    <>
-      <div>
-        <SettingsHeading title={t("projects_and_issues")} description={t("projects_and_issues_description")} />
-        <div className="mt-6 flex flex-col gap-y-4">
-          {Object.entries(PROJECT_FEATURES_LIST).map(([featureItemKey, featureItem]) => (
-            <div key={featureItemKey}>
-              <SettingsBoxedControlItem
-                title={
-                  <span className="flex items-center gap-2">
-                    {t(featureItem.key)}
-                    {featureItem.isPro && (
-                      <Tooltip tooltipContent="Pro feature" position="top">
-                        <UpgradeBadge className="rounded-sm" />
-                      </Tooltip>
-                    )}
-                  </span>
-                }
-                description={t(`${featureItem.key}_description`)}
-                control={
-                  <ProjectFeatureToggle
-                    workspaceSlug={workspaceSlug}
-                    projectId={projectId}
-                    featureItem={featureItem}
-                    value={Boolean(currentProjectDetails?.[featureItem.property as keyof IProject])}
-                    handleSubmit={handleSubmit}
-                    disabled={!isAdmin}
-                  />
-                }
-              />
-              {/* {currentProjectDetails?.[featureItem.property as keyof IProject] && (
-                <div className="pl-14">{featureItem.renderChildren?.(currentProjectDetails, workspaceSlug)}</div>
-              )} */}
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
+    <ProjectFeaturesListView
+      renderControl={(feature) => {
+        const featureItem = PROJECT_FEATURES_LIST[feature];
+        return (
+          <ProjectFeatureToggle
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            featureItem={featureItem}
+            value={Boolean(currentProjectDetails?.[featureItem.property])}
+            handleSubmit={() => handleSubmit(feature)}
+            disabled={!isAdmin}
+          />
+        );
+      }}
+    />
   );
 });
+
+export function ProjectFeaturesListView({ renderControl }: { renderControl: (feature: Feature) => ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <div>
+      <SettingsHeading title={t("projects_and_issues")} description={t("projects_and_issues_description")} />
+      <div className="mt-6 flex flex-col gap-y-4">
+        {Object.values(PROJECT_FEATURES_LIST).map((featureItem) => (
+          <SettingsBoxedControlItem
+            key={featureItem.key}
+            title={
+              <span className="flex items-center gap-2">
+                {t(featureItem.key)}
+                {featureItem.isPro && (
+                  <Tooltip tooltipContent="Pro feature" position="top">
+                    <UpgradeBadge className="rounded-sm" />
+                  </Tooltip>
+                )}
+              </span>
+            }
+            description={t(`${featureItem.key}_description`)}
+            control={renderControl(featureItem.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

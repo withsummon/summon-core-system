@@ -3,39 +3,34 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-import React from "react";
-import { observer } from "mobx-react";
-import { useParams } from "react-router";
 import { Sparkles } from "lucide-react";
-// plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
-// helpers
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-// plane web imports
-import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
-
-export const ProjectAutomationHeader = observer(function ProjectAutomationHeader() {
-  const { workspaceSlug, projectId } = useParams();
-  const { currentProjectDetails, loader } = useProject();
-
+export function ProjectAutomationHeader({
+  address,
+}: {
+  address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+}) {
   return (
-    <Header>
-      <Header.LeftItem>
-        <Breadcrumbs isLoading={loader === "init-loader"}>
-          <CommonProjectBreadcrumbs
-            workspaceSlug={workspaceSlug?.toString() ?? ""}
-            projectId={projectId?.toString() ?? ""}
+    <Header className="min-w-0">
+      <Header.LeftItem className="min-w-0">
+        <Breadcrumbs>
+          <Breadcrumbs.Item
+            component={
+              <BreadcrumbLink
+                label={address.project.name}
+                href={`/${address.workspace.slug}/projects/${address.project._id}/issues`}
+              />
+            }
           />
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
                 label="Automation"
-                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id || projectId}/automation`}
+                href={`/${address.workspace.slug}/projects/${address.project._id}/automation`}
                 icon={<Sparkles className="text-blue-500 h-4 w-4" />}
-                isLast
               />
             }
             isLast
@@ -44,4 +39,4 @@ export const ProjectAutomationHeader = observer(function ProjectAutomationHeader
       </Header.LeftItem>
     </Header>
   );
-});
+}

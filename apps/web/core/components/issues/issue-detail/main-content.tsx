@@ -25,7 +25,7 @@ import useSize from "@/hooks/use-window-size";
 import { WorkItemVersionService } from "@/services/issue";
 // local imports
 import { IssueDetailWidgets } from "../issue-detail-widgets";
-import { NameDescriptionUpdateStatus } from "../issue-update-status";
+import { NameDescriptionUpdateStatus, nameDescriptionStatus } from "../issue-update-status";
 import { PeekOverviewProperties } from "../peek-overview/properties";
 import { IssueTitleInput } from "../title-input";
 import { IssueActivity } from "./issue-activity";
@@ -49,7 +49,9 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
   // refs
   const editorRef = useRef<EditorRefApi>(null);
   // states
-  const [isSubmitting, setIsSubmitting] = useState<TNameDescriptionLoader>("saved");
+  const [titleStatus, setTitleStatus] = useState<TNameDescriptionLoader>("saved");
+  const [descriptionStatus, setDescriptionStatus] = useState<TNameDescriptionLoader>("saved");
+  const isSubmitting = nameDescriptionStatus(titleStatus, descriptionStatus);
   // hooks
   const windowSize = useSize();
   const { data: currentUser } = useUser();
@@ -58,20 +60,22 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
     issue: { getIssueById },
     peekIssue,
   } = useIssueDetail();
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
+  useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
   // derived values
   const issue = issueId ? getIssueById(issueId) : undefined;
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isSubmitting === "submitted") {
-      setShowAlert(false);
-      timer = setTimeout(() => setIsSubmitting("saved"), 2000);
-    } else if (isSubmitting === "submitting") setShowAlert(true);
+    if (isSubmitting !== "submitted") return;
+    const timer = setTimeout(() => {
+      setTitleStatus("saved");
+      setDescriptionStatus("saved");
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [isSubmitting, setShowAlert, setIsSubmitting]);
+  }, [isSubmitting]);
 
   if (!issue || !issue.project_id) return <></>;
+  const currentProjectId = issue.project_id;
+  const currentIssueId = issue.id;
 
   const isPeekModeActive = Boolean(peekIssue);
 
@@ -96,12 +100,14 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
         </div>
 
         <IssueTitleInput
-          workspaceSlug={workspaceSlug}
-          projectId={issue.project_id}
-          issueId={issue.id}
-          isSubmitting={isSubmitting}
-          setIsSubmitting={(value) => setIsSubmitting(value)}
-          issueOperations={issueOperations}
+          key={issue.id}
+          onSubmit={async (title) => {
+            const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+              name: title,
+            });
+            return response.name;
+          }}
+          setIsSubmitting={setTitleStatus}
           disabled={isArchived || !isEditable}
           value={issue.name}
           containerClassName="-ml-3"
@@ -116,15 +122,15 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
           fileAssetType={EFileAssetType.ISSUE_DESCRIPTION}
           initialValue={issue.description_html}
           key={issue.id}
-          onSubmit={async (value, isMigrationUpdate) => {
-            if (!issue.id || !issue.project_id) return;
-            await issueOperations.update(workspaceSlug, issue.project_id, issue.id, {
-              description_html: value.description_html,
+          onSubmit={async (html, isMigrationUpdate) => {
+            const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+              description_html: html,
               ...(isMigrationUpdate ? { skip_activity: "true" } : {}),
             });
+            return response.description_html;
           }}
           projectId={issue.project_id}
-          setIsSubmitting={(value) => setIsSubmitting(value)}
+          setIsSubmitting={setDescriptionStatus}
           workspaceSlug={workspaceSlug}
         />
 

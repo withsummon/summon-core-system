@@ -4,41 +4,61 @@
  * See the LICENSE file for details.
  */
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-// Plane imports
-import type { IWebhook } from "@plane/types";
+import { useState } from "react";
+import { Link } from "react-router";
+import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { ToggleSwitch } from "@plane/ui";
-// hooks
-import { useWebhook } from "@/hooks/store/use-webhook";
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
-interface IWebhookListItem {
-  webhook: IWebhook;
-}
-
-export function WebhooksListItem(props: IWebhookListItem) {
-  const { webhook } = props;
-  // router
-  const { workspaceSlug } = useParams();
-  // store hooks
-  const { updateWebhook } = useWebhook();
-
-  const handleToggle = async () => {
-    if (!workspaceSlug || !webhook.id) return;
-    await updateWebhook(workspaceSlug.toString(), webhook.id, { is_active: !webhook.is_active });
-  };
-
+type Props = {
+  workspace: NativeWorkspace;
+  webhook: FunctionReturnType<typeof api.webhooks.index.list>["page"][number];
+};
+export function WebhooksListItem({ workspace, webhook }: Props) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const update = useMutation(api.webhooks.index.setActive);
+  useReloadConfirmations(pending, "Wait for the webhook update to finish.", undefined, pending);
   return (
     <div className="rounded-lg border border-subtle bg-layer-2 px-4 py-3">
-      <Link
-        href={`/${workspaceSlug}/settings/webhooks/${webhook?.id}`}
-        className="flex items-center justify-between gap-4"
-      >
-        <h5 className="truncate text-body-sm-medium">{webhook.url}</h5>
-        <div className="shrink-0">
-          <ToggleSwitch value={webhook.is_active} onChange={handleToggle} />
-        </div>
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          to={`/${workspace.slug}/settings/webhooks/${webhook._id}`}
+          className="min-w-0 flex-1 truncate text-body-sm-medium"
+        >
+          {webhook.url}
+        </Link>
+        <ToggleSwitch
+          aria-label={`Enable webhook ${webhook.url}`}
+          value={webhook.isActive}
+          disabled={pending || workspace.membershipRole !== "admin"}
+          onChange={async (isActive) => {
+            setPending(true);
+            setError(null);
+            try {
+              await update({
+                workspaceId: workspace._id,
+                webhookId: webhook._id,
+                expectedRevision: webhook.revision,
+                isActive,
+              });
+            } catch (failure) {
+              setError(mutationMessage(failure));
+            } finally {
+              setPending(false);
+            }
+          }}
+        />
+      </div>
+      {error && (
+        <p role="alert" className="mt-2 text-13 text-danger-primary">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

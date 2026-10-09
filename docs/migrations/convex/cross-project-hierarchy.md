@@ -1,0 +1,17 @@
+# Cross-project parent and subtasks
+
+Legacy `SubIssuesEndpoint.post` scopes selected children to the workspace rather than the URL project; `IssueCreateSerializer.parent_id` accepts an issue reference. Native hierarchy previously imposed a same-project restriction. The existing `requireParent` now accepts a same-workspace parent from another project while retaining active-task validation, current writer access on both endpoints, parent revision comparison and the existing indexed100-level ancestor check. Creation and draft publication reuse this owner; no parallel graph or creation path was added.
+
+The child project's ID remains the owning scope of `taskParents`; its indexed child/parent IDs drive traversal. Parent and paginated child reads authorize each referenced task/project and return the existing canonical project summary for correct cross-project links. Inaccessible or deleted parent content is redacted; existence remains visible as the preexisting unavailable-parent placeholder. Sparse child pages retain their cursor. Changes require current child CAS and current new-parent CAS; replacing/removing a link also requires writer access in the previous parent's project.
+
+Soft deletion retains links for recovery. An active child can detach a deleted or archived parent task when the actor still has writer access in both active projects; cleanup does not restore either task. Revoked membership or an archived parent project deliberately blocks changing that link. Restore the project or regain authorized membership through existing owners first. No permission is inferred from child ownership. This is stricter than the inherited endpoint's URL-project permission and workspace-scoped bulk query, and avoids carrying that weaker authorization into the native graph.
+
+BDD covers cross-project creation and route identity, cycles across projects, revoked access on each endpoint, title-free deleted-parent cleanup and explicit archived-project recovery. Existing cross-workspace rejection, same-project graph/CAS and lifecycle tests remain. The task-detail UI uses the existing paginated task selector and shared project picker/route helper; draft editor selection remains limited to its selected project even though canonical publication supports a validated cross-project parent. Legacy bulk assignment/grouping/state distribution and wider hierarchy UI parity remain separate. No remote deployment or browser acceptance is implied.
+
+## Local activation
+
+Backend `54412181ec` passed16 focused hierarchy/guest/lifecycle tests, native TypeScript7, scoped Oxc and exact-archive TypeScript checks, then finalized deployment to `http://127.0.0.1:3210`. The immutable archive excluded concurrent intake-discussion work. The task-detail UI was mounted only after that deployment and passed web TypeScript7/Oxc. Browser acceptance remains pending; remote runtime was not changed.
+
+## Local Chrome acceptance
+
+Parent review exercised the development app at `http://127.0.0.1:3010/core`: QADEL1 initially had no parent. Set parent selected the NSTAR project and NSTAR7; saving created the link. The parent link navigated to NSTAR7, and its child link navigated back to QADEL1 using the correct project. NSTAR7 retained its existing NSTAR6 parent. Removing the new parent link from QADEL1 restored Parent: None and left its existing Implements relationship unchanged. This verifies the local development journey only; it is not immutable-production or guest-browser acceptance.

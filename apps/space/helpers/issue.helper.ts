@@ -8,6 +8,19 @@ import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 // plane internal
 import { STATE_GROUPS } from "@plane/constants";
 import type { TStateGroups } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
+
+export const stateGroups = {
+  backlog: "backlog",
+  todo: "unstarted",
+  in_progress: "started",
+  done: "completed",
+  cancelled: "cancelled",
+} satisfies Record<
+  FunctionReturnType<typeof api.publicSharing.index.catalog>["states"][number]["status"],
+  keyof typeof STATE_GROUPS
+>;
 // helpers
 import { getDate } from "@/helpers/date-time.helper";
 

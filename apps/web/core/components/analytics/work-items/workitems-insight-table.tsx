@@ -6,205 +6,112 @@
 
 import { useMemo } from "react";
 import type { ColumnDef, Row, RowData } from "@tanstack/react-table";
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import useSWR from "swr";
-import { UserRound } from "lucide-react";
-import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { ProjectIcon } from "@plane/propel/icons";
-// plane package imports
-import type { AnalyticsTableDataMap, WorkItemInsightColumns } from "@plane/types";
-// plane web components
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
-// hooks
-import { useAnalytics } from "@/hooks/store/use-analytics";
-import { useProject } from "@/hooks/store/use-project";
-import { AnalyticsService } from "@/services/analytics.service";
-// plane web components
 import { exportCSV } from "../export";
 import { InsightTable } from "../insight-table";
-
-const analyticsService = new AnalyticsService();
-
+import { readTasks, type TaskCounts } from "../analytics-wrapper";
+import { statusLabels } from "../total-insights";
 declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line no-unused-vars -- TanStack declaration retains both native type parameters.
   interface ColumnMeta<TData extends RowData, TValue> {
-    export: {
-      key: string;
-      value: (row: Row<TData>) => string | number;
-      label?: string;
-    };
+    export: { key: string; value: (row: Row<TData>) => string | number; label?: string };
   }
 }
-
-const WorkItemsInsightTable = observer(function WorkItemsInsightTable() {
-  // router
-  const params = useParams();
-  const workspaceSlug = params.workspaceSlug.toString();
-  const { t } = useTranslation();
-  // store hooks
-  const { getProjectById } = useProject();
-  const { selectedDuration, selectedProjects, selectedCycle, selectedModule, isPeekView, isEpic } = useAnalytics();
-  const { data: workItemsData, isLoading } = useSWR(
-    `insights-table-work-items-${workspaceSlug}-${selectedDuration}-${selectedProjects}-${selectedCycle}-${selectedModule}-${isPeekView}-${isEpic}`,
-    () =>
-      analyticsService.getAdvanceAnalyticsStats<WorkItemInsightColumns[]>(
-        workspaceSlug,
-        "work-items",
-        {
-          // date_filter: selectedDuration,
-          ...(selectedProjects?.length > 0 ? { project_ids: selectedProjects.join(",") } : {}),
-          ...(selectedCycle ? { cycle_id: selectedCycle } : {}),
-          ...(selectedModule ? { module_id: selectedModule } : {}),
-          ...(isEpic ? { epic: true } : {}),
-        },
-        isPeekView
-      )
+function countColumns<T extends { counts: TaskCounts }>(): ColumnDef<T>[] {
+  return (["backlog", "in_progress", "todo", "done", "cancelled"] satisfies (keyof typeof statusLabels)[]).map(
+    (key) => ({
+      id: key,
+      accessorFn: (row) => row.counts[key],
+      header: () => <div className="text-right">{statusLabels[key]}</div>,
+      cell: ({ row }) => <div className="text-right">{row.original.counts[key]}</div>,
+      meta: { export: { key: statusLabels[key], value: (row) => row.original.counts[key] } },
+    })
   );
-  // derived values
-  const columnsLabels: Record<keyof Omit<WorkItemInsightColumns, "project_id" | "avatar_url" | "assignee_id">, string> =
-    useMemo(
-      () => ({
-        backlog_work_items: t("workspace_projects.state.backlog"),
-        started_work_items: t("workspace_projects.state.started"),
-        un_started_work_items: t("workspace_projects.state.unstarted"),
-        completed_work_items: t("workspace_projects.state.completed"),
-        cancelled_work_items: t("workspace_projects.state.cancelled"),
-        project__name: t("common.project"),
-        display_name: t("common.assignee"),
-      }),
-      [t]
-    );
-  const columns: ColumnDef<AnalyticsTableDataMap["work-items"]>[] = useMemo(
+}
+export default function WorkItemsInsightTable({
+  data,
+  isLoading,
+  workspaceSlug,
+  focus,
+}: {
+  data: Awaited<ReturnType<typeof readTasks>> | null;
+  isLoading: boolean;
+  workspaceSlug: string;
+  focus: boolean;
+}) {
+  const projectColumns = useMemo<ColumnDef<NonNullable<typeof data>["projects"][number]>[]>(
     () => [
-      !isPeekView
-        ? {
-            accessorKey: "project__name",
-            header: () => <div className="text-left">{columnsLabels["project__name"]}</div>,
-            cell: ({ row }) => {
-              const project = getProjectById(row.original.project_id);
-              return (
-                <div className="flex items-center gap-2">
-                  {project?.logo_props ? (
-                    <Logo logo={project.logo_props} size={18} />
-                  ) : (
-                    <ProjectIcon className="h-4 w-4" />
-                  )}
-                  {project?.name}
-                </div>
-              );
-            },
-            meta: {
-              export: {
-                key: columnsLabels["project__name"],
-                value: (row) => row.original.project__name?.toString() ?? "",
-              },
-            },
-          }
-        : {
-            accessorKey: "display_name",
-            header: () => <div className="text-left">{columnsLabels["display_name"]}</div>,
-            cell: ({ row }: { row: Row<WorkItemInsightColumns> }) => (
-              <div className="text-left">
-                <div className="flex items-center gap-2">
-                  {row.original.avatar_url && row.original.avatar_url !== "" ? (
-                    <Avatar
-                      name={row.original.display_name}
-                      src={getFileURL(row.original.avatar_url)}
-                      size={24}
-                      shape="circle"
-                    />
-                  ) : (
-                    <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-layer-1 capitalize">
-                      {row.original.display_name ? (
-                        row.original.display_name?.[0]
-                      ) : (
-                        <UserRound className="text-secondary" size={12} />
-                      )}
-                    </div>
-                  )}
-                  <span className="break-words text-secondary">{row.original.display_name ?? t(`Unassigned`)}</span>
-                </div>
-              </div>
-            ),
-            meta: {
-              export: {
-                key: columnsLabels["display_name"],
-                value: (row) => row.original.display_name?.toString() ?? "",
-              },
-            },
-          },
       {
-        accessorKey: "backlog_work_items",
-        header: () => <div className="text-right">{columnsLabels["backlog_work_items"]}</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.backlog_work_items}</div>,
-        meta: {
-          export: {
-            key: columnsLabels["backlog_work_items"],
-            value: (row) => row.original.backlog_work_items.toString(),
-          },
-        },
+        id: "name",
+        accessorFn: (row) => row.project.name,
+        header: "Project",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            {row.original.project.logo ? (
+              <Logo logo={row.original.project.logo} size={18} />
+            ) : (
+              <ProjectIcon className="size-4" />
+            )}
+            {row.original.project.name}
+          </div>
+        ),
+        meta: { export: { key: "Project", value: (row) => row.original.project.name } },
       },
-      {
-        accessorKey: "started_work_items",
-        header: () => <div className="text-right">{columnsLabels["started_work_items"]}</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.started_work_items}</div>,
-        meta: {
-          export: {
-            key: columnsLabels["started_work_items"],
-            value: (row) => row.original.started_work_items.toString(),
-          },
-        },
-      },
-      {
-        accessorKey: "un_started_work_items",
-        header: () => <div className="text-right">{columnsLabels["un_started_work_items"]}</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.un_started_work_items}</div>,
-        meta: {
-          export: {
-            key: columnsLabels["un_started_work_items"],
-            value: (row) => row.original.un_started_work_items.toString(),
-          },
-        },
-      },
-      {
-        accessorKey: "completed_work_items",
-        header: () => <div className="text-right">{columnsLabels["completed_work_items"]}</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.completed_work_items}</div>,
-        meta: {
-          export: {
-            key: columnsLabels["completed_work_items"],
-            value: (row) => row.original.completed_work_items.toString(),
-          },
-        },
-      },
-      {
-        accessorKey: "cancelled_work_items",
-        header: () => <div className="text-right">{columnsLabels["cancelled_work_items"]}</div>,
-        cell: ({ row }) => <div className="text-right">{row.original.cancelled_work_items}</div>,
-        meta: {
-          export: {
-            key: columnsLabels["cancelled_work_items"],
-            value: (row) => row.original.cancelled_work_items.toString(),
-          },
-        },
-      },
+      ...countColumns<NonNullable<typeof data>["projects"][number]>(),
     ],
-    [columnsLabels, getProjectById, isPeekView, t]
+    []
   );
-  return (
-    <InsightTable<"work-items">
-      analyticsType="work-items"
-      data={workItemsData}
+  const assigneeColumns = useMemo<ColumnDef<NonNullable<typeof data>["assignees"][number]>[]>(
+    () => [
+      {
+        id: "name",
+        accessorFn: (row) => (row.key === "none" ? "Unassigned" : (row.person?.name ?? "Unavailable member")),
+        header: "Assignee",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            {row.original.person?.avatar ? (
+              <AuthenticatedAssetImage
+                asset={row.original.person.avatar}
+                alt={row.original.person.name}
+                compactName={row.original.person.name}
+                className="size-6 rounded-full"
+              />
+            ) : (
+              <Avatar name={row.original.person?.name ?? "Unassigned"} size={24} shape="circle" />
+            )}
+            {row.original.key === "none" ? "Unassigned" : (row.original.person?.name ?? "Unavailable member")}
+          </div>
+        ),
+        meta: {
+          export: {
+            key: "Assignee",
+            value: (row) =>
+              row.original.key === "none" ? "Unassigned" : (row.original.person?.name ?? "Unavailable member"),
+          },
+        },
+      },
+      ...countColumns<NonNullable<typeof data>["assignees"][number]>(),
+    ],
+    []
+  );
+  return focus ? (
+    <InsightTable
+      data={data?.assignees}
       isLoading={isLoading}
-      columns={columns}
-      columnsLabels={columnsLabels}
-      headerText={isPeekView ? t("common.assignee") : t("common.projects")}
-      onExport={(rows) => workItemsData && exportCSV(rows, columns, workspaceSlug)}
+      columns={assigneeColumns}
+      headerText="Assignees"
+      onExport={(rows) => exportCSV(rows, assigneeColumns, workspaceSlug)}
+    />
+  ) : (
+    <InsightTable
+      data={data?.projects}
+      isLoading={isLoading}
+      columns={projectColumns}
+      headerText="Projects"
+      onExport={(rows) => exportCSV(rows, projectColumns, workspaceSlug)}
     />
   );
-});
-
-export default WorkItemsInsightTable;
+}

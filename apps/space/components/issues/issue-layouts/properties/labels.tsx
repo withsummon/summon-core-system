@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import { LabelPropertyIcon } from "@plane/propel/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
@@ -16,10 +15,9 @@ type Props = {
   shouldShowLabel?: boolean;
 };
 
-export const IssueBlockLabels = observer(function IssueBlockLabels({ labelIds, shouldShowLabel = false }: Props) {
-  const { getLabelsByIds } = useLabel();
-
-  const labels = getLabelsByIds(labelIds);
+export function IssueBlockLabels({ labelIds, shouldShowLabel = false }: Props) {
+  const catalog = useLabel();
+  const labels = catalog?.filter((label) => labelIds.includes(label._id)) ?? [];
 
   const labelsString = labels.length > 0 ? labels.map((label) => label.name).join(", ") : "No Labels";
 
@@ -40,9 +38,9 @@ export const IssueBlockLabels = observer(function IssueBlockLabels({ labelIds, s
       {labels.length <= 2 ? (
         <>
           {labels.map((label) => (
-            <Tooltip key={label.id} position="top" tooltipHeading="Labels" tooltipContent={label?.name ?? ""}>
+            <Tooltip key={label._id} position="top" tooltipHeading="Labels" tooltipContent={label?.name ?? ""}>
               <div
-                key={label?.id}
+                key={label?._id}
                 className={`flex h-full max-w-full flex-shrink-0 items-center overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
               >
                 <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
@@ -72,4 +70,4 @@ export const IssueBlockLabels = observer(function IssueBlockLabels({ labelIds, s
       )}
     </div>
   );
-});
+}

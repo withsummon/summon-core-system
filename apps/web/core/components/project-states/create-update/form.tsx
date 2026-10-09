@@ -4,108 +4,84 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import type { FunctionArgs } from "convex/server";
 import { TwitterPicker } from "react-color";
+import type { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
-import type { IState } from "@plane/types";
 import { Popover, Input, TextArea } from "@plane/ui";
 
-type TStateForm = {
-  data: Partial<IState>;
-  onSubmit: (formData: Partial<IState>) => Promise<{ status: string }>;
+type Props = {
+  data: FunctionArgs<typeof api.tasks.states.save>["data"];
+  onChange: (data: FunctionArgs<typeof api.tasks.states.save>["data"]) => void;
+  onSubmit: () => Promise<void>;
   onCancel: () => void;
-  buttonDisabled: boolean;
-  buttonTitle: string;
+  disabled: boolean;
+  pending: boolean;
+  error: string;
 };
-
-function PopoverButton({ color }: { color?: string }) {
-  return (
-    <div
-      className="group inline-flex h-5 w-5 items-center rounded-sm text-14 font-medium transition-all focus:outline-none"
-      style={{
-        backgroundColor: color ?? "black",
-      }}
-    />
-  );
-}
-
-export function StateForm(props: TStateForm) {
-  const { data, onSubmit, onCancel, buttonDisabled, buttonTitle } = props;
-  // states
-  const [formData, setFromData] = useState<Partial<IState> | undefined>(undefined);
-  const [errors, setErrors] = useState<Partial<Record<keyof IState, string>> | undefined>(undefined);
-
+export function StateForm({ data, onChange, onSubmit, onCancel, disabled, pending, error }: Props) {
+  const name = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
-    if (data && !formData) setFromData(data);
-  }, [data, formData]);
-
-  const handleFormData = <T extends keyof IState>(key: T, value: IState[T]) => {
-    setFromData((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
-  };
-
-  const formSubmit = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    event.preventDefault();
-
-    const name = formData?.name || undefined;
-    if (!formData || !name) {
-      let currentErrors: Partial<Record<keyof IState, string>> = {};
-      if (!name) currentErrors = { ...currentErrors, name: "Name is required" };
-      setErrors(currentErrors);
-      return;
-    }
-
-    try {
-      await onSubmit(formData);
-    } catch (error) {
-      console.log("error", error);
-    }
-  };
-
+    name.current?.focus();
+  }, []);
   return (
-    <div className="relative flex space-x-2 rounded-sm bg-surface-1 p-3">
-      {/* color */}
-      <div className="mt-2 h-full flex-shrink-0">
-        <Popover button={<PopoverButton color={formData?.color} />} panelClassName="mt-4 -ml-3">
-          <TwitterPicker color={formData?.color} onChange={(value) => handleFormData("color", value.hex)} />
-        </Popover>
-      </div>
-
-      <div className="w-full space-y-2">
-        {/* title */}
-        <Input
-          id="name"
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={formData?.name}
-          onChange={(e) => handleFormData("name", e.target.value)}
-          hasError={(errors && Boolean(errors.name)) || false}
-          className="w-full"
-          maxLength={100}
-          autoFocus
-        />
-
-        {/* description */}
-        <TextArea
-          id="description"
-          name="description"
-          placeholder="Describe this state for your members."
-          value={formData?.description}
-          onChange={(e) => handleFormData("description", e.target.value)}
-          hasError={(errors && Boolean(errors.description)) || false}
-          className="min-h-14 w-full resize-none text-13"
-        />
-
-        <div className="flex items-center space-x-2">
-          <Button onClick={formSubmit} variant="primary" size="lg" disabled={buttonDisabled}>
-            {buttonTitle}
-          </Button>
-          <Button type="button" variant="secondary" size="lg" disabled={buttonDisabled} onClick={onCancel}>
-            Cancel
-          </Button>
+    <form
+      className="space-y-2 rounded-sm bg-surface-1 p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onSubmit();
+      }}
+    >
+      <fieldset disabled={disabled} className="flex w-full min-w-0 gap-2">
+        <div className="mt-2 shrink-0">
+          <Popover
+            disabled={disabled}
+            button={
+              <span className="block size-5 rounded-sm" style={{ backgroundColor: data.color }}>
+                <span className="sr-only">State color</span>
+              </span>
+            }
+            panelClassName="mt-4 -ml-3"
+          >
+            <TwitterPicker color={data.color} onChange={(value) => onChange({ ...data, color: value.hex })} />
+          </Popover>
         </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <Input
+            ref={name}
+            type="text"
+            aria-label="State name"
+            placeholder="Name"
+            value={data.name}
+            required
+            maxLength={255}
+            onChange={(event) => onChange({ ...data, name: event.target.value })}
+            className="w-full"
+          />
+          <TextArea
+            aria-label="State description"
+            placeholder="Describe this state for your members."
+            value={data.description}
+            maxLength={10000}
+            onChange={(event) => onChange({ ...data, description: event.target.value })}
+            className="min-h-14 w-full resize-none text-13"
+          />
+        </div>
+      </fieldset>
+      {error && (
+        <p role="alert" className="ml-7 text-13 text-danger-primary">
+          {error}
+        </p>
+      )}
+      <div className="ml-7 flex flex-wrap items-center gap-2">
+        <Button type="submit" variant="primary" size="lg" disabled={disabled} loading={pending}>
+          Save
+        </Button>
+        <Button type="button" variant="secondary" size="lg" disabled={pending} onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
-    </div>
+    </form>
   );
 }

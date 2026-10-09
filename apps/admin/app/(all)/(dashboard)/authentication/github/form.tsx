@@ -4,65 +4,54 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { isEmpty } from "lodash-es";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { AdminFormNavigationGuard, useAdminDraftOwner } from "@/providers/user.provider";
 import { Monitor } from "lucide-react";
-// plane internal packages
-import { API_BASE_URL } from "@plane/constants";
+import { ToggleSwitch } from "@plane/ui";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IFormattedInstanceConfiguration, TInstanceGithubAuthenticationConfigurationKeys } from "@plane/types";
-// components
 import { CodeBlock } from "@/components/common/code-block";
 import { ConfirmDiscardModal } from "@/components/common/confirm-discard-modal";
-import type { TControllerInputFormField } from "@/components/common/controller-input";
-import type { TControllerSwitchFormField } from "@/components/common/controller-switch";
-import { ControllerSwitch } from "@/components/common/controller-switch";
-import { ControllerInput } from "@/components/common/controller-input";
-import type { TCopyField } from "@/components/common/copy-field";
-import { CopyField } from "@/components/common/copy-field";
-// hooks
-import { useInstance } from "@/hooks/store";
+import { ControllerInput, type TControllerInputFormField } from "@/components/common/controller-input";
+import { PageWrapper } from "@/components/common/page-wrapper";
+import { CopyField, type TCopyField } from "@/components/common/copy-field";
 
-type Props = {
-  config: IFormattedInstanceConfiguration;
-};
-
-type GithubConfigFormValues = Record<TInstanceGithubAuthenticationConfigurationKeys, string>;
-
-const GITHUB_FORM_SWITCH_FIELD: TControllerSwitchFormField<GithubConfigFormValues> = {
-  name: "ENABLE_GITHUB_SYNC",
-  label: "GitHub",
-};
-
-export function InstanceGithubConfigForm(props: Props) {
-  const { config } = props;
-  // states
+export function InstanceGithubConfigForm({
+  initialValues,
+  configuration,
+  pending,
+  header,
+}: {
+  initialValues: FunctionArgs<typeof api.identity.instance.oauth.save>;
+  configuration: FunctionReturnType<typeof api.identity.instance.oauth.get> | undefined;
+  pending: boolean;
+  header: (pending: boolean) => React.ReactNode;
+}) {
   const [isDiscardChangesModalOpen, setIsDiscardChangesModalOpen] = useState(false);
-  // store hooks
-  const { updateInstanceConfigurations } = useInstance();
-  // form data
+  const draft = useAdminDraftOwner();
+  const save = useMutation(api.identity.instance.oauth.save);
   const {
     handleSubmit,
     control,
     reset,
+    resetField,
     formState: { errors, isDirty, isSubmitting },
-  } = useForm<GithubConfigFormValues>({
-    defaultValues: {
-      GITHUB_CLIENT_ID: config["GITHUB_CLIENT_ID"],
-      GITHUB_CLIENT_SECRET: config["GITHUB_CLIENT_SECRET"],
-      GITHUB_ORGANIZATION_ID: config["GITHUB_ORGANIZATION_ID"],
-      ENABLE_GITHUB_SYNC: config["ENABLE_GITHUB_SYNC"] || "0",
-    },
-  });
-
-  const originURL = !isEmpty(API_BASE_URL) ? API_BASE_URL : typeof window !== "undefined" ? window.location.origin : "";
-
+  } = useForm<FunctionArgs<typeof api.identity.instance.oauth.save>>({ defaultValues: initialValues });
+  const busy = isSubmitting || pending;
+  const stored = configuration?.configuration;
+  const adoptionRequired = configuration?.adoptionRequired;
+  useEffect(() => {
+    if (!draft.canEdit) resetField("configuration.clientSecret", { defaultValue: "" });
+  }, [draft.canEdit, resetField]);
+  const originURL = configuration ? new URL(configuration.callbackUrl).origin : "";
   const GITHUB_FORM_FIELDS: TControllerInputFormField[] = [
     {
-      key: "GITHUB_CLIENT_ID",
+      key: "configuration.clientId",
       type: "text",
       label: "Client ID",
       description: (
@@ -79,11 +68,11 @@ export function InstanceGithubConfigForm(props: Props) {
         </>
       ),
       placeholder: "70a44354520df8bd9bcd",
-      error: Boolean(errors.GITHUB_CLIENT_ID),
+      error: Boolean(errors.configuration?.clientId),
       required: true,
     },
     {
-      key: "GITHUB_CLIENT_SECRET",
+      key: "configuration.clientSecret",
       type: "password",
       label: "Client secret",
       description: (
@@ -100,16 +89,16 @@ export function InstanceGithubConfigForm(props: Props) {
         </>
       ),
       placeholder: "9b0050f94ec1b744e32ce79ea4ffacd40d4119cb",
-      error: Boolean(errors.GITHUB_CLIENT_SECRET),
-      required: true,
+      error: Boolean(errors.configuration?.clientSecret),
+      required: !stored?.credentialPresent,
     },
     {
-      key: "GITHUB_ORGANIZATION_ID",
+      key: "configuration.organization",
       type: "text",
       label: "Organization ID",
       description: <>The organization github ID.</>,
       placeholder: "123456789",
-      error: Boolean(errors.GITHUB_ORGANIZATION_ID),
+      error: Boolean(errors.configuration?.organization),
       required: false,
     },
   ];
@@ -140,7 +129,7 @@ export function InstanceGithubConfigForm(props: Props) {
     {
       key: "Callback_URI",
       label: "Callback URI",
-      url: `${originURL}/auth/github/callback/`,
+      url: configuration?.callbackUrl ?? "",
       description: (
         <>
           We will auto-generate this. Paste this into your <CodeBlock darkerShade>Authorized Callback URI</CodeBlock>{" "}
@@ -159,42 +148,79 @@ export function InstanceGithubConfigForm(props: Props) {
     },
   ];
 
-  const onSubmit = async (formData: GithubConfigFormValues) => {
-    const payload: Partial<GithubConfigFormValues> = { ...formData };
-
+  const onSubmit = async (values: FunctionArgs<typeof api.identity.instance.oauth.save>) => {
+    if (!draft.canEdit || pending || adoptionRequired) return;
     try {
-      const response = await updateInstanceConfigurations(payload);
+      const revision = await save({
+        ...values,
+        configuration: values.configuration
+          ? { ...values.configuration, organization: values.configuration.organization || undefined }
+          : null,
+      });
+      reset({
+        ...values,
+        expectedRevision: revision,
+        configuration: values.configuration ? { ...values.configuration, clientSecret: "" } : null,
+      });
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Done!",
-        message: "Your GitHub authentication is configured. You should test it now.",
+        message: "Provider configuration saved. Test the sign-in flow before enabling it for members.",
       });
-      reset({
-        GITHUB_CLIENT_ID: response.find((item) => item.key === "GITHUB_CLIENT_ID")?.value,
-        GITHUB_CLIENT_SECRET: response.find((item) => item.key === "GITHUB_CLIENT_SECRET")?.value,
-        GITHUB_ORGANIZATION_ID: response.find((item) => item.key === "GITHUB_ORGANIZATION_ID")?.value,
-        ENABLE_GITHUB_SYNC: response.find((item) => item.key === "ENABLE_GITHUB_SYNC")?.value,
+    } catch (failure) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Configuration could not be saved",
+        message: failure instanceof Error ? failure.message : "Try again.",
       });
-    } catch (err) {
-      console.error(err);
     }
   };
 
   const handleGoBack = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-    if (isDirty) {
+    if (isDirty || busy) {
       e.preventDefault();
       setIsDiscardChangesModalOpen(true);
     }
   };
 
   return (
-    <>
+    <PageWrapper customHeader={header(isSubmitting)}>
+      <AdminFormNavigationGuard pending={busy} dirty={isDirty} />
+      {adoptionRequired && <p role="alert">OAuth configuration requires explicit operator adoption.</p>}
+      {(isDirty || draft.changedSubject) && (
+        <Button
+          disabled={busy || !configuration}
+          onClick={() => {
+            if (!configuration) return;
+            reset({
+              provider: initialValues.provider,
+              expectedRevision: configuration.revision,
+              configuration: {
+                clientId: configuration.configuration?.clientId ?? "",
+                clientSecret: "",
+                sync: configuration.configuration?.sync ?? false,
+                host: configuration.configuration?.host ?? undefined,
+                organization: configuration.configuration?.organization ?? undefined,
+              },
+            });
+            draft.discard();
+          }}
+        >
+          Discard draft and review current settings
+        </Button>
+      )}
       <ConfirmDiscardModal
         isOpen={isDiscardChangesModalOpen}
+        pending={busy}
+        dirty={isDirty}
         onDiscardHref="/authentication"
         handleClose={() => setIsDiscardChangesModalOpen(false)}
       />
-      <div className="flex flex-col gap-8">
+      <fieldset
+        hidden={draft.changedSubject}
+        disabled={busy || !draft.canEdit || adoptionRequired}
+        className="flex flex-col gap-8"
+      >
         <div className="grid w-full grid-cols-2 gap-x-12 gap-y-8">
           <div className="col-span-2 flex flex-col gap-y-4 pt-1 md:col-span-1">
             <div className="pt-2.5 text-18 font-medium">GitHub-provided details for Plane</div>
@@ -211,7 +237,16 @@ export function InstanceGithubConfigForm(props: Props) {
                 required={field.required}
               />
             ))}
-            <ControllerSwitch control={control} field={GITHUB_FORM_SWITCH_FIELD} />
+            <div className="flex items-center justify-between gap-1">
+              <h4 className="text-sm text-custom-text-300">Refresh user attributes from GitHub during sign in</h4>
+              <Controller
+                control={control}
+                name="configuration.sync"
+                render={({ field }) => (
+                  <ToggleSwitch value={field.value ?? false} onChange={field.onChange} size="sm" />
+                )}
+              />
+            </div>
             <div className="flex flex-col gap-1 pt-4">
               <div className="flex items-center gap-4">
                 <Button
@@ -255,7 +290,7 @@ export function InstanceGithubConfigForm(props: Props) {
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </fieldset>
+    </PageWrapper>
   );
 }

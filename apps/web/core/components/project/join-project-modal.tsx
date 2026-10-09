@@ -49,21 +49,65 @@ export function JoinProjectModal(props: TJoinProjectModalProps) {
   };
 
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XL}>
+    <JoinProjectDialog
+      isOpen={isOpen}
+      name={project.name}
+      handleClose={handleClose}
+      onJoin={handleJoin}
+      loading={isJoiningLoading}
+    />
+  );
+}
+
+export function JoinProjectDialog({
+  isOpen,
+  name,
+  handleClose,
+  onJoin,
+  loading,
+  error,
+  canJoin = true,
+}: {
+  isOpen: boolean;
+  name: string;
+  handleClose: () => void;
+  onJoin: () => void;
+  loading: boolean;
+  error?: string;
+  canJoin?: boolean;
+}) {
+  const close = () => {
+    if (!loading) handleClose();
+  };
+  return (
+    <ModalCore isOpen={isOpen} handleClose={close} position={EModalPosition.CENTER} width={EModalWidth.XL}>
       <div className="space-y-5 px-5 py-8 sm:p-6">
         <h3 className="text-16 leading-6 font-medium text-primary">Join Project?</h3>
         <p>
-          Are you sure you want to join the project <span className="font-semibold break-words">{project?.name}</span>?
-          Please click the &apos;Join Project&apos; button below to continue.
+          Are you sure you want to join the project <span className="font-semibold break-words">{name}</span>? Please
+          click the &apos;Join Project&apos; button below to continue.
         </p>
-        <div className="space-y-3" />
+        <div className="space-y-3">
+          {error && (
+            <p role="alert" className="text-danger-primary">
+              {error}
+            </p>
+          )}
+        </div>
       </div>
       <div className="mt-5 flex justify-end gap-2 px-5 pb-8 sm:px-6 sm:pb-6">
-        <Button variant="secondary" size="lg" onClick={handleClose}>
+        <Button variant="secondary" size="lg" onClick={close} disabled={loading}>
           Cancel
         </Button>
-        <Button variant="primary" size="lg" tabIndex={1} type="submit" onClick={handleJoin} loading={isJoiningLoading}>
-          {isJoiningLoading ? "Joining..." : "Join Project"}
+        <Button
+          variant="primary"
+          size="lg"
+          type="submit"
+          onClick={onJoin}
+          loading={loading}
+          disabled={loading || !canJoin}
+        >
+          {loading ? "Joining..." : "Join Project"}
         </Button>
       </div>
     </ModalCore>

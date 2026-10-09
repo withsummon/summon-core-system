@@ -1,0 +1,43 @@
+{
+  "name": "@summon/convex",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./cycle-calendar": "./convex/cycles/dates.ts",
+    "./api": "./convex/_generated/api.js",
+    "./data-model": "./convex/_generated/dataModel.d.ts",
+    "./member-label": "./shared/member-label.ts",
+    "./project-navigation": "./shared/project-navigation.ts",
+    "./task-schema": "./convex/tasks/schema.ts",
+    "./project-schema": "./convex/projects/schema.ts",
+    "./commercial-schema": "./convex/commercial/schema.ts",
+    "./credential-schema": "./convex/mcp/schema.ts"
+  },
+  "scripts": {
+    "dev": "convex dev --typecheck disable",
+    "deploy": "pnpm check:types && convex deploy --typecheck disable",
+    "codegen": "convex codegen --typecheck disable",
+    "check:types": "tsc --noEmit",
+    "check:lint": "oxlint --deny-warnings .",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix .",
+    "fix:format": "oxfmt ."
+  },
+  "dependencies": {
+    "@better-auth/api-key": "1.6.33",
+    "@convex-dev/aggregate": "0.3.1",
+    "@convex-dev/auth": "catalog:",
+    "@convex-dev/better-auth": "0.12.5",
+    "@plane/editor": "workspace:*",
+    "better-auth": "1.6.33",
+    "convex": "catalog:",
+    "convex-helpers": "catalog:",
+    "sanitize-html": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/sanitize-html": "catalog:",
+    "typescript": "catalog:"
+  }
+}

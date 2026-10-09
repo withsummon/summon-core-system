@@ -4,20 +4,40 @@
   --animate-dialog-backdrop-in: dialog-backdrop-in 180ms ease-out both;
   --animate-dialog-backdrop-out: dialog-backdrop-out 120ms ease-in both;
   @keyframes dialog-in {
-    from { opacity: 0; scale: 0.97; }
-    to { opacity: 1; scale: 1; }
+    from {
+      opacity: 0;
+      scale: 0.97;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
   }
   @keyframes dialog-out {
-    from { opacity: 1; scale: 1; }
-    to { opacity: 0; scale: 0.98; }
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 0.98;
+    }
   }
   @keyframes dialog-backdrop-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   @keyframes dialog-backdrop-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
 
   /* slide up */

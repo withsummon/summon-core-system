@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import type { ComponentProps } from "react";
 import { useParams } from "next/navigation";
 // plane utils
 import { cn } from "@plane/utils";
@@ -15,12 +15,14 @@ import { IssueVotes } from "@/components/issues/reactions/issue-vote-reactions";
 import { usePublish } from "@/hooks/store/publish";
 
 type Props = {
-  issueId: string;
+  taskId: ComponentProps<typeof IssueVotes>["taskId"];
 };
-export const BlockReactions = observer(function BlockReactions(props: Props) {
-  const { issueId } = props;
+export function BlockReactions(props: Props) {
+  const { taskId } = props;
   const { anchor } = useParams();
-  const { canVote, canReact } = usePublish(anchor.toString());
+  const publication = usePublish(anchor?.toString() ?? "");
+  const canVote = publication?.settings.votesEnabled;
+  const canReact = publication?.settings.reactionsEnabled;
 
   // if the user cannot vote or react then return empty
   if (!canVote && !canReact) return <></>;
@@ -34,15 +36,15 @@ export const BlockReactions = observer(function BlockReactions(props: Props) {
               "after:ml-1 after:h-6 after:w-[1px] after:bg-layer-3": canReact,
             })}
           >
-            <IssueVotes anchor={anchor.toString()} issueIdFromProps={issueId} size="sm" />
+            <IssueVotes anchor={anchor?.toString() ?? ""} taskId={taskId} size="sm" />
           </div>
         )}
         {canReact && (
           <div className="flex flex-wrap items-center gap-2">
-            <IssueEmojiReactions anchor={anchor.toString()} issueIdFromProps={issueId} />
+            <IssueEmojiReactions anchor={anchor?.toString() ?? ""} taskId={taskId} />
           </div>
         )}
       </div>
     </div>
   );
-});
+}

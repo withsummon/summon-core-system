@@ -7,17 +7,18 @@
 import React from "react";
 import { FileText, FileSpreadsheet, BookOpen, Presentation, TrendingUp, Layers, FileCode } from "lucide-react";
 import { cn } from "@plane/utils";
-import type { TDocumentType } from "./types";
 
 interface ITypeIconProps {
-  type: TDocumentType | string;
+  type: string;
   className?: string;
   size?: number;
   boxed?: boolean;
 }
 
-export const getDocumentTypeTheme = (type: TDocumentType | string) => {
+export const getDocumentTypeTheme = (type: string) => {
   switch (type) {
+    case "proposal_client":
+    case "proposal_vendor":
     case "Technical Proposal":
       return {
         icon: FileText,
@@ -27,6 +28,7 @@ export const getDocumentTypeTheme = (type: TDocumentType | string) => {
         badgeBg:
           "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
       };
+    case "quotation":
     case "Quotation":
       return {
         icon: FileSpreadsheet,
@@ -36,6 +38,8 @@ export const getDocumentTypeTheme = (type: TDocumentType | string) => {
         badgeBg:
           "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
       };
+    case "mom_iglo":
+    case "mom_summon":
     case "MoM":
       return {
         icon: BookOpen,
@@ -45,6 +49,7 @@ export const getDocumentTypeTheme = (type: TDocumentType | string) => {
         badgeBg:
           "bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
       };
+    case "presentation":
     case "Presentation":
       return {
         icon: Presentation,
@@ -54,6 +59,7 @@ export const getDocumentTypeTheme = (type: TDocumentType | string) => {
         badgeBg:
           "bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/60",
       };
+    case "cost_projection":
     case "Cost Projection":
       return {
         icon: TrendingUp,

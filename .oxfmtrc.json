@@ -12,6 +12,26 @@
       "options": {
         "printWidth": 80
       }
+    },
+    {
+      "files": ["packages/*/package.json", "apps/live/package.json"],
+      "options": {
+        "sortPackageJson": false
+      }
     }
+  ],
+  "ignorePatterns": [
+    "**/.next/**",
+    "**/.react-router/**",
+    "**/.turbo/**",
+    "**/.vite/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "apps/convex/convex/**/_generated/**",
+    "**/out/**",
+    "pnpm-lock.yaml",
+    "**/storybook-static/**",
+    "packages/i18n/src/types/keys.generated.ts"
   ]
 }

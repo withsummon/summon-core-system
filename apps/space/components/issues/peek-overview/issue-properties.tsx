@@ -4,60 +4,49 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { useParams } from "next/navigation";
 import { LinkIcon } from "lucide-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import {
-  StatePropertyIcon,
-  StateGroupIcon,
-  PriorityPropertyIcon,
-  DueDatePropertyIcon,
-  PriorityIcon,
-} from "@plane/propel/icons";
+import { StatePropertyIcon, StateGroupIcon, PriorityPropertyIcon, DueDatePropertyIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { cn, getIssuePriorityFilters } from "@plane/utils";
+import { cn, copyTextToClipboard } from "@plane/utils";
+import { IssueBlockPriority } from "@/components/issues/issue-layouts/properties/priority";
 // helpers
 import { renderFormattedDate } from "@/helpers/date-time.helper";
-import { shouldHighlightIssueDueDate } from "@/helpers/issue.helper";
-import { copyTextToClipboard, addSpaceIfCamelCase } from "@/helpers/string.helper";
+import { stateGroups, shouldHighlightIssueDueDate } from "@/helpers/issue.helper";
+import { addSpaceIfCamelCase } from "@/helpers/string.helper";
 // hooks
 import { usePublish } from "@/hooks/store/publish";
 import { useStates } from "@/hooks/store/use-state";
 // types
-import type { IIssue, IPeekMode } from "@/types/issue";
 
 type Props = {
-  issueDetails: IIssue;
-  mode?: IPeekMode;
+  issueDetails: FunctionReturnType<typeof api.publicSharing.index.getTask>;
+  mode?: "full";
 };
 
-export const PeekOverviewIssueProperties = observer(function PeekOverviewIssueProperties({
-  issueDetails,
-  mode,
-}: Props) {
+export function PeekOverviewIssueProperties({ issueDetails, mode }: Props) {
   // hooks
-  const { t } = useTranslation();
-  const { getStateById } = useStates();
-  const state = getStateById(issueDetails?.state_id ?? undefined);
+  const states = useStates();
+  const state = states?.find((row) => row._id === issueDetails.stateId);
 
   const { anchor } = useParams();
 
-  const { project_details } = usePublish(anchor?.toString());
+  const publication = usePublish(anchor?.toString() ?? "");
 
-  const priority = issueDetails.priority ? getIssuePriorityFilters(issueDetails.priority) : null;
-
-  const handleCopyLink = () => {
-    const urlToCopy = window.location.href;
-
-    copyTextToClipboard(urlToCopy).then(() => {
+  const handleCopyLink = async () => {
+    try {
+      await copyTextToClipboard(window.location.href);
+      setToast({ type: TOAST_TYPE.INFO, title: "Link copied!", message: "Work item link copied to clipboard." });
+    } catch (error) {
       setToast({
-        type: TOAST_TYPE.INFO,
-        title: "Link copied!",
-        message: "Work item link copied to clipboard",
+        type: TOAST_TYPE.ERROR,
+        title: "Link could not be copied",
+        message: error instanceof Error ? error.message : "Please try again.",
       });
-    });
+    }
   };
 
   return (
@@ -65,10 +54,10 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
       {mode === "full" && (
         <div className="flex justify-between gap-2 pb-3">
           <h6 className="flex items-center gap-2 font-medium">
-            {project_details?.identifier}-{issueDetails.sequence_id}
+            {publication?.project.identifier}-{issueDetails.sequence}
           </h6>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={handleCopyLink} className="-rotate-45">
+            <button type="button" onClick={handleCopyLink} className="-rotate-45" aria-label="Copy work item link">
               <LinkIcon className="size-3.5 shrink-0" />
             </button>
           </div>
@@ -81,8 +70,8 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
             <span>State</span>
           </div>
           <div className="flex w-3/4 items-center gap-1.5 py-0.5 text-13">
-            <StateGroupIcon stateGroup={state?.group ?? "backlog"} color={state?.color} />
-            {addSpaceIfCamelCase(state?.name ?? "")}
+            <StateGroupIcon stateGroup={state ? stateGroups[state.status] : "backlog"} color={state?.color} />
+            {addSpaceIfCamelCase(state?.name ?? "Unassigned")}
           </div>
         </div>
 
@@ -92,22 +81,7 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
             <span>Priority</span>
           </div>
           <div className="w-3/4">
-            <div
-              className={`inline-flex items-center gap-1.5 rounded-sm bg-layer-2 px-2.5 py-0.5 text-left text-13 capitalize ${
-                priority?.key === "urgent"
-                  ? "border-priority-urgent text-priority-urgent"
-                  : priority?.key === "high"
-                    ? "border-priority-high text-priority-high"
-                    : priority?.key === "medium"
-                      ? "border-priority-medium text-priority-medium"
-                      : priority?.key === "low"
-                        ? "border-priority-low text-priority-low"
-                        : "border-priority-none text-priority-none"
-              }`}
-            >
-              {priority && <PriorityIcon priority={priority?.key} size={12} className="flex-shrink-0" />}
-              <span>{t(priority?.titleTranslationKey || "common.none")}</span>
-            </div>
+            <IssueBlockPriority priority={issueDetails.priority} shouldShowName />
           </div>
         </div>
 
@@ -117,14 +91,17 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
             <span>Due date</span>
           </div>
           <div>
-            {issueDetails.target_date ? (
+            {issueDetails.targetDate ? (
               <div
                 className={cn("flex items-center gap-1.5 rounded-sm py-0.5 text-11 text-primary", {
-                  "text-danger-primary": shouldHighlightIssueDueDate(issueDetails.target_date, state?.group),
+                  "text-danger-primary": shouldHighlightIssueDueDate(
+                    issueDetails.targetDate,
+                    stateGroups[issueDetails.status]
+                  ),
                 })}
               >
                 <DueDatePropertyIcon className="size-3" />
-                {renderFormattedDate(issueDetails.target_date)}
+                {renderFormattedDate(issueDetails.targetDate)}
               </div>
             ) : (
               <span className="text-13 text-secondary">Empty</span>
@@ -134,4 +111,4 @@ export const PeekOverviewIssueProperties = observer(function PeekOverviewIssuePr
       </div>
     </div>
   );
-});
+}

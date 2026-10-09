@@ -1,0 +1,180 @@
+diff --git a/dist/react/index.d.ts b/dist/react/index.d.ts
+index 652857c519c97b92f4819cbb8f25bea33be20982..78156f746218491f1d9256ee883f720a23f294d0 100644
+--- a/dist/react/index.d.ts
++++ b/dist/react/index.d.ts
+@@ -12,7 +12,9 @@ type PluginsWithoutCrossDomain = (ConvexClient | BetterAuthClientPlugin)[];
+ type AuthClientWithPlugins<Plugins extends PluginsWithCrossDomain | PluginsWithoutCrossDomain> = ReturnType<typeof createAuthClient<BetterAuthClientPlugin & {
+     plugins: Plugins;
+ }>>;
+-export type AuthClient = AuthClientWithPlugins<PluginsWithCrossDomain> | AuthClientWithPlugins<PluginsWithoutCrossDomain>;
++export type AuthClient =
++    | Pick<AuthClientWithPlugins<[ConvexClient, CrossDomainClient]>, "useSession" | "getSession" | "convex" | "crossDomain" | "updateSession">
++    | Pick<AuthClientWithPlugins<[ConvexClient]>, "useSession" | "getSession" | "convex">;
+ type IConvexReactClient = {
+     setAuth(fetchToken: AuthTokenFetcher): void;
+     clearAuth(): void;
+diff --git a/src/react/index.tsx b/src/react/index.tsx
+index dc10909a67009570ca00ea399828cd2775f6a561..e2beb37077e17f49e849d6d84c85de87e92c1c4a 100644
+--- a/src/react/index.tsx
++++ b/src/react/index.tsx
+@@ -34,8 +34,11 @@ type AuthClientWithPlugins<
+   >
+ >;
+ export type AuthClient =
+-  | AuthClientWithPlugins<PluginsWithCrossDomain>
+-  | AuthClientWithPlugins<PluginsWithoutCrossDomain>;
++  | Pick<
++      AuthClientWithPlugins<[ConvexClient, CrossDomainClient]>,
++      "useSession" | "getSession" | "convex" | "crossDomain" | "updateSession"
++    >
++  | Pick<AuthClientWithPlugins<[ConvexClient]>, "useSession" | "getSession" | "convex">;
+ 
+ // Until we can import from our own entry points (requires TypeScript 4.7),
+ // just describe the interface enough to help users pass the right type.
+@@ -74,7 +74,7 @@
+       const token = url.searchParams.get("ott");
+       if (token) {
+         const authClientWithCrossDomain =
+-          authClient as AuthClientWithPlugins<PluginsWithCrossDomain>;
++          authClient as Extract<AuthClient, { updateSession: () => void }>;
+         url.searchParams.delete("ott");
+         window.history.replaceState({}, "", url);
+         const result =
+@@ -121,9 +121,22 @@
+   return useMemo(
+     () =>
+       function useAuthFromBetterAuth() {
+-        const { data: session, isPending: isSessionPending } =
+-          authClient.useSession();
++        const sessionState = authClient.useSession();
++        const { data: session, isPending: isSessionPending } = sessionState;
++        const tokenFetchFailed = useRef(false);
++        const [retryGeneration, setRetryGeneration] = useState(0);
+         const sessionId = session?.session?.id;
++        useEffect(() => {
++          if (sessionState.isPending || sessionState.isRefetching) return;
++          if (!sessionId) {
++            tokenFetchFailed.current = false;
++            return;
++          }
++          if (!sessionState.error && tokenFetchFailed.current) {
++            tokenFetchFailed.current = false;
++            setRetryGeneration((generation) => generation + 1);
++          }
++        }, [sessionState]);
+         useEffect(() => {
+           if (!session && !isSessionPending && cachedToken) {
+             setCachedToken(null);
+@@ -139,26 +152,35 @@
+             if (!forceRefreshToken && pendingTokenRef.current) {
+               return pendingTokenRef.current;
+             }
+-            pendingTokenRef.current = authClient.convex
++            const request = authClient.convex
+               .token({ fetchOptions: { throw: false } })
+               .then(({ data }) => {
+                 const token = data?.token || null;
+-                setCachedToken(token);
++                if (pendingTokenRef.current === request) {
++                  tokenFetchFailed.current = token === null;
++                  setCachedToken(token);
++                }
+                 return token;
+               })
+               .catch(() => {
+-                setCachedToken(null);
++                if (pendingTokenRef.current === request) {
++                  tokenFetchFailed.current = true;
++                  setCachedToken(null);
++                }
+                 return null;
+               })
+               .finally(() => {
+-                pendingTokenRef.current = null;
++                if (pendingTokenRef.current === request) {
++                  pendingTokenRef.current = null;
++                }
+               });
+-            return pendingTokenRef.current;
++            pendingTokenRef.current = request;
++            return request;
+           },
+           // Build a new fetchAccessToken to trigger setAuth() whenever the
+-          // session changes.
++          // session changes or a failed fetch gets a new session confirmation.
+           // eslint-disable-next-line react-hooks/exhaustive-deps
+-          [sessionId]
++          [sessionId, retryGeneration]
+         );
+         return useMemo(
+           () => ({
+diff --git a/dist/react/index.js b/dist/react/index.js
+--- a/dist/react/index.js
++++ b/dist/react/index.js
+@@ -49,8 +49,22 @@
+         }
+     }, []);
+     return useMemo(() => function useAuthFromBetterAuth() {
+-        const { data: session, isPending: isSessionPending } = authClient.useSession();
++        const sessionState = authClient.useSession();
++        const { data: session, isPending: isSessionPending } = sessionState;
++        const tokenFetchFailed = useRef(false);
++        const [retryGeneration, setRetryGeneration] = useState(0);
+         const sessionId = session?.session?.id;
++        useEffect(() => {
++            if (sessionState.isPending || sessionState.isRefetching) return;
++            if (!sessionId) {
++                tokenFetchFailed.current = false;
++                return;
++            }
++            if (!sessionState.error && tokenFetchFailed.current) {
++                tokenFetchFailed.current = false;
++                setRetryGeneration((generation) => generation + 1);
++            }
++        }, [sessionState]);
+         useEffect(() => {
+             if (!session && !isSessionPending && cachedToken) {
+                 setCachedToken(null);
+@@ -63,26 +77,35 @@
+             if (!forceRefreshToken && pendingTokenRef.current) {
+                 return pendingTokenRef.current;
+             }
+-            pendingTokenRef.current = authClient.convex
++            const request = authClient.convex
+                 .token({ fetchOptions: { throw: false } })
+                 .then(({ data }) => {
+                 const token = data?.token || null;
+-                setCachedToken(token);
++                if (pendingTokenRef.current === request) {
++                    tokenFetchFailed.current = token === null;
++                    setCachedToken(token);
++                }
+                 return token;
+             })
+                 .catch(() => {
+-                setCachedToken(null);
++                if (pendingTokenRef.current === request) {
++                    tokenFetchFailed.current = true;
++                    setCachedToken(null);
++                }
+                 return null;
+             })
+                 .finally(() => {
+-                pendingTokenRef.current = null;
++                if (pendingTokenRef.current === request) {
++                    pendingTokenRef.current = null;
++                }
+             });
+-            return pendingTokenRef.current;
++            pendingTokenRef.current = request;
++            return request;
+         }, 
+         // Build a new fetchAccessToken to trigger setAuth() whenever the
+-        // session changes.
++        // session changes or a failed fetch gets a new session confirmation.
+         // eslint-disable-next-line react-hooks/exhaustive-deps
+-        [sessionId]);
++        [sessionId, retryGeneration]);
+         return useMemo(() => ({
+             isLoading: isSessionPending && !cachedToken,
+             isAuthenticated: Boolean(session?.session) || cachedToken !== null,

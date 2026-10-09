@@ -4,121 +4,158 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
-import { observer } from "mobx-react";
-import { Controller, useForm } from "react-hook-form";
-import { WORKSPACE_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
+import { useState } from "react";
+import { useAction, useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { useForm, Controller } from "react-hook-form";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import type { IWebhook, TWebhookEventTypes } from "@plane/types";
-// hooks
-import {
-  WebhookIndividualEventOptions,
-  WebhookInput,
-  WebhookOptions,
-  WebhookSecretKey,
-  WebhookToggle,
-} from "@/components/web-hooks";
-import { useWebhook } from "@/hooks/store/use-webhook";
-// components
-// ui
-// types
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { WebhookIndividualEventOptions, WebhookInput, WebhookOptions, WebhookSecretKey, WebhookToggle } from "./index";
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
 type Props = {
-  data?: Partial<IWebhook>;
-  onSubmit: (data: IWebhook, webhookEventType: TWebhookEventTypes) => Promise<void>;
+  workspace: NativeWorkspace;
+  options: FunctionReturnType<typeof api.webhooks.index.options>;
+  data?: FunctionReturnType<typeof api.webhooks.index.get>;
+  onUpdated?: (updated: FunctionReturnType<typeof api.webhooks.index.update>) => void;
+  onCreated?: (created: FunctionReturnType<typeof api.webhooks.actions.create>) => void;
   handleClose?: () => void;
+  onPendingChange?: (pending: boolean) => void;
 };
 
-const initialWebhookPayload: Partial<IWebhook> = {
-  cycle: true,
-  issue: true,
-  issue_comment: true,
-  module: true,
-  project: true,
-  url: "",
-};
-
-export const WebhookForm = observer(function WebhookForm(props: Props) {
-  const { data, onSubmit, handleClose } = props;
-  // states
-  const [webhookEventType, setWebhookEventType] = useState<TWebhookEventTypes>("all");
-  // store hooks
-  const { webhookSecretKey } = useWebhook();
+export function WebhookForm({ workspace, options, data, onUpdated, onCreated, handleClose, onPendingChange }: Props) {
   const { t } = useTranslation();
-  // use form
+  const create = useAction(api.webhooks.actions.create);
+  const update = useMutation(api.webhooks.index.update);
+  const reviewed = data;
+  const [allEvents, setAllEvents] = useState(!data || data.events.length === options.events.length);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const canManage = workspace.membershipRole === "admin";
   const {
     handleSubmit,
     control,
-    formState: { isSubmitting, errors },
-  } = useForm<IWebhook>({
-    defaultValues: { ...initialWebhookPayload, ...data },
+    reset,
+    setValue,
+    formState: { isSubmitting, isDirty },
+  } = useForm<FunctionArgs<typeof api.webhooks.index.update>["input"]>({
+    defaultValues: reviewed
+      ? { url: reviewed.url, events: reviewed.events, isActive: reviewed.isActive }
+      : options.defaults,
   });
-
-  const handleFormSubmit = async (formData: IWebhook) => {
-    await onSubmit(formData, webhookEventType);
+  const pending = isSubmitting || isRegenerating;
+  const release = useReloadConfirmations(isDirty || pending, "Webhook changes may not be saved.", undefined, pending);
+  const cancel = () => {
+    if (!pending) {
+      release();
+      handleClose?.();
+    }
   };
-
-  useEffect(() => {
-    if (!data) return;
-
-    if (data.project && data.cycle && data.module && data.issue && data.issue_comment) setWebhookEventType("all");
-    else setWebhookEventType("individual");
-  }, [data]);
-
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
-      <div className="space-y-5">
+    <form
+      onSubmit={handleSubmit(async (input) => {
+        onPendingChange?.(true);
+        setError(null);
+        try {
+          if (reviewed) {
+            const updated = await update({
+              workspaceId: workspace._id,
+              webhookId: reviewed._id,
+              expectedRevision: reviewed.revision,
+              input,
+            });
+            onUpdated?.(updated);
+            reset(input);
+            release();
+            setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Webhook updated successfully." });
+          } else {
+            const created = await create({ workspaceId: workspace._id, input });
+            reset(input);
+            release();
+            onCreated?.(created);
+            setToast({
+              type: TOAST_TYPE.SUCCESS,
+              title: t("workspace_settings.settings.webhooks.toasts.created.title"),
+              message: t("workspace_settings.settings.webhooks.toasts.created.message"),
+            });
+          }
+        } catch (failure) {
+          setError(mutationMessage(failure));
+        } finally {
+          onPendingChange?.(false);
+        }
+      })}
+    >
+      <fieldset disabled={pending || !canManage} className="space-y-5">
         <div className="text-18 font-medium text-secondary">
-          {data
-            ? t("workspace_settings.settings.webhooks.modal.details")
-            : t("workspace_settings.settings.webhooks.modal.title")}
+          {t(
+            reviewed
+              ? "workspace_settings.settings.webhooks.modal.details"
+              : "workspace_settings.settings.webhooks.modal.title"
+          )}
         </div>
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Controller
-              control={control}
-              name="url"
-              rules={{
-                required: t("workspace_settings.settings.webhooks.modal.error"),
-              }}
-              render={({ field: { onChange, value } }) => (
-                <WebhookInput value={value} onChange={onChange} hasError={Boolean(errors.url)} />
-              )}
-            />
-            {errors.url && <div className="text-11 text-danger-primary">{errors.url.message}</div>}
-          </div>
-          {data && <WebhookToggle control={control} />}
-          <WebhookOptions value={webhookEventType} onChange={(val) => setWebhookEventType(val)} />
+          <Controller
+            control={control}
+            name="url"
+            render={({ field }) => (
+              <WebhookInput
+                value={field.value}
+                onChange={field.onChange}
+                hasError={error !== null}
+                maxLength={options.urlMaxLength}
+              />
+            )}
+          />
+          {reviewed && <WebhookToggle control={control} />}
+          <WebhookOptions
+            value={allEvents ? "all" : "individual"}
+            onChange={(value) => {
+              setAllEvents(value === "all");
+              if (value === "all") setValue("events", options.events, { shouldDirty: true });
+            }}
+          />
         </div>
-        <div className="mt-4">
-          {webhookEventType === "individual" && <WebhookIndividualEventOptions control={control} />}
-        </div>
-      </div>
-      {data ? (
-        <div className="space-y-5 pt-0">
-          <WebhookSecretKey data={data} />
-          <Button
-            size="lg"
-            type="submit"
-            loading={isSubmitting}
-            data-ph-element={WORKSPACE_SETTINGS_TRACKER_ELEMENTS.WEBHOOK_UPDATE_BUTTON}
-          >
+        {!allEvents && <WebhookIndividualEventOptions control={control} events={options.events} />}
+      </fieldset>
+      {error && (
+        <p role="alert" className="mt-3 text-13 text-danger-primary">
+          {error}
+        </p>
+      )}
+      {reviewed ? (
+        <div className="space-y-5 pt-5">
+          <WebhookSecretKey
+            workspace={workspace}
+            data={reviewed}
+            disabled={pending || !canManage}
+            onPendingChange={setIsRegenerating}
+            onRegenerated={(updated) => onUpdated?.(updated)}
+          />
+          <Button size="lg" type="submit" loading={isSubmitting} disabled={!canManage || isRegenerating}>
             {isSubmitting ? t("updating") : t("update")}
           </Button>
         </div>
       ) : (
-        <div className="flex items-center justify-end gap-2 border-t-[0.5px] border-subtle px-5 py-4">
-          <Button variant="secondary" size="lg" onClick={handleClose}>
+        <div className="mt-5 flex items-center justify-end gap-2 border-t-[0.5px] border-subtle px-5 py-4">
+          <Button variant="secondary" size="lg" type="button" onClick={cancel} disabled={pending}>
             {t("cancel")}
           </Button>
-          {!webhookSecretKey && (
-            <Button type="submit" variant="primary" size="lg" loading={isSubmitting} className="capitalize">
-              {isSubmitting ? t("common.creating") : t("common.create")}
-            </Button>
-          )}
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={isSubmitting}
+            disabled={!canManage || isRegenerating}
+          >
+            {t("common.create")}
+          </Button>
         </div>
       )}
     </form>
   );
-});
+}

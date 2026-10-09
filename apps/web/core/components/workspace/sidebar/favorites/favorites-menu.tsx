@@ -28,7 +28,7 @@ import type { IFavorite } from "@plane/types";
 import { cn } from "@plane/utils";
 // hooks
 import { useFavorite } from "@/hooks/store/use-favorite";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 // plane web components
 import { FavoriteFolder } from "./favorite-folder";
 import { FavoriteRoot } from "./favorite-items";

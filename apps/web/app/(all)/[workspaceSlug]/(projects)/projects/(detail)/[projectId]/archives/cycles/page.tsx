@@ -4,33 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// components
-import { PageHead } from "@/components/core/page-title";
-import { ArchivedCycleLayoutRoot } from "@/components/cycles/archived-cycles";
-import { ArchivedCyclesHeader } from "@/components/cycles/archived-cycles/header";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import type { Route } from "./+types/page";
-
-function ProjectArchivedCyclesPage({ params }: Route.ComponentProps) {
-  // router
-  const { projectId } = params;
-  // store hooks
-  const { getProjectById } = useProject();
-  // derived values
-  const project = getProjectById(projectId);
-  const pageTitle = project?.name && `${project?.name} - Archived cycles`;
-
+import { useOutletContext, useNavigate } from "react-router";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
+import { ProjectCycles } from "@/components/convex-core/cycles/list";
+export default function ProjectArchivedCyclesPage() {
+  const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
+  const navigate = useNavigate();
   return (
-    <>
-      <PageHead title={pageTitle} />
-      <div className="relative flex h-full w-full flex-col overflow-hidden">
-        <ArchivedCyclesHeader />
-        <ArchivedCycleLayoutRoot />
-      </div>
-    </>
+    <ProjectCycles
+      address={address}
+      view="archived"
+      onCreate={() => navigate(`/${address.workspace.slug}/projects/${address.project._id}/cycles/?createCycle=1`)}
+    />
   );
 }
-
-export default observer(ProjectArchivedCyclesPage);

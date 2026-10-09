@@ -5,7 +5,7 @@
  */
 
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -21,6 +21,7 @@ import type { TIssueOperations } from "@/components/issues/issue-detail";
 import { IssueActivity } from "@/components/issues/issue-detail/issue-activity";
 import { IssueReaction } from "@/components/issues/issue-detail/reactions";
 import { IssueTitleInput } from "@/components/issues/title-input";
+import { nameDescriptionStatus } from "@/components/issues/issue-update-status";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
@@ -41,12 +42,15 @@ type Props = {
   projectId: string;
   inboxIssue: IInboxIssueStore;
   isEditable: boolean;
-  isSubmitting: TNameDescriptionLoader;
   setIsSubmitting: Dispatch<SetStateAction<TNameDescriptionLoader>>;
 };
 
 export const InboxIssueMainContent = observer(function InboxIssueMainContent(props: Props) {
-  const { workspaceSlug, projectId, inboxIssue, isEditable, isSubmitting, setIsSubmitting } = props;
+  const { workspaceSlug, projectId, inboxIssue, isEditable, setIsSubmitting } = props;
+  const [titleStatus, setTitleStatus] = useState<TNameDescriptionLoader>("saved");
+  const [descriptionStatus, setDescriptionStatus] = useState<TNameDescriptionLoader>("saved");
+  const isSubmitting = nameDescriptionStatus(titleStatus, descriptionStatus);
+  useEffect(() => setIsSubmitting(isSubmitting), [isSubmitting, setIsSubmitting]);
   // refs
   const editorRef = useRef<EditorRefApi>(null);
   // store hooks
@@ -55,18 +59,16 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
   const { loader } = useProjectInbox();
   const { removeIssue, archiveIssue } = useIssueDetail();
   // reload confirmation
-  const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
+  useReloadConfirmations(isSubmitting === "submitting" || isSubmitting === "failed");
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isSubmitting === "submitted") {
-      setShowAlert(false);
-      timer = setTimeout(() => setIsSubmitting("saved"), 3000);
-    } else if (isSubmitting === "submitting") {
-      setShowAlert(true);
-    }
+    if (isSubmitting !== "submitted") return;
+    const timer = setTimeout(() => {
+      setTitleStatus("saved");
+      setDescriptionStatus("saved");
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [isSubmitting, setShowAlert, setIsSubmitting]);
+  }, [isSubmitting]);
 
   // derived values
   const issue = inboxIssue.issue;
@@ -97,13 +99,14 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
       },
       update: async (_workspaceSlug: string, _projectId: string, _issueId: string, data: Partial<TIssue>) => {
         try {
-          await inboxIssue.updateIssue(data);
+          return await inboxIssue.updateIssue(data);
         } catch (_error) {
           setToast({
             title: "Work item update failed",
             type: TOAST_TYPE.ERROR,
             message: "Work item update failed",
           });
+          throw _error;
         }
       },
       // oxlint-disable-next-line no-shadow
@@ -122,17 +125,21 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
   if (!issue) return <></>;
 
   if (!issue?.project_id || !issue?.id) return <></>;
+  const currentProjectId = issue.project_id;
+  const currentIssueId = issue.id;
 
   return (
     <>
       <div className="space-y-4 pb-4">
         <IssueTitleInput
-          workspaceSlug={workspaceSlug}
-          projectId={issue.project_id}
-          issueId={issue.id}
-          isSubmitting={isSubmitting}
-          setIsSubmitting={(value) => setIsSubmitting(value)}
-          issueOperations={issueOperations}
+          key={issue.id}
+          onSubmit={async (title) => {
+            const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+              name: title,
+            });
+            return response.name;
+          }}
+          setIsSubmitting={setTitleStatus}
           disabled={!isEditable}
           value={issue.name}
           containerClassName="-ml-3"
@@ -150,15 +157,15 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
             fileAssetType={EFileAssetType.ISSUE_DESCRIPTION}
             initialValue={issue.description_html ?? "<p></p>"}
             key={issue.id}
-            onSubmit={async (value, isMigrationUpdate) => {
-              if (!issue.id || !issue.project_id) return;
-              await issueOperations.update(workspaceSlug, issue.project_id, issue.id, {
-                description_html: value.description_html,
+            onSubmit={async (html, isMigrationUpdate) => {
+              const response = await issueOperations.update(workspaceSlug, currentProjectId, currentIssueId, {
+                description_html: html,
                 ...(isMigrationUpdate ? { skip_activity: "true" } : {}),
               });
+              return response.description_html;
             }}
             projectId={issue.project_id}
-            setIsSubmitting={(value) => setIsSubmitting(value)}
+            setIsSubmitting={setDescriptionStatus}
             workspaceSlug={workspaceSlug}
           />
         )}

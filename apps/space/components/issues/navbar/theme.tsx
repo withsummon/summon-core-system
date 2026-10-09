@@ -5,32 +5,27 @@
  */
 
 import { useEffect, useState } from "react";
-import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
-export const NavbarTheme = observer(function NavbarTheme() {
-  // states
-  const [appTheme, setAppTheme] = useState("light");
-  // theme
-  const { setTheme, theme } = useTheme();
+export function NavbarTheme() {
+  const [mounted, setMounted] = useState(false);
+  const { setTheme, resolvedTheme } = useTheme();
 
-  const handleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
+  useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    if (!theme) return;
-    setAppTheme(theme);
-  }, [theme]);
+  const dark = mounted && resolvedTheme === "dark";
+  const nextTheme = dark ? "light" : "dark";
 
   return (
     <button
       type="button"
-      onClick={handleTheme}
+      aria-label={`Switch to ${nextTheme} theme`}
+      disabled={!mounted}
+      onClick={() => setTheme(nextTheme)}
       className="relative grid size-7 place-items-center rounded-sm bg-layer-transparent text-primary hover:bg-layer-transparent-hover"
     >
-      {appTheme === "light" ? <Moon className="size-3.5 shrink-0" /> : <Sun className="size-3.5 shrink-0" />}
+      {dark ? <Sun className="size-3.5 shrink-0" /> : <Moon className="size-3.5 shrink-0" />}
     </button>
   );
-});
+}

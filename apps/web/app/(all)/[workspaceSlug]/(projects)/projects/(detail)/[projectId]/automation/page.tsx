@@ -3,19 +3,11 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-import { observer } from "mobx-react";
-import { useProject } from "@/hooks/store/use-project";
+import { useOutletContext } from "react-router";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { AutomationRootView } from "@/components/automation";
-import type { Route } from "./+types/page";
-
-function ProjectAutomationPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug, projectId } = params;
-  const { getProjectById } = useProject();
-
-  const project = getProjectById(projectId);
-
-  return <AutomationRootView workspaceSlug={workspaceSlug} projectId={projectId} projectName={project?.name} />;
+export default function ProjectAutomationPage() {
+  const address = useOutletContext<FunctionReturnType<typeof api.navigation.address.resolveProjectId>>();
+  return <AutomationRootView address={address} />;
 }
-
-export default observer(ProjectAutomationPage);

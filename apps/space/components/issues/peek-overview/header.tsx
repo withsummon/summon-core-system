@@ -4,28 +4,27 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-import { MoveRight } from "lucide-react";
-import { CustomSelect } from "@plane/ui";
+import { MoveRight, X } from "lucide-react";
+import { SelectPrimitive } from "@plane/propel/select";
 // ui
 import { LinkIcon, CenterPanelIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // helpers
-import { copyTextToClipboard } from "@/helpers/string.helper";
+import { copyTextToClipboard } from "@plane/utils";
 // hooks
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
+
 import useClipboardWritePermission from "@/hooks/use-clipboard-write-permission";
 // types
-import type { IIssue, IPeekMode } from "@/types/issue";
 
 type Props = {
   handleClose: () => void;
-  issueDetails: IIssue | undefined;
+  peekMode: "side" | "modal" | "full";
+  setPeekMode: (mode: Props["peekMode"]) => void;
 };
 
 const PEEK_MODES: {
-  key: IPeekMode;
-  icon: any;
+  key: Props["peekMode"];
+  icon: typeof SidePanelIcon;
   label: string;
 }[] = [
   { key: "side", icon: SidePanelIcon, label: "Side Peek" },
@@ -41,22 +40,21 @@ const PEEK_MODES: {
   },
 ];
 
-export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Props) {
-  const { handleClose } = props;
-
-  const { peekMode, setPeekMode } = useIssueDetails();
+export function PeekOverviewHeader(props: Props) {
+  const { handleClose, peekMode, setPeekMode } = props;
   const isClipboardWriteAllowed = useClipboardWritePermission();
 
-  const handleCopyLink = () => {
-    const urlToCopy = window.location.href;
-
-    copyTextToClipboard(urlToCopy).then(() => {
+  const handleCopyLink = async () => {
+    try {
+      await copyTextToClipboard(window.location.href);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Link copied!", message: "Work item link copied to clipboard." });
+    } catch (error) {
       setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link copied!",
-        message: "Work item link copied to clipboard.",
+        type: TOAST_TYPE.ERROR,
+        title: "Link could not be copied",
+        message: error instanceof Error ? error.message : "Please try again.",
       });
-    });
+    }
   };
 
   const Icon = PEEK_MODES.find((m) => m.key === peekMode)?.icon ?? SidePanelIcon;
@@ -64,38 +62,49 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
-        {peekMode === "side" && (
-          <button type="button" onClick={handleClose} className="text-tertiary hover:text-secondary">
-            <MoveRight className="size-4" />
-          </button>
-        )}
-        <CustomSelect
-          value={peekMode}
-          onChange={(value: IPeekMode) => setPeekMode(value)}
-          customButton={<Icon className="size-4" aria-label="Work item view" />}
-          customButtonClassName="grid place-items-center text-tertiary hover:text-secondary"
-          noChevron
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label="Close work item details"
+          className="text-tertiary hover:text-secondary"
         >
-          {PEEK_MODES.map((mode) => (
-            <CustomSelect.Option key={mode.key} value={mode.key}>
-              <span className="flex items-center gap-1.5">
-                <mode.icon className="size-4" />
-                {mode.label}
-              </span>
-            </CustomSelect.Option>
-          ))}
-        </CustomSelect>
+          {peekMode === "side" ? <MoveRight className="size-4" /> : <X className="size-4" />}
+        </button>
+        <SelectPrimitive.Root<Props["peekMode"]> value={peekMode} onValueChange={setPeekMode}>
+          <SelectPrimitive.Trigger
+            aria-label="Work item view"
+            className="grid place-items-center text-tertiary hover:text-secondary"
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </SelectPrimitive.Trigger>
+          <SelectPrimitive.Portal>
+            <SelectPrimitive.Positioner sideOffset={4} alignItemWithTrigger={false} className="z-[120] outline-none">
+              <SelectPrimitive.Popup className="shadow-sm min-w-40 rounded-md border border-subtle-1 bg-layer-2 p-1 outline-none">
+                {PEEK_MODES.map((mode) => (
+                  <SelectPrimitive.Item
+                    key={mode.key}
+                    value={mode.key}
+                    className="flex cursor-default items-center gap-1.5 rounded-sm px-2 py-1.5 text-13 data-[highlighted]:bg-layer-1"
+                  >
+                    <mode.icon className="size-4" aria-hidden="true" />
+                    <SelectPrimitive.ItemText>{mode.label}</SelectPrimitive.ItemText>
+                  </SelectPrimitive.Item>
+                ))}
+              </SelectPrimitive.Popup>
+            </SelectPrimitive.Positioner>
+          </SelectPrimitive.Portal>
+        </SelectPrimitive.Root>
       </div>
       {isClipboardWriteAllowed && (peekMode === "side" || peekMode === "modal") && (
         <button
           type="button"
           onClick={handleCopyLink}
           className="shrink-0 text-tertiary hover:text-secondary focus:outline-none"
-          tabIndex={1}
+          aria-label="Copy work item link"
         >
           <LinkIcon className="h-4 w-4 -rotate-45" />
         </button>
       )}
     </div>
   );
-});
+}

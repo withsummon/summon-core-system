@@ -1,0 +1,10 @@
+{
+  "sourceUrl": "http://127.0.0.1:3210",
+  "restoreUrl": "http://127.0.0.1:3212",
+  "tableCount": 31,
+  "documentCount": 2820,
+  "canonicalRowsEqual": true,
+  "storedFileCount": 2,
+  "storedFileBytesEqual": true,
+  "sourceSnapshotSha256": "d4e31c924fe74c28613e299095a9ef356f0d838e61b9402d18f3fcf0993ea824"
+}

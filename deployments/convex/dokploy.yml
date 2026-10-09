@@ -1,0 +1,84 @@
+services:
+  backend:
+    image: ghcr.io/get-convex/convex-backend@sha256:b756b06641d15a55b5ec0692897ce5ad3715ddccfd02e1e213621e9e764255c8
+    restart: unless-stopped
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    expose: ["3210", "3211"]
+    volumes:
+      - data:/convex/data
+    environment:
+      CONVEX_CLOUD_ORIGIN: ${CONVEX_CLOUD_ORIGIN:?Set the HTTPS API origin}
+      CONVEX_SITE_ORIGIN: ${CONVEX_SITE_ORIGIN:?Set the HTTPS actions origin}
+      DISABLE_BEACON: "true"
+      DISABLE_METRICS_ENDPOINT: "true"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard@sha256:4ebaebfd300c203753e5016be459a2408d1655b81beeb2b793229a6878f1ac45
+    restart: unless-stopped
+    expose: ["6791"]
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: ${CONVEX_CLOUD_ORIGIN:?Set the HTTPS API origin}
+    depends_on:
+      backend:
+        condition: service_healthy
+  document-live:
+    build:
+      context: ../..
+      dockerfile: apps/live/Dockerfile.live
+    restart: unless-stopped
+    expose: ["1235"]
+    environment:
+      CONVEX_URL: http://backend:3210
+      CONVEX_SITE_URL: http://backend:3211
+      CONVEX_LIVE_HOST: 0.0.0.0
+      CONVEX_LIVE_PORT: "1235"
+    depends_on:
+      backend:
+        condition: service_healthy
+  document-worker:
+    build:
+      context: ../..
+      dockerfile: apps/document-worker/Dockerfile
+    restart: unless-stopped
+    expose: ["8092"]
+    environment:
+      DOCUMENT_WORKER_TOKEN: ${DOCUMENT_WORKER_TOKEN:?Set a private document worker token}
+    mem_limit: 768m
+    pids_limit: 128
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+  transcription:
+    build:
+      context: ../../apps/transcription
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose: ["8091"]
+    environment:
+      TRANSCRIPTION_API_KEY: ${TRANSCRIPTION_API_KEY:?Set a private transcription key}
+    volumes:
+      - transcription_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+volumes:
+  data:
+  transcription_data:
+
+# The Dokploy host has exhausted its automatic pools. This subnet was checked
+# against its Docker network inventory before the first deployment.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.77.2.0/28

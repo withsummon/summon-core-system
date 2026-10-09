@@ -30,6 +30,7 @@ export interface EmojiReactionProps extends React.ButtonHTMLAttributes<HTMLButto
 }
 
 export interface EmojiReactionGroupProps extends React.HTMLAttributes<HTMLDivElement> {
+  disabled?: boolean;
   reactions: EmojiReactionType[];
   onReactionClick?: (emoji: string) => void;
   onAddReaction?: () => void;
@@ -80,6 +81,8 @@ const EmojiReaction = React.forwardRef(function EmojiReaction(
   const button = (
     <button
       ref={ref}
+      type="button"
+      aria-pressed={reacted}
       onClick={handleClick}
       className={cn(
         "inline-flex items-center gap-0.5 rounded-full border px-1.5 text-11 transition-all duration-200",
@@ -111,6 +114,7 @@ const EmojiReactionButton = React.forwardRef(function EmojiReactionButton(
       <IconButton
         ref={ref}
         icon={AddReactionIcon}
+        aria-label="Add reaction"
         variant="ghost"
         size="sm"
         onClick={onAddReaction}
@@ -124,6 +128,7 @@ const EmojiReactionButton = React.forwardRef(function EmojiReactionButton(
 const EmojiReactionGroup = React.forwardRef(function EmojiReactionGroup(
   {
     reactions,
+    disabled = false,
     onReactionClick,
     onAddReaction,
     className,
@@ -135,17 +140,18 @@ const EmojiReactionGroup = React.forwardRef(function EmojiReactionGroup(
 ) {
   return (
     <div ref={ref} className={cn("flex flex-wrap items-center gap-2", className)} {...props}>
-      {reactions.map((reaction, index) => (
+      {reactions.map((reaction) => (
         <EmojiReaction
-          key={`${reaction.emoji}-${index}`}
+          key={reaction.emoji}
           emoji={reaction.emoji}
+          disabled={disabled}
           count={reaction.count}
           reacted={reaction.reacted}
           users={reaction.users?.slice(0, maxDisplayUsers)}
           onReactionClick={onReactionClick}
         />
       ))}
-      {showAddButton && <EmojiReactionButton onAddReaction={onAddReaction} />}
+      {showAddButton && <EmojiReactionButton onAddReaction={onAddReaction} disabled={disabled} />}
     </div>
   );
 });

@@ -6,47 +6,58 @@
 
 import { observer } from "mobx-react";
 import { CloseIcon } from "@plane/propel/icons";
-// ui
 import { Avatar } from "@plane/ui";
-// helpers
 import { getFileURL } from "@plane/utils";
-// types
 import { useMember } from "@/hooks/store/use-member";
+import type { ProjectMemberFilterOption } from "../dropdowns/filters/lead";
 
 type Props = {
-  handleRemove: (val: string) => void;
+  handleRemove: (value: string) => void;
   values: string[];
   editable: boolean | undefined;
 };
-
 export const AppliedMembersFilters = observer(function AppliedMembersFilters(props: Props) {
-  const { handleRemove, values, editable } = props;
-  // store hooks
   const {
     workspace: { getWorkspaceMemberDetails },
   } = useMember();
+  const options = props.values
+    .map((id) => {
+      const member = getWorkspaceMemberDetails(id)?.member;
+      return member
+        ? {
+            value: id,
+            label: member.display_name,
+            icon: (
+              <Avatar name={member.display_name} src={getFileURL(member.avatar_url)} showTooltip={false} size="sm" />
+            ),
+          }
+        : null;
+    })
+    .filter((option) => option !== null);
+  return <AppliedMembersFiltersView {...props} options={options} />;
+});
 
+export function AppliedMembersFiltersView({
+  handleRemove,
+  values,
+  editable,
+  options,
+}: Props & { options: readonly ProjectMemberFilterOption[] }) {
   return (
     <>
-      {values.map((memberId) => {
-        const memberDetails = getWorkspaceMemberDetails(memberId)?.member;
-
-        if (!memberDetails) return null;
-
+      {values.map((id) => {
+        const option = options.find((member) => member.value === id);
+        if (!option) return null;
         return (
-          <div key={memberId} className="flex items-center gap-1 rounded-sm bg-layer-1 px-1.5 py-1 text-11">
-            <Avatar
-              name={memberDetails.display_name}
-              src={getFileURL(memberDetails.avatar_url)}
-              showTooltip={false}
-              size={"sm"}
-            />
-            <span className="normal-case">{memberDetails.display_name}</span>
+          <div key={id} className="flex items-center gap-1 rounded-sm bg-layer-1 px-1.5 py-1 text-11">
+            {option.icon}
+            <span className="normal-case">{option.label}</span>
             {editable && (
               <button
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
-                onClick={() => handleRemove(memberId)}
+                aria-label={`Remove ${option.label} filter`}
+                onClick={() => handleRemove(id)}
               >
                 <CloseIcon height={10} width={10} strokeWidth={2} />
               </button>
@@ -56,4 +67,4 @@ export const AppliedMembersFilters = observer(function AppliedMembersFilters(pro
       })}
     </>
   );
-});
+}

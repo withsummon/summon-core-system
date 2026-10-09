@@ -5,18 +5,18 @@
  */
 
 import { CirclePlus, Mails } from "lucide-react";
-import { observer } from "mobx-react";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 import { WorkspaceLogo } from "@/components/workspace/logo";
 // hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
 
-export const ProfileSettingsSidebarWorkspaceOptions = observer(function ProfileSettingsSidebarWorkspaceOptions() {
-  // store hooks
-  const { workspaces } = useWorkspace();
+export function ProfileSettingsSidebarWorkspaceOptions() {
+  const workspaces = useQuery(api.workspaces.index.list);
   // translation
   const { t } = useTranslation();
 
@@ -24,12 +24,22 @@ export const ProfileSettingsSidebarWorkspaceOptions = observer(function ProfileS
     <div className="shrink-0">
       <div className="p-2 text-caption-md-medium text-tertiary capitalize">{t("common.workspace")}</div>
       <div className="flex flex-col">
-        {Object.values(workspaces).map((workspace) => (
+        {workspaces?.map((workspace) => (
           <SettingsSidebarItem
-            key={workspace.id}
+            key={workspace._id}
             as="link"
-            href={`/${workspace.slug}/`}
-            iconNode={<WorkspaceLogo logo={workspace.logo_url} name={workspace.name} classNames="shrink-0" />}
+            href={`/${workspace.slug}/stickies/`}
+            iconNode={
+              workspace.logo ? (
+                <AuthenticatedAssetImage
+                  asset={workspace.logo}
+                  alt="Workspace logo"
+                  className="size-5 rounded object-contain"
+                />
+              ) : (
+                <WorkspaceLogo logo="" name={workspace.name} classNames="shrink-0" />
+              )
+            }
             label={workspace.name}
             isActive={false}
           />
@@ -53,4 +63,4 @@ export const ProfileSettingsSidebarWorkspaceOptions = observer(function ProfileS
       </div>
     </div>
   );
-});
+}

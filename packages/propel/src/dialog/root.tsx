@@ -42,7 +42,7 @@ export interface DialogTitleProps extends React.ComponentProps<typeof BaseDialog
 
 // Constants
 const OVERLAY_CLASSNAME = cn(
-  "fixed inset-0 z-90 bg-backdrop data-[open]:animate-dialog-backdrop-in data-[ending-style]:animate-dialog-backdrop-out motion-reduce:animate-none"
+  "fixed inset-0 z-90 bg-backdrop data-[ending-style]:animate-dialog-backdrop-out data-[open]:animate-dialog-backdrop-in motion-reduce:animate-none"
 );
 const BASE_CLASSNAME =
   "relative text-left bg-surface-1 rounded-lg shadow-md w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto z-100 border border-subtle data-[open]:animate-dialog-in data-[ending-style]:animate-dialog-out motion-reduce:animate-none";
@@ -136,9 +136,7 @@ DialogTitle.displayName = "DialogTitle";
 const Dialog = Object.assign(DialogComponent, {
   Panel: DialogPanel,
   Title: DialogTitle,
-}) as typeof DialogComponent & {
-  Panel: typeof DialogPanel;
-  Title: typeof DialogTitle;
-};
+  Description: BaseDialog.Description,
+});
 
 export { Dialog, DialogTitle, DialogPanel };

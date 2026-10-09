@@ -4,34 +4,36 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import type { ComponentProps } from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 // plane imports
 import { Loader } from "@plane/ui";
 // store hooks
 import { usePublish } from "@/hooks/store/publish";
 // types
-import type { IIssue } from "@/types/issue";
+
 // local imports
 import { PeekOverviewHeader } from "./header";
 import { PeekOverviewIssueActivity } from "./issue-activity";
 import { PeekOverviewIssueDetails } from "./issue-details";
 import { PeekOverviewIssueProperties } from "./issue-properties";
 
-type Props = {
+type Props = ComponentProps<typeof PeekOverviewHeader> & {
   anchor: string;
   handleClose: () => void;
-  issueDetails: IIssue | undefined;
+  issueDetails: FunctionReturnType<typeof api.publicSharing.index.getTask> | undefined;
 };
 
-export const SidePeekView = observer(function SidePeekView(props: Props) {
-  const { anchor, handleClose, issueDetails } = props;
+export function SidePeekView(props: Props) {
+  const { anchor, issueDetails } = props;
   // store hooks
-  const { canComment } = usePublish(anchor);
+  const publication = usePublish(anchor);
 
   return (
     <div className="flex size-full flex-col overflow-hidden">
       <div className="w-full p-5">
-        <PeekOverviewHeader handleClose={handleClose} issueDetails={issueDetails} />
+        <PeekOverviewHeader {...props} />
       </div>
       {issueDetails ? (
         <div className="size-full overflow-y-auto px-6">
@@ -46,7 +48,7 @@ export const SidePeekView = observer(function SidePeekView(props: Props) {
           {/* divider */}
           <div className="my-5 h-[1] w-full border-t border-subtle" />
           {/* issue activity/comments */}
-          {canComment && (
+          {publication?.settings.commentsEnabled && (
             <div className="w-full pb-5">
               <PeekOverviewIssueActivity anchor={anchor} issueDetails={issueDetails} />
             </div>
@@ -64,4 +66,4 @@ export const SidePeekView = observer(function SidePeekView(props: Props) {
       )}
     </div>
   );
-});
+}

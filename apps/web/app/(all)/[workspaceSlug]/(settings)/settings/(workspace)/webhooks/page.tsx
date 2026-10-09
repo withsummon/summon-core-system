@@ -4,113 +4,83 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
-import { observer } from "mobx-react";
-import useSWR from "swr";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useState } from "react";
+import { useOutletContext } from "react-router";
+import type { FunctionReturnType } from "convex/server";
+import { WORKSPACE_SETTINGS } from "@plane/constants";
+import { useQuery, usePaginatedQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-// components
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsHeading } from "@/components/settings/heading";
 import { WebhookSettingsLoader } from "@/components/ui/loader/settings/web-hook";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { WebhooksList, CreateWebhookModal } from "@/components/web-hooks";
-// hooks
-import { useWebhook } from "@/hooks/store/use-webhook";
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
-import type { Route } from "./+types/page";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { PreservedWorkspaceSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 import { WebhooksWorkspaceSettingsHeader } from "./header";
 
-function WebhooksListPage({ params }: Route.ComponentProps) {
-  // states
-  const [showCreateWebhookModal, setShowCreateWebhookModal] = useState(false);
-  // router
-  const { workspaceSlug } = params;
-  // plane hooks
+export default function WebhooksListPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { workspace } = session;
   const { t } = useTranslation();
-  // mobx store
-  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-  const { fetchWebhooks, webhooks, clearSecretKey, webhookSecretKey, createWebhook } = useWebhook();
-  const { currentWorkspace } = useWorkspace();
-  // derived values
-  const canPerformWorkspaceAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-
-  useSWR(
-    canPerformWorkspaceAdminActions ? `WEBHOOKS_LIST_${workspaceSlug}` : null,
-    canPerformWorkspaceAdminActions ? () => fetchWebhooks(workspaceSlug) : null
-  );
-
-  const pageTitle = currentWorkspace?.name
-    ? `${currentWorkspace.name} - ${t("workspace_settings.settings.webhooks.title")}`
-    : undefined;
-
-  // clear secret key when modal is closed.
-  useEffect(() => {
-    if (!showCreateWebhookModal && webhookSecretKey) clearSecretKey();
-  }, [showCreateWebhookModal, webhookSecretKey, clearSecretKey]);
-
-  if (workspaceUserInfo && !canPerformWorkspaceAdminActions) {
-    return <NotAuthorizedView section="settings" className="h-auto" />;
-  }
-
-  if (!webhooks) return <WebhookSettingsLoader />;
-
+  const [creating, setCreating] = useState<FunctionReturnType<typeof api.webhooks.index.options> | null>(null);
+  const canManage = workspace.membershipRole === "admin";
+  const options = useQuery(api.webhooks.index.options, canManage ? { workspaceId: workspace._id } : "skip");
+  const webhooks = usePaginatedQuery(api.webhooks.index.list, canManage ? { workspaceId: workspace._id } : "skip", {
+    initialNumItems: 20,
+  });
   return (
-    <SettingsContentWrapper header={<WebhooksWorkspaceSettingsHeader />}>
-      <PageHead title={pageTitle} />
-      <div className="w-full">
-        <CreateWebhookModal
-          createWebhook={createWebhook}
-          clearSecretKey={clearSecretKey}
-          currentWorkspace={currentWorkspace}
-          isOpen={showCreateWebhookModal}
-          onClose={() => {
-            setShowCreateWebhookModal(false);
-          }}
-        />
-        <SettingsHeading
-          title={t("workspace_settings.settings.webhooks.title")}
-          description={t("workspace_settings.settings.webhooks.description")}
-          control={
-            <Button variant="primary" size="lg" onClick={() => setShowCreateWebhookModal(true)}>
-              {t("workspace_settings.settings.webhooks.add_webhook")}
-            </Button>
-          }
-        />
-        {Object.keys(webhooks).length > 0 ? (
-          <div className="mt-4">
-            <WebhooksList />
-          </div>
-        ) : (
-          <div className="flex h-full w-full flex-col">
-            <div className="flex h-full w-full items-center justify-center">
-              <EmptyStateCompact
-                assetKey="webhook"
-                title={t("settings_empty_state.webhooks.title")}
-                description={t("settings_empty_state.webhooks.description")}
-                actions={[
-                  {
-                    label: t("settings_empty_state.webhooks.cta_primary"),
-                    onClick: () => {
-                      setShowCreateWebhookModal(true);
-                    },
-                  },
-                ]}
-                align="start"
-                rootClassName="py-20"
-              />
+    <PreservedWorkspaceSettingsShell
+      {...session}
+      activePath={WORKSPACE_SETTINGS.webhooks.i18n_label}
+      header={<WebhooksWorkspaceSettingsHeader />}
+    >
+      <PageHead title={`${workspace.name} - ${t("workspace_settings.settings.webhooks.title")}`} />
+      {creating && <CreateWebhookModal workspace={workspace} options={creating} onClose={() => setCreating(null)} />}
+      {!canManage ? (
+        <NotAuthorizedView section="settings" className="h-auto" />
+      ) : !options || webhooks.status === "LoadingFirstPage" ? (
+        <WebhookSettingsLoader />
+      ) : (
+        <div className="w-full">
+          <SettingsHeading
+            title={t("workspace_settings.settings.webhooks.title")}
+            description={t("workspace_settings.settings.webhooks.description")}
+            control={
+              <Button variant="primary" size="lg" onClick={() => setCreating(options)}>
+                {t("workspace_settings.settings.webhooks.add_webhook")}
+              </Button>
+            }
+          />
+          {webhooks.results.length ? (
+            <div className="mt-4">
+              <WebhooksList workspace={workspace} webhooks={webhooks.results} />
             </div>
-          </div>
-        )}
-      </div>
-    </SettingsContentWrapper>
+          ) : webhooks.status === "Exhausted" ? (
+            <EmptyStateCompact
+              assetKey="webhook"
+              title={t("settings_empty_state.webhooks.title")}
+              description={t("settings_empty_state.webhooks.description")}
+              actions={[{ label: t("settings_empty_state.webhooks.cta_primary"), onClick: () => setCreating(options) }]}
+              align="start"
+              rootClassName="py-20"
+            />
+          ) : null}
+          {webhooks.status !== "Exhausted" && (
+            <Button
+              variant="secondary"
+              className="mt-4"
+              loading={webhooks.status === "LoadingMore"}
+              onClick={() => webhooks.loadMore(20)}
+            >
+              Load more
+            </Button>
+          )}
+        </div>
+      )}
+    </PreservedWorkspaceSettingsShell>
   );
 }
-
-export default observer(WebhooksListPage);

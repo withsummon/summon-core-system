@@ -7,7 +7,7 @@ from io import BytesIO
 
 import pytest
 
-from plane.summon.services.document_renderer import render_document_files
+from summon_documents.renderer import render_document_files
 
 
 pytestmark = [

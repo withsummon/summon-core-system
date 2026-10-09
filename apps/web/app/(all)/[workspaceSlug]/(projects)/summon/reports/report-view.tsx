@@ -16,7 +16,10 @@ import {
   Target,
   WalletCards,
 } from "lucide-react";
-import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
+import type { CompleteReport, ReportSummary } from "@/components/convex-core/reporting/summary";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { readReportFilters } from "./report-view-model";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
@@ -24,13 +27,14 @@ import { percentage, reportLabel, type TReportFilterParam } from "./report-view-
 
 type TReportViewProps = {
   workspaceSlug: string;
-  data?: ISummonReportSummary;
+  data?: ReportSummary;
+  report: CompleteReport | null;
   error?: unknown;
   isLoading: boolean;
-  filters: ISummonReportFilters;
-  projects: Array<{ id: string; name: string }>;
-  clients: ISummonClient[];
-  exportUrl: string;
+  filters: ReturnType<typeof readReportFilters>;
+  projects: FunctionReturnType<typeof api.projects.index.list>;
+  clients: FunctionReturnType<typeof api.commercial.clients.list>["page"];
+  onExport: () => void;
   onFilterChange: (name: TReportFilterParam, value: string) => void;
   onRetry: () => void;
 };
@@ -54,10 +58,9 @@ const REPORT_TABS = [
 type TReportTab = (typeof REPORT_TABS)[number]["id"];
 
 export function ReportView(props: TReportViewProps) {
-  const { workspaceSlug, data, error, isLoading, filters, projects, clients, exportUrl, onFilterChange, onRetry } =
+  const { workspaceSlug, data, error, isLoading, filters, projects, clients, onExport, onFilterChange, onRetry } =
     props;
   const [activeTab, setActiveTab] = useState<TReportTab>("overview");
-  const completion = data ? percentage(data.issues.completed, data.issues.total) : 0;
 
   if (!data) {
     return (
@@ -67,25 +70,31 @@ export function ReportView(props: TReportViewProps) {
       </div>
     );
   }
+  const completion = percentage(data.tasks.completed, data.tasks.total);
 
-  const openOpportunities = data.opportunity_stages
+  const opportunityStages = Object.entries(data.opportunityStages).map(([stage, contribution]) =>
+    Object.assign({ stage }, contribution)
+  );
+  const openOpportunities = opportunityStages
     .filter(({ stage }) => stage !== "won" && stage !== "lost")
     .reduce((sum, item) => sum + item.count, 0);
-  const wonOpportunities = data.opportunity_stages.find(({ stage }) => stage === "won")?.count ?? 0;
-  const averageHealth = data.project_health.length
-    ? Math.round(data.project_health.reduce((sum, project) => sum + project.completion, 0) / data.project_health.length)
+  const wonOpportunities = opportunityStages.find(({ stage }) => stage === "won")?.count ?? 0;
+  const averageHealth = data.projects.length
+    ? Math.round(data.projects.reduce((sum, project) => sum + project.completion, 0) / data.projects.length)
     : 0;
-  const projectHealth = ["not_assessed", "on_track", "at_risk", "off_track"].map((health) => ({
+  const projectHealth = Object.entries(HEALTH_COLORS).map(([health, color]) => ({
     label: reportLabel(health),
-    count: data.project_health.filter((project) => project.health === health).length,
-    color: HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
+    count: data.projects.filter((project) => project.health === health).length,
+    color,
   }));
-  const attentionProjects = data.project_health
+  const attentionProjects = data.projects
     .filter((project) => project.health !== "on_track" && project.health !== "not_assessed")
     .slice(0, 3);
-  const activeClients = clients.filter((client) => client.status === "active").length;
+  const activeClients = data.clientRecords.filter((client) => client.status === "active").length;
   const reportingYear = filters.dateTo?.slice(0, 4) ?? new Date().getUTCFullYear().toString();
-  const newClients = clients.filter((client) => client.created_at.startsWith(reportingYear)).length;
+  const newClients = data.clientRecords.filter(
+    (client) => new Date(client.createdAt).getUTCFullYear().toString() === reportingYear
+  ).length;
   const showTab = (tab: TReportTab) => activeTab === "overview" || activeTab === tab;
 
   return (
@@ -100,8 +109,8 @@ export function ReportView(props: TReportViewProps) {
           filters={filters}
           projects={projects}
           clients={clients}
-          exportUrl={exportUrl}
-          canExport
+          onExport={onExport}
+          canExport={!!props.report}
           onFilterChange={onFilterChange}
         />
       </header>
@@ -130,14 +139,14 @@ export function ReportView(props: TReportViewProps) {
           <ReportKpi
             icon={<FolderKanban className="size-4.5" />}
             label="Active Projects"
-            value={data.projects}
+            value={data.projects.length}
             detail={<span className="text-success-primary">Authorized portfolio</span>}
           />
           <ReportKpi
             icon={<Target className="size-4.5" />}
             label="Open Opportunities"
             value={openOpportunities}
-            detail={<span>{data.commercial.pipeline_value} potential value</span>}
+            detail={<span>{data.pipelineValue} potential value</span>}
           />
           <ReportKpi
             icon={<HeartPulse className="size-4.5" />}
@@ -153,13 +162,13 @@ export function ReportView(props: TReportViewProps) {
           <ReportKpi
             icon={<Clock3 className="size-4.5" />}
             label="Overdue Tasks"
-            value={data.issues.overdue}
+            value={data.tasks.overdue}
             detail={<span className="text-danger-primary">Open past due date</span>}
           />
         </div>
       ) : null}
 
-      {showTab("company_progress") || showTab("project_health") || showTab("pipeline") ? (
+      {(["company_progress", "project_health", "pipeline"] satisfies TReportTab[]).some(showTab) ? (
         <div
           className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1fr_1fr_1.08fr]" : "grid-cols-1"}`}
         >
@@ -169,10 +178,10 @@ export function ReportView(props: TReportViewProps) {
               <div className="mt-4 grid flex-1 items-center gap-4 sm:grid-cols-[1fr_1fr]">
                 <ReportDonut
                   items={[
-                    { label: "Completed", count: data.issues.completed, color: "#376df6" },
+                    { label: "Completed", count: data.tasks.completed, color: "#376df6" },
                     {
                       label: "Remaining",
-                      count: Math.max(0, data.issues.total - data.issues.completed),
+                      count: Math.max(0, data.tasks.total - data.tasks.completed),
                       color: "#b8c9f5",
                     },
                   ]}
@@ -181,16 +190,16 @@ export function ReportView(props: TReportViewProps) {
                 />
                 <ReportLegend
                   items={[
-                    { label: "Completed", count: data.issues.completed, color: "#376df6" },
+                    { label: "Completed", count: data.tasks.completed, color: "#376df6" },
                     {
                       label: "Remaining",
-                      count: Math.max(0, data.issues.total - data.issues.completed),
+                      count: Math.max(0, data.tasks.total - data.tasks.completed),
                       color: "#48b979",
                     },
-                    { label: "Overdue", count: data.issues.overdue, color: "#f4bd42" },
+                    { label: "Overdue", count: data.tasks.overdue, color: "#f4bd42" },
                     {
                       label: "No due date",
-                      count: data.due_date_buckets.find(({ label }) => label === "No due date")?.count ?? 0,
+                      count: data.tasks.noDueDate,
                       color: "#b8bfd1",
                     },
                   ]}
@@ -201,7 +210,7 @@ export function ReportView(props: TReportViewProps) {
                 <div>
                   <p className="text-[10px] font-semibold text-accent-primary">Summon Insight</p>
                   <p className="mt-0.5 text-[10px] text-secondary">
-                    {data.issues.total
+                    {data.tasks.total
                       ? `${completion}% of authorized work items are complete.`
                       : "No delivery data in this period."}
                   </p>
@@ -214,7 +223,7 @@ export function ReportView(props: TReportViewProps) {
             <ReportPanel className="flex flex-col p-4">
               <PanelHeader title="Project Health" />
               <div className="mt-4 grid items-center gap-4 sm:grid-cols-[1fr_1fr]">
-                <ReportDonut items={projectHealth} center={data.projects} caption="Projects" />
+                <ReportDonut items={projectHealth} center={data.projects.length} caption="Projects" />
                 <ReportLegend items={projectHealth} />
               </div>
               <div className="mt-4 border-t border-subtle pt-3">
@@ -227,8 +236,8 @@ export function ReportView(props: TReportViewProps) {
                 <div className="mt-2 divide-y divide-subtle">
                   {attentionProjects.map((project) => (
                     <Link
-                      key={project.project_id}
-                      href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
+                      key={project.id}
+                      href={`/${workspaceSlug}/summon/projects/${project.id}/`}
                       className="flex items-center justify-between gap-3 py-2 text-[10px]"
                     >
                       <span className="truncate font-medium text-primary">{project.name}</span>
@@ -249,20 +258,17 @@ export function ReportView(props: TReportViewProps) {
             <ReportPanel className="flex flex-col p-4">
               <PanelHeader title="Pipeline Overview" />
               <div className="mt-4 flex-1">
-                <PipelineBars
-                  items={data.opportunity_stages.map((stage) => ({ ...stage, value: stage.value }))}
-                  total={data.commercial.opportunities}
-                />
+                <PipelineBars items={opportunityStages} total={data.opportunities} />
               </div>
               <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
                 <div className="pr-3">
                   <p className="text-[10px] text-secondary">Total Pipeline Value</p>
-                  <p className="text-lg mt-1 font-semibold text-primary">{data.commercial.pipeline_value}</p>
+                  <p className="text-lg mt-1 font-semibold text-primary">{data.pipelineValue}</p>
                 </div>
                 <div className="pl-3">
                   <p className="text-[10px] text-secondary">Win Rate</p>
                   <p className="text-lg mt-1 font-semibold text-primary">
-                    {percentage(wonOpportunities, data.commercial.opportunities)}%
+                    {percentage(wonOpportunities, data.opportunities)}%
                   </p>
                 </div>
               </div>
@@ -271,7 +277,7 @@ export function ReportView(props: TReportViewProps) {
         </div>
       ) : null}
 
-      {showTab("investment") || showTab("portfolio") ? (
+      {(["investment", "portfolio"] satisfies TReportTab[]).some(showTab) ? (
         <div
           className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1.45fr_1fr]" : "grid-cols-1"}`}
         >
@@ -317,11 +323,11 @@ export function ReportView(props: TReportViewProps) {
                 label="View all clients"
               />
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-                <MiniMetric label="Total Clients" value={clients.length} detail="Workspace records" />
+                <MiniMetric label="Total Clients" value={data.clients} detail="Filtered records" />
                 <MiniMetric
                   label="Active Clients"
                   value={activeClients}
-                  detail={`${percentage(activeClients, clients.length)}% of total`}
+                  detail={`${percentage(activeClients, data.clients)}% of total`}
                 />
                 <MiniMetric label="New Clients (YTD)" value={newClients} detail={reportingYear} />
                 <MiniMetric label="Client Retention" value="—" detail="No data source" />
@@ -341,8 +347,9 @@ export function ReportView(props: TReportViewProps) {
         <ReportPanel className="mt-4 p-4">
           <PanelHeader title="Recent Reports" />
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <a
-              href={exportUrl}
+            <button
+              type="button"
+              onClick={onExport}
               className="hover:border-accent-primary/50 flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
@@ -352,7 +359,7 @@ export function ReportView(props: TReportViewProps) {
                 <span className="block truncate text-[11px] font-semibold text-primary">Current Portfolio Report</span>
                 <span className="mt-1 block text-[10px] text-secondary">CSV · Live data</span>
               </span>
-            </a>
+            </button>
             {["Project Health Report", "Pipeline Report", "Investment Report", "Client Performance Report"].map(
               (name) => (
                 <div

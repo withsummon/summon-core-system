@@ -8,6 +8,8 @@ import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { stringToEmoji } from "@plane/propel/emoji-icon-picker";
 import { EmojiReactionGroup, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
+import { AddReactionIcon } from "@plane/propel/icons";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import type { EmojiReactionType } from "@plane/propel/emoji-reaction";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser } from "@plane/types";
@@ -95,18 +97,16 @@ export const IssueCommentReaction = observer(function IssueCommentReaction(props
   };
 
   // Transform reactions data to Propel EmojiReactionType format
-  const reactions: EmojiReactionType[] = useMemo(() => {
-    if (!reactionIds) return [];
-
-    return Object.keys(reactionIds)
-      .filter((reaction) => reactionIds[reaction]?.length > 0)
-      .map((reaction) => ({
-        emoji: stringToEmoji(reaction),
-        count: reactionIds[reaction].length,
-        reacted: userReactions.includes(reaction),
-        users: getReactionUsers(reaction),
-      }));
-  }, [reactionIds, userReactions]);
+  const reactions: EmojiReactionType[] = reactionIds
+    ? Object.keys(reactionIds)
+        .filter((reaction) => reactionIds[reaction]?.length > 0)
+        .map((reaction) => ({
+          emoji: stringToEmoji(reaction),
+          count: reactionIds[reaction].length,
+          reacted: userReactions.includes(reaction),
+          users: getReactionUsers(reaction),
+        }))
+    : [];
 
   const handleReactionClick = (emoji: string) => {
     if (disabled) return;
@@ -122,22 +122,24 @@ export const IssueCommentReaction = observer(function IssueCommentReaction(props
   };
 
   return (
-    <div className="relative mt-4">
-      <EmojiReactionPicker
-        isOpen={isPickerOpen}
-        handleToggle={setIsPickerOpen}
-        onChange={handleEmojiSelect}
+    <div className="relative mt-4 flex flex-wrap items-center gap-2">
+      <EmojiReactionGroup
+        className="contents"
+        reactions={reactions}
+        onReactionClick={handleReactionClick}
+        showAddButton={false}
         disabled={disabled}
-        label={
-          <EmojiReactionGroup
-            reactions={reactions}
-            onReactionClick={handleReactionClick}
-            showAddButton={!disabled}
-            onAddReaction={() => setIsPickerOpen(true)}
-          />
-        }
-        placement="bottom-start"
       />
+      {!disabled && (
+        <EmojiReactionPicker
+          isOpen={isPickerOpen}
+          handleToggle={setIsPickerOpen}
+          onChange={handleEmojiSelect}
+          label={<AddReactionIcon className="size-3.5" aria-hidden="true" />}
+          buttonClassName={getIconButtonStyling("ghost", "sm")}
+          placement="bottom-start"
+        />
+      )}
     </div>
   );
 });

@@ -1,17 +1,19 @@
 import { MessageSquareText, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import type { ISummonAssistantConversation } from "@plane/types";
+import type { Doc } from "@summon/convex/data-model";
 import { SummonRequestState } from "@/components/summon/request-state";
 
 interface AssistantConversationSidebarProps {
-  conversations: ISummonAssistantConversation[];
+  conversations: Doc<"assistantConversations">[];
   activeConversationId: string;
   loading: boolean;
   creating: boolean;
-  error: unknown;
+  canCreate: boolean;
+  canLoadMore: boolean;
+  onLoadMore: () => void;
   onCreate: () => void;
-  onRetry: () => void;
-  onSelect: (conversation: ISummonAssistantConversation) => void;
+
+  onSelect: (conversation: Doc<"assistantConversations">) => void;
 }
 
 export function AssistantConversationSidebar(props: AssistantConversationSidebarProps) {
@@ -25,6 +27,7 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
         <Button
           size="lg"
           variant="secondary"
+          disabled={!props.canCreate}
           loading={props.creating}
           onClick={props.onCreate}
           aria-label="New chat"
@@ -35,18 +38,16 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
       <div className="mt-3 min-h-0 space-y-1 overflow-y-auto">
         <SummonRequestState
           loading={props.loading}
-          error={props.error}
           empty={!props.loading && props.conversations.length === 0}
           emptyMessage="No conversations yet."
-          onRetry={props.onRetry}
         />
         {props.conversations.map((conversation) => (
           <button
-            key={conversation.id}
+            key={conversation._id}
             type="button"
             onClick={() => props.onSelect(conversation)}
             className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus-visible:outline focus-visible:outline-2 ${
-              conversation.id === props.activeConversationId
+              conversation._id === props.activeConversationId
                 ? "bg-layer-1-selected text-primary"
                 : "text-secondary hover:bg-layer-1-hover"
             }`}
@@ -55,6 +56,11 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
             <span className="text-sm truncate font-medium">{conversation.title}</span>
           </button>
         ))}
+        {props.canLoadMore && (
+          <Button variant="secondary" onClick={props.onLoadMore}>
+            Load older chats
+          </Button>
+        )}
       </div>
     </aside>
   );

@@ -5,7 +5,6 @@
  */
 
 // plane imports
-import type { I_THEME_OPTION } from "@plane/constants";
 import { THEME_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // constants
@@ -13,17 +12,19 @@ import { CustomSelect } from "@plane/ui";
 // ui
 
 type Props = {
-  value: I_THEME_OPTION | null;
-  onChange: (value: I_THEME_OPTION) => void;
+  value: (typeof THEME_OPTIONS)[number] | null;
+  onChange: (value: (typeof THEME_OPTIONS)[number]) => void;
+  ariaLabel: string;
 };
 
 export function ThemeSwitch(props: Props) {
-  const { value, onChange } = props;
+  const { value, onChange, ariaLabel } = props;
   // translation
   const { t } = useTranslation();
 
   return (
     <CustomSelect
+      ariaLabel={ariaLabel}
       value={value}
       label={
         value ? (
@@ -54,7 +55,9 @@ export function ThemeSwitch(props: Props) {
           t("select_your_theme")
         )
       }
-      onChange={onChange}
+      onChange={(themeOption) => {
+        if (themeOption) onChange(themeOption);
+      }}
       buttonClassName="border border-subtle-1"
       placement="bottom-end"
       input

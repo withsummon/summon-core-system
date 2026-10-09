@@ -5,114 +5,71 @@
  */
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
-// types
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWebhook, IWorkspace, TWebhookEventTypes } from "@plane/types";
-// ui
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-// helpers
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { csvDownload } from "@plane/utils";
-// hooks
-// components
+import { getCurrentHookAsCSV } from "./utils";
+import { useTranslation } from "@plane/i18n";
+import { Dialog } from "@plane/propel/dialog";
+import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import type { NativeWorkspace } from "@/components/workspace/native-shell/session";
 import { WebhookForm } from "./form";
 import { GeneratedHookDetails } from "./generated-hook-details";
-// utils
-import { getCurrentHookAsCSV } from "./utils";
 
-interface ICreateWebhookModal {
-  currentWorkspace: IWorkspace | null;
-  isOpen: boolean;
-  clearSecretKey: () => void;
-  createWebhook: (
-    workspaceSlug: string,
-    data: Partial<IWebhook>
-  ) => Promise<{
-    webHook: IWebhook;
-    secretKey: string | null;
-  }>;
+type Props = {
+  workspace: NativeWorkspace;
+  options: FunctionReturnType<typeof api.webhooks.index.options>;
   onClose: () => void;
-}
-
-export function CreateWebhookModal(props: ICreateWebhookModal) {
-  const { isOpen, onClose, currentWorkspace, createWebhook, clearSecretKey } = props;
-  // states
-  const [generatedWebhook, setGeneratedKey] = useState<IWebhook | null>(null);
-  // router
-  const { workspaceSlug } = useParams();
+};
+export function CreateWebhookModal({ workspace, options, onClose }: Props) {
+  const [created, setCreated] = useState<FunctionReturnType<typeof api.webhooks.actions.create> | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const { t } = useTranslation();
-
-  const handleCreateWebhook = async (formData: IWebhook, webhookEventType: TWebhookEventTypes) => {
-    if (!workspaceSlug) return;
-
-    let payload: Partial<IWebhook> = {
-      url: formData.url,
-    };
-
-    if (webhookEventType === "all")
-      payload = {
-        ...payload,
-        project: true,
-        cycle: true,
-        module: true,
-        issue: true,
-        issue_comment: true,
-      };
-    else
-      payload = {
-        ...payload,
-        project: formData.project ?? false,
-        cycle: formData.cycle ?? false,
-        module: formData.module ?? false,
-        issue: formData.issue ?? false,
-        issue_comment: formData.issue_comment ?? false,
-      };
-
-    await createWebhook(workspaceSlug.toString(), payload)
-      .then(({ webHook, secretKey }) => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("workspace_settings.settings.webhooks.toasts.created.title"),
-          message: t("workspace_settings.settings.webhooks.toasts.created.message"),
-        });
-
-        setGeneratedKey(webHook);
-
-        const csvData = getCurrentHookAsCSV(currentWorkspace, webHook, secretKey ?? undefined);
-        csvDownload(csvData, `webhook-secret-key-${Date.now()}`);
-      })
-      .catch((error) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("workspace_settings.settings.webhooks.toasts.not_created.title"),
-          message: error?.error ?? t("workspace_settings.settings.webhooks.toasts.not_created.message"),
-        });
-      });
+  const close = () => {
+    if (!pending) onClose();
   };
-
-  const handleClose = () => {
-    onClose();
-    setTimeout(() => {
-      clearSecretKey();
-      setGeneratedKey(null);
-    }, 350);
-  };
-
   return (
     <ModalCore
-      isOpen={isOpen}
+      isOpen
       handleClose={() => {
-        if (!generatedWebhook) handleClose();
+        if (!created) close();
       }}
       position={EModalPosition.TOP}
       width={EModalWidth.XXL}
       className="p-4 pb-0"
     >
-      {!generatedWebhook ? (
-        <WebhookForm onSubmit={handleCreateWebhook} handleClose={handleClose} />
+      <Dialog.Title className="sr-only">{t("workspace_settings.settings.webhooks.modal.title")}</Dialog.Title>
+      {downloadError && (
+        <p role="alert" className="text-13 text-danger-primary">
+          {downloadError}
+        </p>
+      )}
+      {created ? (
+        <GeneratedHookDetails
+          workspace={workspace}
+          created={created}
+          handleClose={close}
+          onPendingChange={setPending}
+        />
       ) : (
-        <GeneratedHookDetails webhookDetails={generatedWebhook} handleClose={handleClose} />
+        <WebhookForm
+          workspace={workspace}
+          options={options}
+          handleClose={close}
+          onCreated={(result) => {
+            setCreated(result);
+            try {
+              csvDownload(
+                getCurrentHookAsCSV(workspace, result.webhook, result.secretKey),
+                `webhook-secret-key-${Date.now()}`
+              );
+            } catch {
+              setDownloadError("Webhook created. CSV download failed; copy the key below.");
+            }
+          }}
+          onPendingChange={setPending}
+        />
       )}
     </ModalCore>
   );

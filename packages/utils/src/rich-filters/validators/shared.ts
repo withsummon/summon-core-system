@@ -7,7 +7,6 @@
 // plane imports
 import type { TFilterGroupNode, TFilterProperty } from "@plane/types";
 // local imports
-import { getGroupChildren } from "../types/shared";
 
 /**
  * Determines if a group should be unwrapped based on the number of children and group type.
@@ -16,7 +15,7 @@ import { getGroupChildren } from "../types/shared";
  * @returns True if the group should be unwrapped, false otherwise
  */
 export const shouldUnwrapGroup = <P extends TFilterProperty>(group: TFilterGroupNode<P>, _preserveNotGroups = true) => {
-  const children = getGroupChildren(group);
+  const children = group.children;
 
   // Never unwrap groups with multiple children
   if (children.length !== 1) {

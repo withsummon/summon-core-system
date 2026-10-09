@@ -23,7 +23,7 @@ import {
   DEFAULT_APP_RAIL_PREFERENCES,
 } from "@plane/types";
 import { useWorkspace } from "./store/use-workspace";
-import useLocalStorage from "./use-local-storage";
+import { useLocalStorage } from "@plane/hooks";
 
 const APP_RAIL_PREFERENCES_KEY = "app_rail_preferences";
 

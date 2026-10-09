@@ -5,8 +5,10 @@
  */
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 // ui
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
@@ -86,28 +88,63 @@ export function ArchiveRestoreProjectModal(props: Props) {
   };
 
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.LG}>
+    <ArchiveRestoreDialog
+      name={projectDetails.name}
+      isOpen={isOpen}
+      onClose={handleClose}
+      archive={archive}
+      loading={isLoading}
+      onConfirm={archive ? handleArchiveProject : handleRestoreProject}
+    />
+  );
+}
+export function ArchiveRestoreDialog({
+  name,
+  isOpen,
+  onClose,
+  archive,
+  loading,
+  onConfirm,
+  error,
+  canConfirm = true,
+  description,
+}: {
+  name: string;
+  isOpen: boolean;
+  onClose: () => void;
+  archive: boolean;
+  loading: boolean;
+  onConfirm: () => void;
+  error?: string;
+  canConfirm?: boolean;
+  description?: ReactNode;
+}) {
+  const close = () => {
+    if (!loading) onClose();
+  };
+  return (
+    <ModalCore isOpen={isOpen} handleClose={close} position={EModalPosition.CENTER} width={EModalWidth.LG}>
       <div className="px-5 py-4">
-        <h3 className="text-18 font-medium 2xl:text-20">
-          {archive ? "Archive" : "Restore"} {projectDetails.name}
-        </h3>
-        <p className="mt-3 text-13 text-secondary">
-          {archive
-            ? "This project and its work items, cycles, modules, and pages will be archived. Its work items won't appear in search. Only project admins can restore the project."
-            : "Restoring a project will activate it and make it visible to all members of the project. Are you sure you want to continue?"}
-        </p>
+        <Dialog.Title className="text-18 font-medium 2xl:text-20">
+          {archive ? "Archive" : "Restore"} {name}
+        </Dialog.Title>
+        <Dialog.Description className="mt-3 text-13 text-secondary">
+          {description ??
+            (archive
+              ? "This project and its work items, cycles, modules, and pages will be archived. Its work items won't appear in search. Only project admins can restore the project."
+              : "Restoring a project will activate it and make it visible to all members of the project. Are you sure you want to continue?")}
+        </Dialog.Description>
+        {error && (
+          <p role="alert" className="text-danger-primary">
+            {error}
+          </p>
+        )}
         <div className="mt-3 flex justify-end gap-2">
-          <Button variant="secondary" size="lg" onClick={onClose}>
+          <Button variant="secondary" size="lg" onClick={close} disabled={loading}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            tabIndex={1}
-            onClick={archive ? handleArchiveProject : handleRestoreProject}
-            loading={isLoading}
-          >
-            {archive ? (isLoading ? "Archiving" : "Archive") : isLoading ? "Restoring" : "Restore"}
+          <Button variant="primary" size="lg" onClick={onConfirm} loading={loading} disabled={loading || !canConfirm}>
+            {archive ? (loading ? "Archiving" : "Archive") : loading ? "Restoring" : "Restore"}
           </Button>
         </div>
       </div>

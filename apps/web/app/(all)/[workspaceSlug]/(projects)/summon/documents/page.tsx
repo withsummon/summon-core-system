@@ -4,9 +4,22 @@
  */
 
 import { DocumentsRoot } from "@/components/summon/documents";
-import type { Route } from "./+types/page";
+import { useOutletContext } from "react-router";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 
-export default function SummonDocumentsPage({ params }: Route.ComponentProps) {
-  const workspaceSlug = params.workspaceSlug;
-  return <DocumentsRoot workspaceSlug={workspaceSlug} />;
+export default function SummonDocumentsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const commands = useStickiesCommands();
+  return (
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      <DocumentsRoot workspaceSlug={session.workspace.slug} />
+    </PreservedWorkspaceShell>
+  );
 }

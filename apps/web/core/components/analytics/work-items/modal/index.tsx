@@ -4,68 +4,66 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
-import { observer } from "mobx-react";
-// plane package imports
-import { ModalPortal, EPortalWidth, EPortalPosition } from "@plane/propel/portal";
-import type { ICycle, IModule, IProject } from "@plane/types";
-import { useAnalytics } from "@/hooks/store/use-analytics";
-// plane web components
+import { useEffect, useState } from "react";
+import { Dialog } from "@plane/propel/dialog";
+import type { AnalyticsScope } from "../../analytics-wrapper";
 import { WorkItemsModalMainContent } from "./content";
 import { WorkItemsModalHeader } from "./header";
-
-type Props = {
+export function WorkItemsModal({
+  isOpen,
+  onClose,
+  scope,
+  title,
+  workspaceSlug,
+}: {
   isOpen: boolean;
   onClose: () => void;
-  projectDetails?: IProject | undefined;
-  cycleDetails?: ICycle | undefined;
-  moduleDetails?: IModule | undefined;
-  isEpic?: boolean;
-};
-
-export const WorkItemsModal = observer(function WorkItemsModal(props: Props) {
-  const { isOpen, onClose, projectDetails, moduleDetails, cycleDetails, isEpic } = props;
-  const { updateIsEpic, isPeekView } = useAnalytics();
+  scope: AnalyticsScope;
+  title: string;
+  workspaceSlug: string;
+}) {
+  const [generation, setGeneration] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    const refresh = () => setGeneration((current) => current + 1);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
+  }, [isOpen]);
   const [fullScreen, setFullScreen] = useState(false);
-
-  const handleClose = () => {
+  const close = () => {
     setFullScreen(false);
     onClose();
   };
-
-  useEffect(() => {
-    updateIsEpic(isPeekView ? (isEpic ?? false) : false);
-  }, [isEpic, updateIsEpic, isPeekView]);
-
   return (
-    <ModalPortal
-      isOpen={isOpen}
-      onClose={handleClose}
-      width={fullScreen ? EPortalWidth.FULL : EPortalWidth.THREE_QUARTER}
-      position={EPortalPosition.RIGHT}
-      fullScreen={fullScreen}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
     >
-      <div
-        className={`flex h-full flex-col overflow-hidden border-subtle bg-surface-1 text-left ${
-          fullScreen ? "rounded-lg border" : "border-l"
-        }`}
+      <Dialog.Panel
+        className={`fixed top-0 right-0 left-auto flex h-dvh max-h-dvh w-full translate-x-0 translate-y-0 flex-col overflow-hidden rounded-none border-subtle bg-surface-1 text-left sm:max-w-none ${fullScreen ? "sm:w-full" : "border-l sm:w-3/4"}`}
       >
         <WorkItemsModalHeader
+          title={title}
           fullScreen={fullScreen}
-          handleClose={handleClose}
+          handleClose={close}
           setFullScreen={setFullScreen}
-          title={projectDetails?.name ?? ""}
-          cycle={cycleDetails}
-          module={moduleDetails}
+          onRefresh={() => setGeneration((current) => current + 1)}
         />
-        <WorkItemsModalMainContent
-          fullScreen={fullScreen}
-          projectDetails={projectDetails}
-          cycleDetails={cycleDetails}
-          moduleDetails={moduleDetails}
-          isEpic={isEpic}
-        />
-      </div>
-    </ModalPortal>
+        {isOpen && (
+          <WorkItemsModalMainContent
+            scope={scope}
+            generation={generation}
+            workspaceSlug={workspaceSlug}
+            fullScreen={fullScreen}
+          />
+        )}
+      </Dialog.Panel>
+    </Dialog>
   );
-});
+}

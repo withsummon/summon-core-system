@@ -5,37 +5,40 @@
  */
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
-// plane imports
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Header, EHeaderVariant } from "@plane/ui";
 import { cn } from "@plane/utils";
+import type { ProfileTab } from "./header";
 
-type Props = {
-  isAuthorized: boolean;
-};
-
-export function ProfileNavbar(props: Props) {
-  const { isAuthorized } = props;
+export function ProfileNavbar({
+  workspaceSlug,
+  subject,
+  activeTab,
+}: {
+  workspaceSlug: string;
+  subject: FunctionReturnType<typeof api.tasks.profile.subject>;
+  activeTab: ProfileTab;
+}) {
   const { t } = useTranslation();
-  const { workspaceSlug, userId } = useParams();
-  const pathname = usePathname();
-
-  const tabsList = isAuthorized ? [...PROFILE_VIEWER_TAB, ...PROFILE_ADMINS_TAB] : PROFILE_VIEWER_TAB;
-
+  const tabs = subject.canViewTaskTabs ? [...PROFILE_VIEWER_TAB, ...PROFILE_ADMINS_TAB] : PROFILE_VIEWER_TAB;
   return (
     <Header variant={EHeaderVariant.SECONDARY} showOnMobile={false}>
       <div className="flex items-center overflow-x-scroll">
-        {tabsList.map((tab) => (
-          <Link key={tab.route} href={`/${workspaceSlug}/profile/${userId}/${tab.route}`}>
+        {tabs.map((tab) => (
+          <Link
+            key={tab.route}
+            href={`/${workspaceSlug}/profile/${subject.userId}/${tab.route}`}
+            aria-current={activeTab.key === tab.key ? "page" : undefined}
+          >
             <span
               className={cn(
-                `flex border-b-2 p-4 text-13 font-medium whitespace-nowrap text-tertiary outline-none hover:text-primary ${
-                  pathname === `/${workspaceSlug}/profile/${userId}${tab.selected}`
-                    ? "border-accent-strong text-accent-primary hover:text-accent-primary"
-                    : "border-transparent"
-                }`
+                "flex border-b-2 p-4 text-13 font-medium whitespace-nowrap text-tertiary outline-none hover:text-primary",
+                activeTab.key === tab.key
+                  ? "border-accent-strong text-accent-primary hover:text-accent-primary"
+                  : "border-transparent"
               )}
             >
               {t(tab.i18n_label)}

@@ -4,137 +4,109 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect } from "react";
-import { observer } from "mobx-react";
-import { useRouter } from "next/navigation";
-// plane package imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router";
 import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { Button } from "@plane/propel/button";
 import { Tabs } from "@plane/propel/tabs";
-// components
-import { cn } from "@plane/utils";
-import AnalyticsFilterActions from "@/components/analytics/analytics-filter-actions";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import type { Id } from "@summon/convex/data-model";
+import { NativeProjectCreateContext, type WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
-// hooks
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useProject } from "@/hooks/store/use-project";
-import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserPermissions } from "@/hooks/store/user";
-import { useAnalyticsTabs } from "@/components/analytics/use-analytics-tabs";
+import AnalyticsFilterActions from "@/components/analytics/analytics-filter-actions";
+import { AnalyticsError, readProjects, useAnalyticsReport } from "@/components/analytics/analytics-wrapper";
+import { Overview } from "@/components/analytics/overview";
+import { WorkItems } from "@/components/analytics/work-items";
 import type { Route } from "./+types/page";
-
-function AnalyticsPage({ params }: Route.ComponentProps) {
-  const { tabId } = params;
-
-  // hooks
-  const router = useRouter();
-
-  // plane imports
+export default function AnalyticsPage({ params }: Route.ComponentProps) {
+  const session = useOutletContext<WorkspaceSession>();
+  const create = useContext(NativeProjectCreateContext);
+  const navigate = useNavigate();
   const { t } = useTranslation();
-
-  // store hooks
-  const { toggleCreateProjectModal } = useCommandPalette();
-  const { workspaceProjectIds, loader } = useProject();
-  const { currentWorkspace } = useWorkspace();
-  const { allowPermissions } = useUserPermissions();
-
-  const pageTitle = currentWorkspace?.name
-    ? t(`workspace_analytics.page_label`, { workspace: currentWorkspace?.name })
-    : undefined;
-
-  // permissions
-  const canPerformEmptyStateActions = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-
-  const workspaceSlug = params.workspaceSlug;
-  const ANALYTICS_TABS = useAnalyticsTabs(workspaceSlug.toString());
-
-  const [selectedTab, setSelectedTab] = useState(tabId || ANALYTICS_TABS[0]?.key);
-
+  const [generation, setGeneration] = useState(0);
   useEffect(() => {
-    if (tabId) {
-      setSelectedTab(tabId);
-    }
-  }, [tabId]);
-
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    setSelectedTab(value);
-    router.push(`/${currentWorkspace?.slug}/analytics/${value}`);
-  };
-
+    const refresh = () => setGeneration((current) => current + 1);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
+  }, []);
+  const [selected, setSelected] = useState<Id<"projects">[]>([]);
+  const read = useCallback(
+    (client: Parameters<typeof readProjects>[0], signal: AbortSignal) =>
+      readProjects(client, session.workspace._id, signal),
+    [session.workspace._id]
+  );
+  const report = useAnalyticsReport(read, JSON.stringify([generation, session.workspace.membershipRole]));
+  const projects = report.data?.filter((project) => project.joined && !project.archived);
+  const scope = useMemo(
+    () => ({ workspaceId: session.workspace._id, projectIds: selected, focus: null }),
+    [session.workspace._id, selected]
+  );
+  const tab = params.tabId === "work-items" ? "work-items" : "overview";
   return (
     <>
-      <PageHead title={pageTitle} />
-      {workspaceProjectIds && (
-        <>
-          {workspaceProjectIds.length > 0 || loader === "init-loader" ? (
-            <div className="flex h-full overflow-hidden">
-              <Tabs value={selectedTab} onValueChange={handleTabChange} className="h-full w-full">
-                <div className={"flex h-full w-full flex-col"}>
-                  <div
-                    className={cn(
-                      "flex w-full items-center justify-between gap-4 overflow-hidden border-b border-subtle bg-surface-1 px-6 py-2"
-                    )}
-                  >
-                    <Tabs.List className={"flex h-7 w-fit overflow-x-auto"}>
-                      {ANALYTICS_TABS.map((tab) => (
-                        <Tabs.Trigger
-                          key={tab.key}
-                          value={tab.key}
-                          disabled={tab.isDisabled}
-                          size="md"
-                          className="h-6 px-3"
-                          onClick={() => {
-                            if (!tab.isDisabled) {
-                              handleTabChange(tab.key);
-                            }
-                          }}
-                        >
-                          {tab.label}
-                        </Tabs.Trigger>
-                      ))}
-                    </Tabs.List>
-
-                    <div className="flex-shrink-0">
-                      <AnalyticsFilterActions />
-                    </div>
-                  </div>
-                  {ANALYTICS_TABS.map((tab) => (
-                    <Tabs.Content
-                      key={tab.key}
-                      value={tab.key}
-                      className={"h-full overflow-hidden overflow-y-auto px-2"}
-                    >
-                      <tab.content />
-                    </Tabs.Content>
-                  ))}
-                </div>
-              </Tabs>
+      <PageHead title={t("workspace_analytics.page_label", { workspace: session.workspace.name })} />
+      <AnalyticsError error={report.error} />
+      {report.data && !report.data.some((project) => !project.archived) ? (
+        <EmptyStateDetailed
+          assetKey="project"
+          title={t("workspace_projects.empty_state.no_projects.title")}
+          description={t("workspace_projects.empty_state.no_projects.description")}
+          actions={[
+            { label: "Create a project", onClick: () => create?.(), disabled: !create },
+            { label: "Refresh analytics", onClick: () => setGeneration((current) => current + 1) },
+          ]}
+        />
+      ) : (
+        <Tabs
+          value={tab}
+          onValueChange={(value) => navigate(`/${session.workspace.slug}/analytics/${value}`)}
+          className="h-full w-full"
+        >
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-subtle bg-surface-1 px-6 py-2">
+              <Tabs.List className="h-7 w-fit">
+                <Tabs.Trigger value="overview" size="md">
+                  {t("common.overview")}
+                </Tabs.Trigger>
+                <Tabs.Trigger value="work-items" size="md">
+                  {t("sidebar.work_items")}
+                </Tabs.Trigger>
+              </Tabs.List>
+              <div className="flex flex-wrap items-center gap-2">
+                {projects && <AnalyticsFilterActions projects={projects} value={selected} onChange={setSelected} />}
+                <Button variant="secondary" size="sm" onClick={() => setGeneration((current) => current + 1)}>
+                  Refresh analytics
+                </Button>
+              </div>
             </div>
-          ) : (
-            <EmptyStateDetailed
-              assetKey="project"
-              title={t("workspace_projects.empty_state.no_projects.title")}
-              description={t("workspace_projects.empty_state.no_projects.description")}
-              actions={[
-                {
-                  label: "Create a project",
-                  onClick: () => {
-                    toggleCreateProjectModal(true);
-                  },
-                  disabled: !canPerformEmptyStateActions,
-                },
-              ]}
-            />
-          )}
-        </>
+            <p role="status" className="px-6 py-2 text-12 text-secondary">
+              {report.isLoading
+                ? "Loading project choices…"
+                : "Paginated report · Refresh for updated results. Changes during loading may affect totals."}
+            </p>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {tab === "overview" ? (
+                <Overview
+                  key={JSON.stringify([scope, session.workspace.membershipRole])}
+                  scope={scope}
+                  generation={generation}
+                />
+              ) : (
+                <WorkItems
+                  key={JSON.stringify([scope, session.workspace.membershipRole])}
+                  scope={scope}
+                  generation={generation}
+                  workspaceSlug={session.workspace.slug}
+                />
+              )}
+            </div>
+          </div>
+        </Tabs>
       )}
     </>
   );
 }
-
-export default observer(AnalyticsPage);

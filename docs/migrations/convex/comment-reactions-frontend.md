@@ -1,0 +1,13 @@
+# Internal comment reaction frontend
+
+`tasks/reactions/panel.tsx` now owns the existing task reaction presentation, picker, pending/error state and actor-row pagination. `reactions.tsx` contains two thin generated-API consumers: task and comment. There is no duplicated reaction toggle state machine or local reaction cache. A selected picker code sets the actor's desired state to active; Remove sets it inactive. The backend owns idempotence and actor identity.
+
+`tasks/comments.tsx` embeds comment reactions only for nondeleted comment rows. The comment ID and enclosing canonical task ID are sent together. Read-only archived rows use server canReact=false, and no controls infer author/admin authority locally. Individual actor rows are displayed rather than page-local aggregate counts. Deleted comment recovery does not query its hidden reactions; restored comments mount the canonical query again.
+
+The public backend owner supplies actorName/isMine and validates decimal Unicode reaction codes. The UI reuses the existing EmojiReactionPicker and stringToEmoji component owners. Generic task reaction behavior is retained by the same panel; the task-detail integration was not changed by this slice.
+
+Verification: native web TS7, scoped Oxlint and Oxfmt passed. All 32 existing module-local frontend behavior tests passed. The four backend comment-reaction scenarios plus seven task-reaction/link scenarios cover the actual authorization/idempotence/lifecycle boundary. No artificial helper or snapshot-only test was introduced solely to mirror the shared JSX. Parent-owned Chrome acceptance must exercise add/remove, another actor, archive/deletion and restoration; this receipt does not assert those browser interactions were run. During development HMR may reset an open form and is not production concurrency evidence.
+
+Remaining: reaction aggregate counts/full actor tooltip projections, public-board routes, legacy arbitrary reaction strings, specific activity/email wording and REST compatibility. Focused notification comment previews remain content-only; the normal comment row owns interaction. Current query failure ordering on concurrent comment deletion should be observed in browser acceptance: a rejected child query must not turn a benign removed comment into loss of the whole task view.
+
+Chrome acceptance on 2026-09-27: project guest added a reaction to an owner comment on the guest-created NSTAR-5 task. The owner saw it live. Owner soft-delete removed the comment/reaction in both tabs without losing the task view; restore returned both. Guest removed their own reaction and both tabs updated. Archive behavior remains BDD evidence only. Root reran all 11 comment/task reaction and link tests successfully.

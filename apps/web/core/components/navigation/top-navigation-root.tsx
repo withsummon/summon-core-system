@@ -8,6 +8,7 @@
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@plane/utils";
+import { WorkspaceTopNavigation } from "./workspace-top-navigation";
 import { TopNavPowerK } from "@/components/navigation";
 import { SummonThemeToggle } from "@/components/summon/theme-toggle";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
@@ -48,45 +49,36 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
     : unreadNotificationsCount.total_unread_notifications_count;
 
   return (
-    <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
-        "px-2": !showLabel,
-      })}
-    >
-      <div className={cn("mr-1", !sidebarCollapsed && "md:hidden")}>
-        <AppSidebarToggleButton />
-      </div>
-      {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
-        <WorkspaceMenuRoot variant="top-navigation" />
-      </div>
-      {/* Power K Search */}
-      <div className="shrink-0">
-        <TopNavPowerK />
-      </div>
-      {/* Additional Actions */}
-      <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
-        <Link
-          href={`/${workspaceSlug?.toString()}/notifications/`}
-          aria-label="Inbox"
-          title="Inbox"
-          className={cn("grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover", {
-            "bg-layer-transparent-selected text-secondary": pathname?.includes("/notifications/"),
-          })}
-        >
-          <span className="relative">
-            <InboxIcon className="size-5" />
-            {totalNotifications > 0 && (
-              <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
-            )}
-          </span>
-        </Link>
-        <HelpMenuRoot />
-        <SummonThemeToggle onChange={(theme) => updateUserTheme({ theme })} />
-        <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
-          <UserMenuRoot />
-        </div>
-      </div>
-    </div>
+    <WorkspaceTopNavigation
+      showLabel={showLabel}
+      sidebarCollapsed={sidebarCollapsed}
+      sidebarToggle={<AppSidebarToggleButton />}
+      workspaceMenu={<WorkspaceMenuRoot variant="top-navigation" />}
+      powerK={<TopNavPowerK />}
+      actions={
+        <>
+          <Link
+            href={`/${workspaceSlug?.toString()}/notifications/`}
+            aria-label="Inbox"
+            title="Inbox"
+            className={cn("grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover", {
+              "bg-layer-transparent-selected text-secondary": pathname?.includes("/notifications/"),
+            })}
+          >
+            <span className="relative">
+              <InboxIcon className="size-5" />
+              {totalNotifications > 0 && (
+                <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
+              )}
+            </span>
+          </Link>
+          <HelpMenuRoot />
+          <SummonThemeToggle onChange={(theme) => updateUserTheme({ theme })} />
+          <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
+            <UserMenuRoot />
+          </div>
+        </>
+      }
+    />
   );
 });

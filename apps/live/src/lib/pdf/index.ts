@@ -17,7 +17,6 @@ export type {
   PDFMarkRenderer,
   PDFNodeRenderer,
   PDFRenderContext,
-  PDFUserMention,
   TipTapDocument,
   TipTapMark,
   TipTapNode,

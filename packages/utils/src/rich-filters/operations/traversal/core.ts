@@ -16,7 +16,6 @@ import type {
 } from "@plane/types";
 // local imports
 import { isConditionNode, isGroupNode } from "../../types/core";
-import { getGroupChildren } from "../../types/shared";
 import { getDisplayOperator } from "./shared";
 
 /**
@@ -77,7 +76,7 @@ export const traverseExpressionTree = <P extends TFilterProperty, T>(
 
   // Recursively traverse children for group nodes
   if (isGroupNode(expression)) {
-    const children = getGroupChildren(expression);
+    const children = expression.children;
     for (const child of children) {
       const childResults = traverseExpressionTree(child, visitor, mode, expression, depth + 1);
       results.push(...childResults);
@@ -122,7 +121,7 @@ export const findParentChain = <P extends TFilterProperty>(
 ): TFilterGroupNode<P>[] | null => {
   // if the expression is a group, search in the children
   if (isGroupNode(expression)) {
-    const children = getGroupChildren(expression);
+    const children = expression.children;
 
     // check if any direct child has the target ID
     for (const child of children) {
@@ -188,10 +187,7 @@ export const extractConditionsWithDisplayOperators = <P extends TFilterProperty>
   // Transform operators using the extended helper
   return rawConditions.map((condition) => {
     const displayOperator = getDisplayOperator(condition.operator, expression, condition.id);
-    return {
-      ...condition,
-      operator: displayOperator,
-    };
+    return Object.assign({}, condition, { operator: displayOperator });
   });
 };
 

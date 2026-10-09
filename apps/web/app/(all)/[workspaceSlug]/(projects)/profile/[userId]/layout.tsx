@@ -3,96 +3,147 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useOutletContext } from "react-router";
+import { useQuery } from "convex/react";
 import { observer } from "mobx-react";
-import { usePathname } from "next/navigation";
-import { Outlet } from "react-router";
-import useSWR from "swr";
-// components
-import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { usePaginatedQuery } from "convex-helpers/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { ProfileSidebar } from "@/components/profile/sidebar";
-// constants
-import { USER_PROFILE_PROJECT_SEGREGATION } from "@plane/constants";
-// hooks
-import { useUserPermissions } from "@/hooks/store/user";
-import useSize from "@/hooks/use-window-size";
-// local components
-import { UserService } from "@/services/user.service";
+import { ProfileIssuesFilter, useProfileTaskControls } from "@/components/profile/profile-issues-filter";
+import type { ProfileSummary } from "@/components/profile/overview/stats";
+import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import type { Route } from "./+types/layout";
 import { UserProfileHeader } from "./header";
-import { ProfileIssuesMobileHeader } from "./mobile-header";
 import { ProfileNavbar } from "./navbar";
 
-const userService = new UserService();
+// Route context carries the generated owner result and the native query state.
+export type ProfileSession = WorkspaceSession & {
+  subject: FunctionReturnType<typeof api.tasks.profile.subject>;
+  summary: ProfileSummary;
+  taskControls: ReturnType<typeof useProfileTaskControls>;
+};
 
-function UseProfileLayout({ params }: Route.ComponentProps) {
-  // router
-  const { workspaceSlug, userId } = params;
-  const pathname = usePathname();
-  // store hooks
-  const { allowPermissions } = useUserPermissions();
+export default observer(function ProfileLayout({ params }: Route.ComponentProps) {
+  const session = useOutletContext<WorkspaceSession>();
+  const { pathname } = useLocation();
   const { t } = useTranslation();
-  // derived values
-  const isAuthorized = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
+  const commands = useStickiesCommands();
+  const [collapsed, setCollapsed] = useState(true);
+  const taskControls = useProfileTaskControls(session.workspace._id, session.workspace.slug);
+  const subject = useQuery(api.tasks.profile.subject, {
+    workspaceId: session.workspace._id,
+    userId: params.userId,
+  });
+  const contributions = usePaginatedQuery(
+    api.tasks.profile.summary,
+    subject ? { workspaceId: session.workspace._id, userId: subject.userId } : "skip",
+    { initialNumItems: 100 }
   );
-
-  const windowSize = useSize();
-  const isSmallerScreen = windowSize[0] >= 768;
-
-  const { data: userProjectsData } = useSWR(USER_PROFILE_PROJECT_SEGREGATION(workspaceSlug, userId), () =>
-    userService.getUserProfileProjectsSegregation(workspaceSlug, userId)
+  const { status, loadMore } = contributions;
+  useEffect(() => {
+    if (status === "CanLoadMore") loadMore(100);
+  }, [status, loadMore]);
+  const projects = new Map<ProfileSummary["results"][number]["projectId"], ProfileSummary["results"][number]>();
+  for (const contribution of contributions.results) {
+    const project = projects.get(contribution.projectId);
+    if (!project) {
+      projects.set(contribution.projectId, {
+        ...contribution,
+        statusDistribution: contribution.statusDistribution.map((item) => ({ ...item })),
+        priorityDistribution: contribution.priorityDistribution.map((item) => ({ ...item })),
+      });
+      continue;
+    }
+    project.createdCount += contribution.createdCount;
+    project.assignedCount += contribution.assignedCount;
+    project.subscribedCount += contribution.subscribedCount;
+    project.completedByTimestamp += contribution.completedByTimestamp;
+    project.completedCount += contribution.completedCount;
+    project.pendingCount += contribution.pendingCount;
+    project.statusDistribution.forEach((item) => {
+      item.count += contribution.statusDistribution.reduce(
+        (total, next) => total + (next.status === item.status ? next.count : 0),
+        0
+      );
+    });
+    project.priorityDistribution.forEach((item) => {
+      item.count += contribution.priorityDistribution.reduce(
+        (total, next) => total + (next.priority === item.priority ? next.count : 0),
+        0
+      );
+    });
+  }
+  const summary = { ...contributions, results: [...projects.values()] };
+  const prefix = `/${session.workspace.slug}/profile/${params.userId}`;
+  const activeTab = [...PROFILE_VIEWER_TAB, ...PROFILE_ADMINS_TAB].find(
+    (tab) => pathname.replace(/\/$/, "") === `${prefix}${tab.selected}`.replace(/\/$/, "")
   );
-  // derived values
-  const isAuthorizedPath =
-    pathname.includes("assigned") || pathname.includes("created") || pathname.includes("subscribed");
-  const isIssuesTab = pathname.includes("assigned") || pathname.includes("created") || pathname.includes("subscribed");
-
-  const tabsList = isAuthorized ? [...PROFILE_VIEWER_TAB, ...PROFILE_ADMINS_TAB] : PROFILE_VIEWER_TAB;
-  const currentTab = tabsList.find((tab) => pathname === `/${workspaceSlug}/profile/${userId}${tab.selected}`);
-
+  const context = subject ? { ...session, subject, summary, taskControls } : undefined;
   return (
-    <>
-      {/* Passing the type prop from the current route value as we need the header as top most component.
-            TODO: We are depending on the route path to handle the mobile header type. If the path changes, this logic will break. */}
-      <div className="flex h-full w-full flex-col overflow-hidden md:flex-row">
-        <div className="flex h-full w-full flex-col overflow-hidden">
-          <AppHeader
-            header={
-              <UserProfileHeader
-                type={currentTab?.i18n_label}
-                userProjectsData={userProjectsData}
-                showProfileIssuesFilter={isIssuesTab}
-              />
-            }
-            mobileHeader={isIssuesTab && <ProfileIssuesMobileHeader />}
-          />
-          <ContentWrapper>
-            <div className="flex h-full w-full flex-row md:flex-col md:overflow-hidden">
-              <div className="flex w-full flex-col md:h-full md:overflow-hidden">
-                <ProfileNavbar isAuthorized={!!isAuthorized} />
-                {isAuthorized || !isAuthorizedPath ? (
-                  <div className={`h-full w-full overflow-hidden`}>
-                    <Outlet />
+    <PreservedWorkspaceShell
+      {...session}
+      onCreateSticky={commands.create}
+      onOpenStickies={commands.openAll}
+      beforeLeave={commands.flushAll}
+    >
+      {!context ? (
+        <p role="status" className="p-6">
+          {t("loading")}
+        </p>
+      ) : !activeTab ? (
+        <p role="alert" className="p-6">
+          Profile view not found.
+        </p>
+      ) : (
+        <div className="flex size-full min-h-0 min-w-0 overflow-hidden md:flex-row">
+          <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+            <AppHeader
+              header={
+                <UserProfileHeader
+                  workspaceSlug={session.workspace.slug}
+                  subject={context.subject}
+                  activeTab={activeTab}
+                  collapsed={collapsed}
+                  onToggle={() => setCollapsed((value) => !value)}
+                  filters={
+                    activeTab.key !== "summary" && activeTab.key !== "activity" && context.subject.canViewTaskTabs ? (
+                      <ProfileIssuesFilter controls={taskControls} />
+                    ) : undefined
+                  }
+                />
+              }
+            />
+            <ContentWrapper>
+              <div className="flex size-full flex-col overflow-hidden">
+                <ProfileNavbar workspaceSlug={session.workspace.slug} subject={context.subject} activeTab={activeTab} />
+                {context.subject.canViewTaskTabs || activeTab.key === "summary" ? (
+                  <div className="h-full w-full overflow-hidden">
+                    <Outlet context={context} />
                   </div>
                 ) : (
-                  <div className="grid h-full w-full place-items-center text-secondary">
+                  <div className="grid size-full place-items-center text-secondary">
                     {t("you_do_not_have_the_permission_to_access_this_page")}
                   </div>
                 )}
               </div>
-              {!isSmallerScreen && <ProfileSidebar userProjectsData={userProjectsData} />}
-            </div>
-          </ContentWrapper>
+            </ContentWrapper>
+          </div>
+          <ProfileSidebar
+            subject={context.subject}
+            summary={summary}
+            collapsed={collapsed}
+            onClose={() => setCollapsed(true)}
+          />
         </div>
-        {isSmallerScreen && <ProfileSidebar userProjectsData={userProjectsData} />}
-      </div>
-    </>
+      )}
+    </PreservedWorkspaceShell>
   );
-}
-
-export default observer(UseProfileLayout);
+});

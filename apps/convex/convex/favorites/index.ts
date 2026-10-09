@@ -1,0 +1,163 @@
+import { changeFavoriteDeleted, insertFavorite, validateSequence, nextSequence } from "./write";
+import { requireWorkspace } from "../identity/access";
+import { ConvexError, v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
+import { mutation, query } from "../_generated/server";
+import { pageBudget } from "../commercial/validation";
+import { favoriteTarget } from "./schema";
+import { visibleTarget, targetKey, requireViewFavoriteManagement } from "./targets";
+import {
+  favoriteAccess,
+  ownFavorite,
+  ancestors,
+  revision,
+  updateHeights,
+  favoriteRemoved,
+  effectiveFavorite,
+} from "./access";
+function validateName(name: string | null) {
+  if (name !== null && name.length > 255) throw new ConvexError("Favorite name must be at most 255 characters.");
+}
+export const access = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { member } = await requireWorkspace(ctx, args.workspaceId);
+    return { canManage: member.role !== "guest", maxDepth: 20, canManageViews: true };
+  },
+});
+export const list = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    parentId: v.union(v.id("favorites"), v.null()),
+    deleted: v.boolean(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { user, member } = await favoriteAccess(ctx, args.workspaceId);
+    const chain = await ancestors(ctx, { parentId: args.parentId, workspaceId: args.workspaceId, userId: user._id });
+    if (chain.some((row) => row.deletedAt !== null)) throw new ConvexError("Restore the parent folder first.");
+    const result = await ctx.db
+      .query("favorites")
+      .withIndex("by_owner_parent_order", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", user._id).eq("parentId", args.parentId)
+      )
+      .order("desc")
+      .paginate(pageBudget(args.paginationOpts));
+    const page = await Promise.all(
+      result.page.map(async (row) => {
+        const isRemoved = await favoriteRemoved(ctx, row);
+        if (isRemoved !== args.deleted) return null;
+        const target = await visibleTarget(ctx, row.target, member);
+        if (!target) return null;
+        return { ...row, isRemoved, entity: target, canManage: target.canFavorite };
+      })
+    );
+    return { ...result, page: page.filter((row) => row !== null) };
+  },
+});
+export const create = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    target: favoriteTarget,
+    name: v.union(v.string(), v.null()),
+    parentId: v.union(v.id("favorites"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const { user, member } = await favoriteAccess(ctx, args.workspaceId);
+    validateName(args.name);
+    const target = await visibleTarget(ctx, args.target, member);
+    if (!target?.canFavorite) throw new ConvexError("Favorite target is unavailable.");
+    const chain = await ancestors(ctx, { ...args, userId: user._id });
+    if (chain.length + 1 > 20 || chain.some((row) => row.deletedAt !== null))
+      throw new ConvexError("Choose an active folder within the 20-level limit.");
+    const key = targetKey(args.target);
+    if (key) {
+      const existing = await ctx.db
+        .query("favorites")
+        .withIndex("by_owner_target", (q) =>
+          q.eq("workspaceId", args.workspaceId).eq("userId", user._id).eq("targetKey", key)
+        )
+        .unique();
+      if (existing) {
+        if (
+          (await favoriteRemoved(ctx, existing)) ||
+          (await ancestors(ctx, existing)).some((item) => item.deletedAt !== null)
+        )
+          throw new ConvexError("Restore the existing favorite and its parent folder first.");
+        return existing._id;
+      }
+    }
+    const id = await insertFavorite(ctx, { ...args, userId: user._id, targetProjectId: target.projectId });
+    await updateHeights(ctx, chain);
+    return id;
+  },
+});
+export const update = mutation({
+  args: {
+    favoriteId: v.id("favorites"),
+    expectedUpdatedAt: v.number(),
+    name: v.union(v.string(), v.null()),
+    parentId: v.union(v.id("favorites"), v.null()),
+    sequence: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { row, member } = await ownFavorite(ctx, args.favoriteId);
+    await requireViewFavoriteManagement(ctx, row, member);
+    const updatedAt = revision(row, args.expectedUpdatedAt);
+    validateName(args.name);
+    validateSequence(args.sequence);
+    const oldChain = await ancestors(ctx, row);
+    const chain = await ancestors(ctx, { ...row, parentId: args.parentId }, row._id);
+    if (
+      (await favoriteRemoved(ctx, row)) ||
+      oldChain.some((item) => item.deletedAt !== null) ||
+      chain.some((item) => item.deletedAt !== null)
+    )
+      throw new ConvexError("Restore the favorite folder first.");
+    if (chain.length + row.height > 20) throw new ConvexError("Favorite folders cannot exceed 20 levels.");
+    const sequence =
+      row.parentId === args.parentId ? args.sequence : await nextSequence(ctx, { ...row, parentId: args.parentId });
+    await ctx.db.patch(row._id, { name: args.name, parentId: args.parentId, sequence, updatedAt });
+    await updateHeights(ctx, oldChain);
+    await updateHeights(ctx, chain);
+  },
+});
+export const lifecycle = mutation({
+  args: { favoriteId: v.id("favorites"), expectedUpdatedAt: v.number(), deleted: v.boolean() },
+  handler: async (ctx, args) => {
+    const { row, member } = await ownFavorite(ctx, args.favoriteId);
+    await requireViewFavoriteManagement(ctx, row, member);
+    revision(row, args.expectedUpdatedAt);
+    if ((await favoriteRemoved(ctx, row)) === args.deleted)
+      throw new ConvexError("Favorite lifecycle already changed.");
+    const chain = await ancestors(ctx, row);
+    if (chain.some((item) => item.deletedAt !== null)) throw new ConvexError("Restore the parent folder first.");
+    if (!args.deleted && !(await visibleTarget(ctx, row.target, member))?.canFavorite)
+      throw new ConvexError("Favorite target is unavailable.");
+    await changeFavoriteDeleted(ctx, row, args.deleted);
+  },
+});
+
+export const state = query({
+  args: { workspaceId: v.id("workspaces"), target: favoriteTarget },
+  handler: async (ctx, args) => {
+    const { user, member } = await favoriteAccess(ctx, args.workspaceId);
+    const key = targetKey(args.target);
+    if (!key) throw new ConvexError("Choose an entity to inspect its favorite state.");
+    const target = await visibleTarget(ctx, args.target, member);
+    if (!target) throw new ConvexError("Favorite target is unavailable.");
+    const favorite = await ctx.db
+      .query("favorites")
+      .withIndex("by_owner_target", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", user._id).eq("targetKey", key)
+      )
+      .unique();
+    const blockedByFolder = favorite ? (await ancestors(ctx, favorite)).some((row) => row.deletedAt !== null) : false;
+    return {
+      favorite,
+      isFavorite: await effectiveFavorite(ctx, favorite),
+      blockedByFolder,
+      canFavorite: target.canFavorite,
+    };
+  },
+});

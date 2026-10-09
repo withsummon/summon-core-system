@@ -9,6 +9,8 @@ import { observer } from "mobx-react";
 // plane imports
 import { stringToEmoji } from "@plane/propel/emoji-icon-picker";
 import { EmojiReactionGroup, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
+import { AddReactionIcon } from "@plane/propel/icons";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import type { EmojiReactionType } from "@plane/propel/emoji-reaction";
 import type { TCommentsOperations, TIssueComment } from "@plane/types";
 // helpers
@@ -72,22 +74,24 @@ export const CommentReactions = observer(function CommentReactions(props: TProps
   const showAddButton = !disabled && reactions.length > 0;
 
   return (
-    <div className="relative">
-      <EmojiReactionPicker
-        isOpen={isPickerOpen}
-        handleToggle={setIsPickerOpen}
-        onChange={handleEmojiSelect}
+    <div className="relative flex flex-wrap items-center gap-2">
+      <EmojiReactionGroup
+        className="contents"
+        reactions={reactions}
+        onReactionClick={handleReactionClick}
+        showAddButton={false}
         disabled={disabled}
-        label={
-          <EmojiReactionGroup
-            reactions={reactions}
-            onReactionClick={handleReactionClick}
-            showAddButton={showAddButton}
-            onAddReaction={() => setIsPickerOpen(true)}
-          />
-        }
-        placement="bottom-start"
       />
+      {showAddButton && (
+        <EmojiReactionPicker
+          isOpen={isPickerOpen}
+          handleToggle={setIsPickerOpen}
+          onChange={handleEmojiSelect}
+          label={<AddReactionIcon className="size-3.5" aria-hidden="true" />}
+          buttonClassName={getIconButtonStyling("ghost", "sm")}
+          placement="bottom-start"
+        />
+      )}
     </div>
   );
 });

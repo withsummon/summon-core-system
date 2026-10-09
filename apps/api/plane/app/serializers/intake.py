@@ -79,7 +79,8 @@ class IntakeIssueSerializer(BaseSerializer):
                 ).first()
                 if default_state:
                     issue.state = default_state
-                    issue.save()
+                    # Nested text may already be saved; this transition owns only state and audit fields.
+                    issue.save(update_fields=["state", "updated_at", "updated_by"])
 
         return instance
 

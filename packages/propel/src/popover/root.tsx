@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { memo, useMemo } from "react";
+import { forwardRef, memo, useMemo } from "react";
 import { cn } from "../utils/classname";
 import { Popover as BasePopover } from "@base-ui-components/react/popover";
 import type { TPlacement, TSide, TAlign } from "../utils/placement";
@@ -31,7 +31,7 @@ const PopoverContent = memo(function PopoverContent({
   sideOffset = 8,
   containerRef,
   collisionPadding,
-  positionerClassName,
+  positionerClassName = "z-[120]",
   renderInPortal = true,
   ...props
 }: PopoverContentProps) {
@@ -55,7 +55,7 @@ const PopoverContent = memo(function PopoverContent({
       <BasePopover.Popup
         data-slot="popover-content"
         className={cn(
-          "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
+          "max-w-[var(--available-width)] origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
           className
         )}
         {...props}
@@ -69,9 +69,11 @@ const PopoverContent = memo(function PopoverContent({
 });
 
 // wrapper components
-const PopoverTrigger = memo(function PopoverTrigger(props: React.ComponentProps<typeof BasePopover.Trigger>) {
-  return <BasePopover.Trigger data-slot="popover-trigger" {...props} />;
-});
+const PopoverTrigger = forwardRef<HTMLButtonElement, React.ComponentProps<typeof BasePopover.Trigger>>(
+  function PopoverTrigger(props, ref) {
+    return <BasePopover.Trigger data-slot="popover-trigger" {...props} ref={ref} />;
+  }
+);
 
 const PopoverPortal = memo(function PopoverPortal(props: React.ComponentProps<typeof BasePopover.Portal>) {
   return <BasePopover.Portal data-slot="popover-portal" {...props} />;

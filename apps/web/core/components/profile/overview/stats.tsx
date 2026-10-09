@@ -5,69 +5,67 @@
  */
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-
-// ui
+import type { UsePaginatedQueryResult } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { UserCirclePropertyIcon, CreateIcon, LayerStackIcon } from "@plane/propel/icons";
-import type { IUserProfileData } from "@plane/types";
 import { Loader, Card, ECardSpacing, ECardDirection } from "@plane/ui";
-// types
 
-type Props = {
-  userProfile: IUserProfileData | undefined;
-};
+export type ProfileSummary = UsePaginatedQueryResult<
+  FunctionReturnType<typeof api.tasks.profile.summary>["page"][number]
+>;
 
-export function ProfileStats({ userProfile }: Props) {
-  const { workspaceSlug, userId } = useParams();
+const overviewCards = [
+  { icon: CreateIcon, route: "created", i18nTitle: "profile.stats.created", count: "createdCount" },
+  { icon: UserCirclePropertyIcon, route: "assigned", i18nTitle: "profile.stats.assigned", count: "assignedCount" },
+  { icon: LayerStackIcon, route: "subscribed", i18nTitle: "profile.stats.subscribed", count: "subscribedCount" },
+] as const;
 
+export function ProfileStats({
+  workspaceSlug,
+  subject,
+  summary,
+}: {
+  workspaceSlug: string;
+  subject: FunctionReturnType<typeof api.tasks.profile.subject>;
+  summary: ProfileSummary;
+}) {
   const { t } = useTranslation();
-
-  const overviewCards = [
-    {
-      icon: CreateIcon,
-      route: "created",
-      i18n_title: "profile.stats.created",
-      value: userProfile?.created_issues ?? "...",
-    },
-    {
-      icon: UserCirclePropertyIcon,
-      route: "assigned",
-      i18n_title: "profile.stats.assigned",
-      value: userProfile?.assigned_issues ?? "...",
-    },
-    {
-      icon: LayerStackIcon,
-      route: "subscribed",
-      i18n_title: "profile.stats.subscribed",
-      value: userProfile?.subscribed_issues ?? "...",
-    },
-  ];
-
   return (
     <div className="space-y-2">
       <h3 className="text-16 font-medium">{t("profile.stats.overview")}</h3>
-      {userProfile ? (
+      {summary.status === "Exhausted" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {overviewCards.map((card) => (
-            <Link key={card.route} href={`/${workspaceSlug}/profile/${userId}/${card.route}`}>
-              <Card direction={ECardDirection.ROW} spacing={ECardSpacing.SM} className="h-full">
+          {overviewCards.map((card) => {
+            const content = (
+              <Card key={card.route} direction={ECardDirection.ROW} spacing={ECardSpacing.SM} className="h-full">
                 <div className="grid h-11 w-11 place-items-center rounded-sm bg-surface-2">
                   <card.icon className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-13 text-placeholder">{t(card.i18n_title)}</p>
-                  <p className="text-18 font-semibold">{card.value}</p>
+                  <p className="text-13 text-placeholder">{t(card.i18nTitle)}</p>
+                  <p className="text-18 font-semibold">
+                    {summary.results.reduce((total, project) => total + project[card.count], 0)}
+                  </p>
                 </div>
               </Card>
-            </Link>
-          ))}
+            );
+            return subject.canViewTaskTabs ? (
+              <Link key={card.route} href={`/${workspaceSlug}/profile/${subject.userId}/${card.route}`}>
+                {content}
+              </Link>
+            ) : (
+              content
+            );
+          })}
         </div>
       ) : (
         <Loader className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Loader.Item height="80px" />
-          <Loader.Item height="80px" />
-          <Loader.Item height="80px" />
+          <span className="sr-only">{t("loading")}</span>
+          {overviewCards.map((card) => (
+            <Loader.Item key={card.route} height="80px" />
+          ))}
         </Loader>
       )}
     </div>

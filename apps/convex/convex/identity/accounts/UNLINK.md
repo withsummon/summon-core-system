@@ -1,0 +1,17 @@
+# Connected account disconnection
+
+Legacy AccountEndpoint deletes a current user's Account row without a last-method check. Native disconnect adds an explicit safety invariant: keep at least one currently configured usable owned sign-in method. Password needs an existing nonempty canonical hash. OAuth requires configured known provider plus authAccounts.emailVerified string exactly equal to the current verified user email. Magic additionally requires providerAccountId equal to that email and configured Resend. A truthy unrelated email proof is rejected.
+
+Shared accounts/proof captures the exact hash from canonical retrieveAccount; the committing transaction compares that same hash and current session. Passwordless accounts require actual session creation within five minutes. Deactivation now reuses this proof and bounded session cleanup owner. No custom passwords, hashes, tokens or credential scheme were introduced.
+
+Disconnect validates target ownership and alternatives, caps account/code records at100, sessions at100 and aggregate refresh tokens at1000 before writes. Target account and verification codes plus all current-user sessions/tokens are removed atomically. Other users are untouched; retained sign-in accounts and content remain. Sessions lack provider attribution, so revoking all sessions is deliberate. No provider-side token revocation is claimed because canonical auth does not persist provider access tokens. UI and real account disconnection remain unperformed.
+
+Tests cover retained password, exact verified-email match, disabled provider refusal, stale proof, foreign target, code/session cleanup and overflow rollback. Existing deactivation tests verify the shared proof and cleanup regression. External provider health cannot be established from configuration alone; disconnection never sends an external request.
+
+## Activation checkpoint
+
+Reviewed backend e0a9f7c817 passed immutable-archive TS7 and local deployment. Before its remote push, the staged Convex backend had two timed-out pushes (499/504) and the sampled virtualized log window included2026-09-27T11:05:27.707961Z loading one table/three indexes (not proof of an exhaustive latest event or backend stall) while CPU was0.18% and memory1.532GiB/15.62GiB. Parent authorized restarting only backend849de119830f through Dokploy; dashboard/volumes/legacy services were untouched. Logs reported indexes loaded at11:21:05.412001Z, and actual public query returned200. Parent hard-reloaded remote3024 and verified existing RQA2 content, relation and attachment before authorizing another exact push. The subsequent exact remote push failed with HTTP499 at /api/deploy2/evaluate_push; remote activation is unverified and further pushes are held for diagnosis. The CLI reaches this full-payload preflight before start_push, so no successful finish_push is claimed.
+
+Prepared UI uses canonical options (no duplicated provider policy), explicit password or recent-sign-in notice, all-device sign-out warning, and the existing SessionBoundary for revocation recovery. Sole usable password has no disconnect action. Web TS7/scoped Oxc passed; no real credential mutation is performed in browser QA.
+
+Parent Chrome verified local3010 Account details → Connected accounts: the sole Password method shows the retained-method explanation and no disconnect control. No credentials were entered or changed. This verifies the unavailable action state only; authorized disconnection remains covered by backend behavior tests, not a live credential mutation.

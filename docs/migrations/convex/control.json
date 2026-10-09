@@ -1,0 +1,8 @@
+{
+  "controlArtifact": "05f894b84bbde4e2474b82f17be7f4578bc15f14",
+  "dirtyPathsAtStart": ["packages/editor/package.json", "packages/ui/package.json", ".claude/launch.json"],
+  "lockSha256BeforeInstall": "ea2de63022f83410f3415eaf4134ac2d54d7f9f99479ea1db87d53b1125288bc",
+  "apiImageId": "sha256:025f9c48a908cb638c379c99cfe1a3e0832077467c128a4f41af8a003234b232",
+  "apiSource": "bind-mounted apps/api at control commit",
+  "evidence": "Control source identified; authenticated faithful smoke and repeated timings pending. No speedup established."
+}

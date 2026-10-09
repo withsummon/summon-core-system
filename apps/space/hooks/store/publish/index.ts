@@ -4,5 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./use-publish-list";
 export * from "./use-publish";

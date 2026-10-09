@@ -1,114 +1,48 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import type { MutableRefObject } from "react";
-import { observer } from "mobx-react";
-import { Link } from "react-router";
-import { useParams, useSearchParams } from "next/navigation";
-// plane types
+import { Link, useParams, useSearchParams } from "react-router";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueDisplayProperties } from "@plane/types";
-// plane ui
-// plane utils
 import { cn } from "@plane/utils";
-// components
-import { WithDisplayPropertiesHOC } from "@/components/issues/issue-layouts/with-display-properties-HOC";
-// helpers
-import { queryParamGenerator } from "@/helpers/query-param-generator";
-// hooks
 import { usePublish } from "@/hooks/store/publish";
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
-//
-import type { IIssue } from "@/types/issue";
 import { IssueProperties } from "../properties/all-properties";
-import { getIssueBlockId } from "../utils";
 import { BlockReactions } from "./block-reactions";
 
-interface IssueBlockProps {
-  issueId: string;
-  groupId: string;
-  subGroupId: string;
-  displayProperties: IIssueDisplayProperties | undefined;
-  scrollableContainerRef?: MutableRefObject<HTMLDivElement | null>;
-}
-
-interface IssueDetailsBlockProps {
-  issue: IIssue;
-  displayProperties: IIssueDisplayProperties | undefined;
-}
-
-const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
-  const { issue, displayProperties } = props;
+export function KanbanIssueBlock({
+  task,
+}: {
+  task: FunctionReturnType<typeof api.publicSharing.index.list>["page"][number];
+}) {
   const { anchor } = useParams();
-  // hooks
-  const { project_details } = usePublish(anchor.toString());
-
+  const publication = usePublish(anchor ?? "");
+  const [params] = useSearchParams();
+  const next = new URLSearchParams(params);
+  next.set("peekId", task._id);
   return (
-    <div className="space-y-2 px-3 py-2">
-      <WithDisplayPropertiesHOC displayProperties={displayProperties || {}} displayPropertyKey="key">
-        <div className="relative">
-          <div className="line-clamp-1 text-11 text-tertiary">
-            {project_details?.identifier}-{issue.sequence_id}
-          </div>
-        </div>
-      </WithDisplayPropertiesHOC>
-
-      <div className="mb-1.5 line-clamp-1 w-full text-13 text-primary">
-        <Tooltip tooltipContent={issue.name}>
-          <span>{issue.name}</span>
-        </Tooltip>
-      </div>
-
-      <IssueProperties
-        className="flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary"
-        issue={issue}
-        displayProperties={displayProperties}
-      />
-    </div>
-  );
-});
-
-export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueBlockProps) {
-  const { issueId, groupId, subGroupId, displayProperties } = props;
-  const searchParams = useSearchParams();
-  // query params
-  const board = searchParams.get("board");
-  // hooks
-  const { setPeekId, getIsIssuePeeked, getIssueById } = useIssueDetails();
-
-  const handleIssuePeekOverview = () => {
-    setPeekId(issueId);
-  };
-
-  const { queryParam } = queryParamGenerator(board ? { board, peekId: issueId } : { peekId: issueId });
-
-  const issue = getIssueById(issueId);
-
-  if (!issue) return null;
-
-  return (
-    <div className={cn("group/kanban-block relative p-1.5")}>
+    <div className="group/kanban-block relative p-1.5">
       <div
         className={cn(
           "relative block w-full rounded-lg border border-subtle bg-layer-2 text-13 transition-all hover:bg-layer-2-hover",
-          {
-            "border-accent-strong hover:border-accent-strong": getIsIssuePeeked(issue.id),
-          }
+          { "border-accent-strong": params.get("peekId") === task._id }
         )}
       >
-        <Link
-          id={getIssueBlockId(issueId, groupId, subGroupId)}
-          className="w-full"
-          to={`?${queryParam}`}
-          onClick={handleIssuePeekOverview}
-        >
-          <KanbanIssueDetailsBlock issue={issue} displayProperties={displayProperties} />
+        <Link id={`issue-${task._id}`} className="block w-full" to={`?${next}`}>
+          <div className="space-y-2 px-3 py-2">
+            <div className="line-clamp-1 text-11 text-tertiary">
+              {publication?.project.identifier}-{task.sequence}
+            </div>
+            <div className="mb-1.5 line-clamp-1 w-full text-13 text-primary">
+              <Tooltip tooltipContent={task.title}>
+                <span>{task.title}</span>
+              </Tooltip>
+            </div>
+            <IssueProperties
+              task={task}
+              className="flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary"
+            />
+          </div>
         </Link>
-        <BlockReactions issueId={issueId} />
+        <BlockReactions taskId={task._id} />
       </div>
     </div>
   );
-});
+}

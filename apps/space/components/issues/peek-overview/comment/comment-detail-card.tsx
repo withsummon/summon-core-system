@@ -4,180 +4,166 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
-import { observer } from "mobx-react";
-import { Controller, useForm } from "react-hook-form";
+import { useState } from "react";
+import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { MessageSquare, MoreVertical } from "lucide-react";
 import { CustomMenu } from "@plane/ui";
-// plane imports
-import type { EditorRefApi } from "@plane/editor";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
-import type { TIssuePublicComment } from "@plane/types";
-import { getFileURL } from "@plane/utils";
-// components
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { LiteTextEditor } from "@/components/editor/lite-text-editor";
-import { CommentReactions } from "@/components/issues/peek-overview/comment/comment-reactions";
-// helpers
+import { CommentReactions } from "./comment-reactions";
 import { timeAgo } from "@/helpers/date-time.helper";
-// hooks
-import { usePublish } from "@/hooks/store/publish";
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
 import { useUser } from "@/hooks/store/use-user";
 import useIsInIframe from "@/hooks/use-is-in-iframe";
 
-type Props = {
+export function CommentCard({
+  anchor,
+  comment,
+}: {
   anchor: string;
-  comment: TIssuePublicComment;
-};
-
-export const CommentCard = observer(function CommentCard(props: Props) {
-  const { anchor, comment } = props;
-  // store hooks
-  const { peekId, deleteIssueComment, updateIssueComment, uploadCommentAsset } = useIssueDetails();
-  const { data: currentUser } = useUser();
-  const { workspace: workspaceID } = usePublish(anchor);
+  comment: FunctionReturnType<typeof api.tasks.comments.publicList>["page"][number];
+}) {
+  const { profile: currentUser } = useUser();
   const isInIframe = useIsInIframe();
-
-  // states
-  const [isEditing, setIsEditing] = useState(false);
-  // refs
-  const editorRef = useRef<EditorRefApi>(null);
-  const showEditorRef = useRef<EditorRefApi>(null);
-  // form info
-  const {
-    control,
-    formState: { isSubmitting },
-    handleSubmit,
-  } = useForm<TIssuePublicComment>({
-    defaultValues: { comment_html: comment.comment_html },
-  });
-
-  const handleDelete = () => {
-    if (!anchor || !peekId) return;
-    deleteIssueComment(anchor, peekId, comment.id);
+  const [edit, setEdit] = useState<Pick<typeof comment, "html" | "updatedAt"> | null>(null);
+  const [pending, setPending] = useState(false);
+  const update = useMutation(api.tasks.comments.publicUpdate);
+  const remove = useMutation(api.tasks.comments.publicRemove);
+  const canEdit = !isInIframe && currentUser?.id === comment.authorId;
+  const target = { anchor, taskId: comment.taskId, commentId: comment._id };
+  const save = async () => {
+    if (!edit || pending || !canEdit) return;
+    setPending(true);
+    try {
+      await update({ ...target, expectedUpdatedAt: edit.updatedAt, html: edit.html });
+      setEdit(null);
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Comment could not be saved",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setPending(false);
+    }
   };
-
-  const handleCommentUpdate = async (formData: TIssuePublicComment) => {
-    if (!anchor || !peekId) return;
-    updateIssueComment(anchor, peekId, comment.id, formData);
-    setIsEditing(false);
-    editorRef.current?.setEditorValue(formData.comment_html);
-    showEditorRef.current?.setEditorValue(formData.comment_html);
+  const deleteComment = async () => {
+    if (pending || !canEdit) return;
+    setPending(true);
+    try {
+      await remove({ ...target, expectedUpdatedAt: comment.updatedAt });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Comment could not be removed",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setPending(false);
+    }
   };
-
+  const avatar = comment.authorAvatar;
+  const site = import.meta.env.VITE_CONVEX_SITE_URL;
   return (
     <div className="relative flex items-start space-x-3">
       <div className="relative px-1">
-        {comment.actor_detail.avatar_url && comment.actor_detail.avatar_url !== "" ? (
+        {avatar && site ? (
           <img
-            src={getFileURL(comment.actor_detail.avatar_url)}
-            alt={
-              comment.actor_detail.is_bot ? comment.actor_detail.first_name + " Bot" : comment.actor_detail.display_name
-            }
+            src={new URL(avatar.downloadPath, site).toString()}
+            alt={comment.authorName ?? "Comment author"}
             height={30}
             width={30}
             className="grid size-7 place-items-center rounded-full border-2 border-strong-1"
           />
         ) : (
-          <div
-            className={`bg-gray-500 grid size-7 place-items-center rounded-full border-2 border-strong-1 text-on-color`}
-          >
-            {comment.actor_detail.is_bot
-              ? comment?.actor_detail?.first_name?.charAt(0)
-              : comment?.actor_detail?.display_name?.charAt(0)}
+          <div className="bg-gray-500 grid size-7 place-items-center rounded-full border-2 border-strong-1 text-on-color">
+            {comment.authorName?.charAt(0)}
           </div>
         )}
-
         <span className="absolute -right-1 -bottom-0.5 rounded-tl-sm bg-layer-1 px-0.5 py-px">
-          <MessageSquare className="size-3 text-secondary" aria-hidden="true" strokeWidth={2} />
+          <MessageSquare className="size-3 text-secondary" aria-hidden strokeWidth={2} />
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <div>
-          <div className="text-11">
-            {comment.actor_detail.is_bot ? comment.actor_detail.first_name + " Bot" : comment.actor_detail.display_name}
-          </div>
-          <p className="mt-0.5 text-11 text-secondary">
-            <>commented {timeAgo(comment.created_at)}</>
-          </p>
-        </div>
+        <div className="text-11">{comment.authorName}</div>
+        <p className="mt-0.5 text-11 text-secondary">
+          commented {timeAgo(new Date(comment._creationTime).toISOString())}
+        </p>
         <div className="issue-comments-section p-0">
-          <form
-            onSubmit={handleSubmit(handleCommentUpdate)}
-            className={`flex-col gap-2 ${isEditing ? "flex" : "hidden"}`}
-          >
-            <div>
-              <Controller
-                control={control}
-                name="comment_html"
-                render={({ field: { onChange, value } }) => (
-                  <LiteTextEditor
-                    editable
-                    anchor={anchor}
-                    workspaceId={workspaceID?.toString() ?? ""}
-                    onEnterKeyPress={handleSubmit(handleCommentUpdate)}
-                    ref={editorRef}
-                    id={comment.id}
-                    initialValue={value}
-                    value={null}
-                    onChange={(comment_json, comment_html) => onChange(comment_html)}
-                    isSubmitting={isSubmitting}
-                    showSubmitButton={false}
-                    uploadFile={async (blockId, file) => {
-                      const { asset_id } = await uploadCommentAsset(file, anchor, comment.id);
-                      return asset_id;
-                    }}
-                    displayConfig={{
-                      fontSize: "small-font",
-                    }}
-                  />
-                )}
-              />
-            </div>
-            <div className="flex gap-1 self-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="group shadow-md rounded-sm border border-success-strong bg-success-primary p-2 duration-300 hover:bg-success-primary"
-              >
-                <CheckIcon className="h-3 w-3 text-on-color" strokeWidth={2} />
-              </button>
+          {edit ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void save();
+              }}
+              className="flex flex-col gap-2"
+            >
+              <fieldset disabled={pending || !canEdit}>
+                <LiteTextEditor
+                  editable={!pending && canEdit}
+                  anchor={anchor}
+                  target={{ comment: target }}
+                  id={comment._id}
+                  initialValue={edit.html}
+                  onChange={(_json, html) => setEdit((current) => (current ? { ...current, html } : null))}
+                  onEnterKeyPress={(event) => {
+                    event.preventDefault();
+                    void save();
+                  }}
+                  isSubmitting={pending}
+                  showSubmitButton={false}
+                  displayConfig={{ fontSize: "small-font" }}
+                />
+                <button
+                  type="submit"
+                  aria-label="Save comment"
+                  className="group shadow-md rounded-sm border border-success-strong bg-success-primary p-2"
+                >
+                  <CheckIcon className="size-3 text-on-color" strokeWidth={2} />
+                </button>
+              </fieldset>
               <button
                 type="button"
-                className="group shadow-md rounded-sm border border-danger-strong bg-danger-primary p-2 duration-300 hover:bg-danger-primary-hover"
-                onClick={() => setIsEditing(false)}
+                disabled={pending}
+                aria-label="Discard comment edits"
+                className="group shadow-md self-end rounded-sm border border-danger-strong bg-danger-primary p-2"
+                onClick={() => setEdit(null)}
               >
-                <CloseIcon className="h-3 w-3 text-on-color" strokeWidth={2} />
+                <CloseIcon className="size-3 text-on-color" strokeWidth={2} />
               </button>
-            </div>
-          </form>
-          <div className={`${isEditing ? "hidden" : ""}`}>
-            <LiteTextEditor
-              editable={false}
-              anchor={anchor}
-              workspaceId={workspaceID?.toString() ?? ""}
-              ref={showEditorRef}
-              id={comment.id}
-              initialValue={comment.comment_html}
-              displayConfig={{
-                fontSize: "small-font",
-              }}
-            />
-            <CommentReactions anchor={anchor} commentId={comment.id} />
-          </div>
+            </form>
+          ) : (
+            <>
+              <LiteTextEditor
+                key={comment.updatedAt}
+                editable={false}
+                anchor={anchor}
+                target={{ comment: target }}
+                id={comment._id}
+                initialValue={comment.html}
+                displayConfig={{ fontSize: "small-font" }}
+              />
+              <CommentReactions {...target} />
+            </>
+          )}
         </div>
       </div>
-      {!isInIframe && currentUser?.id === comment?.actor_detail?.id && (
+      {canEdit && (
         <CustomMenu
           ariaLabel="Comment actions"
           customButton={<MoreVertical className="size-4" />}
           noChevron
           placement="bottom-end"
+          disabled={pending}
         >
-          <CustomMenu.MenuItem onClick={() => setIsEditing(true)}>Edit</CustomMenu.MenuItem>
-          <CustomMenu.MenuItem onClick={handleDelete}>Delete</CustomMenu.MenuItem>
+          <CustomMenu.MenuItem onClick={() => setEdit({ html: comment.html, updatedAt: comment.updatedAt })}>
+            Edit
+          </CustomMenu.MenuItem>
+          <CustomMenu.MenuItem onClick={deleteComment}>Delete</CustomMenu.MenuItem>
         </CustomMenu>
       )}
     </div>
   );
-});
+}

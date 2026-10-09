@@ -1,106 +1,56 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { useCallback } from "react";
-import { cloneDeep } from "lodash-es";
-import { observer } from "mobx-react";
-import { useRouter } from "next/navigation";
-// hooks
+import { CloseIcon } from "@plane/propel/icons";
+import { useTranslation } from "@plane/i18n";
 import { useIssueFilter } from "@/hooks/store/use-issue-filter";
-// store
-import type { TIssueLayout, TIssueQueryFilters } from "@/types/issue";
-// components
-import { AppliedFiltersList } from "./filters-list";
 
-type TIssueAppliedFilters = {
-  anchor: string;
-};
-
-export const IssueAppliedFilters = observer(function IssueAppliedFilters(props: TIssueAppliedFilters) {
-  const { anchor } = props;
-  // router
-  const router = useRouter();
-  // store hooks
-  const { getIssueFilters, initIssueFilters, updateIssueFilters } = useIssueFilter();
-  // derived values
-  const issueFilters = getIssueFilters(anchor);
-  const activeLayout = issueFilters?.display_filters?.layout || undefined;
-  const userFilters = issueFilters?.filters || {};
-
-  const appliedFilters: any = {};
-  Object.entries(userFilters).forEach(([key, value]) => {
-    if (!value) return;
-    if (Array.isArray(value) && value.length === 0) return;
-    appliedFilters[key] = value;
-  });
-
-  const updateRouteParams = useCallback(
-    (key: keyof TIssueQueryFilters, value: string[]) => {
-      const state = key === "state" ? value : (issueFilters?.filters?.state ?? []);
-      const priority = key === "priority" ? value : (issueFilters?.filters?.priority ?? []);
-      const labels = key === "labels" ? value : (issueFilters?.filters?.labels ?? []);
-
-      const params: {
-        board: TIssueLayout | string;
-        priority?: string;
-        states?: string;
-        labels?: string;
-      } = {
-        board: activeLayout || "list",
-      };
-
-      if (priority.length > 0) params.priority = priority.join(",");
-      if (state.length > 0) params.states = state.join(",");
-      if (labels.length > 0) params.labels = labels.join(",");
-
-      const qs = new URLSearchParams(params).toString();
-      router.push(`/issues/${anchor}?${qs}`);
-    },
-    [activeLayout, anchor, issueFilters, router]
-  );
-
-  const handleFilters = useCallback(
-    (key: keyof TIssueQueryFilters, value: string | null) => {
-      let newValues = cloneDeep(issueFilters?.filters?.[key]) ?? [];
-
-      if (value === null) newValues = [];
-      else if (newValues.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-
-      updateIssueFilters(anchor, "filters", key, newValues);
-      updateRouteParams(key, newValues);
-    },
-    [anchor, issueFilters, updateIssueFilters, updateRouteParams]
-  );
-
-  const handleRemoveAllFilters = () => {
-    initIssueFilters(
-      anchor,
-      {
-        display_filters: { layout: activeLayout || "list" },
-        filters: {
-          state: [],
-          priority: [],
-          labels: [],
-        },
-      },
-      true
-    );
-
-    router.push(`/issues/${anchor}?${`board=${activeLayout || "list"}`}`);
-  };
-
-  if (Object.keys(appliedFilters).length === 0) return null;
-
+export function IssueAppliedFilters() {
+  const { t } = useTranslation();
+  const { selectedStates, selectedLabels, selectedPriorities, catalog, change, clear } = useIssueFilter();
+  if (!selectedStates.length && !selectedLabels.length && !selectedPriorities.length) return null;
   return (
     <div className="border-b border-subtle bg-surface-1 p-4">
-      <AppliedFiltersList
-        appliedFilters={appliedFilters || {}}
-        handleRemoveFilter={handleFilters as any}
-        handleRemoveAllFilters={handleRemoveAllFilters}
-      />
+      <div className="flex flex-wrap items-stretch gap-2">
+        {selectedStates.map((id) => (
+          <span
+            key={`state-${id}`}
+            className="flex items-center gap-1 rounded-md border border-subtle px-2 py-1 text-11"
+          >
+            State: {catalog?.states.find((state) => state._id === id)?.name ?? "Unavailable state"}
+            <button type="button" aria-label="Remove state filter" onClick={() => change("state", id)}>
+              <CloseIcon className="size-3" />
+            </button>
+          </span>
+        ))}
+        {selectedPriorities.map((value) => (
+          <span
+            key={`priority-${value}`}
+            className="flex items-center gap-1 rounded-md border border-subtle px-2 py-1 text-11 capitalize"
+          >
+            Priority: {value}
+            <button type="button" aria-label="Remove priority filter" onClick={() => change("priority", value)}>
+              <CloseIcon className="size-3" />
+            </button>
+          </span>
+        ))}
+        {selectedLabels.map((id) => (
+          <span
+            key={`label-${id}`}
+            className="flex items-center gap-1 rounded-md border border-subtle px-2 py-1 text-11"
+          >
+            Label: {catalog?.labels.find((label) => label._id === id)?.name ?? "Unavailable label"}
+            <button type="button" aria-label="Remove label filter" onClick={() => change("labels", id)}>
+              <CloseIcon className="size-3" />
+            </button>
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={clear}
+          className="flex items-center gap-2 rounded-md border border-subtle px-2 py-1 text-11 text-tertiary hover:text-secondary"
+        >
+          {t("common.clear_all")}
+          <CloseIcon className="size-3" />
+        </button>
+      </div>
     </div>
   );
-});
+}

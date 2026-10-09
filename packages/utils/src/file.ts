@@ -6,6 +6,7 @@
 
 // plane imports
 import { API_BASE_URL } from "@plane/constants";
+import { serializeCsv, type CsvOptions } from "./csv";
 
 /**
  * @description combine the file path with the base URL
@@ -80,17 +81,19 @@ export const getBase64Image = async (url: string): Promise<string> => {
  * @param {Array<Array<string>> | { [key: string]: string }} data - The data to be exported to CSV
  * @param {string} name - The name of the file to be downloaded
  */
-export const csvDownload = (data: Array<Array<string>> | { [key: string]: string }, name: string) => {
+export const csvDownload = (
+  data: Array<Array<string>> | { [key: string]: string },
+  name: string,
+  options: CsvOptions = {}
+) => {
   const rows = Array.isArray(data) ? [...data] : [Object.keys(data), Object.values(data)];
 
-  const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
-
+  const url = URL.createObjectURL(new Blob([serializeCsv(rows, options)], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
-  link.href = encodedUri;
+  link.href = url;
   link.download = `${name}.csv`;
-
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
+  URL.revokeObjectURL(url);
 };

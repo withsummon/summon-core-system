@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import { AlertOctagon, BarChart4, CircleDashed, Folder, Microscope } from "lucide-react";
 // plane imports
 import { MARKETING_PRICING_PAGE_LINK } from "@plane/constants";
@@ -22,8 +21,7 @@ import ctaR2Dark from "@/app/assets/workspace-active-cycles/cta-r-2-dark.webp?ur
 import ctaR2Light from "@/app/assets/workspace-active-cycles/cta-r-2-light.webp?url";
 // components
 import { ProIcon } from "@/components/common/pro-icon";
-// hooks
-import { useUser } from "@/hooks/store/user";
+import type { NativeProfile } from "@/components/workspace/native-shell/session";
 
 export const WORKSPACE_ACTIVE_CYCLES_DETAILS = [
   {
@@ -68,21 +66,16 @@ export const WORKSPACE_ACTIVE_CYCLES_DETAILS = [
   },
 ];
 
-export const WorkspaceActiveCyclesUpgrade = observer(function WorkspaceActiveCyclesUpgrade() {
+export function WorkspaceActiveCyclesUpgrade({ theme }: { theme: NativeProfile["preferences"]["theme"]["theme"] }) {
   const { t } = useTranslation();
-  // store hooks
-  const {
-    userProfile: { data: userProfile },
-  } = useUser();
-
-  const isDarkMode = userProfile?.theme.theme === "dark";
+  const isDarkMode = theme === "dark";
 
   return (
     <ContentWrapper className="gap-10">
       <div
         className={cn("item-center flex min-h-[25rem] justify-between rounded-xl", {
-          "bg-gradient-to-l from-[#CFCFCF] to-[#212121]": userProfile?.theme.theme === "dark",
-          "bg-gradient-to-l from-[#3b5ec6] to-[#f5f7fe]": userProfile?.theme.theme === "light",
+          "bg-gradient-to-l from-[#CFCFCF] to-[#212121]": theme === "dark",
+          "bg-gradient-to-l from-[#3b5ec6] to-[#f5f7fe]": theme === "light",
         })}
       >
         <div className="relative flex flex-col justify-center gap-7 px-14 lg:w-1/2">
@@ -131,4 +124,4 @@ export const WorkspaceActiveCyclesUpgrade = observer(function WorkspaceActiveCyc
       </div>
     </ContentWrapper>
   );
-});
+}

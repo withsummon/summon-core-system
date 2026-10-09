@@ -4,33 +4,41 @@
  * See the LICENSE file for details.
  */
 
-// plane package imports
-import type { ChartXAxisProperty } from "@plane/types";
+import type { ReactNode } from "react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
 import { CustomSelect } from "@plane/ui";
-
-type Props = {
-  value?: ChartXAxisProperty;
-  onChange: (val: ChartXAxisProperty | null) => void;
-  options: { value: ChartXAxisProperty; label: string }[];
-  placeholder?: string;
-  hiddenOptions?: ChartXAxisProperty[];
+import { analyticsAxes } from "./analytics-params";
+type Axis = FunctionArgs<typeof api.reporting.analytics.chart>["axis"];
+export function SelectXAxis({
+  value,
+  onChange,
+  excluded,
+  allowNoValue,
+  label,
+}: {
+  value: Axis | null;
+  onChange: (value: Axis | null) => void;
+  excluded: Axis | null;
   allowNoValue?: boolean;
-  label?: string | React.ReactNode;
-};
-
-export function SelectXAxis(props: Props) {
-  const { value, onChange, options, hiddenOptions, allowNoValue, label } = props;
+  label: ReactNode;
+}) {
   return (
-    <CustomSelect value={value} label={label} onChange={onChange} maxHeight="lg">
+    <CustomSelect
+      value={value}
+      label={label}
+      ariaLabel={allowNoValue ? "Group by" : "Chart dimension"}
+      onChange={onChange}
+      maxHeight="lg"
+    >
       {allowNoValue && <CustomSelect.Option value={null}>No value</CustomSelect.Option>}
-      {options.map((item) => {
-        if (hiddenOptions?.includes(item.value)) return null;
-        return (
-          <CustomSelect.Option key={item.value} value={item.value}>
-            {item.label}
+      {Object.entries(analyticsAxes)
+        .filter(([key]) => key !== excluded)
+        .map(([key, name]) => (
+          <CustomSelect.Option key={key} value={key}>
+            {name}
           </CustomSelect.Option>
-        );
-      })}
+        ))}
     </CustomSelect>
   );
 }

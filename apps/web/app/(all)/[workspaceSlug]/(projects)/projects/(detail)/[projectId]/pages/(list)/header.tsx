@@ -4,86 +4,102 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { observer } from "mobx-react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-// constants
-import { EPageAccess } from "@plane/constants";
-// plane types
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { PageIcon } from "@plane/propel/icons";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
-// plane ui
+import { Spinner } from "@plane/ui";
 import { Breadcrumbs, Header } from "@plane/ui";
-// helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-// plane web imports
-import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
-import { EPageStoreType, usePageStore } from "@/hooks/store";
+import { newDocument } from "@/components/convex-core/documents/metadata-form";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
-export const PagesListHeader = observer(function PagesListHeader() {
-  // states
-  const [isCreatingPage, setIsCreatingPage] = useState(false);
-  // router
-  const router = useRouter();
-  const { workspaceSlug, projectId } = useParams();
-  const searchParams = useSearchParams();
-  const pageType = searchParams.get("type");
-  // store hooks
-  const { currentProjectDetails, loader } = useProject();
-  const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
-  // handle page create
-  const handleCreatePage = async () => {
-    setIsCreatingPage(true);
-
-    const payload: Partial<TPage> = {
-      access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
-    };
-
-    await createPage(payload)
-      // oxlint-disable-next-line promise/always-return
-      .then((res) => {
-        const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res?.id}`;
-        router.push(pageId);
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.data?.error || "Page could not be created. Please try again.",
-        });
-      })
-      .finally(() => setIsCreatingPage(false));
-  };
-
+export function PagesListHeader({
+  address,
+  pageType,
+  canCreate,
+}: {
+  address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+  pageType: FunctionArgs<typeof api.documents.index.list>["pageType"];
+  canCreate: boolean;
+}) {
+  const navigate = useNavigate();
+  const create = useMutation(api.documents.index.create);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const continuation = useRef<((id: FunctionReturnType<typeof api.documents.index.create>) => void) | null>(null);
+  const leave = useCallback(() => {
+    continuation.current = null;
+  }, []);
+  const release = useReloadConfirmations(pending, "The page is still being created.", leave, pending);
+  useEffect(
+    () => () => {
+      continuation.current = null;
+    },
+    []
+  );
+  async function addPage() {
+    continuation.current = (id) => navigate(`/${address.workspace.slug}/projects/${address.project._id}/pages/${id}`);
+    setPending(true);
+    setError("");
+    try {
+      const id = await create({
+        ...newDocument,
+        workspaceId: address.workspace._id,
+        projectIds: [address.project._id],
+        access: pageType === "private" ? "private" : "public",
+      });
+      release((allow) => {
+        const open = continuation.current;
+        continuation.current = null;
+        if (allow) open?.(id);
+      });
+    } catch (failure) {
+      if (continuation.current !== null) setError(mutationMessage(failure));
+      continuation.current = null;
+    } finally {
+      setPending(false);
+    }
+  }
   return (
-    <Header>
-      <Header.LeftItem>
-        <Breadcrumbs isLoading={loader === "init-loader"}>
-          <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
-          <Breadcrumbs.Item
-            component={
-              <BreadcrumbLink
-                label="Pages"
-                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/`}
-                icon={<PageIcon className="h-4 w-4 text-tertiary" />}
+    <>
+      <div className="shrink-0 border-b border-subtle">
+        <Header>
+          <Header.LeftItem>
+            <Breadcrumbs>
+              <Breadcrumbs.Item
+                component={
+                  <BreadcrumbLink
+                    label={address.project.name}
+                    href={`/${address.workspace.slug}/projects/${address.project._id}/issues/`}
+                  />
+                }
+              />
+              <Breadcrumbs.Item
+                component={<BreadcrumbLink label="Pages" icon={<PageIcon className="size-4 text-tertiary" />} isLast />}
                 isLast
               />
-            }
-            isLast
-          />
-        </Breadcrumbs>
-      </Header.LeftItem>
-      {canCurrentUserCreatePage && (
-        <Header.RightItem>
-          <Button variant="primary" size="lg" onClick={handleCreatePage} loading={isCreatingPage}>
-            {isCreatingPage ? "Adding" : "Add page"}
-          </Button>
-        </Header.RightItem>
+            </Breadcrumbs>
+          </Header.LeftItem>
+          {canCreate && (
+            <Header.RightItem>
+              <Button variant="primary" size="lg" onClick={() => void addPage()} loading={pending}>
+                {pending && <Spinner className="size-4" />}
+                {pending ? "Adding" : "Add page"}
+              </Button>
+            </Header.RightItem>
+          )}
+        </Header>
+      </div>
+      {error && (
+        <p role="alert" className="px-4 py-2 text-13 text-danger-primary">
+          {error}
+        </p>
       )}
-    </Header>
+    </>
   );
-});
+}

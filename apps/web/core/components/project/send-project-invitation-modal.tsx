@@ -4,310 +4,297 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect } from "react";
-import { observer } from "mobx-react";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
-// plane imports
-import { ROLE, EUserPermissions } from "@plane/constants";
+import { useRef, useState } from "react";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { PlusIcon, CloseIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
+import { Dialog } from "@plane/propel/dialog";
+import { PlusIcon, CloseIcon, ChevronDownIcon, SearchIcon, CheckIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Avatar, CustomSelect, CustomSearchSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-// helpers
-import { getFileURL } from "@plane/utils";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useUserPermissions } from "@/hooks/store/user";
+import { CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { AuthenticatedAssetImage } from "@/components/convex-core/assets/image";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
+import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 
-type Props = {
-  isOpen: boolean;
+type Candidate = FunctionReturnType<typeof api.projects.index.availableMembers>["page"][number];
+type AddArgs = FunctionArgs<typeof api.projects.index.addMembers>;
+
+export function SendProjectInvitationModal({
+  onClose,
+  projectId,
+  canManage,
+}: {
   onClose: () => void;
-  onSuccess?: () => void;
-  projectId: string;
-  workspaceSlug: string;
-};
-
-type member = {
-  role: EUserPermissions;
-  member_id: string;
-};
-
-type FormValues = {
-  members: member[];
-};
-
-const defaultValues: FormValues = {
-  members: [
-    {
-      role: 5,
-      member_id: "",
-    },
-  ],
-};
-
-export const SendProjectInvitationModal = observer(function SendProjectInvitationModal(props: Props) {
-  const { isOpen, onClose, onSuccess, projectId, workspaceSlug } = props;
-  // plane hooks
+  projectId: AddArgs["projectId"];
+  canManage: boolean;
+}) {
   const { t } = useTranslation();
-  // store hooks
-  const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
-  const {
-    project: { getProjectMemberDetails, bulkAddMembersToProject },
-    workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
-  } = useMember();
-  // form info
-  const {
-    formState: { errors, isSubmitting },
-    watch,
-    setValue,
-    reset,
-    handleSubmit,
-    control,
-  } = useForm<FormValues>();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "members",
-  });
-  // derived values
-  const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
-  const uninvitedPeople = workspaceMemberIds?.filter((userId) => {
-    const projectMemberDetails = getProjectMemberDetails(userId, projectId);
-    const isInvited = projectMemberDetails?.member.id && projectMemberDetails?.original_role;
-    return !isInvited;
-  });
-
-  const onSubmit = async (formData: FormValues) => {
-    if (!workspaceSlug || !projectId || isSubmitting) return;
-
-    const payload = { ...formData };
-
-    await bulkAddMembersToProject(workspaceSlug.toString(), projectId.toString(), payload)
-      .then(() => {
-        if (onSuccess) onSuccess();
-        onClose();
-        setToast({
-          title: "Success!",
-          type: TOAST_TYPE.SUCCESS,
-          message: "Members added successfully.",
-        });
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
-        reset(defaultValues);
-      });
-  };
-
-  const handleClose = () => {
-    onClose();
-
-    const timeout = setTimeout(() => {
-      reset(defaultValues);
-      clearTimeout(timeout);
-    }, 500);
-  };
-
-  const appendField = () => {
-    append({
-      role: 5,
-      member_id: "",
-    });
-  };
-
-  useEffect(() => {
-    if (fields.length === 0) {
-      append([
-        {
-          role: 5,
-          member_id: "",
-        },
-      ]);
+  const addMembers = useMutation(api.projects.index.addMembers);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const [members, setMembers] = useState<
+    Array<{ key: string; candidate: Candidate | null; role: AddArgs["members"][number]["role"] | null }>
+  >(() => [{ key: crypto.randomUUID(), candidate: null, role: null }]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const release = useReloadConfirmations(
+    members.some((member) => member.candidate !== null) || pending,
+    "This project member selection has unsaved changes.",
+    undefined,
+    pending
+  );
+  const close = () => {
+    if (!pending) {
+      release();
+      onClose();
     }
-  }, [fields, append]);
-
-  const options = uninvitedPeople
-    ?.map((userId) => {
-      const memberDetails = getWorkspaceMemberDetails(userId);
-
-      if (!memberDetails?.member) return;
-      return {
-        value: `${memberDetails?.member.id}`,
-        query: `${memberDetails?.member.first_name} ${
-          memberDetails?.member.last_name
-        } ${memberDetails?.member.display_name.toLowerCase()}`,
-        content: (
-          <div className="flex w-full items-center gap-2">
-            <div className="shrink-0 pt-0.5">
-              <Avatar name={memberDetails?.member.display_name} src={getFileURL(memberDetails?.member.avatar_url)} />
-            </div>
-            <div className="truncate">
-              {memberDetails?.member.display_name} (
-              {memberDetails?.member.first_name + " " + memberDetails?.member.last_name})
-            </div>
-          </div>
-        ),
-      };
-    })
-    .filter((option) => !!option) as
-    | {
-        value: string;
-        query: string;
-        content: React.ReactNode;
-      }[]
-    | undefined;
-
-  const checkCurrentOptionWorkspaceRole = (value: string) => {
-    const currentMemberWorkspaceRole = getWorkspaceMemberDetails(value)?.role;
-    if (!value || !currentMemberWorkspaceRole) return ROLE;
-
-    const isGuestOROwner = [EUserPermissions.ADMIN, EUserPermissions.GUEST].includes(
-      currentMemberWorkspaceRole as EUserPermissions
-    );
-
-    return Object.fromEntries(
-      Object.entries(ROLE).filter(([key]) => !isGuestOROwner || [currentMemberWorkspaceRole].includes(parseInt(key)))
-    );
   };
-
+  const submit = async () => {
+    if (pending || !canManage) return;
+    setPending(true);
+    setError("");
+    try {
+      const payload = members.map(({ candidate, role }) => {
+        if (!candidate || !role) throw new Error("Select a co-worker and role for every row.");
+        return { userId: candidate.userId, role, expectedRevision: candidate.expectedRevision };
+      });
+      await addMembers({ projectId, members: payload });
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Members added successfully." });
+      release();
+      onClose();
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  };
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <form onSubmit={handleSubmit(onSubmit)} className="p-5">
+    <ModalCore
+      isOpen
+      handleClose={close}
+      position={EModalPosition.CENTER}
+      width={EModalWidth.XXL}
+      initialFocus={cancel}
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+        className="p-5"
+      >
         <div className="space-y-5">
-          <h3 className="text-16 leading-6 font-medium text-primary">
+          <Dialog.Title className="text-16 leading-6 font-medium text-primary">
             {t("project_settings.members.invite_members.title")}
-          </h3>
-          <div className="mt-2">
-            <p className="text-13 text-secondary">{t("project_settings.members.invite_members.sub_heading")}</p>
-          </div>
-
+          </Dialog.Title>
+          <Dialog.Description className="text-13 text-secondary">
+            {t("project_settings.members.invite_members.sub_heading")}
+          </Dialog.Description>
           <div className="mb-3 space-y-4">
-            {fields.map((field, index) => (
-              <div key={field.id} className="group mb-1 flex w-full items-start justify-between gap-x-4 text-13">
-                <div className="flex w-full grow flex-col gap-1">
-                  <Controller
-                    control={control}
-                    name={`members.${index}.member_id`}
-                    rules={{ required: "Please select a member" }}
-                    render={({ field: { value, onChange } }) => {
-                      const selectedMember = getWorkspaceMemberDetails(value);
-                      return (
-                        <CustomSearchSelect
-                          value={value}
-                          render={
-                            <button className="shadow-sm flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
-                              {value && value !== "" ? (
-                                <div className="flex items-center gap-2">
-                                  <Avatar
-                                    name={selectedMember?.member.display_name}
-                                    src={getFileURL(selectedMember?.member.avatar_url ?? "")}
-                                  />
-                                  {selectedMember?.member.display_name}
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 py-0.5">Select co-worker</div>
-                              )}
-                              <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
-                            </button>
-                          }
-                          onChange={(val: string) => {
-                            onChange(val);
-                            // Update the role to the workspace role when member ID changes
-                            const workspaceMemberDetails = getWorkspaceMemberDetails(val);
-                            const workspaceRole = workspaceMemberDetails?.role ?? 5;
-                            const newValue = ROLE[workspaceRole].toUpperCase();
-                            setValue(
-                              `members.${index}.role`,
-                              EUserPermissions[newValue as keyof typeof EUserPermissions]
-                            );
-                          }}
-                          options={options}
-                          optionsClassName="w-48"
-                        />
-                      );
-                    }}
-                  />
-                  {errors.members && errors.members[index]?.member_id && (
-                    <span className="px-1 text-13 text-danger-primary">
-                      {errors.members[index]?.member_id?.message}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex shrink-0 items-center justify-between gap-2">
-                  <div className="flex flex-col gap-1">
-                    <Controller
-                      name={`members.${index}.role`}
-                      control={control}
-                      rules={{ required: "Select Role" }}
-                      render={({ field }) => (
-                        <CustomSelect
-                          {...field}
-                          customButton={
-                            <div className="shadow-sm flex w-24 items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2.5 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
-                              <span className="capitalize">{field.value ? ROLE[field.value] : "Select role"}</span>
-                              <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
-                            </div>
-                          }
-                          input
-                        >
-                          {Object.entries(checkCurrentOptionWorkspaceRole(watch(`members.${index}.member_id`))).map(
-                            ([key, label]) => {
-                              if (parseInt(key) > (currentProjectRole ?? EUserPermissions.GUEST)) return null;
-
-                              return (
-                                <CustomSelect.Option key={key} value={key}>
-                                  {label}
-                                </CustomSelect.Option>
-                              );
-                            }
-                          )}
-                        </CustomSelect>
-                      )}
-                    />
-                    {errors.members && errors.members[index]?.role && (
-                      <span className="px-1 text-13 text-danger-primary">{errors.members[index]?.role?.message}</span>
-                    )}
-                  </div>
-
-                  {fields.length > 1 && (
-                    <div className="flex-item flex w-6">
-                      <button
-                        type="button"
-                        className="place-items-center self-center rounded-sm"
-                        onClick={() => remove(index)}
-                      >
-                        <CloseIcon className="h-4 w-4 text-secondary" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {members.map((entry, index) => (
+              <div
+                key={entry.key}
+                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-2 text-13 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:gap-4"
+              >
+                <ProjectMemberPicker
+                  projectId={projectId}
+                  selected={entry.candidate}
+                  disabled={pending || !canManage}
+                  selectedIds={members.flatMap((member) => (member.candidate ? [member.candidate.userId] : []))}
+                  onSelect={(candidate) =>
+                    setMembers((current) =>
+                      current.map((member, i) =>
+                        i === index ? { ...member, candidate, role: candidate.workspaceRole } : member
+                      )
+                    )
+                  }
+                />
+                <CustomSelect<AddArgs["members"][number]["role"]>
+                  value={entry.role ?? undefined}
+                  disabled={pending || !canManage || !entry.candidate}
+                  ariaLabel={`Role for ${entry.candidate?.displayName ?? `co-worker ${index + 1}`}`}
+                  label={<span>{entry.role ? t(`role_details.${entry.role}.title`) : "Select role"}</span>}
+                  className="w-28 shrink-0"
+                  input
+                  onChange={(role) =>
+                    setMembers((current) => current.map((member, i) => (i === index ? { ...member, role } : member)))
+                  }
+                >
+                  {entry.candidate?.allowedRoles.map((role) => (
+                    <CustomSelect.Option key={role} value={role}>
+                      {t(`role_details.${role}.title`)}
+                    </CustomSelect.Option>
+                  ))}
+                </CustomSelect>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Remove co-worker ${index + 1}`}
+                  disabled={pending}
+                  onClick={() =>
+                    setMembers((current) =>
+                      current.length === 1
+                        ? [{ key: crypto.randomUUID(), candidate: null, role: null }]
+                        : current.filter((_, i) => i !== index)
+                    )
+                  }
+                >
+                  <CloseIcon className="size-4" aria-hidden="true" />
+                </Button>
               </div>
             ))}
           </div>
+          {!canManage && (
+            <p role="alert" className="text-13 text-danger-primary">
+              Your project permissions changed. Your selection is retained; an administrator must restore access before
+              you can add members.
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="text-13 text-danger-primary">
+              {error}
+            </p>
+          )}
         </div>
-        <div className="mt-5 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-2 bg-transparent py-2 pr-3 text-13 font-medium text-accent-primary outline-accent-strong"
-            onClick={appendField}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            disabled={pending || !canManage || members.length >= 20}
+            onClick={() =>
+              setMembers((current) => [...current, { key: crypto.randomUUID(), candidate: null, role: null }])
+            }
           >
-            <PlusIcon className="h-4 w-4" />
+            <PlusIcon className="size-4" aria-hidden="true" />
             {t("common.add_more")}
-          </button>
+          </Button>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="lg" onClick={handleClose}>
+            <Button ref={cancel} variant="secondary" size="lg" disabled={pending} onClick={close}>
               {t("cancel")}
             </Button>
-            <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-              {isSubmitting
-                ? `${fields && fields.length > 1 ? `${t("add_members")}...` : `${t("add_member")}...`}`
-                : `${fields && fields.length > 1 ? t("add_members") : t("add_member")}`}
+            <Button
+              variant="primary"
+              size="lg"
+              type="submit"
+              loading={pending}
+              disabled={!canManage || members.some((member) => !member.candidate || !member.role)}
+            >
+              {t(members.length > 1 ? "add_members" : "add_member")}
             </Button>
           </div>
         </div>
       </form>
     </ModalCore>
   );
-});
+}
+
+function ProjectMemberPicker({
+  projectId,
+  selected,
+  selectedIds,
+  onSelect,
+  disabled,
+}: {
+  projectId: AddArgs["projectId"];
+  selected: Candidate | null;
+  selectedIds: Candidate["userId"][];
+  onSelect: (candidate: Candidate) => void;
+  disabled: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const choices = usePaginatedQuery(
+    api.projects.index.availableMembers,
+    { projectId, search },
+    { initialNumItems: 30 }
+  );
+  return (
+    <Combobox.Root
+      value={selected?.userId ?? null}
+      disabled={disabled}
+      filter={null}
+      inputValue={search}
+      onInputValueChange={setSearch}
+      onOpenChange={(open) => {
+        if (!open) setSearch("");
+      }}
+      onValueChange={(userId) => {
+        const choice = choices.results.find((candidate) => candidate.userId === userId);
+        if (choice) onSelect(choice);
+      }}
+    >
+      <Combobox.Trigger
+        aria-label="Select co-worker"
+        className="col-span-2 flex min-w-0 items-center justify-between gap-2 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary disabled:opacity-50 sm:col-span-1"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selected?.avatar && (
+            <AuthenticatedAssetImage
+              asset={selected.avatar}
+              alt="Member avatar"
+              compactName={selected.displayName ?? selected.fullName}
+              className="size-5 rounded-full"
+            />
+          )}
+          <span className="truncate">
+            {selected ? (selected.displayName ?? selected.fullName) : "Select co-worker"}
+          </span>
+        </span>
+        <ChevronDownIcon className="size-3 shrink-0" aria-hidden="true" />
+      </Combobox.Trigger>
+      <Combobox.Portal>
+        <Combobox.Positioner side="bottom" align="start" sideOffset={4} className="z-[120]">
+          <Combobox.Popup className="w-80 max-w-[calc(100vw-2rem)] rounded-md border border-subtle bg-surface-1 p-2 shadow-raised-200">
+            <div className="flex items-center gap-2 rounded border border-subtle px-2">
+              <SearchIcon className="size-3.5 text-placeholder" aria-hidden="true" />
+              <Combobox.Input
+                aria-label="Search available co-workers"
+                placeholder="Search"
+                className="w-full bg-transparent py-2 text-13 outline-none"
+              />
+            </div>
+            <Combobox.List className="mt-2 max-h-48 overflow-y-auto">
+              {choices.results.map((candidate) => (
+                <Combobox.Item
+                  key={candidate.userId}
+                  value={candidate.userId}
+                  disabled={selectedIds.includes(candidate.userId) && selected?.userId !== candidate.userId}
+                  className="flex min-w-0 items-center gap-2 rounded px-2 py-2 text-13 data-[disabled]:opacity-50 data-[highlighted]:bg-layer-transparent-hover"
+                >
+                  {candidate.avatar && (
+                    <AuthenticatedAssetImage
+                      asset={candidate.avatar}
+                      alt="Member avatar"
+                      compactName={candidate.displayName ?? candidate.fullName}
+                      className="size-5 rounded-full"
+                    />
+                  )}
+                  <span className="min-w-0 grow truncate">
+                    {candidate.displayName ?? candidate.fullName}
+                    <span className="ml-1 text-tertiary">({candidate.fullName})</span>
+                  </span>
+                  <Combobox.ItemIndicator>
+                    <CheckIcon className="size-3.5" />
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))}
+            </Combobox.List>
+            {choices.status === "LoadingFirstPage" && (
+              <p role="status" className="p-2 text-13 text-tertiary">
+                Loading co-workers…
+              </p>
+            )}
+            {choices.status === "Exhausted" && choices.results.length === 0 && (
+              <p className="p-2 text-13 text-tertiary">No matching co-workers</p>
+            )}
+            {choices.status === "CanLoadMore" && (
+              <Button variant="secondary" size="sm" onClick={() => choices.loadMore(30)}>
+                Load more co-workers
+              </Button>
+            )}
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  );
+}

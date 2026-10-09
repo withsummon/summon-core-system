@@ -4,63 +4,138 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
-import { setPromiseToast } from "@plane/propel/toast";
-import type { IProject } from "@plane/types";
+import { useState } from "react";
+import type { ReactNode } from "react";
+import { Link, useOutletContext, useParams } from "react-router";
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { useTranslation } from "@plane/i18n";
+import { Button } from "@plane/propel/button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { ToggleSwitch } from "@plane/ui";
-// components
+import { PageHead } from "@/components/core/page-title";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
+import { SettingsHeading } from "@/components/settings/heading";
+import {
+  PreservedProjectSettingsShell,
+  PreservedWorkspaceSettingsShell,
+} from "@/components/workspace/native-shell/workspace-shell";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
-type Props = {
-  description?: React.ReactNode;
-  disabled?: boolean;
-  projectId: string;
-  featureProperty: keyof IProject;
-  title: React.ReactNode;
-  value: boolean;
-  workspaceSlug: string;
-};
+type Configuration = FunctionReturnType<typeof api.projects.features.resolve>;
 
-export const ProjectSettingsFeatureControlItem = observer(function ProjectSettingsFeatureControlItem(props: Props) {
-  const { description, disabled, featureProperty, projectId, title, value, workspaceSlug } = props;
-  // store hooks
-  const { getProjectById, updateProject } = useProject();
-  // derived values
-  const currentProjectDetails = getProjectById(projectId);
-
-  const handleSubmit = () => {
-    if (!workspaceSlug || !projectId || !currentProjectDetails) return;
-
-    // making the request to update the project feature
-    const settingsPayload = {
-      [featureProperty]: !currentProjectDetails?.[featureProperty],
-    };
-    const updateProjectPromise = updateProject(workspaceSlug, projectId, settingsPayload);
-
-    setPromiseToast(updateProjectPromise, {
-      loading: "Updating project feature...",
-      success: {
-        title: "Success!",
-        message: () => "Project feature updated successfully.",
-      },
-      error: {
-        title: "Error!",
-        message: () => "Something went wrong while updating project feature. Please try again.",
-      },
-    });
-    void updateProjectPromise.then(() => {
-      return undefined;
-    });
-  };
-
-  return (
-    <SettingsBoxedControlItem
-      title={title}
-      description={description}
-      control={<ToggleSwitch value={value} onChange={handleSubmit} disabled={disabled} size="sm" />}
-    />
+export function ProjectFeatureSettings({
+  feature,
+  header,
+}: {
+  feature: keyof Configuration["features"];
+  header: ReactNode;
+}) {
+  const session = useOutletContext<WorkspaceSession>();
+  const { projectId } = useParams();
+  const { t } = useTranslation();
+  const project = useQuery(
+    api.projects.features.resolve,
+    projectId ? { workspaceId: session.workspace._id, projectId } : "skip"
   );
-});
+  if (!project)
+    return (
+      <p role="status" className="p-8">
+        Loading project settings…
+      </p>
+    );
+  return (
+    <>
+      <PageHead title={`${project.name} settings - ${t(`project_settings.features.${feature}.short_title`)}`} />
+      <PreservedProjectSettingsShell
+        {...session}
+        project={project}
+        activePath={`project_settings.features.${feature}.short_title`}
+        header={header}
+      >
+        <section className="w-full">
+          <SettingsHeading
+            title={t(`project_settings.features.${feature}.title`)}
+            description={t(`project_settings.features.${feature}.description`)}
+          />
+          <div className="mt-7">
+            <FeatureControl key={`${project.projectId}:${feature}`} feature={feature} project={project} />
+          </div>
+        </section>
+      </PreservedProjectSettingsShell>
+    </>
+  );
+}
+
+function FeatureControl({ feature, project }: { feature: keyof Configuration["features"]; project: Configuration }) {
+  const { t } = useTranslation();
+  const save = useMutation(api.projects.features.save);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const title = t(`project_settings.features.${feature}.toggle_title`);
+  const update = async (value: boolean) => {
+    if (pending || !project.canConfigure) return;
+    const { intake, ...features } = project.features;
+    setPending(true);
+    setError("");
+    try {
+      await save({
+        projectId: project.projectId,
+        expectedRevision: project.revision,
+        features: feature === "intake" ? features : { ...features, [feature]: value },
+        intake: feature === "intake" ? value : intake,
+      });
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Project feature updated successfully." });
+    } catch (failure) {
+      setError(mutationMessage(failure));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <>
+      <SettingsBoxedControlItem
+        title={title}
+        description={t(`project_settings.features.${feature}.toggle_description`)}
+        control={
+          <ToggleSwitch
+            value={project.features[feature]}
+            onChange={(value) => void update(value)}
+            disabled={pending || !project.canConfigure}
+            size="sm"
+            label={title}
+          />
+        }
+      />
+      {error && (
+        <p role="alert" className="mt-3 text-14 text-danger-primary">
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+export function ProjectFeatureSettingsErrorBoundary() {
+  const session = useOutletContext<WorkspaceSession>();
+  return (
+    <PreservedWorkspaceSettingsShell {...session} activePath="common.features" header={null}>
+      <section className="space-y-4">
+        <h1 className="text-h3-medium">Project settings are unavailable</h1>
+        <p role="alert" className="text-body-xs-regular text-danger-primary">
+          Check this project's address and your access, then reload settings.
+        </p>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            Reload settings
+          </Button>
+          <Link className="text-link-primary" to={`/${session.workspace.slug}/stickies/`}>
+            Back to workspace
+          </Link>
+        </div>
+      </section>
+    </PreservedWorkspaceSettingsShell>
+  );
+}

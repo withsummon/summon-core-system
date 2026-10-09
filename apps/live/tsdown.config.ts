@@ -4,8 +4,9 @@ export default defineConfig({
   entry: ["src/start.ts"],
   outDir: "dist",
   format: ["esm"],
+  deps: { alwaysBundle: ["@summon/convex/api"] },
   dts: false,
   clean: true,
   sourcemap: false,
-  exports: true,
+  exports: false,
 });

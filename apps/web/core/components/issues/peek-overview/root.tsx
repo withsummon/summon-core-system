@@ -57,7 +57,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     storeType === EIssuesStoreType.EPIC ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES
   );
   // state
-  const [error, setError] = useState(false);
+  const [hasError, setError] = useState(false);
 
   const removeRoutePeekId = useCallback(() => {
     setPeekIssue(undefined);
@@ -76,20 +76,20 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
         }
       },
       update: async (workspaceSlug: string, projectId: string, issueId: string, data: Partial<TIssue>) => {
-        if (issues?.updateIssue) {
-          await issues
-            .updateIssue(workspaceSlug, projectId, issueId, data)
-            .then(async () => {
-              fetchActivities(workspaceSlug, projectId, issueId);
-              return;
-            })
-            .catch((_error) => {
-              setToast({
-                title: t("toast.error"),
-                type: TOAST_TYPE.ERROR,
-                message: t("entity.update.failed", { entity: t("issue.label", { count: 1 }) }),
-              });
-            });
+        if (!issues?.updateIssue) throw new Error("This work item cannot be edited.");
+        try {
+          const response = await issues.updateIssue(workspaceSlug, projectId, issueId, data);
+          void fetchActivities(workspaceSlug, projectId, issueId, "mutate").catch((error) => {
+            console.error("Failed to refresh work item activity", error);
+          });
+          return response;
+        } catch (error) {
+          setToast({
+            title: t("toast.error"),
+            type: TOAST_TYPE.ERROR,
+            message: t("entity.update.failed", { entity: t("issue.label", { count: 1 }) }),
+          });
+          throw error;
         }
       },
       remove: async (workspaceSlug: string, projectId: string, issueId: string) => {
@@ -241,7 +241,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
       projectId={peekIssue.projectId}
       issueId={peekIssue.issueId}
       isLoading={isLoading}
-      isError={error}
+      isError={hasError}
       is_archived={!!peekIssue.isArchived}
       disabled={!isEditable}
       embedIssue={embedIssue}

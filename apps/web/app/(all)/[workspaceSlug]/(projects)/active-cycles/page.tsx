@@ -4,25 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { useOutletContext } from "react-router";
 // components
 import { PageHead } from "@/components/core/page-title";
 // hooks
-import { useWorkspace } from "@/hooks/store/use-workspace";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 // local imports
 import { WorkspaceActiveCyclesUpgrade } from "@/components/active-cycles/workspace-active-cycles-upgrade";
 
-function WorkspaceActiveCyclesPage() {
-  const { currentWorkspace } = useWorkspace();
+export default function WorkspaceActiveCyclesPage() {
+  const { workspace, user } = useOutletContext<WorkspaceSession>();
   // derived values
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - Active Cycles` : undefined;
+  const pageTitle = `${workspace.name} - Active Cycles`;
 
   return (
     <>
       <PageHead title={pageTitle} />
-      <WorkspaceActiveCyclesUpgrade />
+      <WorkspaceActiveCyclesUpgrade theme={user.preferences.theme.theme} />
     </>
   );
 }
-
-export default observer(WorkspaceActiveCyclesPage);

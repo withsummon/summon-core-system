@@ -5,6 +5,7 @@
  */
 
 import { Links, Meta, Outlet, Scripts } from "react-router";
+import { initPromise } from "@plane/i18n";
 // assets
 import appleTouchIcon from "@/app/assets/favicon/apple-touch-icon.png?url";
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
@@ -18,14 +19,20 @@ import type { Route } from "./+types/root";
 // local imports
 import ErrorPage from "./error";
 import { AppProviders } from "./providers";
-// fonts
-import "@fontsource-variable/inter";
+// font stylesheets
+import interFontStyles from "@fontsource-variable/inter/index.css?url";
+import materialSymbolsFontStyles from "@fontsource/material-symbols-rounded/index.css?url";
+import ibmPlexMonoFontStyles from "@fontsource/ibm-plex-mono/index.css?url";
+// font preload
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
-import "@fontsource/material-symbols-rounded";
-import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Plane Publish | Make your Plane boards public with one-click";
 const APP_DESCRIPTION = "Plane Publish is a customer feedback management tool built on top of plane.so";
+
+export async function loader() {
+  await initPromise;
+  return null;
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "180x180", href: appleTouchIcon },
@@ -33,6 +40,9 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
   { rel: "shortcut icon", href: faviconIco },
   { rel: "manifest", href: siteWebmanifest },
+  { rel: "stylesheet", href: interFontStyles },
+  { rel: "stylesheet", href: materialSymbolsFontStyles },
+  { rel: "stylesheet", href: ibmPlexMonoFontStyles },
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
@@ -52,7 +62,7 @@ export const headers: Route.HeadersFunction = () => ({
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

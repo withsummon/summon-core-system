@@ -8,10 +8,8 @@
 import type { TFilterExpression, TFilterGroupNode, TFilterProperty } from "@plane/types";
 // local imports
 import { isConditionNode, isGroupNode } from "../../types/core";
-import { getGroupChildren } from "../../types/shared";
 import { hasValidValue } from "../../validators/core";
 import { unwrapGroupIfNeeded } from "../manipulation/core";
-import { transformGroup } from "./shared";
 
 /**
  * Generic tree transformation result type
@@ -55,7 +53,7 @@ export const transformGroupWithChildren = <P extends TFilterProperty>(
   group: TFilterGroupNode<P>,
   transformFn: TTreeTransformFn<P>
 ): TTreeTransformResult<P> => {
-  const children = getGroupChildren(group);
+  const children = group.children;
   const transformedChildren: TFilterExpression<P>[] = [];
   let shouldNotify = false;
 
@@ -81,7 +79,7 @@ export const transformGroupWithChildren = <P extends TFilterProperty>(
   const updatedGroup: TFilterGroupNode<P> = {
     ...group,
     children: transformedChildren,
-  } as TFilterGroupNode<P>;
+  };
 
   return createGroupTransformResult(updatedGroup, shouldNotify);
 };
@@ -117,9 +115,9 @@ export const transformExpressionTree = <P extends TFilterProperty>(
     return { expression, shouldNotify: false };
   }
 
-  // Handle group nodes by delegating to the extended transformGroup function
+  // Transform either logical group through its canonical children
   if (isGroupNode(expression)) {
-    return transformGroup(expression, transformFn);
+    return transformGroupWithChildren(expression, transformFn);
   }
 
   throw new Error("Unknown expression type in transformExpressionTree");

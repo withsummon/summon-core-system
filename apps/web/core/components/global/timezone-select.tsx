@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 // plane imports
 import { CustomSearchSelect } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -20,9 +19,10 @@ type TTimezoneSelect = {
   className?: string;
   optionsClassName?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 };
 
-export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneSelect) {
+export function TimezoneSelect(props: TTimezoneSelect) {
   // props
   const {
     value,
@@ -33,16 +33,18 @@ export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneS
     className = "",
     optionsClassName = "",
     disabled = false,
+    ariaLabel,
   } = props;
   // hooks
-  const { disabled: isDisabled, timezones, selectedValue } = useTimezone();
+  const { timezones, selectedValue } = useTimezone();
 
   return (
     <div>
       <CustomSearchSelect
+        ariaLabel={ariaLabel}
         value={value}
-        label={value && selectedValue ? selectedValue(value) : label}
-        options={isDisabled || disabled ? [] : timezones}
+        label={value ? selectedValue(value) : label}
+        options={timezones}
         onChange={onChange}
         buttonClassName={cn(buttonClassName, "border border-subtle-1", {
           "border-danger-strong": error,
@@ -50,9 +52,9 @@ export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneS
         className={cn("rounded-md", className)}
         optionsClassName={cn("w-72", optionsClassName)}
         input
-        disabled={isDisabled || disabled}
+        disabled={disabled}
         placement="bottom-end"
       />
     </div>
   );
-});
+}

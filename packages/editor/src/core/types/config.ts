@@ -5,6 +5,7 @@
  */
 
 // plane imports
+import type { HocuspocusProviderConfiguration } from "@hocuspocus/provider";
 import type { TExtendedFileHandler } from "@/plane-editor/types/config";
 
 export type TFileHandler = {
@@ -48,6 +49,10 @@ export type TUserDetails = {
 
 export type TRealtimeConfig = {
   url: string;
+  authToken?: HocuspocusProviderConfiguration["token"];
+  roomName?: string;
+  cacheKey?: string;
+  persistOffline?: boolean;
 };
 
 export type IMarking = {

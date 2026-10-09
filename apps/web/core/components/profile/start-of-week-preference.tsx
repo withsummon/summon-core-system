@@ -4,58 +4,79 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
+import { useState } from "react";
+import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { START_OF_THE_WEEK_OPTIONS } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EStartOfTheWeek } from "@plane/types";
-import { CustomSelect } from "@plane/ui";
-// components
+import { SelectPrimitive as Select } from "@plane/propel/select";
+import { CheckIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { SettingsControlItem } from "@/components/settings/control-item";
-// hooks
-import { useUserProfile } from "@/hooks/store/user";
 
-const getStartOfWeekLabel = (startOfWeek: EStartOfTheWeek) =>
-  START_OF_THE_WEEK_OPTIONS.find((option) => option.value === startOfWeek)?.label;
-
-export const StartOfWeekPreference = observer(function StartOfWeekPreference(props: {
+export function StartOfWeekPreference({
+  option,
+  profile,
+}: {
   option: { title: string; description: string };
+  profile: FunctionReturnType<typeof api.identity.profile.get>;
 }) {
-  // hooks
-  const { data: userProfile, updateUserProfile } = useUserProfile();
+  const save = useMutation(api.identity.preferences.save);
+  const [pending, setPending] = useState(false);
 
-  const handleStartOfWeekChange = async (val: number) => {
+  const handleStartOfWeekChange = async (startOfWeek: typeof profile.preferences.startOfWeek) => {
+    setPending(true);
     try {
-      await updateUserProfile({ start_of_the_week: val });
+      await save({ expectedRevision: profile.revision, preferences: { ...profile.preferences, startOfWeek } });
       setToast({ type: TOAST_TYPE.SUCCESS, title: "Success", message: "First day of the week updated successfully" });
-    } catch (_error) {
-      setToast({ type: TOAST_TYPE.ERROR, title: "Update failed", message: "Please try again later." });
+    } catch (error) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Update failed", message: mutationMessage(error) });
+    } finally {
+      setPending(false);
     }
   };
 
   return (
     <SettingsControlItem
-      title={props.option.title}
-      description={props.option.description}
+      title={option.title}
+      description={option.description}
       control={
-        <CustomSelect
-          value={userProfile.start_of_the_week}
-          label={getStartOfWeekLabel(userProfile.start_of_the_week)}
-          onChange={handleStartOfWeekChange}
-          buttonClassName="border border-subtle-1"
-          input
-          maxHeight="lg"
-          placement="bottom-end"
+        <Select.Root<typeof profile.preferences.startOfWeek>
+          items={START_OF_THE_WEEK_OPTIONS}
+          value={profile.preferences.startOfWeek}
+          onValueChange={(day) => {
+            if (day !== null) void handleStartOfWeekChange(day);
+          }}
+          disabled={pending}
         >
-          <>
-            {START_OF_THE_WEEK_OPTIONS.map((day) => (
-              <CustomSelect.Option key={day.value} value={day.value}>
-                {day.label}
-              </CustomSelect.Option>
-            ))}
-          </>
-        </CustomSelect>
+          <Select.Trigger
+            aria-label={option.title}
+            className="flex items-center justify-between gap-1 rounded border border-subtle-1 px-3 py-2 text-13 outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:opacity-50"
+          >
+            <Select.Value />
+            <ChevronDownIcon className="size-3" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner align="end" sideOffset={4} alignItemWithTrigger={false} className="z-120">
+              <Select.Popup className="max-h-60 min-w-48 overflow-y-auto rounded-md border border-subtle-1 bg-surface-1 p-2 text-11 shadow-raised-200 outline-none">
+                {START_OF_THE_WEEK_OPTIONS.map((day) => (
+                  <Select.Item
+                    key={day.value}
+                    value={day.value}
+                    className="flex cursor-pointer items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none data-[highlighted]:bg-layer-transparent-hover"
+                  >
+                    <Select.ItemText>{day.label}</Select.ItemText>
+                    <Select.ItemIndicator>
+                      <CheckIcon className="size-3.5" />
+                    </Select.ItemIndicator>
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
       }
     />
   );
-});
+}

@@ -12,13 +12,12 @@
   ],
   "license": "AGPL-3.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./lib": "./dist/lib.js",
     "./package.json": "./package.json",
+    "./image-contract": "./src/core/extensions/custom-image/contract.ts",
     "./styles.css": "./dist/styles/index.css",
     "./styles": "./dist/styles/index.css"
   },

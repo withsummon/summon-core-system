@@ -4,141 +4,109 @@
  * See the LICENSE file for details.
  */
 
-import React, { useMemo, useState } from "react";
-import { observer } from "mobx-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-// plane imports
+import { useEffect, useMemo, useState } from "react";
+import { usePaginatedQuery, useMutation } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
+import { useLocation, useNavigate } from "react-router";
 import { stringToEmoji } from "@plane/propel/emoji-icon-picker";
 import { EmojiReactionGroup, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
-import type { EmojiReactionType } from "@plane/propel/emoji-reaction";
-// helpers
+import { AddReactionIcon } from "@plane/propel/icons";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { groupReactions } from "@/helpers/emoji.helper";
-import { queryParamGenerator } from "@/helpers/query-param-generator";
-// hooks
-import { useIssueDetails } from "@/hooks/store/use-issue-details";
 import { useUser } from "@/hooks/store/use-user";
 import useIsInIframe from "@/hooks/use-is-in-iframe";
 
-type Props = {
-  anchor: string;
-  commentId: string;
-};
-
-export const CommentReactions = observer(function CommentReactions(props: Props) {
-  const { anchor, commentId } = props;
-  // state
+export function CommentReactions({
+  anchor,
+  taskId,
+  commentId,
+}: Omit<FunctionArgs<typeof api.tasks.commentReactions.publicList>, "paginationOpts">) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const router = useRouter();
-  const pathName = usePathname();
-  const searchParams = useSearchParams();
-  // query params
-  const board = searchParams.get("board") || undefined;
-  const state = searchParams.get("state") || undefined;
-  const priority = searchParams.get("priority") || undefined;
-  const labels = searchParams.get("labels") || undefined;
-
-  // hooks
-  const { addCommentReaction, removeCommentReaction, details, peekId } = useIssueDetails();
-  const { data: user } = useUser();
+  const [pending, setPending] = useState(false);
+  const { profile: user } = useUser();
   const isInIframe = useIsInIframe();
-
-  const commentReactions = useMemo(() => {
-    if (!peekId) return [];
-    const peekDetails = details[peekId];
-    if (!peekDetails) return [];
-    const comment = peekDetails.comments?.find((c) => c.id === commentId);
-    return comment?.comment_reactions ?? [];
-  }, [peekId, details, commentId]);
-
-  const groupedReactions = useMemo(() => {
-    if (!peekId) return {};
-    return groupReactions(commentReactions ?? [], "reaction");
-  }, [peekId, commentReactions]);
-
-  const userReactions = commentReactions?.filter((r) => r?.actor_detail?.id === user?.id);
-
-  const handleAddReaction = (reactionHex: string) => {
-    if (!anchor || !peekId) return;
-    addCommentReaction(anchor, peekId, commentId, reactionHex);
-  };
-
-  const handleRemoveReaction = (reactionHex: string) => {
-    if (!anchor || !peekId) return;
-    removeCommentReaction(anchor, peekId, commentId, reactionHex);
-  };
-
-  const handleReactionClick = (reactionHex: string) => {
-    const userReaction = userReactions?.find((r) => r.actor_detail.id === user?.id && r.reaction === reactionHex);
-
-    if (userReaction) handleRemoveReaction(reactionHex);
-    else handleAddReaction(reactionHex);
-  };
-
-  // derived values
-  const { queryParam } = queryParamGenerator({ peekId, board, state, priority, labels });
-
-  // Transform reactions data to Propel EmojiReactionType format
-  const propelReactions: EmojiReactionType[] = useMemo(() => {
-    const REACTIONS_LIMIT = 1000;
-
-    return Object.keys(groupedReactions || {})
-      .filter((reaction) => groupedReactions?.[reaction]?.length > 0)
-      .map((reaction) => {
-        const reactionList = groupedReactions?.[reaction] ?? [];
-        const userNames = reactionList
-          .map((r) => r?.actor_detail?.display_name)
-          .filter((name): name is string => !!name)
-          .slice(0, REACTIONS_LIMIT);
-
-        return {
-          emoji: stringToEmoji(reaction),
-          count: reactionList.length,
-          reacted: commentReactions?.some((r) => r?.actor_detail?.id === user?.id && r.reaction === reaction) || false,
-          users: userNames,
-        };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const setReaction = useMutation(api.tasks.commentReactions.publicSet);
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.tasks.commentReactions.publicList,
+    { anchor, taskId, commentId },
+    { initialNumItems: 50 }
+  );
+  useEffect(() => {
+    if (status === "CanLoadMore") loadMore(50);
+  }, [status, loadMore]);
+  const reactions = useMemo(
+    () =>
+      [...groupReactions(results)].map(([reaction, rows]) => ({
+        emoji: stringToEmoji(reaction),
+        count: rows.length,
+        reacted: rows.some((row) => row.actorId === user?.id),
+        users: rows.flatMap((row) => (row.actorName === null ? [] : [row.actorName])),
+      })),
+    [results, user?.id]
+  );
+  const choose = async (reaction: string) => {
+    if (isInIframe || pending || status !== "Exhausted") return;
+    if (!user) {
+      navigate(`/?${new URLSearchParams({ next_path: location.pathname + location.search })}`);
+      return;
+    }
+    setPending(true);
+    try {
+      await setReaction({
+        anchor,
+        taskId,
+        commentId,
+        reaction,
+        active: !results.some((row) => row.actorId === user.id && row.reaction === reaction),
       });
-  }, [groupedReactions, commentReactions, user?.id]);
-
-  const handleEmojiClick = (emoji: string) => {
-    if (isInIframe) return;
-    if (!user) {
-      router.push(`/?next_path=${pathName}?${queryParam}`);
-      return;
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Reaction could not be saved",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setPending(false);
     }
-    // Convert emoji back to decimal string format for the API
-    const emojiCodePoints = Array.from(emoji)
-      .map((char) => char.codePointAt(0))
-      .filter((cp): cp is number => cp !== undefined);
-    const reactionString = emojiCodePoints.join("-");
-    handleReactionClick(reactionString);
   };
-
-  const handleEmojiSelect = (emoji: string) => {
-    if (!user) {
-      router.push(`/?next_path=${pathName}?${queryParam}`);
-      return;
-    }
-    // emoji is already in decimal string format from EmojiReactionPicker
-    handleReactionClick(emoji);
-  };
-
   return (
-    <div className="mt-2">
-      <EmojiReactionPicker
-        isOpen={isPickerOpen}
-        handleToggle={setIsPickerOpen}
-        onChange={handleEmojiSelect}
-        disabled={isInIframe}
-        label={
+    <div className="flex flex-wrap items-center gap-2">
+      {status === "Exhausted" ? (
+        <>
           <EmojiReactionGroup
-            reactions={propelReactions}
-            onReactionClick={handleEmojiClick}
-            showAddButton={!isInIframe}
-            onAddReaction={() => setIsPickerOpen(true)}
+            className="contents"
+            reactions={reactions}
+            onReactionClick={(emoji) =>
+              choose(
+                Array.from(emoji)
+                  .map((char) => char.codePointAt(0))
+                  .join("-")
+              )
+            }
+            showAddButton={false}
+            disabled={pending || isInIframe}
           />
-        }
-        placement="bottom-start"
-      />
+          {!isInIframe && (
+            <EmojiReactionPicker
+              isOpen={isPickerOpen && !pending}
+              handleToggle={setIsPickerOpen}
+              disabled={pending}
+              onChange={choose}
+              placement="bottom-start"
+              label={<AddReactionIcon className="size-3.5" aria-hidden="true" />}
+              buttonClassName={getIconButtonStyling("ghost", "sm")}
+            />
+          )}
+        </>
+      ) : (
+        <span role="status" className="text-11 text-secondary">
+          Loading reactions…
+        </span>
+      )}
     </div>
   );
-});
+}

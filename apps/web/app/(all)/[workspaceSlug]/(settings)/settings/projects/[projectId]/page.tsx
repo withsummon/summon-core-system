@@ -4,51 +4,38 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-// components
+import { useOutletContext, useParams } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
 import { ProjectDetailsForm } from "@/components/project/form";
 import { ProjectDetailsFormLoader } from "@/components/project/form-loader";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
-import type { Route } from "./+types/page";
+import { PreservedProjectSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
 import { GeneralProjectSettingsHeader } from "./header";
-import { GeneralProjectSettingsControlSection } from "@/components/project/settings/control-section";
 
-function ProjectSettingsPage({ params }: Route.ComponentProps) {
-  // router
-  const { workspaceSlug, projectId } = params;
-  // store hooks
-  const { currentProjectDetails } = useProject();
-  const { allowPermissions } = useUserPermissions();
-  // derived values
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
+export { ProjectFeatureSettingsErrorBoundary as ErrorBoundary } from "@/components/settings/project/content/feature-control-item";
 
-  const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails?.name} - General Settings` : undefined;
-
+export default function ProjectSettingsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { projectId } = useParams();
+  const settings = useQuery(
+    api.projects.form.get,
+    projectId ? { workspaceId: session.workspace._id, projectId } : "skip"
+  );
+  if (!settings) return <ProjectDetailsFormLoader />;
   return (
-    <SettingsContentWrapper header={<GeneralProjectSettingsHeader />}>
-      <PageHead title={pageTitle} />
-      <div className={`w-full ${isAdmin ? "" : "opacity-60"}`}>
-        {currentProjectDetails ? (
-          <ProjectDetailsForm
-            project={currentProjectDetails}
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            isAdmin={isAdmin}
-          />
-        ) : (
-          <ProjectDetailsFormLoader />
-        )}
-        {isAdmin && <GeneralProjectSettingsControlSection projectId={projectId} />}
+    <PreservedProjectSettingsShell
+      {...session}
+      project={settings.shell}
+      authorized
+      activePath="common.general"
+      header={<GeneralProjectSettingsHeader />}
+    >
+      <PageHead title={`${settings.input.name} - General Settings`} />
+      <div className={`w-full ${settings.canManage ? "" : "opacity-60"}`}>
+        <ProjectDetailsForm key={settings.input.projectId} project={settings} workspaceSlug={session.workspace.slug} />
       </div>
-    </SettingsContentWrapper>
+    </PreservedProjectSettingsShell>
   );
 }
-
-export default observer(ProjectSettingsPage);

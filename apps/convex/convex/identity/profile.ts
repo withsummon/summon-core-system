@@ -1,0 +1,64 @@
+import type { Infer } from "convex/values";
+import type { MutationCtx } from "../_generated/server";
+import { v } from "convex/values";
+import { mutation, query } from "../_generated/server";
+import { defaultProfile, ownProfile, personalName, profileRevision, writeProfile } from "./profile_owner";
+import { profileFields } from "./schema";
+import { defaultTheme } from "./preferences_fields";
+import { text } from "../commercial/validation";
+import { validateTimezone } from "../settings/timezone";
+
+export const get = query({
+  args: {},
+  handler: async (ctx) => {
+    const { user, profile } = await ownProfile(ctx);
+    const stored = profile ?? defaultProfile;
+    return {
+      id: user._id,
+      email: user.email ?? null,
+      displayName: user.name ?? "",
+      firstName: stored.firstName,
+      lastName: stored.lastName,
+      timezone: stored.timezone,
+      revision: stored.revision,
+      preferences: {
+        ...stored.preferences,
+        theme: { ...stored.preferences.theme, theme: stored.preferences.theme.theme ?? defaultTheme },
+      },
+      marketingEmailConsent: profile?.marketingEmailConsent === true,
+    };
+  },
+});
+const saveFields = {
+  ...profileFields,
+  displayName: v.string(),
+  expectedRevision: v.number(),
+  marketingEmailConsent: v.optional(v.boolean()),
+};
+const saveInput = v.object(saveFields);
+async function saveProfile(ctx: MutationCtx, args: Infer<typeof saveInput>, complete: boolean) {
+  const owner = await ownProfile(ctx);
+  const revision = profileRevision(owner.profile, args.expectedRevision);
+  const displayName = text(args.displayName, "Display name", 255, true);
+  const current = owner.profile ?? defaultProfile;
+  const fields = {
+    firstName: personalName(args.firstName, "First name", complete),
+    lastName: personalName(args.lastName, "Last name"),
+    timezone: validateTimezone(args.timezone),
+    revision,
+    ...(args.marketingEmailConsent === undefined ? {} : { marketingEmailConsent: args.marketingEmailConsent }),
+    ...(complete
+      ? {
+          preferences: {
+            ...current.preferences,
+            onboarding: { ...current.preferences.onboarding, profileComplete: true },
+          },
+        }
+      : {}),
+  };
+  await ctx.db.patch(owner.user._id, { name: displayName });
+  await writeProfile(ctx, owner, fields);
+  return { revision };
+}
+export const save = mutation({ args: saveFields, handler: (ctx, args) => saveProfile(ctx, args, false) });
+export const completeProfile = mutation({ args: saveFields, handler: (ctx, args) => saveProfile(ctx, args, true) });

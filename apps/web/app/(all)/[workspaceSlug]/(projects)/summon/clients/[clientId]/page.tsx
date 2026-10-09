@@ -4,17 +4,25 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router";
+import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react";
+import { Controller } from "react-hook-form";
+import { api } from "@summon/convex/api";
+import type { FunctionReturnType } from "convex/server";
+import type { Doc, Id } from "@summon/convex/data-model";
+import { memberLabel } from "@summon/convex/member-label";
+import { generateWorkItemLink } from "@plane/utils";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
+import { ClientForm } from "@/components/convex-core/commercial/client-form";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   ArrowRight,
   Building2,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
-  CircleEllipsis,
   ExternalLink,
   FileText,
   FolderKanban,
@@ -23,22 +31,16 @@ import {
   Phone,
   Plus,
   Target,
-  X,
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
-import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { summonErrorMessage } from "@/components/summon/screen";
-import { useMember } from "@/hooks/store/use-member";
-import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
-import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
 
-const formatDate = (value?: string | null) => {
+const formatDate = (value?: string | number | null) => {
   if (!value) return "Not set";
   return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 };
@@ -59,50 +61,33 @@ const CLIENT_TABS = [
 type TClientTab = (typeof CLIENT_TABS)[number]["id"];
 
 export default function SummonClientDetailPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug, clientId } = params;
-  const { getUserDetails } = useMember();
+  const { workspace } = useOutletContext<WorkspaceSession>();
+  const context = useQuery(api.commercial.clients.get, { workspaceId: workspace._id, clientId: params.clientId });
+  if (!context) return <SummonRequestState loading />;
+  if (!context.record) throw new Error("Client detail requires an existing client.");
+  return <ClientDetail key={context.record._id} workspace={workspace} context={context} data={context.record} />;
+}
+
+function ClientDetail({
+  workspace,
+  context,
+  data,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  context: FunctionReturnType<typeof api.commercial.clients.get>;
+  data: Doc<"clients">;
+}) {
+  const workspaceSlug = workspace.slug;
   const [activeTab, setActiveTab] = useState<TClientTab>("overview");
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
-  const { data, error, isLoading, mutate } = useSWR(["summon-client", workspaceSlug, clientId], () =>
-    summonService.getClientDetail(workspaceSlug, clientId)
-  );
-
-  if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
-
-  const activeOpportunities = data.opportunities.filter(({ stage }) => stage !== "won" && stage !== "lost");
-  const owner = data.owner ? getUserDetails(data.owner) : undefined;
-  const lastInteraction = data.recent_activity[0];
+  const owner = context.owner ? memberLabel(context.owner) : "Not assigned";
+  const information = [
+    { label: "Legal Name", value: data.companyName },
+    { label: "Industry", value: data.industry },
+    { label: "Head Office", value: data.headOffice },
+    { label: "Account Manager", value: owner },
+  ];
   const showTab = (tab: TClientTab) => activeTab === "overview" || activeTab === tab;
-  const visiblePageContexts = data.page_contexts.filter((context) =>
-    activeTab === "documents" ? context.category === "document" : context.category !== "document"
-  );
-
-  const updateClient = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setSaving(true);
-    setFormError("");
-    try {
-      await summonService.updateClient(workspaceSlug, clientId, {
-        name: form.get("name"),
-        company_name: form.get("company_name"),
-        industry: form.get("industry"),
-        website: form.get("website"),
-        head_office: form.get("head_office"),
-        relationship_started_at: form.get("relationship_started_at") || null,
-        notes: form.get("notes"),
-        status: form.get("status"),
-      });
-      await mutate();
-      setEditing(false);
-    } catch (requestError) {
-      setFormError(summonErrorMessage(requestError));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
@@ -127,7 +112,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                 {statusLabel(data.status)} Client
               </span>
               <span>•</span>
-              <span>Since {formatDate(data.relationship_started_at)}</span>
+              <span>Since {formatDate(data.relationshipStartedAt)}</span>
               <span>•</span>
               <span>{data.industry || "Industry not set"}</span>
             </div>
@@ -136,33 +121,22 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {context.canWrite && (
+            <Link
+              href={`/${workspaceSlug}/summon/opportunities/?${new URLSearchParams({ create: "1", client: data._id })}`}
+              className="text-xs inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 font-medium text-primary hover:bg-layer-1"
+            >
+              <Plus className="size-3.5" /> New opportunity
+            </Link>
+          )}
           <button
             type="button"
-            className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
-            aria-label="More client actions"
-          >
-            <CircleEllipsis className="size-4" />
-          </button>
-          <Link
-            href={opportunityCreateHref(workspaceSlug, data.id)}
-            className="text-xs inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 font-medium text-primary hover:bg-layer-1"
-          >
-            <Plus className="size-3.5" /> New opportunity
-          </Link>
-          <button
-            type="button"
+            disabled={!context.canWrite}
             onClick={() => setEditing(true)}
             className="text-xs inline-flex h-10 items-center gap-2 rounded-xl bg-accent-primary px-5 font-medium text-white"
           >
             <Pencil className="size-3.5" /> Edit Client
-          </button>
-          <button
-            type="button"
-            className="grid size-10 place-items-center rounded-xl bg-accent-primary text-white"
-            aria-label="Open client actions"
-          >
-            <ChevronDown className="size-4" />
           </button>
         </div>
       </header>
@@ -184,254 +158,47 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         className={`mt-4 grid min-w-0 items-start gap-4 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}
       >
         <main className="min-w-0 space-y-4">
-          {activeTab === "overview" ? (
-            <section className="grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 lg:grid-cols-4">
-              <ClientMetric
-                icon={<Target className="size-4.5" />}
-                label="Active Opportunities"
-                value={activeOpportunities.length}
-                detail="View opportunities"
-              />
-              <ClientMetric
-                icon={<FolderKanban className="size-4.5" />}
-                label="Active Projects"
-                value={data.projects.length}
-                detail="View projects"
-              />
-              <ClientMetric
-                icon={<Building2 className="size-4.5" />}
-                label="Total Projects"
-                value={data.projects.length}
-                detail="Visible Plane projects"
-              />
-              <ClientMetric
-                icon={<CalendarDays className="size-4.5" />}
-                label="Last Interaction"
-                value={lastInteraction ? formatDate(lastInteraction.created_at) : "No activity"}
-                detail={lastInteraction?.label || "Nothing recorded"}
-              />
-            </section>
-          ) : null}
+          {activeTab === "overview" ? <ClientMetrics workspace={workspace} clientId={data._id} /> : null}
 
           {showTab("opportunities") ? (
-            <DataSection
-              title="Opportunities"
-              action="View all opportunities"
-              href={`/${workspaceSlug}/summon/opportunities/`}
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-[10px]">
-                  <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
-                    <tr>
-                      {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
-                        <th key={label} className="px-4 py-3 font-medium">
-                          {label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {data.opportunities.map((opportunity) => {
-                      const opportunityOwner = opportunity.owner ? getUserDetails(opportunity.owner) : undefined;
-                      return (
-                        <tr key={opportunity.id}>
-                          <td className="px-4 py-3">
-                            <Link
-                              href={`/${workspaceSlug}/summon/opportunities/${opportunity.id}/`}
-                              className="font-semibold text-primary"
-                            >
-                              {opportunity.title}
-                            </Link>
-                            <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Badge>{statusLabel(opportunity.stage)}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-primary">{opportunityOwner?.display_name || "Not assigned"}</td>
-                          <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
-                          <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
-                              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
-                                <div
-                                  className="h-full rounded-full bg-accent-primary"
-                                  style={{ width: `${opportunity.probability}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {!data.opportunities.length ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
-                          No opportunities linked to this client.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </DataSection>
+            <ClientOpportunities workspace={workspace} clientId={data._id} currency={context.currency} />
           ) : null}
 
           {showTab("projects") ? (
-            <DataSection title="Recent Projects" action="View all projects" href={`/${workspaceSlug}/summon/projects/`}>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-[10px]">
-                  <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
-                    <tr>
-                      {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
-                        <th key={label} className="px-4 py-3 font-medium">
-                          {label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {data.projects.slice(0, 5).map((project) => (
-                      <tr key={project.id}>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/${workspaceSlug}/summon/projects/${project.id}/`}
-                            className="font-semibold text-primary"
-                          >
-                            {project.name}
-                          </Link>
-                          <p className="mt-1 text-tertiary">{project.identifier}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge>Plane Project</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
-                            <CheckCircle2 className="size-3" /> Linked
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                      </tr>
-                    ))}
-                    {!data.projects.length ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
-                          No visible Plane projects linked to this client.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </DataSection>
+            <ClientProjects workspace={workspace} clientId={data._id} overview={activeTab === "overview"} />
           ) : null}
 
           {showTab("contacts") ? (
-            <DataSection title="Key Contacts" action="View all contacts">
-              <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
-                {data.contacts.slice(0, 3).map((contact) => (
-                  <article key={contact.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
-                    <span className="text-sm grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle font-semibold text-accent-primary">
-                      {contact.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-[11px] font-semibold text-primary">{contact.name}</h3>
-                      <p className="mt-0.5 truncate text-[10px] text-secondary">{contact.title || "Role not set"}</p>
-                      {contact.email ? (
-                        <a
-                          href={`mailto:${contact.email}`}
-                          className="mt-1 block truncate text-[10px] text-accent-primary"
-                        >
-                          {contact.email}
-                        </a>
-                      ) : null}
-                      {contact.phone ? (
-                        <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-[10px] text-secondary">
-                          {contact.phone}
-                        </a>
-                      ) : null}
-                      <div className="mt-2 flex gap-2">
-                        <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
-                          <Mail className="size-3" />
-                        </span>
-                        <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
-                          <Phone className="size-3" />
-                        </span>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-                {!data.contacts.length ? (
-                  <p className="py-8 text-center text-[10px] text-tertiary md:col-span-2 2xl:col-span-3">
-                    No contacts added.
-                  </p>
-                ) : null}
-              </div>
-            </DataSection>
+            <ClientContacts
+              workspace={workspace}
+              clientId={data._id}
+              onSelect={() => setActiveTab("contacts")}
+              overview={activeTab === "overview"}
+            />
           ) : null}
 
           {showTab("activity") ? (
-            <DataSection title="Recent Activity" action="View all activity">
-              <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-                {data.recent_activity.slice(0, 5).map((activity) => (
-                  <Link key={activity.id} href={activity.href} className="flex min-w-0 items-start gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-subtle text-accent-primary">
-                      <FileText className="size-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[10px] font-semibold text-primary">{activity.label}</span>
-                      <time className="mt-1 block text-[9px] text-secondary" dateTime={activity.created_at}>
-                        {formatDate(activity.created_at)}
-                      </time>
-                    </span>
-                  </Link>
-                ))}
-                {!data.recent_activity.length ? <p className="text-[10px] text-tertiary">No recent activity.</p> : null}
-              </div>
-            </DataSection>
+            <ClientActivity
+              workspace={workspace}
+              clientId={data._id}
+              onSelect={() => setActiveTab("activity")}
+              overview={activeTab === "overview"}
+            />
           ) : null}
 
           {activeTab === "documents" || activeTab === "notes" ? (
-            <DataSection
-              title={activeTab === "documents" ? "Documents" : "Notes"}
-              action={`${visiblePageContexts.length} linked pages`}
-            >
-              <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-                {visiblePageContexts.map((context) => (
-                  <article key={context.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                      <FileText className="size-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[11px] font-semibold text-primary">
-                        {context.page_detail.name || "Untitled page"}
-                      </p>
-                      <p className="mt-1 text-[9px] text-secondary">
-                        {statusLabel(context.category || "page")} · {formatDate(context.updated_at)}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-                {!visiblePageContexts.length ? (
-                  <p className="py-8 text-center text-[10px] text-tertiary sm:col-span-2 xl:col-span-3">
-                    No linked {activeTab}.
-                  </p>
-                ) : null}
-              </div>
-            </DataSection>
+            <ClientDocuments workspace={workspace} clientId={data._id} tab={activeTab} />
           ) : null}
 
           {activeTab === "settings" ? (
             <DataSection title="Client Settings" action="Manage client record">
               <div className="grid gap-4 p-4 sm:grid-cols-2">
-                <Detail label="Legal Name" value={data.company_name || "Not set"} />
-                <Detail label="Industry" value={data.industry || "Not set"} />
-                <Detail label="Head Office" value={data.head_office || "Not set"} />
-                <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
+                {information.map(({ label, value }) => (
+                  <Detail key={label} label={label} value={value || "Not set"} />
+                ))}
+
                 <div className="sm:col-span-2">
-                  <Button size="xl" type="button" onClick={() => setEditing(true)}>
+                  <Button size="xl" type="button" disabled={!context.canWrite} onClick={() => setEditing(true)}>
                     <Pencil className="mr-2 size-3.5" /> Edit Client
                   </Button>
                 </div>
@@ -442,24 +209,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
 
         {activeTab === "overview" ? (
           <aside className="min-w-0 space-y-4">
-            <SideCard title="Relationship Health">
-              <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-[10px] font-medium text-secondary">
-                Not scored
-              </span>
-              <p className="mt-2 text-[10px] leading-4 text-secondary">
-                No relationship-health data source is configured.
-              </p>
-              <div className="mt-4 space-y-3">
-                <HealthRow label="Communication records" detail={`${data.meetings.length} meetings linked`} />
-                <HealthRow label="Projects tracked" detail={`${data.projects.length} visible projects`} />
-                <HealthRow label="Client contacts" detail={`${data.contacts.length} contacts recorded`} />
-              </div>
-            </SideCard>
+            <ClientHealth workspace={workspace} clientId={data._id} />
 
             <SideCard title="Client Information">
               <dl className="space-y-4">
-                <Detail label="Legal Name" value={data.company_name || "Not set"} />
-                <Detail label="Industry" value={data.industry || "Not set"} />
+                {information.map(({ label, value }) => (
+                  <Detail key={label} label={label} value={value || "Not set"} />
+                ))}
+
                 <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-[10px]">
                   <dt className="text-secondary">Website</dt>
                   <dd className="min-w-0 font-medium text-primary">
@@ -478,105 +235,562 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     )}
                   </dd>
                 </div>
-                <Detail label="Head Office" value={data.head_office || "Not set"} />
-                <Detail label="Client Since" value={formatDate(data.relationship_started_at)} />
-                <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
+
+                <Detail label="Client Since" value={formatDate(data.relationshipStartedAt)} />
               </dl>
             </SideCard>
 
-            <SideCard title="Notes" action="View all notes">
-              <div className="space-y-2">
-                {data.page_contexts.slice(0, 3).map((context) => (
-                  <div key={context.id} className="flex min-w-0 gap-3 rounded-lg border border-subtle p-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                      <FileText className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[10px] font-semibold text-primary">
-                        {context.page_detail.name || "Untitled page"}
-                      </p>
-                      <p className="mt-1 text-[9px] text-secondary">{formatDate(context.updated_at)}</p>
-                    </div>
-                  </div>
-                ))}
-                {!data.page_contexts.length ? <p className="py-4 text-[10px] text-tertiary">No linked notes.</p> : null}
-              </div>
-            </SideCard>
+            <ClientNotes workspace={workspace} clientId={data._id} onSelect={() => setActiveTab("notes")} />
           </aside>
         ) : null}
       </div>
 
-      <Dialog open={editing} onOpenChange={setEditing}>
-        <Dialog.Panel
-          width={EDialogWidth.XL}
-          className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-5"
+      {editing && (
+        <ClientForm
+          workspaceId={workspace._id}
+          context={context}
+          onDone={() => setEditing(false)}
+          onCancel={() => setEditing(false)}
+          className="mt-5 grid gap-3 sm:grid-cols-2"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Dialog.Title className="text-18 font-semibold text-primary">Edit Client</Dialog.Title>
-              <p className="text-xs mt-1 text-secondary">Changes are saved to the Summon client record.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-              aria-label="Close edit client"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-          <form onSubmit={updateClient} className="mt-5 grid gap-3 sm:grid-cols-2">
-            <EditField label="Client name">
-              <Input name="name" required defaultValue={data.name} />
-            </EditField>
-            <EditField label="Legal name">
-              <Input name="company_name" defaultValue={data.company_name} />
-            </EditField>
-            <EditField label="Industry">
-              <Input name="industry" defaultValue={data.industry} />
-            </EditField>
-            <EditField label="Website">
-              <Input name="website" type="url" defaultValue={data.website} />
-            </EditField>
-            <EditField label="Head office">
-              <Input name="head_office" defaultValue={data.head_office} />
-            </EditField>
-            <EditField label="Relationship started">
-              <DatePicker name="relationship_started_at" defaultValue={data.relationship_started_at || ""} />
-            </EditField>
-            <EditField label="Status">
-              <Select
-                name="status"
-                defaultValue={data.status}
-                options={[
-                  { value: "lead", label: "Lead" },
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
-                ]}
-              />
-            </EditField>
-            <label className="text-[11px] text-secondary sm:col-span-2">
-              Notes
-              <textarea
-                name="notes"
-                rows={4}
-                defaultValue={data.notes}
-                className="text-xs mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-primary"
-              />
-            </label>
-            {formError ? <p className="text-xs text-danger-primary sm:col-span-2">{formError}</p> : null}
-            <div className="flex justify-end gap-2 sm:col-span-2">
-              <Button size="xl" type="button" variant="secondary" onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-              <Button size="xl" type="submit" loading={saving}>
-                Save changes
-              </Button>
-            </div>
-          </form>
-        </Dialog.Panel>
-      </Dialog>
+          {({ register, control, formState: { isSubmitting } }) => (
+            <>
+              <EditField label="Client name">
+                <Input {...register("name")} required maxLength={255} />
+              </EditField>
+              <EditField label="Legal name">
+                <Input {...register("companyName")} maxLength={255} />
+              </EditField>
+              <EditField label="Industry">
+                <Input {...register("industry")} maxLength={120} />
+              </EditField>
+              <EditField label="Website">
+                <Input {...register("website")} type="url" maxLength={200} />
+              </EditField>
+              <EditField label="Head office">
+                <Input {...register("headOffice")} maxLength={255} />
+              </EditField>
+              <EditField label="Relationship started">
+                <Controller
+                  name="relationshipStartedAt"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      name={field.name}
+                      value={field.value ?? ""}
+                      onValueChange={(value) => field.onChange(value || null)}
+                      disabled={isSubmitting || !context.canWrite}
+                    />
+                  )}
+                />
+              </EditField>
+              <EditField label="Status">
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      name={field.name}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting || !context.canWrite}
+                      options={context.statuses.map((value) => ({ value, label: statusLabel(value) }))}
+                    />
+                  )}
+                />
+              </EditField>
+              <label className="text-[11px] text-secondary sm:col-span-2">
+                Notes
+                <textarea
+                  {...register("notes")}
+                  rows={4}
+                  maxLength={100000}
+                  className="text-xs mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-primary"
+                />
+              </label>
+            </>
+          )}
+        </ClientForm>
+      )}
     </section>
+  );
+}
+
+function ClientMetrics({ workspace, clientId }: { workspace: WorkspaceSession["workspace"]; clientId: Id<"clients"> }) {
+  const opportunities = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "opportunityCounts" },
+    { initialNumItems: 100 }
+  );
+  const projects = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "projectCounts" },
+    { initialNumItems: 100 }
+  );
+  const activity = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "activity" },
+    { initialNumItems: 1 }
+  );
+  const { status: opportunityStatus, loadMore: moreOpportunities } = opportunities;
+  const { status: projectStatus, loadMore: moreProjects } = projects;
+  const { status: activityStatus, loadMore: moreActivity, results: recentActivity } = activity;
+  useEffect(() => {
+    if (opportunityStatus === "CanLoadMore") moreOpportunities(100);
+    if (projectStatus === "CanLoadMore") moreProjects(100);
+    if (activityStatus === "CanLoadMore" && !recentActivity.length) moreActivity(1);
+  }, [
+    opportunityStatus,
+    moreOpportunities,
+    projectStatus,
+    moreProjects,
+    activityStatus,
+    moreActivity,
+    recentActivity.length,
+  ]);
+  const active = opportunities.results
+    .filter((row) => row.kind === "count")
+    .reduce((total, row) => total + row.active, 0);
+  const total = projects.results.filter((row) => row.kind === "count").reduce((sum, row) => sum + row.total, 0);
+  const latest = activity.results.find((row) => row.kind === "activity");
+  return (
+    <section className="grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 lg:grid-cols-4">
+      <ClientMetric
+        icon={<Target className="size-4.5" />}
+        label="Active Opportunities"
+        value={opportunities.status === "Exhausted" ? active : "—"}
+        detail="View opportunities"
+      />
+      <ClientMetric
+        icon={<FolderKanban className="size-4.5" />}
+        label="Active Projects"
+        value={projects.status === "Exhausted" ? total : "—"}
+        detail="View projects"
+      />
+      <ClientMetric
+        icon={<Building2 className="size-4.5" />}
+        label="Total Projects"
+        value={projects.status === "Exhausted" ? total : "—"}
+        detail="Visible Plane projects"
+      />
+      <ClientMetric
+        icon={<CalendarDays className="size-4.5" />}
+        label="Last Interaction"
+        value={latest ? formatDate(latest.event._creationTime) : activity.status === "Exhausted" ? "No activity" : "—"}
+        detail={latest ? latest.task.title : "Recent delivery activity"}
+      />
+    </section>
+  );
+}
+function ClientHealth({ workspace, clientId }: { workspace: WorkspaceSession["workspace"]; clientId: Id<"clients"> }) {
+  const projects = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "projectCounts" },
+    { initialNumItems: 100 }
+  );
+  const contacts = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "contactCounts" },
+    { initialNumItems: 100 }
+  );
+  const meetings = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "meetingCounts" },
+    { initialNumItems: 100 }
+  );
+  const { status: projectStatus, loadMore: moreProjects } = projects;
+  const { status: contactStatus, loadMore: moreContacts } = contacts;
+  const { status: meetingStatus, loadMore: moreMeetings } = meetings;
+  useEffect(() => {
+    if (projectStatus === "CanLoadMore") moreProjects(100);
+    if (contactStatus === "CanLoadMore") moreContacts(100);
+    if (meetingStatus === "CanLoadMore") moreMeetings(100);
+  }, [projectStatus, moreProjects, contactStatus, moreContacts, meetingStatus, moreMeetings]);
+  return (
+    <SideCard title="Relationship Health">
+      <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-[10px] font-medium text-secondary">
+        Not scored
+      </span>
+      <p className="mt-2 text-[10px] leading-4 text-secondary">No relationship-health data source is configured.</p>
+      <div className="mt-4 space-y-3">
+        {[
+          { label: "Communication records", query: meetings, unit: "meetings linked" },
+          { label: "Projects tracked", query: projects, unit: "visible projects" },
+          { label: "Client contacts", query: contacts, unit: "contacts recorded" },
+        ].map(({ label, query, unit }) => (
+          <HealthRow
+            key={label}
+            label={label}
+            detail={
+              query.status === "Exhausted"
+                ? `${query.results.filter((row) => row.kind === "count").reduce((total, row) => total + row.total, 0)} ${unit}`
+                : "Loading…"
+            }
+          />
+        ))}
+      </div>
+    </SideCard>
+  );
+}
+function ClientNotes({
+  workspace,
+  clientId,
+  onSelect,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  onSelect: () => void;
+}) {
+  const documentPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "notes" },
+    { initialNumItems: 3 }
+  );
+  const documents = documentPages.results.filter((row) => row.kind === "document").map((row) => row.document);
+  return (
+    <SideCard title="Notes" action="View all notes" onAction={onSelect}>
+      <div className="space-y-2">
+        {documents.slice(0, 3).map((document) => (
+          <div key={document._id} className="flex min-w-0 gap-3 rounded-lg border border-subtle p-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+              <FileText className="size-3.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-semibold text-primary">{document.name || "Untitled page"}</p>
+              <p className="mt-1 text-[9px] text-secondary">{formatDate(document.updatedAt)}</p>
+            </div>
+          </div>
+        ))}
+        {documentPages.status === "Exhausted" && !documents.length ? (
+          <p className="py-4 text-[10px] text-tertiary">No linked notes.</p>
+        ) : null}
+      </div>
+    </SideCard>
+  );
+}
+
+function ClientOpportunities({
+  workspace,
+  clientId,
+  currency,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  currency: string;
+}) {
+  const workspaceSlug = workspace.slug;
+  const opportunityPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "opportunities" },
+    { initialNumItems: 20 }
+  );
+  const opportunities = opportunityPages.results.filter((row) => row.kind === "opportunity");
+  return (
+    <DataSection
+      title="Opportunities"
+      query={opportunityPages}
+      action="View all opportunities"
+      href={`/${workspaceSlug}/summon/opportunities/`}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-[10px]">
+          <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
+            <tr>
+              {["Opportunity", "Stage", "Owner", `Value (${currency})`, "Close Date", "Progress"].map((label) => (
+                <th key={label} className="px-4 py-3 font-medium">
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-subtle">
+            {opportunities.map(({ opportunity, owner: opportunityOwner }) => {
+              return (
+                <tr key={opportunity._id}>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/${workspaceSlug}/summon/opportunities/${opportunity._id}/`}
+                      className="font-semibold text-primary"
+                    >
+                      {opportunity.title}
+                    </Link>
+                    <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge>{statusLabel(opportunity.stage)}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-primary">
+                    {opportunityOwner ? memberLabel(opportunityOwner) : "Not assigned"}
+                  </td>
+                  <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
+                  <td className="px-4 py-3 text-primary">{formatDate(opportunity.expectedCloseDate)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
+                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
+                        <div
+                          className="h-full rounded-full bg-accent-primary"
+                          style={{ width: `${opportunity.probability}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {opportunityPages.status === "Exhausted" && !opportunities.length ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
+                  No opportunities linked to this client.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </DataSection>
+  );
+}
+
+function ClientProjects({
+  workspace,
+  clientId,
+  overview,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  overview: boolean;
+}) {
+  const workspaceSlug = workspace.slug;
+  const projectPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "projects" },
+    { initialNumItems: 20 }
+  );
+  const projects = projectPages.results.filter((row) => row.kind === "project").map((row) => row.project);
+  return (
+    <DataSection
+      title="Recent Projects"
+      query={projectPages}
+      preview={overview}
+      action="View all projects"
+      href={`/${workspaceSlug}/projects/`}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px] text-left text-[10px]">
+          <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
+            <tr>
+              {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
+                <th key={label} className="px-4 py-3 font-medium">
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-subtle">
+            {projects.slice(0, overview ? 5 : undefined).map((project) => (
+              <tr key={project._id}>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/${workspaceSlug}/projects/${project._id}/issues/`}
+                    className="font-semibold text-primary"
+                  >
+                    {project.name}
+                  </Link>
+                  <p className="mt-1 text-tertiary">{project.identifier}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <Badge>Plane Project</Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
+                    <CheckCircle2 className="size-3" /> Linked
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-tertiary">Not available</td>
+                <td className="px-4 py-3 text-tertiary">Not available</td>
+                <td className="px-4 py-3 text-tertiary">Not available</td>
+              </tr>
+            ))}
+            {projectPages.status === "Exhausted" && !projects.length ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
+                  No visible Plane projects linked to this client.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </DataSection>
+  );
+}
+
+function ClientContacts({
+  workspace,
+  clientId,
+  overview,
+  onSelect,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  overview: boolean;
+  onSelect: () => void;
+}) {
+  const contactPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "contacts" },
+    { initialNumItems: 20 }
+  );
+  const contacts = contactPages.results.filter((row) => row.kind === "contact").map((row) => row.contact);
+  return (
+    <DataSection
+      title="Key Contacts"
+      query={contactPages}
+      preview={overview}
+      action="View all contacts"
+      onAction={onSelect}
+    >
+      <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
+        {contacts.slice(0, overview ? 3 : undefined).map((contact) => (
+          <article key={contact._id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
+            <span className="text-sm grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle font-semibold text-accent-primary">
+              {contact.name.slice(0, 2).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <h3 className="truncate text-[11px] font-semibold text-primary">{contact.name}</h3>
+              <p className="mt-0.5 truncate text-[10px] text-secondary">{contact.title || "Role not set"}</p>
+              {contact.email ? (
+                <a href={`mailto:${contact.email}`} className="mt-1 block truncate text-[10px] text-accent-primary">
+                  {contact.email}
+                </a>
+              ) : null}
+              {contact.phone ? (
+                <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-[10px] text-secondary">
+                  {contact.phone}
+                </a>
+              ) : null}
+              <div className="mt-2 flex gap-2">
+                <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
+                  <Mail className="size-3" />
+                </span>
+                <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
+                  <Phone className="size-3" />
+                </span>
+              </div>
+            </div>
+          </article>
+        ))}
+        {contactPages.status === "Exhausted" && !contacts.length ? (
+          <p className="py-8 text-center text-[10px] text-tertiary md:col-span-2 2xl:col-span-3">No contacts added.</p>
+        ) : null}
+      </div>
+    </DataSection>
+  );
+}
+
+function ClientActivity({
+  workspace,
+  clientId,
+  overview,
+  onSelect,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  overview: boolean;
+  onSelect: () => void;
+}) {
+  const workspaceSlug = workspace.slug;
+  const activityPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: "activity" },
+    { initialNumItems: 20 }
+  );
+  const activities = activityPages.results.filter((row) => row.kind === "activity");
+  return (
+    <DataSection
+      title="Recent Activity"
+      query={activityPages}
+      preview={overview}
+      action="View all activity"
+      onAction={onSelect}
+    >
+      <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        {activities.slice(0, overview ? 5 : undefined).map((activity) => (
+          <Link
+            key={activity.event._id}
+            href={generateWorkItemLink({
+              workspaceSlug,
+              projectId: activity.project._id,
+              issueId: activity.task._id,
+              projectIdentifier: activity.project.identifier,
+              sequenceId: activity.task.sequence,
+              isArchived: activity.task.archivedAt !== null,
+            })}
+            className="flex min-w-0 items-start gap-3"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-subtle text-accent-primary">
+              <FileText className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[10px] font-semibold text-primary">{`${activity.task.title}: ${activity.event.kind.replaceAll("_", " ")}`}</span>
+              <time
+                className="mt-1 block text-[9px] text-secondary"
+                dateTime={new Date(activity.event._creationTime).toISOString()}
+              >
+                {formatDate(activity.event._creationTime)}
+              </time>
+            </span>
+          </Link>
+        ))}
+        {activityPages.status === "Exhausted" && !activities.length ? (
+          <p className="text-[10px] text-tertiary">No recent activity.</p>
+        ) : null}
+      </div>
+    </DataSection>
+  );
+}
+
+function ClientDocuments({
+  workspace,
+  clientId,
+  tab,
+}: {
+  workspace: WorkspaceSession["workspace"];
+  clientId: Id<"clients">;
+  tab: TClientTab;
+}) {
+  const documentPages = usePaginatedQuery(
+    api.commercial.clients.related,
+    { workspaceId: workspace._id, scope: { clientId }, kind: tab === "documents" ? "documents" : "notes" },
+    { initialNumItems: 20 }
+  );
+  const documents = documentPages.results.filter((row) => row.kind === "document").map((row) => row.document);
+  return (
+    <DataSection
+      title={tab === "documents" ? "Documents" : "Notes"}
+      query={documentPages}
+      action={documentPages.status === "Exhausted" ? `${documents.length} linked pages` : "Linked pages"}
+    >
+      <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+        {documents.map((document) => (
+          <article key={document._id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+              <FileText className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-semibold text-primary">{document.name || "Untitled page"}</p>
+              <p className="mt-1 text-[9px] text-secondary">
+                {statusLabel(document.category || "page")} · {formatDate(document.updatedAt)}
+              </p>
+            </div>
+          </article>
+        ))}
+        {documentPages.status === "Exhausted" && !documents.length ? (
+          <p className="py-8 text-center text-[10px] text-tertiary sm:col-span-2 xl:col-span-3">No linked {tab}.</p>
+        ) : null}
+      </div>
+    </DataSection>
   );
 }
 
@@ -595,7 +809,15 @@ function ClientMetric(props: { icon: React.ReactNode; label: string; value: Reac
   );
 }
 
-function DataSection(props: { title: string; action: string; href?: string; children: React.ReactNode }) {
+function DataSection(props: {
+  title: string;
+  action: string;
+  href?: string;
+  onAction?: () => void;
+  children: React.ReactNode;
+  query?: ReturnType<typeof usePaginatedQuery<typeof api.commercial.clients.related>>;
+  preview?: boolean;
+}) {
   return (
     <section className="overflow-hidden rounded-xl border border-subtle bg-surface-1">
       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
@@ -607,6 +829,14 @@ function DataSection(props: { title: string; action: string; href?: string; chil
           >
             {props.action} <ArrowRight className="size-3" />
           </Link>
+        ) : props.onAction ? (
+          <button
+            type="button"
+            onClick={props.onAction}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary"
+          >
+            {props.action} <ArrowRight className="size-3" />
+          </button>
         ) : (
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary">
             {props.action} <ArrowRight className="size-3" />
@@ -614,16 +844,32 @@ function DataSection(props: { title: string; action: string; href?: string; chil
         )}
       </div>
       {props.children}
+      {props.query?.status === "LoadingFirstPage" || props.query?.status === "LoadingMore" ? (
+        <p role="status" className="text-xs p-4 text-secondary">
+          Loading linked records…
+        </p>
+      ) : null}
+      {!props.preview && props.query?.status === "CanLoadMore" && (
+        <div className="border-t border-subtle p-3">
+          <Button variant="secondary" onClick={() => props.query?.loadMore(20)}>
+            Load more
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
 
-function SideCard(props: { title: string; action?: string; children: React.ReactNode }) {
+function SideCard(props: { title: string; action?: string; onAction?: () => void; children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-subtle bg-surface-1 p-4">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
-        {props.action ? <span className="text-[10px] font-medium text-accent-primary">{props.action} →</span> : null}
+        {props.action && (
+          <button type="button" onClick={props.onAction} className="text-[10px] font-medium text-accent-primary">
+            {props.action} →
+          </button>
+        )}
       </div>
       {props.children}
     </section>

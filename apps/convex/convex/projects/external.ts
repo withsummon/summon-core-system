@@ -1,0 +1,2989 @@
+import { plainDescriptionHtml } from "../tasks/rich_content";
+import { boundDescriptionContent } from "../tasks/description_images";
+import { writeDescription } from "../tasks/description_content";
+import { applyPropertyUpdate } from "../tasks/property_updates";
+import { checkAncestors, applyParentChange } from "../tasks/hierarchy";
+import { createTask } from "../tasks/create";
+import { beginTaskDeletion } from "../tasks/lifecycle";
+import { initialProperties } from "../tasks/properties";
+import { taskIsActive } from "../tasks/access";
+import { taskCollection, taskCollectionEntries, taskChanged } from "../tasks/revision";
+import { canReadLabel } from "../tasks/label_access";
+import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
+import { writeTaskLabel } from "../tasks/labels";
+import { writeTaskLink } from "../tasks/links";
+import { commentCreation, insertComment, updateComment, removeComment } from "../tasks/comments";
+import { beginTaskLabelRemoval } from "../tasks/label_removal";
+import {
+  taskApiField,
+  taskWebhookField,
+  taskApiCreate,
+  taskApiPatch,
+  taskApiUnsupportedWrite,
+  taskApiCollectionOptions,
+  taskApiUnsupportedFilter,
+  catalogueApiResource,
+  catalogueApiField,
+  stateApiField,
+  labelApiField,
+  stateApiGroupFromStatus,
+  stateApiNativeGroup,
+  stateApiInput,
+  stateApiSupplied,
+  labelApiInput,
+  catalogueApiBody,
+  catalogueApiValidationFailure,
+  catalogueApiFailure,
+  taskStateDeletedAt,
+  taskStateIsTriage,
+  taskStateIsSelectable,
+  taskLinkApiField,
+  taskLinkApiCreate,
+  taskLinkApiPatch,
+  taskCompanionApiResource,
+  commentApiField,
+  commentApiCreate,
+  commentApiPatch,
+} from "../tasks/schema";
+import { z } from "zod/v4";
+import { Base64, compareValues, ConvexError, v, type Infer } from "convex/values";
+import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
+import {
+  httpAction,
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+  type MutationCtx,
+  type ActionCtx,
+} from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
+import { requireAccountUser } from "../identity/session";
+import { requireWorkspaceForUser, type requireProject } from "../identity/access";
+import { externalUserLite } from "../identity/external";
+import { externalApiHeaders, verifyRequest } from "../identity/apiTokens";
+import { apiIdSchema, apiRequestMetadata } from "../identity/schema";
+import { createProject } from "./create";
+import { beginProjectDeletion } from "./deletion";
+import { writeProjectArchived } from "./settings";
+import {
+  projectApiCreate,
+  projectApiPatch,
+  projectApiLiteField,
+  projectApiField,
+  projectApiOrder,
+  projectApiReference,
+  projectApiReadOptions,
+  projectApiSummaryField,
+  projectApiSummaryFields,
+  projectApiFailure,
+  projectJson,
+  projectJsonText,
+  inactivityPolicyFields,
+} from "./schema";
+import { projectAppearance, requireApiProjectCover, setExternalCover } from "./cover_owner";
+import { canReadApiProject } from "./network_access";
+import { validateProjectMetadata, validateProjectLead } from "./metadata_fields";
+import { validateTimezone } from "../settings/timezone";
+import { ensureDefaultIntake } from "../intakes/configuration_owner";
+import { writeInactivityPolicy } from "./inactivity";
+import { selectEstimateSystem } from "../estimates/index";
+import { descriptor } from "../assets/access";
+import { publicationForProject } from "../publicSharing/access";
+import { createModule, writeModule } from "../modules/index";
+import { moduleApiCreate, moduleApiPatch, moduleApiField, moduleApiCreateConflict } from "../modules/schema";
+import { webhookValueEqual, moduleWebhookValue } from "../webhooks/schema";
+
+async function workspaceAccess(ctx: QueryCtx, slug: string, userId: Id<"users">, write = false) {
+  let user;
+  try {
+    user = await requireAccountUser(ctx, userId);
+  } catch (error) {
+    if (error instanceof ConvexError) throw new ConvexError({ status: 403, detail: "Your account is unavailable." });
+    throw error;
+  }
+  const workspace = await ctx.db
+    .query("workspaces")
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
+    .unique();
+  if (!workspace || workspace.deletedAt != null)
+    throw new ConvexError({ status: 403, detail: "You do not have access to this workspace." });
+  try {
+    return await requireWorkspaceForUser(ctx, workspace._id, user, write);
+  } catch (error) {
+    if (error instanceof ConvexError)
+      throw new ConvexError({ status: 403, detail: "You do not have access to this workspace." });
+    throw error;
+  }
+}
+async function apiProjectMembership(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  access: Awaited<ReturnType<typeof workspaceAccess>>
+) {
+  const member = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_project_user", (q) => q.eq("projectId", project._id).eq("userId", access.user._id))
+    .unique();
+  return member?.active && member.workspaceId === access.workspace._id ? member : null;
+}
+async function visibleProject(
+  ctx: QueryCtx,
+  project: Doc<"projects">,
+  access: Awaited<ReturnType<typeof workspaceAccess>>
+) {
+  if (project.workspaceId !== access.workspace._id || project.deletedAt != null) return null;
+  const membership = await apiProjectMembership(ctx, project, access);
+  return canReadApiProject(project, membership) ? { project, membership } : null;
+}
+function known<T>(field: string, value: T | undefined): T {
+  if (value === undefined)
+    throw new ConvexError({
+      status: 503,
+      detail: `This project's ${field} public contract is unavailable. Its stored history has not been adopted.`,
+    });
+  return value;
+}
+function unsupportedReference(field: string): never {
+  throw new ConvexError({ status: 503, detail: `The ${field} public reference is not supported by this API yet.` });
+}
+async function userReference(
+  ctx: QueryCtx,
+  userId: Id<"users"> | null | undefined,
+  field: string,
+  expand: string[],
+  access: Pick<Awaited<ReturnType<typeof workspaceAccess>>, "workspace">,
+  assetOrigin: string
+) {
+  const id = known(field, userId);
+  if (id === null) return expand.includes(field) ? {} : null;
+  const account = await ctx.db.get(id);
+  if (!account) return unsupportedReference(field);
+  return expand.includes(field)
+    ? externalUserLite(ctx, account, assetOrigin, access.workspace)
+    : apiIdSchema.parse(account.apiId);
+}
+async function projectCount(ctx: QueryCtx, project: Doc<"projects">, field: z.infer<typeof projectApiSummaryField>) {
+  switch (field) {
+    case "members":
+      return (
+        await ctx.db
+          .query("projectMembers")
+          .withIndex("by_project_user", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.active && row.workspaceId === project.workspaceId).length;
+    case "states":
+      return (
+        await ctx.db
+          .query("taskStates")
+          .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter(
+        (row) =>
+          row.status !== "triage" &&
+          taskStateDeletedAt(row.deletedAt) === null &&
+          row.workspaceId === project.workspaceId
+      ).length;
+    case "labels":
+      return (
+        await ctx.db
+          .query("taskLabels")
+          .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => !row.retiring && row.workspaceId === project.workspaceId).length;
+    case "cycles":
+      return (
+        await ctx.db
+          .query("cycles")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
+          .collect()
+      ).length;
+    case "modules":
+      return (
+        await ctx.db
+          .query("modules")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id).eq("deleted", false))
+          .collect()
+      ).length;
+    case "issues":
+      return (
+        await ctx.db
+          .query("tasks")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.deletedAt === null && row.status !== "triage" && row.workspaceId === project.workspaceId)
+        .length;
+    case "intakes":
+      return (
+        await ctx.db
+          .query("intakeTasks")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect()
+      ).filter((row) => row.deletedAt === null).length;
+    case "pages":
+      return (
+        await ctx.db
+          .query("documents")
+          .withIndex("by_workspace", (q) => q.eq("workspaceId", project.workspaceId).eq("deleted", false))
+          .collect()
+      ).filter((row) => row.projectIds.includes(project._id)).length;
+  }
+}
+async function projectWire(
+  ctx: QueryCtx,
+  row: NonNullable<Awaited<ReturnType<typeof visibleProject>>>,
+  access: Awaited<ReturnType<typeof workspaceAccess>>,
+  fields: string[] | null,
+  expand: string[],
+  assetOrigin: string,
+  listing: boolean
+) {
+  const { project, membership } = row;
+  const appearance = await projectAppearance(ctx, project._id);
+  const needsCover = fields === null || fields.includes("cover_image_asset") || fields.includes("cover_image_url");
+  const coverAsset =
+    appearance?.coverAssetId && needsCover
+      ? await requireApiProjectCover(ctx, access.user._id, appearance.coverAssetId)
+      : null;
+  const policy = await ctx.db
+    .query("projectInactivityPolicies")
+    .withIndex("by_project", (q) => q.eq("projectId", project._id))
+    .unique();
+  const values = {
+    id: () => apiIdSchema.parse(project.apiId),
+    created_at: () => new Date(project._creationTime).toISOString(),
+    updated_at: () => new Date(known("updated_at", project.updatedAt)).toISOString(),
+    deleted_at: () => null,
+    name: () => project.name,
+    description: () => project.description,
+    description_text: () => {
+      const text = known("description_text", project.descriptionTextJson);
+      return text === null ? null : projectJsonText.parse(text);
+    },
+    description_html: () => {
+      const text = known("description_html", project.descriptionHtmlJson);
+      return text === null ? null : projectJsonText.parse(text);
+    },
+    network: () => known("network", project.network),
+    identifier: () => project.identifier,
+    emoji: () => known("emoji", project.emoji),
+    icon_prop: () => {
+      const text = known("icon_prop", project.iconPropsJson);
+      return text === null ? null : projectJsonText.parse(text);
+    },
+    module_view: () => known("features", project.features).modules,
+    cycle_view: () => known("features", project.features).cycles,
+    issue_views_view: () => known("features", project.features).views,
+    page_view: () => known("features", project.features).pages,
+    intake_view: () => known("intake_view", project.intakeEnabled),
+    is_time_tracking_enabled: () => known("is_time_tracking_enabled", project.timeTrackingEnabled),
+    is_issue_type_enabled: () => known("is_issue_type_enabled", project.issueTypeEnabled),
+    guest_view_all_features: () => known("guest_view_all_features", project.guestViewAllFeatures),
+    cover_image: () => appearance?.externalCoverUrl ?? null,
+    cover_image_asset: () => (coverAsset ? apiIdSchema.parse(coverAsset.apiId) : null),
+    cover_image_url: () =>
+      coverAsset
+        ? new URL(descriptor(coverAsset).downloadPath, assetOrigin).toString()
+        : appearance?.externalCoverUrl || null,
+    estimate: async () => {
+      const config = await ctx.db
+        .query("projectEstimates")
+        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .unique();
+      if (!config?.activeSystemId) return null;
+      const system = await ctx.db.get(config.activeSystemId);
+      if (system?.projectId !== project._id || system.workspaceId !== project.workspaceId)
+        return unsupportedReference("estimate");
+      return apiIdSchema.parse(system.apiId);
+    },
+    archive_in: () => policy?.archiveMonths ?? 0,
+    close_in: () => policy?.close?.months ?? 0,
+    logo_props: () => projectJson.parse(known("logo_props", project.logoProps)),
+    archived_at: () => {
+      const timestamp = known("archived_at", project.archivedAt);
+      return timestamp === null ? null : new Date(timestamp).toISOString();
+    },
+    timezone: () => known("timezone", project.timezone),
+    external_source: () => known("external_source", project.externalSource),
+    external_id: () => known("external_id", project.externalId),
+    created_by: () => userReference(ctx, project.createdById, "created_by", expand, access, assetOrigin),
+    updated_by: () => userReference(ctx, project.updatedById, "updated_by", expand, access, assetOrigin),
+    workspace: () =>
+      expand.includes("workspace")
+        ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
+        : apiIdSchema.parse(access.workspace.apiId),
+    default_assignee: () =>
+      userReference(ctx, project.defaultAssigneeId, "default_assignee", expand, access, assetOrigin),
+    project_lead: () => userReference(ctx, project.leadId, "project_lead", expand, access, assetOrigin),
+    default_state: async () => {
+      const id = known("default_state", project.defaultStateId);
+      if (id === null) return null;
+      const state = await ctx.db.get(id);
+      if (state?.projectId !== project._id || state.workspaceId !== project.workspaceId)
+        return unsupportedReference("default_state");
+      return apiIdSchema.parse(state.apiId);
+    },
+    total_members: () => projectCount(ctx, project, "members"),
+    total_cycles: () => projectCount(ctx, project, "cycles"),
+    total_modules: () => projectCount(ctx, project, "modules"),
+    is_member: () => membership !== null,
+    member_role: () => (membership ? { admin: 20, member: 15, guest: 5 }[membership.role] : null),
+    is_deployed: async () => {
+      const publication = await publicationForProject(ctx, project._id);
+      return publication !== null && publication.revokedAt === null;
+    },
+    sort_order: () => (membership ? known("sort_order", membership.apiSortOrder) : null),
+  } satisfies Record<
+    z.infer<typeof projectApiField>,
+    () => z.infer<typeof projectJson> | Promise<z.infer<typeof projectJson>>
+  >;
+  const selected = Object.entries(values).filter(
+    ([field]) => (listing || field !== "sort_order") && (fields === null || fields.includes(field))
+  );
+  return Object.fromEntries(
+    await Promise.all(
+      selected.map(async ([field, read]) => [
+        field,
+        expand.includes(field) && !projectApiReference.safeParse(field).success ? null : await read(),
+      ])
+    )
+  );
+}
+const readArgs = {
+  userId: v.id("users"),
+  slug: v.string(),
+  fields: v.union(v.array(v.string()), v.null()),
+  expand: v.array(v.string()),
+  assetOrigin: v.string(),
+};
+export const read = internalQuery({
+  args: { ...readArgs, projectApiId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    const row = project && (await visibleProject(ctx, project, access));
+    if (!row) throw new ConvexError({ status: 404, detail: "Project not found." });
+    return JSON.stringify(await projectWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, false));
+  },
+});
+export const summary = internalQuery({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    fields: v.array(zodToConvex(projectApiSummaryField)),
+  },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId, true);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, error: "Project not found" });
+    const counts: Partial<Record<z.infer<typeof projectApiSummaryField>, number>> = {};
+    await Promise.all(
+      args.fields.map(async (field) => {
+        counts[field] = await projectCount(ctx, project, field);
+      })
+    );
+    return {
+      id: apiIdSchema.parse(project.apiId),
+      name: project.name,
+      identifier: project.identifier,
+      counts,
+    };
+  },
+});
+export const list = internalQuery({
+  args: {
+    ...readArgs,
+    perPage: v.number(),
+    page: v.number(),
+    orderBy: v.string(),
+    lite: v.boolean(),
+    includeArchived: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const perPage = z.int().min(1).max(1000).parse(args.perPage);
+    const page = z.int().nonnegative().parse(args.page);
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", access.workspace._id))
+      .collect();
+    const cohort = (
+      await Promise.all(
+        projects
+          .filter((project) => !args.lite || args.includeArchived || !project.archived)
+          .map((project) => visibleProject(ctx, project, access))
+      )
+    ).filter((row) => row !== null);
+    const reverse = args.orderBy.startsWith("-");
+    const parsedOrder = projectApiOrder.safeParse(reverse ? args.orderBy.slice(1) : args.orderBy);
+    const order = parsedOrder.success ? parsedOrder.data : args.lite ? "created_at" : "sort_order";
+    const descending = parsedOrder.success ? reverse : args.lite;
+    const ordered = cohort.map((row) => ({
+      row,
+      value:
+        order === "created_at"
+          ? row.project._creationTime
+          : order === "updated_at"
+            ? known(order, row.project.updatedAt)
+            : order === "sort_order"
+              ? row.membership
+                ? known(order, row.membership.apiSortOrder)
+                : null
+              : known(order, row.project[order]),
+    }));
+    ordered.sort((a, b) => {
+      if (a.value === null || b.value === null)
+        return a.value === b.value ? 0 : a.value === null ? (descending ? -1 : 1) : descending ? 1 : -1;
+      const comparison =
+        typeof a.value === "string" && typeof b.value === "string"
+          ? a.value.localeCompare(b.value)
+          : a.value < b.value
+            ? -1
+            : a.value > b.value
+              ? 1
+              : 0;
+      return descending ? -comparison : comparison;
+    });
+    const offset = page * perPage;
+    const results = await Promise.all(
+      ordered
+        .slice(offset, offset + perPage)
+        .map(({ row }) =>
+          projectWire(
+            ctx,
+            row,
+            access,
+            args.lite ? projectApiLiteField.options : args.fields,
+            args.lite ? [] : args.expand,
+            args.assetOrigin,
+            !args.lite
+          )
+        )
+    );
+    return JSON.stringify({
+      grouped_by: null,
+      sub_grouped_by: null,
+      total_count: cohort.length,
+      next_cursor: `${perPage}:${page + 1}:0`,
+      prev_cursor: `${perPage}:${page - 1}:1`,
+      next_page_results: offset + perPage < cohort.length,
+      prev_page_results: page > 0,
+      count: results.length,
+      total_pages: Math.ceil(cohort.length / perPage),
+      total_results: cohort.length,
+      extra_stats: null,
+      results,
+    });
+  },
+});
+const defaultIcons = [
+  "home",
+  "apps",
+  "settings",
+  "star",
+  "favorite",
+  "done",
+  "check_circle",
+  "add_task",
+  "create_new_folder",
+  "dataset",
+  "terminal",
+  "key",
+  "rocket",
+  "public",
+  "quiz",
+  "mood",
+  "gavel",
+  "eco",
+  "diamond",
+  "forest",
+  "bolt",
+  "sync",
+  "cached",
+  "library_add",
+  "view_timeline",
+  "view_kanban",
+  "empty_dashboard",
+  "cycle",
+];
+const defaultColors = ["#95999f", "#6d7b8a", "#5e6ad2", "#02b5ed", "#02b55c", "#f2be02", "#e57a00", "#f38e82"];
+export const create = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), bodyJson: v.string(), assetOrigin: v.string() },
+  handler: async (ctx, args) => {
+    const input = projectApiCreate.parse(projectJsonText.parse(args.bodyJson));
+    const access = await workspaceAccess(ctx, args.slug, args.userId, true);
+    const leadId = await apiUserId(ctx, input.project_lead);
+    const assigneeId = await apiUserId(ctx, input.default_assignee);
+    const months = convexToZod(inactivityPolicyFields.archiveMonths);
+    const randomness = crypto.randomUUID().replaceAll("-", "");
+    const projectId = await createProject(
+      ctx,
+      {
+        workspaceId: access.workspace._id,
+        name: input.name,
+        identifier: input.identifier,
+        description: input.description,
+        leadId,
+        defaultAssigneeId: assigneeId,
+        timezone: input.timezone,
+        features: {
+          modules: input.module_view,
+          cycles: input.cycle_view,
+          views: input.issue_views_view,
+          pages: input.page_view,
+        },
+        intakeEnabled: input.intake_view,
+        guestViewAllFeatures: input.guest_view_all_features,
+        externalCoverUrl: input.cover_image,
+        archiveMonths: months.parse(input.archive_in),
+        closeMonths: months.parse(input.close_in),
+        iconPropsJson: input.icon_prop === null ? null : JSON.stringify(input.icon_prop),
+        emoji: input.emoji,
+        externalSource: input.external_source,
+        externalId: input.external_id,
+        issueTypeEnabled: input.is_issue_type_enabled,
+        timeTrackingEnabled: input.is_time_tracking_enabled,
+        logoProps: {
+          in_use: "icon",
+          icon: {
+            name: defaultIcons[parseInt(randomness.slice(0, 8), 16) % defaultIcons.length],
+            color: defaultColors[parseInt(randomness.slice(8, 16), 16) % defaultColors.length],
+          },
+        },
+      },
+      access
+    ).catch((error: unknown) => {
+      if (error instanceof ConvexError && typeof error.data === "string")
+        throw new ConvexError({ status: 400, detail: error.data });
+      throw error;
+    });
+    const project = await ctx.db.get(projectId);
+    if (!project) throw new ConvexError("Created project is unavailable.");
+    const row = await visibleProject(ctx, project, access);
+    if (!row) throw new ConvexError("Created project membership is unavailable.");
+    return JSON.stringify(await projectWire(ctx, row, access, null, [], args.assetOrigin, false));
+  },
+});
+async function apiUserId(ctx: QueryCtx, apiId: string | null) {
+  if (apiId === null) return null;
+  const account = await ctx.db
+    .query("users")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (!account) throw new ConvexError({ status: 400, detail: "Referenced user not found." });
+  return account._id;
+}
+async function patchReferences(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project } = permission;
+  const fields = {
+    leadId: project.leadId,
+    defaultAssigneeId: project.defaultAssigneeId,
+    defaultStateId: project.defaultStateId,
+  };
+  if (input.project_lead !== undefined) {
+    fields.leadId = await apiUserId(ctx, input.project_lead);
+    await validateProjectLead(ctx, project.workspaceId, fields.leadId);
+  }
+  if (input.default_assignee !== undefined) {
+    const id = await apiUserId(ctx, input.default_assignee);
+    if (id !== null) {
+      const membership = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q) => q.eq("workspaceId", project.workspaceId).eq("userId", id))
+        .unique();
+      if (!membership) throw new ConvexError("Default assignee must belong to this workspace.");
+    }
+    fields.defaultAssigneeId = id;
+  }
+  if (input.default_state !== undefined) {
+    const apiId = input.default_state;
+    if (apiId === null) fields.defaultStateId = null;
+    else {
+      const state = await ctx.db
+        .query("taskStates")
+        .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+        .unique();
+      if (
+        !state ||
+        state.projectId !== project._id ||
+        state.workspaceId !== project.workspaceId ||
+        taskStateDeletedAt(state.deletedAt) !== null ||
+        state.status === "triage"
+      )
+        throw new ConvexError("Default state must belong to this project.");
+      fields.defaultStateId = state._id;
+    }
+  }
+  if (input.estimate !== undefined) {
+    const apiId = input.estimate;
+    if (apiId === null) await selectEstimateSystem(ctx, permission, null);
+    else {
+      const system = await ctx.db
+        .query("estimateSystems")
+        .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+        .unique();
+      if (!system) throw new ConvexError("Estimate system not found.");
+      await selectEstimateSystem(ctx, permission, system._id);
+    }
+  }
+  return fields;
+}
+async function patchMetadata(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project, user } = permission;
+  const references = await patchReferences(ctx, permission, input);
+  const metadata = await validateProjectMetadata(ctx, project.workspaceId, { ...project, ...input }, project._id);
+  const features = known("features", project.features);
+  await ctx.db.patch(project._id, {
+    ...metadata,
+    ...references,
+    features: {
+      modules: input.module_view ?? features.modules,
+      cycles: input.cycle_view ?? features.cycles,
+      views: input.issue_views_view ?? features.views,
+      pages: input.page_view ?? features.pages,
+    },
+    intakeEnabled: input.intake_view ?? project.intakeEnabled,
+    guestViewAllFeatures: input.guest_view_all_features ?? project.guestViewAllFeatures,
+    iconPropsJson:
+      input.icon_prop === undefined
+        ? project.iconPropsJson
+        : input.icon_prop === null
+          ? null
+          : JSON.stringify(input.icon_prop),
+    emoji: input.emoji === undefined ? project.emoji : input.emoji,
+    externalSource: input.external_source === undefined ? project.externalSource : input.external_source,
+    externalId: input.external_id === undefined ? project.externalId : input.external_id,
+    issueTypeEnabled: input.is_issue_type_enabled ?? project.issueTypeEnabled,
+    timeTrackingEnabled: input.is_time_tracking_enabled ?? project.timeTrackingEnabled,
+    timezone: input.timezone === undefined ? project.timezone : validateTimezone(input.timezone),
+    metadataRevision: project.metadataRevision + 1,
+    updatedAt: Date.now(),
+    updatedById: user._id,
+  });
+}
+async function patchInactivity(
+  ctx: MutationCtx,
+  permission: Awaited<ReturnType<typeof requireProject>>,
+  input: z.infer<typeof projectApiPatch>
+) {
+  const { project, user } = permission;
+  if (input.archive_in !== undefined || input.close_in !== undefined) {
+    const policy = await ctx.db
+      .query("projectInactivityPolicies")
+      .withIndex("by_project", (q) => q.eq("projectId", project._id))
+      .unique();
+    const months = convexToZod(inactivityPolicyFields.archiveMonths);
+    const closeMonths = months.parse(input.close_in ?? policy?.close?.months ?? 0);
+    const cancelled = closeMonths
+      ? policy?.close
+        ? await ctx.db.get(policy.close.stateId)
+        : await ctx.db
+            .query("taskStates")
+            .withIndex("by_project_order", (q) => q.eq("projectId", project._id))
+            .filter((q) =>
+              q.and(
+                q.eq(q.field("status"), "cancelled"),
+                q.eq(q.field("deletedAt"), null),
+                q.eq(q.field("isTriage"), false)
+              )
+            )
+            .first()
+      : null;
+    if (closeMonths && !cancelled) throw new ConvexError("Choose a cancellation state in this project.");
+    await writeInactivityPolicy(
+      ctx,
+      { projectId: project._id, workspaceId: project.workspaceId, configuredBy: user._id },
+      {
+        archiveMonths: months.parse(input.archive_in ?? policy?.archiveMonths ?? 0),
+        close: closeMonths && cancelled ? { months: closeMonths, stateId: cancelled._id } : null,
+      },
+      policy
+    );
+  }
+}
+export const patch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    bodyJson: v.string(),
+    assetOrigin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const input = projectApiPatch.parse(projectJsonText.parse(args.bodyJson));
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, detail: "Project not found." });
+    const membership = await apiProjectMembership(ctx, project, access);
+    if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+      throw new ConvexError({
+        status: 403,
+        detail: "Only joined workspace or project administrators can update this project.",
+      });
+    if (project.archived) throw new ConvexError({ status: 400, detail: "Archived project cannot be updated." });
+    const permission = { ...access, project, projectMember: membership };
+    try {
+      await patchMetadata(ctx, permission, input);
+      const current = await ctx.db.get(project._id);
+      if (!current) throw new Error("Updated project is unavailable.");
+      if (current.intakeEnabled) await ensureDefaultIntake(ctx, current);
+      if (input.cover_image !== undefined)
+        await setExternalCover(ctx, project._id, await projectAppearance(ctx, project._id), input.cover_image);
+      await patchInactivity(ctx, permission, input);
+    } catch (error) {
+      if (error instanceof ConvexError && typeof error.data === "string")
+        throw new ConvexError({ status: 400, detail: error.data });
+      throw error;
+    }
+    const current = await ctx.db.get(project._id);
+    if (!current) throw new ConvexError("Updated project is unavailable.");
+    return JSON.stringify(
+      await projectWire(ctx, { project: current, membership: membership }, access, null, [], args.assetOrigin, false)
+    );
+  },
+});
+export const remove = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, detail: "Project not found." });
+    const membership = await apiProjectMembership(ctx, project, access);
+    if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+      throw new ConvexError({
+        status: 403,
+        detail: "Only joined workspace or project administrators can delete this project.",
+      });
+    await beginProjectDeletion(ctx, { project, user: access.user });
+  },
+});
+export const archive = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string(), archived: v.boolean() },
+  handler: async (ctx, args) => {
+    const access = await workspaceAccess(ctx, args.slug, args.userId);
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiIdSchema.parse(args.projectApiId)))
+      .unique();
+    // The inherited public POST authority is workspace Admin/Member. It is
+    // intentionally separate from both UI authority and public DELETE authority.
+    if (args.archived && access.member.role === "guest")
+      throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
+    if (!args.archived) {
+      const membership =
+        project && project.workspaceId === access.workspace._id
+          ? await apiProjectMembership(ctx, project, access)
+          : null;
+      if (!membership || (membership.role !== "admin" && access.member.role !== "admin"))
+        throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
+    }
+    if (!project || project.workspaceId !== access.workspace._id || project.deletedAt != null)
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    // REST writes even an unchanged state, matching Django save's timestamp effect.
+    await writeProjectArchived(ctx, { project, user: access.user }, project.metadataRevision, args.archived);
+  },
+});
+
+const headers = {
+  ...externalApiHeaders,
+  "Access-Control-Allow-Headers": "X-Api-Key, Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+};
+async function writeProjectResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  slug: string,
+  projectApiId: string | undefined,
+  assetOrigin: string,
+  responseHeaders: HeadersInit
+) {
+  let bodyJson;
+  let status;
+  const body = projectJsonText
+    .pipe(request.method === "POST" ? projectApiCreate : projectApiPatch)
+    .safeParse(await request.text());
+  if (!body.success) {
+    return Response.json({ detail: z.flattenError(body.error) }, { status: 400, headers: responseHeaders });
+  }
+  const writeInput = {
+    userId,
+    slug,
+    bodyJson: JSON.stringify(body.data),
+    assetOrigin,
+  };
+  if (projectApiId !== undefined) {
+    bodyJson = await ctx.runMutation(internal.projects.external.patch, {
+      ...writeInput,
+      projectApiId,
+    });
+    status = 200;
+  } else {
+    bodyJson = await ctx.runMutation(internal.projects.external.create, writeInput);
+    status = 201;
+  }
+  return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
+}
+const catalogueArgs = {
+  userId: v.id("users"),
+  slug: v.string(),
+  projectApiId: v.string(),
+  resource: zodToConvex(catalogueApiResource),
+};
+const catalogueIdentity = v.object(catalogueArgs);
+async function projectEntityAccess(
+  ctx: QueryCtx,
+  args: Omit<Infer<typeof catalogueIdentity>, "resource"> & {
+    resource?: z.infer<typeof catalogueApiResource> | z.infer<typeof taskCompanionApiResource>;
+  },
+  method: z.infer<typeof apiRequestMetadata>["method"]
+) {
+  const access = await workspaceAccess(ctx, args.slug, args.userId);
+  const project = await ctx.db
+    .query("projects")
+    .withIndex("by_api_id", (q) => q.eq("apiId", args.projectApiId))
+    .unique();
+  const membership =
+    project && project.workspaceId === access.workspace._id ? await apiProjectMembership(ctx, project, access) : null;
+  const allowed =
+    args.resource === "comments"
+      ? membership
+      : args.resource === "labels" && method === "POST"
+        ? access.member.role !== "guest"
+        : membership && (method === "GET" || method === "HEAD" || method === "OPTIONS" || membership.role !== "guest");
+  if (!allowed) throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
+  if (!project || project.workspaceId !== access.workspace._id || project.deletedAt !== null)
+    throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+  return { ...access, project, membership };
+}
+async function catalogueWire(
+  ctx: QueryCtx,
+  row: Doc<"taskStates"> | Doc<"taskLabels">,
+  access: Awaited<ReturnType<typeof projectEntityAccess>>,
+  fields: string[] | null,
+  expand: string[],
+  assetOrigin: string
+) {
+  const state = "isDefault" in row;
+  const fieldsOwner = state ? stateApiField : labelApiField;
+  const values = {
+    id: () => apiIdSchema.parse(known("id", row.apiId)),
+    created_at: () => new Date(row._creationTime).toISOString(),
+    updated_at: () => new Date(known("updated_at", row.updatedAt)).toISOString(),
+    deleted_at: () => {
+      const timestamp = state ? taskStateDeletedAt(row.deletedAt) : null;
+      return timestamp === null ? null : new Date(timestamp).toISOString();
+    },
+    created_by: () => userReference(ctx, row.createdBy, "created_by", expand, access, assetOrigin),
+    updated_by: () => userReference(ctx, row.updatedBy, "updated_by", expand, access, assetOrigin),
+    workspace: () => {
+      const id = apiIdSchema.parse(known("workspace", access.workspace.apiId));
+      return expand.includes("workspace") ? { id, name: access.workspace.name, slug: access.workspace.slug } : id;
+    },
+    project: () =>
+      expand.includes("project")
+        ? projectWire(
+            ctx,
+            { project: access.project, membership: access.membership },
+            access,
+            projectApiLiteField.options,
+            [],
+            assetOrigin,
+            false
+          )
+        : apiIdSchema.parse(access.project.apiId),
+    name: () => row.name,
+    description: () => row.description,
+    color: () => row.color,
+    external_source: () => known("external_source", row.externalSource),
+    external_id: () => known("external_id", row.externalId),
+    sequence: () => row.sortOrder,
+    sort_order: () => row.sortOrder,
+    default: () => (state ? row.isDefault : undefined),
+    slug: () => (state ? known("slug", row.slug) : undefined),
+    is_triage: () => (state ? taskStateIsTriage(row.isTriage) : undefined),
+    group: () => {
+      if (!state) return undefined;
+      return stateApiGroupFromStatus(row.status);
+    },
+    parent: async () => {
+      if (state) return undefined;
+      if (!row.parentId) return expand.includes("parent") ? {} : null;
+      const parent = await ctx.db.get(row.parentId);
+      if (!parent || !(await canReadLabel(ctx, parent, access.user))) return expand.includes("parent") ? {} : null;
+      const id = apiIdSchema.parse(known("parent", parent.apiId));
+      // The inherited BaseSerializer selects IssueLiteSerializer for this field;
+      // its read-only sequence_id is absent on Label, so id/project_id are exposed.
+      if (!expand.includes("parent")) return id;
+      const project = parent.projectId === null ? null : await ctx.db.get(parent.projectId);
+      return { id, project_id: project ? apiIdSchema.parse(project.apiId) : null };
+    },
+  } satisfies Record<z.infer<typeof catalogueApiField>, () => unknown>;
+  return Object.fromEntries(
+    await Promise.all(
+      fieldsOwner.options
+        .filter((field) => fields === null || fields.includes(field))
+        .map(async (field) => [field, await values[field]()])
+    )
+  );
+}
+export const catalogueRead = internalQuery({
+  args: {
+    ...catalogueIdentity.fields,
+    method: zodToConvex(apiRequestMetadata.shape.method),
+    entityApiId: v.optional(v.string()),
+    fields: v.union(v.array(v.string()), v.null()),
+    expand: v.array(v.string()),
+    assetOrigin: v.string(),
+    perPage: v.number(),
+    page: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, args.method);
+    if (args.method !== "GET") return null;
+    const perPage = z.int().min(1).max(1000).parse(args.perPage),
+      page = z.int().nonnegative().parse(args.page);
+    const rows =
+      args.resource === "states"
+        ? (
+            await ctx.db
+              .query("taskStates")
+              .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))
+              .collect()
+          ).filter(
+            (row) =>
+              row.workspaceId === access.workspace._id &&
+              row.status !== "triage" &&
+              taskStateDeletedAt(row.deletedAt) === null &&
+              !taskStateIsTriage(row.isTriage)
+          )
+        : (
+            await ctx.db
+              .query("taskLabels")
+              .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))
+              .collect()
+          )
+            .filter((row) => row.workspaceId === access.workspace._id && !row.retiring)
+            .toSorted((a, b) => b._creationTime - a._creationTime);
+    const cohort = access.project.archived ? [] : rows;
+    if (args.entityApiId) {
+      const row = cohort.find((entry) => entry.apiId === args.entityApiId);
+      if (!row) throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      return JSON.stringify(await catalogueWire(ctx, row, access, args.fields, args.expand, args.assetOrigin));
+    }
+    const offset = page * perPage;
+    const results = await Promise.all(
+      cohort
+        .slice(offset, offset + perPage)
+        .map((row) => catalogueWire(ctx, row, access, args.fields, args.expand, args.assetOrigin))
+    );
+    return JSON.stringify({
+      grouped_by: null,
+      sub_grouped_by: null,
+      total_count: cohort.length,
+      next_cursor: `${perPage}:${page + 1}:0`,
+      prev_cursor: `${perPage}:${page - 1}:1`,
+      next_page_results: offset + perPage < cohort.length,
+      prev_page_results: page > 0,
+      count: results.length,
+      total_pages: Math.ceil(cohort.length / perPage),
+      total_results: cohort.length,
+      extra_stats: null,
+      results,
+    });
+  },
+});
+
+async function catalogueResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray,
+  methods: string[]
+) {
+  const url = new URL(request.url);
+  const resource = catalogueApiResource.parse(route[3]);
+  const projectId = apiIdSchema.safeParse(route[2]);
+  const entity = route[4] ? apiIdSchema.safeParse(route[4]) : null;
+  if (!projectId.success || (entity && !entity.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const input = {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    resource,
+    entityApiId: entity?.data,
+  };
+  if (!methods.includes(request.method)) {
+    await ctx.runQuery(internal.projects.external.catalogueRead, {
+      ...input,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+      fields: null,
+      expand: [],
+      perPage: 1000,
+      page: 0,
+      assetOrigin: url.origin,
+    });
+    return Response.json(
+      { detail: `Method "${request.method}" not allowed.` },
+      { status: 405, headers: responseHeaders }
+    );
+  }
+  if (request.method === "DELETE" && entity?.success) {
+    await ctx.runMutation(internal.projects.external.catalogueRemove, { ...input, entityApiId: entity.data });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+  if (request.method === "POST" || request.method === "PATCH") {
+    const write = { ...input, bodyJson: await request.text(), assetOrigin: url.origin };
+    const bodyJson =
+      resource === "states"
+        ? await ctx.runMutation(internal.projects.external.writeStates, { ...write, resource })
+        : await ctx.runMutation(internal.projects.external.writeLabels, { ...write, resource });
+    return Response.json(projectJsonText.parse(bodyJson), {
+      status: request.method === "POST" && resource === "labels" ? 201 : 200,
+      headers: responseHeaders,
+    });
+  }
+  // State detail owns fields/expand; Label detail uses its full serializer.
+  if (entity) {
+    url.searchParams.delete("per_page");
+    url.searchParams.delete("cursor");
+  }
+  const fullLabelDetail = entity && resource === "labels";
+  const readOptions = projectApiReadOptions
+    .pick({ fields: true, expand: true, per_page: true, cursor: true })
+    .safeParse(fullLabelDetail ? {} : Object.fromEntries(url.searchParams));
+  if (!readOptions.success)
+    return Response.json(
+      { detail: readOptions.error.issues.map((issue) => issue.message).join(" ") },
+      { status: 400, headers: responseHeaders }
+    );
+  const bodyJson = await ctx.runQuery(internal.projects.external.catalogueRead, {
+    ...input,
+    method: "GET",
+    fields: readOptions.data.fields,
+    expand: readOptions.data.expand,
+    perPage: readOptions.data.per_page,
+    page: readOptions.data.cursor,
+    assetOrigin: url.origin,
+  });
+  return Response.json(projectJsonText.parse(bodyJson), { status: 200, headers: responseHeaders });
+}
+async function projectResponse(ctx: ActionCtx, request: Request, userId: Id<"users">, responseHeaders: HeadersInit) {
+  const url = new URL(request.url);
+  const match =
+    /^\/api\/v1\/workspaces\/([^/]+)\/(projects-lite(?=\/$)|projects)\/(?:([^/]+)\/((?:archive|summary)\/)?)?$/.exec(
+      url.pathname
+    );
+  if (!match) {
+    return Response.json({ detail: "Not found." }, { status: 404, headers: responseHeaders });
+  }
+  const slug = decodeURIComponent(match[1]);
+  const lite = match[2] === "projects-lite";
+  const projectApiId = match[3];
+  const methods =
+    match[4] === "archive/"
+      ? ["POST", "DELETE"]
+      : lite || match[4] === "summary/"
+        ? ["GET", "HEAD"]
+        : projectApiId
+          ? ["GET", "HEAD", "PATCH", "DELETE"]
+          : ["GET", "HEAD", "POST"];
+  if (!methods.includes(request.method)) {
+    return Response.json({ detail: "Method not allowed." }, { status: 405, headers: responseHeaders });
+  }
+  const parsedId = projectApiId === undefined ? null : apiIdSchema.safeParse(projectApiId);
+  if (parsedId && !parsedId.success) {
+    return Response.json({ detail: "Project not found." }, { status: 404, headers: responseHeaders });
+  }
+  if (match[4] && parsedId) {
+    if (match[4] === "summary/") {
+      const body = await ctx.runQuery(internal.projects.external.summary, {
+        userId,
+        slug,
+        projectApiId: parsedId.data,
+        fields: projectApiSummaryFields.parse(url.searchParams.getAll("fields").at(-1)),
+      });
+      return Response.json(body, { status: 200, headers: responseHeaders });
+    }
+    await ctx.runMutation(internal.projects.external.archive, {
+      userId,
+      slug,
+      projectApiId: parsedId.data,
+      archived: request.method === "POST",
+    });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+  if (request.method === "DELETE" && parsedId) {
+    await ctx.runMutation(internal.projects.external.remove, { userId, slug, projectApiId: parsedId.data });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+  let bodyJson;
+  let status;
+  if (["POST", "PATCH"].includes(request.method))
+    return writeProjectResponse(ctx, request, userId, slug, parsedId?.data, url.origin, responseHeaders);
+  const readOptions = projectApiReadOptions.safeParse({
+    ...(lite ? { order_by: "-created_at" } : {}),
+    ...Object.fromEntries(url.searchParams),
+  });
+  if (!readOptions.success) {
+    return Response.json({ detail: "Invalid project query parameter." }, { status: 400, headers: responseHeaders });
+  }
+  const readInput = {
+    userId,
+    slug,
+    fields: readOptions.data.fields,
+    expand: readOptions.data.expand,
+    assetOrigin: url.origin,
+  };
+  if (parsedId)
+    bodyJson = await ctx.runQuery(internal.projects.external.read, { ...readInput, projectApiId: parsedId.data });
+  else
+    bodyJson = await ctx.runQuery(internal.projects.external.list, {
+      ...readInput,
+      perPage: readOptions.data.per_page,
+      page: readOptions.data.cursor,
+      orderBy: readOptions.data.order_by,
+      lite,
+      includeArchived: readOptions.data.include_archived,
+    });
+  status = 200;
+  return Response.json(projectJsonText.parse(bodyJson), { status, headers: responseHeaders });
+}
+export async function taskWire(
+  ctx: QueryCtx,
+  task: Doc<"tasks">,
+  access:
+    | Awaited<ReturnType<typeof projectEntityAccess>>
+    | Pick<Awaited<ReturnType<typeof projectEntityAccess>>, "workspace" | "project">,
+  selectedFields: string[] | null,
+  expand: string[],
+  assetOrigin: string,
+  format: "api" | "webhook" = "api"
+) {
+  const fields = (format === "webhook" ? taskWebhookField : taskApiField).options.filter(
+    (field) => selectedFields === null || selectedFields.includes(field)
+  );
+  const rich = fields.some(
+    (field) =>
+      ["description_html", "description_binary", "description", "description_json", "description_stripped"].includes(
+        field
+      ) && !expand.includes(field)
+  )
+    ? await ctx.db
+        .query("taskDescriptions")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .unique()
+    : null;
+  const values = {
+    id: () => apiIdSchema.parse(known("id", task.apiId)),
+    created_at: () => new Date(task._creationTime).toISOString(),
+    updated_at: () => new Date(task.updatedAt).toISOString(),
+    deleted_at: () => (task.deletedAt === null ? null : new Date(task.deletedAt).toISOString()),
+    created_by: () => userReference(ctx, task.createdBy, "created_by", expand, access, assetOrigin),
+    updated_by: () => userReference(ctx, task.updatedBy, "updated_by", expand, access, assetOrigin),
+    name: () => task.title,
+    // Same stored-rich/plain historical meaning as tasks/description:get and createTask.
+    description_html: () => rich?.html ?? plainDescriptionHtml(task.description),
+    description_binary: () =>
+      rich?.descriptionBinary ? Base64.fromByteArray(new Uint8Array(rich.descriptionBinary)) : null,
+    // HTML writes clear opaque editor JSON; the inherited model's empty JSON default remains {}.
+    description: () => projectJson.parse(rich?.descriptionJson ?? {}),
+    description_json: () => projectJson.parse(rich?.descriptionJson ?? {}),
+    description_stripped: () => (rich?.html === "" ? null : task.description),
+    priority: () => task.priority,
+    point: () => known("point", task.point),
+    start_date: () => (task.startDate === null ? null : new Date(task.startDate).toISOString().slice(0, 10)),
+    target_date: () => (task.targetDate === null ? null : new Date(task.targetDate).toISOString().slice(0, 10)),
+    sequence_id: () => task.sequence,
+    sort_order: () => task.sortOrder,
+    completed_at: () => (task.completedAt === null ? null : new Date(task.completedAt).toISOString()),
+    archived_at: () => (task.archivedAt === null ? null : new Date(task.archivedAt).toISOString().slice(0, 10)),
+    // Materialized Tasks have no draft flag; taskDrafts is a separate native entity/table.
+    is_draft: () => false,
+    external_source: () => known("external_source", task.externalSource),
+    external_id: () => known("external_id", task.externalId),
+    type: () => known("type", task.type),
+    type_id: () => known("type_id", task.type),
+    workspace: () =>
+      expand.includes("workspace")
+        ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
+        : apiIdSchema.parse(access.workspace.apiId),
+    project: () => {
+      if (!expand.includes("project")) return apiIdSchema.parse(access.project.apiId);
+      if (!("membership" in access)) return unsupportedReference("project");
+      return projectWire(
+        ctx,
+        { project: access.project, membership: access.membership },
+        access,
+        projectApiLiteField.options,
+        [],
+        assetOrigin,
+        false
+      );
+    },
+    state: async () => {
+      if (task.stateId === null) return format === "webhook" ? null : expand.includes("state") ? {} : null;
+      const state = await ctx.db.get(task.stateId);
+      if (!state || state.workspaceId !== task.workspaceId || state.projectId !== task.projectId)
+        return unsupportedReference("state");
+      const id = apiIdSchema.parse(state.apiId);
+      return expand.includes("state")
+        ? { id, name: state.name, color: state.color, group: stateApiGroupFromStatus(state.status) }
+        : id;
+    },
+    parent: async () => {
+      const relation = await ctx.db
+        .query("taskParents")
+        .withIndex("by_child", (q) => q.eq("childId", task._id))
+        .unique();
+      if (!relation) return expand.includes("parent") ? {} : null;
+      const parent = await ctx.db.get(relation.parentId);
+      if (!parent) return unsupportedReference("parent");
+      const project = parent.projectId === access.project._id ? access.project : await ctx.db.get(parent.projectId);
+      // Native parent assignment permits another Project. Its current membership must still own disclosure.
+      if (
+        !project ||
+        project.workspaceId !== access.workspace._id ||
+        ("membership" in access &&
+          project._id !== access.project._id &&
+          !(await visibleProject(ctx, project, access))?.membership)
+      )
+        return unsupportedReference("parent");
+      const id = apiIdSchema.parse(known("parent", parent.apiId));
+      return expand.includes("parent")
+        ? { id, sequence_id: parent.sequence, project_id: apiIdSchema.parse(project.apiId) }
+        : id;
+    },
+    estimate_point: async () => {
+      if (task.estimatePointId === null) return expand.includes("estimate_point") ? {} : null;
+      const point = await ctx.db.get(task.estimatePointId);
+      if (!point) return unsupportedReference("estimate_point");
+      const id = apiIdSchema.parse(known("estimate_point", point.apiId));
+      if (!expand.includes("estimate_point")) return id;
+      const system = await ctx.db.get(point.systemId);
+      const project = await ctx.db.get(point.projectId);
+      if (!system || !project) return unsupportedReference("estimate_point.estimate");
+      const workspace = await ctx.db.get(project.workspaceId);
+      if (!workspace) return unsupportedReference("estimate_point.workspace");
+      const deletedAt = known("estimate_point.deleted_at", point.deletedAt);
+      return {
+        id,
+        key: point.key,
+        value: point.value,
+        description: point.description,
+        estimate: apiIdSchema.parse(system.apiId),
+        project: apiIdSchema.parse(project.apiId),
+        workspace: apiIdSchema.parse(workspace.apiId),
+        created_at: new Date(point._creationTime).toISOString(),
+        updated_at: new Date(known("estimate_point.updated_at", point.updatedAt)).toISOString(),
+        created_by: await userReference(ctx, point.createdBy, "created_by", [], access, assetOrigin),
+        updated_by: await userReference(ctx, point.updatedBy, "updated_by", [], access, assetOrigin),
+        deleted_at: deletedAt === null ? null : new Date(deletedAt).toISOString(),
+      };
+    },
+    assignees: async () => {
+      const users = await Promise.all(
+        task.assigneeIds.map(async (id) => {
+          const user = await ctx.db.get(id);
+          if (!user) return unsupportedReference("assignees");
+          return user;
+        })
+      );
+      return expand.includes("assignees")
+        ? Promise.all(
+            (format === "webhook" ? users : users.toSorted((a, b) => b._creationTime - a._creationTime)).map((user) =>
+              externalUserLite(ctx, user, assetOrigin, access.workspace)
+            )
+          )
+        : users.map((user) => apiIdSchema.parse(user.apiId));
+    },
+    labels: async () => {
+      const labels = await Promise.all(
+        task.labelIds.map(async (id) => {
+          const label = await ctx.db.get(id);
+          if (!label || label.projectId !== task.projectId || label.workspaceId !== task.workspaceId)
+            return unsupportedReference("labels");
+          return label;
+        })
+      );
+      if (format === "webhook")
+        return labels.map((label) => ({
+          id: apiIdSchema.parse(known("labels", label.apiId)),
+          name: label.name,
+          color: label.color,
+        }));
+      if (!("membership" in access)) return unsupportedReference("labels");
+      return expand.includes("labels")
+        ? Promise.all(
+            labels
+              .filter((label) => !label.retiring)
+              .toSorted((a, b) => b._creationTime - a._creationTime)
+              .map((label) => catalogueWire(ctx, label, access, labelApiField.options, [], assetOrigin))
+          )
+        : labels.map((label) => apiIdSchema.parse(known("labels", label.apiId)));
+    },
+  } satisfies Record<z.infer<typeof taskApiField> | z.infer<typeof taskWebhookField>, () => unknown>;
+  const mapped = new Set([
+    "parent",
+    "state",
+    "estimate_point",
+    "project",
+    "workspace",
+    "created_by",
+    "updated_by",
+    "assignees",
+    "labels",
+  ]);
+  return Object.fromEntries(
+    await Promise.all(
+      fields.map(async (field) => {
+        // BaseSerializer overwrites selected non-mapped expansions with <field>_id (absent except type).
+        return [
+          field,
+          expand.includes(field) && !mapped.has(field)
+            ? field === "type"
+              ? known("type", task.type)
+              : null
+            : await values[field](),
+        ];
+      })
+    )
+  );
+}
+
+// Registered REST allowlist; the UI ordering menu owns a different vocabulary.
+const taskApiOrder = z.enum([
+  "created_at",
+  "updated_at",
+  "sequence_id",
+  "sort_order",
+  "target_date",
+  "start_date",
+  "completed_at",
+  "archived_at",
+  "priority",
+  "state__name",
+  "state__group",
+  "assignees__first_name",
+  "labels__name",
+  "issue_module__module__name",
+]);
+
+// REST project membership owns this boundary, including Guest reads of another member's task.
+// UI requireTask/taskDetail enforce a different own-task contract and cannot be reused here.
+export const taskRead = internalQuery({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    taskApiId: v.optional(v.string()),
+    method: zodToConvex(apiRequestMetadata.shape.method),
+    fields: v.union(v.array(v.string()), v.null()),
+    expand: v.array(v.string()),
+    assetOrigin: v.string(),
+    queryString: v.optional(v.string()),
+    ...zodToConvex(taskApiCollectionOptions).fields,
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, args.method);
+    if (args.method !== "GET") throw new ConvexError({ status: 405, detail: `Method "${args.method}" not allowed.` });
+    const collection = args.taskApiId === undefined;
+    const unsupported = collection ? taskApiUnsupportedFilter.options.filter((field) => args[field]) : [];
+    if (unsupported.length)
+      throw new ConvexError({
+        status: 400,
+        pql:
+          "PQL and structured filters are not supported on this Plane edition. " +
+          "Remove the pql/filters parameter and filter results client-side, or use " +
+          "a Plane edition that supports work item query filtering.",
+        unsupported_parameters: unsupported,
+      });
+    if (collection && !(args.external_id && args.external_source)) {
+      // Detail and integration lookup ignore pagination, matching the registered API.
+      const options = projectApiReadOptions.pick({ per_page: true, cursor: true, order_by: true }).safeParse({
+        order_by: "-created_at",
+        ...Object.fromEntries(new URLSearchParams(args.queryString)),
+      });
+      if (!options.success)
+        throw new ConvexError({
+          status: 400,
+          detail: options.error.issues
+            .map((issue) => (issue.path[0] === "cursor" ? "Invalid cursor parameter." : issue.message))
+            .join(" "),
+        });
+      const { per_page: perPage, cursor: page, order_by: orderBy } = options.data;
+      const order = taskApiOrder.safeParse(orderBy.startsWith("-") ? orderBy.slice(1) : orderBy);
+      // IssueManager makes archived_at null for every row; creation supplies deterministic tied-row traversal.
+      let indexedOrder = order.success ? order.data : "created_at";
+      if (indexedOrder === "archived_at") indexedOrder = "created_at";
+      else if (indexedOrder === "state__name") indexedOrder = "state__group";
+      // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
+      // The registered state CASE always sorts ascending, reversing known ranks while keeping default5 last.
+      const descending = indexedOrder !== "state__group" && (!order.success || orderBy.startsWith("-"));
+      const namespace: Parameters<typeof taskCollection.count>[1]["namespace"] =
+        indexedOrder === "created_at"
+          ? access.project._id
+          : [
+              access.project._id,
+              indexedOrder === "state__group" && orderBy.startsWith("-") ? "-state__group" : indexedOrder,
+            ];
+      const offset = page * perPage;
+      if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(page + 1))
+        throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
+      // IssueManager excludes archived Projects without changing REST membership authority.
+      const total = access.project.archived ? 0 : await taskCollection.count(ctx, { namespace: access.project._id });
+      const joined = indexedOrder === "issue_module__module__name";
+      const rowCount =
+        access.project.archived || indexedOrder === "created_at"
+          ? total
+          : await taskCollection.count(ctx, { namespace });
+      if (joined ? rowCount < total : rowCount !== total)
+        throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+      let results: Awaited<ReturnType<typeof taskWire>>[] = [];
+      if (offset < rowCount) {
+        const first = await taskCollection.at(ctx, descending ? -offset - 1 : offset, {
+          namespace,
+        });
+        const rows = await taskCollection.paginate(ctx, {
+          namespace,
+          order: descending ? "desc" : "asc",
+          bounds: {
+            [descending ? "upper" : "lower"]: { key: first.key, id: first.id, inclusive: true },
+          },
+          pageSize: perPage,
+        });
+        results = await Promise.all(
+          rows.page.map(async (item) => {
+            const task = await ctx.db.get(item.id);
+            if (
+              !task ||
+              task.projectId !== access.project._id ||
+              task.workspaceId !== access.workspace._id ||
+              !(await taskCollectionEntries(ctx, task, undefined, namespace)).some(
+                (entry) => compareValues(entry.namespace, namespace) === 0 && compareValues(entry.key, item.key) === 0
+              ) ||
+              !taskIsActive(task)
+            )
+              throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+            return taskWire(ctx, task, access, args.fields, args.expand, args.assetOrigin);
+          })
+        );
+      }
+      return JSON.stringify({
+        grouped_by: null,
+        sub_grouped_by: null,
+        total_count: total,
+        next_cursor: `${perPage}:${page + 1}:0`,
+        prev_cursor: `${perPage}:${page - 1}:1`,
+        next_page_results: offset + perPage < rowCount,
+        prev_page_results: page > 0,
+        count: results.length,
+        total_pages: Math.ceil(total / perPage),
+        total_results: total,
+        extra_stats: null,
+        results,
+      });
+    }
+    const task = collection
+      ? await ctx.db
+          .query("tasks")
+          .withIndex("by_project_external", (q) =>
+            q
+              .eq("projectId", access.project._id)
+              .eq("externalSource", args.external_source)
+              .eq("externalId", args.external_id)
+              .eq("deletedAt", null)
+          )
+          .unique()
+      : await ctx.db
+          .query("tasks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+          .unique();
+    if (
+      !task ||
+      task.projectId !== access.project._id ||
+      task.workspaceId !== access.workspace._id ||
+      task.deletedAt !== null ||
+      (!collection && (!taskIsActive(task) || access.project.archived))
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    return JSON.stringify(await taskWire(ctx, task, access, args.fields, args.expand, args.assetOrigin));
+  },
+});
+
+export const writeTaskApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+    projectApiId: v.string(),
+    taskApiId: v.optional(v.string()),
+    bodyJson: v.string(),
+    assetOrigin: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, args.taskApiId ? "PATCH" : "POST");
+    const task = args.taskApiId
+      ? await ctx.db
+          .query("tasks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+          .unique()
+      : null;
+    if (
+      args.taskApiId &&
+      (!task ||
+        task.projectId !== access.project._id ||
+        task.workspaceId !== access.workspace._id ||
+        task.deletedAt !== null)
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const parsed = (task ? taskApiPatch : taskApiCreate).safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const unsupported = taskApiUnsupportedWrite.options.filter((field) => Object.hasOwn(raw.data, field));
+    if (unsupported.length)
+      throw new ConvexError({
+        status: 503,
+        detail: `Task writes for ${unsupported.join(", ")} are not available yet.`,
+      });
+    const data = parsed.data;
+    if (data.start_date && data.target_date && data.start_date > data.target_date)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: ["Start date cannot exceed target date"] } });
+    const parentApiId = data.parent;
+    const parent = parentApiId
+      ? await ctx.db
+          .query("tasks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", parentApiId))
+          .unique()
+      : null;
+    if (
+      parentApiId &&
+      (!parent ||
+        parent.workspaceId !== access.workspace._id ||
+        parent.projectId !== access.project._id ||
+        parent.deletedAt !== null)
+    )
+      throw new ConvexError({
+        status: 400,
+        errors: { parent: ["Parent is not valid issue_id please pass a valid issue_id"] },
+      });
+    const existingParent =
+      task && data.parent !== undefined
+        ? await ctx.db
+            .query("taskParents")
+            .withIndex("by_child", (q) => q.eq("childId", task._id))
+            .unique()
+        : null;
+    const parentChanged =
+      task !== null && data.parent !== undefined && (existingParent?.parentId ?? null) !== (parent?._id ?? null);
+    const previousParent = parentChanged && existingParent ? await ctx.db.get(existingParent.parentId) : null;
+    if (parentChanged) {
+      if (parent) await checkAncestors(ctx, task._id, parent);
+      if (existingParent) {
+        if (!previousParent || previousParent.workspaceId !== task.workspaceId)
+          throw new ConvexError({ status: 503, detail: "Previous parent task is unavailable in this workspace." });
+        if (previousParent.projectId !== access.project._id)
+          await projectEntityAccess(
+            ctx,
+            { ...args, projectApiId: known("parent project", (await ctx.db.get(previousParent.projectId))?.apiId) },
+            "PATCH"
+          );
+      }
+    }
+    const estimateApiId = data.estimate_point;
+    const [assignees, labels, estimatePoint] = await Promise.all([
+      data.assignees === undefined
+        ? undefined
+        : Promise.all(
+            data.assignees.map(async (apiId) => {
+              const user = await ctx.db
+                .query("users")
+                .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+                .unique();
+              if (!user) throw new ConvexError({ status: 400, errors: { assignees: ["Invalid user ID."] } });
+              const member = await ctx.db
+                .query("projectMembers")
+                .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", user._id))
+                .unique();
+              return member?.active && member.role !== "guest" ? user._id : null;
+            })
+          ),
+      data.labels === undefined
+        ? undefined
+        : Promise.all(
+            data.labels.map(async (apiId) => {
+              const label = await ctx.db
+                .query("taskLabels")
+                .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+                .unique();
+              if (!label) throw new ConvexError({ status: 400, errors: { labels: ["Invalid label ID."] } });
+              if (label.projectId !== access.project._id) return null;
+              if (label.workspaceId !== access.workspace._id || label.retiring)
+                throw new ConvexError({ status: 503, detail: "Label is unavailable or being removed." });
+              return label._id;
+            })
+          ),
+      estimateApiId === undefined
+        ? undefined
+        : estimateApiId === null
+          ? null
+          : ctx.db
+              .query("estimatePoints")
+              .withIndex("by_api_id", (q) => q.eq("apiId", estimateApiId))
+              .unique(),
+    ]);
+    if (
+      data.estimate_point &&
+      (!estimatePoint || estimatePoint.projectId !== access.project._id || estimatePoint.deleted)
+    )
+      throw new ConvexError({
+        status: 400,
+        errors: { estimate_point: ["Estimate point is not valid please pass a valid estimate_point_id"] },
+      });
+    if (estimatePoint?.retiring) throw new ConvexError({ status: 503, detail: "Estimate point is being removed." });
+    const stateApiId = data.state;
+    let state = stateApiId
+      ? await ctx.db
+          .query("taskStates")
+          .withIndex("by_api_id", (q) => q.eq("apiId", stateApiId))
+          .unique()
+      : null;
+    if (
+      data.state &&
+      (!state ||
+        state.projectId !== access.project._id ||
+        state.workspaceId !== access.workspace._id ||
+        taskStateDeletedAt(state.deletedAt) !== null ||
+        state.status === "triage")
+    )
+      throw new ConvexError({ status: 400, errors: { state: ["State is not valid please pass a valid state_id"] } });
+    if (data.state === null || !task) {
+      if (!state)
+        for await (const candidate of ctx.db
+          .query("taskStates")
+          .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))) {
+          if (!taskStateIsSelectable(candidate)) continue;
+          state ??= candidate;
+          if (candidate.isDefault) {
+            state = candidate;
+            break;
+          }
+        }
+      if (!state)
+        throw new ConvexError({ status: 503, detail: "Task creation requires an adopted ordinary project state." });
+    }
+    // DRF validates fields first, then checks duplicates using the original request values.
+    const duplicateSource = Object.hasOwn(raw.data, "external_source")
+      ? raw.data.external_source
+      : task
+        ? known("external_source", task.externalSource)
+        : null;
+    if (raw.data.external_id && (task ? task.externalId !== String(raw.data.external_id) : raw.data.external_source)) {
+      const duplicate = await ctx.db
+        .query("tasks")
+        .withIndex("by_project_external", (q) =>
+          q
+            .eq("projectId", access.project._id)
+            .eq("externalSource", duplicateSource === null ? null : String(duplicateSource))
+            .eq("externalId", String(raw.data.external_id))
+            .eq("deletedAt", null)
+        )
+        .order("desc")
+        .first();
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Issue with the same external id and external source already exists",
+          id: known("id", (task ?? duplicate).apiId),
+        });
+    }
+    const content =
+      data.description_html === undefined
+        ? undefined
+        : await boundDescriptionContent(ctx, task ? { task } : null, data.description_html);
+    const properties = {
+      ...(state ? { stateId: state._id } : {}),
+      ...(data.priority === undefined ? {} : { priority: data.priority }),
+      ...(data.start_date === undefined ? {} : { startDate: data.start_date }),
+      ...(data.target_date === undefined ? {} : { targetDate: data.target_date }),
+      ...(assignees === undefined ? {} : { assigneeIds: assignees.filter((id) => id !== null) }),
+      ...(labels === undefined ? {} : { labelIds: labels.filter((id) => id !== null) }),
+      ...(estimatePoint === undefined ? {} : { estimatePointId: estimatePoint?._id ?? null }),
+    };
+    if (task) {
+      if (parentChanged)
+        await applyParentChange(ctx, {
+          task,
+          user: access.user,
+          next: parent,
+          previous: previousParent,
+          existing: existingParent,
+        });
+      // The native transaction owns OCC; the public serializer accepts partial last-write updates.
+      const descriptionChanged = content ? await writeDescription(ctx, task, access.user._id, content) : false;
+      const changed = await applyPropertyUpdate(
+        ctx,
+        {
+          task,
+          user: access.user,
+          data: properties,
+          status: state?.status ?? task.status,
+        },
+        {
+          ...(data.name === undefined ? {} : { title: data.name }),
+          ...(content ? { description: content.description } : {}),
+          ...(data.point === undefined ? {} : { point: data.point }),
+          ...(data.sort_order === undefined ? {} : { sortOrder: data.sort_order }),
+          ...(data.external_source === undefined ? {} : { externalSource: data.external_source }),
+          ...(data.external_id === undefined ? {} : { externalId: data.external_id }),
+        }
+      );
+      if (!changed && (parentChanged || descriptionChanged)) await taskChanged(ctx, task, access.user._id);
+    } else {
+      if (!state || state.status === "triage") throw new Error("The ordinary Task writer requires its state.");
+      const defaultAssigneeId = access.project.defaultAssigneeId;
+      const defaultAssignee = defaultAssigneeId
+        ? await ctx.db
+            .query("projectMembers")
+            .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", defaultAssigneeId))
+            .unique()
+        : null;
+      const taskId = await createTask(
+        ctx,
+        access.project,
+        access.user._id,
+        {
+          ...initialProperties,
+          ...properties,
+          title: known("name", data.name),
+          description: content?.description ?? "",
+          stateId: state._id,
+          status: state.status,
+          assigneeIds: properties.assigneeIds?.length
+            ? properties.assigneeIds
+            : defaultAssignee?.active && defaultAssignee.role !== "guest"
+              ? [defaultAssignee.userId]
+              : [],
+          externalSource: data.external_source,
+          externalId: data.external_id,
+          point: data.point,
+          sortOrder: data.sort_order,
+        },
+        parent,
+        content?.html
+      );
+      const created = await ctx.db.get(taskId);
+      if (!created) throw new Error("The Task writer did not produce its saved row.");
+      return JSON.stringify(await taskWire(ctx, created, access, null, [], args.assetOrigin));
+    }
+    const saved = await ctx.db.get(task._id);
+    if (!saved) throw new Error("The Task writer did not produce its saved row.");
+    return JSON.stringify(await taskWire(ctx, saved, access, null, [], args.assetOrigin));
+  },
+});
+
+export const removeTask = internalMutation({
+  args: { userId: v.id("users"), slug: v.string(), projectApiId: v.string(), taskApiId: v.string() },
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, "DELETE");
+    const task = await ctx.db
+      .query("tasks")
+      .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+      .unique();
+    if (
+      !task ||
+      task.projectId !== access.project._id ||
+      task.workspaceId !== access.workspace._id ||
+      task.deletedAt !== null
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (task.createdBy !== access.user._id && access.membership?.role !== "admin")
+      throw new ConvexError({ status: 403, error: "Only admin or creator can delete the work item" });
+    await beginTaskDeletion(ctx, task, access.user._id);
+  },
+});
+
+const taskCompanionIdentity = v.object({
+  resource: zodToConvex(taskCompanionApiResource),
+  userId: v.id("users"),
+  slug: v.string(),
+  projectApiId: v.string(),
+  taskApiId: v.string(),
+  entityApiId: v.optional(v.string()),
+});
+async function taskCompanionAccess(
+  ctx: QueryCtx,
+  args: Infer<typeof taskCompanionIdentity>,
+  method: z.infer<typeof apiRequestMetadata>["method"]
+) {
+  const access = await projectEntityAccess(ctx, args, method);
+  const task = await ctx.db
+    .query("tasks")
+    .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+    .unique();
+  if (
+    !task ||
+    task.projectId !== access.project._id ||
+    task.workspaceId !== access.workspace._id ||
+    task.deletedAt !== null
+  )
+    throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+  return { ...access, task };
+}
+async function taskCompanionWire(
+  ctx: QueryCtx,
+  row: Doc<"taskLinks"> | Doc<"taskComments">,
+  access: Awaited<ReturnType<typeof taskCompanionAccess>>,
+  fields: string[] | null,
+  expand: string[],
+  assetOrigin: string,
+  annotated: boolean,
+  actorId: Id<"users"> | null = "authorId" in row ? row.authorId : null
+) {
+  const comment = "authorId" in row ? row : null;
+  const link = "url" in row ? row : null;
+  const values = {
+    id: () => apiIdSchema.parse(known("companion id", row.apiId)),
+    created_at: () => new Date(comment?.createdAt ?? row._creationTime).toISOString(),
+    updated_at: () => new Date(row.updatedAt).toISOString(),
+    deleted_at: () => (row.deletedAt == null ? null : new Date(row.deletedAt).toISOString()),
+    created_by: () =>
+      userReference(
+        ctx,
+        comment && comment.createdBy === undefined ? comment.authorId : row.createdBy,
+        "created_by",
+        expand,
+        access,
+        assetOrigin
+      ),
+    updated_by: () => userReference(ctx, row.updatedBy, "updated_by", expand, access, assetOrigin),
+    workspace: () =>
+      expand.includes("workspace")
+        ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
+        : apiIdSchema.parse(access.workspace.apiId),
+    project: () =>
+      expand.includes("project")
+        ? projectWire(
+            ctx,
+            { project: access.project, membership: access.membership },
+            access,
+            projectApiLiteField.options,
+            [],
+            assetOrigin,
+            false
+          )
+        : apiIdSchema.parse(access.project.apiId),
+    issue: () =>
+      expand.includes("issue")
+        ? taskWire(ctx, access.task, access, null, [], assetOrigin)
+        : apiIdSchema.parse(access.task.apiId),
+    title: () => link?.title,
+    url: () => link?.url,
+    metadata: () => (link ? projectJson.parse(link.metadata) : undefined),
+    comment_html: () => comment?.html,
+    access: () => comment?.audience,
+    external_source: () => (comment ? known("comment external_source", comment.externalSource) : undefined),
+    external_id: () => (comment ? known("comment external_id", comment.externalId) : undefined),
+    edited_at: () => (comment?.editedAt == null ? null : new Date(comment.editedAt).toISOString()),
+    description: () =>
+      comment ? apiIdSchema.parse(known("comment description", comment.descriptionApiId)) : undefined,
+    attachments: () => (comment ? known("comment attachments", comment.attachments) : undefined),
+    actor: () => userReference(ctx, actorId, "actor", expand, access, assetOrigin),
+    is_member: () => (annotated ? true : undefined),
+    parent: async () => {
+      if (!comment) return undefined;
+      const parentId = known("comment parent", comment.parentId);
+      if (parentId === null) return expand.includes("parent") ? {} : null;
+      const parent = await ctx.db.get(parentId);
+      if (!parent || parent.taskId !== access.task._id)
+        throw new ConvexError("Comment parent belongs to another work item.");
+      const id = apiIdSchema.parse(known("comment parent id", parent.apiId));
+      return expand.includes("parent") ? { id, project_id: apiIdSchema.parse(access.project.apiId) } : id;
+    },
+  } satisfies Record<z.infer<typeof taskLinkApiField> | z.infer<typeof commentApiField>, () => unknown>;
+  return Object.fromEntries(
+    await Promise.all(
+      (comment ? commentApiField : taskLinkApiField).options
+        .filter((field) => fields === null || fields.includes(field))
+        .map(async (field) => [
+          field,
+          expand.includes(field) &&
+          !["created_by", "updated_by", "workspace", "project", "issue", "actor", "parent", "description"].includes(
+            field
+          )
+            ? null
+            : await values[field](),
+        ])
+    )
+  );
+}
+export const taskCompanionRead = internalQuery({
+  args: {
+    ...taskCompanionIdentity.fields,
+    method: zodToConvex(apiRequestMetadata.shape.method),
+    fields: v.union(v.array(v.string()), v.null()),
+    expand: v.array(v.string()),
+    perPage: v.number(),
+    page: v.number(),
+    assetOrigin: v.string(),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.method);
+    if (args.method !== "GET") return null;
+    const perPage = z.int().min(1).max(1000).parse(args.perPage),
+      page = z.int().nonnegative().parse(args.page);
+    if (args.entityApiId) {
+      const row =
+        args.resource === "links"
+          ? await ctx.db
+              .query("taskLinks")
+              .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+              .unique()
+          : await ctx.db
+              .query("taskComments")
+              .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+              .unique();
+      if (!row || row.taskId !== access.task._id || row.deletedAt != null || access.project.archived)
+        throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      return JSON.stringify(
+        await taskCompanionWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, true)
+      );
+    }
+    const rows = access.project.archived
+      ? []
+      : args.resource === "links"
+        ? await ctx.db
+            .query("taskLinks")
+            .withIndex("by_task_deleted", (q) => q.eq("taskId", access.task._id).eq("deletedAt", null))
+            .order("desc")
+            .collect()
+        : (
+            await ctx.db
+              .query("taskComments")
+              .withIndex("by_task", (q) => q.eq("taskId", access.task._id))
+              .collect()
+          )
+            .filter((comment) => comment.deletedAt == null)
+            .toSorted((a, b) => (b.createdAt ?? b._creationTime) - (a.createdAt ?? a._creationTime));
+    const offset = perPage * page;
+    const results = await Promise.all(
+      rows
+        .slice(offset, offset + perPage)
+        .map((row) => taskCompanionWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, true))
+    );
+    return JSON.stringify({
+      grouped_by: null,
+      sub_grouped_by: null,
+      total_count: rows.length,
+      next_cursor: `${perPage}:${page + 1}:0`,
+      prev_cursor: `${perPage}:${page - 1}:1`,
+      next_page_results: offset + perPage < rows.length,
+      prev_page_results: page > 0,
+      count: results.length,
+      total_pages: Math.ceil(rows.length / perPage),
+      total_results: rows.length,
+      extra_stats: null,
+      results,
+    });
+  },
+});
+async function companionCreator(ctx: QueryCtx, user: Doc<"users">, apiId: string | null | undefined) {
+  if (apiId === undefined) return user._id;
+  if (apiId === null) return null;
+  const creator = await ctx.db
+    .query("users")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (!creator) throw new ConvexError({ status: 400, errors: { created_by: ["Invalid user identifier."] } });
+  return creator._id;
+}
+export const writeTaskLinkApi = internalMutation({
+  args: {
+    ...taskCompanionIdentity.fields,
+    resource: v.literal("links"),
+    bodyJson: v.optional(v.string()),
+    assetOrigin: v.string(),
+    deleted: v.optional(v.literal(true)),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.deleted ? "DELETE" : args.entityApiId ? "PATCH" : "POST");
+    const link = args.entityApiId
+      ? await ctx.db
+          .query("taskLinks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+          .unique()
+      : null;
+    if (args.entityApiId && (!link || link.taskId !== access.task._id || link.deletedAt !== null))
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (args.deleted) {
+      if (!link) throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      await writeTaskLink(
+        ctx,
+        access.task,
+        access.user._id,
+        link,
+        {
+          url: link.url,
+          title: link.title,
+          metadata: link.metadata,
+          createdBy: link.createdBy,
+          deletedAt: Date.now(),
+        },
+        "activity"
+      );
+      return null;
+    }
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    if (!link) {
+      const parsed = taskLinkApiCreate.safeParse(raw.data);
+      if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+      const creation = parsed.data;
+      const createdBy = await companionCreator(ctx, access.user, creation.created_by);
+      if (
+        await ctx.db
+          .query("taskLinks")
+          .withIndex("by_task_url_deleted", (q) =>
+            q.eq("taskId", access.task._id).eq("url", creation.url).eq("deletedAt", null)
+          )
+          .first()
+      )
+        throw new ConvexError({ status: 400, errors: { error: ["URL already exists for this Issue"] } });
+      const id = await writeTaskLink(
+        ctx,
+        access.task,
+        access.user._id,
+        null,
+        {
+          url: creation.url,
+          title: creation.title ?? null,
+          metadata: {},
+          createdBy,
+          deletedAt: null,
+        },
+        "activity"
+      );
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error("Created link is missing.");
+      return JSON.stringify(await taskCompanionWire(ctx, created, access, null, [], args.assetOrigin, false));
+    }
+    const parsed = taskLinkApiPatch.safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const linkPatch = parsed.data;
+    const id = await writeTaskLink(
+      ctx,
+      access.task,
+      access.user._id,
+      link,
+      {
+        url: linkPatch.url === undefined ? link.url : linkPatch.url,
+        title: linkPatch.title === undefined ? link.title : linkPatch.title,
+        metadata: linkPatch.metadata === undefined ? link.metadata : linkPatch.metadata,
+        deletedAt: linkPatch.deleted_at === undefined ? link.deletedAt : linkPatch.deleted_at,
+        createdBy: link.createdBy,
+      },
+      "activity"
+    );
+    const updated = await ctx.db.get(id);
+    if (!updated) throw new Error("Updated link is missing.");
+    return JSON.stringify(await taskCompanionWire(ctx, updated, access, null, [], args.assetOrigin, false));
+  },
+});
+export const writeTaskCommentApi = internalMutation({
+  args: {
+    ...taskCompanionIdentity.fields,
+    resource: v.literal("comments"),
+    bodyJson: v.optional(v.string()),
+    assetOrigin: v.string(),
+    deleted: v.optional(v.literal(true)),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.deleted ? "DELETE" : args.entityApiId ? "PATCH" : "POST");
+    const comment = args.entityApiId
+      ? await ctx.db
+          .query("taskComments")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+          .unique()
+      : null;
+    if (args.entityApiId && (!comment || comment.taskId !== access.task._id || comment.deletedAt != null))
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (args.deleted) {
+      if (!comment) throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      await removeComment(ctx, access.task, comment, access.user._id, comment.updatedAt, "activity");
+      return null;
+    }
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const duplicateSource = Object.hasOwn(raw.data, "external_source")
+      ? raw.data.external_source
+      : comment
+        ? known("comment external_source", comment.externalSource)
+        : null;
+    if (
+      raw.data.external_id &&
+      (comment ? comment.externalId !== String(raw.data.external_id) : raw.data.external_source)
+    ) {
+      const duplicates = await ctx.db
+        .query("taskComments")
+        .withIndex("by_project_external", (q) =>
+          q
+            .eq("projectId", access.project._id)
+            .eq("externalSource", duplicateSource === null ? null : String(duplicateSource))
+            .eq("externalId", String(raw.data.external_id))
+        )
+        .collect();
+      const duplicate = duplicates.find((row) => row.workspaceId === access.workspace._id && row.deletedAt == null);
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Work item comment with the same external id and external source already exists",
+          id: known("comment id", (comment ?? duplicate).apiId),
+        });
+    }
+    if (!comment) {
+      const parsed = commentApiCreate.safeParse(raw.data);
+      if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+      const data = parsed.data;
+      const createdBy = await companionCreator(ctx, access.user, data.created_by);
+      const requestId = apiIdSchema.parse(crypto.randomUUID());
+      const id = await insertComment(
+        ctx,
+        access.task,
+        access.user._id,
+        {
+          ...commentCreation({ requestId, html: data.comment_html, audience: data.access, anchor: null }),
+          createdAt: data.created_at,
+          createdBy,
+          commentJsonText: JSON.stringify(data.comment_json),
+          externalSource: data.external_source,
+          externalId: data.external_id,
+        },
+        "activity",
+        { task: access.task, user: access.user, requestId }
+      );
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error("Created comment is missing.");
+      // POST serializes the inherited in-memory actor; persisted actor remains the actual requester.
+      return JSON.stringify(
+        await taskCompanionWire(ctx, created, access, null, [], args.assetOrigin, false, createdBy)
+      );
+    }
+    const parsed = commentApiPatch.safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const data = parsed.data;
+    await updateComment(
+      ctx,
+      access.task,
+      comment,
+      access.user._id,
+      {
+        expectedUpdatedAt: comment.updatedAt,
+        html: data.comment_html,
+        audience: data.access,
+        ...(data.comment_json === undefined ? {} : { commentJsonText: JSON.stringify(data.comment_json) }),
+        externalSource: data.external_source,
+        externalId: data.external_id,
+      },
+      "activity",
+      null,
+      { task: access.task, user: access.user, commentId: comment._id }
+    );
+    const updated = await ctx.db.get(comment._id);
+    if (!updated) throw new Error("Updated comment is missing.");
+    return JSON.stringify(await taskCompanionWire(ctx, updated, access, null, [], args.assetOrigin, false));
+  },
+});
+async function taskCompanionResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]),
+    taskId = apiIdSchema.safeParse(route[4]);
+  const resource = taskCompanionApiResource.parse(route[5]);
+  const linkId = route[6] ? apiIdSchema.safeParse(route[6]) : null;
+  if (!projectId.success || !taskId.success || (linkId && !linkId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const input = {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    taskApiId: taskId.data,
+    entityApiId: linkId?.data,
+    resource,
+  };
+  const url = new URL(request.url);
+  const methods = linkId ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+  if (!methods.includes(request.method)) {
+    await ctx.runQuery(internal.projects.external.taskCompanionRead, {
+      ...input,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+      fields: null,
+      expand: [],
+      perPage: 1000,
+      page: 0,
+      assetOrigin: url.origin,
+    });
+    return Response.json(
+      { detail: `Method "${request.method}" not allowed.` },
+      { status: 405, headers: responseHeaders }
+    );
+  }
+  if (request.method !== "GET") {
+    const writer = {
+      ...input,
+      bodyJson: request.method === "DELETE" ? undefined : await request.text(),
+      assetOrigin: url.origin,
+    };
+    const body =
+      resource === "links"
+        ? await ctx.runMutation(internal.projects.external.writeTaskLinkApi, {
+            ...writer,
+            resource: "links",
+            deleted: request.method === "DELETE" ? true : undefined,
+          })
+        : await ctx.runMutation(internal.projects.external.writeTaskCommentApi, {
+            ...writer,
+            resource: "comments",
+            deleted: request.method === "DELETE" ? true : undefined,
+          });
+    return request.method === "DELETE"
+      ? new Response(null, { status: 204, headers: responseHeaders })
+      : Response.json(projectJsonText.parse(body), {
+          status: request.method === "POST" ? 201 : 200,
+          headers: responseHeaders,
+        });
+  }
+  if (linkId) {
+    url.searchParams.delete("cursor");
+    url.searchParams.delete("per_page");
+  }
+  const options = projectApiReadOptions
+    .pick({ fields: true, expand: true, cursor: true, per_page: true })
+    .safeParse(Object.fromEntries(url.searchParams));
+  if (!options.success)
+    return Response.json(
+      { detail: options.error.issues.map((issue) => issue.message).join(" ") },
+      { status: 400, headers: responseHeaders }
+    );
+  const body = await ctx.runQuery(internal.projects.external.taskCompanionRead, {
+    ...input,
+    method: "GET",
+    fields: options.data.fields,
+    expand: options.data.expand,
+    perPage: options.data.per_page,
+    page: options.data.cursor,
+    assetOrigin: url.origin,
+  });
+  return Response.json(projectJsonText.parse(body), { status: 200, headers: responseHeaders });
+}
+
+async function taskResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]);
+  const taskId = route[4] ? apiIdSchema.safeParse(route[4]) : null;
+  if (!projectId.success || (taskId && !taskId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  if (request.method === "DELETE" && taskId) {
+    await ctx.runMutation(internal.projects.external.removeTask, {
+      userId,
+      slug: decodeURIComponent(route[1]),
+      projectApiId: projectId.data,
+      taskApiId: taskId.data,
+    });
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+  const url = new URL(request.url);
+  if ((request.method === "POST" && !taskId) || (request.method === "PATCH" && taskId)) {
+    const bodyJson = await ctx.runMutation(internal.projects.external.writeTaskApi, {
+      userId,
+      slug: decodeURIComponent(route[1]),
+      projectApiId: projectId.data,
+      taskApiId: taskId?.data,
+      bodyJson: await request.text(),
+      assetOrigin: url.origin,
+    });
+    return Response.json(projectJsonText.parse(bodyJson), { status: taskId ? 200 : 201, headers: responseHeaders });
+  }
+  const options = projectApiReadOptions
+    .pick({ fields: true, expand: true })
+    .extend(taskApiCollectionOptions.shape)
+    .parse(Object.fromEntries(url.searchParams));
+  const bodyJson = await ctx.runQuery(internal.projects.external.taskRead, {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    taskApiId: taskId?.data,
+    method: apiRequestMetadata.shape.method.parse(request.method),
+    ...options,
+    queryString: url.search,
+    assetOrigin: url.origin,
+  });
+  return Response.json(projectJsonText.parse(bodyJson), { status: 200, headers: responseHeaders });
+}
+
+const moduleApiIdentity = v.object({
+  userId: v.id("users"),
+  slug: v.string(),
+  projectApiId: v.string(),
+  moduleApiId: v.optional(v.string()),
+});
+async function moduleApiAccess(
+  ctx: QueryCtx,
+  args: Infer<typeof moduleApiIdentity>,
+  method: z.infer<typeof apiRequestMetadata>["method"]
+) {
+  const access = await projectEntityAccess(ctx, args, method);
+  const module = args.moduleApiId
+    ? await ctx.db
+        .query("modules")
+        .withIndex("by_api_id", (q) => q.eq("apiId", args.moduleApiId))
+        .unique()
+    : null;
+  if (
+    args.moduleApiId &&
+    (!module ||
+      module.projectId !== access.project._id ||
+      module.workspaceId !== access.workspace._id ||
+      module.deleted)
+  )
+    throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+  if (method === "DELETE" && module && module.createdBy !== access.user._id && access.membership?.role !== "admin")
+    throw new ConvexError({ status: 403, error: "Only admin or creator can delete the module" });
+  return { ...access, module };
+}
+export async function moduleApiWire(
+  ctx: QueryCtx,
+  module: Doc<"modules">,
+  access: Pick<Awaited<ReturnType<typeof moduleApiAccess>>, "workspace" | "project">,
+  created: boolean,
+  fields = created ? moduleApiField.options : moduleApiPatch.keyof().exclude(["members"]).options
+) {
+  const values = {
+    id: () => apiIdSchema.parse(known("module.id", module.apiId)),
+    created_at: () => new Date(module._creationTime).toISOString(),
+    updated_at: () => new Date(module.updatedAt).toISOString(),
+    deleted_at: () => {
+      const value = known("module.deleted_at", module.deletedAt);
+      return value === null ? null : new Date(value).toISOString();
+    },
+    created_by: () => userReference(ctx, module.createdBy, "created_by", [], access, ""),
+    updated_by: () => userReference(ctx, module.updatedBy, "updated_by", [], access, ""),
+    workspace: () => apiIdSchema.parse(known("workspace", access.workspace.apiId)),
+    project: () => apiIdSchema.parse(access.project.apiId),
+    name: () => module.name,
+    description: () => module.description,
+    description_text: () => {
+      const value = known("module.description_text", module.descriptionTextJson);
+      return value === null ? null : projectJsonText.parse(value);
+    },
+    description_html: () => projectJsonText.parse(module.descriptionHtmlJson),
+    start_date: () => module.startDate,
+    target_date: () => module.targetDate,
+    status: () => module.status,
+    lead: () => userReference(ctx, module.leadId, "lead", [], access, ""),
+    view_props: () => projectJsonText.parse(known("module.view_props", module.viewPropsJson)),
+    sort_order: () => known("module.sort_order", module.sortOrder),
+    external_source: () => known("module.external_source", module.externalSource),
+    external_id: () => known("module.external_id", module.externalId),
+    archived_at: () => {
+      const value = known("module.archived_at", module.archivedAt);
+      return value === null ? null : new Date(value).toISOString();
+    },
+    logo_props: () => projectJsonText.parse(known("module.logo_props", module.logoPropsJson)),
+    members: async () => {
+      const ids = [];
+      for await (const member of ctx.db
+        .query("moduleMembers")
+        .withIndex("by_module_user", (q) => q.eq("moduleId", module._id))) {
+        const user = await ctx.db.get(member.userId);
+        if (!user) return unsupportedReference("module.members");
+        ids.push(apiIdSchema.parse(user.apiId));
+      }
+      return ids;
+    },
+  } satisfies Record<z.infer<typeof moduleApiField>, () => unknown>;
+  return catalogueApiBody.parse(
+    Object.fromEntries(await Promise.all(fields.map(async (field) => [field, await values[field]()])))
+  );
+}
+export const moduleApiUnavailable = internalQuery({
+  args: { ...moduleApiIdentity.fields, method: zodToConvex(apiRequestMetadata.shape.method) },
+  handler: async (ctx, args) => {
+    await moduleApiAccess(ctx, args, args.method);
+    const registered = args.moduleApiId ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+    throw new ConvexError({
+      status: registered.includes(args.method) ? 503 : 405,
+      detail: registered.includes(args.method)
+        ? "Module reads and retirement are not available through this API yet."
+        : `Method "${args.method}" not allowed.`,
+    });
+  },
+});
+export const writeModuleApi = internalMutation({
+  args: { ...moduleApiIdentity.fields, bodyJson: v.string() },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const access = await moduleApiAccess(ctx, args, args.moduleApiId ? "PATCH" : "POST");
+    const module = access.module;
+    if (module?.archived) throw new ConvexError({ status: 400, error: "Archived module cannot be edited" });
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const input = module
+      ? { existing: module, parsed: moduleApiPatch.safeParse(raw.data) }
+      : { existing: null, parsed: moduleApiCreate.safeParse(raw.data) };
+    if (!input.parsed.success)
+      throw new ConvexError({ status: 400, errors: z.flattenError(input.parsed.error).fieldErrors });
+    const data = input.parsed.data;
+    if (!access.project.features?.modules)
+      throw new ConvexError({
+        status: 400,
+        errors: { non_field_errors: ["Modules are not enabled for this project"] },
+      });
+    if (data.start_date && data.target_date && data.start_date > data.target_date)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: ["Start date cannot exceed target date"] } });
+    const leadApiId = data.lead;
+    const lead = leadApiId
+      ? await ctx.db
+          .query("users")
+          .withIndex("by_api_id", (q) => q.eq("apiId", leadApiId))
+          .unique()
+      : null;
+    if (data.lead && !lead)
+      throw new ConvexError({ status: 400, errors: { lead: [`Invalid pk "${data.lead}" - object does not exist.`] } });
+    const members =
+      data.members === undefined
+        ? undefined
+        : (
+            await Promise.all(
+              data.members.map(async (id) => {
+                const user = await ctx.db
+                  .query("users")
+                  .withIndex("by_api_id", (q) => q.eq("apiId", id))
+                  .unique();
+                if (!user)
+                  throw new ConvexError({
+                    status: 400,
+                    errors: { members: [`Invalid pk "${id}" - object does not exist.`] },
+                  });
+                const member = await ctx.db
+                  .query("projectMembers")
+                  .withIndex("by_project_user", (q) => q.eq("projectId", access.project._id).eq("userId", user._id))
+                  .unique();
+                return member ? user._id : null;
+              })
+            )
+          ).filter((id) => id !== null);
+    const rawId = raw.data.external_id,
+      rawSource = raw.data.external_source;
+    if (rawId && (module ? rawId !== module.externalId : rawSource)) {
+      const source =
+        rawSource === undefined && module ? known("module.external_source", module.externalSource) : rawSource;
+      const id = typeof rawId === "number" ? String(rawId) : rawId;
+      const externalSource = typeof source === "number" ? String(source) : source;
+      const duplicate = await ctx.db
+        .query("modules")
+        .withIndex("by_project", (q) => q.eq("projectId", access.project._id).eq("deleted", false))
+        .filter((q) => q.and(q.eq(q.field("externalSource"), externalSource), q.eq(q.field("externalId"), id)))
+        .first();
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Module with the same external id and external source already exists",
+          id: known("module.id", module?.apiId ?? duplicate.apiId),
+        });
+    }
+    const name = data.name;
+    if (name !== undefined) {
+      const duplicate = await ctx.db
+        .query("modules")
+        .withIndex("by_project_name", (q) =>
+          q.eq("projectId", access.project._id).eq("deleted", false).eq("name", name)
+        )
+        .filter((q) => q.neq(q.field("_id"), module?._id ?? null))
+        .first();
+      if (duplicate) {
+        const error = "Module with this name already exists";
+        if (!module)
+          throw new ConvexError({
+            status: 400,
+            error,
+            id: known("module.id", duplicate.apiId),
+            code: "MODULE_NAME_ALREADY_EXISTS",
+            message: error,
+          });
+        throw new ConvexError({ status: 400, error });
+      }
+    }
+    const requestedFields = Object.keys(raw.data);
+    const fields = moduleApiField.options
+      .filter((field) => Object.hasOwn(raw.data, field))
+      .toSorted((a, b) => requestedFields.indexOf(a) - requestedFields.indexOf(b));
+    const before = module ? await moduleApiWire(ctx, module, access, true, fields) : null;
+    const changes =
+      before === null
+        ? []
+        : fields.filter((field) => {
+            const previous = moduleWebhookValue.safeParse(before[field]),
+              requested = moduleWebhookValue.safeParse(raw.data[field]);
+            if (!previous.success || !requested.success)
+              throw new ConvexError({
+                status: 503,
+                detail: "Module webhook activity cannot preserve integral JSON numbers outside the safe integer range.",
+              });
+            return !webhookValueEqual(previous.data, requested.data);
+          });
+    let moduleId;
+    if (input.existing === null) {
+      const created = input.parsed.data;
+      moduleId = await createModule(
+        ctx,
+        access.project,
+        access.user._id,
+        {
+          name: created.name,
+          description: created.description,
+          descriptionHtmlJson: "null",
+          startDate: created.start_date,
+          targetDate: created.target_date,
+          status: created.status,
+          leadId: lead?._id ?? null,
+          externalSource: created.external_source,
+          externalId: created.external_id,
+        },
+        members ?? []
+      );
+    } else {
+      await writeModule(
+        ctx,
+        input.existing,
+        {
+          ...(data.name === undefined ? {} : { name: data.name }),
+          ...(data.description === undefined ? {} : { description: data.description }),
+          ...(data.start_date === undefined ? {} : { startDate: data.start_date }),
+          ...(data.target_date === undefined ? {} : { targetDate: data.target_date }),
+          ...(data.status === undefined ? {} : { status: data.status }),
+          ...(data.lead === undefined ? {} : { leadId: lead?._id ?? null }),
+          ...(data.external_source === undefined ? {} : { externalSource: data.external_source }),
+          ...(data.external_id === undefined ? {} : { externalId: data.external_id }),
+        },
+        access.user._id,
+        members
+      );
+      moduleId = input.existing._id;
+    }
+    const current = await ctx.db.get(moduleId);
+    if (!current) throw new Error("Written Module is missing.");
+    const event = {
+      workspaceId: access.workspace._id,
+      projectId: access.project._id,
+      moduleId,
+      actorId: access.user._id,
+    };
+    if (before === null) {
+      await ctx.scheduler.runAfter(0, internal.webhooks.index.fanoutModule, {
+        event: {
+          ...event,
+          eventId: crypto.randomUUID(),
+          activity: { action: "created", field: null, oldValueJson: null, newValueJson: null },
+        },
+        cursor: null,
+      });
+    } else {
+      await Promise.all(
+        changes.map((field) =>
+          ctx.scheduler.runAfter(0, internal.webhooks.index.fanoutModule, {
+            event: {
+              ...event,
+              eventId: crypto.randomUUID(),
+              activity: {
+                action: "updated",
+                field,
+                oldValueJson: JSON.stringify(before[field]),
+                newValueJson: JSON.stringify(raw.data[field]),
+              },
+            },
+            cursor: null,
+          })
+        )
+      );
+    }
+    return JSON.stringify(await moduleApiWire(ctx, current, access, input.existing === null));
+  },
+});
+async function moduleResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]),
+    moduleId = route[3] ? apiIdSchema.safeParse(route[3]) : null;
+  if (!projectId.success || (moduleId && !moduleId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const identity = {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    moduleApiId: moduleId?.data,
+  };
+  if ((request.method !== "POST" || moduleId) && (request.method !== "PATCH" || !moduleId))
+    await ctx.runQuery(internal.projects.external.moduleApiUnavailable, {
+      ...identity,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+    });
+  const body = await ctx.runMutation(internal.projects.external.writeModuleApi, {
+    ...identity,
+    bodyJson: await request.text(),
+  });
+  return Response.json(projectJsonText.parse(body), { status: moduleId ? 200 : 201, headers: responseHeaders });
+}
+
+export const projects = httpAction(async (ctx, request) => {
+  if (request.method === "OPTIONS" && request.headers.has("Access-Control-Request-Method"))
+    return new Response(null, { status: 200, headers });
+  const startedAt = Date.now();
+  let status = 500;
+  let userId: Id<"users"> | null = null;
+  let keyId: string | null = null;
+  const catalogue = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(states|labels)\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
+  const task = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
+  const module = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/modules\/(?:([^/]+)\/)?$/.exec(
+    new URL(request.url).pathname
+  );
+  const link =
+    /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/([^/]+)\/(links|comments)\/(?:([^/]+)\/)?$/.exec(
+      new URL(request.url).pathname
+    );
+  const methods = catalogue?.[4] ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+  let responseHeaders: HeadersInit = module
+    ? { ...headers, Allow: module[3] ? "GET, PATCH, DELETE" : "GET, POST" }
+    : link
+      ? { ...headers, Allow: link[6] ? "GET, PATCH, DELETE" : "GET, POST" }
+      : catalogue
+        ? { ...headers, Allow: methods.join(", ") }
+        : task?.[4]
+          ? { ...headers, Allow: "GET, PATCH, DELETE" }
+          : task
+            ? { ...headers, Allow: "GET, POST" }
+            : headers;
+  try {
+    const credential = await verifyRequest(ctx, request);
+    userId = credential.userId;
+    keyId = credential.keyId;
+    responseHeaders = { ...responseHeaders, ...credential.headers };
+    if (credential.status !== 200) {
+      status = credential.status;
+      return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
+    }
+    const response = module
+      ? await moduleResponse(ctx, request, credential.userId, responseHeaders, module)
+      : link
+        ? await taskCompanionResponse(ctx, request, credential.userId, responseHeaders, link)
+        : task
+          ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
+          : catalogue
+            ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
+            : await projectResponse(ctx, request, credential.userId, responseHeaders);
+    status = response.status;
+    return response;
+  } catch (error) {
+    if (error instanceof ConvexError) {
+      if ((task || link) && typeof error.data === "string") {
+        status = 400;
+        return Response.json({ non_field_errors: [error.data] }, { status, headers: responseHeaders });
+      }
+      const validation = catalogueApiValidationFailure.safeParse(error.data);
+      if (validation.success) {
+        status = validation.data.status;
+        return Response.json(validation.data.errors, { status, headers: responseHeaders });
+      }
+      const failure = z.union([moduleApiCreateConflict, projectApiFailure, catalogueApiFailure]).safeParse(error.data);
+      if (failure.success) {
+        const { status: failureStatus, ...body } = failure.data;
+        status = failureStatus;
+        return Response.json(body, { status, headers: responseHeaders });
+      }
+    }
+    throw error;
+  } finally {
+    const metadata = {
+      pathname: new URL(request.url).pathname,
+      method: request.method,
+      status,
+      durationMs: Date.now() - startedAt,
+      userId,
+      keyId,
+    };
+    console.info("External API request", metadata);
+    try {
+      await ctx.runMutation(internal.identity.apiAudit.record, apiRequestMetadata.parse(metadata));
+    } catch {
+      console.error("External API request audit could not be persisted", metadata);
+    }
+  }
+});
+
+const catalogueWriteArgs = v.object({
+  ...catalogueIdentity.fields,
+  entityApiId: v.optional(v.string()),
+  bodyJson: v.string(),
+  assetOrigin: v.string(),
+});
+async function prepareCatalogueWrite(ctx: MutationCtx, args: Infer<typeof catalogueWriteArgs>) {
+  const access = await projectEntityAccess(ctx, args, args.entityApiId ? "PATCH" : "POST");
+  const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+  if (!raw.success)
+    throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+  return { access, raw: raw.data };
+}
+function requireCatalogueUnique(
+  rows: (Doc<"taskStates"> | Doc<"taskLabels">)[],
+  existing: Doc<"taskStates"> | Doc<"taskLabels"> | null | undefined,
+  raw: z.infer<typeof catalogueApiBody>,
+  data: z.infer<typeof stateApiInput> | z.infer<typeof labelApiInput>,
+  resource: z.infer<typeof catalogueApiResource>
+) {
+  const kind = resource === "states" ? "State" : "Label";
+  const other = rows.filter((row) => row._id !== existing?._id);
+  const duplicate = other.find((row) => row.name === data.name);
+  if (duplicate)
+    throw new ConvexError({
+      status: 409,
+      error: `${kind} with the same name already exists in the project`,
+      id: known("id", duplicate.apiId),
+    });
+  const external = other.find(
+    (row) =>
+      (!("status" in row) || row.status !== "triage") &&
+      row.externalSource === data.external_source &&
+      row.externalId === data.external_id
+  );
+  const shouldCheck =
+    resource === "states" && existing
+      ? raw.external_id && existing.externalId !== raw.external_id
+      : raw.external_id && raw.external_source;
+  if (shouldCheck && external)
+    throw new ConvexError({
+      status: 409,
+      error: `${kind} with the same external id and external source already exists`,
+      id: known("id", existing?.apiId ?? external.apiId),
+    });
+}
+export const writeStates = internalMutation({
+  args: { ...catalogueWriteArgs.fields, resource: v.literal("states") },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const { access, raw } = await prepareCatalogueWrite(ctx, args);
+    const stored = await ctx.db
+      .query("taskStates")
+      .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))
+      .collect();
+    const live = stored.filter((row) => taskStateDeletedAt(row.deletedAt) === null);
+    const rows = live.filter((row) => row.status !== "triage");
+    const existing = args.entityApiId ? rows.find((row) => row.apiId === args.entityApiId) : null;
+    if (args.entityApiId && !existing)
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const supplied = stateApiSupplied.safeParse(raw);
+    if (!supplied.success) throw new ConvexError({ status: 400, errors: z.flattenError(supplied.error).fieldErrors });
+    const parsed = stateApiInput.safeParse({
+      ...(existing
+        ? await catalogueWire(ctx, existing, access, stateApiInput.in.keyof().options, [], args.assetOrigin)
+        : {}),
+      ...raw,
+    });
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const data = parsed.data;
+    requireCatalogueUnique(live, existing, raw, data, "states");
+    const id = await writeTaskState(ctx, access.project, access.user, existing ?? null, {
+      name: data.name,
+      description: data.description,
+      color: data.color,
+      status: stateApiNativeGroup[data.group],
+      isDefault: data.default,
+      isTriage: data.is_triage,
+      sortOrder: existing
+        ? data.sequence
+        : rows.length
+          ? Math.max(...rows.map((row) => row.sortOrder)) + 15000
+          : data.sequence,
+      externalSource: data.external_source,
+      externalId: data.external_id,
+    });
+    const row = await ctx.db.get(id);
+    if (!row) throw new Error("The state writer did not produce its saved row.");
+    if (data.default) await writeDefaultState(ctx, row, access.user);
+    await ctx.db.patch(access.project._id, { metadataRevision: (access.project.metadataRevision ?? 0) + 1 });
+    return JSON.stringify(await catalogueWire(ctx, row, access, null, [], args.assetOrigin));
+  },
+});
+export const writeLabels = internalMutation({
+  args: { ...catalogueWriteArgs.fields, resource: v.literal("labels") },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const { access, raw } = await prepareCatalogueWrite(ctx, args);
+    if (args.entityApiId && access.project.archived)
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const rows = (
+      await ctx.db
+        .query("taskLabels")
+        .withIndex("by_project_order", (q) => q.eq("projectId", access.project._id))
+        .collect()
+    ).filter((row) => !row.retiring);
+    const existing = args.entityApiId ? rows.find((row) => row.apiId === args.entityApiId) : null;
+    if (args.entityApiId && !existing)
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const parsed = labelApiInput.safeParse({
+      ...(existing
+        ? await catalogueWire(ctx, existing, access, labelApiInput.keyof().options, [], args.assetOrigin)
+        : {}),
+      ...raw,
+    });
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const data = parsed.data;
+    requireCatalogueUnique(rows, existing, raw, data, "labels");
+    let parentId = existing?.parentId ?? null;
+    if (Object.hasOwn(raw, "parent") || !existing) {
+      const parentApiId = data.parent;
+      const parent = parentApiId
+        ? await ctx.db
+            .query("taskLabels")
+            .withIndex("by_api_id", (q) => q.eq("apiId", parentApiId))
+            .unique()
+        : null;
+      if (data.parent && !(await canReadLabel(ctx, parent, access.user)))
+        throw new ConvexError({ status: 400, errors: { parent: ["Invalid label reference."] } });
+      parentId = parent === null ? null : parent._id;
+    }
+    const id = await writeTaskLabel(ctx, access.project, access.user, existing ?? null, {
+      name: data.name,
+      description: data.description,
+      color: data.color,
+      parentId,
+      sortOrder: existing
+        ? data.sort_order
+        : rows.length
+          ? Math.max(...rows.map((row) => row.sortOrder)) + 10000
+          : data.sort_order,
+      externalSource: data.external_source,
+      externalId: data.external_id,
+    });
+    const row = await ctx.db.get(id);
+    if (!row) throw new Error("The label writer did not produce its saved row.");
+    return JSON.stringify(await catalogueWire(ctx, row, access, null, [], args.assetOrigin));
+  },
+});
+
+export const catalogueRemove = internalMutation({
+  args: { ...catalogueIdentity.fields, entityApiId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const access = await projectEntityAccess(ctx, args, "DELETE");
+    if (args.resource === "states") {
+      const state = await ctx.db
+        .query("taskStates")
+        .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+        .unique();
+      if (
+        !state ||
+        state.projectId !== access.project._id ||
+        state.workspaceId !== access.workspace._id ||
+        !taskStateIsSelectable(state)
+      )
+        throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      if (state.isDefault) throw new ConvexError({ status: 400, error: "Default state cannot be deleted" });
+      const reference = access.project.archived
+        ? null
+        : await ctx.db
+            .query("tasks")
+            .withIndex("by_state", (q) => q.eq("stateId", state._id))
+            .filter((q) =>
+              q.and(
+                q.eq(q.field("deletedAt"), null),
+                q.eq(q.field("archivedAt"), null),
+                q.neq(q.field("status"), "triage")
+              )
+            )
+            .first();
+      if (reference)
+        throw new ConvexError({ status: 400, error: "The state is not empty, only empty states can be deleted" });
+      await retireTaskState(ctx, state, access.user);
+      await ctx.db.patch(access.project._id, { metadataRevision: (access.project.metadataRevision ?? 0) + 1 });
+      return null;
+    }
+    const label = await ctx.db
+      .query("taskLabels")
+      .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+      .unique();
+    if (
+      access.project.archived ||
+      !label ||
+      label.projectId !== access.project._id ||
+      label.workspaceId !== access.workspace._id ||
+      label.retiring
+    )
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    const jobId = await beginTaskLabelRemoval(ctx, label, access.user);
+    await ctx.scheduler.runAfter(0, internal.tasks.label_removal.continueRemoval, { jobId, userId: access.user._id });
+    return null;
+  },
+});

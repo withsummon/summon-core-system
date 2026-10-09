@@ -4,100 +4,66 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo } from "react";
-import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
-// plane imports
-import type { I_THEME_OPTION } from "@plane/constants";
+import { useState } from "react";
+import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
 import { THEME_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { setPromiseToast } from "@plane/propel/toast";
-import { applyCustomTheme } from "@plane/utils";
-// components
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 import { CustomThemeSelector } from "@/components/core/theme/custom-theme-selector";
 import { ThemeSwitch } from "@/components/core/theme/theme-switch";
 import { SettingsControlItem } from "@/components/settings/control-item";
-// hooks
-import { useUserProfile } from "@/hooks/store/user";
 
-export const ThemeSwitcher = observer(function ThemeSwitcher(props: {
-  option: {
-    id: string;
-    title: string;
-    description: string;
-  };
+type Profile = FunctionReturnType<typeof api.identity.profile.get>;
+
+export function ThemeSwitcher({
+  option,
+  profile,
+}: {
+  option: { title: string; description: string };
+  profile: Profile;
 }) {
-  // store hooks
-  const { data: userProfile, updateUserTheme } = useUserProfile();
-  // theme
-  const { setTheme } = useTheme();
-  // translation
+  const save = useMutation(api.identity.preferences.save);
+  const [pending, setPending] = useState(false);
   const { t } = useTranslation();
-  // derived values
-  const currentTheme = useMemo(() => {
-    // oxlint-disable-next-line no-shadow
-    const userThemeOption = THEME_OPTIONS.find((t) => t.value === userProfile?.theme?.theme);
-    return userThemeOption || null;
-  }, [userProfile?.theme?.theme]);
+  const currentTheme =
+    THEME_OPTIONS.find((themeOption) => themeOption.value === profile.preferences.theme.theme) ?? null;
 
-  const handleThemeChange = useCallback(
-    async (themeOption: I_THEME_OPTION) => {
-      try {
-        setTheme(themeOption.value);
+  const saveTheme = (theme: Profile["preferences"]["theme"], expectedRevision: number) =>
+    save({ expectedRevision, preferences: { ...profile.preferences, theme } });
 
-        // If switching to custom theme and user has saved custom colors, apply them immediately
-        if (
-          themeOption.value === "custom" &&
-          userProfile?.theme?.primary &&
-          userProfile?.theme?.background &&
-          userProfile?.theme?.darkPalette !== undefined
-        ) {
-          applyCustomTheme(
-            userProfile.theme.primary,
-            userProfile.theme.background,
-            userProfile.theme.darkPalette ? "dark" : "light"
-          );
-        }
-
-        const updatePromise = updateUserTheme({ theme: themeOption.value });
-        setPromiseToast(updatePromise, {
-          loading: "Updating theme...",
-          success: {
-            title: "Theme updated",
-            message: () => "Reloading to apply changes...",
-          },
-          error: {
-            title: "Error!",
-            message: () => "Failed to update theme. Please try again.",
-          },
-        });
-        // Wait for the promise to resolve, then reload after showing toast
-        await updatePromise;
-        window.location.reload();
-      } catch (error) {
-        console.error("Error updating theme:", error);
-      }
-    },
-    [setTheme, updateUserTheme, userProfile]
-  );
-
-  if (!userProfile) return null;
+  const handleThemeChange = async (themeOption: (typeof THEME_OPTIONS)[number]) => {
+    setPending(true);
+    try {
+      await saveTheme({ ...profile.preferences.theme, theme: themeOption.value }, profile.revision);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Theme updated", message: "Appearance updated successfully" });
+    } catch (error) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: mutationMessage(error) });
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <>
       <SettingsControlItem
-        title={t(props.option.title)}
-        description={t(props.option.description)}
+        title={t(option.title)}
+        description={t(option.description)}
         control={
-          <ThemeSwitch
-            value={currentTheme}
-            onChange={(themeOption) => {
-              void handleThemeChange(themeOption);
-            }}
-          />
+          <fieldset disabled={pending}>
+            <ThemeSwitch
+              ariaLabel={t(option.title)}
+              value={currentTheme}
+              onChange={(themeOption) => void handleThemeChange(themeOption)}
+            />
+          </fieldset>
         }
       />
-      {userProfile.theme?.theme === "custom" && <CustomThemeSelector />}
+      {profile.preferences.theme.theme === "custom" && (
+        <CustomThemeSelector theme={profile.preferences.theme} revision={profile.revision} onSave={saveTheme} />
+      )}
     </>
   );
-});
+}

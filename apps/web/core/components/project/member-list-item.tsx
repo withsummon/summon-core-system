@@ -4,90 +4,57 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { useNavigate } from "react-router";
+import { useMutation } from "convex/react";
+import { api } from "@summon/convex/api";
 import { Table } from "@plane/ui";
-// hooks
-import { useMember } from "@/hooks/store/use-member";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { useAppRouter } from "@/hooks/use-app-router";
-// plane web imports
 import { useProjectColumns } from "@/components/projects/settings/useProjectColumns";
-// store
-import type { IProjectMemberDetails } from "@/store/member/project/base-project-member.store";
-// local imports
+import type { ProjectMember } from "./settings/member-columns";
 import { ConfirmProjectMemberRemove } from "./confirm-project-member-remove";
 
-type Props = {
-  memberDetails: (IProjectMemberDetails | null)[];
-  projectId: string;
-  workspaceSlug: string;
+type Props = Parameters<typeof useProjectColumns>[0] & {
+  members: ProjectMember[];
+  projectName: string;
+  beforeLeave: () => Promise<void>;
 };
-
-export const ProjectMemberListItem = observer(function ProjectMemberListItem(props: Props) {
-  const { memberDetails, projectId, workspaceSlug } = props;
-  // router
-  const router = useAppRouter();
-  // store hooks
-  const { leaveProject } = useUserPermissions();
-  const { data: currentUser } = useUser();
-  const {
-    project: { removeMemberFromProject },
-  } = useMember();
-  // helper hooks
-  const { columns, removeMemberModal, setRemoveMemberModal } = useProjectColumns({
-    projectId,
-    workspaceSlug,
-  });
-
-  const handleRemove = async (memberId: string) => {
-    if (!workspaceSlug || !projectId || !memberId) return;
-
-    if (memberId === currentUser?.id) {
-      await leaveProject(workspaceSlug.toString(), projectId.toString())
-        // oxlint-disable-next-line promise/always-return
-        .then(async () => {
-          router.push(`/${workspaceSlug}/projects`);
-        })
-        .catch((err) => {
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: "You can’t leave this project yet.",
-            message: err?.error || "Something went wrong. Please try again.",
-          });
-        });
-    } else
-      await removeMemberFromProject(workspaceSlug.toString(), projectId.toString(), memberId).catch((err) =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "You can't remove the member from this project yet.",
-          message: err?.error || "Something went wrong. Please try again.",
-        })
-      );
-  };
-
-  if (!memberDetails) return null;
+export function ProjectMemberListItem({ members, projectName, beforeLeave, ...props }: Props) {
+  const navigate = useNavigate();
+  const revoke = useMutation(api.projects.index.revokeMember);
+  const leave = useMutation(api.projects.index.leave);
+  const { columns, removeMemberModal: selected, setRemoveMemberModal } = useProjectColumns(props);
   return (
     <>
-      {removeMemberModal && (
+      {selected && (
         <ConfirmProjectMemberRemove
-          isOpen={removeMemberModal !== null}
+          member={selected}
+          projectName={projectName}
           onClose={() => setRemoveMemberModal(null)}
-          data={{ id: removeMemberModal.member.id, display_name: removeMemberModal.member.display_name || "" }}
-          onSubmit={() => handleRemove(removeMemberModal.member.id)}
+          onSuccess={() => {
+            if (selected.canLeave) navigate(`/${props.workspaceSlug}/projects`);
+          }}
+          onSubmit={async () => {
+            if (selected.canLeave) {
+              await beforeLeave();
+              await leave({ projectId: props.projectId });
+            } else
+              await revoke({
+                projectId: props.projectId,
+                userId: selected.userId,
+                expectedRevision: selected.revision,
+              });
+          }}
         />
       )}
-      <Table
+      <Table<ProjectMember>
         columns={columns}
-        data={(memberDetails?.filter((member): member is IProjectMemberDetails => member !== null) ?? []) as any}
-        keyExtractor={(rowData) => rowData?.member.id ?? ""}
+        data={members}
+        keyExtractor={(member) => member.membershipId}
         tHeadClassName="border-b border-subtle"
         thClassName="text-left font-medium divide-x-0 text-placeholder"
         tBodyClassName="divide-y-0"
-        tBodyTrClassName="divide-x-0 p-4 h-[40px] text-secondary"
+        tBodyTrClassName="divide-x-0 p-4 h-10 text-secondary"
         tHeadTrClassName="divide-x-0"
       />
     </>
   );
-});
+}

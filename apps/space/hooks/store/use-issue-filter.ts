@@ -1,17 +1,70 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
+import { useParams, useSearchParams } from "react-router";
+import { useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
+import { api } from "@summon/convex/api";
+import { priority } from "@summon/convex/task-schema";
 
-import { useContext } from "react";
-// lib
-import { StoreContext } from "@/lib/store-provider";
-// store
-import type { IIssueFilterStore } from "@/store/issue-filters.store";
-
-export const useIssueFilter = (): IIssueFilterStore => {
-  const context = useContext(StoreContext);
-  if (context === undefined) throw new Error("useUserProfile must be used within StoreProvider");
-  return context.issueFilter;
-};
+export function useIssueFilter() {
+  const { anchor } = useParams();
+  const [params, setParams] = useSearchParams();
+  const catalog = useQuery(api.publicSharing.index.catalog, anchor ? { anchor } : "skip");
+  const settings = useQuery(api.publicSharing.index.settings, anchor ? { anchor } : "skip");
+  const selectedStates = params.get("state")?.split(",") ?? [];
+  const selectedLabels = params.get("labels")?.split(",") ?? [];
+  const selectedPriorities = params.get("priority")?.split(",") ?? [];
+  const stateIds =
+    catalog?.states.filter((state) => selectedStates.includes(state._id)).map((state) => state._id) ?? [];
+  const labelIds =
+    catalog?.labels.filter((label) => selectedLabels.includes(label._id)).map((label) => label._id) ?? [];
+  const priorities = priority.members.map((item) => item.value).filter((value) => selectedPriorities.includes(value));
+  const invalid =
+    catalog !== undefined &&
+    [
+      selectedStates.some((value) => !stateIds.some((id) => id === value)),
+      selectedLabels.some((value) => !labelIds.some((id) => id === value)),
+      selectedPriorities.some((value) => !priorities.some((item) => item === value)),
+    ].includes(true);
+  const children: Extract<
+    NonNullable<FunctionArgs<typeof api.publicSharing.index.list>["filters"]>,
+    { type: "group" }
+  >["children"] = [];
+  if (stateIds.length)
+    children.push({ id: "public-states", type: "condition", property: "stateId", operator: "in", value: stateIds });
+  if (labelIds.length)
+    children.push({ id: "public-labels", type: "condition", property: "labelId", operator: "in", value: labelIds });
+  if (priorities.length)
+    children.push({
+      id: "public-priorities",
+      type: "condition",
+      property: "priority",
+      operator: "in",
+      value: priorities,
+    });
+  const filters: FunctionArgs<typeof api.publicSharing.index.list>["filters"] = children.length
+    ? { id: "public-filters", type: "group", logicalOperator: "and", children }
+    : null;
+  const requestedLayout = params.get("board");
+  const layout =
+    requestedLayout === "kanban" && settings?.settings.viewProps.kanban
+      ? "kanban"
+      : settings?.settings.viewProps.list
+        ? "list"
+        : "kanban";
+  const change = (key: "state" | "priority" | "labels", value: string | null) => {
+    const next = new URLSearchParams(params);
+    const values = next.get(key)?.split(",") ?? [];
+    const selected =
+      value === null ? [] : values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+    if (selected.length) next.set(key, selected.join(","));
+    else next.delete(key);
+    setParams(next);
+  };
+  const clear = () => {
+    const next = new URLSearchParams(params);
+    next.delete("state");
+    next.delete("priority");
+    next.delete("labels");
+    setParams(next);
+  };
+  return { catalog, filters, invalid, layout, selectedStates, selectedLabels, selectedPriorities, change, clear };
+}

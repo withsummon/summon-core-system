@@ -42,6 +42,7 @@ export function PageSearchInput(props: Props) {
     <div className="flex">
       {!isSearchOpen && (
         <IconButton
+          aria-label="Search pages"
           variant="ghost"
           size="lg"
           className="my-auto -mr-1 shrink-0"
@@ -62,6 +63,7 @@ export function PageSearchInput(props: Props) {
       >
         <SearchIcon className="h-3.5 w-3.5" />
         <input
+          aria-label="Search pages"
           ref={inputRef}
           className="ml-2 w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
           placeholder="Search pages"
@@ -71,6 +73,7 @@ export function PageSearchInput(props: Props) {
         />
         {isSearchOpen && (
           <button
+            aria-label="Clear page search"
             type="button"
             className="grid place-items-center"
             onClick={() => {

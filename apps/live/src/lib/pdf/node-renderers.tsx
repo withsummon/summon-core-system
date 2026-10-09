@@ -346,10 +346,8 @@ export const nodeRenderers: NodeRendererRegistry = {
     let displayText = entityName || id || entityIdentifier;
 
     if (ctx.metadata && (entityName === "user_mention" || entityName === "user")) {
-      const userMention = ctx.metadata.userMentions?.find((u) => u.id === entityIdentifier || u.id === id);
-      if (userMention) {
-        displayText = userMention.display_name;
-      }
+      const userMention = ctx.metadata.userMentions?.get(entityIdentifier) ?? ctx.metadata.userMentions?.get(id);
+      if (userMention) displayText = userMention;
     }
 
     return (
@@ -414,7 +412,7 @@ const renderNodeWithContext = (node: TipTapNode, context: InternalRenderContext)
       return renderNodeWithContext(child, childContext);
     }) || [];
 
-  const renderer = nodeRenderers[node.type];
+  const renderer = node.type && nodeRenderers[node.type];
   if (renderer) {
     return renderer(nodeWithContext, children, pdfContext);
   }

@@ -59,26 +59,21 @@ export const useMultipleSelect = (props: Props) => {
   } = useMultipleSelectStore();
 
   useReloadConfirmations(
-    selectedEntityIds && selectedEntityIds.length > 0,
-    "Are you sure you want to leave? Your current bulk operation selections will be lost.",
-    true,
-    () => {
-      clearSelection();
-    }
+    selectedEntityIds.length > 0,
+    "Your current bulk operation selections will be lost.",
+    clearSelection
   );
 
   const groups = useMemo(() => Object.keys(entities), [entities]);
 
   const entitiesList: TEntityDetails[] = useMemo(
     () =>
-      groups
-        ?.map((groupID) =>
-          entities?.[groupID]?.map((entityID) => ({
-            entityID,
-            groupID,
-          }))
-        )
-        .flat(1),
+      groups?.flatMap((groupID) =>
+        entities?.[groupID]?.map((entityID) => ({
+          entityID,
+          groupID,
+        }))
+      ),
     [entities, groups]
   );
 

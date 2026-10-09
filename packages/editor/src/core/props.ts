@@ -19,6 +19,9 @@ export const CoreEditorProps = (props: TArgs): EditorProps => {
 
   return {
     attributes: {
+      role: "textbox",
+      "aria-label": "Rich text editor",
+      "aria-multiline": "true",
       class: cn(
         "prose-brand prose-headings:font-display font-default max-w-full prose focus:outline-none",
         editorClassName

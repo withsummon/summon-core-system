@@ -1,0 +1,9 @@
+# Meetings backend owner review
+
+Current owner receipt: 2026-10-02. Native `meetings/index` and `meetings/tasks` own scheduling, participants and explicit links to canonical tasks. The shared membership owners enforce current workspace/project permissions. Guest reads filter eligible links before pagination; writers cannot move a meeting with task links, a canonical transcript or a recording to another project.
+
+`assets/meetingRecordings` owns the meeting-bound upload and native storage metadata. Generic asset writers reject this scope. The existing private asset HTTP route checks the current meeting ACL for every bounded range; recordings do not expose a public storage URL. `meetings/transcription/runs` owns request identity, captured versions, initiating account, deadline and durable scheduling. The sidecar owns streaming upload, persistent job bytes/state, supervised decoding, cancellation tombstones and retention. Provider results are parsed and converted at the external boundary; current ACL/CAS checks and canonical document writes remain in one mutation. Invalid output is distinct from changed access/source.
+
+`meetings/summary` preserves the raw source after minutes replace the visible document body. Native Zod owns the strict structured result; the official converter derives the Convex validator, and generated API types carry it to the UI. A failed regeneration retains the prior authorized publication, with owner-derived staleness. A changed canonical project link yields a recoverable unavailable source; unexpected errors still propagate.
+
+See [summary migration](../../../apps/convex/convex/meetings/summary/MIGRATION.md) for protocol, configuration and remaining gaps. The [current checklist](current-parity-checklist.md#preserved-meeting-workspace-2026-10-02) separates isolated API/Chrome evidence from real ASR, provider and production acceptance. Historical module test counts do not establish current parity.

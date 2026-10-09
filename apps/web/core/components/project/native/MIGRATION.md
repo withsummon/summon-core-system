@@ -1,0 +1,14 @@
+# Preserved project-directory integration (not activated)
+
+The production baseline remains `afe708b92370542e09dd065454337e3c83c08604`. Two distinct production families are retained:
+
+1. Summon portfolio: `summon/projects/projects-directory-root.tsx` owns legacy SWR/store reads and Create Project command. `projects-portfolio.tsx` extracts its existing grid/list, search, health filter, KPI cards and project links without changing markup. The unregistered native controller consumes the same renderer. Native reporting contributions retain real project IDs and authorized per-project totals; complete reactive cursor traversal is required before whole-portfolio KPIs are rendered.
+2. Plane directory: `project/root.tsx`, `card-list.tsx`, `card.tsx`, `filters.tsx` and `applied-filters/*` own discovery, archived cohorts and card interactions. Its card presentation remains coupled to actual stores and legacy modal controllers; extraction is pending, not replaced by the temporary /core card.
+3. Writes: `create-project-modal.tsx`, `create/*`, `form.tsx`, `join-project-modal.tsx`, `archive-restore-modal.tsx` and `delete-project-modal.tsx` own existing production journeys. Native create/network/joinMany/branding/cover/favorites/archive/lifecycle owners exist, but these production modal controllers have not been switched. Recoverable deletion differs from legacy deletion and requires explicit preserved interaction handling.
+4. Settings and shell: existing `settings/projects/...` routes and workspace authentication/store/PowerK gates remain legacy. No route is activated while those dependencies and modal writes are mixed.
+
+The native portfolio uses an additive standard `page:[contribution]` projection from the existing reporting pageResult owner. Existing report callers retain contribution/coverage/cursor fields. Convex usePaginatedQuery owns reactive cursor continuity; sparse pages are preserved. Loading automatically requests successive bounded100-row pages; partial values are never labeled whole-portfolio totals. Complete traversal is not a globally atomic cross-query report.
+
+Remaining acceptance: card renderer/action extraction, complete creation/settings/join/favorite/archive/restore journeys, filter parity, local permission/error boundaries, deployed-baseline desktop/constrained-width comparison and native shell integration. No live route switch, backend deployment or complete directory parity is claimed.
+
+Portfolio extraction gates: five backend reporting cases and seven frontend portfolio/existing-project cases pass; native backend/web TypeScript7 and scoped Oxc pass. Automatic traversal retains the existing loader with no added initial-pagination action. The source AGPL headers remain on the legacy controller and extracted presentation. Rendered acceptance remains pending, and card/dialog integration is ongoing separately.

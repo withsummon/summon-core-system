@@ -6,7 +6,9 @@
 
 import type { ReactNode } from "react";
 import { CalendarDays, ChevronDown, Download, SlidersHorizontal } from "lucide-react";
-import type { ISummonClient, ISummonReportFilters } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import type { readReportFilters } from "./report-view-model";
 import { SummonField } from "@/components/summon/forms";
 import { percentage, reportLabel, type TReportFilterParam } from "./report-view-model";
 import { Select } from "@plane/propel/select";
@@ -120,14 +122,14 @@ export function PipelineBars(props: { items: Array<{ stage: string; count: numbe
 }
 
 export function ReportFilters(props: {
-  filters: ISummonReportFilters;
-  projects: Array<{ id: string; name: string }>;
-  clients: ISummonClient[];
-  exportUrl: string;
+  filters: ReturnType<typeof readReportFilters>;
+  projects: FunctionReturnType<typeof api.projects.index.list>;
+  clients: FunctionReturnType<typeof api.commercial.clients.list>["page"];
+  onExport: () => void;
   canExport: boolean;
   onFilterChange: (name: TReportFilterParam, value: string) => void;
 }) {
-  const { filters, projects, clients, exportUrl, canExport, onFilterChange } = props;
+  const { filters, projects, clients, onExport, canExport, onFilterChange } = props;
   const dateLabel =
     filters.dateFrom || filters.dateTo ? `${filters.dateFrom || "Start"} – ${filters.dateTo || "Today"}` : "All dates";
   return (
@@ -170,7 +172,7 @@ export function ReportFilters(props: {
               onValueChange={(value) => onFilterChange("project_id", value)}
               options={[
                 { value: "", label: "All accessible projects" },
-                ...projects.map((project) => ({ value: project.id, label: project.name })),
+                ...projects.map((project) => ({ value: project._id, label: project.name })),
               ]}
             />
           </SummonField>
@@ -180,7 +182,7 @@ export function ReportFilters(props: {
               onValueChange={(value) => onFilterChange("client_id", value)}
               options={[
                 { value: "", label: "All clients" },
-                ...clients.map((client) => ({ value: client.id, label: client.name })),
+                ...clients.map((client) => ({ value: client._id, label: client.name })),
               ]}
             />
           </SummonField>
@@ -188,12 +190,13 @@ export function ReportFilters(props: {
       </details>
 
       {canExport ? (
-        <a
-          href={exportUrl}
+        <button
+          type="button"
+          onClick={onExport}
           className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 text-[11px] font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <Download className="size-3.5" /> Export Report <ChevronDown className="size-3" />
-        </a>
+        </button>
       ) : (
         <button
           type="button"

@@ -9,74 +9,34 @@ import { Effect, Schema, Cause } from "effect";
 import { Controller, Post } from "@plane/decorators";
 import { logger } from "@plane/logger";
 import { AppError } from "@/lib/errors";
-import { PdfExportRequestBody, PdfValidationError, PdfAuthenticationError } from "@/schema/pdf-export";
-import { PdfExportService, exportToPdf } from "@/services/pdf-export";
-import type { PdfExportInput } from "@/services/pdf-export";
+import { PdfExportRequestBody, PdfValidationError, PdfAuthenticationError, PdfExportError } from "@/schema/pdf-export";
+import { exportToPdf } from "@/services/pdf-export";
 
 @Controller("/pdf-export")
 export class PdfExportController {
-  /**
-   * Parses and validates the request, returning a typed input object
-   */
-  private parseRequest(
-    req: Request,
-    requestId: string
-  ): Effect.Effect<PdfExportInput, PdfValidationError | PdfAuthenticationError> {
-    return Effect.gen(function* () {
-      const cookie = req.headers.cookie || "";
-      if (!cookie) {
-        return yield* Effect.fail(
-          new PdfAuthenticationError({
-            message: "Authentication required",
-          })
-        );
-      }
-
-      const body = yield* Schema.decodeUnknown(PdfExportRequestBody)(req.body).pipe(
-        Effect.mapError(
-          (cause) =>
-            new PdfValidationError({
-              message: "Invalid request body",
-              cause,
-            })
-        )
-      );
-
-      return {
-        pageId: body.pageId,
-        workspaceSlug: body.workspaceSlug,
-        projectId: body.projectId,
-        title: body.title,
-        author: body.author,
-        subject: body.subject,
-        pageSize: body.pageSize,
-        pageOrientation: body.pageOrientation,
-        fileName: body.fileName,
-        noAssets: body.noAssets,
-        cookie,
-        requestId,
-      };
-    });
-  }
-
+  constructor(
+    private readonly convexUrl: string,
+    private readonly siteUrl: string
+  ) {}
   /**
    * Maps domain errors to HTTP responses
    */
   private mapErrorToHttpResponse(error: unknown): { status: number; error: string } {
-    if (error && typeof error === "object" && "_tag" in error) {
-      const tag = (error as { _tag: string })._tag;
-      const message = (error as { message?: string }).message || "Unknown error";
+    if (Schema.is(PdfExportError)(error)) {
+      const tag = error._tag;
+      const message = error.message;
 
       switch (tag) {
         case "PdfValidationError":
           return { status: 400, error: message };
         case "PdfAuthenticationError":
           return { status: 401, error: message };
+        case "PdfAccessError":
+          return { status: 403, error: message };
+        case "PdfNotFoundError":
+          return { status: 404, error: message };
         case "PdfContentFetchError":
-          return {
-            status: message.includes("not found") ? 404 : 502,
-            error: message,
-          };
+          return { status: 502, error: message };
         case "PdfTimeoutError":
           return { status: 504, error: message };
         case "PdfGenerationError":
@@ -96,11 +56,12 @@ export class PdfExportController {
     const requestId = crypto.randomUUID();
 
     const effect = Effect.gen(this, function* () {
-      // Parse request
-      const input = yield* this.parseRequest(req, requestId);
-
-      // Delegate to service
-      return yield* exportToPdf(input);
+      const cookie = req.headers.cookie;
+      if (!cookie) return yield* Effect.fail(new PdfAuthenticationError({ message: "Authentication required" }));
+      const input = yield* Schema.decodeUnknown(PdfExportRequestBody)(req.body).pipe(
+        Effect.mapError((cause) => new PdfValidationError({ message: "Invalid request body", cause }))
+      );
+      return yield* exportToPdf(input, cookie, this.convexUrl, this.siteUrl);
     }).pipe(
       // Log errors before catching them
       Effect.tapError((error) => Effect.logError("PDF_EXPORT: Export failed", { requestId, error })),
@@ -116,7 +77,7 @@ export class PdfExportController {
       })
     );
 
-    const result = await Effect.runPromise(Effect.provide(effect, PdfExportService.Default));
+    const result = await Effect.runPromise(effect);
 
     // Check if result is an error response
     if ("error" in result && "status" in result) {

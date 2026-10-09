@@ -9,7 +9,7 @@ import { Schema } from "effect";
 export const PdfExportRequestBody = Schema.Struct({
   pageId: Schema.NonEmptyTrimmedString,
   workspaceSlug: Schema.NonEmptyTrimmedString,
-  projectId: Schema.optional(Schema.NonEmptyTrimmedString),
+  projectId: Schema.NonEmptyTrimmedString,
   title: Schema.optional(Schema.String),
   author: Schema.optional(Schema.String),
   subject: Schema.optional(Schema.String),
@@ -35,6 +35,10 @@ export class PdfContentFetchError extends Schema.TaggedError<PdfContentFetchErro
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
+export class PdfNotFoundError extends Schema.TaggedError<PdfNotFoundError>()("PdfNotFoundError", {
+  message: Schema.NonEmptyTrimmedString,
+}) {}
+
 export class PdfMetadataFetchError extends Schema.TaggedError<PdfMetadataFetchError>()("PdfMetadataFetchError", {
   message: Schema.NonEmptyTrimmedString,
   source: Schema.Literal("user-mentions"),
@@ -57,11 +61,20 @@ export class PdfTimeoutError extends Schema.TaggedError<PdfTimeoutError>()("PdfT
   operation: Schema.NonEmptyTrimmedString,
 }) {}
 
-export type PdfExportError =
-  | PdfValidationError
-  | PdfAuthenticationError
-  | PdfContentFetchError
-  | PdfMetadataFetchError
-  | PdfImageProcessingError
-  | PdfGenerationError
-  | PdfTimeoutError;
+export class PdfAccessError extends Schema.TaggedError<PdfAccessError>()("PdfAccessError", {
+  message: Schema.NonEmptyTrimmedString,
+}) {}
+
+export const PdfExportError = Schema.Union(
+  PdfValidationError,
+  PdfAuthenticationError,
+  PdfAccessError,
+  PdfContentFetchError,
+  PdfNotFoundError,
+  PdfMetadataFetchError,
+  PdfImageProcessingError,
+  PdfGenerationError,
+  PdfTimeoutError
+);
+
+export type PdfExportError = Schema.Schema.Type<typeof PdfExportError>;

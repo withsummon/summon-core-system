@@ -4,53 +4,54 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-// plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useOutletContext, useParams } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@summon/convex/api";
 import { useTranslation } from "@plane/i18n";
-// components
-import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 import { PageHead } from "@/components/core/page-title";
+import { PreservedProjectSettingsShell } from "@/components/workspace/native-shell/workspace-shell";
+import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { ProjectMemberList } from "@/components/project/member-list";
 import { ProjectSettingsMemberDefaults } from "@/components/project/project-settings-member-defaults";
-import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
+import { MembersSettingsLoader } from "@/components/ui/loader/settings/members";
 import { SettingsHeading } from "@/components/settings/heading";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
-// local imports
-import type { Route } from "./+types/page";
 import { MembersProjectSettingsHeader } from "./header";
+export { ProjectFeatureSettingsErrorBoundary as ErrorBoundary } from "@/components/settings/project/content/feature-control-item";
 
-function MembersSettingsPage({ params }: Route.ComponentProps) {
-  // router
-  const { workspaceSlug, projectId } = params;
-  // plane hooks
+export default function MembersSettingsPage() {
+  const session = useOutletContext<WorkspaceSession>();
+  const { projectId } = useParams();
   const { t } = useTranslation();
-  // store hooks
-  const { currentProjectDetails } = useProject();
-  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-  // derived values
-  const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails?.name} - Members` : undefined;
-  const isProjectMemberOrAdmin = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT
+  const commands = useStickiesCommands();
+  const project = useQuery(
+    api.projects.features.resolve,
+    projectId ? { workspaceId: session.workspace._id, projectId } : "skip"
   );
-  const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  const canPerformProjectMemberActions = isProjectMemberOrAdmin || isWorkspaceAdmin;
-
-  if (workspaceUserInfo && !canPerformProjectMemberActions) {
-    return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
-  }
-
+  if (!project) return <MembersSettingsLoader />;
   return (
-    <SettingsContentWrapper header={<MembersProjectSettingsHeader />} hugging>
-      <PageHead title={pageTitle} />
+    <PreservedProjectSettingsShell
+      {...session}
+      project={project}
+      authorized={project.role !== "guest"}
+      activePath="common.members"
+      header={<MembersProjectSettingsHeader />}
+      hugging
+    >
+      <PageHead title={`${project.name} - Members`} />
       <SettingsHeading title={t("common.members")} />
-      <ProjectSettingsMemberDefaults projectId={projectId} workspaceSlug={workspaceSlug} />
-      <ProjectMemberList projectId={projectId} workspaceSlug={workspaceSlug} />
-    </SettingsContentWrapper>
+      {project.role !== "guest" && (
+        <>
+          <ProjectSettingsMemberDefaults key={`defaults-${project.projectId}`} projectId={project.projectId} />
+          <ProjectMemberList
+            key={project.projectId}
+            projectId={project.projectId}
+            projectName={project.name}
+            workspaceSlug={session.workspace.slug}
+            beforeLeave={commands.flushAll}
+          />
+        </>
+      )}
+    </PreservedProjectSettingsShell>
   );
 }
-
-export default observer(MembersSettingsPage);

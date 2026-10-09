@@ -16,6 +16,7 @@ import {
 } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { joinUrlPath } from "@plane/utils";
+import type { TWorkspaceSettingsItem } from "@plane/types";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
@@ -23,22 +24,39 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
-export const WorkspaceSettingsSidebarItemCategories = observer(function WorkspaceSettingsSidebarItemCategories() {
+export const WorkspaceSettingsSidebarItemCategories = observer(function WorkspaceSettingsSidebarItemCategories({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}) {
   // params
   const { workspaceSlug } = useParams();
-  const pathname = usePathname();
   // store hooks
   const { allowPermissions } = useUserPermissions();
-  // translation
-  const { t } = useTranslation();
+  return (
+    <WorkspaceSettingsSidebarItemCategoriesView
+      workspaceSlug={workspaceSlug ?? ""}
+      isAccessible={(access) => allowPermissions(access, EUserPermissionsLevel.WORKSPACE, workspaceSlug)}
+      onNavigate={onNavigate}
+    />
+  );
+});
 
+export function WorkspaceSettingsSidebarItemCategoriesView({
+  workspaceSlug,
+  isAccessible,
+  onNavigate,
+}: {
+  workspaceSlug: string;
+  isAccessible: (access: TWorkspaceSettingsItem["access"]) => boolean;
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  const { t } = useTranslation();
   return (
     <div className="mt-3 flex flex-col divide-y divide-subtle px-3">
       {WORKSPACE_SETTINGS_CATEGORIES.map((category) => {
-        const categoryItems = GROUPED_WORKSPACE_SETTINGS[category];
-        const accessibleItems = categoryItems.filter((item) =>
-          allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, workspaceSlug)
-        );
+        const accessibleItems = GROUPED_WORKSPACE_SETTINGS[category].filter((item) => isAccessible(item.access));
 
         if (accessibleItems.length === 0) return null;
 
@@ -49,19 +67,17 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
             </div>
             <div className="flex flex-col">
               {accessibleItems.map((item) => {
-                const isItemActive =
-                  item.href === "/settings"
-                    ? pathname === `/${workspaceSlug}${item.href}/`
-                    : new RegExp(`^/${workspaceSlug}${item.href}/`).test(pathname);
+                const isItemActive = item.highlight(pathname, `/${workspaceSlug}`);
 
                 return (
                   <SettingsSidebarItem
                     key={item.key}
                     as="link"
-                    href={joinUrlPath(workspaceSlug ?? "", item.href)}
+                    href={joinUrlPath(workspaceSlug, item.href)}
                     isActive={isItemActive}
                     icon={WORKSPACE_SETTINGS_ICONS[item.key]}
                     label={t(item.i18n_label)}
+                    onNavigate={onNavigate}
                   />
                 );
               })}
@@ -71,4 +87,4 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
       })}
     </div>
   );
-});
+}

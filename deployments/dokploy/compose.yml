@@ -65,6 +65,11 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile.web
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
+        VITE_CONVEX_LIVE_URL: ${VITE_CONVEX_LIVE_URL:-}
+        SUMMON_STICKIES_ROUTE_OWNER: ${SUMMON_STICKIES_ROUTE_OWNER:-legacy}
     restart: unless-stopped
     depends_on:
       api:
@@ -74,7 +79,13 @@ services:
         aliases: [summon-core-web]
 
   admin:
-    image: makeplane/plane-admin:${PLANE_RELEASE:-stable}
+    image: withsummon-summon-core-system-admin:${SUMMON_IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: apps/admin/Dockerfile.admin
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
     restart: unless-stopped
     depends_on:
       api:
@@ -84,7 +95,13 @@ services:
         aliases: [summon-core-admin]
 
   space:
-    image: makeplane/plane-space:${PLANE_RELEASE:-stable}
+    image: withsummon-summon-core-system-space:${SUMMON_IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: apps/space/Dockerfile.space
+      args:
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CONVEX_SITE_URL: ${VITE_CONVEX_SITE_URL:-}
     restart: unless-stopped
     depends_on:
       api:
@@ -251,7 +268,13 @@ services:
     volumes:
       - codex_auth:/home/node/.codex
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8090/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8090/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

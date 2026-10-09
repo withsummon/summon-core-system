@@ -4,20 +4,5 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet } from "react-router";
-// components
-import { AppHeader } from "@/components/core/app-header";
-import { ContentWrapper } from "@/components/core/content-wrapper";
-import { ModuleIssuesHeader } from "./header";
-import { ModuleIssuesMobileHeader } from "./mobile-header";
-
-export default function ProjectModuleIssuesLayout() {
-  return (
-    <>
-      <AppHeader header={<ModuleIssuesHeader />} mobileHeader={<ModuleIssuesMobileHeader />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
-  );
-}
+import { ModuleRouteShell } from "@/components/convex-core/modules/route-shell";
+export default ModuleRouteShell;

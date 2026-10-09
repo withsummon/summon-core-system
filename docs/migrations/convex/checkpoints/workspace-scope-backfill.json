@@ -1,0 +1,48 @@
+{
+  "local": {
+    "views": {
+      "first": {
+        "changed": 1,
+        "isDone": true
+      },
+      "second": {
+        "changed": 0,
+        "isDone": true
+      }
+    },
+    "favorites": {
+      "first": {
+        "changed": 1,
+        "isDone": true
+      },
+      "second": {
+        "changed": 0,
+        "isDone": true
+      }
+    }
+  },
+  "remote": {
+    "views": {
+      "first": {
+        "changed": 1,
+        "isDone": true
+      },
+      "second": {
+        "changed": 0,
+        "isDone": true
+      }
+    },
+    "favorites": {
+      "first": {
+        "changed": 0,
+        "isDone": true
+      },
+      "second": {
+        "changed": 0,
+        "isDone": true
+      }
+    }
+  },
+  "transitionCommit": "970a09f52d",
+  "identityPreservation": "BDD verified IDs, revisions and favorite identity; Chrome reopened original local project view with same ID and retained favorite."
+}

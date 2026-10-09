@@ -14,7 +14,8 @@
     "noUnusedLocals": false,
     "noImplicitReturns": false,
     "noImplicitOverride": false,
-    "types": ["vite/client"]
+    "types": ["vite/client", "@plane/typescript-config/browser-assets"],
+    "allowImportingTsExtensions": true
   },
   "extends": "@plane/typescript-config/react-router.json",
   "include": ["**/*", "**/.server/**/*", "**/.client/**/*", ".react-router/types/**/*"]

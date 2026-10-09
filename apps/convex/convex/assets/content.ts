@@ -1,0 +1,165 @@
+import type { Doc } from "../_generated/dataModel";
+import { ConvexError } from "convex/values";
+import { z } from "zod/v4";
+
+export const assetTypesByExtension = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".csv": "text/csv",
+} as const;
+export const assistantAudioTypesByExtension = { ".mp3": "audio/mpeg", ".m4a": "audio/mp4" } as const;
+export const isAudioAsset = (asset: Pick<Doc<"assets">, "meetingId" | "conversationId" | "contentType">) =>
+  Boolean(
+    asset.meetingId ||
+    (asset.conversationId && Object.values(assistantAudioTypesByExtension).some((type) => type === asset.contentType))
+  );
+export const supportedAssetTypes = [...new Set(Object.values(assetTypesByExtension))];
+export const meetingRecordingTypes = [
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/webm",
+  "audio/ogg",
+] as const;
+export const meetingRecordingMaxBytes = 250 * 1024 * 1024;
+// Private HTTP actions have a 20 MiB response limit; recordings use bounded authenticated ranges.
+export const recordingReadMaxBytes = 8 * 1024 * 1024;
+export const assetSizeLimit = (contentType: string) =>
+  contentType.startsWith("image/") ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+export function validateIntent(
+  name: string,
+  contentType: string,
+  size: number,
+  sha256: string,
+  meetingRecording = false
+) {
+  if (
+    !name.trim() ||
+    name.length > 255 ||
+    name.includes("/") ||
+    name.includes("\\") ||
+    [...name].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
+  )
+    throw new ConvexError("Enter a filename without path separators or control characters.");
+  const supportedTypes = meetingRecording ? meetingRecordingTypes : supportedAssetTypes;
+  if (!supportedTypes.some((type) => type === contentType))
+    throw new ConvexError("This content type is not supported.");
+  const limit = meetingRecording ? meetingRecordingMaxBytes : assetSizeLimit(contentType);
+  if (!Number.isSafeInteger(size) || size < 1 || size > limit)
+    throw new ConvexError("File size exceeds the supported limit.");
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(sha256)) throw new ConvexError("Provide a base64 SHA-256 digest of the file.");
+}
+// Format signatures reject MIME spoofing at this boundary. This is not malware
+// scanning or full parser validation; documents are served as attachments.
+export async function validateContent(blob: Blob, contentType: string, meetingRecording = false) {
+  if (blob.type.split(";")[0]?.trim().toLowerCase() !== contentType)
+    throw new ConvexError("Uploaded content type does not match the request.");
+  // Binary formats only need a bounded prefix. Recording bytes can be 250 MiB;
+  // their storage metadata already owns the complete-file size and SHA-256 proof.
+  const bytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+  const prefix = (...values: number[]) => values.every((value, index) => bytes[index] === value);
+  const ascii = (start: number, end: number) => new TextDecoder().decode(bytes.slice(start, end));
+  if (meetingRecording) {
+    const recordings = {
+      "audio/mpeg": () =>
+        ascii(0, 3) === "ID3" ||
+        (bytes.length >= 2 && bytes[0] === 255 && (bytes[1] & 224) === 224 && (bytes[1] & 6) !== 0),
+      "audio/mp4": () => ascii(4, 8) === "ftyp",
+      "audio/x-m4a": () => ascii(4, 8) === "ftyp",
+      "audio/wav": () => ascii(0, 4) === "RIFF" && ascii(8, 12) === "WAVE",
+      "audio/x-wav": () => ascii(0, 4) === "RIFF" && ascii(8, 12) === "WAVE",
+      "audio/webm": () => prefix(26, 69, 223, 163),
+      "audio/ogg": () => ascii(0, 4) === "OggS",
+    } satisfies Record<(typeof meetingRecordingTypes)[number], () => boolean>;
+    const type = meetingRecordingTypes.find((supportedType) => supportedType === contentType);
+    if (!type || !recordings[type]()) throw new ConvexError("Recording content does not match its declared type.");
+    return;
+  }
+  const signatures: Record<string, () => boolean> = {
+    "image/png": () => prefix(137, 80, 78, 71, 13, 10, 26, 10),
+    "image/jpeg": () => prefix(255, 216, 255),
+    "image/gif": () => ["GIF87a", "GIF89a"].includes(ascii(0, 6)),
+    "image/webp": () => ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP",
+    "application/pdf": () => ascii(0, 5) === "%PDF-",
+    "application/zip": () => prefix(80, 75, 3, 4) || prefix(80, 75, 5, 6),
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": () => prefix(80, 75, 3, 4),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": () => prefix(80, 75, 3, 4),
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": () => prefix(80, 75, 3, 4),
+  };
+  if (contentType.startsWith("text/")) {
+    try {
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(await blob.arrayBuffer());
+      if (text.includes("\0")) throw new Error("Binary text");
+    } catch {
+      throw new ConvexError("Text files must contain valid UTF-8 text.");
+    }
+  } else if (!signatures[contentType]?.()) throw new ConvexError("File content does not match its declared type.");
+}
+
+export function externalCoverUrl(value: string | null) {
+  if (value === null) return undefined;
+  if (!value || value.length > 2048 || value !== value.trim())
+    throw new ConvexError("Enter an external cover URL of at most 2048 characters.");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new ConvexError("Enter a valid external cover URL.");
+  }
+  if (!["https:", "http:"].includes(url.protocol) || !url.hostname || url.username || url.password)
+    throw new ConvexError("Use an http or https cover URL without credentials.");
+  return value;
+}
+
+export const stockPhotoId = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9_-]+$/);
+export const publicStockUrl = z
+  .url({ protocol: /^https$/ })
+  .max(8192)
+  .refine((value) => {
+    const url = new URL(value);
+    return !url.username && !url.password && !url.port;
+  });
+const imageUrl = publicStockUrl.refine((value) => new URL(value).hostname === "images.unsplash.com");
+const attributionUrl = publicStockUrl.refine((value) => new URL(value).hostname === "unsplash.com");
+export const stockPhoto = z.object({
+  id: stockPhotoId,
+  alt_description: z.string().max(4096).nullable(),
+  urls: z.object({
+    small: imageUrl,
+    regular: imageUrl.refine((value) => {
+      externalCoverUrl(value);
+      return true;
+    }),
+  }),
+  links: z.object({ html: attributionUrl }),
+  user: z.object({ name: z.string().max(255), links: z.object({ html: attributionUrl }) }),
+});
+
+export function withStockAttribution(photo: z.infer<typeof stockPhoto>) {
+  const photographer = new URL(photo.user.links.html);
+  const source = new URL(photo.links.html);
+  for (const url of [photographer, source]) {
+    url.searchParams.set("utm_source", "summon");
+    url.searchParams.set("utm_medium", "referral");
+  }
+  return stockPhoto.parse({
+    ...photo,
+    links: { html: source.href },
+    user: { ...photo.user, links: { html: photographer.href } },
+  });
+}

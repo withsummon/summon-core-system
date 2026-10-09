@@ -4,43 +4,30 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { observer } from "mobx-react";
-// plane imports
+import { useState, type ComponentProps } from "react";
 import { WORKSPACE_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import type { IWorkspace } from "@plane/types";
-// components
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
-// local imports
 import { DeleteWorkspaceModal } from "./delete-workspace-modal";
 
-type TDeleteWorkspace = {
-  workspace: IWorkspace | null;
-};
-
-export const DeleteWorkspaceSection = observer(function DeleteWorkspaceSection(props: TDeleteWorkspace) {
-  const { workspace } = props;
-  // states
-  const [deleteWorkspaceModal, setDeleteWorkspaceModal] = useState(false);
-  // translation
+export function DeleteWorkspaceSection({
+  disabled,
+  ...workspace
+}: Omit<ComponentProps<typeof DeleteWorkspaceModal>, "onClose"> & { disabled: boolean }) {
+  const [open, setOpen] = useState(false);
   const { t } = useTranslation();
-
   return (
     <>
-      <DeleteWorkspaceModal
-        data={workspace}
-        isOpen={deleteWorkspaceModal}
-        onClose={() => setDeleteWorkspaceModal(false)}
-      />
+      {open && <DeleteWorkspaceModal {...workspace} onClose={() => setOpen(false)} />}
       <SettingsBoxedControlItem
         title={t("workspace_settings.settings.general.delete_workspace")}
-        description={t("workspace_settings.settings.general.delete_workspace_description")}
+        description="Remove this workspace from active workspaces and block member access. Data is retained for administrator recovery."
         control={
           <Button
             variant="error-outline"
-            onClick={() => setDeleteWorkspaceModal(true)}
+            disabled={disabled}
+            onClick={() => setOpen(true)}
             data-ph-element={WORKSPACE_TRACKER_ELEMENTS.DELETE_WORKSPACE_BUTTON}
           >
             {t("delete")}
@@ -49,4 +36,4 @@ export const DeleteWorkspaceSection = observer(function DeleteWorkspaceSection(p
       />
     </>
   );
-});
+}

@@ -12,8 +12,8 @@ import { ChevronRightIcon } from "@plane/propel/icons";
 type EmptySpaceProps = {
   title: string;
   description: string;
-  children: any;
-  Icon?: any;
+  children: React.ReactNode;
+  Icon?: React.ElementType;
   link?: { text: string; href: string };
 };
 
@@ -50,13 +50,14 @@ function EmptySpace({ title, description, children, Icon, link }: EmptySpaceProp
 type EmptySpaceItemProps = {
   title: string;
   description?: React.ReactNode | string;
-  Icon: any;
+  Icon: React.ElementType;
   action?: () => void;
   href?: string;
+  disabled?: boolean;
 };
 
-function EmptySpaceItem({ title, description, Icon, action, href }: EmptySpaceItemProps) {
-  let spaceItem = (
+function EmptySpaceItem({ title, description, Icon, action, href, disabled }: EmptySpaceItemProps) {
+  const spaceItem = (
     <div className={`group relative flex ${description ? "items-start" : "items-center"} space-x-3 py-4`}>
       <div className="flex-shrink-0">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-primary">
@@ -73,16 +74,23 @@ function EmptySpaceItem({ title, description, Icon, action, href }: EmptySpaceIt
     </div>
   );
 
-  if (href) {
-    spaceItem = <Link href={href}>{spaceItem}</Link>;
-  }
-
   return (
-    <>
-      <li className="cursor-pointer" onClick={action} role="button">
-        {spaceItem}
-      </li>
-    </>
+    <li>
+      {href ? (
+        <Link href={href} className="block">
+          {spaceItem}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          className="block w-full cursor-pointer text-left disabled:cursor-wait disabled:opacity-50"
+          onClick={action}
+        >
+          {spaceItem}
+        </button>
+      )}
+    </li>
   );
 }
 

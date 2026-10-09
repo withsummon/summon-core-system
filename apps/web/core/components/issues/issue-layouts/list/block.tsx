@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { Dispatch, MouseEvent, SetStateAction } from "react";
+import type { ComponentProps, Dispatch, MouseEvent, ReactNode, RefObject, SetStateAction } from "react";
 import { useEffect, useRef } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
@@ -24,7 +24,6 @@ import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
 import { IssueProperties } from "@/components/issues/issue-layouts/properties";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
 // hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
@@ -51,6 +50,118 @@ interface IssueBlockProps {
   isEpic?: boolean;
 }
 
+interface IssueListBlockViewProps {
+  issueId: string;
+  href: ComponentProps<typeof ControlLink>["href"];
+  name: string;
+  ariaLabel: string;
+  onOpen: ComponentProps<typeof ControlLink>["onClick"];
+  rowRef: RefObject<HTMLDivElement>;
+  onDragStart: ComponentProps<typeof Row>["onDragStart"];
+  isPeeked: boolean;
+  isPeekedAtCurrentLevel: boolean;
+  isActive: boolean;
+  isSelected: boolean;
+  isDragging: boolean;
+  disabled: boolean;
+  pending: boolean;
+  identifier: ReactNode;
+  indent: number;
+  selection: ReactNode;
+  expansion: ReactNode;
+  properties: ReactNode;
+  actions?: (rowRef: RefObject<HTMLDivElement>) => ReactNode;
+}
+
+export function IssueListBlockView({
+  issueId,
+  href,
+  name,
+  ariaLabel,
+  onOpen,
+  rowRef,
+  onDragStart,
+  isPeeked,
+  isPeekedAtCurrentLevel,
+  isActive,
+  isSelected,
+  isDragging,
+  disabled,
+  pending,
+  identifier,
+  indent,
+  selection,
+  expansion,
+  properties,
+  actions: renderActions,
+}: IssueListBlockViewProps) {
+  const { isMobile } = usePlatformOS();
+  const actions = pending ? undefined : renderActions;
+
+  return (
+    <div className="@container/list-row block w-full">
+      <Row
+        id={`issue-${issueId}`}
+        ref={rowRef}
+        className={cn(
+          "group/list-block relative grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover @3xl/list-row:grid-cols-[minmax(12rem,1fr)_minmax(0,max-content)_auto] @3xl/list-row:items-center",
+          {
+            "border-accent-strong": isPeeked && isPeekedAtCurrentLevel,
+            "border-strong-1": isActive,
+            "last:border-b-transparent": !isPeeked && !isActive,
+            "bg-accent-primary/5 hover:bg-accent-primary/10": isSelected,
+            "bg-layer-1": isDragging,
+          }
+        )}
+        onDragStart={onDragStart}
+      >
+        <div className="flex w-full gap-2 truncate">
+          <div className="flex flex-grow items-center gap-0.5 truncate">
+            <div className="flex items-center gap-1" style={{ marginLeft: indent }}>
+              <div className="contents [&>*]:z-[2]">{selection}</div>
+              {identifier}
+              <div className="relative z-[2] grid size-4 flex-shrink-0 place-items-center">{expansion}</div>
+              {pending && (
+                <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
+              )}
+            </div>
+            <Tooltip
+              tooltipContent={name}
+              isMobile={isMobile}
+              position="top-start"
+              disabled={isDragging}
+              renderByDefault={false}
+            >
+              <ControlLink
+                href={href}
+                aria-label={ariaLabel}
+                onClick={onOpen}
+                className="min-w-0 flex-1 cursor-pointer truncate text-body-xs-medium text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
+                disabled={pending || disabled}
+              >
+                {name}
+              </ControlLink>
+            </Tooltip>
+          </div>
+        </div>
+        <div className="relative z-[2] col-span-2 flex min-w-0 items-center gap-2 @3xl/list-row:col-span-1 @3xl/list-row:col-start-2 @3xl/list-row:row-start-1">
+          <div className="relative flex flex-wrap items-center gap-2 whitespace-nowrap">
+            {pending ? <Spinner className="size-4" /> : properties}
+          </div>
+        </div>
+        {actions && (
+          <fieldset
+            aria-label="Work item actions"
+            className="relative z-[2] col-start-2 row-start-1 rounded-sm border border-strong @3xl/list-row:col-start-3 @3xl/list-row:border-0"
+          >
+            {actions(rowRef)}
+          </fieldset>
+        )}
+      </Row>
+    </div>
+  );
+}
+
 export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   const {
     issuesMap,
@@ -73,11 +184,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   // ref
   const issueRef = useRef<HTMLDivElement | null>(null);
   // router
-  const { workspaceSlug: routerWorkspaceSlug, projectId: routerProjectId } = useParams();
-  const workspaceSlug = routerWorkspaceSlug?.toString();
-  const projectId = routerProjectId?.toString();
+  const { workspaceSlug, projectId } = useParams();
   // hooks
-  const { sidebarCollapsed: isSidebarCollapsed } = useAppTheme();
   const { getProjectIdentifierById, currentProjectNextSequenceId } = useProject();
   const {
     getIsIssuePeeked,
@@ -88,9 +196,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
 
   const handleIssuePeekOverview = (issue: TIssue) =>
     workspaceSlug &&
-    issue &&
     issue.project_id &&
-    issue.id &&
     !getIsIssuePeeked(issue.id) &&
     setPeekIssue({
       workspaceSlug,
@@ -102,11 +208,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
 
   // derived values
   const issue = issuesMap[issueId];
-  const subIssuesCount = issue?.sub_issues_count ?? 0;
   const canEditIssueProperties = canEditProperties(issue?.project_id ?? undefined);
   const isDraggingAllowed = canDrag && canEditIssueProperties;
-
-  const { isMobile } = usePlatformOS();
 
   useEffect(() => {
     const element = issueRef.current;
@@ -134,9 +237,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   const isIssueSelected = selectionHelpers.getIsEntitySelected(issue.id);
   const isIssueActive = selectionHelpers.getIsEntityActive(issue.id);
   const isSubIssue = nestingLevel !== 0;
-  const canSelectIssues = canEditIssueProperties && !selectionHelpers.isSelectionDisabled;
-
-  const marginLeft = `${spacingLeft}px`;
 
   const handleToggleExpand = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -145,8 +245,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
       handleIssuePeekOverview(issue);
     } else {
       setExpanded((prevState) => {
-        if (!prevState && workspaceSlug && issue && issue.project_id)
-          subIssuesStore.fetchSubIssues(workspaceSlug.toString(), issue.project_id, issue.id);
+        if (!prevState && workspaceSlug && issue.project_id)
+          subIssuesStore.fetchSubIssues(workspaceSlug, issue.project_id, issue.id);
         return !prevState;
       });
     }
@@ -155,184 +255,113 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   // Calculate width for: projectIdentifier + "-" + dynamic sequence number digits
   // Use next_work_item_sequence from backend (static value from project endpoint)
   const maxSequenceId = currentProjectNextSequenceId ?? 1;
-  const keyMinWidth = displayProperties?.key
-    ? calculateIdentifierWidth(projectIdentifier?.length ?? 0, maxSequenceId)
-    : 0;
+  const keyMinWidth = calculateIdentifierWidth(projectIdentifier?.length ?? 0, maxSequenceId);
 
   const workItemLink = generateWorkItemLink({
     workspaceSlug,
-    projectId: issue?.project_id,
+    projectId: issue.project_id,
     issueId,
     projectIdentifier,
-    sequenceId: issue?.sequence_id,
+    sequenceId: issue.sequence_id,
     isEpic,
-    isArchived: !!issue?.archived_at,
+    isArchived: !!issue.archived_at,
   });
+  const isIssuePeeked = getIsIssuePeeked(issue.id);
+
   return (
-    <ControlLink
-      id={`issue-${issue.id}`}
+    <IssueListBlockView
+      issueId={issue.id}
       href={workItemLink}
-      aria-label={`${projectIdentifier}-${issue.sequence_id}: ${issue.name}`}
-      onClick={() => handleIssuePeekOverview(issue)}
-      className="w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong"
-      disabled={!!issue?.tempId || issue?.is_draft}
-    >
-      <Row
-        ref={issueRef}
-        className={cn(
-          "group/list-block relative flex min-h-11 flex-col gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover",
-          {
-            "border-accent-strong": getIsIssuePeeked(issue.id) && peekIssue?.nestingLevel === nestingLevel,
-            "border-strong-1": isIssueActive,
-            "last:border-b-transparent": !getIsIssuePeeked(issue.id) && !isIssueActive,
-            "bg-accent-primary/5 hover:bg-accent-primary/10": isIssueSelected,
-            "bg-layer-1": isCurrentBlockDragging,
-            "md:flex-row md:items-center": isSidebarCollapsed,
-            "lg:flex-row lg:items-center": !isSidebarCollapsed,
-          }
-        )}
-        onDragStart={() => {
-          if (!isDraggingAllowed) {
-            setToast({
-              type: TOAST_TYPE.WARNING,
-              title: "Cannot move work item",
-              message: !canEditIssueProperties
-                ? "You are not allowed to move this work item"
-                : "Drag and drop is disabled for the current grouping",
-            });
-          }
-        }}
-      >
-        <div className="flex w-full gap-2 truncate">
-          <div className="flex flex-grow items-center gap-0.5 truncate">
-            <div className="flex items-center gap-1" style={isSubIssue ? { marginLeft } : {}}>
-              {/* select checkbox */}
-              {projectId && canSelectIssues && !isEpic && (
-                <Tooltip
-                  tooltipContent={
-                    <>
-                      Only work items within the current
-                      <br />
-                      project can be selected.
-                    </>
-                  }
-                  disabled={issue.project_id === projectId}
-                >
-                  <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
-                    <MultipleSelectEntityAction
-                      className={cn(
-                        "pointer-events-none opacity-0 transition-opacity group-focus-within/list-block:pointer-events-auto group-focus-within/list-block:opacity-100 group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
-                        {
-                          "pointer-events-auto opacity-100": isIssueSelected,
-                        }
-                      )}
-                      groupId={groupId}
-                      id={issue.id}
-                      selectionHelpers={selectionHelpers}
-                      disabled={issue.project_id !== projectId}
-                    />
-                  </div>
-                </Tooltip>
-              )}
-              {displayProperties && (displayProperties.key || displayProperties.issue_type) && (
-                <div className="flex-shrink-0" style={{ minWidth: `${keyMinWidth}px` }}>
-                  {issue.project_id && (
-                    <IssueIdentifier
-                      issueId={issueId}
-                      projectId={issue.project_id}
-                      size="xs"
-                      variant="tertiary"
-                      displayProperties={displayProperties}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* sub-issues chevron */}
-              <div className="grid size-4 flex-shrink-0 place-items-center">
-                {subIssuesCount > 0 && !isEpic && (
-                  <button
-                    type="button"
-                    className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
-                    aria-label={isExpanded ? "Collapse sub-work items" : "Expand sub-work items"}
-                    aria-expanded={isExpanded}
-                    onClick={handleToggleExpand}
-                  >
-                    <ChevronRightIcon
-                      className={cn("size-4", {
-                        "rotate-90": isExpanded,
-                      })}
-                      strokeWidth={2.5}
-                    />
-                  </button>
+      name={issue.name}
+      ariaLabel={`${projectIdentifier}-${issue.sequence_id}: ${issue.name}`}
+      onOpen={() => handleIssuePeekOverview(issue)}
+      rowRef={issueRef}
+      onDragStart={() => {
+        if (!isDraggingAllowed) {
+          setToast({
+            type: TOAST_TYPE.WARNING,
+            title: "Cannot move work item",
+            message: !canEditIssueProperties
+              ? "You are not allowed to move this work item"
+              : "Drag and drop is disabled for the current grouping",
+          });
+        }
+      }}
+      isPeeked={isIssuePeeked}
+      isPeekedAtCurrentLevel={peekIssue?.nestingLevel === nestingLevel}
+      isActive={isIssueActive}
+      isSelected={isIssueSelected}
+      isDragging={isCurrentBlockDragging}
+      disabled={issue.is_draft}
+      pending={issue.tempId !== undefined}
+      identifier={
+        issue.project_id && (
+          <IssueIdentifier
+            issueId={issueId}
+            projectId={issue.project_id}
+            minWidth={keyMinWidth}
+            size="xs"
+            variant="tertiary"
+            displayProperties={displayProperties}
+          />
+        )
+      }
+      indent={isSubIssue ? spacingLeft : 0}
+      selection={
+        projectId &&
+        canEditIssueProperties &&
+        !isEpic && (
+          <Tooltip
+            tooltipContent={
+              <>
+                Only work items within the current
+                <br />
+                project can be selected.
+              </>
+            }
+            disabled={issue.project_id === projectId}
+          >
+            <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
+              <MultipleSelectEntityAction
+                className={cn(
+                  "pointer-events-none opacity-0 transition-opacity group-focus-within/list-block:pointer-events-auto group-focus-within/list-block:opacity-100 group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
+                  { "pointer-events-auto opacity-100": isIssueSelected }
                 )}
-              </div>
-
-              {issue?.tempId !== undefined && (
-                <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
-              )}
-            </div>
-
-            <Tooltip
-              tooltipContent={issue.name}
-              isMobile={isMobile}
-              position="top-start"
-              disabled={isCurrentBlockDragging}
-              renderByDefault={false}
-            >
-              <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
-            </Tooltip>
-          </div>
-          {!issue?.tempId && (
-            <div
-              className={cn("block rounded-sm border border-strong", {
-                "md:hidden": isSidebarCollapsed,
-                "lg:hidden": !isSidebarCollapsed,
-              })}
-            >
-              {quickActions({
-                issue,
-                parentRef: issueRef,
-              })}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          {!issue?.tempId ? (
-            <>
-              <IssueProperties
-                className={`relative flex flex-wrap ${isSidebarCollapsed ? "md:flex-shrink-0 md:flex-grow" : "lg:flex-shrink-0 lg:flex-grow"} items-center gap-2 whitespace-nowrap`}
-                issue={issue}
-                isReadOnly={!canEditIssueProperties}
-                updateIssue={updateIssue}
-                displayProperties={displayProperties}
-                activeLayout="List"
-                isEpic={isEpic}
+                groupId={groupId}
+                id={issue.id}
+                selectionHelpers={selectionHelpers}
+                disabled={issue.project_id !== projectId}
               />
-              {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-              <div
-                className={cn("hidden", {
-                  "md:flex": isSidebarCollapsed,
-                  "lg:flex": !isSidebarCollapsed,
-                })}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                {quickActions({
-                  issue,
-                  parentRef: issueRef,
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="h-4 w-4">
-              <Spinner className="h-4 w-4" />
             </div>
-          )}
-        </div>
-      </Row>
-    </ControlLink>
+          </Tooltip>
+        )
+      }
+      expansion={
+        issue.sub_issues_count > 0 &&
+        !isEpic && (
+          <button
+            type="button"
+            className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
+            aria-label={isExpanded ? "Collapse sub-work items" : "Expand sub-work items"}
+            aria-expanded={isExpanded}
+            onClick={handleToggleExpand}
+          >
+            <ChevronRightIcon className={cn("size-4", { "rotate-90": isExpanded })} strokeWidth={2.5} />
+          </button>
+        )
+      }
+      properties={
+        <IssueProperties
+          className="contents"
+          issue={issue}
+          isReadOnly={!canEditIssueProperties}
+          updateIssue={updateIssue}
+          displayProperties={displayProperties}
+          activeLayout="List"
+          isEpic={isEpic}
+        />
+      }
+      actions={(parentRef) => quickActions({ issue, parentRef })}
+    />
   );
 });

@@ -13,19 +13,16 @@ import type { TPageFiltersSortBy, TPageFiltersSortKey } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 
 type Props = {
-  onChange: (value: { key?: TPageFiltersSortKey; order?: TPageFiltersSortBy }) => void;
+  onChange: (value: { key?: (typeof PAGE_SORTING_KEY_OPTIONS)[number]["key"]; order?: TPageFiltersSortBy }) => void;
   sortBy: TPageFiltersSortBy;
   sortKey: TPageFiltersSortKey;
 };
 
-const PAGE_SORTING_KEY_OPTIONS: {
-  key: TPageFiltersSortKey;
-  label: string;
-}[] = [
+const PAGE_SORTING_KEY_OPTIONS = [
   { key: "name", label: "Name" },
   { key: "created_at", label: "Date created" },
   { key: "updated_at", label: "Date modified" },
-];
+] as const;
 
 export function PageOrderByDropdown(props: Props) {
   const { onChange, sortBy, sortKey } = props;

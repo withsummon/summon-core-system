@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import { EAuthModes, EAuthSteps } from "@plane/constants";
+import { isValidNextPath } from "@plane/utils";
 import type { IEmailCheckData } from "@plane/types";
 // helpers
 import type { TAuthErrorInfo } from "@/helpers/authentication.helper";
@@ -41,7 +42,8 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   const router = useAppRouter();
   // query params
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next_path");
+  const requestedPath = searchParams.get("next_path");
+  const nextPath = requestedPath && isValidNextPath(requestedPath) ? requestedPath.trim() : undefined;
   // states
   const [isExistingEmail, setIsExistingEmail] = useState(false);
   // hooks

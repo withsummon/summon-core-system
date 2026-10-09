@@ -176,6 +176,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                 {["side-peek", "modal"].includes(peekMode) ? (
                   <div className="relative flex flex-col gap-3 space-y-3 px-8 py-5">
                     <PeekOverviewIssueDetails
+                      key={issueId}
                       editorRef={editorRef}
                       workspaceSlug={workspaceSlug}
                       projectId={projectId}
@@ -183,8 +184,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                       issueOperations={issueOperations}
                       disabled={disabled}
                       isArchived={is_archived}
-                      isSubmitting={isSubmitting}
-                      setIsSubmitting={(value) => setIsSubmitting(value)}
+                      setIsSubmitting={setIsSubmitting}
                     />
 
                     <div className="py-2">
@@ -217,6 +217,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                     <div className="relative h-full w-full space-y-6 overflow-auto p-4 py-5">
                       <div className="space-y-3">
                         <PeekOverviewIssueDetails
+                          key={issueId}
                           editorRef={editorRef}
                           workspaceSlug={workspaceSlug}
                           projectId={projectId}
@@ -224,8 +225,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                           issueOperations={issueOperations}
                           disabled={disabled}
                           isArchived={is_archived}
-                          isSubmitting={isSubmitting}
-                          setIsSubmitting={(value) => setIsSubmitting(value)}
+                          setIsSubmitting={setIsSubmitting}
                         />
 
                         <div className="py-2">

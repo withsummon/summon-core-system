@@ -6,7 +6,16 @@
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { debounce } from "lodash-es";
 // plane utils
@@ -18,12 +27,12 @@ import { DROPDOWN_NAVIGATION_KEYS, getNextValidIndex } from "@/helpers/tippy";
 import type { TMentionHandler, TMentionSection, TMentionSuggestion } from "@/types";
 
 export type MentionsListDropdownProps = SuggestionProps<TMentionSection, TMentionSuggestion> &
-  Pick<TMentionHandler, "searchCallback"> & {
+  Pick<TMentionHandler, "searchCallback" | "searchPageCallback"> & {
     onClose: () => void;
   };
 
 export const MentionsListDropdown = forwardRef(function MentionsListDropdown(props: MentionsListDropdownProps, ref) {
-  const { command, query, searchCallback, onClose } = props;
+  const { command, query, searchCallback, searchPageCallback, onClose } = props;
   // states
   const [sections, setSections] = useState<TMentionSection[]>([]);
   const [selectedIndex, setSelectedIndex] = useState({
@@ -31,6 +40,9 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
     item: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const request = useRef(0);
   // refs
   const dropdownContainer = useRef<HTMLDivElement>(null);
 
@@ -45,8 +57,8 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
             id: transactionId,
           });
         }
-      } catch (error) {
-        console.error("Error selecting mention item:", error);
+      } catch (failure) {
+        console.error("Error selecting mention item:", failure);
       }
     },
     [command, sections]
@@ -82,38 +94,42 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
     });
   }, [sections]);
 
-  // debounced search callback
-  const debouncedSearchCallback = useCallback(
-    debounce(async (searchQuery: string) => {
+  const load = useCallback(
+    async (searchQuery: string, continuation: string | null, version: number) => {
       try {
-        const sectionsResponse = await searchCallback?.(searchQuery);
-        if (sectionsResponse) {
-          setSections(sectionsResponse);
-        }
-      } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
+        const result = searchPageCallback
+          ? await searchPageCallback(searchQuery, continuation)
+          : { sections: (await searchCallback?.(searchQuery)) ?? [], cursor: null };
+        if (version !== request.current) return;
+        setSections((previous) => (continuation ? [...previous, ...result.sections] : result.sections));
+        setCursor(result.cursor);
+      } catch (failure) {
+        if (version === request.current) setError(failure instanceof Error ? failure.message : "Search failed.");
       } finally {
-        setIsLoading(false);
+        if (version === request.current) setIsLoading(false);
       }
-    }, 300),
-    [searchCallback]
-  );
-
-  // trigger debounced search when query changes
-  useEffect(() => {
-    if (query !== undefined && query !== null) {
-      setIsLoading(true);
-      void debouncedSearchCallback(query);
-    }
-  }, [query, debouncedSearchCallback]);
-
-  // cancel pending debounced calls on unmount
-  useEffect(
-    () => () => {
-      debouncedSearchCallback.cancel();
     },
-    [debouncedSearchCallback]
+    [searchCallback, searchPageCallback]
   );
+  const debouncedSearchCallback = useMemo(
+    () =>
+      debounce((searchQuery: string, version: number) => {
+        void load(searchQuery, null, version);
+      }, 300),
+    [load]
+  );
+  useEffect(() => {
+    const version = ++request.current;
+    setIsLoading(true);
+    setSections([]);
+    setCursor(null);
+    setError("");
+    debouncedSearchCallback(query, version);
+    return () => {
+      request.current = version + 1;
+      debouncedSearchCallback.cancel();
+    };
+  }, [query, debouncedSearchCallback]);
 
   // scroll to the dropdown item when navigating via keyboard
   useLayoutEffect(() => {
@@ -157,7 +173,7 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
           e.stopPropagation();
         }}
       >
-        {isLoading ? (
+        {isLoading && sections.length === 0 ? (
           <div className="text-center text-13 text-placeholder">Loading...</div>
         ) : sections.length ? (
           sections.map((section, sectionIndex) => (
@@ -201,6 +217,25 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
           ))
         ) : (
           <div className="text-center text-13 text-placeholder">No results</div>
+        )}
+        {error && (
+          <p role="alert" className="text-12 text-danger-primary">
+            {error}
+          </p>
+        )}
+        {cursor && (
+          <button
+            type="button"
+            disabled={isLoading}
+            className="w-full rounded-sm p-2 text-12 text-accent-primary"
+            onClick={() => {
+              setIsLoading(true);
+              setError("");
+              void load(query, cursor, request.current);
+            }}
+          >
+            Load more members
+          </button>
         )}
       </div>
     </>

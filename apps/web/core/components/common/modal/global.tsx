@@ -6,6 +6,8 @@
 
 import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
+import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { SessionBoundary } from "@/components/convex-core/identity/session-boundary";
 
 const ProfileSettingsModal = lazy(() =>
   import("@/components/settings/profile/modal").then((module) => ({
@@ -13,20 +15,25 @@ const ProfileSettingsModal = lazy(() =>
   }))
 );
 
-type TGlobalModalsProps = {
-  workspaceSlug: string;
-};
-
 /**
  * GlobalModals component manages all workspace-level modals across Plane applications.
  *
  * This includes:
  * - Profile settings modal
  */
-export const GlobalModals = observer(function GlobalModals(_props: TGlobalModalsProps) {
+export const GlobalModals = observer(function GlobalModals() {
+  const { profileSettingsModal, toggleProfileSettingsModal } = useCommandPalette();
+  if (!profileSettingsModal.isOpen) return null;
   return (
     <Suspense fallback={null}>
-      <ProfileSettingsModal />
+      <SessionBoundary>
+        <ProfileSettingsModal
+          isOpen
+          activeTab={profileSettingsModal.activeTab ?? "general"}
+          onTabChange={(activeTab) => toggleProfileSettingsModal({ activeTab })}
+          onClose={() => toggleProfileSettingsModal({ isOpen: false, activeTab: null })}
+        />
+      </SessionBoundary>
     </Suspense>
   );
 });

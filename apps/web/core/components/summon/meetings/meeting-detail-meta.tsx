@@ -4,12 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import type { ISummonMeeting } from "@plane/types";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@summon/convex/api";
 import { Avatar } from "@plane/ui";
 
 type Props = {
-  data: ISummonMeeting;
-  organizer?: string;
+  data: FunctionReturnType<typeof api.meetings.index.get>;
+  participants: FunctionReturnType<typeof api.meetings.index.participants> | undefined;
+  organizer: string | null;
   createdAt: string;
 };
 
@@ -24,7 +26,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
+export function MeetingDetailMeta({ data, participants, organizer, createdAt }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       <Panel title="Meeting Details">
@@ -33,26 +35,26 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
           <Detail label="Organizer" value={organizer || "Not available"} />
           <Detail label="Created At" value={createdAt} />
           <Detail label="Time Zone" value={Intl.DateTimeFormat().resolvedOptions().timeZone} />
-          <Detail label="Participants" value={`${data.participants.length} people`} />
+          <Detail label="Participants" value={`${participants?.length ?? "…"} people`} />
           <Detail label="Location" value={data.location || "Not supplied"} />
-          <Detail label="Recording" value={data.recording_asset_detail ? "Yes" : "No"} />
+          <Detail label="Recording" value={data.recordingAssetId ? "Yes" : "No"} />
           <Detail label="Visibility" value="Not supplied" />
         </dl>
       </Panel>
-      <Panel title={`Participants (${data.participants.length})`}>
+      <Panel title={`Participants (${participants?.length ?? "…"})`}>
         <div className="space-y-3">
-          {data.participants.slice(0, 5).map((participant) => (
+          {participants?.slice(0, 5).map((participant) => (
             <div key={participant.id} className="flex items-center gap-2.5">
-              <Avatar size={26} name={participant.member.display_name} />
+              <Avatar size={26} name={participant.name ?? participant.email ?? "Workspace member"} />
               <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-primary">
-                {participant.member.display_name}
+                {participant.name ?? participant.email ?? "Workspace member"}
               </p>
               <span className="text-[10px] text-tertiary capitalize">{participant.response}</span>
             </div>
           ))}
-          {!data.participants.length ? <p className="text-xs text-tertiary">No participants added.</p> : null}
-          {data.participants.length > 5 ? (
-            <p className="text-[11px] font-medium text-secondary">+{data.participants.length - 5} more participants</p>
+          {participants?.length === 0 ? <p className="text-xs text-tertiary">No participants added.</p> : null}
+          {participants && participants.length > 5 ? (
+            <p className="text-[11px] font-medium text-secondary">+{participants.length - 5} more participants</p>
           ) : null}
         </div>
       </Panel>

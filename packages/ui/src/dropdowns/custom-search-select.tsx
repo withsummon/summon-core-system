@@ -37,6 +37,7 @@ export function CustomSearchSelect({
   tabIndex,
   noResultsMessage = "No matches found",
   defaultOpen = false,
+  ariaLabel,
 }: ICustomSearchSelectProps) {
   const [query, setQuery] = useState("");
   const { side, align } = convertPlacementToSideAndAlign(placement);
@@ -61,6 +62,7 @@ export function CustomSearchSelect({
     >
       <div className={cn("relative flex-shrink-0 text-left", className)}>
         <Combobox.Trigger
+          aria-label={ariaLabel}
           render={render}
           tabIndex={tabIndex}
           className={cn(

@@ -20,7 +20,7 @@ type TProps = {
   workspace: IWorkspace;
   activeWorkspace: IWorkspace | null;
   handleItemClick: () => void;
-  handleWorkspaceNavigation: (workspace: IWorkspace) => void;
+  handleWorkspaceNavigation: (workspace: IWorkspace) => Promise<boolean>;
   handleClose: () => void;
 };
 const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps) {
@@ -34,9 +34,10 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
     <div className="w-full">
       <Menu.Item
         render={<Link href={`/${workspace.slug}`} />}
-        onClick={() => {
-          handleWorkspaceNavigation(workspace);
-          handleItemClick();
+        onClick={async (event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          if (await handleWorkspaceNavigation(workspace)) handleItemClick();
         }}
         className={cn("block px-4 py-2 outline-none data-[highlighted]:bg-layer-transparent-hover", {
           "bg-layer-transparent-active": workspace.id === activeWorkspace?.id,

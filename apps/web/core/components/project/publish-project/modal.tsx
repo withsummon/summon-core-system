@@ -13,10 +13,11 @@ import { Controller, useForm } from "react-hook-form";
 import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { GlobeIcon, NewTabIcon, CheckIcon } from "@plane/propel/icons";
+import { MenuPrimitive } from "@plane/propel/menu";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectPublishLayouts, TProjectPublishSettings } from "@plane/types";
 // ui
-import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@plane/ui";
+import { Loader, ToggleSwitch, CustomMenu, ModalCore, EModalWidth } from "@plane/ui";
 // helpers
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
@@ -125,15 +126,11 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
       .finally(() => setIsUnPublishing(false));
   };
 
-  const selectedLayouts = Object.entries(watch("view_props") ?? {})
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(([key, value]) => value)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .map(([key, value]) => key)
-    .filter((l) => VIEW_OPTIONS.find((o) => o.key === l));
+  const views = watch("view_props");
+  const selectedViews = VIEW_OPTIONS.filter((option) => views?.[option.key]);
 
   const handleFormSubmit = async (formData: Partial<TProjectPublishSettings>) => {
-    if (!selectedLayouts || selectedLayouts.length === 0) {
+    if (selectedViews.length === 0) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",
@@ -248,32 +245,28 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   control={control}
                   name="view_props"
                   render={({ field: { onChange, value } }) => (
-                    <CustomSelect
-                      value={value}
-                      label={VIEW_OPTIONS.filter((o) => selectedLayouts.includes(o.key))
-                        .map((o) => o.label)
-                        .join(", ")}
-                      onChange={(val: TProjectPublishLayouts) => {
-                        if (selectedLayouts.length === 1 && selectedLayouts[0] === val) return;
-                        onChange({
-                          ...value,
-                          [val]: !value?.[val],
-                        });
-                      }}
-                      buttonClassName="border-none"
+                    <CustomMenu
+                      label={selectedViews.map((option) => option.label).join(", ")}
+                      buttonClassName="border-none px-2"
+                      optionsClassName="p-2 text-11"
                       placement="bottom-end"
                     >
                       {VIEW_OPTIONS.map((option) => (
-                        <CustomSelect.Option
+                        <MenuPrimitive.CheckboxItem
                           key={option.key}
-                          value={option.key}
-                          className="flex items-center justify-between gap-2"
+                          checked={!!value?.[option.key]}
+                          onCheckedChange={(checked) => {
+                            if (selectedViews.length === 1 && selectedViews[0].key === option.key) return;
+                            onChange({ ...value, [option.key]: checked });
+                          }}
+                          closeOnClick
+                          className="flex cursor-pointer items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none select-none data-[highlighted]:bg-layer-transparent-hover"
                         >
                           {option.label}
-                          {selectedLayouts.includes(option.key) && <CheckIcon className="size-3.5 flex-shrink-0" />}
-                        </CustomSelect.Option>
+                          {value?.[option.key] && <CheckIcon className="size-3.5 flex-shrink-0" />}
+                        </MenuPrimitive.CheckboxItem>
                       ))}
-                    </CustomSelect>
+                    </CustomMenu>
                   )}
                 />
               </div>

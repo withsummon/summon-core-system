@@ -4,75 +4,63 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { isEmpty } from "lodash-es";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
-// plane internal packages
-import { API_BASE_URL } from "@plane/constants";
+import { Controller, useForm } from "react-hook-form";
+import { useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { AdminFormNavigationGuard, useAdminDraftOwner } from "@/providers/user.provider";
+import { ToggleSwitch } from "@plane/ui";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IFormattedInstanceConfiguration, TInstanceGiteaAuthenticationConfigurationKeys } from "@plane/types";
-// components
 import { CodeBlock } from "@/components/common/code-block";
 import { ConfirmDiscardModal } from "@/components/common/confirm-discard-modal";
-import type { TControllerInputFormField } from "@/components/common/controller-input";
-import { ControllerInput } from "@/components/common/controller-input";
-import type { TControllerSwitchFormField } from "@/components/common/controller-switch";
-import { ControllerSwitch } from "@/components/common/controller-switch";
-import type { TCopyField } from "@/components/common/copy-field";
-import { CopyField } from "@/components/common/copy-field";
-// hooks
-import { useInstance } from "@/hooks/store";
+import { ControllerInput, type TControllerInputFormField } from "@/components/common/controller-input";
+import { PageWrapper } from "@/components/common/page-wrapper";
+import { CopyField, type TCopyField } from "@/components/common/copy-field";
 
-type Props = {
-  config: IFormattedInstanceConfiguration;
-};
-
-type GiteaConfigFormValues = Record<TInstanceGiteaAuthenticationConfigurationKeys, string>;
-
-const GITEA_FORM_SWITCH_FIELD: TControllerSwitchFormField<GiteaConfigFormValues> = {
-  name: "ENABLE_GITEA_SYNC",
-  label: "Gitea",
-};
-
-export function InstanceGiteaConfigForm(props: Props) {
-  const { config } = props;
-  // states
+export function InstanceGiteaConfigForm({
+  initialValues,
+  configuration,
+  pending,
+  header,
+}: {
+  initialValues: FunctionArgs<typeof api.identity.instance.oauth.save>;
+  configuration: FunctionReturnType<typeof api.identity.instance.oauth.get> | undefined;
+  pending: boolean;
+  header: (pending: boolean) => React.ReactNode;
+}) {
   const [isDiscardChangesModalOpen, setIsDiscardChangesModalOpen] = useState(false);
-  // store hooks
-  const { updateInstanceConfigurations } = useInstance();
-  // form data
+  const draft = useAdminDraftOwner();
+  const save = useMutation(api.identity.instance.oauth.save);
   const {
     handleSubmit,
     control,
     reset,
+    resetField,
     formState: { errors, isDirty, isSubmitting },
-  } = useForm<GiteaConfigFormValues>({
-    defaultValues: {
-      GITEA_HOST: config["GITEA_HOST"] || "https://gitea.com",
-      GITEA_CLIENT_ID: config["GITEA_CLIENT_ID"],
-      GITEA_CLIENT_SECRET: config["GITEA_CLIENT_SECRET"],
-      ENABLE_GITEA_SYNC: config["ENABLE_GITEA_SYNC"] || "0",
-    },
-  });
-
-  const originURL = !isEmpty(API_BASE_URL) ? API_BASE_URL : typeof window !== "undefined" ? window.location.origin : "";
-
+  } = useForm<FunctionArgs<typeof api.identity.instance.oauth.save>>({ defaultValues: initialValues });
+  const busy = isSubmitting || pending;
+  const stored = configuration?.configuration;
+  const adoptionRequired = configuration?.adoptionRequired;
+  useEffect(() => {
+    if (!draft.canEdit) resetField("configuration.clientSecret", { defaultValue: "" });
+  }, [draft.canEdit, resetField]);
   const GITEA_FORM_FIELDS: TControllerInputFormField[] = [
     {
-      key: "GITEA_HOST",
+      key: "configuration.host",
       type: "text",
       label: "Gitea Host",
       description: (
         <>Use the URL of your Gitea instance. For the official Gitea instance, use &quot;https://gitea.com&quot;.</>
       ),
       placeholder: "https://gitea.com",
-      error: Boolean(errors.GITEA_HOST),
+      error: Boolean(errors.configuration?.host),
       required: true,
     },
     {
-      key: "GITEA_CLIENT_ID",
+      key: "configuration.clientId",
       type: "text",
       label: "Client ID",
       description: (
@@ -89,11 +77,11 @@ export function InstanceGiteaConfigForm(props: Props) {
         </>
       ),
       placeholder: "70a44354520df8bd9bcd",
-      error: Boolean(errors.GITEA_CLIENT_ID),
+      error: Boolean(errors.configuration?.clientId),
       required: true,
     },
     {
-      key: "GITEA_CLIENT_SECRET",
+      key: "configuration.clientSecret",
       type: "password",
       label: "Client secret",
       description: (
@@ -110,8 +98,8 @@ export function InstanceGiteaConfigForm(props: Props) {
         </>
       ),
       placeholder: "9b0050f94ec1b744e32ce79ea4ffacd40d4119cb",
-      error: Boolean(errors.GITEA_CLIENT_SECRET),
-      required: true,
+      error: Boolean(errors.configuration?.clientSecret),
+      required: !stored?.credentialPresent,
     },
   ];
 
@@ -119,13 +107,13 @@ export function InstanceGiteaConfigForm(props: Props) {
     {
       key: "Callback_URI",
       label: "Callback URI",
-      url: `${originURL}/auth/gitea/callback/`,
+      url: configuration?.callbackUrl ?? "",
       description: (
         <>
           We will auto-generate this. Paste this into your <CodeBlock darkerShade>Authorized Callback URI</CodeBlock>{" "}
           field{" "}
           <a
-            href={`${control._formValues.GITEA_HOST || "https://gitea.com"}/user/settings/applications`}
+            href={`${stored?.host ?? "https://gitea.com"}/user/settings/applications`}
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
@@ -138,42 +126,79 @@ export function InstanceGiteaConfigForm(props: Props) {
     },
   ];
 
-  const onSubmit = async (formData: GiteaConfigFormValues) => {
-    const payload: Partial<GiteaConfigFormValues> = { ...formData };
-
+  const onSubmit = async (values: FunctionArgs<typeof api.identity.instance.oauth.save>) => {
+    if (!draft.canEdit || pending || adoptionRequired) return;
     try {
-      const response = await updateInstanceConfigurations(payload);
+      const revision = await save({
+        ...values,
+        configuration: values.configuration
+          ? { ...values.configuration, organization: values.configuration.organization || undefined }
+          : null,
+      });
+      reset({
+        ...values,
+        expectedRevision: revision,
+        configuration: values.configuration ? { ...values.configuration, clientSecret: "" } : null,
+      });
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Done!",
-        message: "Your Gitea authentication is configured. You should test it now.",
+        message: "Provider configuration saved. Test the sign-in flow before enabling it for members.",
       });
-      reset({
-        GITEA_HOST: response.find((item) => item.key === "GITEA_HOST")?.value,
-        GITEA_CLIENT_ID: response.find((item) => item.key === "GITEA_CLIENT_ID")?.value,
-        GITEA_CLIENT_SECRET: response.find((item) => item.key === "GITEA_CLIENT_SECRET")?.value,
-        ENABLE_GITEA_SYNC: response.find((item) => item.key === "ENABLE_GITEA_SYNC")?.value,
+    } catch (failure) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Configuration could not be saved",
+        message: failure instanceof Error ? failure.message : "Try again.",
       });
-    } catch (err) {
-      console.error(err);
     }
   };
 
   const handleGoBack = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-    if (isDirty) {
+    if (isDirty || busy) {
       e.preventDefault();
       setIsDiscardChangesModalOpen(true);
     }
   };
 
   return (
-    <>
+    <PageWrapper customHeader={header(isSubmitting)}>
+      <AdminFormNavigationGuard pending={busy} dirty={isDirty} />
+      {adoptionRequired && <p role="alert">OAuth configuration requires explicit operator adoption.</p>}
+      {(isDirty || draft.changedSubject) && (
+        <Button
+          disabled={busy || !configuration}
+          onClick={() => {
+            if (!configuration) return;
+            reset({
+              provider: initialValues.provider,
+              expectedRevision: configuration.revision,
+              configuration: {
+                clientId: configuration.configuration?.clientId ?? "",
+                clientSecret: "",
+                sync: configuration.configuration?.sync ?? false,
+                host: configuration.configuration?.host ?? undefined,
+                organization: configuration.configuration?.organization ?? undefined,
+              },
+            });
+            draft.discard();
+          }}
+        >
+          Discard draft and review current settings
+        </Button>
+      )}
       <ConfirmDiscardModal
         isOpen={isDiscardChangesModalOpen}
+        pending={busy}
+        dirty={isDirty}
         onDiscardHref="/authentication"
         handleClose={() => setIsDiscardChangesModalOpen(false)}
       />
-      <div className="flex flex-col gap-8">
+      <fieldset
+        hidden={draft.changedSubject}
+        disabled={busy || !draft.canEdit || adoptionRequired}
+        className="flex flex-col gap-8"
+      >
         <div className="grid w-full grid-cols-2 gap-x-12 gap-y-8">
           <div className="col-span-2 flex flex-col gap-y-4 pt-1 md:col-span-1">
             <div className="pt-2.5 text-18 font-medium">Gitea-provided details for Plane</div>
@@ -190,7 +215,16 @@ export function InstanceGiteaConfigForm(props: Props) {
                 required={field.required}
               />
             ))}
-            <ControllerSwitch control={control} field={GITEA_FORM_SWITCH_FIELD} />
+            <div className="flex items-center justify-between gap-1">
+              <h4 className="text-sm text-custom-text-300">Refresh user attributes from Gitea during sign in</h4>
+              <Controller
+                control={control}
+                name="configuration.sync"
+                render={({ field }) => (
+                  <ToggleSwitch value={field.value ?? false} onChange={field.onChange} size="sm" />
+                )}
+              />
+            </div>
             <div className="flex flex-col gap-1 pt-4">
               <div className="flex items-center gap-4">
                 <Button
@@ -217,7 +251,7 @@ export function InstanceGiteaConfigForm(props: Props) {
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </fieldset>
+    </PageWrapper>
   );
 }

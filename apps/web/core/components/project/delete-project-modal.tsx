@@ -4,17 +4,20 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 // Plane imports
 import { Button } from "@plane/propel/button";
+import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IProject } from "@plane/types";
 import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
+import { mutationMessage } from "@/components/convex-core/commercial/forms";
 
 type DeleteProjectModal = {
   isOpen: boolean;
@@ -34,6 +37,42 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = useParams();
+  return (
+    <DeleteProjectDialog
+      isOpen={isOpen}
+      name={project.name}
+      onClose={onClose}
+      onDelete={async () => {
+        if (!workspaceSlug) throw new Error("Workspace is unavailable.");
+        await deleteProject(workspaceSlug.toString(), project.id);
+        if (projectId && projectId.toString() === project.id) router.push(`/${workspaceSlug}/projects`);
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Project deleted successfully." });
+      }}
+    />
+  );
+}
+export function DeleteProjectDialog({
+  isOpen,
+  name,
+  onClose,
+  onDelete,
+  recoverable = false,
+  pending,
+  canSubmit = true,
+  onDone = onClose,
+  statusMessage,
+}: {
+  isOpen: boolean;
+  name: string;
+  onClose: () => void;
+  onDelete: () => Promise<void>;
+  recoverable?: boolean;
+  pending?: boolean;
+  canSubmit?: boolean;
+  onDone?: () => void;
+  statusMessage?: string;
+}) {
+  const [error, setError] = useState("");
   // form info
   const {
     control,
@@ -43,38 +82,31 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
     watch,
   } = useForm({ defaultValues });
 
-  const canDelete = watch("projectName") === project?.name && watch("confirmDelete") === "delete my project";
+  const canDelete = watch("projectName") === name && watch("confirmDelete") === "delete my project";
+  const isPending = pending === undefined ? isSubmitting : pending;
 
   const handleClose = () => {
+    if (isPending) return;
     const timer = setTimeout(() => {
       reset(defaultValues);
       clearTimeout(timer);
     }, 350);
 
+    setError("");
     onClose();
   };
 
   const onSubmit = async () => {
-    if (!workspaceSlug || !canDelete) return;
-
+    if (!canDelete || isPending || !canSubmit) return;
+    setError("");
     try {
-      await deleteProject(workspaceSlug.toString(), project.id);
-      if (projectId && projectId.toString() === project.id) router.push(`/${workspaceSlug}/projects`);
-      handleClose();
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Project deleted successfully.",
-      });
-    } catch (_error) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Something went wrong. Please try again later.",
-      });
+      await onDelete();
+      reset(defaultValues);
+      onDone();
+    } catch (failure) {
+      setError(mutationMessage(failure));
     }
   };
-
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6 p-6">
@@ -82,20 +114,22 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
           <span className="place-items-center rounded-full bg-danger-subtle p-4">
             <AlertTriangle className="h-6 w-6 text-danger-primary" aria-hidden="true" />
           </span>
-          <span className="flex items-center justify-start">
-            <h3 className="text-18 font-medium 2xl:text-20">Delete project</h3>
-          </span>
+          <div className="flex items-center justify-start">
+            <Dialog.Title className="text-18 font-medium 2xl:text-20">Delete project</Dialog.Title>
+          </div>
         </div>
-        <span>
-          <p className="text-13 leading-7 text-secondary">
-            Are you sure you want to delete project <span className="font-semibold break-words">{project?.name}</span>?
-            All of the data related to the project will be permanently removed. This action cannot be undone
-          </p>
-        </span>
+        <div>
+          <Dialog.Description className="text-13 leading-7 text-secondary">
+            Are you sure you want to delete project <span className="font-semibold break-words">{name}</span>?
+            {recoverable
+              ? " The project will move to Trash. Its data is retained and an authorized administrator can restore it."
+              : " All of the data related to the project will be permanently removed. This action cannot be undone"}
+          </Dialog.Description>
+        </div>
         <div className="text-secondary">
-          <p className="text-13 break-words">
-            Enter the project name <span className="font-medium text-primary">{project?.name}</span> to continue:
-          </p>
+          <label htmlFor="projectName" className="block text-13 break-words">
+            Enter the project name <span className="font-medium text-primary">{name}</span> to continue:
+          </label>
           <Controller
             control={control}
             name="projectName"
@@ -111,14 +145,15 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
                 placeholder="Project name"
                 className="mt-2 w-full"
                 autoComplete="off"
+                disabled={isPending}
               />
             )}
           />
         </div>
         <div className="text-secondary">
-          <p className="text-13">
+          <label htmlFor="confirmDelete" className="block text-13">
             To confirm, type <span className="font-medium text-primary">delete my project</span> below:
-          </p>
+          </label>
           <Controller
             control={control}
             name="confirmDelete"
@@ -134,16 +169,33 @@ export function DeleteProjectModal(props: DeleteProjectModal) {
                 placeholder="Enter 'delete my project'"
                 className="mt-2 w-full"
                 autoComplete="off"
+                disabled={isPending}
               />
             )}
           />
         </div>
+        {statusMessage && (
+          <p role="status" className="text-secondary">
+            {statusMessage}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-danger-primary">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" size="lg" onClick={handleClose}>
+          <Button variant="secondary" size="lg" onClick={handleClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button variant="error-fill" size="lg" type="submit" disabled={!canDelete} loading={isSubmitting}>
-            {isSubmitting ? "Deleting" : "Delete project"}
+          <Button
+            variant="error-fill"
+            size="lg"
+            type="submit"
+            disabled={!canDelete || !canSubmit || isPending}
+            loading={isPending}
+          >
+            {isPending ? "Deleting" : "Delete project"}
           </Button>
         </div>
       </form>

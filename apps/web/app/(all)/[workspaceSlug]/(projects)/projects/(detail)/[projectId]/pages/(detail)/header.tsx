@@ -4,105 +4,90 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// plane imports
+import type { ReactNode } from "react";
+import type { CollaborationState } from "@plane/editor";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@summon/convex/api";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import { PageIcon } from "@plane/propel/icons";
-import type { ICustomSearchSelectOption } from "@plane/types";
-import { Breadcrumbs, Header, BreadcrumbNavigationSearchDropdown } from "@plane/ui";
+import { Breadcrumbs, Header } from "@plane/ui";
 import { getPageName } from "@plane/utils";
-// components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { PageAccessIcon } from "@/components/common/page-access-icon";
-import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label";
-import { PageHeaderActions } from "@/components/pages/header/actions";
-import { PageSyncingBadge } from "@/components/pages/header/syncing-badge";
-import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
-// hooks
-import { useProject } from "@/hooks/store/use-project";
-import { useAppRouter } from "@/hooks/use-app-router";
-import { EPageStoreType, usePage, usePageStore } from "@/hooks/store";
+import { DocumentActions } from "@/components/convex-core/documents/documents";
 
-export interface IPagesHeaderProps {
-  showButton?: boolean;
-}
-
-const storeType = EPageStoreType.PROJECT;
-
-export const PageDetailsHeader = observer(function PageDetailsHeader() {
-  // router
-  const router = useAppRouter();
-  const { workspaceSlug, pageId, projectId } = useParams();
-  // store hooks
-  const { loader } = useProject();
-  const { getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
-  const page = usePage({
-    pageId: pageId?.toString() ?? "",
-    storeType,
-  });
-  // derived values
-  const projectPageIds = getCurrentProjectPageIds(projectId?.toString());
-
-  const switcherOptions = projectPageIds
-    .map((id) => {
-      const _page = id === pageId ? page : getPageById(id);
-      if (!_page) return;
-      return {
-        value: _page.id,
-        query: _page.name,
-        content: (
-          <div className="flex items-center justify-between gap-2">
-            <SwitcherLabel logo_props={_page.logo_props} name={getPageName(_page.name)} LabelIcon={PageIcon} />
-            <PageAccessIcon {..._page} />
-          </div>
-        ),
-      };
-    })
-    .filter((option) => option !== undefined) as ICustomSearchSelectOption[];
-
-  if (!page) return null;
-
+export function PageDetailsHeader({
+  address,
+  resolved,
+  state,
+  actions,
+  isSaving,
+}: {
+  address: FunctionReturnType<typeof api.navigation.address.resolveProjectId>;
+  resolved: NonNullable<FunctionReturnType<typeof api.documents.index.resolve>>;
+  state: CollaborationState;
+  actions: ReactNode;
+  isSaving: boolean;
+}) {
+  const { document, context } = resolved;
   return (
-    <Header>
-      <Header.LeftItem>
-        <div>
-          <Breadcrumbs isLoading={loader === "init-loader"}>
-            <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
+    <div className="shrink-0 border-b border-subtle">
+      <Header>
+        <Header.LeftItem>
+          <Breadcrumbs>
+            <Breadcrumbs.Item
+              component={
+                <BreadcrumbLink
+                  label={address.project.name}
+                  href={`/${address.workspace.slug}/projects/${address.project._id}/issues/`}
+                />
+              }
+            />
             <Breadcrumbs.Item
               component={
                 <BreadcrumbLink
                   label="Pages"
-                  href={`/${workspaceSlug}/projects/${projectId}/pages/`}
-                  icon={<PageIcon className="h-4 w-4 text-tertiary" />}
+                  href={`/${address.workspace.slug}/projects/${address.project._id}/pages/`}
+                  icon={<PageIcon className="size-4 text-tertiary" />}
                 />
               }
             />
-
             <Breadcrumbs.Item
               component={
-                <BreadcrumbNavigationSearchDropdown
-                  selectedItem={pageId?.toString() ?? ""}
-                  navigationItems={switcherOptions}
-                  onChange={(value: string) => {
-                    router.push(`/${workspaceSlug}/projects/${projectId}/pages/${value}`);
-                  }}
-                  title={getPageName(page?.name)}
+                <BreadcrumbLink
+                  label={getPageName(document.name)}
                   icon={
-                    <Breadcrumbs.Icon>
-                      <SwitcherIcon logo_props={page.logo_props} LabelIcon={PageIcon} size={16} />
-                    </Breadcrumbs.Icon>
+                    context.logo ? (
+                      <Logo logo={context.logo} size={16} type="lucide" />
+                    ) : (
+                      <PageIcon className="size-4 text-tertiary" />
+                    )
                   }
                   isLast
                 />
               }
+              isLast
             />
           </Breadcrumbs>
-        </div>
-      </Header.LeftItem>
-      <Header.RightItem>
-        <PageSyncingBadge syncStatus={page.isSyncingWithServer} />
-        <PageHeaderActions page={page} storeType={storeType} />
-      </Header.RightItem>
-    </Header>
+        </Header.LeftItem>
+        <Header.RightItem>
+          {(isSaving || state.stage.kind !== "synced") && (
+            <span role="status" className="text-12 text-secondary">
+              {state.isServerDisconnected ? "Connection lost" : isSaving ? "Saving…" : "Connecting…"}
+            </span>
+          )}
+          {document.archived && <span className="text-12 text-secondary">Archived</span>}
+          {document.isLocked && <span className="text-12 text-secondary">Locked</span>}
+          <DocumentActions
+            document={document}
+            canManage={context.canManage}
+            workspaceSlug={address.workspace.slug}
+            projectId={address.project._id}
+            disabled={isSaving}
+          >
+            {actions}
+          </DocumentActions>
+        </Header.RightItem>
+      </Header>
+    </div>
   );
-});
+}

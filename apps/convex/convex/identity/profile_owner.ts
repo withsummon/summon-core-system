@@ -1,0 +1,144 @@
+import { compareValues, ConvexError, v, type Infer } from "convex/values";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { role } from "../schema";
+import { requireUser } from "./access";
+import { defaultPreferences } from "./preferences_fields";
+import { accountRestricted } from "./deactivation/access";
+import { text } from "../commercial/validation";
+import { taskCollection, taskAssigneeCollectionEntry } from "../tasks/revision";
+import { taskIsActive } from "../tasks/access";
+
+export function personalName(value: string, label: string, required = false) {
+  const name = text(value, label, 255, required);
+  if (/https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,6}|(?:\d{1,3}\.){3}\d{1,3}/i.test(name))
+    throw new ConvexError(`${label} cannot contain a URL.`);
+  return name;
+}
+
+export const defaultProfile = {
+  firstName: "",
+  lastName: "",
+  timezone: "UTC",
+  revision: 0,
+  preferences: defaultPreferences,
+};
+export const MAX_MEMBER_DIRECTORY_MEMBERS = 1000;
+export const memberDirectoryOrder = v.object({
+  field: v.union(
+    v.literal("fullName"),
+    v.literal("displayName"),
+    v.literal("email"),
+    v.literal("role"),
+    v.literal("joinedAt")
+  ),
+  direction: v.union(v.literal("asc"), v.literal("desc")),
+});
+export async function profileIdentity(ctx: QueryCtx, userId: Id<"users">) {
+  const [user, profile] = await Promise.all([
+    ctx.db.get(userId),
+    ctx.db
+      .query("userProfiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique(),
+  ]);
+  if (!user) return null;
+  const names = profile ?? defaultProfile;
+  return {
+    userId,
+    displayName: user.name ?? null,
+    firstName: names.firstName,
+    lastName: names.lastName,
+    fullName: `${names.firstName} ${names.lastName}`.trim(),
+    email: user.email ?? null,
+  };
+}
+// Public participants need no workspace membership; names never fall back to email.
+export async function publicProfileIdentity(ctx: QueryCtx, userId: Id<"users">) {
+  if (await accountRestricted(ctx, userId)) return null;
+  const identity = await profileIdentity(ctx, userId);
+  return identity ? { userId: identity.userId, name: identity.fullName || identity.displayName?.trim() || null } : null;
+}
+export function sortMemberDirectory<
+  T extends NonNullable<Awaited<ReturnType<typeof profileIdentity>>> &
+    Pick<Doc<"workspaceMembers">, "role" | "active"> & { joinedAt: Doc<"workspaceMembers">["_creationTime"] },
+>(rows: T[], orderBy: Infer<typeof memberDirectoryOrder> | undefined) {
+  const field = orderBy?.field ?? "joinedAt";
+  const direction = orderBy?.direction === "asc" ? 1 : -1;
+  // The canonical role schema lists administrator through guest; this is display order only.
+  const roleOrder = role.members.map((entry) => entry.value);
+  // oxlint-disable-next-line unicorn/no-array-sort -- Sort a private directory array in place; generated consumers use the web's ES2020 lib.
+  return rows.sort((a, b) => {
+    const comparison =
+      field === "joinedAt"
+        ? a.joinedAt - b.joinedAt
+        : field === "role"
+          ? roleOrder.indexOf(b.role) - roleOrder.indexOf(a.role)
+          : (a[field] ?? "").toLocaleLowerCase().localeCompare((b[field] ?? "").toLocaleLowerCase());
+    return Number(b.active) - Number(a.active) || comparison * direction || a.userId.localeCompare(b.userId);
+  });
+}
+export async function profileForUser(ctx: QueryCtx, user: Doc<"users">) {
+  const profile = await ctx.db
+    .query("userProfiles")
+    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .unique();
+  return { user, profile };
+}
+export async function ownProfile(ctx: QueryCtx) {
+  return profileForUser(ctx, await requireUser(ctx));
+}
+export function profileRevision(profile: Doc<"userProfiles"> | null, expected: number) {
+  if (!Number.isSafeInteger(expected) || expected !== (profile?.revision ?? 0))
+    throw new ConvexError("Your profile changed. Reopen it before saving.");
+  return expected + 1;
+}
+export async function writeProfile(
+  ctx: MutationCtx,
+  owner: Awaited<ReturnType<typeof ownProfile>>,
+  fields: Partial<
+    Pick<Doc<"userProfiles">, "firstName" | "lastName" | "timezone" | "preferences" | "marketingEmailConsent">
+  > & {
+    revision: number;
+  }
+) {
+  const tasks: Doc<"tasks">[] = [];
+  if (fields.firstName !== undefined && fields.firstName !== (owner.profile ?? defaultProfile).firstName) {
+    const namespace: [Id<"users">, "assigned_tasks"] = [owner.user._id, "assigned_tasks"];
+    const count = await taskCollection.count(ctx, { namespace });
+    if (count)
+      for await (const entry of taskCollection.iter(ctx, { namespace, pageSize: 20 })) {
+        const task = await ctx.db.get(entry.id);
+        if (!task || !taskIsActive(task) || !task.assigneeIds.includes(owner.user._id))
+          throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+        tasks.push(task);
+      }
+  }
+  const assignees = await Promise.all(
+    [...new Set(tasks.flatMap((task) => task.assigneeIds))].map(async (id) => {
+      const identity = await profileIdentity(ctx, id);
+      if (!identity) throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+      return identity;
+    })
+  );
+  const before = await Promise.all(tasks.map((task) => taskAssigneeCollectionEntry(ctx, task, assignees)));
+  if (owner.profile) await ctx.db.patch(owner.profile._id, fields);
+  else
+    await ctx.db.insert("userProfiles", {
+      userId: owner.user._id,
+      ...defaultProfile,
+      ...fields,
+    });
+  if (tasks.length) {
+    const current = await profileIdentity(ctx, owner.user._id);
+    if (!current) throw new ConvexError("Profile owner not found.");
+    const identities = assignees.map((identity) => (identity.userId === current.userId ? current : identity));
+    await Promise.all(
+      tasks.map(async (task, index) => {
+        const next = await taskAssigneeCollectionEntry(ctx, task, identities);
+        if (compareValues(before[index].key, next.key) !== 0)
+          await taskCollection.replaceOrInsert(ctx, before[index], next);
+      })
+    );
+  }
+}
