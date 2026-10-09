@@ -1,8 +1,15 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { currentProgress, progressPageBudget } from "../tasks/progress_totals";
+import { currentProgress, moduleProgressTotals, progressPageBudget } from "../tasks/progress_totals";
 import { requireModule } from "./access";
+export const summary = query({
+  args: { moduleId: v.id("modules") },
+  handler: async (ctx, { moduleId }) => {
+    const { module, project } = await requireModule(ctx, moduleId, true);
+    return moduleProgressTotals(ctx, module, project);
+  },
+});
 export const page = query({
   args: { moduleId: v.id("modules"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, { moduleId, paginationOpts }) => {

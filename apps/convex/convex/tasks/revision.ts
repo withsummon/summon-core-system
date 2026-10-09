@@ -32,14 +32,32 @@ export const taskCollection = new DirectAggregate<{
           | "issue_module__module__name"
         ),
       ];
-  Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string];
+  Key:
+    | number
+    | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string]
+    | [
+        boolean,
+        ReturnType<typeof stateApiGroupFromStatus> | null,
+        boolean,
+        Doc<"tasks">["estimatePointId"],
+        boolean,
+        Doc<"tasks">["status"],
+      ];
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
-function taskModuleApiEntry(task: Doc<"tasks">, moduleId: Id<"modules">) {
+export function taskModuleApiEntry(task: Doc<"tasks">, moduleId: Id<"modules">) {
   return {
     namespace: [moduleId, "api_metrics"],
-    key: [task.stateId === null, task.stateId === null ? null : stateApiGroupFromStatus(task.status)],
+    // REST State-group prefixes include tombstones; native progress reads the remaining live coordinates.
+    key: [
+      task.stateId === null,
+      task.stateId === null ? null : stateApiGroupFromStatus(task.status),
+      task.deletedAt === null,
+      task.estimatePointId,
+      task.completedAt !== null,
+      task.status,
+    ],
     id: task._id,
   } satisfies Parameters<typeof taskCollection.insertIfDoesNotExist>[1];
 }
@@ -212,7 +230,10 @@ export async function indexTaskCollection(
     !previous ||
     task.archivedAt !== previous.archivedAt ||
     task.stateId !== previous.stateId ||
-    task.status !== previous.status
+    task.status !== previous.status ||
+    task.deletedAt !== previous.deletedAt ||
+    task.estimatePointId !== previous.estimatePointId ||
+    task.completedAt !== previous.completedAt
   ) {
     // The all-task backfill and state/archive writers use the same live membership owner.
     // oxlint-disable-next-line no-await-in-loop
