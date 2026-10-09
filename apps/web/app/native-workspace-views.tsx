@@ -9,16 +9,8 @@ import { useTranslation } from "@plane/i18n";
 import { EIssueLayoutTypes } from "@plane/types";
 import { Button } from "@plane/propel/button";
 import { SearchIcon, ViewsIcon } from "@plane/propel/icons";
-import {
-  Breadcrumbs,
-  BreadcrumbNavigationSearchDropdown,
-  EModalPosition,
-  EModalWidth,
-  Header,
-  Input,
-  ModalCore,
-  Row,
-} from "@plane/ui";
+import { Breadcrumbs, BreadcrumbNavigationSearchDropdown, Header, Input, Row } from "@plane/ui";
+import { SavedViewEditor } from "@/app/(all)/[workspaceSlug]/(projects)/workspace-views/page";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
@@ -111,9 +103,11 @@ export default function NativeWorkspaceView() {
               </Breadcrumbs>
             </Header.LeftItem>
             <Header.RightItem className="items-center">
-              <Button variant="primary" size="lg" onClick={() => setCreatingView(true)}>
-                {t("workspace_views.add_view")}
-              </Button>
+              {session.workspace.membershipRole !== "guest" && (
+                <Button variant="primary" size="lg" onClick={() => setCreatingView(true)}>
+                  {t("workspace_views.add_view")}
+                </Button>
+              )}
               <DefaultWorkspaceViewQuickActions workspaceSlug={session.workspace.slug} view={view} />
             </Header.RightItem>
           </Header>
@@ -179,26 +173,22 @@ export default function NativeWorkspaceView() {
           </div>
         </ContentWrapper>
         <TaskPeek workspaceSlug={session.workspace.slug} />
-        <ModalCore
-          isOpen={creatingView}
-          handleClose={() => setCreatingView(false)}
-          position={EModalPosition.TOP}
-          width={EModalWidth.XXL}
-        >
-          <div className="max-h-[80vh] overflow-y-auto p-5">
-            {creatingView && (
+        <SavedViewEditor isOpen={creatingView} onClose={() => setCreatingView(false)}>
+          {(onPendingChange) =>
+            creatingView && (
               <WorkspaceViewForm
                 workspaceId={session.workspace._id}
                 initial={null}
+                onPendingChange={onPendingChange}
                 onDone={(id) => {
                   setCreatingView(false);
                   navigate(`/${session.workspace.slug}/workspace-views/${id}/`);
                 }}
                 onCancel={() => setCreatingView(false)}
               />
-            )}
-          </div>
-        </ModalCore>
+            )
+          }
+        </SavedViewEditor>
       </div>
     </PreservedWorkspaceShell>
   );
