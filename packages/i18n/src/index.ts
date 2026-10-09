@@ -17,6 +17,7 @@ export type { TTranslationKeys } from "./types";
 export type { TNamespace } from "./constants/namespaces";
 
 // Utilities
+export { initPromise } from "./core";
 export { setLanguage } from "./core/set-language";
 
 // Constants
