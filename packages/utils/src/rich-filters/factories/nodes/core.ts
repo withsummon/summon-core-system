@@ -7,14 +7,15 @@
 import { v4 as uuidv4 } from "uuid";
 // plane imports
 import type {
-  TFilterAndGroupNode,
+  TFilterGroupNode,
   TFilterConditionNode,
   TFilterConditionPayload,
   TFilterExpression,
   TFilterProperty,
   TFilterValue,
+  TLogicalOperator,
 } from "@plane/types";
-import { FILTER_NODE_TYPE, LOGICAL_OPERATOR } from "@plane/types";
+import { FILTER_NODE_TYPE } from "@plane/types";
 
 /**
  * Creates a condition node with a unique ID.
@@ -30,15 +31,16 @@ export const createConditionNode = <P extends TFilterProperty, V extends TFilter
 });
 
 /**
- * Creates an AND group node with a unique ID.
+ * Creates a logical group node with a unique ID.
  * @param nodes - The nodes to add to the group
- * @returns The created AND group node
+ * @returns The created group node
  */
-export const createAndGroupNode = <P extends TFilterProperty>(
+export const createGroupNode = <P extends TFilterProperty>(
+  logicalOperator: TLogicalOperator,
   nodes: TFilterExpression<P>[]
-): TFilterAndGroupNode<P> => ({
+): TFilterGroupNode<P> => ({
   id: uuidv4(),
   type: FILTER_NODE_TYPE.GROUP,
-  logicalOperator: LOGICAL_OPERATOR.AND,
+  logicalOperator,
   children: nodes,
 });

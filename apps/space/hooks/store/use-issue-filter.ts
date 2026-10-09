@@ -24,17 +24,25 @@ export function useIssueFilter() {
       selectedLabels.some((value) => !labelIds.some((id) => id === value)),
       selectedPriorities.some((value) => !priorities.some((item) => item === value)),
     ].includes(true);
-  const filters: FunctionArgs<typeof api.publicSharing.index.list>["filters"] = {
-    match: "all",
-    statuses: [],
-    stateIds,
-    priorities,
-    assigneeIds: [],
-    labelIds,
-    creatorIds: [],
-    startDate: null,
-    targetDate: null,
-  };
+  const children: Extract<
+    NonNullable<FunctionArgs<typeof api.publicSharing.index.list>["filters"]>,
+    { type: "group" }
+  >["children"] = [];
+  if (stateIds.length)
+    children.push({ id: "public-states", type: "condition", property: "stateId", operator: "in", value: stateIds });
+  if (labelIds.length)
+    children.push({ id: "public-labels", type: "condition", property: "labelId", operator: "in", value: labelIds });
+  if (priorities.length)
+    children.push({
+      id: "public-priorities",
+      type: "condition",
+      property: "priority",
+      operator: "in",
+      value: priorities,
+    });
+  const filters: FunctionArgs<typeof api.publicSharing.index.list>["filters"] = children.length
+    ? { id: "public-filters", type: "group", logicalOperator: "and", children }
+    : null;
   const requestedLayout = params.get("board");
   const layout =
     requestedLayout === "kanban" && settings?.settings.viewProps.kanban

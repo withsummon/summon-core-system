@@ -11,43 +11,33 @@ import type {
   TFilterGroupNode,
   TFilterProperty,
   TFilterValue,
+  TLogicalOperator,
 } from "@plane/types";
 // local imports
-import { createAndGroupNode } from "../../factories/nodes/core";
-import { getGroupChildren } from "../../types";
-import { isAndGroupNode, isConditionNode, isGroupNode } from "../../types/core";
+import { createGroupNode } from "../../factories/nodes/core";
+import { isConditionNode, isGroupNode } from "../../types/core";
 import { shouldUnwrapGroup } from "../../validators/shared";
 import { transformExpressionTree } from "../transformation/core";
 
 /**
- * Adds an AND condition to the filter expression.
+ * Adds a condition with the chosen logical operator to the filter expression.
  * @param expression - The current filter expression
  * @param condition - The condition to add
  * @returns The updated filter expression
  */
-export const addAndCondition = <P extends TFilterProperty>(
+export const addGroupCondition = <P extends TFilterProperty>(
   expression: TFilterExpression<P> | null,
-  condition: TFilterExpression<P>
+  condition: TFilterExpression<P>,
+  logicalOperator: TLogicalOperator
 ): TFilterExpression<P> => {
   // if no expression, set the new condition
   if (!expression) {
     return condition;
   }
-  // if the expression is a condition, convert it to an AND group
-  if (isConditionNode(expression)) {
-    return createAndGroupNode([expression, condition]);
-  }
-  // if the expression is a group, and the group is an AND group, add the new condition to the group
-  if (isGroupNode(expression) && isAndGroupNode(expression)) {
-    expression.children.push(condition);
-    return expression;
-  }
-  // if the expression is a group, but not an AND group, create a new AND group and add the new condition to it
-  if (isGroupNode(expression) && !isAndGroupNode(expression)) {
-    return createAndGroupNode([expression, condition]);
-  }
-  // Throw error for unexpected expression type
-  console.error("Invalid expression type", expression);
+  // if the expression is a condition, group it with the chosen operator
+  if (isConditionNode(expression) || expression.logicalOperator !== logicalOperator)
+    return createGroupNode(logicalOperator, [expression, condition]);
+  expression.children.push(condition);
   return expression;
 };
 
@@ -104,7 +94,7 @@ export const updateNodeInExpression = <P extends TFilterProperty>(
     }
 
     if (isGroupNode(node)) {
-      const children = getGroupChildren(node);
+      const children = node.children;
       children.forEach((child) => updateNode(child));
     }
   };
@@ -123,7 +113,7 @@ export const unwrapGroupIfNeeded = <P extends TFilterProperty>(
   preserveNotGroups = true
 ) => {
   if (shouldUnwrapGroup(group, preserveNotGroups)) {
-    const children = getGroupChildren(group);
+    const children = group.children;
     return children[0];
   }
   return group;

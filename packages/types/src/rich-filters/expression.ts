@@ -79,10 +79,16 @@ export type TFilterAndGroupNode<P extends TFilterProperty> = TBaseFilterNode & {
 };
 
 /**
- * Union type for all group node types - AND, OR, and NOT groups.
+ * Union type for the supported AND and OR groups.
  * @template P - Property key type
  */
-export type TFilterGroupNode<P extends TFilterProperty> = TFilterAndGroupNode<P>;
+export type TFilterGroupNode<P extends TFilterProperty> =
+  | TFilterAndGroupNode<P>
+  | (TBaseFilterNode & {
+      type: typeof FILTER_NODE_TYPE.GROUP;
+      logicalOperator: typeof LOGICAL_OPERATOR.OR;
+      children: TFilterExpression<P>[];
+    });
 
 /**
  * Union type for any filter node - either a single condition or a group container.
@@ -113,4 +119,4 @@ export type TFilterAndGroupPayload<P extends TFilterProperty> = Omit<TFilterAndG
  * Union payload type for creating/updating any group node - excludes base node properties.
  * @template P - Property key type
  */
-export type TFilterGroupPayload<P extends TFilterProperty> = TFilterAndGroupPayload<P>;
+export type TFilterGroupPayload<P extends TFilterProperty> = Omit<TFilterGroupNode<P>, keyof TBaseFilterNode>;

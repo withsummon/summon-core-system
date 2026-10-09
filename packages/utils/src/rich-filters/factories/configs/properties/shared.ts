@@ -53,6 +53,8 @@ export const getSupportedDateOperators = (params: TCreateDateFilterParams): TOpe
     createOperatorConfigEntry(COMPARISON_OPERATOR.RANGE, params, (updatedParams) =>
       getDateRangePickerConfig(updatedParams)
     ),
+    createOperatorConfigEntry(COMPARISON_OPERATOR.GTE, params, (updatedParams) => getDatePickerConfig(updatedParams)),
+    createOperatorConfigEntry(COMPARISON_OPERATOR.LTE, params, (updatedParams) => getDatePickerConfig(updatedParams)),
   ]);
 
 // ------------ Project filter ------------

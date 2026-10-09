@@ -66,7 +66,7 @@ async function detail(ctx: QueryCtx, viewId: Id<"savedViews">) {
   const { view, access } = await requireView(ctx, viewId, true);
   return {
     ...(await projectView(ctx, view, access)),
-    selections: await filterSelections(ctx, view, access.member.role),
+    selections: await filterSelections(ctx, view, access.user._id, access.member.role),
   };
 }
 export const get = query({

@@ -16,7 +16,6 @@ import type {
 import { FILTER_NODE_TYPE } from "@plane/types";
 // local imports
 import { isConditionNode, isGroupNode } from "../types/core";
-import { processGroupNode } from "../types/shared";
 import { hasValidValue } from "../validators/core";
 import { transformExpressionTree } from "./transformation/core";
 
@@ -68,7 +67,6 @@ const createComparableChildren = <P extends TFilterProperty>(
  * Creates a comparable representation of a group for deep comparison.
  * This recursively creates comparable representations for all children.
  * IDs are completely excluded to avoid UUID comparison issues.
- * Uses processGroupNode for consistent group type handling.
  * @param group - The group to create a comparable representation for
  * @returns A comparable object without ID
  */
@@ -81,9 +79,7 @@ export const createGroupComparable = <P extends TFilterProperty>(
     logicalOperator: group.logicalOperator,
   };
 
-  return processGroupNode(group, {
-    onAndGroup: (andGroup) => createComparableChildren(andGroup.children, baseComparable),
-  });
+  return createComparableChildren(group.children, baseComparable);
 };
 
 /**

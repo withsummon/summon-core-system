@@ -11,7 +11,7 @@ import { ListFilter } from "lucide-react";
 import type { TButtonSize, TButtonVariant } from "@plane/propel/button";
 import { getButtonStyling } from "@plane/propel/button";
 import type { IFilterInstance } from "@plane/shared-state";
-import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@plane/types";
+import type { TExternalFilter, TFilterProperty, TSupportedOperators, TLogicalOperator } from "@plane/types";
 import { LOGICAL_OPERATOR } from "@plane/types";
 import { cn } from "@plane/utils";
 // local imports
@@ -32,12 +32,16 @@ export type TAddFilterButtonProps<P extends TFilterProperty, E extends TExternal
   };
   filter: IFilterInstance<P, E>;
   onFilterSelect?: (id: string) => void;
+  logicalOperator?: TLogicalOperator;
 };
 
 export const AddFilterButton = observer(function AddFilterButton<P extends TFilterProperty, E extends TExternalFilter>(
   props: TAddFilterButtonProps<P, E>
 ) {
   const { filter, buttonConfig, onFilterSelect } = props;
+  const logicalOperator =
+    props.logicalOperator ??
+    (filter.expression?.type === "group" ? filter.expression.logicalOperator : LOGICAL_OPERATOR.AND);
   const {
     variant = "secondary",
     size = "base",
@@ -51,7 +55,7 @@ export const AddFilterButton = observer(function AddFilterButton<P extends TFilt
 
   const handleFilterSelect = (property: P, operator: TSupportedOperators, isNegation: boolean) => {
     filter.addCondition(
-      LOGICAL_OPERATOR.AND,
+      logicalOperator,
       {
         property,
         operator,

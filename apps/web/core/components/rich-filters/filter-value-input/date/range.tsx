@@ -18,7 +18,7 @@ type TDateRangeFilterValueInputProps<P extends TFilterProperty> = {
   config: TDateRangeFilterFieldConfig<string>;
   condition: TFilterConditionNodeForDisplay<P, string>;
   isDisabled?: boolean;
-  onChange: (value: string[]) => void;
+  onChange: (value: (string | undefined)[]) => void;
 };
 
 export const DateRangeFilterValueInput = observer(function DateRangeFilterValueInput<P extends TFilterProperty>(
@@ -35,7 +35,7 @@ export const DateRangeFilterValueInput = observer(function DateRangeFilterValueI
   const handleSelect = (range: { from?: Date; to?: Date } | undefined) => {
     const formattedFrom = range?.from ? renderFormattedPayloadDate(range.from) : undefined;
     const formattedTo = range?.to ? renderFormattedPayloadDate(range.to) : undefined;
-    if (formattedFrom && formattedTo) {
+    if (formattedFrom || formattedTo) {
       onChange([formattedFrom, formattedTo]);
     } else {
       onChange([]);

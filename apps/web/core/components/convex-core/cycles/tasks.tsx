@@ -87,6 +87,7 @@ export function CycleTasks({
             </Button>
             <TaskPreferencesControls
               key={cycle._id}
+              ownerId={cycle._id}
               projectId={cycle.projectId}
               preferences={preferences}
               onApply={(changes) => savePreferences({ cycleId: cycle._id, ...changes })}

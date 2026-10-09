@@ -47,23 +47,10 @@ export const taskPoint = v.union(
   v.literal(12),
   v.null()
 );
-const dateRange = v.union(
+export const dateRange = v.union(
   v.object({ from: v.union(v.string(), v.null()), to: v.union(v.string(), v.null()) }),
   v.null()
 );
-export const viewFilters = v.object({
-  match: v.union(v.literal("all"), v.literal("any")),
-  statuses: v.array(status),
-  stateIds: v.array(v.id("taskStates")),
-  priorities: v.array(priority),
-  assigneeIds: v.array(v.id("users")),
-  labelIds: v.array(v.id("taskLabels")),
-  creatorIds: v.array(v.id("users")),
-  cycleIds: v.optional(v.array(v.id("cycles"))),
-  moduleIds: v.optional(v.array(v.id("modules"))),
-  startDate: dateRange,
-  targetDate: dateRange,
-});
 
 const conditionFields = { id: z.string(), type: z.literal("condition") };
 const dateProperty = z.enum(["startDate", "targetDate"]);
@@ -112,15 +99,102 @@ export const profileCondition = z.union([
     value: z.tuple([calendarDate, calendarDate]).refine(([from, to]) => from <= to, "Date range is reversed."),
   }),
 ]);
-const filterGroup = z.object({ id: z.string(), type: z.literal("group"), logicalOperator: z.literal("and") });
 // The inherited public filter API counts the root as depth one and permits five levels.
 // Finite composition keeps every native validator and generated argument precise.
-const filterDepth2 = z.union([profileCondition, filterGroup.extend({ children: z.array(profileCondition).min(1) })]);
-const filterDepth3 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth2).min(1) })]);
-const filterDepth4 = z.union([profileCondition, filterGroup.extend({ children: z.array(filterDepth3).min(1) })]);
-export const profileExpression = z
-  .union([profileCondition, filterGroup.extend({ children: z.array(filterDepth4).min(1) })])
-  .nullable();
+function filterExpression<C extends z.ZodType, L extends z.ZodType<"and" | "or">>(condition: C, logicalOperator: L) {
+  const group = z.object({ id: z.string(), type: z.literal("group"), logicalOperator });
+  const depth2 = z.union([condition, group.extend({ children: z.array(condition).min(1) })]);
+  const depth3 = z.union([condition, group.extend({ children: z.array(depth2).min(1) })]);
+  const depth4 = z.union([condition, group.extend({ children: z.array(depth3).min(1) })]);
+  return z.union([condition, group.extend({ children: z.array(depth4).min(1) })]).nullable();
+}
+export const profileExpression = filterExpression(profileCondition, z.literal("and"));
+export const publicTaskCondition = z.union([
+  ...profileCondition.options,
+  z.object({ ...conditionFields, property: dateProperty, operator: z.enum(["gte", "lte"]), value: calendarDate }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("assigneeId"),
+    operator: z.literal("exact"),
+    value: zid("users"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("assigneeId"),
+    operator: z.literal("in"),
+    value: z.array(zid("users")).min(1),
+  }),
+  z.object({ ...conditionFields, property: z.literal("createdBy"), operator: z.literal("exact"), value: zid("users") }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("createdBy"),
+    operator: z.literal("in"),
+    value: z.array(zid("users")).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("stateId"),
+    operator: z.literal("exact"),
+    value: zid("taskStates"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("stateId"),
+    operator: z.literal("in"),
+    value: z.array(zid("taskStates")).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("cycleId"),
+    operator: z.literal("in"),
+    value: z.array(zid("cycles")).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("moduleId"),
+    operator: z.literal("exact"),
+    value: zid("modules"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("moduleId"),
+    operator: z.literal("in"),
+    value: z.array(zid("modules")).min(1),
+  }),
+]);
+export const taskCondition = z.union([
+  ...publicTaskCondition.options,
+  z.object({
+    ...conditionFields,
+    property: z.literal("subscriberId"),
+    operator: z.literal("exact"),
+    value: zid("users"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("subscriberId"),
+    operator: z.literal("in"),
+    value: z.array(zid("users")).min(1),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("projectId"),
+    operator: z.literal("exact"),
+    value: zid("projects"),
+  }),
+  z.object({
+    ...conditionFields,
+    property: z.literal("projectId"),
+    operator: z.literal("in"),
+    value: z.array(zid("projects")).min(1),
+  }),
+  z.object({ ...conditionFields, property: z.literal("cycleId"), operator: z.literal("exact"), value: zid("cycles") }),
+]);
+const taskLogicalOperator = z.enum(["and", "or"]);
+export const publicTaskExpression = filterExpression(publicTaskCondition, taskLogicalOperator);
+export const taskExpression = filterExpression(taskCondition, taskLogicalOperator);
+export const viewFilters = zodToConvex(taskExpression);
+export const publicViewFilters = zodToConvex(publicTaskExpression);
 export const profileView = v.union(v.literal("assigned"), v.literal("created"), v.literal("subscribed"));
 export const profileViewSchema = convexToZod(profileView);
 export const profileGroup = v.union(
@@ -213,7 +287,10 @@ export const taskPreferences = v.object({
   displayProperties: taskDisplayProperties,
   filters: viewFilters,
 });
-export const taskPreferencesSchema = convexToZod(taskPreferences).extend({ displayFilters: taskDisplayFiltersSchema });
+export const taskPreferencesSchema = convexToZod(taskPreferences).extend({
+  displayFilters: taskDisplayFiltersSchema,
+  filters: taskExpression,
+});
 export const defaultTaskPreferences = {
   displayFilters: {
     layout: "list",
@@ -242,17 +319,7 @@ export const defaultTaskPreferences = {
     modules: true,
     issue_type: true,
   },
-  filters: {
-    match: "all",
-    statuses: [],
-    stateIds: [],
-    priorities: [],
-    assigneeIds: [],
-    labelIds: [],
-    creatorIds: [],
-    startDate: null,
-    targetDate: null,
-  },
+  filters: null,
 } satisfies Infer<typeof taskPreferences>;
 
 export const nonStateTaskProperties = {

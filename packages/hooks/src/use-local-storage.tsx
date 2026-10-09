@@ -44,5 +44,10 @@ export const useLocalStorage = <T,>(key: string, initialValue: T) => {
     window.localStorage.removeItem(key);
     window.dispatchEvent(new Event(`local-storage:${key}`));
   }, [key]);
-  return { storedValue: storedValue === undefined ? initialValue : storedValue, setValue, clearValue } as const;
+  return {
+    storedValue: storedValue === undefined ? initialValue : storedValue,
+    setValue,
+    clearValue,
+    rawValue: snapshot,
+  } as const;
 };

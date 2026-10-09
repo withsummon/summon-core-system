@@ -14,7 +14,7 @@ import { pageBudget, text } from "../commercial/validation";
 import { viewDefinitionFields } from "./schema";
 import { validatedProjectLogo } from "../projects/branding_schema";
 import { workspaceCapabilities, requireWorkspaceView, requireRevision, workspaceView } from "./access";
-import { validateWorkspaceFilters, workspaceFilterSelections } from "./filters";
+import { validateWorkspaceFilters, filterSelections } from "./filters";
 export const create = mutation({
   args: { workspaceId: v.id("workspaces"), ...viewDefinitionFields },
   handler: async (ctx, args) => {
@@ -69,7 +69,7 @@ async function detail(ctx: QueryCtx, viewId: Id<"savedViews">) {
   const { view, access: permission } = await requireWorkspaceView(ctx, viewId, true);
   return {
     ...(await workspaceView(ctx, view, permission)),
-    selections: await workspaceFilterSelections(ctx, view, permission.user._id, permission.member.role),
+    selections: await filterSelections(ctx, view, permission.user._id, permission.member.role),
   };
 }
 export const get = query({

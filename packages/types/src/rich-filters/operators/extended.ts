@@ -7,7 +7,7 @@
 /**
  * Extended logical operators
  */
-export const EXTENDED_LOGICAL_OPERATOR = {} as const;
+export const EXTENDED_LOGICAL_OPERATOR = { OR: "or" } as const;
 
 /**
  * Extended equality operators
@@ -22,7 +22,7 @@ export const EXTENDED_COLLECTION_OPERATOR = {} as const;
 /**
  * Extended comparison operators
  */
-export const EXTENDED_COMPARISON_OPERATOR = {} as const;
+export const EXTENDED_COMPARISON_OPERATOR = { GTE: "gte", LTE: "lte" } as const;
 
 /**
  * Extended operators that support multiple values

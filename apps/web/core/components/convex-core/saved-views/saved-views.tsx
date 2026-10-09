@@ -1,4 +1,7 @@
-import { Component, useState } from "react";
+import { observer } from "mobx-react";
+import { taskExpression } from "@summon/convex/task-schema";
+import { useTaskFilterDraft } from "./filters";
+import { Component, useEffect, useRef, useState } from "react";
 import type { ReactNode, ComponentProps } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -9,9 +12,7 @@ import { api } from "@summon/convex/api";
 import { Button } from "@plane/propel/button";
 import { Popover } from "@plane/propel/popover";
 import { mutationMessage } from "../commercial/forms";
-import { taskStatusOptions } from "../tasks/options";
 import { ProjectReferenceFilters, SavedViewForm, ViewDisplayFields } from "./form";
-import { BasicFilters } from "./filters";
 import { AlertModalCore } from "@plane/ui";
 import { copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
@@ -160,6 +161,7 @@ export function SavedViewDetail({
   if (detail.view.projectId !== address.project._id) throw new Error("Saved view belongs to another project.");
   return (
     <ProjectViewDetail
+      key={detail.view._id}
       address={address}
       features={features}
       detail={detail}
@@ -169,7 +171,7 @@ export function SavedViewDetail({
     />
   );
 }
-function ProjectViewDetail({
+const ProjectViewDetail = observer(function ProjectViewDetail({
   address,
   features,
   detail,
@@ -184,11 +186,21 @@ function ProjectViewDetail({
   onLifecycle: (deleted: boolean) => void;
   onCreated: (id: Id<"savedViews">) => void;
 }) {
+  const filter = useTaskFilterDraft(detail.view.filters, detail.view._id);
+  const filterSnapshot = useRef(detail);
   const [preview, setPreview] = useState<{
     snapshot: typeof detail;
     input: FunctionArgs<typeof api.savedViews.index.create> &
       Pick<(typeof detail)["view"], "displayFilters" | "displayProperties">;
   } | null>(null);
+  useEffect(() => {
+    if (!filter.hasChanges && !preview) filterSnapshot.current = detail;
+  }, [detail, filter, filter.hasChanges, preview]);
+  const parsedFilters = taskExpression.safeParse(filter.expression);
+  const discardPreview = () => {
+    filter.resetExpression(detail.view.filters);
+    setPreview(null);
+  };
   const [editor, setEditor] = useState<
     { snapshot: typeof detail } | { seed: NonNullable<ComponentProps<typeof SavedViewForm>["createSeed"]> } | null
   >(null);
@@ -217,14 +229,11 @@ function ProjectViewDetail({
   const displayFilters = input.displayFilters;
   const displayProperties = input.displayProperties;
   const dirty =
-    preview !== null &&
-    JSON.stringify([input.filters, displayFilters, displayProperties]) !==
-      JSON.stringify([
-        preview.snapshot.view.filters,
-        preview.snapshot.view.displayFilters,
-        preview.snapshot.view.displayProperties,
-      ]);
-  const release = useReloadConfirmations(dirty, "This view has unsaved changes.", () => setPreview(null), pending);
+    filter.hasChanges ||
+    (preview !== null &&
+      JSON.stringify([displayFilters, displayProperties]) !==
+        JSON.stringify([preview.snapshot.view.displayFilters, preview.snapshot.view.displayProperties]));
+  const release = useReloadConfirmations(dirty, "This view has unsaved changes.", discardPreview, pending);
   const command = async (operation: () => Promise<unknown>) => {
     if (pending || isSubmitting) return;
     setPending(true);
@@ -237,10 +246,9 @@ function ProjectViewDetail({
       setPending(false);
     }
   };
-  const change = (
-    criteria: Pick<NonNullable<typeof preview>["input"], "filters" | "displayFilters" | "displayProperties">
-  ) => {
-    if (!isSubmitting) setPreview({ snapshot: preview?.snapshot ?? detail, input: { ...input, ...criteria } });
+  const change = (criteria: Pick<NonNullable<typeof preview>["input"], "displayFilters" | "displayProperties">) => {
+    if (!isSubmitting)
+      setPreview({ snapshot: preview?.snapshot ?? filterSnapshot.current, input: { ...input, ...criteria } });
   };
   const busy = pending || isSubmitting || editor !== null || lifecycle !== null;
   const path = `/${address.workspace.slug}/projects/${address.project._id}/views/${detail.view._id}/`;
@@ -282,13 +290,12 @@ function ProjectViewDetail({
           <>
             <ViewPreviewControls
               canEdit={detail.canEdit}
-              filters={input.filters}
               referenceFilters={
                 <ProjectReferenceFilters
                   projectId={detail.view.projectId}
-                  filters={input.filters}
+                  filter={filter}
                   selections={detail.selections}
-                  onChange={(filters) => change({ filters, displayFilters, displayProperties })}
+                  disabled={busy}
                 />
               }
               displayFilters={displayFilters}
@@ -299,34 +306,51 @@ function ProjectViewDetail({
               canCreate={!!access?.canCreate}
               onChange={change}
               onDiscard={() => {
-                if (!isSubmitting) setPreview(null);
+                if (!isSubmitting) discardPreview();
               }}
-              onSaveAs={() => {
-                const { projectId: _projectId, ...definition } = input;
-                setEditor({ seed: { input: { ...definition, name: `${input.name} 2` }, logo: detail.logo } });
-              }}
+              onSaveAs={() =>
+                void command(async () => {
+                  const { projectId: _projectId, ...definition } = input;
+                  setEditor({
+                    seed: {
+                      input: {
+                        ...definition,
+                        filters: taskExpression.parse(filter.expression),
+                        name: `${input.name} 2`,
+                      },
+                      logo: detail.logo,
+                    },
+                  });
+                })
+              }
               onUpdate={() =>
                 void command(async () => {
-                  if (!preview) return;
-                  const { projectId: _projectId, ...definition } = preview.input;
+                  const { projectId: _projectId, ...definition } = input;
                   await update({
                     ...definition,
+                    filters: taskExpression.parse(filter.expression),
                     viewId: detail.view._id,
-                    expectedUpdatedAt: preview.snapshot.view.updatedAt,
+                    expectedUpdatedAt: (preview?.snapshot ?? filterSnapshot.current).view.updatedAt,
                   });
-                  release(() => setPreview(null));
+                  release(discardPreview);
                 })
               }
             />
-            <ViewBoundary key={JSON.stringify([input.filters, displayFilters])} onBack={() => setPreview(null)}>
-              <Results
-                viewId={detail.view._id}
-                address={address}
-                filters={input.filters}
-                displayFilters={displayFilters}
-                displayProperties={displayProperties}
-              />
-            </ViewBoundary>
+            {parsedFilters.success ? (
+              <ViewBoundary key={JSON.stringify([parsedFilters.data, displayFilters])} onBack={discardPreview}>
+                <Results
+                  viewId={detail.view._id}
+                  address={address}
+                  filters={parsedFilters.data}
+                  displayFilters={displayFilters}
+                  displayProperties={displayProperties}
+                />
+              </ViewBoundary>
+            ) : (
+              <p role="alert" className="p-5 text-13 text-danger-primary">
+                Complete each filter before previewing or saving this view.
+              </p>
+            )}
           </>
         )}
         {error && (
@@ -379,7 +403,7 @@ function ProjectViewDetail({
       </Button>
     </div>
   );
-}
+});
 export function ViewLifecycleCommand({
   lifecycle,
   pending,
@@ -460,7 +484,6 @@ function ViewDefinitionCommand({
 }
 export function ViewPreviewControls({
   canEdit,
-  filters,
   referenceFilters,
   displayFilters,
   displayProperties,
@@ -474,7 +497,6 @@ export function ViewPreviewControls({
   onDiscard,
 }: {
   canEdit: boolean;
-  filters: FunctionArgs<typeof api.savedViews.index.create>["filters"];
   referenceFilters: ReactNode;
   displayFilters: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayFilters"]>;
   displayProperties: NonNullable<FunctionArgs<typeof api.savedViews.index.create>["displayProperties"]>;
@@ -483,8 +505,10 @@ export function ViewPreviewControls({
   dirty: boolean;
   canCreate: boolean;
   onChange: (
-    criteria: Pick<FunctionArgs<typeof api.savedViews.index.create>, "filters"> &
-      Pick<FunctionReturnType<typeof api.savedViews.index.resolve>["view"], "displayFilters" | "displayProperties">
+    criteria: Pick<
+      FunctionReturnType<typeof api.savedViews.index.resolve>["view"],
+      "displayFilters" | "displayProperties"
+    >
   ) => void;
   onUpdate: () => void;
   onSaveAs: () => void;
@@ -505,7 +529,7 @@ export function ViewPreviewControls({
               displayFilters={displayFilters}
               displayProperties={displayProperties}
               disabled={busy}
-              onChange={(display) => onChange({ filters, ...display })}
+              onChange={onChange}
             />
           </fieldset>
         </Popover.Panel>
@@ -518,13 +542,7 @@ export function ViewPreviewControls({
           placement="bottom-start"
           className="shadow-lg max-h-[80vh] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-md border border-subtle bg-surface-1 p-4"
         >
-          <fieldset disabled={busy}>
-            <BasicFilters
-              filters={filters}
-              onChange={(nextFilters) => onChange({ filters: nextFilters, displayFilters, displayProperties })}
-            />
-            {referenceFilters}
-          </fieldset>
+          <fieldset disabled={busy}>{referenceFilters}</fieldset>
         </Popover.Panel>
       </Popover>
       <div className="flex flex-wrap gap-2">
@@ -541,36 +559,6 @@ export function ViewPreviewControls({
         )}
       </div>
     </section>
-  );
-}
-function selectionNames(items: { id: string; name: string | null }[], ids: string[]) {
-  return ids.map((id) => items.find((item) => item.id === id)?.name ?? "Unavailable selection").join(", ");
-}
-export function SavedFilters({ detail }: { detail: Detail }) {
-  const filters = detail.view.filters;
-  const groups = [
-    filters.statuses.length
-      ? `Status: ${filters.statuses.map((status) => taskStatusOptions[status].label).join(", ")}`
-      : null,
-    filters.priorities.length ? `Priority: ${filters.priorities.join(", ")}` : null,
-    filters.stateIds.length ? `State: ${selectionNames(detail.selections.states, filters.stateIds)}` : null,
-    filters.labelIds.length ? `Label: ${selectionNames(detail.selections.labels, filters.labelIds)}` : null,
-    filters.assigneeIds.length ? `Assignee: ${selectionNames(detail.selections.users, filters.assigneeIds)}` : null,
-    filters.creatorIds.length ? `Creator: ${selectionNames(detail.selections.users, filters.creatorIds)}` : null,
-    filters.startDate ? `Start: ${filters.startDate.from ?? "Any"} → ${filters.startDate.to ?? "Any"}` : null,
-    filters.targetDate ? `Target: ${filters.targetDate.from ?? "Any"} → ${filters.targetDate.to ?? "Any"}` : null,
-  ].filter((value) => value !== null);
-  return (
-    <details className="rounded-md border border-subtle-1 p-3">
-      <summary className="cursor-pointer text-14 font-medium">
-        {groups.length ? `Match ${filters.match} filter groups` : "All active tasks in this view’s scope"}
-      </summary>
-      <ul className="mt-2 space-y-1 text-14 text-secondary">
-        {groups.map((group) => (
-          <li key={group}>{group}</li>
-        ))}
-      </ul>
-    </details>
   );
 }
 function Results({
