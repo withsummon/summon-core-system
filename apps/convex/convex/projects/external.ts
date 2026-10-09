@@ -1287,7 +1287,8 @@ async function taskWire(
       const labels = await Promise.all(
         task.labelIds.map(async (id) => {
           const label = await ctx.db.get(id);
-          if (!label) return unsupportedReference("labels");
+          if (!label || label.projectId !== task.projectId || label.workspaceId !== task.workspaceId)
+            return unsupportedReference("labels");
           return label;
         })
       );
@@ -1396,11 +1397,7 @@ export const taskRead = internalQuery({
       let indexedOrder = order.success ? order.data : "created_at";
       if (indexedOrder === "archived_at") indexedOrder = "created_at";
       else if (indexedOrder === "state__name") indexedOrder = "state__group";
-      if (
-        indexedOrder === "assignees__first_name" ||
-        indexedOrder === "labels__name" ||
-        indexedOrder === "issue_module__module__name"
-      )
+      if (indexedOrder === "assignees__first_name" || indexedOrder === "issue_module__module__name")
         throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
       // The registered state CASE always sorts ascending, reversing known ranks while keeping default5 last.
@@ -1443,7 +1440,7 @@ export const taskRead = internalQuery({
               !task ||
               task.projectId !== access.project._id ||
               task.workspaceId !== access.workspace._id ||
-              !taskCollectionEntries(task).some(
+              !(await taskCollectionEntries(ctx, task, undefined, namespace)).some(
                 (entry) => compareValues(entry.namespace, namespace) === 0 && compareValues(entry.key, item.key) === 0
               ) ||
               !taskIsActive(task)
