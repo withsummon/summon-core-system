@@ -1,8 +1,7 @@
-import { taskPreferences, taskApiCreate, labelApiInput } from "../tasks/schema";
+import { taskPreferences, taskApiCreate, labelApiInput, catalogueApiDate } from "../tasks/schema";
 import { apiIdSchema } from "../identity/schema";
 import { projectJsonText } from "../projects/schema";
 import { convexToZod, zodToConvex } from "convex-helpers/server/zod4";
-import { calendarDate } from "../commercial/validation";
 import { z } from "zod/v4";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -18,8 +17,8 @@ export const moduleStatus = v.union(
 const moduleApiWrite = z.object({
   name: taskApiCreate.shape.name,
   description: labelApiInput.shape.description.removeDefault(),
-  start_date: calendarDate.nullable(),
-  target_date: calendarDate.nullable(),
+  start_date: catalogueApiDate.nullable(),
+  target_date: catalogueApiDate.nullable(),
   status: convexToZod(moduleStatus),
   lead: apiIdSchema.nullable(),
   members: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),

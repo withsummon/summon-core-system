@@ -484,6 +484,49 @@ export const commentApiCreate = commentApiFields.extend({
   created_by: apiIdSchema.nullable().optional(),
 });
 export const commentApiPatch = commentApiFields.partial();
+// Python 3.12 / Unicode 15 decimal digits accepted by Django's calendar-date parser.
+const catalogueDateDigitZeros = [
+  0x30, 0x660, 0x6f0, 0x7c0, 0x966, 0x9e6, 0xa66, 0xae6, 0xb66, 0xbe6, 0xc66, 0xce6, 0xd66, 0xde6, 0xe50, 0xed0, 0xf20,
+  0x1040, 0x1090, 0x17e0, 0x1810, 0x1946, 0x19d0, 0x1a80, 0x1a90, 0x1b50, 0x1bb0, 0x1c40, 0x1c50, 0xa620, 0xa8d0,
+  0xa900, 0xa9d0, 0xa9f0, 0xaa50, 0xabf0, 0xff10, 0x104a0, 0x10d30, 0x11066, 0x110f0, 0x11136, 0x111d0, 0x112f0,
+  0x11450, 0x114d0, 0x11650, 0x116c0, 0x11730, 0x118e0, 0x11950, 0x11c50, 0x11d50, 0x11da0, 0x11f50, 0x16a60, 0x16ac0,
+  0x16b50, 0x1d7ce, 0x1d7d8, 0x1d7e2, 0x1d7ec, 0x1d7f6, 0x1e140, 0x1e2f0, 0x1e4f0, 0x1e950, 0x1fbf0,
+];
+export const catalogueApiDate = z
+  .string()
+  .transform((value) => {
+    const calendar = /^(\p{Nd}{4})-(\p{Nd}{1,2})-(\p{Nd}{1,2})\n?(?![\s\S])/u.exec(value);
+    if (calendar) {
+      return calendar
+        .slice(1)
+        .map((part, index) =>
+          part
+            .replace(/\p{Nd}/gu, (digit) => {
+              const point = digit.codePointAt(0);
+              const digitZero = catalogueDateDigitZeros.find(
+                (zero) => point !== undefined && point >= zero && point < zero + 10
+              );
+              return point === undefined || digitZero === undefined ? digit : String(point - digitZero);
+            })
+            .padStart(index === 0 ? 4 : 2, "0")
+        )
+        .join("-");
+    }
+    if (/^[0-9]{8}(?![\s\S])/.test(value)) return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6)}`;
+    if (!/^[0-9]{4}(?:-W[0-9]{2}(?:-[1-7])?|W[0-9]{2}[1-7]?)(?![\s\S])/.test(value)) return value;
+    const compact = value.replaceAll("-", "");
+    const year = Number(compact.slice(0, 4));
+    const week = Number(compact.slice(5, 7));
+    const day = compact.length === 8 ? Number(compact[7]) : 1;
+    const date = new Date(0);
+    date.setUTCFullYear(year, 0, 4);
+    // January 4 owns ISO week one; its Thursday must remain in the supplied ISO year.
+    date.setUTCDate(4 - ((date.getUTCDay() + 6) % 7) + (week - 1) * 7 + 3);
+    if (date.getUTCFullYear() !== year) return value;
+    date.setUTCDate(date.getUTCDate() + day - 4);
+    return date.toISOString().slice(0, 10);
+  })
+  .pipe(calendarDate);
 const catalogueApiBoolean = z.preprocess(
   (value) => (value === 0 ? false : value === 1 ? true : value),
   z.union(
@@ -610,8 +653,8 @@ const taskApiWrite = z.object({
   parent: apiIdSchema.nullable(),
   state: apiIdSchema.nullable(),
   estimate_point: apiIdSchema.nullable(),
-  start_date: calendarDate.nullable(),
-  target_date: calendarDate.nullable(),
+  start_date: catalogueApiDate.nullable(),
+  target_date: catalogueApiDate.nullable(),
   assignees: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),
   labels: z.array(apiIdSchema).transform((ids) => [...new Set(ids)]),
   external_source: catalogueApiExternal,
