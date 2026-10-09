@@ -9,16 +9,22 @@ import { components } from "../_generated/api";
 import { taskIsActive } from "./access";
 
 export const taskCollection = new DirectAggregate<{
-  Namespace: Id<"projects">;
+  Namespace: Id<"projects"> | [Id<"projects">, "sequence_id"];
   Key: number;
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
 // Synchronous tolerant writes keep live mutations and a paginated backfill in one transaction.
 export async function indexTaskCollection(ctx: MutationCtx, task: Doc<"tasks">) {
-  const item = { namespace: task.projectId, key: task._creationTime, id: task._id };
-  if (taskIsActive(task)) await taskCollection.insertIfDoesNotExist(ctx, item);
-  else await taskCollection.deleteIfExists(ctx, item);
+  const items: Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] = [
+    { namespace: task.projectId, key: task._creationTime, id: task._id },
+    { namespace: [task.projectId, "sequence_id"], key: task.sequence, id: task._id },
+  ];
+  await Promise.all(
+    items.map((item) =>
+      taskIsActive(task) ? taskCollection.insertIfDoesNotExist(ctx, item) : taskCollection.deleteIfExists(ctx, item)
+    )
+  );
 }
 
 export function requireTaskRevision(task: Doc<"tasks">, expectedUpdatedAt: number) {

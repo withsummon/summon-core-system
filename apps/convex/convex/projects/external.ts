@@ -1392,22 +1392,28 @@ export const taskRead = internalQuery({
         });
       const { per_page: perPage, cursor: page, order_by: orderBy } = options.data;
       const order = taskApiOrder.safeParse(orderBy.startsWith("-") ? orderBy.slice(1) : orderBy);
-      if (order.success && order.data !== "created_at")
+      if (order.success && order.data !== "created_at" && order.data !== "sequence_id")
         throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
       const descending = !order.success || orderBy.startsWith("-");
+      const sequenceOrder = order.success && order.data === "sequence_id";
+      const namespace: Parameters<typeof taskCollection.count>[1]["namespace"] = sequenceOrder
+        ? [access.project._id, "sequence_id"]
+        : access.project._id;
       const offset = page * perPage;
       if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(page + 1))
         throw new ConvexError({ status: 400, detail: "Invalid cursor parameter." });
       // IssueManager excludes archived Projects without changing REST membership authority.
       const total = access.project.archived ? 0 : await taskCollection.count(ctx, { namespace: access.project._id });
+      if (sequenceOrder && !access.project.archived && (await taskCollection.count(ctx, { namespace })) !== total)
+        throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
       let results: Awaited<ReturnType<typeof taskWire>>[] = [];
       if (offset < total) {
         const first = await taskCollection.at(ctx, descending ? -offset - 1 : offset, {
-          namespace: access.project._id,
+          namespace,
         });
         const rows = await taskCollection.paginate(ctx, {
-          namespace: access.project._id,
+          namespace,
           order: descending ? "desc" : "asc",
           bounds: {
             [descending ? "upper" : "lower"]: { key: first.key, id: first.id, inclusive: true },
@@ -1421,7 +1427,7 @@ export const taskRead = internalQuery({
               !task ||
               task.projectId !== access.project._id ||
               task.workspaceId !== access.workspace._id ||
-              task._creationTime !== item.key ||
+              (sequenceOrder ? task.sequence : task._creationTime) !== item.key ||
               !taskIsActive(task)
             )
               throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
