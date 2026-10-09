@@ -70,7 +70,7 @@ export default function NativeWorkspaceView() {
       onOpenStickies={commands.openAll}
       beforeLeave={commands.flushAll}
     >
-      <PageHead title={`${session.workspace.name} - All Views`} />
+      <PageHead title={`${session.workspace.name} - ${t(view.i18n_label)}`} />
       <div className="flex h-full min-h-0 flex-col">
         <Row className="z-[18] flex h-11 shrink-0 items-center gap-2 border-b border-subtle bg-surface-1">
           <Header>
