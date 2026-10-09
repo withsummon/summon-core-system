@@ -36,6 +36,7 @@ export async function requireCommentImageTarget(ctx: QueryCtx, target: Infer<typ
 
 function requireCommentOnlyScope(scope: Parameters<typeof requireAssetScope>[1]) {
   if (
+    scope.projectCoverFormRevision !== undefined ||
     [
       scope.taskId,
       scope.draftId,
@@ -44,9 +45,10 @@ function requireCommentOnlyScope(scope: Parameters<typeof requireAssetScope>[1])
       scope.conversationId,
       scope.meetingId,
       scope.automationJobId,
+      scope.exportJobId,
       scope.purpose,
       scope.avatarUserId,
-    ].some(Boolean) ||
+    ].some((value) => value !== undefined && value !== null) ||
     (scope.commentId !== undefined && scope.commentUpload !== undefined)
   )
     throw new ConvexError("Comment images cannot have another content scope.");
@@ -88,13 +90,34 @@ export async function requireCommentImageScope(
 
 export async function bindCommentImages(
   ctx: MutationCtx,
-  target: Infer<typeof commentImageTarget>,
+  target:
+    | Infer<typeof commentImageTarget>
+    | { task: Doc<"tasks">; user: Doc<"users">; requestId: string }
+    | { task: Doc<"tasks">; user: Doc<"users">; commentId: Id<"taskComments"> },
   parsed: ReturnType<typeof imageRichContent>,
   commentId: Id<"taskComments">
 ) {
-  const { user, task, target: canonicalTarget } = await requireCommentImageTarget(ctx, target);
+  const {
+    user,
+    task,
+    target: canonicalTarget,
+  } = "task" in target
+    ? {
+        ...target,
+        target:
+          "requestId" in target
+            ? { taskId: target.task._id, requestId: commentRequestId.parse(target.requestId), anchor: null }
+            : { taskId: target.task._id, commentId: target.commentId, anchor: null },
+      }
+    : await requireCommentImageTarget(ctx, target);
+  if ("task" in target) {
+    const comment = await ctx.db.get(commentId);
+    if (!comment || comment.taskId !== task._id || ("commentId" in target && target.commentId !== commentId))
+      throw new ConvexError("Comment image belongs to another work item.");
+  }
   const { sources, ...content } = parsed;
-  if (!content.description && sources.size === 0) throw new ConvexError("Write a comment before posting.");
+  if (!("task" in target) && !content.description && sources.size === 0)
+    throw new ConvexError("Write a comment before posting.");
   await Promise.all(
     [...sources].map(async (source) => {
       const id = ctx.db.normalizeId("assets", source);

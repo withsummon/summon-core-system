@@ -11,6 +11,8 @@ import { taskCollection, taskCollectionEntries, taskChanged } from "../tasks/rev
 import { canReadLabel } from "../tasks/label_access";
 import { writeTaskState, retireTaskState, writeDefaultState } from "../tasks/states";
 import { writeTaskLabel } from "../tasks/labels";
+import { writeTaskLink } from "../tasks/links";
+import { commentCreation, insertComment, updateComment, removeComment } from "../tasks/comments";
 import { beginTaskLabelRemoval } from "../tasks/label_removal";
 import {
   taskApiField,
@@ -35,6 +37,13 @@ import {
   taskStateDeletedAt,
   taskStateIsTriage,
   taskStateIsSelectable,
+  taskLinkApiField,
+  taskLinkApiCreate,
+  taskLinkApiPatch,
+  taskCompanionApiResource,
+  commentApiField,
+  commentApiCreate,
+  commentApiPatch,
 } from "../tasks/schema";
 import { z } from "zod/v4";
 import { Base64, compareValues, ConvexError, v, type Infer } from "convex/values";
@@ -845,7 +854,9 @@ const catalogueArgs = {
 const catalogueIdentity = v.object(catalogueArgs);
 async function projectEntityAccess(
   ctx: QueryCtx,
-  args: Omit<Infer<typeof catalogueIdentity>, "resource"> & Partial<Pick<Infer<typeof catalogueIdentity>, "resource">>,
+  args: Omit<Infer<typeof catalogueIdentity>, "resource"> & {
+    resource?: z.infer<typeof catalogueApiResource> | z.infer<typeof taskCompanionApiResource>;
+  },
   method: z.infer<typeof apiRequestMetadata>["method"]
 ) {
   const access = await workspaceAccess(ctx, args.slug, args.userId);
@@ -856,9 +867,11 @@ async function projectEntityAccess(
   const membership =
     project && project.workspaceId === access.workspace._id ? await apiProjectMembership(ctx, project, access) : null;
   const allowed =
-    args.resource === "labels" && method === "POST"
-      ? access.member.role !== "guest"
-      : membership && (method === "GET" || method === "HEAD" || method === "OPTIONS" || membership.role !== "guest");
+    args.resource === "comments"
+      ? membership
+      : args.resource === "labels" && method === "POST"
+        ? access.member.role !== "guest"
+        : membership && (method === "GET" || method === "HEAD" || method === "OPTIONS" || membership.role !== "guest");
   if (!allowed) throw new ConvexError({ status: 403, detail: "You do not have permission to perform this action." });
   if (!project || project.workspaceId !== access.workspace._id || project.deletedAt !== null)
     throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
@@ -1819,6 +1832,491 @@ export const removeTask = internalMutation({
   },
 });
 
+const taskCompanionIdentity = v.object({
+  resource: zodToConvex(taskCompanionApiResource),
+  userId: v.id("users"),
+  slug: v.string(),
+  projectApiId: v.string(),
+  taskApiId: v.string(),
+  entityApiId: v.optional(v.string()),
+});
+async function taskCompanionAccess(
+  ctx: QueryCtx,
+  args: Infer<typeof taskCompanionIdentity>,
+  method: z.infer<typeof apiRequestMetadata>["method"]
+) {
+  const access = await projectEntityAccess(ctx, args, method);
+  const task = await ctx.db
+    .query("tasks")
+    .withIndex("by_api_id", (q) => q.eq("apiId", args.taskApiId))
+    .unique();
+  if (
+    !task ||
+    task.projectId !== access.project._id ||
+    task.workspaceId !== access.workspace._id ||
+    task.deletedAt !== null
+  )
+    throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+  return { ...access, task };
+}
+async function taskCompanionWire(
+  ctx: QueryCtx,
+  row: Doc<"taskLinks"> | Doc<"taskComments">,
+  access: Awaited<ReturnType<typeof taskCompanionAccess>>,
+  fields: string[] | null,
+  expand: string[],
+  assetOrigin: string,
+  annotated: boolean,
+  actorId: Id<"users"> | null = "authorId" in row ? row.authorId : null
+) {
+  const comment = "authorId" in row ? row : null;
+  const link = "url" in row ? row : null;
+  const values = {
+    id: () => apiIdSchema.parse(known("companion id", row.apiId)),
+    created_at: () => new Date(comment?.createdAt ?? row._creationTime).toISOString(),
+    updated_at: () => new Date(row.updatedAt).toISOString(),
+    deleted_at: () => (row.deletedAt == null ? null : new Date(row.deletedAt).toISOString()),
+    created_by: () =>
+      userReference(
+        ctx,
+        comment && comment.createdBy === undefined ? comment.authorId : row.createdBy,
+        "created_by",
+        expand,
+        access,
+        assetOrigin
+      ),
+    updated_by: () => userReference(ctx, row.updatedBy, "updated_by", expand, access, assetOrigin),
+    workspace: () =>
+      expand.includes("workspace")
+        ? { id: apiIdSchema.parse(access.workspace.apiId), name: access.workspace.name, slug: access.workspace.slug }
+        : apiIdSchema.parse(access.workspace.apiId),
+    project: () =>
+      expand.includes("project")
+        ? projectWire(
+            ctx,
+            { project: access.project, membership: access.membership },
+            access,
+            projectApiLiteField.options,
+            [],
+            assetOrigin,
+            false
+          )
+        : apiIdSchema.parse(access.project.apiId),
+    issue: () =>
+      expand.includes("issue")
+        ? taskWire(ctx, access.task, access, null, [], assetOrigin)
+        : apiIdSchema.parse(access.task.apiId),
+    title: () => link?.title,
+    url: () => link?.url,
+    metadata: () => (link ? projectJson.parse(link.metadata) : undefined),
+    comment_html: () => comment?.html,
+    access: () => comment?.audience,
+    external_source: () => (comment ? known("comment external_source", comment.externalSource) : undefined),
+    external_id: () => (comment ? known("comment external_id", comment.externalId) : undefined),
+    edited_at: () => (comment?.editedAt == null ? null : new Date(comment.editedAt).toISOString()),
+    description: () =>
+      comment ? apiIdSchema.parse(known("comment description", comment.descriptionApiId)) : undefined,
+    attachments: () => (comment ? known("comment attachments", comment.attachments) : undefined),
+    actor: () => userReference(ctx, actorId, "actor", expand, access, assetOrigin),
+    is_member: () => (annotated ? true : undefined),
+    parent: async () => {
+      if (!comment) return undefined;
+      const parentId = known("comment parent", comment.parentId);
+      if (parentId === null) return expand.includes("parent") ? {} : null;
+      const parent = await ctx.db.get(parentId);
+      if (!parent || parent.taskId !== access.task._id)
+        throw new ConvexError("Comment parent belongs to another work item.");
+      const id = apiIdSchema.parse(known("comment parent id", parent.apiId));
+      return expand.includes("parent") ? { id, project_id: apiIdSchema.parse(access.project.apiId) } : id;
+    },
+  } satisfies Record<z.infer<typeof taskLinkApiField> | z.infer<typeof commentApiField>, () => unknown>;
+  return Object.fromEntries(
+    await Promise.all(
+      (comment ? commentApiField : taskLinkApiField).options
+        .filter((field) => fields === null || fields.includes(field))
+        .map(async (field) => [
+          field,
+          expand.includes(field) &&
+          !["created_by", "updated_by", "workspace", "project", "issue", "actor", "parent", "description"].includes(
+            field
+          )
+            ? null
+            : await values[field](),
+        ])
+    )
+  );
+}
+export const taskCompanionRead = internalQuery({
+  args: {
+    ...taskCompanionIdentity.fields,
+    method: zodToConvex(apiRequestMetadata.shape.method),
+    fields: v.union(v.array(v.string()), v.null()),
+    expand: v.array(v.string()),
+    perPage: v.number(),
+    page: v.number(),
+    assetOrigin: v.string(),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.method);
+    if (args.method !== "GET") return null;
+    const perPage = z.int().min(1).max(1000).parse(args.perPage),
+      page = z.int().nonnegative().parse(args.page);
+    if (args.entityApiId) {
+      const row =
+        args.resource === "links"
+          ? await ctx.db
+              .query("taskLinks")
+              .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+              .unique()
+          : await ctx.db
+              .query("taskComments")
+              .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+              .unique();
+      if (!row || row.taskId !== access.task._id || row.deletedAt != null || access.project.archived)
+        throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      return JSON.stringify(
+        await taskCompanionWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, true)
+      );
+    }
+    const rows = access.project.archived
+      ? []
+      : args.resource === "links"
+        ? await ctx.db
+            .query("taskLinks")
+            .withIndex("by_task_deleted", (q) => q.eq("taskId", access.task._id).eq("deletedAt", null))
+            .order("desc")
+            .collect()
+        : (
+            await ctx.db
+              .query("taskComments")
+              .withIndex("by_task", (q) => q.eq("taskId", access.task._id))
+              .collect()
+          )
+            .filter((comment) => comment.deletedAt == null)
+            .toSorted((a, b) => (b.createdAt ?? b._creationTime) - (a.createdAt ?? a._creationTime));
+    const offset = perPage * page;
+    const results = await Promise.all(
+      rows
+        .slice(offset, offset + perPage)
+        .map((row) => taskCompanionWire(ctx, row, access, args.fields, args.expand, args.assetOrigin, true))
+    );
+    return JSON.stringify({
+      grouped_by: null,
+      sub_grouped_by: null,
+      total_count: rows.length,
+      next_cursor: `${perPage}:${page + 1}:0`,
+      prev_cursor: `${perPage}:${page - 1}:1`,
+      next_page_results: offset + perPage < rows.length,
+      prev_page_results: page > 0,
+      count: results.length,
+      total_pages: Math.ceil(rows.length / perPage),
+      total_results: rows.length,
+      extra_stats: null,
+      results,
+    });
+  },
+});
+async function companionCreator(ctx: QueryCtx, user: Doc<"users">, apiId: string | null | undefined) {
+  if (apiId === undefined) return user._id;
+  if (apiId === null) return null;
+  const creator = await ctx.db
+    .query("users")
+    .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+    .unique();
+  if (!creator) throw new ConvexError({ status: 400, errors: { created_by: ["Invalid user identifier."] } });
+  return creator._id;
+}
+export const writeTaskLinkApi = internalMutation({
+  args: {
+    ...taskCompanionIdentity.fields,
+    resource: v.literal("links"),
+    bodyJson: v.optional(v.string()),
+    assetOrigin: v.string(),
+    deleted: v.optional(v.literal(true)),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.deleted ? "DELETE" : args.entityApiId ? "PATCH" : "POST");
+    const link = args.entityApiId
+      ? await ctx.db
+          .query("taskLinks")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+          .unique()
+      : null;
+    if (args.entityApiId && (!link || link.taskId !== access.task._id || link.deletedAt !== null))
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (args.deleted) {
+      if (!link) throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      await writeTaskLink(
+        ctx,
+        access.task,
+        access.user._id,
+        link,
+        {
+          url: link.url,
+          title: link.title,
+          metadata: link.metadata,
+          createdBy: link.createdBy,
+          deletedAt: Date.now(),
+        },
+        "activity"
+      );
+      return null;
+    }
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    if (!link) {
+      const parsed = taskLinkApiCreate.safeParse(raw.data);
+      if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+      const creation = parsed.data;
+      const createdBy = await companionCreator(ctx, access.user, creation.created_by);
+      if (
+        await ctx.db
+          .query("taskLinks")
+          .withIndex("by_task_url_deleted", (q) =>
+            q.eq("taskId", access.task._id).eq("url", creation.url).eq("deletedAt", null)
+          )
+          .first()
+      )
+        throw new ConvexError({ status: 400, errors: { error: ["URL already exists for this Issue"] } });
+      const id = await writeTaskLink(
+        ctx,
+        access.task,
+        access.user._id,
+        null,
+        {
+          url: creation.url,
+          title: creation.title ?? null,
+          metadata: {},
+          createdBy,
+          deletedAt: null,
+        },
+        "activity"
+      );
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error("Created link is missing.");
+      return JSON.stringify(await taskCompanionWire(ctx, created, access, null, [], args.assetOrigin, false));
+    }
+    const parsed = taskLinkApiPatch.safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const linkPatch = parsed.data;
+    const id = await writeTaskLink(
+      ctx,
+      access.task,
+      access.user._id,
+      link,
+      {
+        url: linkPatch.url === undefined ? link.url : linkPatch.url,
+        title: linkPatch.title === undefined ? link.title : linkPatch.title,
+        metadata: linkPatch.metadata === undefined ? link.metadata : linkPatch.metadata,
+        deletedAt: linkPatch.deleted_at === undefined ? link.deletedAt : linkPatch.deleted_at,
+        createdBy: link.createdBy,
+      },
+      "activity"
+    );
+    const updated = await ctx.db.get(id);
+    if (!updated) throw new Error("Updated link is missing.");
+    return JSON.stringify(await taskCompanionWire(ctx, updated, access, null, [], args.assetOrigin, false));
+  },
+});
+export const writeTaskCommentApi = internalMutation({
+  args: {
+    ...taskCompanionIdentity.fields,
+    resource: v.literal("comments"),
+    bodyJson: v.optional(v.string()),
+    assetOrigin: v.string(),
+    deleted: v.optional(v.literal(true)),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const access = await taskCompanionAccess(ctx, args, args.deleted ? "DELETE" : args.entityApiId ? "PATCH" : "POST");
+    const comment = args.entityApiId
+      ? await ctx.db
+          .query("taskComments")
+          .withIndex("by_api_id", (q) => q.eq("apiId", args.entityApiId))
+          .unique()
+      : null;
+    if (args.entityApiId && (!comment || comment.taskId !== access.task._id || comment.deletedAt != null))
+      throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+    if (args.deleted) {
+      if (!comment) throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
+      await removeComment(ctx, access.task, comment, access.user._id, comment.updatedAt, "activity");
+      return null;
+    }
+    const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
+    if (!raw.success)
+      throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
+    const duplicateSource = Object.hasOwn(raw.data, "external_source")
+      ? raw.data.external_source
+      : comment
+        ? known("comment external_source", comment.externalSource)
+        : null;
+    if (
+      raw.data.external_id &&
+      (comment ? comment.externalId !== String(raw.data.external_id) : raw.data.external_source)
+    ) {
+      const duplicates = await ctx.db
+        .query("taskComments")
+        .withIndex("by_project_external", (q) =>
+          q
+            .eq("projectId", access.project._id)
+            .eq("externalSource", duplicateSource === null ? null : String(duplicateSource))
+            .eq("externalId", String(raw.data.external_id))
+        )
+        .collect();
+      const duplicate = duplicates.find((row) => row.workspaceId === access.workspace._id && row.deletedAt == null);
+      if (duplicate)
+        throw new ConvexError({
+          status: 409,
+          error: "Work item comment with the same external id and external source already exists",
+          id: known("comment id", (comment ?? duplicate).apiId),
+        });
+    }
+    if (!comment) {
+      const parsed = commentApiCreate.safeParse(raw.data);
+      if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+      const data = parsed.data;
+      const createdBy = await companionCreator(ctx, access.user, data.created_by);
+      const requestId = apiIdSchema.parse(crypto.randomUUID());
+      const id = await insertComment(
+        ctx,
+        access.task,
+        access.user._id,
+        {
+          ...commentCreation({ requestId, html: data.comment_html, audience: data.access, anchor: null }),
+          createdAt: data.created_at,
+          createdBy,
+          commentJsonText: JSON.stringify(data.comment_json),
+          externalSource: data.external_source,
+          externalId: data.external_id,
+        },
+        "activity",
+        { task: access.task, user: access.user, requestId }
+      );
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error("Created comment is missing.");
+      // POST serializes the inherited in-memory actor; persisted actor remains the actual requester.
+      return JSON.stringify(
+        await taskCompanionWire(ctx, created, access, null, [], args.assetOrigin, false, createdBy)
+      );
+    }
+    const parsed = commentApiPatch.safeParse(raw.data);
+    if (!parsed.success) throw new ConvexError({ status: 400, errors: z.flattenError(parsed.error).fieldErrors });
+    const data = parsed.data;
+    await updateComment(
+      ctx,
+      access.task,
+      comment,
+      access.user._id,
+      {
+        expectedUpdatedAt: comment.updatedAt,
+        html: data.comment_html,
+        audience: data.access,
+        ...(data.comment_json === undefined ? {} : { commentJsonText: JSON.stringify(data.comment_json) }),
+        externalSource: data.external_source,
+        externalId: data.external_id,
+      },
+      "activity",
+      null,
+      { task: access.task, user: access.user, commentId: comment._id }
+    );
+    const updated = await ctx.db.get(comment._id);
+    if (!updated) throw new Error("Updated comment is missing.");
+    return JSON.stringify(await taskCompanionWire(ctx, updated, access, null, [], args.assetOrigin, false));
+  },
+});
+async function taskCompanionResponse(
+  ctx: ActionCtx,
+  request: Request,
+  userId: Id<"users">,
+  responseHeaders: HeadersInit,
+  route: RegExpExecArray
+) {
+  const projectId = apiIdSchema.safeParse(route[2]),
+    taskId = apiIdSchema.safeParse(route[4]);
+  const resource = taskCompanionApiResource.parse(route[5]);
+  const linkId = route[6] ? apiIdSchema.safeParse(route[6]) : null;
+  if (!projectId.success || !taskId.success || (linkId && !linkId.success))
+    return Response.json(
+      { error: "The requested resource does not exist." },
+      { status: 404, headers: responseHeaders }
+    );
+  const input = {
+    userId,
+    slug: decodeURIComponent(route[1]),
+    projectApiId: projectId.data,
+    taskApiId: taskId.data,
+    entityApiId: linkId?.data,
+    resource,
+  };
+  const url = new URL(request.url);
+  const methods = linkId ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
+  if (!methods.includes(request.method)) {
+    await ctx.runQuery(internal.projects.external.taskCompanionRead, {
+      ...input,
+      method: apiRequestMetadata.shape.method.parse(request.method),
+      fields: null,
+      expand: [],
+      perPage: 1000,
+      page: 0,
+      assetOrigin: url.origin,
+    });
+    return Response.json(
+      { detail: `Method "${request.method}" not allowed.` },
+      { status: 405, headers: responseHeaders }
+    );
+  }
+  if (request.method !== "GET") {
+    const writer = {
+      ...input,
+      bodyJson: request.method === "DELETE" ? undefined : await request.text(),
+      assetOrigin: url.origin,
+    };
+    const body =
+      resource === "links"
+        ? await ctx.runMutation(internal.projects.external.writeTaskLinkApi, {
+            ...writer,
+            resource: "links",
+            deleted: request.method === "DELETE" ? true : undefined,
+          })
+        : await ctx.runMutation(internal.projects.external.writeTaskCommentApi, {
+            ...writer,
+            resource: "comments",
+            deleted: request.method === "DELETE" ? true : undefined,
+          });
+    return request.method === "DELETE"
+      ? new Response(null, { status: 204, headers: responseHeaders })
+      : Response.json(projectJsonText.parse(body), {
+          status: request.method === "POST" ? 201 : 200,
+          headers: responseHeaders,
+        });
+  }
+  if (linkId) {
+    url.searchParams.delete("cursor");
+    url.searchParams.delete("per_page");
+  }
+  const options = projectApiReadOptions
+    .pick({ fields: true, expand: true, cursor: true, per_page: true })
+    .safeParse(Object.fromEntries(url.searchParams));
+  if (!options.success)
+    return Response.json(
+      { detail: options.error.issues.map((issue) => issue.message).join(" ") },
+      { status: 400, headers: responseHeaders }
+    );
+  const body = await ctx.runQuery(internal.projects.external.taskCompanionRead, {
+    ...input,
+    method: "GET",
+    fields: options.data.fields,
+    expand: options.data.expand,
+    perPage: options.data.per_page,
+    page: options.data.cursor,
+    assetOrigin: url.origin,
+  });
+  return Response.json(projectJsonText.parse(body), { status: 200, headers: responseHeaders });
+}
+
 async function taskResponse(
   ctx: ActionCtx,
   request: Request,
@@ -1884,14 +2382,20 @@ export const projects = httpAction(async (ctx, request) => {
   const task = /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/(?:([^/]+)\/)?$/.exec(
     new URL(request.url).pathname
   );
+  const link =
+    /^\/api\/v1\/workspaces\/([^/]+)\/projects\/([^/]+)\/(issues|work-items)\/([^/]+)\/(links|comments)\/(?:([^/]+)\/)?$/.exec(
+      new URL(request.url).pathname
+    );
   const methods = catalogue?.[4] ? ["GET", "PATCH", "DELETE"] : ["GET", "POST"];
-  let responseHeaders: HeadersInit = catalogue
-    ? { ...headers, Allow: methods.join(", ") }
-    : task?.[4]
-      ? { ...headers, Allow: "GET, PATCH, DELETE" }
-      : task
-        ? { ...headers, Allow: "GET, POST" }
-        : headers;
+  let responseHeaders: HeadersInit = link
+    ? { ...headers, Allow: link[6] ? "GET, PATCH, DELETE" : "GET, POST" }
+    : catalogue
+      ? { ...headers, Allow: methods.join(", ") }
+      : task?.[4]
+        ? { ...headers, Allow: "GET, PATCH, DELETE" }
+        : task
+          ? { ...headers, Allow: "GET, POST" }
+          : headers;
   try {
     const credential = await verifyRequest(ctx, request);
     userId = credential.userId;
@@ -1901,16 +2405,18 @@ export const projects = httpAction(async (ctx, request) => {
       status = credential.status;
       return Response.json({ detail: credential.detail }, { status, headers: responseHeaders });
     }
-    const response = task
-      ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
-      : catalogue
-        ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
-        : await projectResponse(ctx, request, credential.userId, responseHeaders);
+    const response = link
+      ? await taskCompanionResponse(ctx, request, credential.userId, responseHeaders, link)
+      : task
+        ? await taskResponse(ctx, request, credential.userId, responseHeaders, task)
+        : catalogue
+          ? await catalogueResponse(ctx, request, credential.userId, responseHeaders, catalogue, methods)
+          : await projectResponse(ctx, request, credential.userId, responseHeaders);
     status = response.status;
     return response;
   } catch (error) {
     if (error instanceof ConvexError) {
-      if (task && typeof error.data === "string") {
+      if ((task || link) && typeof error.data === "string") {
         status = 400;
         return Response.json({ non_field_errors: [error.data] }, { status, headers: responseHeaders });
       }

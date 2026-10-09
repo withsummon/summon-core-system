@@ -13,7 +13,9 @@ const urlPattern = new RegExp(
   `^https?://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?<host>${ipv4Part}(?:\\.${ipv4Part}){3}|\\[[0-9a-f:.]+\\]|${hostname}${domain}${tld}|localhost)(?::[0-9]{1,5})?(?:[/?#][^\\s]*)?$`,
   "i"
 );
-export function linkUrl(value: string) {
+export function linkUrl(value: string, options?: { requireScheme: true }) {
+  if (options?.requireScheme && !value.startsWith("http://") && !value.startsWith("https://"))
+    throw new ConvexError("URL must start with http:// or https://");
   // Scheme fill occurs before whitespace trimming, as in the legacy serializer.
   const url = (value.startsWith("http://") || value.startsWith("https://") ? value : `http://${value}`).trim();
   const host = urlPattern.exec(url)?.groups?.host;

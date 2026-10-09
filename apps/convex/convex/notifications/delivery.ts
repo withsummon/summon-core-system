@@ -125,7 +125,13 @@ async function queueEmail(
   const changes = mention
     ? []
     : (event.changes ?? []).filter((change) => {
-        if (change.field === "vote" || change.field === "cycle" || change.field === "modules") return false;
+        if (
+          change.field === "vote" ||
+          change.field === "cycle" ||
+          change.field === "modules" ||
+          change.field === "link"
+        )
+          return false;
         return change.field === "state"
           ? settings.stateChange ||
               (change.after.status === "done" && settings.issueCompleted) ||

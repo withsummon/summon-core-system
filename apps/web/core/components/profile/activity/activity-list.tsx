@@ -5,7 +5,7 @@
  */
 
 import Link from "next/link";
-import { Archive, Calendar, History, SignalMedium, Tag, Triangle, Trash2, Users } from "lucide-react";
+import { Archive, Calendar, History, Link2, SignalMedium, Tag, Triangle, Trash2, Users } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@summon/convex/api";
 import type { Id } from "@summon/convex/data-model";
@@ -33,6 +33,7 @@ const icons = {
   assignees: <Users className="size-3 text-secondary" aria-hidden="true" />,
   labels: <Tag className="size-3 text-secondary" aria-hidden="true" />,
   vote: <History className="size-3 text-secondary" aria-hidden="true" />,
+  link: <Link2 className="size-3 text-secondary" aria-hidden="true" />,
 } satisfies Record<Change["field"], React.ReactNode>;
 
 export function ActivityList({ activity, currentUserId }: { activity: Event[]; currentUserId: Id<"users"> }) {

@@ -17,6 +17,7 @@ const labels = {
   labels: "Labels",
   modules: "Modules",
   vote: "Vote",
+  link: "Link",
 } satisfies Record<Change["field"], string>;
 const voteLabels = { 1: "Upvote", "-1": "Downvote" } satisfies Record<
   NonNullable<Extract<Change, { field: "vote" }>["before"]>,

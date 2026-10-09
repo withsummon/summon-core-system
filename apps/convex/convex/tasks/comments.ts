@@ -2,7 +2,7 @@ import { validateMentions } from "../notifications/mentions";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
 import { compareValues, ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireUser } from "../identity/access";
@@ -19,7 +19,8 @@ import schema from "../schema";
 import { requireCommentAccess, requireEditableComment, discussionIsActive } from "./discussion_access";
 import { imageRichContent } from "./rich_content";
 import { bindCommentImages } from "../assets/commentImages";
-import { commentAudience, commentRequestId } from "./schema";
+import { allocateTaskCompanionApiId, commentAudience, commentRequestId, taskTables } from "./schema";
+import { apiIdSchema } from "../identity/schema";
 import { zodToConvex } from "convex-helpers/server/zod4";
 
 const revisionFields = { commentId: v.id("taskComments"), expectedUpdatedAt: v.number() };
@@ -31,7 +32,74 @@ export const access = query({
     return { canCreate };
   },
 });
-function commentCreation(
+
+// Native historical rows recorded author/creation time, never an updater or external identity.
+// Remove this missing-only owner after both hosts prove coverage and second-pass zero changes.
+export const adoptApiIdentity = internalMutation({
+  args: {
+    expected: v.array(
+      v.object({ ...taskTables.taskComments.validator.fields, _id: v.id("taskComments"), _creationTime: v.number() })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.expected.length < 1 || args.expected.length > 20)
+      throw new ConvexError("Adopt between 1 and 20 exact Comment preimages.");
+    const changes = [];
+    /* oxlint-disable no-await-in-loop */
+    for (const expected of args.expected) {
+      const current = await ctx.db.get(expected._id);
+      if (!current || compareValues(current, expected) !== 0)
+        throw new ConvexError("Comment changed. Capture its current preimage before adoption.");
+      if (
+        [
+          current.apiId,
+          current.createdAt,
+          current.createdBy,
+          current.updatedBy,
+          current.commentJsonText,
+          current.externalSource,
+          current.externalId,
+          current.descriptionApiId,
+          current.attachments,
+          current.parentId,
+          current.projectId,
+          current.workspaceId,
+        ].every((value) => value !== undefined)
+      )
+        continue;
+      const task = await ctx.db.get(current.taskId);
+      const project = task ? await ctx.db.get(task.projectId) : null;
+      if (
+        !task ||
+        !project ||
+        project.workspaceId !== task.workspaceId ||
+        !(await ctx.db.get(task.workspaceId)) ||
+        !(await ctx.db.get(current.authorId)) ||
+        (current.projectId !== undefined && current.projectId !== task.projectId) ||
+        (current.workspaceId !== undefined && current.workspaceId !== task.workspaceId)
+      )
+        throw new ConvexError("Comment scope is inconsistent.");
+      await ctx.db.patch(current._id, {
+        ...(current.apiId === undefined ? { apiId: await allocateTaskCompanionApiId(ctx, "taskComments") } : {}),
+        ...(current.createdAt === undefined ? { createdAt: current._creationTime } : {}),
+        ...(current.createdBy === undefined ? { createdBy: current.authorId } : {}),
+        ...(current.updatedBy === undefined ? { updatedBy: null } : {}),
+        ...(current.commentJsonText === undefined ? { commentJsonText: "{}" } : {}),
+        ...(current.externalSource === undefined ? { externalSource: null } : {}),
+        ...(current.externalId === undefined ? { externalId: null } : {}),
+        ...(current.descriptionApiId === undefined ? { descriptionApiId: apiIdSchema.parse(crypto.randomUUID()) } : {}),
+        ...(current.attachments === undefined ? { attachments: [] } : {}),
+        ...(current.parentId === undefined ? { parentId: null } : {}),
+        ...(current.projectId === undefined ? { projectId: task.projectId } : {}),
+        ...(current.workspaceId === undefined ? { workspaceId: task.workspaceId } : {}),
+      });
+      changes.push({ before: current, after: await ctx.db.get(current._id) });
+    }
+    /* oxlint-enable no-await-in-loop */
+    return changes;
+  },
+});
+export function commentCreation(
   input: Pick<NonNullable<Doc<"taskComments">["creation"]>, "requestId" | "audience" | "anchor"> &
     Pick<Doc<"taskComments">, "html" | "mentionedUserIds">
 ) {
@@ -61,14 +129,28 @@ function commentEvent(
 ) {
   return taskChanged(ctx, task, actorId, { kind, commentId }, delivery, mentionedUserIds, commentBefore);
 }
-async function insertComment(
+export async function insertComment(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   authorId: Id<"users">,
-  input: ReturnType<typeof commentCreation>,
-  delivery: NonNullable<Parameters<typeof taskChanged>[4]>
+  input: ReturnType<typeof commentCreation> &
+    Partial<Pick<Doc<"taskComments">, "createdAt" | "createdBy" | "commentJsonText" | "externalSource" | "externalId">>,
+  delivery: NonNullable<Parameters<typeof taskChanged>[4]>,
+  imageTarget: Parameters<typeof bindCommentImages>[1] = {
+    taskId: task._id,
+    requestId: input.requestId,
+    anchor: input.anchor,
+  }
 ) {
-  const { html, ...intent } = input;
+  const {
+    html,
+    createdAt: suppliedCreatedAt,
+    createdBy,
+    commentJsonText,
+    externalSource,
+    externalId,
+    ...intent
+  } = input;
   const content = imageRichContent(html);
   const creation = {
     ...intent,
@@ -88,7 +170,21 @@ async function insertComment(
     return existing._id;
   }
   if (creation.anchor === null) await validateMentions(ctx, task, creation.mentionedUserIds);
+  const updatedAt = Date.now();
+  const createdAt = suppliedCreatedAt ?? updatedAt;
   const commentId = await ctx.db.insert("taskComments", {
+    workspaceId: task.workspaceId,
+    projectId: task.projectId,
+    apiId: await allocateTaskCompanionApiId(ctx, "taskComments"),
+    createdAt,
+    createdBy: createdBy === undefined ? authorId : createdBy,
+    updatedBy: null,
+    commentJsonText: commentJsonText ?? "{}",
+    externalSource: externalSource ?? null,
+    externalId: externalId ?? null,
+    descriptionApiId: apiIdSchema.parse(crypto.randomUUID()),
+    attachments: [],
+    parentId: null,
     taskId: task._id,
     authorId,
     creation,
@@ -96,50 +192,63 @@ async function insertComment(
     mentionedUserIds: creation.mentionedUserIds,
     html: content.html,
     text: content.description,
-    updatedAt: Date.now(),
+    updatedAt,
     editedAt: null,
     deletedAt: null,
   });
-  await bindCommentImages(
-    ctx,
-    { taskId: task._id, requestId: creation.requestId, anchor: creation.anchor },
-    content,
-    commentId
-  );
+  await bindCommentImages(ctx, imageTarget, content, commentId);
   await commentEvent(ctx, task, authorId, commentId, "comment_created", delivery, creation.mentionedUserIds);
   return commentId;
 }
-async function updateComment(
+export async function updateComment(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   comment: Doc<"taskComments">,
   actorId: Id<"users">,
-  input: Partial<Pick<Doc<"taskComments">, "html" | "audience" | "mentionedUserIds">> & { expectedUpdatedAt: number },
+  input: Partial<
+    Pick<
+      Doc<"taskComments">,
+      "html" | "audience" | "mentionedUserIds" | "commentJsonText" | "externalSource" | "externalId"
+    >
+  > & { expectedUpdatedAt: number },
   delivery: NonNullable<Parameters<typeof taskChanged>[4]>,
-  anchor: string | null = null
+  anchor: string | null = null,
+  imageTarget: Parameters<typeof bindCommentImages>[1] = { taskId: task._id, commentId: comment._id, anchor }
 ) {
   requireCommentRevision(comment, input.expectedUpdatedAt);
   const content =
     input.html === undefined
       ? { html: comment.html, text: comment.text }
-      : await bindCommentImages(
-          ctx,
-          { taskId: task._id, commentId: comment._id, anchor },
-          imageRichContent(input.html),
-          comment._id
-        );
+      : await bindCommentImages(ctx, imageTarget, imageRichContent(input.html), comment._id);
   const audience = input.audience ?? comment.audience;
   const previousMentions = comment.mentionedUserIds ?? [];
   const mentionedUserIds = input.mentionedUserIds ?? previousMentions;
   if (
+    !("task" in imageTarget) &&
     content.html === comment.html &&
+    (input.commentJsonText === undefined || input.commentJsonText === comment.commentJsonText) &&
+    (input.externalSource === undefined || input.externalSource === comment.externalSource) &&
+    (input.externalId === undefined || input.externalId === comment.externalId) &&
     audience === comment.audience &&
     mentionedUserIds.length === previousMentions.length &&
     mentionedUserIds.every((id) => previousMentions.includes(id))
   )
     return comment._id;
   const updatedAt = Math.max(Date.now(), comment.updatedAt + 1);
-  await ctx.db.patch(comment._id, { ...content, audience, mentionedUserIds, updatedAt, editedAt: updatedAt });
+  const contentChanged =
+    content.html !== comment.html ||
+    (input.commentJsonText !== undefined && input.commentJsonText !== comment.commentJsonText);
+  await ctx.db.patch(comment._id, {
+    ...content,
+    audience,
+    mentionedUserIds,
+    updatedAt,
+    updatedBy: actorId,
+    ...(input.commentJsonText === undefined ? {} : { commentJsonText: input.commentJsonText }),
+    ...(input.externalSource === undefined ? {} : { externalSource: input.externalSource }),
+    ...(input.externalId === undefined ? {} : { externalId: input.externalId }),
+    editedAt: !("task" in imageTarget) && contentChanged ? updatedAt : comment.editedAt,
+  });
   await commentEvent(
     ctx,
     task,
@@ -152,7 +261,7 @@ async function updateComment(
   );
   return comment._id;
 }
-async function removeComment(
+export async function removeComment(
   ctx: MutationCtx,
   task: Doc<"tasks">,
   comment: Doc<"taskComments">,
@@ -162,7 +271,7 @@ async function removeComment(
 ) {
   requireCommentRevision(comment, expectedUpdatedAt);
   const updatedAt = Math.max(Date.now(), comment.updatedAt + 1);
-  await ctx.db.patch(comment._id, { deletedAt: updatedAt, updatedAt });
+  await ctx.db.patch(comment._id, { deletedAt: updatedAt, updatedAt, updatedBy: actorId });
   await commentEvent(ctx, task, actorId, comment._id, "comment_deleted", delivery, [], comment.text);
 }
 export const list = query({
@@ -240,7 +349,11 @@ export const restore = mutation({
   handler: async (ctx, args) => {
     const { comment, task, user } = await requireEditableComment(ctx, args.commentId, true);
     requireCommentRevision(comment, args.expectedUpdatedAt);
-    await ctx.db.patch(comment._id, { deletedAt: null, updatedAt: Math.max(Date.now(), comment.updatedAt + 1) });
+    await ctx.db.patch(comment._id, {
+      deletedAt: null,
+      updatedAt: Math.max(Date.now(), comment.updatedAt + 1),
+      updatedBy: user._id,
+    });
     await commentEvent(ctx, task, user._id, comment._id, "comment_restored", "subscribers");
     return comment._id;
   },

@@ -4,6 +4,7 @@ import { apiIdSchema } from "../identity/schema";
 import { convexToZod, zid, zodToConvex } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import { calendarDate } from "../commercial/validation";
+import { linkUrl } from "../quickLinks/validation";
 import { defineTable } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 export const status = v.union(
@@ -412,6 +413,77 @@ const catalogueApiText = catalogueApiString.refine(
 );
 const catalogueApiRequiredText = catalogueApiText.refine((value) => value.length > 0, "This field may not be blank.");
 const catalogueApiExternal = catalogueApiText.nullable();
+export const taskLinkApiField = z.enum([
+  "id",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "workspace",
+  "project",
+  "issue",
+  "title",
+  "url",
+  "metadata",
+]);
+const taskLinkApiFields = z.object({
+  title: catalogueApiText.nullable(),
+  url: catalogueApiString.refine((value) => value.length > 0, "This field may not be blank."),
+  metadata: z.json().refine((value) => value !== null, "This field may not be null."),
+  deleted_at: z.iso
+    .datetime({ offset: true })
+    .transform((value) => Date.parse(value))
+    .nullable(),
+});
+export const taskLinkApiCreate = taskLinkApiFields.pick({ title: true, url: true }).extend({
+  title: taskLinkApiFields.shape.title.optional(),
+  url: taskLinkApiFields.shape.url.transform((value, ctx) => {
+    try {
+      return linkUrl(value, { requireScheme: true });
+    } catch (error) {
+      if (!(error instanceof ConvexError) || typeof error.data !== "string") throw error;
+      ctx.addIssue({ code: "custom", message: error.data });
+      return z.NEVER;
+    }
+  }),
+  created_by: apiIdSchema.nullable().optional(),
+});
+export const taskLinkApiPatch = taskLinkApiFields.partial();
+export const taskCompanionApiResource = z.enum(["links", "comments"]);
+export const commentApiField = z.enum([
+  ...taskLinkApiField.exclude(["title", "url", "metadata"]).options,
+  "comment_html",
+  "access",
+  "external_source",
+  "external_id",
+  "edited_at",
+  "description",
+  "attachments",
+  "parent",
+  "actor",
+  "is_member",
+]);
+const commentApiFields = z.object({
+  comment_html: catalogueApiString,
+  comment_json: z.json().refine((value) => value !== null, "This field may not be null."),
+  access: convexToZod(commentAudience),
+  external_source: catalogueApiExternal,
+  external_id: catalogueApiExternal,
+});
+export const commentApiCreate = commentApiFields.extend({
+  comment_html: commentApiFields.shape.comment_html.default("<p></p>"),
+  comment_json: commentApiFields.shape.comment_json.default({}),
+  access: commentApiFields.shape.access.default("INTERNAL"),
+  external_source: commentApiFields.shape.external_source.default(null),
+  external_id: commentApiFields.shape.external_id.default(null),
+  created_at: z.iso
+    .datetime({ offset: true })
+    .transform((value) => Date.parse(value))
+    .optional(),
+  created_by: apiIdSchema.nullable().optional(),
+});
+export const commentApiPatch = commentApiFields.partial();
 const catalogueApiBoolean = z.preprocess(
   (value) => (value === 0 ? false : value === 1 ? true : value),
   z.union(
@@ -659,6 +731,12 @@ export const taskEventKind = v.union(
   v.literal("comment_restored")
 );
 export const taskChange = v.union(
+  v.object({
+    field: v.literal("link"),
+    linkId: v.id("taskLinks"),
+    before: v.union(v.string(), v.null()),
+    after: v.union(v.string(), v.null()),
+  }),
   v.object({ field: v.literal("vote"), before: v.union(taskVote, v.null()), after: v.union(taskVote, v.null()) }),
   v.object({ field: v.literal("title"), before: v.string(), after: v.string() }),
   v.object({ field: v.literal("priority"), before: priority, after: priority }),
@@ -764,18 +842,34 @@ export const taskTables = {
     .index("by_task_actor_deleted", ["taskId", "actorId", "deletedAt"])
     .index("by_task_vote_deleted", ["taskId", "vote", "deletedAt"]),
   taskLinks: defineTable({
+    // Optional until missing-only adoption of existing companion rows is complete.
+    apiId: v.optional(zodToConvex(apiIdSchema)),
     taskId: v.id("tasks"),
     url: v.string(),
     title: v.union(v.string(), v.null()),
     metadata: v.any(),
-    createdBy: v.id("users"),
+    createdBy: v.union(v.id("users"), v.null()),
     updatedBy: v.id("users"),
     updatedAt: v.number(),
     deletedAt: v.union(v.number(), v.null()),
   })
+    .index("by_api_id", ["apiId"])
     .index("by_task_deleted", ["taskId", "deletedAt"])
     .index("by_task_url_deleted", ["taskId", "url", "deletedAt"]),
   taskComments: defineTable({
+    // Historical updater and external provenance require explicit adoption.
+    apiId: v.optional(zodToConvex(apiIdSchema)),
+    createdAt: v.optional(v.number()),
+    createdBy: v.optional(v.union(v.id("users"), v.null())),
+    updatedBy: v.optional(v.union(v.id("users"), v.null())),
+    commentJsonText: v.optional(v.string()),
+    externalSource: v.optional(v.union(v.string(), v.null())),
+    externalId: v.optional(v.union(v.string(), v.null())),
+    descriptionApiId: v.optional(zodToConvex(apiIdSchema)),
+    attachments: v.optional(v.array(v.string())),
+    parentId: v.optional(v.union(v.id("taskComments"), v.null())),
+    workspaceId: v.optional(v.id("workspaces")),
+    projectId: v.optional(v.id("projects")),
     creation: v.optional(commentCreation),
     audience: commentAudience,
     mentionedUserIds: v.optional(v.array(v.id("users"))),
@@ -787,6 +881,8 @@ export const taskTables = {
     editedAt: v.union(v.number(), v.null()),
     deletedAt: v.optional(v.union(v.number(), v.null())),
   })
+    .index("by_api_id", ["apiId"])
+    .index("by_project_external", ["projectId", "externalSource", "externalId"])
     .index("by_task", ["taskId"])
     .index("by_task_audience", ["taskId", "audience"])
     .index("by_author_task_creation_request", ["authorId", "taskId", "creation.requestId"]),
@@ -946,6 +1042,18 @@ export async function allocateTaskApiId(ctx: MutationCtx) {
     .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
     .unique();
   if (existing) throw new ConvexError("Task API identifier already exists.");
+  return apiId;
+}
+
+export async function allocateTaskCompanionApiId(ctx: MutationCtx, table: "taskLinks" | "taskComments") {
+  const apiId = apiIdSchema.parse(crypto.randomUUID());
+  if (
+    await ctx.db
+      .query(table)
+      .withIndex("by_api_id", (q) => q.eq("apiId", apiId))
+      .unique()
+  )
+    throw new ConvexError("Task companion API identifier already exists.");
   return apiId;
 }
 
