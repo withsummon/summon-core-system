@@ -1397,7 +1397,7 @@ export const taskRead = internalQuery({
       let indexedOrder = order.success ? order.data : "created_at";
       if (indexedOrder === "archived_at") indexedOrder = "created_at";
       else if (indexedOrder === "state__name") indexedOrder = "state__group";
-      if (indexedOrder === "assignees__first_name" || indexedOrder === "issue_module__module__name")
+      if (indexedOrder === "issue_module__module__name")
         throw new ConvexError({ status: 503, detail: `Task list ordering by ${orderBy} is not available yet.` });
       // Invalid/empty ordering falls back to newest first, as Django's sanitizer does.
       // The registered state CASE always sorts ascending, reversing known ranks while keeping default5 last.
