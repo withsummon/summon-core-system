@@ -17,11 +17,14 @@ export function plainDescriptionHtml(text: string) {
     .join("");
 }
 export function taskRichContent(input: string) {
+  if (input.length > 100000) throw new ConvexError("Rich content must be at most 100000 HTML characters.");
   return sanitizeRichContent(input, false);
 }
 
 /** Description and comment owners must bind these image IDs before persisting this content. */
 export function imageRichContent(input: string) {
+  if (input.length > imageHtmlLimit)
+    throw new ConvexError(`Rich content must be at most ${imageHtmlLimit} HTML characters.`);
   const content = sanitizeRichContent(input, true);
   return { ...content, sources: uploadedImageSources(content.html) };
 }
@@ -45,9 +48,7 @@ export function uploadedImageSources(html: string) {
   return sources;
 }
 
-function sanitizeRichContent(input: string, images: boolean) {
-  const inputLimit = images ? imageHtmlLimit : 100000;
-  if (input.length > inputLimit) throw new ConvexError(`Rich content must be at most ${inputLimit} HTML characters.`);
+export function sanitizeRichContent(input: string, images: boolean) {
   const html = sanitizeHtml(input, {
     allowedTags: images ? [...sanitizeHtml.defaults.allowedTags, "image-component"] : sanitizeHtml.defaults.allowedTags,
     allowedAttributes: {

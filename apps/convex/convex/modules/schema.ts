@@ -1,5 +1,6 @@
 import { taskPreferences } from "../tasks/schema";
 import { apiIdSchema } from "../identity/schema";
+import { projectJsonText } from "../projects/schema";
 import { zodToConvex } from "convex-helpers/server/zod4";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -75,7 +76,8 @@ export const moduleTables = {
     .index("by_module", ["moduleId", "deletedAt"])
     .index("by_module_url", ["moduleId", "url", "deletedAt"]),
   modules: defineTable({
-    ...moduleFields,
+    ...moduleInput.omit("descriptionHtml").fields,
+    descriptionHtmlJson: zodToConvex(projectJsonText),
     apiId: v.optional(zodToConvex(apiIdSchema)),
     description: v.string(),
     descriptionTextJson: v.optional(v.union(v.string(), v.null())),

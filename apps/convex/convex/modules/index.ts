@@ -7,19 +7,20 @@ import { ConvexError, v, compareValues } from "convex/values";
 import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { stream } from "convex-helpers/server/stream";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireProject } from "../identity/access";
 import { apiIdSchema } from "../identity/schema";
 import schema from "../schema";
 import { date, text, pageBudget } from "../commercial/validation";
-import { taskRichContent } from "../tasks/rich_content";
+import { plainDescriptionHtml, sanitizeRichContent, taskRichContent } from "../tasks/rich_content";
+import { projectJsonText } from "../projects/schema";
 import { targetKey } from "../favorites/targets";
 import { effectiveFavorite } from "../favorites/access";
 import {
   moduleFields,
-  moduleInput,
+  moduleTables,
   moduleChanges,
   moduleStatus,
   moduleDirectoryView,
@@ -34,15 +35,18 @@ import {
   requireAvailableName,
   requireModulePerson,
 } from "./access";
-function content(args: { name: string; descriptionHtml: string; startDate: string | null; targetDate: string | null }) {
+function content(args: Pick<Doc<"modules">, "name" | "startDate" | "targetDate">, retained?: Doc<"modules">) {
   const startDate = date(args.startDate),
     targetDate = date(args.targetDate);
-  if (startDate && targetDate && startDate > targetDate) throw new ConvexError("Start date cannot exceed target date.");
-  const rich = taskRichContent(args.descriptionHtml);
+  if (
+    startDate &&
+    targetDate &&
+    startDate > targetDate &&
+    (startDate !== retained?.startDate || targetDate !== retained?.targetDate)
+  )
+    throw new ConvexError("Start date cannot exceed target date.");
   return {
     name: text(args.name, "Name", 255, true),
-    descriptionHtml: rich.html,
-    description: rich.description,
     startDate,
     targetDate,
   };
@@ -53,9 +57,10 @@ export const create = mutation({
     const { project, user } = await requireProject(ctx, args.projectId, true);
     if (!project.features?.modules) throw new ConvexError("Enable modules in project settings before creating one.");
     const data = content(args);
+    const rich = taskRichContent(args.descriptionHtml);
     await requireAvailableName(ctx, project._id, data.name);
     if (args.leadId) await requireModulePerson(ctx, project, args.leadId);
-    const { memberIds = [], ...fields } = args;
+    const { memberIds = [], descriptionHtml: _descriptionHtml, ...fields } = args;
     if (memberIds.length > 100) throw new ConvexError("Add at most 100 members in one operation.");
     const members = [...new Set(memberIds)];
     await Promise.all(members.map((id) => requireModulePerson(ctx, project, id)));
@@ -73,6 +78,8 @@ export const create = mutation({
     const moduleId = await ctx.db.insert("modules", {
       ...fields,
       ...data,
+      descriptionHtmlJson: JSON.stringify(rich.html),
+      description: rich.description,
       apiId,
       descriptionTextJson: null,
       viewPropsJson: "{}",
@@ -101,17 +108,26 @@ async function updateModule(
   ctx: MutationCtx,
   module: Doc<"modules">,
   project: Doc<"projects">,
-  fields: Infer<typeof moduleInput>,
+  changes: Infer<typeof moduleChanges>,
   actorId: Id<"users">
 ) {
   requireEditableModule(module);
-  const data = content(fields);
+  const fields = { ...module, ...changes };
+  const data = content(fields, module);
+  const html = projectJsonText.parse(module.descriptionHtmlJson);
+  const rich =
+    changes.descriptionHtml !== undefined &&
+    changes.descriptionHtml !==
+      (typeof html === "string" ? sanitizeRichContent(html, false).html : plainDescriptionHtml(module.description))
+      ? taskRichContent(changes.descriptionHtml)
+      : null;
   await requireAvailableName(ctx, module.projectId, data.name, module._id);
   if (fields.leadId && fields.leadId !== module.leadId) {
     await requireModulePerson(ctx, project, fields.leadId);
   }
   await ctx.db.patch(module._id, {
     ...data,
+    ...(rich === null ? {} : { descriptionHtmlJson: JSON.stringify(rich.html), description: rich.description }),
     status: fields.status,
     leadId: fields.leadId,
     updatedBy: actorId,
@@ -142,7 +158,7 @@ export const patch = mutation({
   handler: async (ctx, args) => {
     const { module, project, user } = await requireModule(ctx, args.moduleId, true);
     requireModuleRevision(module, args.expectedUpdatedAt);
-    await updateModule(ctx, module, project, { ...module, ...args.changes }, user._id);
+    await updateModule(ctx, module, project, args.changes, user._id);
   },
 });
 async function detail(ctx: QueryCtx, moduleId: Id<"modules">) {
@@ -156,8 +172,11 @@ async function moduleDetail(
 ) {
   const canWrite = member.role !== "guest" && projectMember.role !== "guest";
   const lead = module.leadId ? await directoryPerson(ctx, module.leadId, project.workspaceId, member.role) : null;
+  const html = projectJsonText.parse(module.descriptionHtmlJson);
   return {
     ...module,
+    descriptionHtml:
+      typeof html === "string" ? sanitizeRichContent(html, false).html : plainDescriptionHtml(module.description),
     lead,
     canWrite,
     canEdit: canWrite && !module.archived && !module.deleted,
@@ -167,6 +186,38 @@ async function moduleDetail(
 export const get = query({
   args: { moduleId: v.id("modules") },
   handler: (ctx, args) => detail(ctx, args.moduleId),
+});
+
+// Temporary migration owner; remove after exact whole-cohort readback and strict schema activation.
+export const adoptDescriptionHtml = internalMutation({
+  args: {
+    expected: v.array(
+      moduleTables.modules.validator.omit("descriptionHtmlJson").extend({
+        descriptionHtml: moduleFields.descriptionHtml,
+        _id: v.id("modules"),
+        _creationTime: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.expected.length < 1 || args.expected.length > 20)
+      throw new ConvexError("Adopt between 1 and 20 exact Module preimages.");
+    const changes = [];
+    /* oxlint-disable no-await-in-loop */
+    for (const expected of args.expected) {
+      const current = await ctx.db.get(expected._id);
+      if (!current || compareValues(current, expected) !== 0)
+        throw new ConvexError("Module changed. Capture its current preimage before adoption.");
+      const project = await ctx.db.get(current.projectId);
+      if (!project || project.workspaceId !== current.workspaceId || !(await ctx.db.get(current.workspaceId)))
+        throw new ConvexError("Module scope is inconsistent.");
+      const { _id, _creationTime: _created, descriptionHtml, ...fields } = expected;
+      await ctx.db.replace(_id, { ...fields, descriptionHtmlJson: JSON.stringify(descriptionHtml) });
+      changes.push({ before: expected, after: await ctx.db.get(_id) });
+    }
+    /* oxlint-enable no-await-in-loop */
+    return changes;
+  },
 });
 export const resolve = query({
   args: { moduleId: v.string() },

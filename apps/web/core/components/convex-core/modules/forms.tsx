@@ -168,7 +168,6 @@ export function ModuleForm({
                 id="module-form-start"
                 type="date"
                 aria-label="Start date"
-                max={draft.targetDate ?? undefined}
                 value={draft.startDate ?? ""}
                 onChange={(event) => change({ startDate: event.target.value || null })}
                 className="h-7 text-11"
@@ -180,7 +179,6 @@ export function ModuleForm({
                 id="module-form-target"
                 type="date"
                 aria-label="Target date"
-                min={draft.startDate ?? undefined}
                 value={draft.targetDate ?? ""}
                 onChange={(event) => change({ targetDate: event.target.value || null })}
                 className="h-7 text-11"
