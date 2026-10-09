@@ -2,7 +2,7 @@
 
 Source inspection: 2026-09-27, checkout `ba52bcfca9` at inspection. This is a read-only contract inventory, not a cutover, deployment or benchmark receipt. No legacy route/service was removed. The user subsequently confirmed that every inherited Plane feature must be retained.
 
-The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-08) and [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-08) supersede the older ownership and missing-capability descriptions below. This dated table is retained as a contract baseline, not current closure status.
+The [current registration receipt](native-surface-receipt.md#current-committed-source-registration-reconciliation-2026-10-09) and [served candidate](current-parity-checklist.md#current-served-candidate--2026-10-09) supersede the older ownership and missing-capability descriptions below. This dated table is retained as a contract baseline, not current closure status.
 
 ## Ownership at the dated inspection
 
