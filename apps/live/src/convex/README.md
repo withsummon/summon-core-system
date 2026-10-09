@@ -2,7 +2,7 @@
 
 ## Owner and protocol
 
-The separate `convex-start.ts` process accepts `convex:<documentId>` rooms and the bearer token issued by the configured Convex authentication integration. Each connection uses its own user identity. Convex owns document access, revisions and persisted content; Hocuspocus owns the shared Y.Doc.
+The canonical `start.ts` process accepts `convex:<documentId>` rooms and the bearer token issued by the configured Convex authentication integration. Each connection uses its own user identity. Convex owns document access, revisions and persisted content; Hocuspocus owns the shared Y.Doc.
 
 Load applies stored Yjs bytes. The first writable connection initializes content using revision-zero compare-and-swap. Competing connections load the winning seed. Save merges the newest stored snapshot, then sends bytes and the expected revision to `documents.historyActions.save`. That Node action derives HTML, JSON and title with the existing editor converter. Its internal mutation rechecks access, size and revision in the write transaction. Only `DOCUMENT_REVISION_CONFLICT` retries, with a fresh merge, up to three attempts.
 
@@ -16,10 +16,10 @@ Build through the repository's dependency graph:
 
 ```sh
 pnpm turbo run build --filter=live
-CONVEX_URL=http://127.0.0.1:3220 CONVEX_LIVE_HOST=127.0.0.1 CONVEX_LIVE_PORT=3235 node apps/live/dist/convex-start.mjs
+CONVEX_URL=http://127.0.0.1:3210 CONVEX_SITE_URL=http://127.0.0.1:3211 CONVEX_LIVE_HOST=127.0.0.1 CONVEX_LIVE_PORT=3235 node apps/live
 ```
 
-Build the web app with `VITE_CONVEX_LIVE_URL=ws://127.0.0.1:3235` and the matching Convex API and auth-site URLs. The original `start.ts` still serves inherited Django-backed rooms until their migration gates pass.
+Build the web app with `VITE_CONVEX_LIVE_URL=ws://127.0.0.1:3235` and the matching Convex API and auth-site URLs. The default package and Docker entry use this same native startup owner.
 
 ## Remaining integration and limits
 

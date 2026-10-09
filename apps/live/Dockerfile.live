@@ -71,6 +71,8 @@ RUN find /app/node_modules \( -name 'esbuild' -o -name 'tsgolint' \) -type f -de
 
 ENV TURBO_TELEMETRY_DISABLED=1
 
+ENV CONVEX_LIVE_PORT=3000
+
 EXPOSE 3000
 
 CMD ["node", "apps/live"]

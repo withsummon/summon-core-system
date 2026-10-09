@@ -5,7 +5,7 @@
  */
 
 import { Effect, Duration, Schedule, pipe } from "effect";
-import { PdfTimeoutError } from "@/schema/pdf-export";
+import { PdfTimeoutError, PdfAuthenticationError, PdfAccessError, PdfNotFoundError } from "@/schema/pdf-export";
 
 /**
  * Wraps an effect with timeout and exponential backoff retry logic.
@@ -23,15 +23,21 @@ export const withTimeoutAndRetry =
             operation,
           }),
       }),
-      Effect.retry(
-        pipe(
+      Effect.retry({
+        while: (error) =>
+          !(
+            error instanceof PdfAuthenticationError ||
+            error instanceof PdfAccessError ||
+            error instanceof PdfNotFoundError
+          ),
+        schedule: pipe(
           Schedule.exponential(Duration.millis(200)),
           Schedule.compose(Schedule.recurs(maxRetries)),
           Schedule.tapInput((error: E | PdfTimeoutError) =>
             Effect.logWarning("PDF_EXPORT: Retrying operation", { operation, error })
           )
-        )
-      )
+        ),
+      })
     );
 
 /**

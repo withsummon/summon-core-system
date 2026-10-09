@@ -16,7 +16,6 @@
     "build": "tsc --noEmit && tsdown",
     "dev": "tsdown --watch --no-clean --onSuccess \"node --env-file=.env .\"",
     "start": "node --env-file=.env .",
-    "start:convex": "node --env-file=.env dist/convex-start.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -4,378 +4,203 @@
  * See the LICENSE file for details.
  */
 
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { ConvexHttpClient } from "convex/browser";
+import { ConvexError } from "convex/values";
 import sharp from "sharp";
-import { getAllDocumentFormatsFromDocumentEditorBinaryData } from "@plane/editor/lib";
-import type { PDFExportMetadata, TipTapDocument } from "@/lib/pdf";
-import { renderPlaneDocToPdfBuffer } from "@/lib/pdf";
-import { getPageService } from "@/services/page/handler";
-import type { TDocumentTypes } from "@/types";
+import { api } from "@summon/convex/api";
+import { memberLabel } from "@summon/convex/member-label";
 import {
+  getAllDocumentFormatsFromDocumentEditorBinaryData,
+  getBinaryDataFromDocumentEditorHTMLString,
+} from "@plane/editor/lib";
+import { renderPlaneDocToPdfBuffer } from "@/lib/pdf";
+import type { TPdfExportRequestBody } from "@/schema/pdf-export";
+import {
+  PdfExportError,
+  PdfAuthenticationError,
+  PdfAccessError,
   PdfContentFetchError,
+  PdfNotFoundError,
   PdfGenerationError,
   PdfImageProcessingError,
-  PdfTimeoutError,
+  PdfMetadataFetchError,
 } from "@/schema/pdf-export";
-import { withTimeoutAndRetry, recoverWithDefault, tryAsync } from "./effect-utils";
-import type { PdfExportInput, PdfExportResult, PageContent, MetadataResult } from "./types";
+import { tryAsync, withTimeoutAndRetry } from "./effect-utils";
 
-const IMAGE_CONCURRENCY = 4;
-const IMAGE_TIMEOUT_MS = 8000;
-const CONTENT_FETCH_TIMEOUT_MS = 7000;
-const PDF_RENDER_TIMEOUT_MS = 15000;
-const IMAGE_MAX_DIMENSION = 1200;
-
-type TipTapNode = {
-  type: string;
-  attrs?: Record<string, unknown>;
-  content?: TipTapNode[];
-};
-
-/**
- * PDF Export Service
- */
-export class PdfExportService extends Effect.Service<PdfExportService>()("PdfExportService", {
-  sync: () => ({
-    /**
-     * Determines document type
-     */
-    getDocumentType: (_input: PdfExportInput): TDocumentTypes => {
-      return "project_page";
-    },
-
-    /**
-     * Extracts image asset IDs from document content
-     */
-    extractImageAssetIds: (doc: TipTapNode): string[] => {
-      const assetIds: string[] = [];
-
-      const traverse = (node: TipTapNode) => {
-        if ((node.type === "imageComponent" || node.type === "image") && node.attrs?.src) {
-          const src = node.attrs.src as string;
-          if (src && !src.startsWith("http") && !src.startsWith("data:")) {
-            assetIds.push(src);
-          }
-        }
-        if (node.content) {
-          for (const child of node.content) {
-            traverse(child);
-          }
-        }
-      };
-
-      traverse(doc);
-      return [...new Set(assetIds)];
-    },
-
-    /**
-     * Fetches page content (description binary) and parses it
-     */
-    fetchPageContent: (
-      pageService: ReturnType<typeof getPageService>,
-      pageId: string,
-      requestId: string
-    ): Effect.Effect<PageContent, PdfContentFetchError | PdfTimeoutError> =>
-      Effect.gen(function* () {
-        yield* Effect.logDebug("PDF_EXPORT: Fetching page content", { requestId, pageId });
-
-        const descriptionBinary = yield* tryAsync(
-          () => pageService.fetchDescriptionBinary(pageId),
-          (cause) =>
-            new PdfContentFetchError({
-              message: "Failed to fetch page content",
-              cause,
-            })
-        ).pipe(
-          withTimeoutAndRetry("fetch page content", {
-            timeoutMs: CONTENT_FETCH_TIMEOUT_MS,
-            maxRetries: 3,
-          })
-        );
-
-        if (!descriptionBinary) {
-          return yield* Effect.fail(
-            new PdfContentFetchError({
-              message: "Page content not found",
-            })
-          );
-        }
-
-        const binaryData = new Uint8Array(descriptionBinary);
-        const { contentJSON, titleHTML } = getAllDocumentFormatsFromDocumentEditorBinaryData(binaryData);
-
-        return {
-          contentJSON: contentJSON as TipTapDocument,
-          titleHTML: titleHTML || null,
-          descriptionBinary,
-        };
-      }),
-
-    /**
-     * Fetches user mentions for the page
-     */
-    fetchUserMentions: (
-      pageService: ReturnType<typeof getPageService>,
-      pageId: string,
-      requestId: string
-    ): Effect.Effect<MetadataResult> =>
-      Effect.gen(function* () {
-        yield* Effect.logDebug("PDF_EXPORT: Fetching user mentions", { requestId });
-
-        const userMentionsRaw = yield* tryAsync(
-          async () => {
-            if (pageService.fetchUserMentions) {
-              return await pageService.fetchUserMentions(pageId);
-            }
-            return [];
-          },
-          () => []
-        ).pipe(recoverWithDefault([] as Array<{ id: string; display_name: string; avatar_url?: string }>));
-
-        return {
-          userMentions: userMentionsRaw.map((u) => ({
-            id: u.id,
-            display_name: u.display_name,
-            avatar_url: u.avatar_url,
-          })),
-        };
-      }),
-
-    /**
-     * Resolves and processes images for PDF embedding
-     */
-    processImages: (
-      pageService: ReturnType<typeof getPageService>,
-      workspaceSlug: string,
-      projectId: string | undefined,
-      assetIds: string[],
-      requestId: string
-    ): Effect.Effect<Record<string, string>> =>
-      Effect.gen(function* () {
-        if (assetIds.length === 0) {
-          return {};
-        }
-
-        yield* Effect.logDebug("PDF_EXPORT: Processing images", {
-          requestId,
-          count: assetIds.length,
+export const exportToPdf = (input: TPdfExportRequestBody, cookie: string, convexUrl: string, siteUrl: string) =>
+  Effect.gen(function* () {
+    const projectId = input.projectId;
+    const response = yield* tryAsync(
+      () =>
+        fetch(new URL("/api/auth/convex/token", siteUrl), {
+          headers: { Cookie: cookie },
+          redirect: "error",
+          signal: AbortSignal.timeout(7000),
+        }),
+      (cause) => new PdfContentFetchError({ message: "Authentication service is unavailable.", cause })
+    ).pipe(withTimeoutAndRetry("authenticate export", { timeoutMs: 7000, maxRetries: 0 }));
+    if (response.status === 401 || response.status === 403)
+      return yield* Effect.fail(new PdfAuthenticationError({ message: "Authentication required." }));
+    if (!response.ok)
+      return yield* Effect.fail(new PdfContentFetchError({ message: "Authentication service is unavailable." }));
+    const token = yield* tryAsync(
+      async () => Schema.decodeUnknownPromise(Schema.Struct({ token: Schema.NonEmptyString }))(await response.json()),
+      (cause) => new PdfContentFetchError({ message: "Authentication service returned an invalid response.", cause })
+    ).pipe(withTimeoutAndRetry("read authentication response", { timeoutMs: 7000, maxRetries: 0 }));
+    const client = new ConvexHttpClient(convexUrl);
+    client.setAuth(token.token);
+    const page = yield* tryAsync(
+      async () => {
+        if (!(await client.query(api.identity.session.status, {})).valid)
+          throw new PdfAuthenticationError({ message: "Authentication required." });
+        const { workspace } = await client.query(api.navigation.address.resolveWorkspace, {
+          workspaceSlug: input.workspaceSlug,
         });
-
-        // Resolve URLs first
-        const resolvedUrlMap = yield* Effect.forEach(
-          assetIds,
-          (assetId) =>
-            tryAsync(
-              async () =>
-                [assetId, await pageService.resolveImageAssetUrl?.(workspaceSlug, assetId, projectId)] as const,
-              () => new Map<string, string>()
-            ),
-          { concurrency: 1 }
-        ).pipe(
-          Effect.map((entries) => new Map(entries.flatMap<[string, string]>(([id, url]) => (url ? [[id, url]] : [])))),
-          recoverWithDefault(new Map<string, string>())
-        );
-
-        if (resolvedUrlMap.size === 0) {
-          return {};
-        }
-
-        // Process each image
-        const processSingleImage = ([assetId, url]: [string, string]) =>
+        const resolved = await client.query(api.documents.index.resolve, {
+          workspaceId: workspace._id,
+          projectId,
+          documentId: input.pageId,
+        });
+        if (!resolved) throw new PdfNotFoundError({ message: "Page not found." });
+        const snapshot = await client.query(api.documents.index.snapshot, {
+          documentId: resolved.document._id,
+          revision: resolved.document.revision,
+        });
+        return { workspaceId: workspace._id, document: resolved.document, snapshot };
+      },
+      (cause) =>
+        Schema.is(PdfExportError)(cause)
+          ? cause
+          : cause instanceof ConvexError
+            ? new PdfAccessError({ message: "Page access denied." })
+            : new PdfContentFetchError({ message: "Failed to fetch page content.", cause })
+    ).pipe(withTimeoutAndRetry("fetch page content", { timeoutMs: 7000, maxRetries: 3 }));
+    // A new native document has the same empty initial editor content as collaboration/copy.
+    const content = yield* tryAsync(
+      () =>
+        Promise.resolve(
+          getAllDocumentFormatsFromDocumentEditorBinaryData(
+            page.snapshot
+              ? new Uint8Array(page.snapshot.descriptionBinary)
+              : getBinaryDataFromDocumentEditorHTMLString("<p></p>", page.document.name)
+          )
+        ),
+      (cause) => new PdfContentFetchError({ message: "Page content could not be decoded.", cause })
+    );
+    const images = new Set<string>();
+    const mentions = new Set<string>();
+    const nodes = [content.contentJSON];
+    for (const node of nodes) {
+      if (node.content) nodes.push(...node.content);
+      if (
+        (node.type === "imageComponent" || node.type === "image") &&
+        typeof node.attrs?.src === "string" &&
+        !node.attrs.src.startsWith("http") &&
+        !node.attrs.src.startsWith("data:")
+      )
+        images.add(node.attrs.src);
+      if (
+        node.type === "mention" &&
+        (node.attrs?.entity_name === "user_mention" || node.attrs?.entity_name === "user")
+      ) {
+        if (typeof node.attrs.entity_identifier === "string") mentions.add(node.attrs.entity_identifier);
+        if (typeof node.attrs.id === "string") mentions.add(node.attrs.id);
+      }
+    }
+    const userMentions = new Map<string, string>();
+    const ids = [...mentions];
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const members = yield* tryAsync(
+        () =>
+          client.query(api.documents.mentions.resolve, {
+            documentId: page.document._id,
+            userIds: ids.slice(offset, offset + 100),
+          }),
+        (cause) =>
+          cause instanceof ConvexError
+            ? new PdfAccessError({ message: "Document member access denied." })
+            : new PdfMetadataFetchError({
+                message: "Document members are unavailable.",
+                source: "user-mentions",
+                cause,
+              })
+      ).pipe(withTimeoutAndRetry("fetch document members", { timeoutMs: 7000, maxRetries: 0 }));
+      for (const { id, member } of members) userMentions.set(id, memberLabel(member));
+    }
+    const resolvedImageUrls: Record<string, string> = {};
+    if (!input.noAssets)
+      for (const [id, url] of yield* Effect.forEach(
+        [...images],
+        (assetId) =>
           Effect.gen(function* () {
-            const response = yield* tryAsync(
-              () => fetch(url),
+            const asset = yield* tryAsync(
+              () => client.query(api.assets.index.resolveDocumentAsset, { documentId: page.document._id, assetId }),
               (cause) =>
-                new PdfImageProcessingError({
-                  message: "Failed to fetch image",
-                  assetId,
-                  cause,
-                })
+                cause instanceof ConvexError
+                  ? new PdfAccessError({ message: "Document image access denied." })
+                  : new PdfImageProcessingError({ message: "Image could not be resolved.", assetId, cause })
             );
-
-            if (!response.ok) {
-              return yield* Effect.fail(
-                new PdfImageProcessingError({
-                  message: `Image fetch returned ${response.status}`,
-                  assetId,
-                })
-              );
-            }
-
-            const arrayBuffer = yield* tryAsync(
-              () => response.arrayBuffer(),
-              (cause) =>
-                new PdfImageProcessingError({
-                  message: "Failed to read image body",
-                  assetId,
-                  cause,
-                })
-            );
-
-            const processedBuffer = yield* tryAsync(
+            if (!asset) return [assetId, null] as const;
+            const image = yield* tryAsync(
               () =>
-                sharp(Buffer.from(arrayBuffer))
+                fetch(new URL(asset.downloadPath, siteUrl), {
+                  headers: { Authorization: `Bearer ${token.token}` },
+                  redirect: "error",
+                  signal: AbortSignal.timeout(8000),
+                }),
+              (cause) => new PdfImageProcessingError({ message: "Image could not be loaded.", assetId, cause })
+            );
+            if (image.status === 401)
+              return yield* Effect.fail(new PdfAuthenticationError({ message: "Authentication required." }));
+            if (image.status === 403)
+              return yield* Effect.fail(new PdfAccessError({ message: "Document image access denied." }));
+            if (!image.ok) return [assetId, null] as const;
+            const bytes = yield* tryAsync(
+              async () =>
+                sharp(Buffer.from(await image.arrayBuffer()))
                   .rotate()
-                  .flatten({ background: { r: 255, g: 255, b: 255 } })
-                  .resize(IMAGE_MAX_DIMENSION, IMAGE_MAX_DIMENSION, { fit: "inside", withoutEnlargement: true })
+                  .flatten({ background: "#ffffff" })
+                  .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
                   .jpeg({ quality: 85 })
                   .toBuffer(),
-              (cause) =>
-                new PdfImageProcessingError({
-                  message: "Failed to process image",
-                  assetId,
-                  cause,
-                })
+              (cause) => new PdfImageProcessingError({ message: "Image could not be rendered.", assetId, cause })
             );
-
-            const base64 = processedBuffer.toString("base64");
-            return [assetId, `data:image/jpeg;base64,${base64}`] as const;
+            return [assetId, `data:image/jpeg;base64,${bytes.toString("base64")}`] as const;
           }).pipe(
-            withTimeoutAndRetry(`process image ${assetId}`, {
-              timeoutMs: IMAGE_TIMEOUT_MS,
-              maxRetries: 1,
-            }),
-            Effect.tapError((error) =>
-              Effect.logWarning("PDF_EXPORT: Image processing failed", {
-                requestId,
-                assetId,
-                error,
-              })
-            ),
-            Effect.catchAll(() => Effect.succeed(null as readonly [string, string] | null))
-          );
-
-        const entries = Array.from(resolvedUrlMap.entries());
-        const pairs = yield* Effect.forEach(entries, processSingleImage, {
-          concurrency: IMAGE_CONCURRENCY,
+            withTimeoutAndRetry("process image", { timeoutMs: 8000, maxRetries: 1 }),
+            Effect.catchTag("PdfImageProcessingError", () => Effect.succeed([assetId, null] as const)),
+            Effect.catchTag("PdfTimeoutError", () => Effect.succeed([assetId, null] as const))
+          ),
+        { concurrency: 4 }
+      ))
+        if (url !== null) resolvedImageUrls[id] = url;
+    const pdfBuffer = yield* tryAsync(
+      () =>
+        renderPlaneDocToPdfBuffer(content.contentJSON, {
+          ...input,
+          title: input.title || content.titleHTML || undefined,
+          metadata: { userMentions, resolvedImageUrls },
+        }),
+      (cause) => new PdfGenerationError({ message: "Failed to generate PDF.", cause })
+    ).pipe(withTimeoutAndRetry("render PDF", { timeoutMs: 15000, maxRetries: 0 }));
+    const current = yield* tryAsync(
+      async () => {
+        if (!(await client.query(api.identity.session.status, {})).valid)
+          throw new PdfAuthenticationError({ message: "Authentication required." });
+        return client.query(api.documents.index.resolve, {
+          workspaceId: page.workspaceId,
+          projectId,
+          documentId: input.pageId,
         });
-
-        const filtered = pairs.filter((p): p is readonly [string, string] => p !== null);
-        return Object.fromEntries(filtered);
-      }),
-
-    /**
-     * Renders document to PDF buffer
-     */
-    renderPdf: (
-      contentJSON: TipTapDocument,
-      metadata: PDFExportMetadata,
-      options: {
-        title?: string;
-        author?: string;
-        subject?: string;
-        pageSize?: "A4" | "A3" | "A2" | "LETTER" | "LEGAL" | "TABLOID";
-        pageOrientation?: "portrait" | "landscape";
-        noAssets?: boolean;
       },
-      requestId: string
-    ): Effect.Effect<Buffer, PdfGenerationError | PdfTimeoutError> =>
-      Effect.gen(function* () {
-        yield* Effect.logDebug("PDF_EXPORT: Rendering PDF", { requestId });
-
-        const pdfBuffer = yield* tryAsync(
-          () =>
-            renderPlaneDocToPdfBuffer(contentJSON, {
-              title: options.title,
-              author: options.author,
-              subject: options.subject,
-              pageSize: options.pageSize,
-              pageOrientation: options.pageOrientation,
-              metadata,
-              noAssets: options.noAssets,
-            }),
-          (cause) =>
-            new PdfGenerationError({
-              message: "Failed to render PDF",
-              cause,
-            })
-        ).pipe(withTimeoutAndRetry("render PDF", { timeoutMs: PDF_RENDER_TIMEOUT_MS, maxRetries: 0 }));
-
-        yield* Effect.logInfo("PDF_EXPORT: PDF rendered successfully", {
-          requestId,
-          size: pdfBuffer.length,
-        });
-
-        return pdfBuffer;
-      }),
-  }),
-}) {}
-
-/**
- * Main export pipeline - orchestrates the entire PDF export process
- * Separate function to avoid circular dependency in service definition
- */
-export const exportToPdf = (
-  input: PdfExportInput
-): Effect.Effect<PdfExportResult, PdfContentFetchError | PdfGenerationError | PdfTimeoutError, PdfExportService> =>
-  Effect.gen(function* () {
-    const service = yield* PdfExportService;
-    const { requestId, pageId, workspaceSlug, projectId, noAssets } = input;
-
-    yield* Effect.logInfo("PDF_EXPORT: Starting export", { requestId, pageId, workspaceSlug });
-
-    // Create page service
-    const documentType = service.getDocumentType(input);
-    const pageService = getPageService(documentType, {
-      workspaceSlug,
-      projectId: projectId || null,
-      cookie: input.cookie,
-      documentType,
-      userId: "",
-    });
-
-    // Fetch content
-    const content = yield* service.fetchPageContent(pageService, pageId, requestId);
-
-    // Extract image asset IDs
-    const imageAssetIds = service.extractImageAssetIds(content.contentJSON as TipTapNode);
-
-    // Fetch user mentions
-    let metadata = yield* service.fetchUserMentions(pageService, pageId, requestId);
-
-    // Process images if needed
-    if (!noAssets && imageAssetIds.length > 0) {
-      const resolvedImages = yield* service.processImages(
-        pageService,
-        workspaceSlug,
-        projectId,
-        imageAssetIds,
-        requestId
-      );
-      metadata = { ...metadata, resolvedImageUrls: resolvedImages };
-    }
-
-    yield* Effect.logDebug("PDF_EXPORT: Metadata prepared", {
-      requestId,
-      userMentions: metadata.userMentions?.length ?? 0,
-      resolvedImages: Object.keys(metadata.resolvedImageUrls ?? {}).length,
-    });
-
-    // Render PDF
-    const documentTitle = input.title || content.titleHTML || undefined;
-    const pdfBuffer = yield* service.renderPdf(
-      content.contentJSON,
-      metadata,
-      {
-        title: documentTitle,
-        author: input.author,
-        subject: input.subject,
-        pageSize: input.pageSize,
-        pageOrientation: input.pageOrientation,
-        noAssets,
-      },
-      requestId
-    );
-
-    yield* Effect.logInfo("PDF_EXPORT: Export complete", {
-      requestId,
-      pageId,
-      size: pdfBuffer.length,
-    });
-
-    return {
-      pdfBuffer,
-      outputFileName: input.fileName || `page-${pageId}.pdf`,
-      pageId,
-    };
+      (cause) =>
+        Schema.is(PdfExportError)(cause)
+          ? cause
+          : cause instanceof ConvexError
+            ? new PdfAccessError({ message: "Page access denied." })
+            : new PdfContentFetchError({ message: "Page access could not be verified.", cause })
+    ).pipe(withTimeoutAndRetry("verify page access", { timeoutMs: 7000, maxRetries: 0 }));
+    if (!current) return yield* Effect.fail(new PdfNotFoundError({ message: "Page not found." }));
+    return { pdfBuffer, outputFileName: input.fileName || `page-${input.pageId}.pdf`, pageId: input.pageId };
   });
