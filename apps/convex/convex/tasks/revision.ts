@@ -1,7 +1,7 @@
 import { taskPropertyChanges } from "./activity_changes";
 import { recordTaskEvent } from "../notifications/delivery";
 import { compareValues, ConvexError } from "convex/values";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { priority, stateApiGroup, stateApiGroupFromStatus } from "./schema";
 import { DirectAggregate } from "@convex-dev/aggregate";
@@ -23,17 +23,23 @@ export const taskCollection = new DirectAggregate<{
           | "priority"
           | "state__group"
           | "-state__group"
+          | "labels__name"
         ),
       ];
-  Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"]];
+  Key: number | [boolean, Doc<"tasks">["startDate" | "completedAt"] | string];
   Id: Id<"tasks">;
 }>(components.taskCollection);
 
-export function taskCollectionEntries(task: Doc<"tasks">): Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] {
+export async function taskCollectionEntries(
+  ctx: QueryCtx,
+  task: Doc<"tasks">,
+  resolvedLabels?: Doc<"taskLabels">[],
+  namespace?: Parameters<typeof taskCollection.count>[1]["namespace"]
+): Promise<Parameters<typeof taskCollection.insertIfDoesNotExist>[1][]> {
   const defaultStateRank = stateApiGroup.options.indexOf("triage");
   const stateRank =
     task.stateId === null ? defaultStateRank : stateApiGroup.options.indexOf(stateApiGroupFromStatus(task.status));
-  return [
+  const entries: Parameters<typeof taskCollection.insertIfDoesNotExist>[1][] = [
     { namespace: task.projectId, key: task._creationTime, id: task._id },
     { namespace: [task.projectId, "sequence_id"], key: task.sequence, id: task._id },
     { namespace: [task.projectId, "sort_order"], key: task.sortOrder, id: task._id },
@@ -49,13 +55,38 @@ export function taskCollectionEntries(task: Doc<"tasks">): Parameters<typeof tas
       id: task._id,
     },
   ];
+  if (namespace !== undefined && compareValues(namespace, [task.projectId, "labels__name"]) !== 0) return entries;
+  const labels = resolvedLabels
+    ? new Map(resolvedLabels.map((label) => [label._id, label] as const))
+    : new Map(await Promise.all(task.labelIds.map(async (id) => [id, await ctx.db.get(id)] as const)));
+  let labelName: string | null = null;
+  for (const id of task.labelIds) {
+    const label = labels.get(id);
+    if (!label || label.projectId !== task.projectId || label.workspaceId !== task.workspaceId)
+      throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+    if (labelName === null || compareValues(label.name, labelName) > 0) labelName = label.name;
+  }
+  entries.push({ namespace: [task.projectId, "labels__name"], key: [labelName === null, labelName], id: task._id });
+  return entries;
 }
 
 // Synchronous tolerant writes keep live mutations and a paginated backfill in one transaction.
-export async function indexTaskCollection(ctx: MutationCtx, task: Doc<"tasks">, previous?: Doc<"tasks">) {
-  const items = taskCollectionEntries(task);
+export async function indexTaskCollection(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  previous?: Doc<"tasks">,
+  previousEntries?: Awaited<ReturnType<typeof taskCollectionEntries>>
+) {
+  const labels = await Promise.all(
+    [...new Set([...task.labelIds, ...(previous?.labelIds ?? [])])].map(async (id) => {
+      const label = await ctx.db.get(id);
+      if (!label) throw new ConvexError({ status: 503, detail: "Task collection index requires reconciliation." });
+      return label;
+    })
+  );
+  const items = await taskCollectionEntries(ctx, task, labels);
   // One producer keeps entry positions identical for the real before/current documents.
-  const before = taskCollectionEntries(previous ?? task);
+  const before = previousEntries ?? (await taskCollectionEntries(ctx, previous ?? task, labels));
   await Promise.all(
     items.map(async (item, index) => {
       const old = before[index];

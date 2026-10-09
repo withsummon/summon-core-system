@@ -7,6 +7,8 @@ import { taskTables, requireTaskLabelAdopted, labelFields, labelWriteFields, all
 import { requireLabelManagement } from "./label_access";
 import { text } from "../commercial/validation";
 import type { Doc, Id } from "../_generated/dataModel";
+import { taskIsActive } from "./access";
+import { indexTaskCollection, taskCollectionEntries } from "./revision";
 async function projectLabels(ctx: QueryCtx, projectId: Id<"projects">) {
   const rows = await ctx.db
     .query("taskLabels")
@@ -172,12 +174,23 @@ export async function writeTaskLabel(
   if (existing) {
     if (existing.projectId !== project._id || existing.workspaceId !== project.workspaceId || existing.retiring)
       throw new ConvexError("Label is unavailable or being removed.");
+    const tasks =
+      existing.name === data.name
+        ? []
+        : (
+            await ctx.db
+              .query("tasks")
+              .withIndex("by_project", (q) => q.eq("projectId", project._id))
+              .collect()
+          ).filter((task) => taskIsActive(task) && task.labelIds.includes(existing._id));
+    const before = await Promise.all(tasks.map((task) => taskCollectionEntries(ctx, task)));
     await ctx.db.patch(existing._id, {
       ...data,
       updatedBy: user._id,
       updatedAt: Date.now(),
       revision: existing.revision + 1,
     });
+    await Promise.all(tasks.map((task, index) => indexTaskCollection(ctx, task, task, before[index])));
     return existing._id;
   }
   return ctx.db.insert("taskLabels", {
