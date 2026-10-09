@@ -1551,8 +1551,6 @@ export const writeTaskApi = internalMutation({
         task.deletedAt !== null)
     )
       throw new ConvexError({ status: 404, error: "The requested resource does not exist." });
-    if (task?.status === "triage")
-      throw new ConvexError({ status: 503, detail: "Triage writes require the intake owner." });
     const raw = projectJsonText.pipe(catalogueApiBody).safeParse(args.bodyJson);
     if (!raw.success)
       throw new ConvexError({ status: 400, errors: { non_field_errors: z.flattenError(raw.error).formErrors } });
@@ -1671,7 +1669,8 @@ export const writeTaskApi = internalMutation({
       (!state ||
         state.projectId !== access.project._id ||
         state.workspaceId !== access.workspace._id ||
-        taskStateDeletedAt(state.deletedAt) !== null)
+        taskStateDeletedAt(state.deletedAt) !== null ||
+        state.status === "triage")
     )
       throw new ConvexError({ status: 400, errors: { state: ["State is not valid please pass a valid state_id"] } });
     if (data.state === null || !task) {
@@ -1689,8 +1688,6 @@ export const writeTaskApi = internalMutation({
       if (!state)
         throw new ConvexError({ status: 503, detail: "Task creation requires an adopted ordinary project state." });
     }
-    if (state && !taskStateIsSelectable(state))
-      throw new ConvexError({ status: 503, detail: "Triage writes require the intake owner." });
     // DRF validates fields first, then checks duplicates using the original request values.
     const duplicateSource = Object.hasOwn(raw.data, "external_source")
       ? raw.data.external_source
@@ -1759,7 +1756,7 @@ export const writeTaskApi = internalMutation({
       );
       if (!changed && (parentChanged || descriptionChanged)) await taskChanged(ctx, task, access.user._id);
     } else {
-      if (!state || !taskStateIsSelectable(state)) throw new Error("The ordinary Task writer requires its state.");
+      if (!state || state.status === "triage") throw new Error("The ordinary Task writer requires its state.");
       const defaultAssigneeId = access.project.defaultAssigneeId;
       const defaultAssignee = defaultAssigneeId
         ? await ctx.db
