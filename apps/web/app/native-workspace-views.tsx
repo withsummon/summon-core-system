@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import { usePaginatedQuery } from "convex-helpers/react";
 import { api } from "@summon/convex/api";
+import { defaultTaskPreferences } from "@summon/convex/task-schema";
 import { DEFAULT_GLOBAL_VIEWS_LIST } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -19,13 +20,12 @@ import {
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
-import { taskStatusOptions } from "@/components/convex-core/tasks/options";
+import { WorkspaceViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
 import { TaskPeek } from "@/components/convex-core/tasks/task-detail";
 import { WorkspaceViewForm } from "@/components/convex-core/saved-views/workspace-form";
 import { useStickiesCommands } from "@/components/stickies/native/provider";
 import { DefaultWorkspaceViewQuickActions } from "@/components/workspace/views/default-view-quick-action";
 import { PreservedWorkspaceShell } from "@/components/workspace/native-shell/workspace-shell";
-import { usePlatformOS } from "@/hooks/use-platform-os";
 import type { WorkspaceSession } from "@/components/workspace/native-shell/session";
 
 export default function NativeWorkspaceView() {
@@ -38,7 +38,6 @@ export default function NativeWorkspaceView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { isMobile } = usePlatformOS();
   const [creatingView, setCreatingView] = useState(false);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const search = params.get("search") ?? "";
@@ -55,13 +54,6 @@ export default function NativeWorkspaceView() {
     { workspaceId: session.workspace._id, scope, due: "all", today, search },
     { initialNumItems: 50 }
   );
-
-  const openTask = (identifier: string) =>
-    setParams((current) => {
-      const next = new URLSearchParams(current);
-      next.set("peek", identifier);
-      return next;
-    });
 
   return (
     <PreservedWorkspaceShell
@@ -132,55 +124,13 @@ export default function NativeWorkspaceView() {
                 className="w-full bg-transparent !p-0 text-11 leading-5 text-secondary placeholder:text-placeholder focus:outline-none"
               />
             </div>
-            <table className="w-full min-w-[760px] bg-surface-1 text-left">
-              <thead className="sticky top-0 z-10 border-b border-subtle bg-layer-1 text-13 font-medium">
-                <tr>
-                  <th className="h-11 min-w-80 border-r border-subtle px-page-x font-medium">Work items</th>
-                  <th className="h-11 min-w-36 border-r border-subtle px-4 font-medium">Project</th>
-                  <th className="h-11 min-w-32 border-r border-subtle px-4 font-medium">State</th>
-                  <th className="h-11 min-w-28 border-r border-subtle px-4 font-medium">Priority</th>
-                  <th className="h-11 min-w-32 px-4 font-medium">Due date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map(({ task, project, state }) => {
-                  const identifier = `${project.identifier}-${task.sequence}`;
-                  const href = `/${session.workspace.slug}/browse/${identifier}/`;
-                  return (
-                    <tr key={task._id} className="h-11 border-b border-subtle bg-surface-1 hover:bg-surface-2">
-                      <td className="min-w-80 border-r border-subtle px-page-x">
-                        <Link
-                          to={href}
-                          className="flex min-w-0 items-center gap-3 text-13 text-primary"
-                          onClick={(event) => {
-                            if (
-                              isMobile ||
-                              event.button !== 0 ||
-                              event.metaKey ||
-                              event.ctrlKey ||
-                              event.shiftKey ||
-                              event.altKey
-                            )
-                              return;
-                            event.preventDefault();
-                            openTask(identifier);
-                          }}
-                        >
-                          <span className="shrink-0 text-tertiary">{identifier}</span>
-                          <span className="truncate">{task.title}</span>
-                        </Link>
-                      </td>
-                      <td className="border-r border-subtle px-4 text-12">{project.name}</td>
-                      <td className="border-r border-subtle px-4 text-12">
-                        {state?.name ?? taskStatusOptions[task.status].label}
-                      </td>
-                      <td className="border-r border-subtle px-4 text-12 capitalize">{task.priority}</td>
-                      <td className="px-4 text-12">{task.targetDate ?? "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <WorkspaceViewLayoutRoot
+              rows={results}
+              workspace={session.workspace}
+              displayFilters={{ ...defaultTaskPreferences.displayFilters, layout: "spreadsheet" }}
+              displayProperties={defaultTaskPreferences.displayProperties}
+              cohortComplete={status === "Exhausted"}
+            />
             {status === "LoadingFirstPage" || (status === "LoadingMore" && results.length === 0) ? (
               <p role="status" className="p-5 text-13">
                 Loading work items…
