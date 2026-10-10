@@ -27,7 +27,9 @@ jobs:
   lint-api:
     name: Lint API
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
+    env:
+      RUFF_VERSION: "0.16.9"
     if: |
       github.event_name != 'pull_request' || (
         github.event.pull_request.draft == false &&
@@ -35,15 +37,13 @@ jobs:
       )
     steps:
       - uses: actions/checkout@v6
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
-          python-version: "3.12.x"
-          cache: 'pip'
-          cache-dependency-path: 'apps/api/requirements.txt'
-      - name: Install Pylint
-        run: python -m pip install ruff
-      - name: Install API Dependencies
-        run: cd apps/api && pip install -r requirements.txt
+          version: "0.12.19"
+      # Ruff needs no project dependencies. apps/api/pyproject.toml's required-version
+      # fails these steps if this pin drifts from the one developers use.
       - name: Lint apps/api
-        run: ruff check --fix apps/api
+        run: uvx ruff@$RUFF_VERSION check apps/api
+      - name: Check formatting
+        run: uvx ruff@$RUFF_VERSION format --check apps/api

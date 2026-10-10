@@ -4,6 +4,8 @@ version = "0.24.0"
 description = "Open-source project management that unlocks customer value"
 
 [tool.ruff]
+# CI runs this exact version (uvx ruff@0.16.9); a different local ruff fails instead of disagreeing.
+required-version = "==0.16.9"
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
