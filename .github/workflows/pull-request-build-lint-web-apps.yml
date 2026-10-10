@@ -4,15 +4,23 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - "preview"
+      - "main"
     types:
       - "opened"
       - "synchronize"
       - "reopened"
+  push:
+    branches:
+      - "main"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# turbo --affected compares against the PR base, or the previous commit on a push.
+env:
+  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+  TURBO_SCM_HEAD: ${{ github.sha }}
 
 jobs:
   # Format check has no build dependencies - run immediately in parallel
@@ -21,11 +29,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
-    env:
-      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
-      TURBO_SCM_HEAD: ${{ github.sha }}
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.requested_reviewers != null
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -61,11 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
-    env:
-      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
-      TURBO_SCM_HEAD: ${{ github.sha }}
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.requested_reviewers != null
+      )
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout code
@@ -94,9 +100,9 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.event.pull_request.base.sha }}-${{ github.sha }}
+          key: turbo-${{ runner.os }}-${{ env.TURBO_SCM_BASE }}-${{ github.sha }}
           restore-keys: |
-            turbo-${{ runner.os }}-${{ github.event.pull_request.base.sha }}-
+            turbo-${{ runner.os }}-${{ env.TURBO_SCM_BASE }}-
             turbo-${{ runner.os }}-
 
       - name: Install dependencies
@@ -109,7 +115,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.event.pull_request.base.sha }}-${{ github.sha }}
+          key: turbo-${{ runner.os }}-${{ env.TURBO_SCM_BASE }}-${{ github.sha }}
 
   # Lint check - no build dependency, OxLint is a standalone Rust binary
   check-lint:
@@ -117,11 +123,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.requested_reviewers != null
-    env:
-      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
-      TURBO_SCM_HEAD: ${{ github.sha }}
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.requested_reviewers != null
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -158,8 +163,6 @@ jobs:
     needs: build
     timeout-minutes: 15
     env:
-      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
-      TURBO_SCM_HEAD: ${{ github.sha }}
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout code
@@ -188,7 +191,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.event.pull_request.base.sha }}-${{ github.sha }}
+          key: turbo-${{ runner.os }}-${{ env.TURBO_SCM_BASE }}-${{ github.sha }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
