@@ -2,20 +2,20 @@
 
 ## Commands
 
-- `pnpm dev` - Start all dev servers (web:3000, admin:3001)
-- `pnpm build` - Build all packages and apps
-- `pnpm check` - Run all checks (format, lint, types)
-- `pnpm check:lint` - OxLint across all packages
-- `pnpm check:types` - TypeScript type checking
-- `pnpm fix` - Auto-fix format and lint issues
-- `pnpm turbo run <command> --filter=<package>` - Target specific package/app
-- `pnpm --filter=@plane/ui storybook` - Start Storybook on port 6006
+- `bun run dev` - Start all dev servers (web:3000, admin:3001)
+- `bun run build` - Build all packages and apps
+- `bun run check` - Run all checks (format, lint, types)
+- `bun run check:lint` - OxLint across all packages
+- `bun run check:types` - TypeScript type checking
+- `bun run fix` - Auto-fix format and lint issues
+- `bun run turbo run <command> --filter=<package>` - Target specific package/app
+- `bun run --filter=@plane/ui storybook` - Start Storybook on port 6006
 
 ## Code Style
 
 - **Imports**: Use `workspace:*` for internal packages, `catalog:` for external deps
 - **TypeScript**: Strict mode enabled, all files must be typed
-- **Formatting**: oxfmt, run `pnpm fix:format`
+- **Formatting**: oxfmt, run `bun run fix:format`
 - **Linting**: OxLint with shared `.oxlintrc.json` config
 - **Naming**: camelCase for variables/functions, PascalCase for components/types
 - **Error Handling**: Use try-catch with proper error types, log errors appropriately

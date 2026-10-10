@@ -6,5 +6,5 @@ build/
 dist/
 node_modules/
 out/
-pnpm-lock.yaml
+bun.lock
 storybook-static/

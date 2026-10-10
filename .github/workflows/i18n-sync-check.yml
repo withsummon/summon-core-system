@@ -44,8 +44,10 @@ jobs:
         with:
           node-version: "22.18.0"
 
-      - name: Enable Corepack and pnpm
-        run: corepack enable pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
       - name: Run sync check
-        run: pnpm dlx tsx packages/i18n/scripts/sync-check.ts --ci
+        run: bunx tsx packages/i18n/scripts/sync-check.ts --ci

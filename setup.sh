@@ -77,10 +77,13 @@ else
     success=false
 fi
 
-# Activate pnpm (version set in package.json)
-corepack enable pnpm || success=false
-# Install Node dependencies
-pnpm install || success=false
+# Install Node dependencies with Bun (version pinned in package.json "packageManager")
+if command -v bun >/dev/null 2>&1; then
+    bun install || success=false
+else
+    echo -e "${RED}✗${NC} Bun is not installed. Install Bun 1.4.2 (https://bun.sh), then run: bun install"
+    success=false
+fi
 
 # Summary
 echo -e "\n${YELLOW}Setup status:${NC}"

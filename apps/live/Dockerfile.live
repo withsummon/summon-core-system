@@ -1,51 +1,39 @@
 # syntax=docker/dockerfile:1.7
 FROM node:22-alpine AS base
 
-# Setup pnpm package manager with corepack and configure global bin directory for caching
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
-RUN corepack enable
-
 # *****************************************************************************
-# STAGE 1: Prune the project
+# STAGE 1: Collect workspace manifests
 # *****************************************************************************
-FROM base AS builder
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk update
-RUN apk add --no-cache libc6-compat
-# Set working directory
-WORKDIR /app
-ARG TURBO_VERSION=2.9.18
-RUN corepack enable pnpm && pnpm add -g turbo@${TURBO_VERSION}
+FROM base AS manifests
+WORKDIR /src
 COPY . .
-RUN turbo prune --scope=live --docker
+# Every workspace manifest plus the lockfile: the install layer depends only on these,
+# so it stays cached until dependencies change.
+RUN mkdir -p /out && cp package.json bun.lock bunfig.toml /out/ \
+  && for f in apps/*/package.json packages/*/package.json; do mkdir -p "/out/$(dirname "$f")" && cp "$f" "/out/$f"; done
 
 # *****************************************************************************
 # STAGE 2: Install dependencies & build the project
 # *****************************************************************************
-# Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
+# Bun installs dependencies; it is build-only and never reaches the runtime image.
+COPY --from=oven/bun:1.4.2-alpine /usr/local/bin/bun /usr/local/bin/bun
+ARG TURBO_VERSION=2.9.18
+RUN bun add -g turbo@${TURBO_VERSION}
+ENV PATH="/root/.bun/bin:$PATH"
 RUN apk update
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # First install dependencies (as they change less often)
-COPY .gitignore .gitignore
-COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN corepack enable pnpm
-
-# Copy full directory structure before fetch to ensure all package.json files are available
-COPY --from=builder /app/out/full/ .
-COPY turbo.json turbo.json
-
-# Fetch dependencies to cache store, then install offline with dev deps
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch --store-dir=/pnpm/store
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store CI=true pnpm install --offline --frozen-lockfile --store-dir=/pnpm/store
+COPY --from=manifests /out/ .
+RUN --mount=type=cache,id=bun-install,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --filter=live
+COPY . .
 
 ENV TURBO_TELEMETRY_DISABLED=1
 
-RUN pnpm turbo run build --filter=live
+RUN turbo run build --filter=live
 
 # *****************************************************************************
 # STAGE 3: Run the project

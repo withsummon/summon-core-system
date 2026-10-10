@@ -37,7 +37,8 @@ This helps us triage and manage issues more efficiently.
 ### Requirements
 
 - Docker Engine installed and running
-- Node.js version 20+ [LTS version](https://nodejs.org/en/about/previous-releases)
+- Node.js 22.18+ [LTS version](https://nodejs.org/en/about/previous-releases) (runtime)
+- [Bun](https://bun.sh) 1.4.2 (package manager and script runner)
 - Python version 3.8+
 - Postgres version v14
 - Redis version v6.2.7
@@ -73,7 +74,7 @@ docker compose -f docker-compose-local.yml up
 4. Start web apps:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 5. Open your browser to http://localhost:3001/god-mode/ and register yourself as instance admin

@@ -36,26 +36,24 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
 
-      - name: Enable Corepack and pnpm
-        run: corepack enable pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Cache pnpm store
+      - name: Cache Bun install cache
         uses: actions/cache@v5
         with:
-          path: ${{ env.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            pnpm-store-${{ runner.os }}-
+            bun-cache-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Check formatting
-        run: pnpm turbo run check:format --affected
+        run: bun run turbo run check:format --affected
 
   # Build packages - required for lint and type checks
   build:
@@ -79,20 +77,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
 
-      - name: Enable Corepack and pnpm
-        run: corepack enable pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Cache pnpm store
+      - name: Cache Bun install cache
         uses: actions/cache@v5
         with:
-          path: ${{ env.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            pnpm-store-${{ runner.os }}-
+            bun-cache-${{ runner.os }}-
 
       - name: Restore Turbo cache
         uses: actions/cache/restore@v5
@@ -104,10 +100,10 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm turbo run build --affected
+        run: bun run turbo run build --affected
 
       - name: Save Turbo cache
         uses: actions/cache/save@v5
@@ -136,26 +132,24 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
 
-      - name: Enable Corepack and pnpm
-        run: corepack enable pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Cache pnpm store
+      - name: Cache Bun install cache
         uses: actions/cache@v5
         with:
-          path: ${{ env.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            pnpm-store-${{ runner.os }}-
+            bun-cache-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run check:lint
-        run: pnpm turbo run check:lint --affected
+        run: bun run turbo run check:lint --affected
 
   # Type check depends on build artifacts
   check-types:
@@ -177,20 +171,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
 
-      - name: Enable Corepack and pnpm
-        run: corepack enable pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Cache pnpm store
+      - name: Cache Bun install cache
         uses: actions/cache@v5
         with:
-          path: ${{ env.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            pnpm-store-${{ runner.os }}-
+            bun-cache-${{ runner.os }}-
 
       - name: Restore Turbo cache
         uses: actions/cache/restore@v5
@@ -199,7 +191,7 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.event.pull_request.base.sha }}-${{ github.sha }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run check:types
-        run: pnpm turbo run check:types --affected
+        run: bun run turbo run check:types --affected

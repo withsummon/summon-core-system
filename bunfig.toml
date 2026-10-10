@@ -1,0 +1,21 @@
+[install]
+# Each package sees only the dependencies it declares.
+linker = "isolated"
+# Tools every workspace expects to resolve from the root.
+publicHoistPattern = ["typescript", "eslint", "*@plane/*", "vite", "turbo"]
+# Supply-chain gate: refuse versions published less than a day ago.
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = [
+  "@storybook/addon-docs",
+  "@storybook/builder-vite",
+  "@storybook/csf-plugin",
+  "@storybook/react",
+  "@storybook/react-dom-shim",
+  "@storybook/react-vite",
+  "storybook",
+]
+
+# Security pins: package.json "overrides" enforces single-major pins. Bun cannot scope an
+# override to one major, so the multi-major pins below are held only by bun.lock:
+#   minimatch 3.1.4 / 10.2.3, ajv 6.14.0 / 8.18.0, ws 7.5.11 / 8.21.0
+# After `bun update` or adding dependencies, check these in bun.lock have not regressed.

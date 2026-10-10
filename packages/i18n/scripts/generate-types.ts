@@ -83,7 +83,7 @@ function main(): void {
   const jsonFiles = fs
     .readdirSync(localesDir)
     .filter((file) => file.endsWith(".json"))
-    .sort();
+    .toSorted();
 
   if (jsonFiles.length === 0) {
     console.error(`Error: No JSON files found in ${localesDir}`);
@@ -133,7 +133,7 @@ function main(): void {
   }
 
   // Detect path conflicts
-  const sortedKeys = [...allKeys].sort();
+  const sortedKeys = [...allKeys].toSorted();
   const pathConflicts = detectPathConflicts(sortedKeys);
 
   if (pathConflicts.length > 0) {
@@ -155,7 +155,7 @@ function main(): void {
 
 // AUTO-GENERATED — DO NOT EDIT
 // Generated from ${jsonFiles.length} English namespace files (${sortedKeys.length} keys)
-// Run: pnpm run generate:types
+// Run: bun run generate:types
 
 export type TTranslationKeys =
 ${keyLines}

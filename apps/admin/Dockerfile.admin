@@ -3,28 +3,28 @@ FROM node:22-alpine AS base
 WORKDIR /app
 
 ENV TURBO_TELEMETRY_DISABLED=1
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
 ENV CI=1
-
-RUN corepack enable pnpm
 
 # =========================================================================== #
 
-FROM base AS builder
-
-RUN pnpm add -g turbo@2.9.18
-
+FROM base AS manifests
+WORKDIR /src
 COPY . .
-
-# Create a pruned workspace for just the admin app
-RUN turbo prune --scope=admin --docker
+# Every workspace manifest plus the lockfile: the install layer depends only on these,
+# so it stays cached until dependencies change.
+RUN mkdir -p /out && cp package.json bun.lock bunfig.toml /out/ \
+  && for f in apps/*/package.json packages/*/package.json; do mkdir -p "/out/$(dirname "$f")" && cp "$f" "/out/$f"; done
 
 # =========================================================================== #
 
 FROM base AS installer
+# Bun installs dependencies; it is build-only and never reaches the runtime image.
+COPY --from=oven/bun:1.4.2-alpine /usr/local/bin/bun /usr/local/bin/bun
+ARG TURBO_VERSION=2.9.18
+RUN bun add -g turbo@${TURBO_VERSION}
+ENV PATH="/root/.bun/bin:$PATH"
 
-# Build in production mode; we still install dev deps explicitly below
+# Build in production mode; bun install still includes dev dependencies for the build
 ENV NODE_ENV=production
 
 # Public envs required at build time (pick up via process.env)
@@ -58,19 +58,13 @@ ENV VITE_WEBSITE_URL=$VITE_WEBSITE_URL
 ARG VITE_SUPPORT_EMAIL="support@plane.so"
 ENV VITE_SUPPORT_EMAIL=$VITE_SUPPORT_EMAIL
 
-COPY .gitignore .gitignore
-COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-
-# Copy full directory structure before fetch to ensure all package.json files are available
-COPY --from=builder /app/out/full/ .
-COPY turbo.json turbo.json
-
-# Install dependencies directly
-RUN CI=true pnpm install --frozen-lockfile --prod=false
+COPY --from=manifests /out/ .
+RUN --mount=type=cache,id=bun-install,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --filter=admin
+COPY . .
 
 # Build only the admin package
-RUN pnpm turbo run build --filter=admin
+RUN turbo run build --filter=admin
 
 # =========================================================================== #
 
