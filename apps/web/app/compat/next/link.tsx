@@ -16,10 +16,20 @@ type NextLinkProps = Omit<React.ComponentProps<"a">, "href" | "prefetch"> & {
   shallow?: boolean; // next.js prop, ignored
 };
 
-function Link({ href, replace, prefetch, scroll: _scroll, shallow: _shallow, ...rest }: NextLinkProps) {
+// Forward the ref: primitives such as Base UI tabs measure and focus the rendered anchor.
+const Link = React.forwardRef<HTMLAnchorElement, NextLinkProps>(function Link(
+  { href, replace, prefetch, scroll: _scroll, shallow: _shallow, ...rest },
+  ref
+) {
   return (
-    <RRLink to={ensureTrailingSlash(href)} replace={replace} prefetch={normalizeLinkPrefetch(prefetch)} {...rest} />
+    <RRLink
+      ref={ref}
+      to={ensureTrailingSlash(href)}
+      replace={replace}
+      prefetch={normalizeLinkPrefetch(prefetch)}
+      {...rest}
+    />
   );
-}
+});
 
 export default Link;

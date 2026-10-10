@@ -6,6 +6,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  AddressBookIcon,
+  BriefcaseIcon,
+  ClockCounterClockwiseIcon,
+  FileTextIcon,
+  GearSixIcon,
+  HandshakeIcon,
+  NoteIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
   ArrowRight,
@@ -30,6 +40,8 @@ import { Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
@@ -45,18 +57,26 @@ const formatDate = (value?: string | null) => {
 
 const statusLabel = (value: string) => value.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 
-const CLIENT_TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "opportunities", label: "Opportunities" },
-  { id: "projects", label: "Projects" },
-  { id: "contacts", label: "Contacts" },
-  { id: "documents", label: "Documents" },
-  { id: "activity", label: "Activity" },
-  { id: "notes", label: "Notes" },
-  { id: "settings", label: "Settings" },
-] as const;
+type TClientTab =
+  | "overview"
+  | "opportunities"
+  | "projects"
+  | "contacts"
+  | "documents"
+  | "activity"
+  | "notes"
+  | "settings";
 
-type TClientTab = (typeof CLIENT_TABS)[number]["id"];
+const CLIENT_TABS: TSectionTab<TClientTab>[] = [
+  { value: "overview", label: "Overview", icon: SquaresFourIcon },
+  { value: "opportunities", label: "Opportunities", icon: HandshakeIcon },
+  { value: "projects", label: "Projects", icon: BriefcaseIcon },
+  { value: "contacts", label: "Contacts", icon: AddressBookIcon },
+  { value: "documents", label: "Documents", icon: FileTextIcon },
+  { value: "activity", label: "Activity", icon: ClockCounterClockwiseIcon },
+  { value: "notes", label: "Notes", icon: NoteIcon },
+  { value: "settings", label: "Settings", icon: GearSixIcon },
+];
 
 export default function SummonClientDetailPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, clientId } = params;
@@ -117,7 +137,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
 
       <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
-          <div className="text-2xl shadow-sm grid size-24 shrink-0 place-items-center rounded-2xl border border-subtle bg-surface-1 font-semibold text-accent-primary">
+          <div className="grid size-24 shrink-0 place-items-center rounded-2xl border border-subtle bg-surface-1 text-2xl font-semibold text-accent-primary shadow-sm">
             {data.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -131,7 +151,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
               <span>•</span>
               <span>{data.industry || "Industry not set"}</span>
             </div>
-            <p className="text-xs mt-2 max-w-3xl leading-5 text-secondary">
+            <p className="mt-2 max-w-3xl text-xs leading-5 text-secondary">
               {data.notes || "No client relationship notes yet."}
             </p>
           </div>
@@ -146,14 +166,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           </button>
           <Link
             href={opportunityCreateHref(workspaceSlug, data.id)}
-            className="text-xs inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 font-medium text-primary hover:bg-layer-1"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 text-xs font-medium text-primary hover:bg-layer-1"
           >
             <Plus className="size-3.5" /> New opportunity
           </Link>
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-xs inline-flex h-10 items-center gap-2 rounded-xl bg-accent-primary px-5 font-medium text-white"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent-primary px-5 text-xs font-medium text-white"
           >
             <Pencil className="size-3.5" /> Edit Client
           </button>
@@ -167,18 +187,13 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         </div>
       </header>
 
-      <nav className="mt-5 flex gap-8 overflow-x-auto border-b border-subtle text-[11px] font-medium text-secondary">
-        {CLIENT_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`shrink-0 border-b-2 px-0.5 pb-3 ${activeTab === tab.id ? "border-accent-primary text-accent-primary" : "border-transparent"}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <SectionTabs
+        items={CLIENT_TABS}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        label="Client sections"
+        className="mt-5"
+      />
 
       <div
         className={`mt-4 grid min-w-0 items-start gap-4 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}
@@ -333,7 +348,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
               <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
                 {data.contacts.slice(0, 3).map((contact) => (
                   <article key={contact.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
-                    <span className="text-sm grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle font-semibold text-accent-primary">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle text-sm font-semibold text-accent-primary">
                       {contact.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0">
@@ -514,7 +529,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           <div className="flex items-center justify-between gap-3">
             <div>
               <Dialog.Title className="text-18 font-semibold text-primary">Edit Client</Dialog.Title>
-              <p className="text-xs mt-1 text-secondary">Changes are saved to the Summon client record.</p>
+              <p className="mt-1 text-xs text-secondary">Changes are saved to the Summon client record.</p>
             </div>
             <button
               type="button"
@@ -561,7 +576,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                 name="notes"
                 rows={4}
                 defaultValue={data.notes}
-                className="text-xs mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-primary"
+                className="mt-1 w-full rounded-md border border-subtle bg-surface-1 p-3 text-xs text-primary"
               />
             </label>
             {formError ? <p className="text-xs text-danger-primary sm:col-span-2">{formError}</p> : null}
@@ -588,7 +603,7 @@ function ClientMetric(props: { icon: React.ReactNode; label: string; value: Reac
       </span>
       <div className="min-w-0">
         <p className="text-[10px] font-medium text-secondary">{props.label}</p>
-        <p className="text-lg mt-1.5 truncate font-semibold text-primary">{props.value}</p>
+        <p className="mt-1.5 truncate text-lg font-semibold text-primary">{props.value}</p>
         <p className="mt-2 truncate text-[9px] font-medium text-accent-primary">{props.detail} →</p>
       </div>
     </div>

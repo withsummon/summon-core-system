@@ -4,6 +4,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, CalendarPlus, FilePlus2, ListPlus, Pencil, Settings2 } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { SelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import type { ISummonProjectOverview, IUserLite } from "@plane/types";
@@ -61,13 +62,13 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
       <header className="border-b border-subtle px-4 py-4 sm:px-6">
         <Link
           href={`/${workspaceSlug}/summon/projects/`}
-          className="text-xs inline-flex items-center gap-1.5 rounded text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="inline-flex items-center gap-1.5 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
         >
           <ArrowLeft aria-hidden="true" className="size-3.5" /> Projects
         </Link>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="text-xs grid size-8 shrink-0 place-items-center rounded-md border border-subtle bg-layer-1 font-medium text-secondary">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md border border-subtle bg-layer-1 text-xs font-medium text-secondary">
               {overview.project.identifier.slice(0, 2)}
             </span>
             <h1 className="text-lg font-semibold tracking-tight break-words text-primary">{overview.project.name}</h1>
@@ -92,7 +93,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
             </Button>
           </div>
         </div>
-        <div className="text-xs mt-3 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs">
           <Meta
             label="Client"
             value={client?.company_name || client?.name || "Not linked"}
@@ -128,7 +129,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
         </Button>
         <Link
           href={`/${workspaceSlug}/summon/meetings/?project=${projectId}`}
-          className="text-xs inline-flex items-center gap-2 rounded-md px-3 py-2 text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
         >
           <CalendarPlus aria-hidden="true" className="size-3.5" />
           Meeting
@@ -136,7 +137,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
         {isAdmin && (
           <Link
             href={`/${workspaceSlug}/settings/projects/${projectId}/`}
-            className="text-xs ml-auto inline-flex items-center gap-2 rounded-md px-3 py-2 text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+            className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
           >
             <Settings2 aria-hidden="true" className="size-3.5" />
             Settings
@@ -155,13 +156,11 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
             />
           </div>
         )}
-        <Tabs defaultValue="overview">
-          <Tabs.List
-            aria-label="Project sections"
-            className="justify-start gap-1 rounded-none border-b border-subtle bg-transparent pb-2"
-          >
+        <Tabs variant="underline" defaultValue="overview">
+          <Tabs.List aria-label="Project sections">
             {PROJECT_TABS.map((tab) => (
-              <Tabs.Trigger key={tab.id} value={tab.id} className="w-auto shrink-0 px-3 py-1.5">
+              <Tabs.Trigger key={tab.id} value={tab.id}>
+                <SelectableIcon icon={tab.icon} />
                 {tab.label}
               </Tabs.Trigger>
             ))}

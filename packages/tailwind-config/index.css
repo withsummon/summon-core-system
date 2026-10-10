@@ -17,6 +17,97 @@ body {
   @apply font-body bg-canvas text-primary;
 }
 
+/* One icon weight across the product: Lucide at 1.75 reads crisp beside Geist at 13-14px */
+svg.lucide {
+  stroke-width: 1.75;
+}
+
+/*
+ * Selectable icons (propel SelectableIcon): outline at rest, filled once the owning
+ * `group/select` control is selected. Both glyphs stay stacked so the swap is a
+ * cross-fade that can reverse mid-flight instead of a display toggle.
+ */
+.selectable-icon {
+  display: inline-grid;
+  flex-shrink: 0;
+  /* Critically damped spring (response 0.35s): starts from rest, settles with no overshoot */
+  --selectable-icon-spring: linear(
+    0,
+    0.109 6.25%,
+    0.309 12.5%,
+    0.501 18.75%,
+    0.656 25%,
+    0.77 31.25%,
+    0.849 37.5%,
+    0.903 43.75%,
+    0.938 50%,
+    0.961 56.25%,
+    0.976 62.5%,
+    0.985 68.75%,
+    0.991 75%,
+    0.994 81.25%,
+    0.997 87.5%,
+    0.998 93.75%,
+    1
+  );
+}
+.selectable-icon > svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity 420ms var(--selectable-icon-spring),
+    scale 500ms var(--selectable-icon-spring),
+    filter 420ms var(--selectable-icon-spring),
+    color 300ms ease-out;
+}
+.selectable-icon > .selectable-icon-fill {
+  opacity: 0;
+  scale: 0.7;
+  filter: blur(2px);
+}
+.group\/select:is([data-selected], [data-active], [aria-current="page"], [aria-pressed="true"])
+  .selectable-icon
+  > .selectable-icon-outline {
+  opacity: 0;
+  scale: 0.85;
+}
+.group\/select:is([data-selected], [data-active], [aria-current="page"], [aria-pressed="true"])
+  .selectable-icon
+  > .selectable-icon-fill {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .selectable-icon > svg {
+    transition: opacity 160ms ease-out;
+    scale: 1 !important;
+    filter: none !important;
+  }
+}
+
+/* Dotted canvas for empty and idle regions */
+@utility bg-dot-grid {
+  background-image: radial-gradient(circle, var(--border-color-subtle-1) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+/* Pressable controls give feedback on pointer-down */
+@utility press {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
 /* emoji icon picker */
 @utility conical-gradient {
   background: conic-gradient(

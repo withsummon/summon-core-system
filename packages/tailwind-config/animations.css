@@ -1,23 +1,59 @@
 @theme {
+  /* Critically damped spring shape (sheets, drawers): starts at rest, no overshoot. Duration sets the response: 300ms ≈ 0.22s */
+  --ease-spring-sheet: linear(
+    0,
+    0.158 8.33%,
+    0.413 16.67%,
+    0.626 25%,
+    0.774 33.33%,
+    0.868 41.67%,
+    0.925 50%,
+    0.958 58.33%,
+    0.977 66.67%,
+    0.987 75%,
+    0.993 83.33%,
+    0.996 91.67%,
+    1
+  );
   --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-dialog-out: dialog-out 120ms ease-in both;
   --animate-dialog-backdrop-in: dialog-backdrop-in 180ms ease-out both;
   --animate-dialog-backdrop-out: dialog-backdrop-out 120ms ease-in both;
   @keyframes dialog-in {
-    from { opacity: 0; scale: 0.97; }
-    to { opacity: 1; scale: 1; }
+    from {
+      opacity: 0;
+      scale: 0.97;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
   }
   @keyframes dialog-out {
-    from { opacity: 1; scale: 1; }
-    to { opacity: 0; scale: 0.98; }
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 0.98;
+    }
   }
   @keyframes dialog-backdrop-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   @keyframes dialog-backdrop-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
 
   /* slide up */

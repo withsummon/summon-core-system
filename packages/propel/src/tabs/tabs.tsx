@@ -5,10 +5,10 @@
  */
 
 import * as React from "react";
-import { Tabs as TabsPrimitive } from "@base-ui-components/react/tabs";
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { cn } from "../utils/classname";
 
-type TabsVariant = "contained";
+type TabsVariant = "contained" | "underline";
 
 type TabsContextType = {
   variant?: TabsVariant;
@@ -35,15 +35,22 @@ type TabsCompound = React.ForwardRefExoticComponent<
   Content: React.ForwardRefExoticComponent<
     React.ComponentProps<typeof TabsPrimitive.Panel> & React.RefAttributes<React.ElementRef<typeof TabsPrimitive.Panel>>
   >;
-  Indicator: React.ForwardRefExoticComponent<React.ComponentProps<"div"> & React.RefAttributes<HTMLDivElement>>;
+  Indicator: React.ForwardRefExoticComponent<
+    React.ComponentProps<typeof TabsPrimitive.Indicator> & React.RefAttributes<HTMLSpanElement>
+  >;
 };
 
 const TabsRoot = React.forwardRef(function TabsRoot(
-  { className, variant, ...props }: React.ComponentProps<typeof TabsPrimitive.Root> & { variant?: TabsVariant },
+  {
+    className,
+    variant = "contained",
+    ...props
+  }: React.ComponentProps<typeof TabsPrimitive.Root> & { variant?: TabsVariant },
   ref: React.ForwardedRef<React.ElementRef<typeof TabsPrimitive.Root>>
 ) {
+  const contextValue = React.useMemo(() => ({ variant }), [variant]);
   return (
-    <TabsContext.Provider value={{ variant }}>
+    <TabsContext.Provider value={contextValue}>
       <TabsPrimitive.Root
         data-slot="tabs"
         className={cn("flex h-full w-full flex-col", className)}
@@ -54,29 +61,65 @@ const TabsRoot = React.forwardRef(function TabsRoot(
   );
 });
 
+const useTabsVariant = () => React.useContext(TabsContext)?.variant ?? "contained";
+
+/*
+ * The selected marker is Base UI's measured indicator, rendered by the list itself so every
+ * tab list slides: a raised thumb for "contained", a 2px accent rule for "underline".
+ */
+const TabsIndicator = React.forwardRef(function TabsIndicator(
+  { className, ...props }: React.ComponentProps<typeof TabsPrimitive.Indicator>,
+  ref: React.ForwardedRef<HTMLSpanElement>
+) {
+  const variant = useTabsVariant();
+  return (
+    <TabsPrimitive.Indicator
+      data-slot="tabs-indicator"
+      renderBeforeHydration
+      className={cn(
+        "pointer-events-none absolute left-0 translate-x-(--active-tab-left) transition-[translate,width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        variant === "underline"
+          ? "bottom-[-1px] z-10 h-0.5 w-(--active-tab-width) rounded-full bg-accent-primary"
+          : "top-(--active-tab-top) -z-10 h-(--active-tab-height) w-(--active-tab-width) rounded-md border border-subtle bg-layer-2 shadow-tactile",
+        className
+      )}
+      {...props}
+      ref={ref}
+    />
+  );
+});
+
 const TabsList = React.forwardRef(function TabsList(
   {
     className,
     background = "contained",
+    children,
     ...props
   }: React.ComponentProps<typeof TabsPrimitive.List> & {
     background?: TabsVariant;
   },
   ref: React.ForwardedRef<React.ElementRef<typeof TabsPrimitive.List>>
 ) {
+  const variant = useTabsVariant();
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "relative flex w-full items-center justify-between gap-1.5 overflow-auto rounded-lg p-0.5 text-13",
+        "relative isolate flex w-full items-center overflow-auto text-13",
+        variant === "underline"
+          ? "gap-5 border-b border-subtle [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          : "justify-between gap-1.5 rounded-lg p-0.5",
         {
-          "bg-layer-3": background === "contained",
+          "bg-layer-1 ring ring-subtle ring-inset": variant === "contained" && background === "contained",
         },
         className
       )}
       {...props}
       ref={ref}
-    />
+    >
+      {children}
+      <TabsIndicator />
+    </TabsPrimitive.List>
   );
 });
 
@@ -88,14 +131,17 @@ const TabsTrigger = React.forwardRef(function TabsTrigger(
   }: React.ComponentProps<typeof TabsPrimitive.Tab> & { size?: "sm" | "md" | "lg"; variant?: TabsVariant },
   ref: React.ForwardedRef<React.ElementRef<typeof TabsPrimitive.Tab>>
 ) {
+  const variant = useTabsVariant();
   return (
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-md border border-transparent p-1 font-medium text-primary transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
-        "data-[selected]:shadow-sm data-[selected]:raised-200 data-[selected]:border data-[selected]:border-subtle-1 data-[selected]:bg-layer-2 data-[selected]:text-primary",
-        "text-placeholder hover:bg-layer-transparent-hover hover:text-tertiary",
+        "group/select flex min-w-fit cursor-pointer items-center justify-center gap-1.5 font-medium whitespace-nowrap transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
+        "text-tertiary hover:text-primary data-[active]:text-primary",
         "disabled:cursor-not-allowed disabled:text-placeholder",
+        variant === "underline"
+          ? "h-10 shrink-0 px-0.5 data-[active]:[&_svg]:text-accent-primary"
+          : "w-full rounded-md border border-transparent p-1",
         {
           "text-11": size === "sm",
           "text-13": size === "md",
@@ -117,21 +163,6 @@ const TabsContent = React.forwardRef(function TabsContent(
     <TabsPrimitive.Panel
       data-slot="tabs-content"
       className={cn("relative outline-none", className)}
-      {...props}
-      ref={ref}
-    />
-  );
-});
-const TabsIndicator = React.forwardRef(function TabsIndicator(
-  { className, ...props }: React.ComponentProps<"div">,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
-  return (
-    <div
-      className={cn(
-        "shadow-sm absolute top-[50%] left-0 z-[-1] h-6 w-[var(--active-tab-width)] translate-x-[var(--active-tab-left)] -translate-y-[50%] rounded-xs bg-surface-1 transition-[width,transform] duration-200 ease-in-out",
-        className
-      )}
       {...props}
       ref={ref}
     />

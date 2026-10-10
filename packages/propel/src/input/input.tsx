@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { Input as BaseInput } from "@base-ui-components/react/input";
+import { Input as BaseInput } from "@base-ui/react/input";
 // helpers
 import { cn } from "../utils";
 
@@ -35,9 +35,9 @@ const Input = React.forwardRef(function Input(props: InputProps, ref: React.Forw
       type={type}
       name={name}
       className={cn(
-        "placeholder-tertiary block rounded-md border-subtle-1 bg-layer-2 text-13 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong",
+        "block rounded-lg border-subtle bg-layer-2 text-13 text-primary transition-[border-color,box-shadow] duration-150 placeholder:text-placeholder focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle focus-visible:outline-none",
         {
-          "rounded-md border-[0.5px]": mode === "primary",
+          "border shadow-raised-100": mode === "primary",
           "rounded-sm border-none bg-transparent ring-0 transition-all focus:ring-1 focus:ring-accent-strong":
             mode === "transparent",
           "rounded-sm border-none bg-transparent ring-0": mode === "true-transparent",

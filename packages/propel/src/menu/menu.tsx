@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { Menu as BaseMenu } from "@base-ui-components/react/menu";
+import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { MoreHorizontal } from "lucide-react";
 import { ChevronDownIcon, ChevronRightIcon } from "../icons";
 import { cn } from "../utils/classname";
@@ -13,9 +13,9 @@ import { convertPlacementToSideAndAlign } from "../utils/placement";
 import type { TMenuProps, TSubMenuProps, TMenuItemProps } from "./types";
 
 const popupClassName =
-  "min-w-48 overflow-y-auto rounded-md border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-raised-200 outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 motion-reduce:transition-none";
+  "min-w-48 overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-overlay-100 outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 motion-reduce:transition-none";
 const itemClassName =
-  "flex w-full cursor-default items-center gap-2 rounded px-2 py-1.5 text-left outline-none select-none data-[highlighted]:bg-layer-1 data-[disabled]:text-placeholder data-[disabled]:opacity-50";
+  "flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none select-none data-[highlighted]:bg-layer-1 data-[disabled]:text-placeholder data-[disabled]:opacity-50";
 const SelectionContext = React.createContext<boolean | undefined>(undefined);
 
 function MenuItem({ children, disabled, onClick, className }: TMenuItemProps) {
@@ -88,7 +88,6 @@ function Menu({
   const { side, align } = convertPlacementToSideAndAlign(placement);
   return (
     <BaseMenu.Root
-      openOnHover={openOnHover}
       onOpenChange={(open) => {
         handleOpenChange?.(open);
         if (open) onOpen?.();
@@ -97,6 +96,7 @@ function Menu({
     >
       <div className={cn("relative w-min text-left", className)}>
         <BaseMenu.Trigger
+          openOnHover={openOnHover}
           render={render}
           disabled={disabled}
           aria-label={ariaLabel ?? (ellipsis || verticalEllipsis ? "More options" : undefined)}
@@ -159,4 +159,4 @@ function Menu({
 Menu.MenuItem = MenuItem;
 Menu.SubMenu = SubMenu;
 export { Menu };
-export { Menu as MenuPrimitive } from "@base-ui-components/react/menu";
+export { Menu as MenuPrimitive } from "@base-ui/react/menu";

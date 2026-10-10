@@ -6,19 +6,22 @@
 
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 export const badgeVariants = cva("inline-flex items-center justify-center gap-1 whitespace-nowrap transition-colors", {
   variants: {
     variant: {
-      neutral: "bg-layer-3 text-tertiary",
-      brand: "bg-accent-subtle-hover text-accent-primary",
-      warning: "bg-warning-subtle text-warning-primary",
-      success: "bg-success-subtle-1 text-success-primary",
-      danger: "bg-danger-subtle text-danger-primary",
+      neutral: "bg-layer-1 text-secondary ring ring-subtle ring-inset [&>svg]:text-tertiary",
+      brand: "bg-accent-subtle-hover text-accent-primary ring ring-accent-subtle ring-inset",
+      warning:
+        "bg-warning-subtle text-warning-primary ring ring-warning-subtle ring-inset [&>svg]:text-warning-secondary",
+      success:
+        "bg-success-subtle-1 text-success-primary ring ring-success-subtle ring-inset [&>svg]:text-success-secondary",
+      danger: "bg-danger-subtle text-danger-primary ring ring-danger-subtle ring-inset [&>svg]:text-danger-secondary",
     },
     size: {
       sm: "h-4 rounded-sm px-1 text-caption-sm-medium",
-      base: "h-5 rounded-md px-1.5 text-caption-sm-medium",
+      base: "h-5 rounded-sm px-1.5 text-caption-sm-medium",
       lg: "h-6 rounded-md px-2 text-caption-md-medium",
     },
   },
@@ -31,6 +34,8 @@ export const badgeVariants = cva("inline-flex items-center justify-center gap-1 
 export type BadgeProps = Omit<React.HTMLAttributes<HTMLSpanElement>, "className"> &
   VariantProps<typeof badgeVariants> & {
     appendIcon?: React.ReactElement;
+    /** Phosphor icon rendered filled before the label, so status reads without relying on color alone. */
+    icon?: PhosphorIcon;
     prependIcon?: React.ReactElement;
   };
 

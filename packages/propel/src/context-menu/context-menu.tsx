@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { ContextMenu as ContextMenuPrimitive } from "@base-ui-components/react/context-menu";
+import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
 import { cn } from "../utils";
 
 export interface ContextMenuProps extends React.ComponentProps<typeof ContextMenuPrimitive.Root> {
@@ -65,7 +65,7 @@ const ContextMenuContent = React.forwardRef(function ContextMenuContent(
     >
       <ContextMenuPrimitive.Popup
         className={cn(
-          "shadow-md z-50 min-w-32 overflow-hidden rounded-md border border-subtle bg-surface-1 p-1",
+          "z-50 min-w-32 overflow-hidden rounded-xl border border-subtle bg-surface-1 p-1 shadow-overlay-100",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
@@ -87,8 +87,8 @@ const ContextMenuItem = React.forwardRef(function ContextMenuItem(
     <ContextMenuPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-default items-center rounded-xs px-2 py-1.5 text-13 outline-none select-none",
-        "focus:bg-surface-2 focus:text-primary",
+        "relative flex cursor-default items-center rounded-md px-2 py-1.5 text-13 outline-none select-none",
+        "focus:bg-layer-1 focus:text-primary",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
@@ -119,8 +119,8 @@ const ContextMenuSubmenuTrigger = React.forwardRef(function ContextMenuSubmenuTr
     <ContextMenuPrimitive.SubmenuTrigger
       ref={ref}
       className={cn(
-        "flex cursor-default items-center rounded-xs px-2 py-1.5 text-13 outline-none select-none focus:outline-none",
-        "focus:bg-surface-2 data-[state=open]:bg-surface-2",
+        "flex cursor-default items-center rounded-md px-2 py-1.5 text-13 outline-none select-none focus:outline-none",
+        "focus:bg-layer-1 data-[state=open]:bg-layer-1",
         className
       )}
       {...props}

@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { Tooltip as BaseTooltip } from "@base-ui-components/react/tooltip";
+import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import { cn } from "../utils";
 import type { TPlacement, TSide, TAlign } from "../utils/placement";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
@@ -51,12 +51,12 @@ export function Tooltip(props: ITooltipProps) {
 
   return (
     <BaseTooltip.Provider>
-      <BaseTooltip.Root delay={openDelay} closeDelay={closeDelay} disabled={disabled}>
-        <BaseTooltip.Trigger render={children} />
+      <BaseTooltip.Root disabled={disabled}>
+        <BaseTooltip.Trigger delay={openDelay} closeDelay={closeDelay} render={children} />
         <BaseTooltip.Portal>
           <BaseTooltip.Positioner
             className={cn(
-              "z-50 max-w-xs gap-1 overflow-hidden rounded-lg border border-subtle-1 bg-layer-2 px-2 py-1.5 break-words shadow-overlay-200",
+              "z-50 max-w-xs gap-1 overflow-hidden rounded-lg border border-subtle bg-layer-2 px-2 py-1.5 break-words shadow-overlay-100",
               {
                 hidden: isMobile,
               },

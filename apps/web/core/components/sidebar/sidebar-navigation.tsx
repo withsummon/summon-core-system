@@ -16,11 +16,13 @@ export function SidebarNavItem(props: TSidebarNavItem) {
   const { className, isActive, children } = props;
   return (
     <div
+      data-active={isActive || undefined}
       className={cn(
-        "group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 outline-none",
+        "group group/select relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 transition-colors duration-150 outline-none",
         {
-          "!bg-layer-transparent-active text-primary": isActive,
-          "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-active": !isActive,
+          "!bg-accent-subtle font-semibold text-accent-primary [&_svg]:text-accent-primary": isActive,
+          "text-secondary hover:bg-layer-1 hover:text-primary active:bg-layer-1-hover [&_svg]:text-tertiary hover:[&_svg]:text-secondary":
+            !isActive,
         },
         className
       )}

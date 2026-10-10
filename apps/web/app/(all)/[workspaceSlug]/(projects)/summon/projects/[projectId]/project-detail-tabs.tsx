@@ -1,5 +1,16 @@
 import Link from "next/link";
+import {
+  CheckSquareIcon,
+  ClockCounterClockwiseIcon,
+  FileTextIcon,
+  FlagIcon,
+  FolderIcon,
+  GitBranchIcon,
+  RocketLaunchIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 import { ArrowUpRight, Download, FileText } from "lucide-react";
+import type { TSelectableIcon } from "@plane/propel/icons";
 import type { ISummonProjectOverview } from "@plane/types";
 import { filterProjectResources } from "@/components/summon/projects/project-workspace";
 
@@ -13,15 +24,15 @@ export type TProjectTab =
   | "activity"
   | "files";
 
-export const PROJECT_TABS: Array<{ id: TProjectTab; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "tasks", label: "Tasks" },
-  { id: "milestones", label: "Milestones" },
-  { id: "documents", label: "Documents" },
-  { id: "repositories", label: "Repositories" },
-  { id: "deployments", label: "Deployments" },
-  { id: "activity", label: "Activity" },
-  { id: "files", label: "Files" },
+export const PROJECT_TABS: Array<{ id: TProjectTab; label: string; icon: TSelectableIcon }> = [
+  { id: "overview", label: "Overview", icon: SquaresFourIcon },
+  { id: "tasks", label: "Tasks", icon: CheckSquareIcon },
+  { id: "milestones", label: "Milestones", icon: FlagIcon },
+  { id: "documents", label: "Documents", icon: FileTextIcon },
+  { id: "repositories", label: "Repositories", icon: GitBranchIcon },
+  { id: "deployments", label: "Deployments", icon: RocketLaunchIcon },
+  { id: "activity", label: "Activity", icon: ClockCounterClockwiseIcon },
+  { id: "files", label: "Files", icon: FolderIcon },
 ];
 
 const formatDate = (value?: string | null) =>
@@ -119,7 +130,7 @@ export function ProjectDetailTab(props: {
         >
           <FileText className="size-4 shrink-0 text-accent-primary" />
           <span className="min-w-0 flex-1">
-            <strong className="text-sm block font-medium break-words text-primary">{file.name}</strong>
+            <strong className="block text-sm font-medium break-words text-primary">{file.name}</strong>
             <small className="text-xs text-secondary">
               {file.content_type || file.entity_type} · {formatBytes(file.size)} · {formatDate(file.created_at)}
             </small>
@@ -155,10 +166,10 @@ function Row({ href, title, detail, badge }: { href: string; title: string; deta
       className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
     >
       <span className="min-w-0 flex-1">
-        <strong className="text-sm block font-medium break-words text-primary">{title}</strong>
+        <strong className="block text-sm font-medium break-words text-primary">{title}</strong>
         <small className="text-xs text-secondary">{detail}</small>
       </span>
-      {badge && <span className="text-xs rounded-full bg-layer-1 px-2 py-1 text-secondary">{badge}</span>}
+      {badge && <span className="rounded-full bg-layer-1 px-2 py-1 text-xs text-secondary">{badge}</span>}
     </Link>
   );
 }
@@ -172,7 +183,7 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
       className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
     >
       <span className="min-w-0 flex-1">
-        <strong className="text-sm block font-medium break-words text-primary">{title}</strong>
+        <strong className="block text-sm font-medium break-words text-primary">{title}</strong>
         <small className="text-xs text-secondary">{detail}</small>
       </span>
       <ArrowUpRight className="size-4 text-secondary" />
@@ -181,7 +192,7 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="text-xs p-10 text-center text-tertiary">{text}</p>;
+  return <p className="p-10 text-center text-xs text-tertiary">{text}</p>;
 }
 
 const formatBytes = (size: number) => (size < 1024 ? `${size} B` : `${(size / 1024).toFixed(size < 10240 ? 1 : 0)} KB`);

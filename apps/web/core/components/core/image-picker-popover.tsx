@@ -190,7 +190,6 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                       {tab.title}
                     </Tabs.Trigger>
                   ))}
-                  <Tabs.Indicator />
                 </Tabs.List>
                 <div className="vertical-scrollbar mt-3 scrollbar-sm flex-1 overflow-x-hidden overflow-y-auto p-3">
                   <Tabs.Content value="unsplash" className="h-full w-full space-y-4">
@@ -200,7 +199,7 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                           <Controller
                             control={control}
                             name="search"
-                            render={({ field: { value, ref } }) => (
+                            render={({ field: { value: search, ref } }) => (
                               <Input
                                 id="search"
                                 name="search"
@@ -211,7 +210,7 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                                     setSearchParams(formData.search);
                                   }
                                 }}
-                                value={value}
+                                value={search}
                                 onChange={(e) => setFormData({ ...formData, search: e.target.value })}
                                 ref={ref}
                                 placeholder="Search for images"
@@ -226,21 +225,22 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                         {unsplashImages ? (
                           unsplashImages.length > 0 ? (
                             <div className="grid grid-cols-4 gap-4">
-                              {unsplashImages.map((image) => (
-                                <div
-                                  key={image.id}
-                                  className="relative col-span-2 aspect-video md:col-span-1"
+                              {unsplashImages.map((unsplashImage) => (
+                                <button
+                                  type="button"
+                                  key={unsplashImage.id}
+                                  className="relative col-span-2 aspect-video rounded-sm focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none md:col-span-1"
                                   onClick={() => {
                                     setIsOpen(false);
-                                    onChange(image.urls.regular);
+                                    onChange(unsplashImage.urls.regular);
                                   }}
                                 >
                                   <img
-                                    src={image.urls.small}
-                                    alt={image.alt_description}
+                                    src={unsplashImage.urls.small}
+                                    alt={unsplashImage.alt_description}
                                     className="absolute top-0 left-0 h-full w-full cursor-pointer rounded-sm object-cover"
                                   />
-                                </div>
+                                </button>
                               ))}
                             </div>
                           ) : (
@@ -264,17 +264,18 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                   <Tabs.Content value="images" className="h-full w-full space-y-4">
                     <div className="grid grid-cols-4 gap-4">
                       {Object.values(STATIC_COVER_IMAGES).map((imageUrl, index) => (
-                        <div
+                        <button
                           key={imageUrl}
-                          className="relative col-span-2 aspect-video md:col-span-1"
+                          type="button"
+                          className="relative col-span-2 aspect-video rounded-sm focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none md:col-span-1"
                           onClick={() => handleStaticImageSelect(imageUrl)}
                         >
                           <img
                             src={imageUrl}
-                            alt={`Cover image ${index + 1}`}
+                            alt={`Cover ${index + 1}`}
                             className="absolute top-0 left-0 h-full w-full cursor-pointer rounded-sm object-cover transition-opacity hover:opacity-80"
                           />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </Tabs.Content>
@@ -299,7 +300,7 @@ export const ImagePickerPopover = observer(function ImagePickerPopover(props: Pr
                             <>
                               <img
                                 src={image ? URL.createObjectURL(image) : getCoverImageDisplayURL(value, "")}
-                                alt="image"
+                                alt="Selected cover"
                                 className="h-full w-full rounded-lg object-cover"
                               />
                             </>

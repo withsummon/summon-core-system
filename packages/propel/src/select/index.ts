@@ -6,4 +6,4 @@
 
 export * from "./root";
 
-export { Select as SelectPrimitive } from "@base-ui-components/react/select";
+export { Select as SelectPrimitive } from "@base-ui/react/select";

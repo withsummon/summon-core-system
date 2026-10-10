@@ -4,13 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 // Plane imports
 import useSWR from "swr";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
+import { Drawer } from "@plane/propel/drawer";
 import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
 import type { IWorkItemPeekOverview, TIssue } from "@plane/types";
 import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
@@ -23,6 +24,7 @@ import { useWorkItemProperties } from "@/hooks/use-issue-properties";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
 import { IssueView } from "./view";
+import type { TPeekCloseRequest } from "./view";
 
 export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWorkItemPeekOverview) {
   const {
@@ -57,7 +59,12 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     storeType === EIssuesStoreType.EPIC ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES
   );
   // state
-  const [error, setError] = useState(false);
+  const [isFetchError, setIsFetchError] = useState(false);
+  // The drawer animates out after the store clears the peek, so keep rendering the last one until it has exited.
+  const [displayedPeek, setDisplayedPeek] = useState(peekIssue);
+  if (peekIssue && peekIssue !== displayedPeek) setDisplayedPeek(peekIssue);
+  const shownPeek = embedIssue ? peekIssue : (peekIssue ?? displayedPeek);
+  const closeRequestRef = useRef<TPeekCloseRequest>(null);
 
   const removeRoutePeekId = useCallback(() => {
     setPeekIssue(undefined);
@@ -68,10 +75,10 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     () => ({
       fetch: async (workspaceSlug: string, projectId: string, issueId: string) => {
         try {
-          setError(false);
+          setIsFetchError(false);
           await fetchIssue(workspaceSlug, projectId, issueId);
         } catch (error) {
-          setError(true);
+          setIsFetchError(true);
           console.error("Error fetching the parent issue", error);
         }
       },
@@ -225,28 +232,42 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     }
   );
 
-  if (!peekIssue?.workspaceSlug || !peekIssue?.projectId || !peekIssue?.issueId) return <></>;
+  const view =
+    shownPeek?.workspaceSlug && shownPeek.projectId && shownPeek.issueId ? (
+      <IssueView
+        workspaceSlug={shownPeek.workspaceSlug}
+        projectId={shownPeek.projectId}
+        issueId={shownPeek.issueId}
+        isLoading={isLoading}
+        isError={isFetchError}
+        is_archived={!!shownPeek.isArchived}
+        // Check if issue is editable, based on user role
+        disabled={
+          !allowPermissions(
+            [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+            EUserPermissionsLevel.PROJECT,
+            shownPeek.workspaceSlug,
+            shownPeek.projectId
+          )
+        }
+        embedIssue={embedIssue}
+        embedRemoveCurrentNotification={embedRemoveCurrentNotification}
+        issueOperations={issueOperations}
+        closeRequestRef={closeRequestRef}
+      />
+    ) : null;
 
-  // Check if issue is editable, based on user role
-  const isEditable = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT,
-    peekIssue?.workspaceSlug,
-    peekIssue?.projectId
-  );
+  if (embedIssue) return view;
 
+  // The root stays mounted so opening transitions from closed to open and plays the entry.
   return (
-    <IssueView
-      workspaceSlug={peekIssue.workspaceSlug}
-      projectId={peekIssue.projectId}
-      issueId={peekIssue.issueId}
-      isLoading={isLoading}
-      isError={error}
-      is_archived={!!peekIssue.isArchived}
-      disabled={!isEditable}
-      embedIssue={embedIssue}
-      embedRemoveCurrentNotification={embedRemoveCurrentNotification}
-      issueOperations={issueOperations}
-    />
+    <Drawer
+      open={!!peekIssue}
+      modal={false}
+      onOpenChange={(open, details) => closeRequestRef.current?.(open, details)}
+      onOpenChangeComplete={(open) => !open && setDisplayedPeek(undefined)}
+    >
+      {view}
+    </Drawer>
   );
 });

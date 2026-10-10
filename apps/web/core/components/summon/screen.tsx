@@ -5,7 +5,7 @@
  */
 
 import type { HTMLAttributes, ReactNode } from "react";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { observer } from "mobx-react";
 import { PageHead } from "@/components/core/page-title";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
@@ -24,17 +24,12 @@ export const SummonScreen = observer(function SummonScreen(props: {
     <>
       <PageHead title={`${props.title} · Summon Core`} />
       <section className="relative mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 overflow-hidden p-4 lg:p-5">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_30%_0%,rgba(54,107,255,0.08),transparent_64%)]" />
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {sidebarCollapsed && <AppSidebarToggleButton />}
             <div>
-              <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-accent-primary uppercase">
-                <Sparkles className="size-3.5" />
-                Summon Core
-              </div>
-              <h1 className="text-xl font-semibold tracking-tight text-primary">{props.title}</h1>
-              <p className="text-xs mt-1 max-w-3xl text-secondary">{props.description}</p>
+              <h1 className="text-2xl font-semibold text-primary">{props.title}</h1>
+              <p className="mt-1 max-w-3xl text-13 text-tertiary">{props.description}</p>
             </div>
           </div>
           {props.actions ? <div className="flex flex-wrap items-center gap-2">{props.actions}</div> : null}
@@ -42,7 +37,7 @@ export const SummonScreen = observer(function SummonScreen(props: {
         {props.rail ? (
           <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="min-w-0">{props.children}</div>
-            <aside className="min-w-0 rounded-2xl border border-subtle bg-surface-1 p-3.5">{props.rail}</aside>
+            <aside className="min-w-0 rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-xs">{props.rail}</aside>
           </div>
         ) : (
           props.children
@@ -54,9 +49,7 @@ export const SummonScreen = observer(function SummonScreen(props: {
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={`rounded-2xl border border-subtle bg-surface-1 p-3.5 shadow-[0_8px_30px_rgba(36,55,99,0.035)] ${props.className ?? ""}`}
-    >
+    <div className={`rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs ${props.className ?? ""}`}>
       {props.children}
     </div>
   );
@@ -67,11 +60,11 @@ export function SummonMetric(props: { label: string; value: ReactNode; detail?: 
     <SummonCard className="min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium text-secondary">{props.label}</p>
-          <p className="text-xl mt-1.5 font-semibold tracking-tight text-primary">{props.value}</p>
-          {props.detail ? <p className="text-xs mt-1 truncate text-tertiary">{props.detail}</p> : null}
+          <p className="text-12 font-medium text-tertiary">{props.label}</p>
+          <p className="mt-1.5 text-2xl font-semibold text-primary tabular-nums">{props.value}</p>
+          {props.detail ? <p className="mt-1 truncate text-12 text-tertiary">{props.detail}</p> : null}
         </div>
-        <span className="grid size-7 flex-shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+        <span className="grid size-7 flex-shrink-0 place-items-center rounded-lg border border-subtle bg-surface-1 text-tertiary shadow-tactile">
           <ArrowUpRight className="size-4" />
         </span>
       </div>
@@ -83,10 +76,10 @@ export function SummonTableShell(props: HTMLAttributes<HTMLDivElement> & { child
   const { children, className, filters, ...attributes } = props;
   return (
     <section
-      className={`overflow-hidden rounded-2xl border border-subtle bg-surface-1 ${className ?? ""}`}
+      className={`overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-xs ${className ?? ""}`}
       {...attributes}
     >
-      {filters ? <div className="border-b border-subtle bg-layer-1/50 px-3.5 py-2.5">{filters}</div> : null}
+      {filters ? <div className="border-b border-subtle px-3.5 py-2.5">{filters}</div> : null}
       {children}
     </section>
   );
@@ -100,11 +93,11 @@ export function SummonRecordList(props: {
       {props.records.map((record) => (
         <div key={record.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-layer-1">
           <div className="min-w-0">
-            <p className="text-sm truncate font-medium text-primary">{record.title}</p>
-            {record.detail ? <p className="text-xs mt-1 break-words text-secondary">{record.detail}</p> : null}
+            <p className="truncate text-13 font-medium text-primary">{record.title}</p>
+            {record.detail ? <p className="mt-0.5 text-12 break-words text-tertiary">{record.detail}</p> : null}
           </div>
           {record.badge ? (
-            <span className="rounded-full bg-layer-2 px-2 py-1 text-[11px] font-medium text-secondary">
+            <span className="rounded-sm bg-layer-1 px-1.5 py-0.5 text-12 font-medium text-secondary ring ring-subtle ring-inset">
               {record.badge}
             </span>
           ) : null}

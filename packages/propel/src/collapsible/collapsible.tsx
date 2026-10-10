@@ -5,8 +5,8 @@
  */
 
 import React from "react";
-import { Collapsible as BaseCollapsible } from "@base-ui-components/react/collapsible";
-import clsx from "clsx";
+import { Collapsible as BaseCollapsible } from "@base-ui/react/collapsible";
+import { clsx } from "clsx";
 
 // Types
 type RootProps = {

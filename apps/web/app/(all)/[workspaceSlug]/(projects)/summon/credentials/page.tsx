@@ -7,6 +7,13 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import {
+  ClockCounterClockwiseIcon,
+  NoteIcon,
+  PaperclipIcon,
+  SquaresFourIcon,
+  UsersThreeIcon,
+} from "@phosphor-icons/react";
+import {
   AlertTriangle,
   Check,
   ChevronDown,
@@ -35,6 +42,8 @@ import { PageHead } from "@/components/core/page-title";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
@@ -48,6 +57,13 @@ import { DatePicker } from "@plane/propel/date-picker";
 
 const projectService = new ProjectService();
 const tabs = ["Overview", "Access", "Activity Log", "Attachments", "Notes"] as const;
+const tabItems: TSectionTab<(typeof tabs)[number]>[] = [
+  { value: "Overview", label: "Overview", icon: SquaresFourIcon },
+  { value: "Access", label: "Access", icon: UsersThreeIcon },
+  { value: "Activity Log", label: "Activity Log", icon: ClockCounterClockwiseIcon },
+  { value: "Attachments", label: "Attachments", icon: PaperclipIcon },
+  { value: "Notes", label: "Notes", icon: NoteIcon },
+];
 
 const textMetadata = (credential: ISummonCredential, key: string) => {
   const value = credential.metadata[key];
@@ -184,7 +200,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             <h1 className="text-xl font-semibold tracking-tight text-primary">Credential Vault</h1>
             <ShieldCheck className="size-4 text-secondary" />
           </div>
-          <p className="text-xs mt-1 text-secondary">
+          <p className="mt-1 text-xs text-secondary">
             Securely store and manage accounts, API keys, and access credentials.
           </p>
         </div>
@@ -241,17 +257,6 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
 
       <div className="mt-5 grid min-h-[720px] overflow-hidden rounded-2xl border border-subtle bg-surface-1 xl:grid-cols-[minmax(0,1.08fr)_minmax(30rem,0.92fr)]">
         <div className="min-w-0 border-b border-subtle xl:border-r xl:border-b-0">
-          <div className="flex items-center gap-7 overflow-x-auto border-b border-subtle px-4 pt-4">
-            {["All Credentials", "By Project", "By Type", "Shared With Me", "Recently Accessed"].map((tab, index) => (
-              <button
-                key={tab}
-                type="button"
-                className={`text-xs border-b-2 px-1 pb-3 font-medium whitespace-nowrap ${index === 0 ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <Select
               value={projectFilter}
@@ -290,7 +295,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="text-xs w-full min-w-[680px] text-left">
+              <table className="w-full min-w-[680px] text-left text-xs">
                 <thead className="border-y border-subtle bg-layer-1/60 text-[10px] text-tertiary">
                   <tr>
                     <th className="px-4 py-3">Credential Name</th>
@@ -375,10 +380,10 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg truncate font-semibold text-primary">{selected.name}</h3>
+                    <h3 className="truncate text-lg font-semibold text-primary">{selected.name}</h3>
                     <Status value={selected.status} />
                   </div>
-                  <p className="text-xs mt-1 text-secondary capitalize">
+                  <p className="mt-1 text-xs text-secondary capitalize">
                     {selected.provider.replaceAll("_", " ")} · {textMetadata(selected, "environment")}
                   </p>
                   <p className="mt-2 text-[11px] text-tertiary">
@@ -386,23 +391,18 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                   </p>
                 </div>
               </div>
-              <div className="flex gap-6 overflow-x-auto border-b border-subtle px-5">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-xs border-b-2 py-3 font-medium whitespace-nowrap ${activeTab === tab ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
+              <SectionTabs
+                items={tabItems}
+                value={activeTab}
+                onValueChange={setActiveTab}
+                label="Credential sections"
+                className="px-5"
+              />
               <div className="p-5">
                 {activeTab === "Overview" ? (
                   <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
                     <div className="rounded-xl border border-subtle p-4">
-                      <dl className="text-xs grid gap-4">
+                      <dl className="grid gap-4 text-xs">
                         <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
                         <Detail
                           label="Password"
@@ -506,7 +506,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                   />
                 )}
               </div>
-              <div className="text-xs mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-secondary">
+              <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
                 <ShieldCheck className="size-4 flex-none text-accent-primary" />
                 <p>
                   This credential is encrypted and stored securely. Secret values are revealed only after password
@@ -530,7 +530,8 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
       ) : null}
       <CredentialDrawer
         workspaceSlug={workspaceSlug}
-        credential={manageOpen ? selected : undefined}
+        credential={selected}
+        open={manageOpen}
         onClose={() => setManageOpen(false)}
         onChanged={() => void mutate()}
       />
@@ -560,7 +561,7 @@ function Metric(props: {
       </span>
       <div className="min-w-0">
         <p className="truncate text-[11px] font-medium text-secondary">{props.label}</p>
-        <p className="text-2xl mt-1 font-semibold tracking-tight text-primary">{props.value}</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-primary">{props.value}</p>
         <p className="mt-1 truncate text-[10px] text-tertiary">{props.detail}</p>
       </div>
     </div>
@@ -636,7 +637,7 @@ function Action(props: {
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      className={`text-xs flex items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-layer-1 disabled:cursor-not-allowed disabled:opacity-40 ${props.danger ? "text-danger-primary" : "text-primary"}`}
+      className={`flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs hover:bg-layer-1 disabled:cursor-not-allowed disabled:opacity-40 ${props.danger ? "text-danger-primary" : "text-primary"}`}
     >
       <Icon className="size-3.5" />
       {props.label}
@@ -653,7 +654,7 @@ function PanelList(props: {
   if (props.error) return <SummonRequestState error={props.error} />;
   return (
     <div className="rounded-xl border border-subtle">
-      <h3 className="text-sm border-b border-subtle px-4 py-3 font-semibold text-primary">{props.title}</h3>
+      <h3 className="border-b border-subtle px-4 py-3 text-sm font-semibold text-primary">{props.title}</h3>
       <div className="divide-y divide-subtle">
         {props.items.map((item) => (
           <div key={item.id} className="px-4 py-3">
@@ -661,7 +662,7 @@ function PanelList(props: {
             <p className="mt-1 text-[10px] text-secondary">{item.detail}</p>
           </div>
         ))}
-        {!props.items.length ? <p className="text-xs p-4 text-tertiary">{props.empty}</p> : null}
+        {!props.items.length ? <p className="p-4 text-xs text-tertiary">{props.empty}</p> : null}
       </div>
     </div>
   );
@@ -768,7 +769,7 @@ function CredentialForm(props: {
             rows={3}
             defaultValue={typeof metadata.description === "string" ? metadata.description : ""}
             placeholder="Description"
-            className="text-xs rounded-md border border-subtle bg-surface-1 p-2 text-primary sm:col-span-2"
+            className="rounded-md border border-subtle bg-surface-1 p-2 text-xs text-primary sm:col-span-2"
           />
           <p className="text-[10px] text-tertiary sm:col-span-2">
             Secrets are encrypted server-side and are never returned in list responses.

@@ -22,7 +22,6 @@ export function PageNavigationPaneTabsList() {
             {t(tab.i18n_label)}
           </Tabs.Trigger>
         ))}
-        <Tabs.Indicator />
       </Tabs.List>
     </div>
   );

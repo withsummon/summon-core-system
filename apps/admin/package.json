@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@bprogress/core": "catalog:",
-    "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/geist": "catalog:",
     "@fontsource/ibm-plex-mono": "catalog:",
     "@fontsource/material-symbols-rounded": "catalog:",
     "@plane/constants": "workspace:*",

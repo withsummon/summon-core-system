@@ -5,18 +5,22 @@
  */
 
 //
+import { forwardRef } from "react";
 import { cn } from "@plane/utils";
 
-type TCountChip = {
+type TCountChip = React.HTMLAttributes<HTMLDivElement> & {
   count: string | number;
-  className?: string;
 };
 
-export function CountChip(props: TCountChip) {
-  const { count, className = "" } = props;
-
+// Forwards the ref and DOM props so tooltip and popover triggers can anchor to it.
+export const CountChip = forwardRef<HTMLDivElement, TCountChip>(function CountChip(
+  { count, className = "", ...rest },
+  ref
+) {
   return (
     <div
+      ref={ref}
+      {...rest}
       className={cn(
         "relative flex flex-shrink-0 items-center justify-center rounded-xl bg-accent-primary/20 px-2.5 py-0.5 text-caption-sm-semibold text-accent-primary",
         className
@@ -25,4 +29,4 @@ export function CountChip(props: TCountChip) {
       {count}
     </div>
   );
-}
+});

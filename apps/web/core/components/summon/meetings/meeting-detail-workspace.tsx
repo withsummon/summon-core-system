@@ -6,6 +6,14 @@
 
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
+import {
+  ChatTextIcon,
+  CheckSquareIcon,
+  ClockCounterClockwiseIcon,
+  FileTextIcon,
+  SparkleIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -28,6 +36,8 @@ import { copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSectionTab } from "@/components/summon/section-tabs";
 import { MeetingDetailMeta } from "./meeting-detail-meta";
 import { MeetingDetailRail } from "./meeting-detail-rail";
 
@@ -41,21 +51,21 @@ type Props = {
   onRegenerate: () => void;
 };
 
-const tabs = [
-  ["Overview", "overview"],
-  ["Transcript", "transcript"],
-  ["AI Summary", "ai-summary"],
-  ["Documents", "documents"],
-  ["Tasks", "tasks"],
-  ["Activity", "activity"],
-] as const;
+const tabs: TSectionTab<string>[] = [
+  { value: "overview", label: "Overview", icon: SquaresFourIcon, href: "#overview" },
+  { value: "transcript", label: "Transcript", icon: ChatTextIcon, href: "#transcript" },
+  { value: "ai-summary", label: "AI Summary", icon: SparkleIcon, href: "#ai-summary" },
+  { value: "documents", label: "Documents", icon: FileTextIcon, href: "#documents" },
+  { value: "tasks", label: "Tasks", icon: CheckSquareIcon, href: "#tasks" },
+  { value: "activity", label: "Activity", icon: ClockCounterClockwiseIcon, href: "#activity" },
+];
 
 const date = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
 const time = (value: string) => new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(value));
 
 function Card(props: { id?: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section id={props.id} className="shadow-sm scroll-mt-24 rounded-xl border border-subtle bg-surface-1">
+    <section id={props.id} className="scroll-mt-24 rounded-xl border border-subtle bg-surface-1 shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3.5">
         <h2 className="text-sm font-semibold text-primary">{props.title}</h2>
         {props.action}
@@ -75,6 +85,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   onRegenerate,
 }: Props) {
   const { sidebarCollapsed } = useAppTheme();
+  const [section, setSection] = useState("overview");
   const [search, setSearch] = useState("");
   const [showAllTranscript, setShowAllTranscript] = useState(false);
   const organizer = data.participants.find(({ member }) => member.id === data.organizer)?.member.display_name;
@@ -122,7 +133,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   {data.status}
                 </span>
               </div>
-              <div className="text-xs mt-2 flex items-center gap-1.5 font-medium text-secondary">
+              <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-secondary">
                 <FolderKanban className="size-3.5" />
                 {data.project_detail ? (
                   <Link
@@ -148,26 +159,26 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
             <div className="flex items-center gap-2">
               <Link
                 href={`/${workspaceSlug}/settings/members/`}
-                className="text-xs shadow-xs inline-flex h-9 items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 font-semibold text-primary hover:bg-layer-1"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-xs font-semibold text-primary shadow-xs hover:bg-layer-1"
               >
                 <UserPlus className="size-3.5" /> Invite People
               </Link>
               <details className="relative">
-                <summary className="shadow-xs grid size-9 cursor-pointer list-none place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary hover:bg-layer-1">
+                <summary className="grid size-9 cursor-pointer list-none place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary shadow-xs hover:bg-layer-1">
                   <Ellipsis className="size-4" />
                 </summary>
-                <div className="shadow-lg absolute right-0 z-20 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 p-1">
+                <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 p-1 shadow-lg">
                   {data.meeting_url ? (
                     <a
                       href={data.meeting_url}
-                      className="text-xs block rounded-md px-3 py-2 text-primary hover:bg-layer-1"
+                      className="block rounded-md px-3 py-2 text-xs text-primary hover:bg-layer-1"
                     >
                       Open meeting link
                     </a>
                   ) : null}
                   <Link
                     href={`/${workspaceSlug}/summon/meetings/`}
-                    className="text-xs block rounded-md px-3 py-2 text-primary hover:bg-layer-1"
+                    className="block rounded-md px-3 py-2 text-xs text-primary hover:bg-layer-1"
                   >
                     All meetings
                   </Link>
@@ -176,25 +187,19 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
               <button
                 type="button"
                 onClick={() => void share()}
-                className="text-xs shadow-sm inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 font-semibold text-white hover:bg-accent-primary/90"
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 text-xs font-semibold text-white shadow-sm hover:bg-accent-primary/90"
               >
                 <Share2 className="size-3.5" /> Share
               </button>
             </div>
           </div>
-          <nav className="mt-5 flex gap-6 overflow-x-auto" aria-label="Meeting detail sections">
-            {tabs.map(([label, id], index) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                className={`text-xs border-b-2 px-1 pb-3 font-medium whitespace-nowrap ${
-                  index === 0 ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"
-                }`}
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
+          <SectionTabs
+            items={tabs}
+            value={section}
+            onValueChange={setSection}
+            label="Meeting detail sections"
+            className="mt-4 border-b-0"
+          />
         </header>
 
         <div className="grid items-start gap-4 p-4 lg:p-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(23rem,0.95fr)]">
@@ -282,7 +287,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs py-3 text-tertiary">No matching transcript text.</p>
+                <p className="py-3 text-xs text-tertiary">No matching transcript text.</p>
               )}
               {transcript.length > 6 ? (
                 <button

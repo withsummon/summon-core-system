@@ -14,15 +14,16 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { summonService } from "@/services/summon.service";
 import { Select } from "@plane/propel/select";
-import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { Drawer, DrawerContent, DrawerTitle } from "@plane/propel/drawer";
 
 export function CredentialDrawer(props: {
   workspaceSlug: string;
   credential?: ISummonCredential;
+  open: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const { workspaceSlug, credential, onClose, onChanged } = props;
+  const { workspaceSlug, credential, open, onClose, onChanged } = props;
   const [password, setPassword] = useState("");
   const [revealedSecret, setRevealedSecret] = useState("");
   const [newSecret, setNewSecret] = useState("");
@@ -36,7 +37,7 @@ export function CredentialDrawer(props: {
     isLoading: accessLoading,
     mutate,
   } = useSWR(
-    credential ? ["summon-credential-access", workspaceSlug, credential.id] : null,
+    open && credential ? ["summon-credential-access", workspaceSlug, credential.id] : null,
     async () => {
       const [grants, audit] = await Promise.all([
         summonService.listCredentialGrants(workspaceSlug, credential!.id),
@@ -142,14 +143,11 @@ export function CredentialDrawer(props: {
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && close()}>
-      <Dialog.Panel
-        width={EDialogWidth.LG}
-        className="vertical-scrollbar top-0 right-0 left-auto h-dvh max-w-lg translate-x-0 translate-y-0 overflow-y-auto rounded-none border-y-0 border-r-0 p-5"
-      >
+    <Drawer open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
+      <DrawerContent backdrop className="vertical-scrollbar h-dvh overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <Dialog.Title className="text-18 font-semibold text-primary">{credential.name}</Dialog.Title>
+            <DrawerTitle className="text-18 font-semibold text-primary">{credential.name}</DrawerTitle>
             <p className="text-xs text-secondary">
               {credential.provider} · {credential.account_identifier}
             </p>
@@ -158,7 +156,7 @@ export function CredentialDrawer(props: {
             Close
           </Button>
         </div>
-        {error ? <p className="text-xs mt-4 rounded bg-danger-subtle/20 p-3 text-danger-primary">{error}</p> : null}
+        {error ? <p className="mt-4 rounded bg-danger-subtle/20 p-3 text-xs text-danger-primary">{error}</p> : null}
         <div className="mt-5 grid gap-3 rounded-lg border border-subtle p-4">
           <h3 className="text-sm font-semibold text-primary">Reveal for 30 seconds</h3>
           <SummonField label="Current password">
@@ -172,7 +170,7 @@ export function CredentialDrawer(props: {
           <Button size="xl" onClick={reveal} loading={loading} disabled={loading || !password}>
             Reveal once
           </Button>
-          <output className="font-mono text-sm min-h-10 rounded bg-layer-2 p-3 break-all text-primary">
+          <output className="min-h-10 rounded bg-layer-2 p-3 font-mono text-sm break-all text-primary">
             {revealedSecret || credential.secret}
           </output>
         </div>
@@ -186,7 +184,8 @@ export function CredentialDrawer(props: {
               autoComplete="new-password"
             />
           </SummonField>
-          <Button size="xl"
+          <Button
+            size="xl"
             variant="secondary"
             onClick={rotate}
             loading={loading}
@@ -217,7 +216,7 @@ export function CredentialDrawer(props: {
           <SummonRequestState loading={accessLoading} error={accessError} onRetry={() => void mutate()} />
           <div className="space-y-2">
             {data?.grants.map((item) => (
-              <div key={item.id} className="text-xs flex items-center justify-between gap-2">
+              <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
                 <span className="truncate text-secondary">
                   {item.member} · {item.permission}
                 </span>
@@ -243,10 +242,11 @@ export function CredentialDrawer(props: {
         </div>
         <div className="mt-4 rounded-lg border border-danger-subtle bg-danger-subtle/10 p-4">
           <h3 className="text-sm font-semibold text-danger-primary">Revoke credential</h3>
-          <p className="text-xs mt-1 text-secondary">
+          <p className="mt-1 text-xs text-secondary">
             Current password confirmation is required and the action is audited.
           </p>
-          <Button size="xl"
+          <Button
+            size="xl"
             className="mt-3"
             variant="error-fill"
             onClick={revokeCredential}
@@ -256,7 +256,7 @@ export function CredentialDrawer(props: {
             Revoke credential
           </Button>
         </div>
-      </Dialog.Panel>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

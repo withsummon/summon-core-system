@@ -9,18 +9,18 @@ import { cva } from "class-variance-authority";
 import type React from "react";
 
 export const iconButtonVariants = cva(
-  "inline-flex aspect-square items-center justify-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:pointer-events-none",
+  "inline-flex aspect-square press items-center justify-center gap-1 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:pointer-events-none",
   {
     variants: {
       variant: {
         primary:
-          "bg-accent-primary text-on-color hover:bg-accent-primary-hover focus:bg-accent-primary-active active:bg-accent-primary-active disabled:bg-layer-disabled disabled:text-on-color-disabled",
+          "bg-accent-primary text-on-color shadow-tactile-accent hover:bg-accent-primary-hover focus:bg-accent-primary-active active:bg-accent-primary-active disabled:bg-layer-disabled disabled:text-on-color-disabled",
         "error-fill":
-          "bg-danger-primary text-on-color hover:bg-danger-primary-hover focus:bg-danger-primary-active active:bg-danger-primary-active disabled:bg-layer-disabled disabled:text-disabled",
+          "bg-danger-primary text-on-color shadow-tactile-accent hover:bg-danger-primary-hover focus:bg-danger-primary-active active:bg-danger-primary-active disabled:bg-layer-disabled disabled:text-disabled",
         "error-outline":
           "border border-danger-strong bg-layer-2 text-danger-primary hover:bg-danger-subtle focus:bg-danger-subtle-hover active:bg-danger-subtle-hover disabled:border-subtle-1 disabled:bg-layer-2 disabled:text-disabled",
         secondary:
-          "border border-strong bg-layer-2 text-secondary shadow-raised-100 hover:bg-layer-2-hover focus:bg-layer-2-active active:bg-layer-2-active disabled:border-subtle-1 disabled:bg-layer-transparent disabled:text-disabled",
+          "border border-subtle bg-layer-2 text-secondary shadow-tactile hover:bg-layer-2-hover hover:text-primary focus:bg-layer-2-active active:bg-layer-2-active disabled:border-subtle-1 disabled:bg-layer-transparent disabled:text-disabled",
         tertiary:
           "bg-layer-3 text-secondary hover:bg-layer-3-hover focus:bg-layer-3-active active:bg-layer-3-active disabled:bg-layer-transparent disabled:text-disabled",
         ghost:
@@ -28,9 +28,9 @@ export const iconButtonVariants = cva(
       },
       size: {
         sm: "size-7 rounded-md",
-        base: "size-8 rounded-md",
-        lg: "size-9 rounded-md",
-        xl: "size-10 rounded-md",
+        base: "size-8 rounded-lg",
+        lg: "size-9 rounded-lg",
+        xl: "size-10 rounded-lg",
       },
     },
     defaultVariants: {

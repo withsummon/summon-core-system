@@ -39,7 +39,7 @@ const ComboDropDown = forwardRef<HTMLDivElement, Props>(function ComboDropDown(
 
   return (
     <div {...rest} ref={ref}>
-      <ComboboxPrimitive.Root<string, string | null, boolean>
+      <ComboboxPrimitive.Root<string, boolean>
         value={value}
         onValueChange={onChange}
         disabled={disabled}

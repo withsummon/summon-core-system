@@ -111,22 +111,21 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
 
     if (!Array.isArray(data.delete_issue_ids)) data.delete_issue_ids = [data.delete_issue_ids];
 
-    await removeBulkIssues(workspaceSlug, projectId, data.delete_issue_ids)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Work items deleted successfully!",
-        });
-        handleClose();
-      })
-      .catch(() =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Something went wrong. Please try again.",
-        })
-      );
+    try {
+      await removeBulkIssues(workspaceSlug, projectId, data.delete_issue_ids);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Work items deleted successfully!",
+      });
+      handleClose();
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Something went wrong. Please try again.",
+      });
+    }
   };
 
   const issueList =
@@ -158,10 +157,13 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form>
-        <Combobox.Root
+        <Combobox.Root<string>
           open
           filter={null}
-          onValueChange={(val: string) => {
+          // Each pick toggles membership, so the combobox itself never keeps a selection.
+          value={null}
+          onValueChange={(val) => {
+            if (val === null) return;
             const selectedIssues = watch("delete_issue_ids");
             if (selectedIssues.includes(val))
               setValue(

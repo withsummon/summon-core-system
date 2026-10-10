@@ -5,83 +5,63 @@
  */
 
 import {
-  AnalyticsIcon,
   ArchiveIcon,
-  CycleIcon,
-  DraftIcon,
-  HomeIcon,
-  InboxIcon,
-  MultipleStickyIcon,
-  ProjectIcon,
-  ViewsIcon,
-  YourWorkIcon,
-} from "@plane/propel/icons";
-import {
-  Bell,
-  BookOpen,
-  Bot,
-  Briefcase,
-  CalendarDays,
-  FileText,
-  KeyRound,
-  ListTodo,
-  SettingsIcon,
-  Users,
-  Workflow,
-} from "lucide-react";
-import { cn } from "@plane/utils";
+  ArrowsClockwiseIcon,
+  BellIcon,
+  BookOpenIcon,
+  BriefcaseIcon,
+  CalendarDotsIcon,
+  ChartBarIcon,
+  ChartLineUpIcon,
+  CheckSquareIcon,
+  FileTextIcon,
+  FlowArrowIcon,
+  GearSixIcon,
+  HandshakeIcon,
+  HouseIcon,
+  KeyIcon,
+  NoteIcon,
+  PencilSimpleLineIcon,
+  SparkleIcon,
+  SquaresFourIcon,
+  StackIcon,
+  TrayIcon,
+  UserCircleIcon,
+  UsersThreeIcon,
+} from "@phosphor-icons/react";
+import { SelectableIcon } from "@plane/propel/icons";
+import type { TSelectableIcon } from "@plane/propel/icons";
 
+const NAVIGATION_ICONS: Record<string, TSelectableIcon> = {
+  home: HouseIcon,
+  inbox: TrayIcon,
+  projects: BriefcaseIcon,
+  views: SquaresFourIcon,
+  active_cycles: ArrowsClockwiseIcon,
+  analytics: ChartLineUpIcon,
+  your_work: UserCircleIcon,
+  drafts: PencilSimpleLineIcon,
+  archives: ArchiveIcon,
+  stickies: NoteIcon,
+  summon: HouseIcon,
+  summon_projects: BriefcaseIcon,
+  summon_clients: UsersThreeIcon,
+  summon_tasks: CheckSquareIcon,
+  summon_meetings: CalendarDotsIcon,
+  summon_documents: FileTextIcon,
+  summon_knowledge: BookOpenIcon,
+  summon_credentials: KeyIcon,
+  summon_opportunities: HandshakeIcon,
+  summon_reports: ChartBarIcon,
+  summon_resources: StackIcon,
+  summon_automation: FlowArrowIcon,
+  summon_notifications: BellIcon,
+  summon_assistant: SparkleIcon,
+  summon_settings: GearSixIcon,
+};
+
+/** Outline at rest, filled when the enclosing nav item is active (see `SidebarNavItem`). */
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
-  switch (key) {
-    case "home":
-      return <HomeIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "inbox":
-      return <InboxIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "projects":
-      return <ProjectIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "views":
-      return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "active_cycles":
-      return <CycleIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "analytics":
-      return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "your_work":
-      return <YourWorkIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "drafts":
-      return <DraftIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "archives":
-      return <ArchiveIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "stickies":
-      return <MultipleStickyIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon":
-      return <HomeIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_projects":
-      return <ProjectIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_clients":
-      return <Users className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_tasks":
-      return <ListTodo className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_meetings":
-      return <CalendarDays className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_documents":
-      return <FileText className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_knowledge":
-      return <BookOpen className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_credentials":
-      return <KeyRound className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_opportunities":
-      return <Briefcase className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_reports":
-      return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_resources":
-      return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_automation":
-      return <Workflow className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_notifications":
-      return <Bell className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_assistant":
-      return <Bot className={cn("size-4 flex-shrink-0", className)} />;
-    case "summon_settings":
-      return <SettingsIcon className={cn("size-4 flex-shrink-0", className)} />;
-  }
+  const icon = NAVIGATION_ICONS[key];
+  return icon ? <SelectableIcon icon={icon} className={className} /> : undefined;
 };

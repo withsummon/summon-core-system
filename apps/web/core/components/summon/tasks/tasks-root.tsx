@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { CheckSquareIcon, ListChecksIcon, PencilSimpleLineIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import useSWR from "swr";
 import {
@@ -27,6 +28,8 @@ import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
+import { SelectableIcon } from "@plane/propel/icons";
+import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { Collapsible } from "@plane/propel/collapsible";
 import { getFileURL } from "@plane/utils";
@@ -40,11 +43,11 @@ import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { listAccessiblePlaneIssues } from "@/services/summon-plane.service";
 import { filterTaskCenterItems, isTaskCompleted, type TTaskCenterDue, type TTaskCenterScope } from "./task-center";
 
-const scopes: { value: TTaskCenterScope; label: string }[] = [
-  { value: "mine", label: "My tasks" },
-  { value: "team", label: "Team tasks" },
-  { value: "created", label: "Created by me" },
-  { value: "all", label: "All tasks" },
+const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[] = [
+  { value: "mine", label: "My tasks", icon: CheckSquareIcon },
+  { value: "team", label: "Team tasks", icon: UsersThreeIcon },
+  { value: "created", label: "Created by me", icon: PencilSimpleLineIcon },
+  { value: "all", label: "All tasks", icon: ListChecksIcon },
 ];
 const dueOptions: { value: TTaskCenterDue; label: string }[] = [
   { value: "all", label: "Any date" },
@@ -105,7 +108,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
       project,
       stateGroup: state?.group ?? issue.state__group,
       stateName: state?.name,
-      assignees: issue.assignee_ids.map(id => getUserDetails(id)).filter(Boolean),
+      assignees: issue.assignee_ids.map((id) => getUserDetails(id)).filter(Boolean),
     };
   });
   const filtered = filterTaskCenterItems(tasks, { scope, due, currentUserId: currentUser?.id, today }).filter(
@@ -145,21 +148,23 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
         </Button>
       </header>
       <Tabs
+        variant="underline"
         value={scope}
         onValueChange={(value) => {
           const next = scopes.find((item) => item.value === value);
           if (next) setScope(next.value);
         }}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-2 sm:px-6">
-          <Tabs.List aria-label="Task ownership" className="w-auto max-w-full justify-start bg-transparent p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 sm:px-6">
+          <Tabs.List aria-label="Task ownership" className="w-auto max-w-full border-b-0">
             {scopes.map((item) => (
-              <Tabs.Trigger key={item.value} value={item.value} className="min-h-8 w-auto px-3">
+              <Tabs.Trigger key={item.value} value={item.value} className="h-11">
+                <SelectableIcon icon={item.icon} />
                 {item.label}
               </Tabs.Trigger>
             ))}
           </Tabs.List>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 py-1.5 sm:flex-none">
             <label htmlFor="task-search" className="relative min-w-0 flex-1 sm:w-56">
               <span className="sr-only">Search tasks</span>
               <Search
@@ -172,7 +177,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search tasks…"
-                className="text-base h-8 w-full pl-8 sm:text-13"
+                className="h-8 w-full pl-8 text-base sm:text-13"
               />
             </label>
             <Button

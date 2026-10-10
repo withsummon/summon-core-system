@@ -7,6 +7,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BookOpenIcon, FileTextIcon, PresentationIcon, SquaresFourIcon, TableIcon } from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
   ArrowRight,
@@ -35,6 +36,8 @@ import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedA
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSelectableIcon } from "@plane/propel/icons";
 import { summonLLMErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { FileService } from "@/services/file.service";
@@ -78,6 +81,13 @@ const templateLabel = (type: string) =>
     .replace(/^mom_(iglo|summon)$/, "minutes of meeting")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const templateTabIcon = (type: string): TSelectableIcon => {
+  if (type === "quotation" || type === "cost_projection") return TableIcon;
+  if (type.startsWith("mom_")) return BookOpenIcon;
+  if (type === "presentation") return PresentationIcon;
+  return FileTextIcon;
+};
 
 const templateVisual = (type: string) => {
   if (type === "quotation") return { Icon: FileSpreadsheet, tone: "bg-emerald-50 text-emerald-600" };
@@ -280,7 +290,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-primary">Automation Studio</h1>
-          <p className="text-xs mt-1 text-secondary">AI-powered document generation and business automation</p>
+          <p className="mt-1 text-xs text-secondary">AI-powered document generation and business automation</p>
         </div>
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
           <div role="search" className="relative hidden w-full max-w-[460px] md:block">
@@ -311,7 +321,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           </Link>
           <Link
             href={`/${workspaceSlug}/summon/settings/`}
-            className="text-xs inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-primary"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 text-xs font-medium text-primary"
           >
             <Settings className="size-4" /> Studio Settings
           </Link>
@@ -430,7 +440,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                   accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv"
                   disabled={extractingDocument}
                   onChange={(event) => void extractDocument(event)}
-                  className="text-xs block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+                  className="block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
                 />
                 <span className="mt-1 block text-[10px] text-tertiary">
                   {extractingDocument
@@ -452,7 +462,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                   accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"
                   disabled={!meetingId || uploadingAudio}
                   onChange={(event) => void uploadMeetingAudio(event)}
-                  className="text-xs mt-2 block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+                  className="mt-2 block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
                 />
                 <span className="mt-1 block text-[10px] text-tertiary">
                   {uploadingAudio
@@ -597,37 +607,21 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               <Filter className="size-3.5" /> Filters
             </button>
           </div>
-          <div className="flex gap-5 overflow-x-auto border-b border-subtle px-4 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveType("all");
-                setPage(1);
-              }}
-              className={`h-10 border-b-2 text-[11px] font-medium whitespace-nowrap ${
-                activeType === "all" ? "border-accent-primary text-accent-primary" : "border-transparent text-secondary"
-              }`}
-            >
-              All
-            </button>
-            {types.slice(0, 6).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => {
-                  setActiveType(type);
-                  setPage(1);
-                }}
-                className={`h-10 border-b-2 text-[11px] font-medium whitespace-nowrap ${
-                  activeType === type
-                    ? "border-accent-primary text-accent-primary"
-                    : "border-transparent text-secondary"
-                }`}
-              >
-                {templateLabel(type)}
-              </button>
-            ))}
-          </div>
+          <SectionTabs
+            items={[
+              { value: "all", label: "All", icon: SquaresFourIcon },
+              ...types
+                .slice(0, 6)
+                .map((type) => ({ value: type, label: templateLabel(type), icon: templateTabIcon(type) })),
+            ]}
+            value={activeType}
+            onValueChange={(type) => {
+              setActiveType(type);
+              setPage(1);
+            }}
+            label="Generated document types"
+            className="px-4"
+          />
           <SummonRequestState
             loading={isLoading}
             error={error}
@@ -659,7 +653,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                             <Icon className="size-3.5" />
                           </span>
                           <div className="min-w-0">
-                            <p className="text-xs max-w-56 truncate font-medium text-primary">
+                            <p className="max-w-56 truncate text-xs font-medium text-primary">
                               {automationInputValue(job.input, "title") || templateLabel(job.type)}
                             </p>
                             <p className="mt-0.5 max-w-56 truncate text-[10px] text-tertiary">

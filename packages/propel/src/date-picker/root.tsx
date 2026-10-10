@@ -5,7 +5,7 @@
  */
 
 import { memo, useState } from "react";
-import { Popover as BasePopover } from "@base-ui-components/react/popover";
+import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Calendar } from "../calendar/root";
 import { CloseIcon } from "../icons/actions/close-icon";
 import { cn } from "../utils/classname";

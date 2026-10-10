@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Tooltip } from "../tooltip";
-import { Avatar as AvatarPrimitive } from "@base-ui-components/react/avatar";
+import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
 import { cn } from "../utils/classname";
 
 export type TAvatarSize = "sm" | "md" | "base" | "lg" | number;

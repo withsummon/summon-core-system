@@ -5,6 +5,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  CompassIcon,
+  FileTextIcon,
+  LightbulbIcon,
+  NoteIcon,
+  QuestionIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
   ArrowRight,
@@ -22,10 +30,21 @@ import {
   Users,
 } from "lucide-react";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSectionTab } from "@/components/summon/section-tabs";
 import { useMember } from "@/hooks/store/use-member";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+
+const KNOWLEDGE_TABS: TSectionTab<string>[] = [
+  { value: "All", label: "All", icon: SquaresFourIcon },
+  { value: "Notes", label: "Notes", icon: NoteIcon },
+  { value: "Documents", label: "Documents", icon: FileTextIcon },
+  { value: "Guides", label: "Guides", icon: CompassIcon },
+  { value: "FAQs", label: "FAQs", icon: QuestionIcon },
+  { value: "Lessons Learned", label: "Lessons Learned", icon: LightbulbIcon },
+];
 
 const formatDate = (value?: Date) => {
   if (!value) return "Unknown";
@@ -111,7 +130,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
     <div className="mx-auto min-h-full w-full max-w-[1600px] bg-surface-1 p-4 lg:p-5">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-primary">Knowledge</h1>
-        <p className="text-xs mt-1 text-secondary">Your company knowledge, notes, and insights in one place</p>
+        <p className="mt-1 text-xs text-secondary">Your company knowledge, notes, and insights in one place</p>
       </header>
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -122,7 +141,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search knowledge, notes, topics, or ask anything..."
-              className="text-xs shadow-xs focus:border-accent-primary h-11 w-full rounded-xl border border-subtle bg-surface-1 pr-12 pl-10 text-primary outline-none"
+              className="focus:border-accent-primary h-11 w-full rounded-xl border border-subtle bg-surface-1 pr-12 pl-10 text-xs text-primary shadow-xs outline-none"
             />
             <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md bg-layer-1 px-2 py-1 text-[10px] text-tertiary">
               ⌘ K
@@ -136,14 +155,14 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               </span>
               <div>
                 <h2 className="text-sm font-semibold text-primary">Ask Summon Assistant anything</h2>
-                <p className="text-xs mt-1 text-secondary">
+                <p className="mt-1 text-xs text-secondary">
                   Get answers from accessible workspace, project, and Plane Page context.
                 </p>
               </div>
             </div>
             <Link
               href={`/${workspaceSlug}/summon/assistant/`}
-              className="text-xs shadow-xs mt-5 flex h-12 items-center gap-3 rounded-xl border border-subtle bg-surface-1 px-4 text-secondary"
+              className="mt-5 flex h-12 items-center gap-3 rounded-xl border border-subtle bg-surface-1 px-4 text-xs text-secondary shadow-xs"
             >
               <span className="flex-1">Ask a question about projects, clients, processes, or anything...</span>
               <Send className="size-4" />
@@ -168,14 +187,14 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               {contextCards.map(({ label, count, icon: Icon, detail }) => (
-                <article key={label} className="shadow-xs rounded-2xl border border-subtle bg-surface-1 p-4">
+                <article key={label} className="rounded-2xl border border-subtle bg-surface-1 p-4 shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="grid size-8 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                       <Icon className="size-4" />
                     </span>
                     <span className="rounded-full bg-layer-1 px-2 py-1 text-[10px] text-secondary">{count}</span>
                   </div>
-                  <h3 className="text-xs mt-4 font-semibold text-primary">{label}</h3>
+                  <h3 className="mt-4 text-xs font-semibold text-primary">{label}</h3>
                   <p className="mt-1 text-[10px] leading-relaxed text-secondary">{detail}</p>
                 </article>
               ))}
@@ -186,18 +205,13 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-primary">Recent Knowledge</h2>
-                <div className="mt-3 flex gap-4 overflow-x-auto">
-                  {["All", "Notes", "Documents", "Guides", "FAQs", "Lessons Learned"].map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setTab(item)}
-                      className={`shrink-0 border-b-2 pb-2 text-[10px] ${tab === item ? "border-accent-primary font-medium text-accent-primary" : "border-transparent text-secondary"}`}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
+                <SectionTabs
+                  items={KNOWLEDGE_TABS}
+                  value={tab}
+                  onValueChange={setTab}
+                  label="Knowledge categories"
+                  className="mt-2"
+                />
               </div>
               <span className="text-[10px] text-secondary">{filteredPages.length} accessible items</span>
             </div>
@@ -210,7 +224,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             />
             {!!filteredPages.length && (
               <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
-                <table className="text-xs w-full min-w-[46rem] text-left">
+                <table className="w-full min-w-[46rem] text-left text-xs">
                   <thead className="border-b border-subtle bg-layer-1 text-[10px] text-tertiary">
                     <tr>
                       <th className="px-4 py-3 font-medium">Title</th>
@@ -313,7 +327,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
 
 function SidePanel({ title, href, children }: { title: string; href?: string; children: React.ReactNode }) {
   return (
-    <section className="shadow-xs rounded-2xl border border-subtle bg-surface-1 p-4">
+    <section className="rounded-2xl border border-subtle bg-surface-1 p-4 shadow-xs">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-primary">{title}</h2>
         {href && (
@@ -342,7 +356,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-subtle p-3">
       <p className="text-[9px] text-tertiary">{label}</p>
-      <p className="text-sm mt-1 truncate font-semibold text-primary">{value}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-primary">{value}</p>
     </div>
   );
 }

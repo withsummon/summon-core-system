@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 import * as React from "react";
-import { Checkbox as BaseCheckbox } from "@base-ui-components/react/checkbox";
+import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { Check, Minus } from "lucide-react";
 import { cn } from "../utils";
 

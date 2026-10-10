@@ -4,6 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./collapsible";
-
-export { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
+export * from "./drawer";

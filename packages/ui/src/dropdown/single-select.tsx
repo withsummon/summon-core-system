@@ -79,7 +79,10 @@ export function Dropdown(props: ISingleSelectDropdown) {
   return (
     <Combobox.Root
       value={value}
-      onValueChange={onChange}
+      onValueChange={(next) => {
+        // A required single value has no empty state; ignore Base UI's deselect-to-null.
+        if (next !== null) onChange(next);
+      }}
       multiple={false}
       open={isOpen}
       onOpenChange={handleOpenChange}

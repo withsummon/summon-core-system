@@ -5,7 +5,7 @@
  */
 
 import { memo } from "react";
-import { Select as BaseSelect } from "@base-ui-components/react/select";
+import { Select as BaseSelect } from "@base-ui/react/select";
 import { CheckIcon } from "../icons/actions/check-icon";
 import { ChevronDownIcon } from "../icons/arrows/chevron-down";
 import { cn } from "../utils/classname";
@@ -30,8 +30,8 @@ export interface SelectProps {
 }
 
 const TRIGGER_CLASSNAME = cn(
-  "flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-strong bg-surface-1 px-3 text-left text-13 text-primary outline-none",
-  "transition-[border-color,background-color] duration-150 hover:bg-layer-1 focus-visible:border-accent-strong focus-visible:ring-2 focus-visible:ring-accent-strong/30",
+  "flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-left text-13 text-primary shadow-raised-100 outline-none",
+  "transition-[border-color,background-color] duration-150 hover:bg-layer-1 focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle",
   "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[popup-open]:border-accent-strong motion-reduce:transition-none"
 );
 
@@ -42,7 +42,7 @@ function SelectPopup({ options, popupClassName }: { options: SelectOption[]; pop
         <BaseSelect.Popup
           data-slot="select-popup"
           className={cn(
-            "max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-raised-200 outline-none",
+            "max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-overlay-100 outline-none",
             "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
             popupClassName
           )}

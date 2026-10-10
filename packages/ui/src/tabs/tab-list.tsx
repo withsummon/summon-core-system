@@ -45,18 +45,12 @@ export function TabList({ autoWrap = true, ...props }: TTabListProps) {
 
 function TabListInner({ tabs, tabListClassName, tabClassName, size = "md" }: TTabListProps) {
   return (
-    <Primitive.List
-      className={cn(
-        "flex w-full min-w-fit items-center justify-between gap-1.5 rounded-md bg-layer-1 p-0.5 text-13",
-        tabListClassName
-      )}
-    >
+    <Primitive.List className={cn("min-w-fit", tabListClassName)}>
       {tabs.map((tab) => (
         <Primitive.Trigger
           value={tab.key}
           className={cn(
-            "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-sm p-1 font-medium text-primary transition-colors duration-150 motion-reduce:transition-none",
-            "data-[selected]:shadow-sm hover:bg-layer-transparent-hover disabled:cursor-not-allowed disabled:text-placeholder data-[selected]:bg-layer-transparent-active data-[selected]:text-primary",
+            "w-full rounded-sm",
             {
               "text-11": size === "sm",
               "text-13": size === "md",

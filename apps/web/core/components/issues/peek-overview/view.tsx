@@ -4,18 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { createPortal } from "react-dom";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
+import { DrawerContent } from "@plane/propel/drawer";
+import type { TDrawerChangeEventDetails } from "@plane/propel/drawer";
 import { cn } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import useKeypress from "@/hooks/use-keypress";
-import usePeekOverviewOutsideClickDetector from "@/hooks/use-peek-overview-outside-click";
+import { getPeekOutsidePressAction } from "./outside-press";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
 import { IssueActivity } from "../issue-detail/issue-activity";
@@ -38,7 +38,14 @@ interface IIssueView {
   embedIssue?: boolean;
   embedRemoveCurrentNotification?: () => void;
   issueOperations: TIssueOperations;
+  /**
+   * The always-mounted drawer root (in the peek root) forwards its close requests here, because
+   * this view owns the state that decides whether a close is allowed (modals, editor menus).
+   */
+  closeRequestRef?: React.Ref<TPeekCloseRequest>;
 }
+
+export type TPeekCloseRequest = (open: boolean, details: TDrawerChangeEventDetails) => void;
 
 export const IssueView = observer(function IssueView(props: IIssueView) {
   const {
@@ -52,6 +59,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     embedIssue = false,
     embedRemoveCurrentNotification,
     issueOperations,
+    closeRequestRef,
   } = props;
   // states
   const [peekMode, setPeekMode] = useState<TPeekModes>("side-peek");
@@ -85,32 +93,38 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   const isAnyLocalModalOpen =
     isDeleteIssueModalOpen || isArchiveIssueModalOpen || isDuplicateIssueModalOpen || isEditIssueModalOpen;
 
-  usePeekOverviewOutsideClickDetector(
-    issuePeekOverviewRef,
-    () => {
-      const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
-      if (!embedIssue) {
-        if (!isAnyModalOpen && !isAnyEpicModalOpen && !isAnyLocalModalOpen && !isAnyDropbarOpen) {
-          removeRoutePeekId();
-        }
-      }
-    },
-    issueId,
-    ["main-sidebar"]
-  );
+  const isCloseBlocked = () =>
+    isAnyModalOpen ||
+    isAnyEpicModalOpen ||
+    isAnyLocalModalOpen ||
+    !!editorRef.current?.isAnyDropbarOpen() ||
+    !!document.querySelector(".editor-image-full-screen-modal");
 
-  const handleKeyDown = () => {
-    const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");
-    const dropdownElement = document.activeElement?.tagName === "INPUT";
-    const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
-    if (!isAnyModalOpen && !dropdownElement && !isAnyDropbarOpen && !editorImageFullScreenModalElement) {
-      removeRoutePeekId();
-      const issueElement = document.getElementById(`issue-${issueId}`);
-      if (issueElement) issueElement?.focus();
+  // The drawer reports why it wants to close; the peek keeps its own product rules on top.
+  const handleOpenChange: TPeekCloseRequest = (nextOpen, details) => {
+    if (nextOpen) return;
+    if (details.reason === "outside-press") {
+      const action = getPeekOutsidePressAction(details.event?.target ?? null, issuePeekOverviewRef.current, issueId, [
+        "main-sidebar",
+      ]);
+      if (action === "ignore" || isCloseBlocked()) return details.cancel();
+      if (action === "delay") {
+        details.cancel();
+        setTimeout(removeRoutePeekId, 0);
+        return;
+      }
+      return removeRoutePeekId();
     }
+    if (details.reason === "escape-key") {
+      if (isCloseBlocked() || document.activeElement?.tagName === "INPUT") return details.cancel();
+      removeRoutePeekId();
+      document.getElementById(`issue-${issueId}`)?.focus();
+      return;
+    }
+    removeRoutePeekId();
   };
 
-  useKeypress("Escape", () => !embedIssue && handleKeyDown());
+  useImperativeHandle(closeRequestRef, () => handleOpenChange);
 
   const handleRestore = async () => {
     if (!issueOperations.restore) return;
@@ -118,63 +132,88 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     removeRoutePeekId();
   };
 
-  const peekOverviewIssueClassName = cn(
-    !embedIssue
-      ? "absolute z-[25] flex flex-col overflow-hidden rounded-sm border border-subtle bg-surface-1 transition-all duration-300"
-      : `h-full w-full`,
-    !embedIssue && {
-      "top-0 right-0 bottom-0 w-full border-0 border-l md:w-[50%]": peekMode === "side-peek",
-      "top-[8.33%] left-[8.33%] size-5/6": peekMode === "modal",
-      "absolute inset-0 m-4": peekMode === "full-screen",
-    }
-  );
+  const drawerModeClassName = {
+    "side-peek": "max-w-none md:w-1/2",
+    modal: "h-5/6 w-5/6 max-w-none rounded-lg border",
+    "full-screen": "m-4 h-[calc(100%-2rem)] max-w-none rounded-lg border",
+  }[peekMode];
 
-  const shouldUsePortal = !embedIssue;
+  const portalContainer = document.getElementById("full-screen-portal");
 
-  const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
+  const body = (
+    <>
+      {isError ? (
+        <div className="relative h-screen w-full overflow-hidden">
+          <IssuePeekOverviewError removeRoutePeekId={removeRoutePeekId} />
+        </div>
+      ) : (
+        isLoading && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} />
+      )}
+      {!isLoading && !isError && issue && (
+        <>
+          {/* header */}
+          <IssuePeekOverviewHeader
+            peekMode={peekMode}
+            setPeekMode={(value) => setPeekMode(value)}
+            removeRoutePeekId={removeRoutePeekId}
+            toggleDeleteIssueModal={toggleDeleteIssueModal}
+            toggleArchiveIssueModal={toggleArchiveIssueModal}
+            toggleDuplicateIssueModal={toggleDuplicateIssueModal}
+            toggleEditIssueModal={toggleEditIssueModal}
+            handleRestoreIssue={handleRestore}
+            isArchived={is_archived}
+            issueId={issueId}
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            isSubmitting={isSubmitting}
+            disabled={disabled}
+            embedIssue={embedIssue}
+          />
+          {/* content */}
+          <div className="vertical-scrollbar relative scrollbar-md h-full w-full overflow-hidden overflow-y-auto">
+            {["side-peek", "modal"].includes(peekMode) ? (
+              <div className="relative flex flex-col gap-3 space-y-3 px-8 py-5">
+                <PeekOverviewIssueDetails
+                  editorRef={editorRef}
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  issueOperations={issueOperations}
+                  disabled={disabled}
+                  isArchived={is_archived}
+                  isSubmitting={isSubmitting}
+                  setIsSubmitting={(value) => setIsSubmitting(value)}
+                />
 
-  const content = (
-    <div className="w-full text-body-sm-regular">
-      {issueId && (
-        <div
-          ref={issuePeekOverviewRef}
-          className={peekOverviewIssueClassName}
-          style={{
-            boxShadow:
-              "0px 4px 8px 0px rgba(0, 0, 0, 0.12), 0px 6px 12px 0px rgba(16, 24, 40, 0.12), 0px 1px 16px 0px rgba(16, 24, 40, 0.12)",
-          }}
-        >
-          {isError ? (
-            <div className="relative h-screen w-full overflow-hidden">
-              <IssuePeekOverviewError removeRoutePeekId={removeRoutePeekId} />
-            </div>
-          ) : (
-            isLoading && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} />
-          )}
-          {!isLoading && !isError && issue && (
-            <>
-              {/* header */}
-              <IssuePeekOverviewHeader
-                peekMode={peekMode}
-                setPeekMode={(value) => setPeekMode(value)}
-                removeRoutePeekId={removeRoutePeekId}
-                toggleDeleteIssueModal={toggleDeleteIssueModal}
-                toggleArchiveIssueModal={toggleArchiveIssueModal}
-                toggleDuplicateIssueModal={toggleDuplicateIssueModal}
-                toggleEditIssueModal={toggleEditIssueModal}
-                handleRestoreIssue={handleRestore}
-                isArchived={is_archived}
-                issueId={issueId}
-                workspaceSlug={workspaceSlug}
-                projectId={projectId}
-                isSubmitting={isSubmitting}
-                disabled={disabled}
-                embedIssue={embedIssue}
-              />
-              {/* content */}
-              <div className="vertical-scrollbar relative scrollbar-md h-full w-full overflow-hidden overflow-y-auto">
-                {["side-peek", "modal"].includes(peekMode) ? (
-                  <div className="relative flex flex-col gap-3 space-y-3 px-8 py-5">
+                <div className="py-2">
+                  <IssueDetailWidgets
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    issueId={issueId}
+                    disabled={disabled || is_archived}
+                    issueServiceType={EIssueServiceType.ISSUES}
+                  />
+                </div>
+
+                <PeekOverviewProperties
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  issueOperations={issueOperations}
+                  disabled={disabled || is_archived}
+                />
+
+                <IssueActivity
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  disabled={is_archived}
+                />
+              </div>
+            ) : (
+              <div className="vertical-scrollbar flex h-full w-full overflow-auto">
+                <div className="relative h-full w-full space-y-6 overflow-auto p-4 py-5">
+                  <div className="space-y-3">
                     <PeekOverviewIssueDetails
                       editorRef={editorRef}
                       workspaceSlug={workspaceSlug}
@@ -192,18 +231,10 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                         workspaceSlug={workspaceSlug}
                         projectId={projectId}
                         issueId={issueId}
-                        disabled={disabled || is_archived}
+                        disabled={disabled}
                         issueServiceType={EIssueServiceType.ISSUES}
                       />
                     </div>
-
-                    <PeekOverviewProperties
-                      workspaceSlug={workspaceSlug}
-                      projectId={projectId}
-                      issueId={issueId}
-                      issueOperations={issueOperations}
-                      disabled={disabled || is_archived}
-                    />
 
                     <IssueActivity
                       workspaceSlug={workspaceSlug}
@@ -212,62 +243,46 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                       disabled={is_archived}
                     />
                   </div>
-                ) : (
-                  <div className="vertical-scrollbar flex h-full w-full overflow-auto">
-                    <div className="relative h-full w-full space-y-6 overflow-auto p-4 py-5">
-                      <div className="space-y-3">
-                        <PeekOverviewIssueDetails
-                          editorRef={editorRef}
-                          workspaceSlug={workspaceSlug}
-                          projectId={projectId}
-                          issueId={issueId}
-                          issueOperations={issueOperations}
-                          disabled={disabled}
-                          isArchived={is_archived}
-                          isSubmitting={isSubmitting}
-                          setIsSubmitting={(value) => setIsSubmitting(value)}
-                        />
-
-                        <div className="py-2">
-                          <IssueDetailWidgets
-                            workspaceSlug={workspaceSlug}
-                            projectId={projectId}
-                            issueId={issueId}
-                            disabled={disabled}
-                            issueServiceType={EIssueServiceType.ISSUES}
-                          />
-                        </div>
-
-                        <IssueActivity
-                          workspaceSlug={workspaceSlug}
-                          projectId={projectId}
-                          issueId={issueId}
-                          disabled={is_archived}
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className={`vertical-scrollbar scrollbar-sm h-full !w-[400px] flex-shrink-0 overflow-hidden border-l border-subtle p-4 py-5 ${
-                        is_archived ? "pointer-events-none" : ""
-                      }`}
-                    >
-                      <PeekOverviewProperties
-                        workspaceSlug={workspaceSlug}
-                        projectId={projectId}
-                        issueId={issueId}
-                        issueOperations={issueOperations}
-                        disabled={disabled || is_archived}
-                      />
-                    </div>
-                  </div>
-                )}
+                </div>
+                <div
+                  className={`vertical-scrollbar scrollbar-sm h-full !w-[400px] flex-shrink-0 overflow-hidden border-l border-subtle p-4 py-5 ${
+                    is_archived ? "pointer-events-none" : ""
+                  }`}
+                >
+                  <PeekOverviewProperties
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    issueId={issueId}
+                    issueOperations={issueOperations}
+                    disabled={disabled || is_archived}
+                  />
+                </div>
               </div>
-            </>
-          )}
-        </div>
+            )}
+          </div>
+        </>
       )}
-    </div>
+    </>
   );
 
-  return <>{shouldUsePortal && portalContainer ? createPortal(content, portalContainer) : content}</>;
+  if (embedIssue)
+    return (
+      <div className="w-full text-body-sm-regular">
+        <div className="flex h-full w-full flex-col overflow-hidden">{body}</div>
+      </div>
+    );
+
+  return (
+    <DrawerContent
+      ref={issuePeekOverviewRef}
+      container={portalContainer}
+      initialFocus={false}
+      finalFocus={false}
+      aria-label={issue?.name ?? "Work item"}
+      viewportClassName={peekMode === "side-peek" ? undefined : "items-center justify-center"}
+      className={cn("text-body-sm-regular", drawerModeClassName)}
+    >
+      {body}
+    </DrawerContent>
+  );
 });

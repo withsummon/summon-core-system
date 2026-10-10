@@ -129,18 +129,23 @@ export function ExistingIssuesListModal(props: Props) {
     }
   }, [isOpen, issues, selectedWorkItemIds]);
 
+  // Search again only when the query inputs change; handleSearch is recreated every render and sets state.
   useEffect(() => {
     handleSearch();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, isOpen, isWorkspaceLevel, projectId, workspaceSlug]);
 
   const filteredIssues = issues.filter((issue) => !shouldHideIssue?.(issue));
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
-      <Combobox.Root
+      <Combobox.Root<ISearchIssueResponse>
         open
         filter={null}
-        onValueChange={(val: ISearchIssueResponse) => {
+        // Each pick toggles membership, so the combobox itself never keeps a selection.
+        value={null}
+        onValueChange={(val) => {
+          if (val === null) return;
           if (selectedIssues.some((i) => i.id === val.id))
             setSelectedIssues((prevData) => prevData.filter((i) => i.id !== val.id));
           else setSelectedIssues((prevData) => [...prevData, val]);

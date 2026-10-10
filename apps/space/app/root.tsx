@@ -19,9 +19,15 @@ import type { Route } from "./+types/root";
 import ErrorPage from "./error";
 import { AppProviders } from "./providers";
 // fonts
-import "@fontsource-variable/inter";
-import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+// SAFETY: This font package exposes global CSS only and must execute for its side effect.
+// oxlint-disable-next-line import/no-unassigned-import
+import "@fontsource-variable/geist";
+import geistVariableWoff2 from "@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url";
+// SAFETY: This icon font package exposes global CSS only and must execute for its side effect.
+// oxlint-disable-next-line import/no-unassigned-import
 import "@fontsource/material-symbols-rounded";
+// SAFETY: This font package exposes global CSS only and must execute for its side effect.
+// oxlint-disable-next-line import/no-unassigned-import
 import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Plane Publish | Make your Plane boards public with one-click";
@@ -36,7 +42,7 @@ export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
-    href: interVariableWoff2,
+    href: geistVariableWoff2,
     as: "font",
     type: "font/woff2",
     crossOrigin: "anonymous",

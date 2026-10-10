@@ -4,10 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { usePathname, useSearchParams } from "next/navigation";
 // hooks
+import { Drawer, DrawerContent } from "@plane/propel/drawer";
 import { generateQueryParams } from "@plane/utils";
 import { useModule } from "@/hooks/store/use-module";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -30,8 +31,9 @@ export const ModulePeekOverview = observer(function ModulePeekOverview({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const peekModule = searchParams.get("peekModule");
-  // refs
-  const ref = React.useRef(null);
+  // Keep the last module rendered while the drawer animates out after the query param clears.
+  const [shownModule, setShownModule] = useState(peekModule);
+  if (peekModule && peekModule !== shownModule) setShownModule(peekModule);
   // store hooks
   const { fetchModuleDetails, fetchArchivedModuleDetails } = useModule();
 
@@ -47,23 +49,24 @@ export const ModulePeekOverview = observer(function ModulePeekOverview({
   }, [fetchArchivedModuleDetails, fetchModuleDetails, isArchived, peekModule, projectId, workspaceSlug]);
 
   return (
-    <>
-      {peekModule && (
-        <div
-          ref={ref}
-          className="absolute right-0 z-[9] flex h-full w-full max-w-[24rem] flex-shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-subtle bg-surface-1 px-6 duration-300 md:relative"
-          style={{
-            boxShadow:
-              "0px 1px 4px 0px rgba(0, 0, 0, 0.06), 0px 2px 4px 0px rgba(16, 24, 40, 0.06), 0px 1px 8px -1px rgba(16, 24, 40, 0.06)",
-          }}
-        >
-          <ModuleAnalyticsSidebar
-            moduleId={peekModule?.toString() ?? ""}
-            handleClose={handleClose}
-            isArchived={isArchived}
-          />
-        </div>
-      )}
-    </>
+    <Drawer
+      open={!!peekModule}
+      modal={false}
+      disablePointerDismissal
+      onOpenChange={(open) => !open && handleClose()}
+      onOpenChangeComplete={(open) => !open && setShownModule(null)}
+    >
+      <DrawerContent
+        container={document.getElementById("full-screen-portal")}
+        initialFocus={false}
+        finalFocus={false}
+        aria-label="Module details"
+        className="vertical-scrollbar max-w-[24rem] gap-3.5 overflow-y-auto px-6"
+      >
+        {shownModule && (
+          <ModuleAnalyticsSidebar moduleId={shownModule} handleClose={handleClose} isArchived={isArchived} />
+        )}
+      </DrawerContent>
+    </Drawer>
   );
 });

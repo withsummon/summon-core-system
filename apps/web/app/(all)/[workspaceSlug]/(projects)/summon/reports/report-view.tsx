@@ -7,6 +7,14 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
+  AddressBookIcon,
+  CoinsIcon,
+  FunnelSimpleIcon,
+  HeartbeatIcon,
+  SquaresFourIcon,
+  TrendUpIcon,
+} from "@phosphor-icons/react";
+import {
   ArrowRight,
   Clock3,
   FileSpreadsheet,
@@ -19,6 +27,8 @@ import {
 import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
 import { percentage, reportLabel, type TReportFilterParam } from "./report-view-model";
 
@@ -42,16 +52,16 @@ const HEALTH_COLORS = {
   off_track: "#ef5b5b",
 };
 
-const REPORT_TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "company_progress", label: "Company Progress" },
-  { id: "project_health", label: "Project Health" },
-  { id: "pipeline", label: "Pipeline" },
-  { id: "investment", label: "Investment Disbursement" },
-  { id: "portfolio", label: "Portfolio / Client Database" },
-] as const;
+type TReportTab = "overview" | "company_progress" | "project_health" | "pipeline" | "investment" | "portfolio";
 
-type TReportTab = (typeof REPORT_TABS)[number]["id"];
+const REPORT_TABS: TSectionTab<TReportTab>[] = [
+  { value: "overview", label: "Overview", icon: SquaresFourIcon },
+  { value: "company_progress", label: "Company Progress", icon: TrendUpIcon },
+  { value: "project_health", label: "Project Health", icon: HeartbeatIcon },
+  { value: "pipeline", label: "Pipeline", icon: FunnelSimpleIcon },
+  { value: "investment", label: "Investment Disbursement", icon: CoinsIcon },
+  { value: "portfolio", label: "Portfolio / Client Database", icon: AddressBookIcon },
+];
 
 export function ReportView(props: TReportViewProps) {
   const { workspaceSlug, data, error, isLoading, filters, projects, clients, exportUrl, onFilterChange, onRetry } =
@@ -94,7 +104,7 @@ export function ReportView(props: TReportViewProps) {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-primary">Management & Reporting</h1>
-          <p className="text-xs mt-1 text-secondary">Real-time insights and performance overview</p>
+          <p className="mt-1 text-xs text-secondary">Real-time insights and performance overview</p>
         </div>
         <ReportFilters
           filters={filters}
@@ -106,18 +116,13 @@ export function ReportView(props: TReportViewProps) {
         />
       </header>
 
-      <nav className="mt-4 flex gap-6 overflow-x-auto border-b border-subtle text-[11px] font-medium text-secondary">
-        {REPORT_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`shrink-0 border-b-2 px-0.5 pb-3 ${activeTab === tab.id ? "border-accent-primary text-accent-primary" : "border-transparent"}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <SectionTabs
+        items={REPORT_TABS}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        label="Report sections"
+        className="mt-4"
+      />
 
       {activeTab === "overview" ? (
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -145,7 +150,7 @@ export function ReportView(props: TReportViewProps) {
             value={
               <>
                 {averageHealth}
-                <span className="text-xs ml-1 text-secondary">/100</span>
+                <span className="ml-1 text-xs text-secondary">/100</span>
               </>
             }
             detail={<span className="text-success-primary">Based on delivery completion</span>}
@@ -257,11 +262,11 @@ export function ReportView(props: TReportViewProps) {
               <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
                 <div className="pr-3">
                   <p className="text-[10px] text-secondary">Total Pipeline Value</p>
-                  <p className="text-lg mt-1 font-semibold text-primary">{data.commercial.pipeline_value}</p>
+                  <p className="mt-1 text-lg font-semibold text-primary">{data.commercial.pipeline_value}</p>
                 </div>
                 <div className="pl-3">
                   <p className="text-[10px] text-secondary">Win Rate</p>
-                  <p className="text-lg mt-1 font-semibold text-primary">
+                  <p className="mt-1 text-lg font-semibold text-primary">
                     {percentage(wonOpportunities, data.commercial.opportunities)}%
                   </p>
                 </div>
@@ -397,7 +402,7 @@ function MiniMetric(props: { label: string; value: ReactNode; detail: string }) 
   return (
     <div className="rounded-lg border border-subtle p-3">
       <p className="text-[10px] text-secondary">{props.label}</p>
-      <p className="text-lg mt-1 font-semibold text-primary">{props.value}</p>
+      <p className="mt-1 text-lg font-semibold text-primary">{props.value}</p>
       <p className="mt-1 truncate text-[9px] text-tertiary">{props.detail}</p>
     </div>
   );

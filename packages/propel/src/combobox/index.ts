@@ -7,4 +7,4 @@
 export * from "./combobox";
 
 // Low-level parts for feature-owned search, positioning, and result layouts.
-export { Combobox as ComboboxPrimitive } from "@base-ui-components/react/combobox";
+export { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
