@@ -28,8 +28,9 @@ jobs:
     name: Lint API
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      RUFF_VERSION: "0.16.9"
+    defaults:
+      run:
+        working-directory: apps/api
     if: |
       github.event_name != 'pull_request' || (
         github.event.pull_request.draft == false &&
@@ -41,9 +42,8 @@ jobs:
         uses: astral-sh/setup-uv@v10.2.0
         with:
           version: "0.12.19"
-      # Ruff needs no project dependencies. apps/api/pyproject.toml's required-version
-      # fails these steps if this pin drifts from the one developers use.
-      - name: Lint apps/api
-        run: uvx ruff@$RUFF_VERSION check apps/api
+      # --locked fails if uv.lock is stale; --only-group lint installs ruff alone.
+      - name: Lint
+        run: uv run --locked --only-group lint ruff check
       - name: Check formatting
-        run: uvx ruff@$RUFF_VERSION format --check apps/api
+        run: uv run --locked --only-group lint ruff format --check

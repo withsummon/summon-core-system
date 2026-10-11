@@ -39,7 +39,7 @@ This helps us triage and manage issues more efficiently.
 - Docker Engine installed and running
 - Node.js 22.18+ [LTS version](https://nodejs.org/en/about/previous-releases) (runtime)
 - [Bun](https://bun.sh) 1.4.2 (package manager and script runner)
-- Python version 3.8+
+- Python 3.12 and [uv](https://docs.astral.sh/uv/) 0.12+ (backend dependencies)
 - Postgres version v14
 - Redis version v6.2.7
 - **Memory**: Minimum **12 GB RAM** recommended

@@ -23,6 +23,10 @@
 - **Testing**: All features require unit tests, use existing test framework per package
 - **Components**: Build in `@plane/ui` with Storybook for isolated development
 
+## Backend dependencies
+
+`apps/api` is managed with [uv](https://docs.astral.sh/uv/): dependencies and groups (`prod`, `dev`, `lint`, `test`) live in `apps/api/pyproject.toml`, and `apps/api/uv.lock` pins the full set. Change them with `uv add` / `uv remove` from `apps/api`; never edit `uv.lock` by hand.
+
 ## Backend tests (Docker)
 
 The Django/pytest suite for `apps/api` runs in an isolated stack defined by `docker-compose-test.yml` at the repo root.

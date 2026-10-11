@@ -1,10 +1,84 @@
 [project]
-name = "Plane"
+name = "plane"
 version = "0.24.0"
 description = "Open-source project management that unlocks customer value"
+requires-python = "==3.12.*"
+dependencies = [
+    "django==5.2.15",
+    "djangorestframework==3.17.1",
+    "drf-spectacular==0.29.0",
+    "django-cors-headers==4.9.0",
+    "django-filter==25.2",
+    "django-storages==1.14.6",
+    "django-crum==0.7.9",
+    "dj-database-url==3.0.1",
+    "psycopg==3.3.4",
+    "psycopg-binary==3.3.4",
+    "psycopg-c==3.3.4",
+    "redis==5.0.4",
+    "django-redis==7.0.0",
+    "celery==5.5.3",
+    "django-celery-beat==2.9.0",
+    "django-celery-results==2.6.0",
+    "channels==4.3.2",
+    "uvicorn==0.29.0",
+    "whitenoise==6.12.0",
+    "faker==25.0.0",
+    "jsonmodels==2.7.0",
+    "openai==1.63.2",
+    "slack-sdk==3.27.1",
+    "scout-apm==3.5.3",
+    "posthog==3.5.0",
+    "openpyxl==3.1.2",
+    "python-docx==1.2.0",
+    "python-pptx==1.0.2",
+    "pypdf==6.16.2",
+    "reportlab==5.0.1",
+    "python-json-logger==4.0.0",
+    "beautifulsoup4==4.12.3",
+    "lxml==6.1.0",
+    "nh3==0.2.18",
+    "cryptography==50.0.0",
+    "pyjwt==2.13.0",
+    "zxcvbn==4.4.28",
+    "pytz==2024.1",
+    "boto3==1.34.96",
+    # Floor for CVE-2026-44431 and CVE-2026-44432.
+    "urllib3>=2.7.0",
+    # Webhook delivery and link unfurling pin connections to the checked IP (SSRF)
+    # through get_connection_with_tls_context, which needs 2.32+.
+    "requests==2.33.0",
+    "opentelemetry-api==1.28.1",
+    "opentelemetry-sdk==1.28.1",
+    "opentelemetry-instrumentation-django==0.49b1",
+    "opentelemetry-exporter-otlp==1.28.1",
+    "opentelemetry-exporter-otlp-proto-grpc==1.28.1",
+]
+
+[dependency-groups]
+prod = ["gunicorn==23.0.0"]
+lint = ["ruff==0.16.9"]
+dev = ["django-debug-toolbar==6.0.0", { include-group = "lint" }]
+test = [
+    "pytest==9.0.3",
+    "pytest-django==4.12.0",
+    "pytest-cov==4.1.0",
+    "pytest-xdist==3.3.1",
+    "pytest-mock==3.11.1",
+    "factory-boy==3.3.0",
+    "freezegun==1.2.2",
+    "coverage==7.2.7",
+]
+
+[tool.uv]
+# A Django app, not an installable package: sync only its dependencies.
+package = false
+default-groups = ["dev", "test"]
+# Same one-day quarantine on new releases as bunfig.toml's minimumReleaseAge.
+exclude-newer = "1 day"
 
 [tool.ruff]
-# CI runs this exact version (uvx ruff@0.16.9); a different local ruff fails instead of disagreeing.
+# Matches the lint group pin; any other local ruff fails instead of disagreeing with CI.
 required-version = "==0.16.9"
 # Exclude a variety of commonly ignored directories.
 exclude = [

@@ -1,0 +1,2 @@
+# Local uv environment (uv sync); images install into their own Python.
+.venv
