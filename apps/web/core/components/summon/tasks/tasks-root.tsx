@@ -277,7 +277,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 return (
                   <Collapsible.CollapsibleRoot key={value} defaultOpen className="mb-2">
                     <h2>
-                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 bg-layer-1 px-4 text-left text-13 font-medium text-primary hover:bg-layer-1-hover focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
+                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 border-b border-subtle px-4 text-left text-13 font-medium text-primary transition-colors hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
                         <ChevronDown
                           aria-hidden="true"
                           className="size-3.5 -rotate-90 group-data-[panel-open]:rotate-0"
