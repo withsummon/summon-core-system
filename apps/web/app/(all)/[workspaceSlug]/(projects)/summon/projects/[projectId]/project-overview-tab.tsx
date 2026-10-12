@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
-import { statusLabel } from "@/components/summon/status-label";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 
 const formatDate = (value?: string | null) =>
   value
@@ -122,10 +122,12 @@ export function ProjectOverviewTab({
                 className={`inline-flex items-center gap-1.5 ${healthy ? "text-success-primary" : atRisk ? "text-warning-primary" : "text-secondary"}`}
               >
                 <HealthIcon aria-hidden="true" className="size-3.5" />
-                {statusLabel(health)}
+                {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(health))}
               </span>
             </Property>
-            <Property label="Status">{statusLabel(overview.profile?.delivery_status || "not_assessed")}</Property>
+            <Property label="Status">
+              {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(overview.profile?.delivery_status || "not_assessed"))}
+            </Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
             <Property label="Budget">{overview.profile?.budget || "Not set"}</Property>

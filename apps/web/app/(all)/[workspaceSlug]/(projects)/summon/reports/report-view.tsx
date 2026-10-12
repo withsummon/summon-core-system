@@ -25,13 +25,13 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { ViewPanel } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
-import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
-import { statusLabel } from "@/components/summon/status-label";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { percentage, type TReportFilterParam } from "./report-view-model";
 
@@ -89,7 +89,7 @@ export function ReportView(props: TReportViewProps) {
     ? Math.round(data.project_health.reduce((sum, project) => sum + project.completion, 0) / data.project_health.length)
     : 0;
   const projectHealth = ["not_assessed", "on_track", "at_risk", "off_track"].map((health) => ({
-    label: statusLabel(health),
+    label: capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(health)),
     count: data.project_health.filter((project) => project.health === health).length,
     color: HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
   }));

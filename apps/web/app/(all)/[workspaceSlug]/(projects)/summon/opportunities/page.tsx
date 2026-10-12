@@ -16,7 +16,6 @@ import { Input } from "@plane/ui";
 import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
-import { ViewPanel } from "@/components/summon/view-panel";
 import { opportunityCreateIntent } from "@/components/summon/opportunities/delivery-handoff";
 import {
   OpportunityInspector,
@@ -35,7 +34,7 @@ import {
   stageCounts,
 } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonPageHeader, summonErrorMessage, summonPageClassName } from "@/components/summon/screen";
+import { SummonPageHeader, summonErrorMessage, summonPageClassName, ViewPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
 import { filterOpportunityRecords } from "../reference-view-model";

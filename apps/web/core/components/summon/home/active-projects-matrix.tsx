@@ -8,8 +8,8 @@ import React from "react";
 import Link from "next/link";
 import { AlertCircle, CheckCircle, Clock, FolderGit2 } from "lucide-react";
 import type { ISummonHomeSummary } from "@plane/types";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { projectHealthTone } from "@/components/summon/projects/project-workspace";
-import { statusLabel } from "@/components/summon/status-label";
 
 interface IActiveProjectsMatrixProps {
   projects: ISummonHomeSummary["projects"];
@@ -45,7 +45,7 @@ const getHealthBadge = (health: string) => {
       className={`${tone === "neutral" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-12 font-semibold`}
     >
       <Clock className="size-3" />
-      {statusLabel(health)}
+      {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(health))}
     </span>
   );
 };

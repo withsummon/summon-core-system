@@ -12,12 +12,12 @@ import { Search, FolderGit2, Circle, CheckCircle2, AlertCircle, Plus } from "luc
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { summonService } from "@/services/summon.service";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
-import { statusLabel } from "../status-label";
 import { mergeProjectSummaries } from "./project-workspace";
 
 export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
@@ -44,7 +44,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
       { value: "all", label: "All health statuses" },
       ...Array.from(
         new Set(data?.projects.map((project) => project.health).concat("not_assessed") ?? ["not_assessed"])
-      ).map((health) => ({ value: health, label: statusLabel(health) })),
+      ).map((health) => ({ value: health, label: capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(health)) })),
     ],
     [data?.projects]
   );
@@ -130,7 +130,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
                   className={`inline-flex items-center gap-2 text-xs ${healthy ? "text-success-primary" : atRisk ? "text-warning-primary" : "text-secondary"}`}
                 >
                   <HealthIcon aria-hidden="true" className="size-3.5 shrink-0" />
-                  {statusLabel(project.health)}
+                  {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(project.health))}
                 </span>
                 <span className="flex items-center gap-3">
                   <span aria-hidden="true" className="h-1.5 w-24 overflow-hidden rounded-full bg-layer-2">

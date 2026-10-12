@@ -37,7 +37,6 @@ import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
-import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import {
   SummonMetric,
@@ -45,6 +44,7 @@ import {
   SummonPageHeader,
   summonErrorMessage,
   summonPageClassName,
+  ViewPanel,
 } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";

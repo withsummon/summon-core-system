@@ -41,9 +41,8 @@ import { PageHead } from "@/components/core/page-title";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
-import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { summonErrorMessage } from "@/components/summon/screen";
+import { summonErrorMessage, ViewPanel } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
@@ -51,13 +50,12 @@ import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "Not set";
   return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 };
-
-const statusLabel = (value: string) => value.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 
 type TClientTab =
   | "overview"
@@ -146,7 +144,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             <h1 className="text-2xl font-semibold tracking-tight text-primary">{data.name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-12 text-secondary">
               <span className="rounded-full bg-success-subtle px-2.5 py-1 font-medium text-success-primary">
-                {statusLabel(data.status)} Client
+                {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(data.status))} Client
               </span>
               <span>•</span>
               <span>Since {formatDate(data.relationship_started_at)}</span>
@@ -263,7 +261,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                               <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge>{statusLabel(opportunity.stage)}</Badge>
+                              <Badge>{capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(opportunity.stage))}</Badge>
                             </td>
                             <td className="px-4 py-3 text-primary">
                               {opportunityOwner?.display_name || "Not assigned"}
@@ -433,7 +431,8 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                           {context.page_detail.name || "Untitled page"}
                         </p>
                         <p className="mt-1 text-12 text-secondary">
-                          {statusLabel(context.category || "page")} · {formatDate(context.updated_at)}
+                          {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(context.category || "page"))} ·{" "}
+                          {formatDate(context.updated_at)}
                         </p>
                       </div>
                     </article>

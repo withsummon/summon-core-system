@@ -8,10 +8,10 @@ import type { ReactNode } from "react";
 import { CalendarDays, ChevronDown, Download, SlidersHorizontal } from "lucide-react";
 import type { ISummonClient, ISummonReportFilters } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
-import { statusLabel } from "@/components/summon/status-label";
 import { percentage, type TReportFilterParam } from "./report-view-model";
 import { Select } from "@plane/propel/select";
 import { DatePicker } from "@plane/propel/date-picker";
+import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 
 export function ReportPanel(props: { children: ReactNode; className?: string }) {
   return (
@@ -104,7 +104,9 @@ export function PipelineBars(props: { items: Array<{ stage: string; count: numbe
     <div className="space-y-3">
       {props.items.map((item) => (
         <div key={item.stage} className="grid grid-cols-[5rem_minmax(5rem,1fr)_auto] items-center gap-2 text-12">
-          <span className="truncate text-secondary">{statusLabel(item.stage)}</span>
+          <span className="truncate text-secondary">
+            {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(item.stage))}
+          </span>
           <div className="h-5 overflow-hidden rounded bg-layer-1">
             <div
               className={`h-full rounded ${item.stage === "won" ? "bg-success-primary/20" : item.stage === "lost" ? "bg-danger-primary/15" : "bg-accent-primary/20"}`}

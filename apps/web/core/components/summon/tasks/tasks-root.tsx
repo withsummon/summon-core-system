@@ -9,28 +9,16 @@ import { observer } from "mobx-react";
 import { CheckSquareIcon, ListChecksIcon, PencilSimpleLineIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import useSWR from "swr";
-import {
-  ArrowDown,
-  ArrowUp,
-  CheckCircle2,
-  ChevronDown,
-  Circle,
-  CircleDashed,
-  CircleDot,
-  Minus,
-  Plus,
-  Search,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, CircleDashed, CircleDot, Plus, Search, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel, ISSUE_PRIORITIES } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
 import { EIssuesStoreType } from "@plane/types";
-import type { TIssuePriorities, TStateGroups } from "@plane/types";
+import type { TStateGroups } from "@plane/types";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
-import { SelectableIcon } from "@plane/propel/icons";
+import { PriorityIcon, SelectableIcon } from "@plane/propel/icons";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -51,7 +39,6 @@ import { IssueService } from "@/services/issue";
 import { listAccessiblePlaneIssues } from "@/services/summon-plane.service";
 import {
   DEFAULT_TASK_DISPLAY,
-  PRIORITY_ORDER,
   STATUS_ORDER,
   countActiveFilters,
   filterTasks,
@@ -64,7 +51,13 @@ import {
   type TTaskFilterField,
   type TTaskFilters,
 } from "./task-center";
-import { AppliedTaskFilters, TaskDisplayPopover, TaskFilterMenu, type TTaskFilterOptions } from "./task-view-controls";
+import {
+  AppliedTaskFilters,
+  DATE_FILTER_OPTIONS,
+  TaskDisplayPopover,
+  TaskFilterMenu,
+  type TTaskFilterOptions,
+} from "./task-view-controls";
 
 const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[] = [
   { value: "mine", label: "My tasks", icon: CheckSquareIcon },
@@ -79,25 +72,6 @@ const STATUS_META: Record<TStateGroups, { label: string; Icon: LucideIcon; tone:
   completed: { label: "Done", Icon: CheckCircle2, tone: "text-success-primary" },
   cancelled: { label: "Cancelled", Icon: XCircle, tone: "text-secondary" },
 };
-const PRIORITY_META: Record<TIssuePriorities, { label: string; Icon: LucideIcon; tone: string }> = {
-  urgent: { label: "Urgent", Icon: ArrowUp, tone: "text-danger-primary" },
-  high: { label: "High", Icon: ArrowUp, tone: "text-secondary" },
-  medium: { label: "Medium", Icon: Minus, tone: "text-secondary" },
-  low: { label: "Low", Icon: ArrowDown, tone: "text-secondary" },
-  none: { label: "No priority", Icon: Circle, tone: "text-tertiary" },
-};
-const DUE_OPTIONS = [
-  { value: "overdue", label: "Overdue" },
-  { value: "today", label: "Due today" },
-  { value: "week", label: "Due this week" },
-  { value: "next7", label: "Due in the next 7 days" },
-  { value: "none", label: "No due date" },
-];
-const PAST_OPTIONS = [
-  { value: "day", label: "Past day" },
-  { value: "week", label: "Past week" },
-  { value: "month", label: "Past month" },
-];
 type TTaskView = { filters: TTaskFilters; display: TTaskDisplay };
 const DEFAULT_VIEW: TTaskView = { filters: {}, display: DEFAULT_TASK_DISPLAY };
 
@@ -209,10 +183,10 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
       ...assigneeIds.map(memberOption),
     ],
     creator: memberIds(tasks.map((task) => task.created_by)).map(memberOption),
-    priority: PRIORITY_ORDER.map((value) => ({
-      value,
-      label: PRIORITY_META[value].label,
-      icon: metaIcon(PRIORITY_META[value]),
+    priority: ISSUE_PRIORITIES.map(({ key, title }) => ({
+      value: key,
+      label: title,
+      icon: <PriorityIcon priority={key} size={16} />,
     })),
     label: labelIds.length
       ? [
@@ -228,9 +202,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
         ]
       : [],
     project: projects.map((project) => ({ value: project.id, label: project.name })),
-    due: DUE_OPTIONS,
-    created: PAST_OPTIONS,
-    updated: PAST_OPTIONS,
+    ...DATE_FILTER_OPTIONS,
   };
   const groups = groupTasks(sortTasks(searched, display), display, {
     assignee: assigneeIds,
@@ -240,12 +212,8 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   const groupHeading = (key: string) => {
     switch (display.grouping) {
       case "status":
-        return { label: STATUS_META[key as TStateGroups].label, icon: metaIcon(STATUS_META[key as TStateGroups]) };
       case "priority":
-        return {
-          label: PRIORITY_META[key as TIssuePriorities].label,
-          icon: metaIcon(PRIORITY_META[key as TIssuePriorities]),
-        };
+        return filterOptions[display.grouping].find((option) => option.value === key) ?? { label: key, icon: null };
       case "assignee":
         return key === "none"
           ? { label: "No assignee", icon: <span className="size-4 rounded-full border border-dashed border-strong" /> }
@@ -361,17 +329,16 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                     {items.map((task) => {
                       const overdue = today && task.target_date && task.target_date < today && !isTaskCompleted(task);
                       const status = STATUS_META[taskStatus(task)];
-                      const priority = PRIORITY_META[task.priority ?? "none"];
+                      const priority = ISSUE_PRIORITIES.find((option) => option.key === (task.priority ?? "none"));
                       return (
                         <li
                           key={task.id}
                           className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover sm:flex-nowrap sm:px-6"
                         >
                           {shows("priority") && (
-                            <priority.Icon
-                              aria-label={`Priority: ${priority.label}`}
-                              className={`size-4 shrink-0 ${priority.tone}`}
-                            />
+                            <span role="img" aria-label={`Priority: ${priority?.title}`} className="flex shrink-0">
+                              <PriorityIcon priority={task.priority} size={16} />
+                            </span>
                           )}
                           {shows("id") && (
                             <span

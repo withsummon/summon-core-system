@@ -33,9 +33,9 @@ import type { CompactAssetType } from "@plane/propel/empty-state";
 import { Chip } from "@plane/propel/chip";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { ViewPanel } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
-import { ViewPanel } from "@/components/summon/view-panel";
 import { useUser } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
 

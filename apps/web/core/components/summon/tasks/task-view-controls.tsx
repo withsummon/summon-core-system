@@ -40,10 +40,11 @@ import {
   type TTaskFilters,
   type TTaskGrouping,
   type TTaskOrdering,
+  type TTaskPastWindow,
   type TTaskProperty,
 } from "./task-center";
 
-export type TTaskFilterOption = { value: string; label: string; icon?: ReactNode };
+type TTaskFilterOption = { value: string; label: string; icon?: ReactNode };
 export type TTaskFilterOptions = Record<TTaskFilterField, TTaskFilterOption[]>;
 
 const FIELD_META: Record<TTaskFilterField, { label: string; Icon: LucideIcon }> = {
@@ -74,11 +75,25 @@ const ORDERING_OPTIONS: { value: TTaskOrdering; label: string }[] = [
   { value: "updated", label: "Updated" },
   { value: "title", label: "Title" },
 ];
-const COMPLETED_OPTIONS: { value: TTaskDisplay["completed"]; label: string }[] = [
-  { value: "all", label: "All" },
+const PAST_OPTIONS: { value: TTaskPastWindow; label: string }[] = [
   { value: "day", label: "Past day" },
   { value: "week", label: "Past week" },
   { value: "month", label: "Past month" },
+];
+export const DATE_FILTER_OPTIONS = {
+  due: [
+    { value: "overdue", label: "Overdue" },
+    { value: "today", label: "Due today" },
+    { value: "week", label: "Due this week" },
+    { value: "next7", label: "Due in the next 7 days" },
+    { value: "none", label: "No due date" },
+  ],
+  created: PAST_OPTIONS,
+  updated: PAST_OPTIONS,
+} satisfies Partial<TTaskFilterOptions>;
+const COMPLETED_OPTIONS: { value: TTaskDisplay["completed"]; label: string }[] = [
+  { value: "all", label: "All" },
+  ...PAST_OPTIONS,
   { value: "none", label: "None" },
 ];
 const PROPERTY_OPTIONS: { value: TTaskProperty; label: string }[] = [

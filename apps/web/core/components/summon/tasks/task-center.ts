@@ -1,3 +1,4 @@
+import { ISSUE_PRIORITIES } from "@plane/constants";
 import type { TIssuePriorities, TStateGroups } from "@plane/types";
 
 export type TTaskCenterScope = "mine" | "team" | "created" | "all";
@@ -32,7 +33,7 @@ export type TTaskFilters = {
   updated?: TTaskPastWindow[];
 };
 export type TTaskFilterField = keyof TTaskFilters;
-export type TTaskDueWindow = "overdue" | "today" | "week" | "next7" | "none";
+type TTaskDueWindow = "overdue" | "today" | "week" | "next7" | "none";
 export type TTaskPastWindow = "day" | "week" | "month";
 
 export type TTaskGrouping = "status" | "assignee" | "project" | "priority" | "none";
@@ -70,7 +71,7 @@ export const DEFAULT_TASK_DISPLAY: TTaskDisplay = {
 };
 
 export const STATUS_ORDER: TStateGroups[] = ["started", "unstarted", "backlog", "completed", "cancelled"];
-export const PRIORITY_ORDER: TIssuePriorities[] = ["urgent", "high", "medium", "low", "none"];
+const PRIORITY_ORDER = ISSUE_PRIORITIES.map(({ key }) => key);
 const PAST_WINDOW_DAYS: Record<TTaskPastWindow, number> = { day: 1, week: 7, month: 30 };
 const DAY_MS = 86_400_000;
 
@@ -86,11 +87,11 @@ const addDays = (date: string, count: number) => {
   return value.toISOString().slice(0, 10);
 };
 
+/** A filter field passes when nothing is selected or any selected value matches. */
+const anyOf = <V>(selected: V[] | undefined, test: (value: V) => boolean) => !selected?.length || selected.some(test);
+
 const withinPast = (timestamp: string | null, window: TTaskPastWindow, now: number) =>
   Boolean(timestamp) && now - new Date(timestamp as string).getTime() <= PAST_WINDOW_DAYS[window] * DAY_MS;
-
-const matchesAny = <T>(selected: T[] | undefined, values: T[]) =>
-  !selected?.length || selected.some((value) => values.includes(value));
 
 /**
  * Applies the ownership tab, the filter menu and the display options that hide work (completed window,
@@ -120,31 +121,38 @@ export function filterTasks<T extends TTaskCenterItem>(
     return task.target_date >= today && task.target_date <= nextSevenDays;
   };
 
+  const me = options.currentUserId;
+  const inScope: Record<TTaskCenterScope, (task: T) => boolean> = {
+    all: () => true,
+    mine: (task) => Boolean(me && task.assignee_ids.includes(me)),
+    team: (task) => task.assignee_ids.length > 0,
+    created: (task) => Boolean(me && task.created_by === me),
+  };
+  // "none" selects tasks whose field is empty.
+  const matches: Record<TTaskFilterField, (task: T) => boolean> = {
+    status: (task) => anyOf(filters.status, (value) => taskStatus(task) === value),
+    assignee: (task) =>
+      anyOf(filters.assignee, (value) =>
+        value === "none" ? !task.assignee_ids.length : task.assignee_ids.includes(value)
+      ),
+    creator: (task) => anyOf(filters.creator, (value) => task.created_by === value),
+    priority: (task) => anyOf(filters.priority, (value) => (task.priority ?? "none") === value),
+    label: (task) =>
+      anyOf(filters.label, (value) => (value === "none" ? !task.label_ids.length : task.label_ids.includes(value))),
+    project: (task) => anyOf(filters.project, (value) => task.project_id === value),
+    due: (task) => anyOf(filters.due, (value) => dueMatches(task, value)),
+    created: (task) => anyOf(filters.created, (value) => withinPast(task.created_at, value, now)),
+    updated: (task) => anyOf(filters.updated, (value) => withinPast(task.updated_at, value, now)),
+  };
+
   return tasks.filter((task) => {
-    const me = options.currentUserId;
-    const inScope =
-      options.scope === "all" ||
-      (options.scope === "mine" && Boolean(me && task.assignee_ids.includes(me))) ||
-      (options.scope === "team" && task.assignee_ids.length > 0) ||
-      (options.scope === "created" && Boolean(me && task.created_by === me));
-    if (!inScope) return false;
+    if (!inScope[options.scope](task)) return false;
     if (!display.showSubIssues && task.parent_id) return false;
     if (isTaskCompleted(task) && display.completed !== "all") {
       if (display.completed === "none") return false;
       if (!withinPast(task.completed_at ?? task.updated_at, display.completed, now)) return false;
     }
-
-    return (
-      matchesAny(filters.status, [taskStatus(task)]) &&
-      matchesAny(filters.assignee, task.assignee_ids.length ? task.assignee_ids : ["none"]) &&
-      matchesAny(filters.creator, [task.created_by]) &&
-      matchesAny(filters.priority, [task.priority ?? "none"]) &&
-      matchesAny(filters.label, task.label_ids.length ? task.label_ids : ["none"]) &&
-      matchesAny(filters.project, task.project_id ? [task.project_id] : []) &&
-      (!filters.due?.length || filters.due.some((window) => dueMatches(task, window))) &&
-      (!filters.created?.length || filters.created.some((window) => withinPast(task.created_at, window, now))) &&
-      (!filters.updated?.length || filters.updated.some((window) => withinPast(task.updated_at, window, now)))
-    );
+    return Object.values(matches).every((match) => match(task));
   });
 }
 
