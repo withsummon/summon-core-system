@@ -36,7 +36,8 @@ import { CredentialDrawer } from "@/components/summon/credential-drawer";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import {
   SummonMetric,
@@ -349,7 +350,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               className="px-5"
             />
             <div className="p-5">
-              <SectionPanel value={activeTab}>
+              <ViewPanel value={activeTab}>
                 {activeTab === "Overview" ? (
                   <div className="grid items-start gap-4">
                     <div className="rounded-xl border border-subtle p-4">
@@ -457,7 +458,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                     emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
                   />
                 )}
-              </SectionPanel>
+              </ViewPanel>
             </div>
             <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
               <ShieldCheck className="size-4 flex-none text-accent-primary" />

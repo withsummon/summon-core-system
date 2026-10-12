@@ -27,6 +27,7 @@ import { CredentialsSidebarCard } from "./credentials-sidebar-card";
 import { ResourceIcon } from "./resource-icon";
 import { ResourceBadge } from "./resource-badge";
 import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
+import { ViewPanel } from "@/components/summon/view-panel";
 import { AddResourceModal } from "./add-resource-modal";
 import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload } from "./types";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
@@ -325,189 +326,193 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               </div>
             </div>
 
-            {!isResourcesLoading && totalItems === 0 ? (
-              <EmptyStateDetailed
-                align="center"
-                rootClassName="px-6 py-12"
-                assetClassName="h-auto w-32"
-                assetKey={hasFilters ? "search" : "page"}
-                title={hasFilters ? "No matching resources" : "No resources yet"}
-                description={
-                  hasFilters
-                    ? "Try another search, category or project."
-                    : "Add links to documents, repositories, designs and drives so the team finds them in one place."
-                }
-                actions={[
-                  hasFilters
-                    ? { label: "Clear filters", variant: "secondary", onClick: clearFilters }
-                    : { label: "Add resource", onClick: () => setIsAddModalOpen(true) },
-                ]}
-              />
-            ) : viewMode === "list" ? (
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-subtle text-12 font-medium text-tertiary">
-                      <th className="pb-2.5 font-medium">Name</th>
-                      <th className="pb-2.5 font-medium">Project</th>
-                      <th className="pb-2.5 font-medium">Type</th>
-                      <th className="pb-2.5 font-medium">Last Updated</th>
-                      <th className="pb-2.5 font-medium">Updated By</th>
-                      <th className="pb-2.5 text-right font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {paginatedResources.length > 0 ? (
-                      paginatedResources.map((item) => {
-                        const projectName =
-                          item.project_detail?.name ||
-                          projectsList.find((p) => p.id === item.project)?.name ||
-                          "Global Resource";
-                        const updatedBy =
-                          item.updated_by_detail?.display_name || item.created_by_detail?.display_name || "Summon User";
-
-                        return (
-                          <tr key={item.id} className="group transition-colors hover:bg-layer-1">
-                            {/* Name & Icon */}
-                            <td className="py-3">
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex max-w-[280px] items-center gap-2.5 truncate font-semibold text-primary hover:text-accent-primary"
-                              >
-                                <ResourceIcon
-                                  category={item.category}
-                                  title={item.title}
-                                  url={item.url}
-                                  className="size-4"
-                                />
-                                <span className="truncate">{item.title}</span>
-                              </a>
-                            </td>
-
-                            {/* Project */}
-                            <td className="max-w-[180px] truncate py-3 text-secondary">{projectName}</td>
-
-                            {/* Type Pill */}
-                            <td className="py-3">
-                              <ResourceBadge category={item.category} />
-                            </td>
-
-                            {/* Last Updated */}
-                            <td className="py-3 text-secondary">{formatRelativeTime(item.updated_at)}</td>
-
-                            {/* Updated By */}
-                            <td className="py-3">
-                              <div className="flex items-center gap-2 font-medium text-primary">
-                                <div className="flex size-6 items-center justify-center rounded-full bg-layer-2 text-12 font-bold text-primary">
-                                  {updatedBy.charAt(0).toUpperCase()}
-                                </div>
-                                <span className="max-w-[120px] truncate">{updatedBy}</span>
-                              </div>
-                            </td>
-
-                            {/* Actions Dropdown */}
-                            <td className="relative py-3 text-right">
-                              <button
-                                type="button"
-                                onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
-                                className="rounded-lg p-1 text-secondary hover:bg-layer-2 hover:text-primary"
-                              >
-                                <MoreHorizontal className="size-4" />
-                              </button>
-
-                              {activeMenuId === item.id && (
-                                <div className="absolute top-full right-0 z-30 mt-1 w-36 rounded-xl border border-subtle bg-surface-1 p-1 text-left shadow-xl">
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
-                                    onClick={() => setActiveMenuId(null)}
-                                  >
-                                    <ExternalLink className="size-3.5" />
-                                    Open Link
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyUrl(item.id, item.url)}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
-                                  >
-                                    {copiedId === item.id ? (
-                                      <Check className="text-emerald-500 size-3.5" />
-                                    ) : (
-                                      <Copy className="size-3.5" />
-                                    )}
-                                    Copy URL
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteResource(item.id)}
-                                    className="text-red-600 hover:bg-red-500/10 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                    Delete
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-xs text-tertiary">
-                          Loading resources…
-                        </td>
+            <ViewPanel value={selectedCategory}>
+              {!isResourcesLoading && totalItems === 0 ? (
+                <EmptyStateDetailed
+                  align="center"
+                  rootClassName="px-6 py-12"
+                  assetClassName="h-auto w-32"
+                  assetKey={hasFilters ? "search" : "page"}
+                  title={hasFilters ? "No matching resources" : "No resources yet"}
+                  description={
+                    hasFilters
+                      ? "Try another search, category or project."
+                      : "Add links to documents, repositories, designs and drives so the team finds them in one place."
+                  }
+                  actions={[
+                    hasFilters
+                      ? { label: "Clear filters", variant: "secondary", onClick: clearFilters }
+                      : { label: "Add resource", onClick: () => setIsAddModalOpen(true) },
+                  ]}
+                />
+              ) : viewMode === "list" ? (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-subtle text-12 font-medium text-tertiary">
+                        <th className="pb-2.5 font-medium">Name</th>
+                        <th className="pb-2.5 font-medium">Project</th>
+                        <th className="pb-2.5 font-medium">Type</th>
+                        <th className="pb-2.5 font-medium">Last Updated</th>
+                        <th className="pb-2.5 font-medium">Updated By</th>
+                        <th className="pb-2.5 text-right font-medium">Action</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              /* Grid View */
-              <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-                {paginatedResources.map((item) => {
-                  const projectName =
-                    item.project_detail?.name ||
-                    projectsList.find((p) => p.id === item.project)?.name ||
-                    "Global Resource";
+                    </thead>
+                    <tbody className="divide-y divide-subtle">
+                      {paginatedResources.length > 0 ? (
+                        paginatedResources.map((item) => {
+                          const projectName =
+                            item.project_detail?.name ||
+                            projectsList.find((p) => p.id === item.project)?.name ||
+                            "Global Resource";
+                          const updatedBy =
+                            item.updated_by_detail?.display_name ||
+                            item.created_by_detail?.display_name ||
+                            "Summon User";
 
-                  return (
-                    <a
-                      key={item.id}
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2 hover:shadow-xs"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <ResourceIcon
-                            category={item.category}
-                            title={item.title}
-                            url={item.url}
-                            className="size-4.5"
-                          />
-                          <ResourceBadge category={item.category} />
+                          return (
+                            <tr key={item.id} className="group transition-colors hover:bg-layer-1">
+                              {/* Name & Icon */}
+                              <td className="py-3">
+                                <a
+                                  href={item.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex max-w-[280px] items-center gap-2.5 truncate font-semibold text-primary hover:text-accent-primary"
+                                >
+                                  <ResourceIcon
+                                    category={item.category}
+                                    title={item.title}
+                                    url={item.url}
+                                    className="size-4"
+                                  />
+                                  <span className="truncate">{item.title}</span>
+                                </a>
+                              </td>
+
+                              {/* Project */}
+                              <td className="max-w-[180px] truncate py-3 text-secondary">{projectName}</td>
+
+                              {/* Type Pill */}
+                              <td className="py-3">
+                                <ResourceBadge category={item.category} />
+                              </td>
+
+                              {/* Last Updated */}
+                              <td className="py-3 text-secondary">{formatRelativeTime(item.updated_at)}</td>
+
+                              {/* Updated By */}
+                              <td className="py-3">
+                                <div className="flex items-center gap-2 font-medium text-primary">
+                                  <div className="flex size-6 items-center justify-center rounded-full bg-layer-2 text-12 font-bold text-primary">
+                                    {updatedBy.charAt(0).toUpperCase()}
+                                  </div>
+                                  <span className="max-w-[120px] truncate">{updatedBy}</span>
+                                </div>
+                              </td>
+
+                              {/* Actions Dropdown */}
+                              <td className="relative py-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
+                                  className="rounded-lg p-1 text-secondary hover:bg-layer-2 hover:text-primary"
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </button>
+
+                                {activeMenuId === item.id && (
+                                  <div className="absolute top-full right-0 z-30 mt-1 w-36 rounded-xl border border-subtle bg-surface-1 p-1 text-left shadow-xl">
+                                    <a
+                                      href={item.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
+                                      onClick={() => setActiveMenuId(null)}
+                                    >
+                                      <ExternalLink className="size-3.5" />
+                                      Open Link
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyUrl(item.id, item.url)}
+                                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
+                                    >
+                                      {copiedId === item.id ? (
+                                        <Check className="text-emerald-500 size-3.5" />
+                                      ) : (
+                                        <Copy className="size-3.5" />
+                                      )}
+                                      Copy URL
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteResource(item.id)}
+                                      className="text-red-600 hover:bg-red-500/10 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-xs text-tertiary">
+                            Loading resources…
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                /* Grid View */
+                <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {paginatedResources.map((item) => {
+                    const projectName =
+                      item.project_detail?.name ||
+                      projectsList.find((p) => p.id === item.project)?.name ||
+                      "Global Resource";
+
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2 hover:shadow-xs"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <ResourceIcon
+                              category={item.category}
+                              title={item.title}
+                              url={item.url}
+                              className="size-4.5"
+                            />
+                            <ResourceBadge category={item.category} />
+                          </div>
+
+                          <h3 className="mt-3 line-clamp-2 text-xs font-bold text-primary group-hover:text-accent-primary">
+                            {item.title}
+                          </h3>
+                          <p className="mt-1 line-clamp-1 text-12 text-tertiary">{projectName}</p>
                         </div>
 
-                        <h3 className="mt-3 line-clamp-2 text-xs font-bold text-primary group-hover:text-accent-primary">
-                          {item.title}
-                        </h3>
-                        <p className="mt-1 line-clamp-1 text-12 text-tertiary">{projectName}</p>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-2.5 text-12 text-tertiary">
-                        <span>{formatRelativeTime(item.updated_at)}</span>
-                        <ExternalLink className="size-3 text-secondary group-hover:text-accent-primary" />
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-            )}
+                        <div className="mt-4 flex items-center justify-between border-t border-subtle pt-2.5 text-12 text-tertiary">
+                          <span>{formatRelativeTime(item.updated_at)}</span>
+                          <ExternalLink className="size-3 text-secondary group-hover:text-accent-primary" />
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </ViewPanel>
 
             {/* Pagination Footer */}
             <div

@@ -35,6 +35,7 @@ import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
+import { ViewPanel } from "@/components/summon/view-panel";
 import { useUser } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
 
@@ -135,111 +136,113 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
           ))}
         </div>
 
-        {(filter === "all" || filter === "tasks") && (
-          <HomeListSection
-            title="Priority"
-            href={`/${workspaceSlug}/summon/tasks/`}
-            action="All tasks"
-            empty="Nothing urgent right now."
-            emptyAsset="work-item"
-          >
-            {visiblePriority.slice(0, 3).map((issue) => (
-              <Link
-                key={issue.id}
-                href={`/${workspaceSlug}/projects/${issue.project.id}/issues/${issue.id}/`}
-                className="group flex items-center gap-3 rounded-md px-2 py-2.5 hover:bg-layer-1"
-              >
-                <Circle className="size-4 shrink-0 text-danger-secondary" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-13 font-medium text-primary">{issue.name}</span>
-                  <span className="block truncate text-12 text-tertiary">{issue.project.name}</span>
-                </span>
-                <StatusBadge status={issue.state?.group ?? "unstarted"} label={issue.state?.name || "Open"} />
-              </Link>
-            ))}
-          </HomeListSection>
-        )}
-
-        {(filter === "all" || filter === "projects") && (
-          <HomeListSection
-            title="Active projects"
-            href={`/${workspaceSlug}/summon/projects/`}
-            action="All projects"
-            empty="No active projects."
-            emptyAsset="project"
-          >
-            {visibleProjects.slice(0, 5).map((project) => {
-              const selected = activeProjectId === project.id;
-              return (
-                <button
-                  key={project.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => {
-                    if (window.matchMedia(PREVIEW_QUERY).matches) setSelectedProjectId(project.id);
-                    else router.push(`/${workspaceSlug}/summon/projects/${project.id}/`);
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left ${selected ? "bg-layer-1" : "hover:bg-layer-1"}`}
+        <ViewPanel value={filter}>
+          {(filter === "all" || filter === "tasks") && (
+            <HomeListSection
+              title="Priority"
+              href={`/${workspaceSlug}/summon/tasks/`}
+              action="All tasks"
+              empty="Nothing urgent right now."
+              emptyAsset="work-item"
+            >
+              {visiblePriority.slice(0, 3).map((issue) => (
+                <Link
+                  key={issue.id}
+                  href={`/${workspaceSlug}/projects/${issue.project.id}/issues/${issue.id}/`}
+                  className="group flex items-center gap-3 rounded-md px-2 py-2.5 hover:bg-layer-1"
                 >
-                  <ProjectMark identifier={project.identifier} />
-                  <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{project.name}</span>
-                  {project.health ? (
-                    <StatusBadge status={project.health} />
-                  ) : (
-                    <StatusBadge status="active" label={`${project.completion}%`} />
-                  )}
-                </button>
-              );
-            })}
-          </HomeListSection>
-        )}
+                  <Circle className="size-4 shrink-0 text-danger-secondary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-13 font-medium text-primary">{issue.name}</span>
+                    <span className="block truncate text-12 text-tertiary">{issue.project.name}</span>
+                  </span>
+                  <StatusBadge status={issue.state?.group ?? "unstarted"} label={issue.state?.name || "Open"} />
+                </Link>
+              ))}
+            </HomeListSection>
+          )}
 
-        {(filter === "all" || filter === "opportunities") && (
-          <HomeListSection
-            title="Opportunities"
-            href={`/${workspaceSlug}/summon/opportunities/`}
-            action="All opportunities"
-            empty="No active opportunities."
-            emptyAsset="customer"
-          >
-            {visibleOpportunities.slice(0, 3).map((opportunity) => (
-              <Link
-                key={opportunity.id}
-                href={`/${workspaceSlug}/summon/opportunities/${opportunity.id}/`}
-                className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-layer-1"
-              >
-                <IconTile>
-                  <BriefcaseBusiness className="size-3.5" />
-                </IconTile>
-                <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{opportunity.title}</span>
-                <StatusBadge status={opportunity.stage} />
-              </Link>
-            ))}
-          </HomeListSection>
-        )}
+          {(filter === "all" || filter === "projects") && (
+            <HomeListSection
+              title="Active projects"
+              href={`/${workspaceSlug}/summon/projects/`}
+              action="All projects"
+              empty="No active projects."
+              emptyAsset="project"
+            >
+              {visibleProjects.slice(0, 5).map((project) => {
+                const selected = activeProjectId === project.id;
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      if (window.matchMedia(PREVIEW_QUERY).matches) setSelectedProjectId(project.id);
+                      else router.push(`/${workspaceSlug}/summon/projects/${project.id}/`);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left ${selected ? "bg-layer-1" : "hover:bg-layer-1"}`}
+                  >
+                    <ProjectMark identifier={project.identifier} />
+                    <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{project.name}</span>
+                    {project.health ? (
+                      <StatusBadge status={project.health} />
+                    ) : (
+                      <StatusBadge status="active" label={`${project.completion}%`} />
+                    )}
+                  </button>
+                );
+              })}
+            </HomeListSection>
+          )}
 
-        {filter === "documents" && (
-          <HomeListSection
-            title="Documents"
-            href={`/${workspaceSlug}/summon/knowledge/`}
-            action="All documents"
-            empty="Select a project to see its documents."
-            emptyAsset="note"
-          >
-            {selectedProject?.pages.slice(0, 5).map((page) => (
-              <Link
-                key={page.id}
-                href={page.href}
-                className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-layer-1"
-              >
-                <IconTile>
-                  <FileText className="size-3.5" />
-                </IconTile>
-                <span className="truncate text-13 text-primary">{page.name}</span>
-              </Link>
-            ))}
-          </HomeListSection>
-        )}
+          {(filter === "all" || filter === "opportunities") && (
+            <HomeListSection
+              title="Opportunities"
+              href={`/${workspaceSlug}/summon/opportunities/`}
+              action="All opportunities"
+              empty="No active opportunities."
+              emptyAsset="customer"
+            >
+              {visibleOpportunities.slice(0, 3).map((opportunity) => (
+                <Link
+                  key={opportunity.id}
+                  href={`/${workspaceSlug}/summon/opportunities/${opportunity.id}/`}
+                  className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-layer-1"
+                >
+                  <IconTile>
+                    <BriefcaseBusiness className="size-3.5" />
+                  </IconTile>
+                  <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{opportunity.title}</span>
+                  <StatusBadge status={opportunity.stage} />
+                </Link>
+              ))}
+            </HomeListSection>
+          )}
+
+          {filter === "documents" && (
+            <HomeListSection
+              title="Documents"
+              href={`/${workspaceSlug}/summon/knowledge/`}
+              action="All documents"
+              empty="Select a project to see its documents."
+              emptyAsset="note"
+            >
+              {selectedProject?.pages.slice(0, 5).map((page) => (
+                <Link
+                  key={page.id}
+                  href={page.href}
+                  className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-layer-1"
+                >
+                  <IconTile>
+                    <FileText className="size-3.5" />
+                  </IconTile>
+                  <span className="truncate text-13 text-primary">{page.name}</span>
+                </Link>
+              ))}
+            </HomeListSection>
+          )}
+        </ViewPanel>
 
         <Link
           href={`/${workspaceSlug}/summon/assistant/`}

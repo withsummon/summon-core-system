@@ -27,7 +27,8 @@ import {
 import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
 import { statusLabel } from "@/components/summon/status-label";
@@ -125,7 +126,7 @@ export function ReportView(props: TReportViewProps) {
         label="Report sections"
         className="mt-4"
       />
-      <SectionPanel value={activeTab}>
+      <ViewPanel value={activeTab}>
         {activeTab === "overview" ? (
           <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
             <ReportKpi
@@ -379,7 +380,7 @@ export function ReportView(props: TReportViewProps) {
             </div>
           </ReportPanel>
         ) : null}
-      </SectionPanel>
+      </ViewPanel>
     </section>
   );
 }

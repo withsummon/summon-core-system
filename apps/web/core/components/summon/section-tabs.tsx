@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { SelectableIcon } from "@plane/propel/icons";
 import type { TSelectableIcon } from "@plane/propel/icons";
@@ -57,17 +56,5 @@ export function SectionTabs<T extends string>(props: {
         ))}
       </Tabs.List>
     </Tabs>
-  );
-}
-
-/**
- * The content a section tab shows. It rises in child by child (`t-stagger`) whenever the tab changes, like a
- * page opening; `contents` lays the children out as if the wrapper were not there.
- */
-export function SectionPanel(props: { value: string; children: ReactNode }) {
-  return (
-    <div key={props.value} className="t-stagger contents">
-      {props.children}
-    </div>
   );
 }

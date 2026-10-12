@@ -40,7 +40,8 @@ import { Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -196,7 +197,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         className="mt-5"
       />
 
-      <SectionPanel value={activeTab}>
+      <ViewPanel value={activeTab}>
         <div
           className={`mt-4 grid min-w-0 items-start gap-4 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}
         >
@@ -528,7 +529,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             </aside>
           ) : null}
         </div>
-      </SectionPanel>
+      </ViewPanel>
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <Dialog.Panel

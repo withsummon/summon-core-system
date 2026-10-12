@@ -16,6 +16,7 @@ import { Input } from "@plane/ui";
 import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
+import { ViewPanel } from "@/components/summon/view-panel";
 import { opportunityCreateIntent } from "@/components/summon/opportunities/delivery-handoff";
 import {
   OpportunityInspector,
@@ -174,27 +175,32 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
               </div>
             ) : (
               <div className="vertical-scrollbar min-h-0 flex-1 overflow-y-auto">
-                {groups.map((group) => (
-                  <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
-                    <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-12 font-semibold text-secondary backdrop-blur">
-                      <span aria-hidden className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`} />
-                      {OPPORTUNITY_STAGE_LABEL[group.stage]}
-                      <span className="font-normal text-tertiary tabular-nums">{group.items.length}</span>
-                    </h2>
-                    <ul>
-                      {group.items.map((opportunity) => (
-                        <OpportunityRow
-                          key={opportunity.id}
-                          opportunity={opportunity}
-                          clientName={opportunity.client ? clientNames.get(opportunity.client) : undefined}
-                          href={hrefFor({ opportunity: opportunity.id })}
-                          selected={selected?.id === opportunity.id}
-                          workspaceSlug={workspaceSlug}
+                <ViewPanel value={stage}>
+                  {groups.map((group) => (
+                    <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
+                      <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-12 font-semibold text-secondary backdrop-blur">
+                        <span
+                          aria-hidden
+                          className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`}
                         />
-                      ))}
-                    </ul>
-                  </section>
-                ))}
+                        {OPPORTUNITY_STAGE_LABEL[group.stage]}
+                        <span className="font-normal text-tertiary tabular-nums">{group.items.length}</span>
+                      </h2>
+                      <ul>
+                        {group.items.map((opportunity) => (
+                          <OpportunityRow
+                            key={opportunity.id}
+                            opportunity={opportunity}
+                            clientName={opportunity.client ? clientNames.get(opportunity.client) : undefined}
+                            href={hrefFor({ opportunity: opportunity.id })}
+                            selected={selected?.id === opportunity.id}
+                            workspaceSlug={workspaceSlug}
+                          />
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </ViewPanel>
               </div>
             )}
           </div>

@@ -35,7 +35,8 @@ import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { PageHead } from "@/components/core/page-title";
 import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
@@ -217,7 +218,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               </div>
               <span className="text-12 text-secondary">{filteredPages.length} accessible items</span>
             </div>
-            <SectionPanel value={tab}>
+            <ViewPanel value={tab}>
               <SummonRequestState
                 loading={isLoading}
                 error={error}
@@ -269,7 +270,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                   </table>
                 </div>
               )}
-            </SectionPanel>
+            </ViewPanel>
           </section>
         </main>
 

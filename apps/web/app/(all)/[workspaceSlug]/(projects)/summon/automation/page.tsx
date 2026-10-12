@@ -34,7 +34,8 @@ import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
-import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
+import { SectionTabs } from "@/components/summon/section-tabs";
+import { ViewPanel } from "@/components/summon/view-panel";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonPageHeader, summonLLMErrorMessage, summonPageClassName } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -386,7 +387,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             label="Generated document types"
             className="px-4"
           />
-          <SectionPanel value={activeType}>
+          <ViewPanel value={activeType}>
             <SummonRequestState
               loading={isLoading}
               error={error}
@@ -513,7 +514,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 </div>
               </>
             )}
-          </SectionPanel>
+          </ViewPanel>
         </section>
       </div>
 
