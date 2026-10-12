@@ -5,9 +5,9 @@
  */
 
 import type { ReactNode } from "react";
-import { Inbox } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import type { DetailedAssetType } from "@plane/propel/empty-state";
 
 export function SummonRequestState(props: {
   loading?: boolean;
@@ -15,7 +15,7 @@ export function SummonRequestState(props: {
   empty?: boolean;
   emptyMessage?: string;
   emptyTitle?: string;
-  emptyIcon?: LucideIcon;
+  emptyAsset?: DetailedAssetType;
   emptyAction?: ReactNode;
   validationError?: string;
   permissionError?: boolean;
@@ -28,7 +28,7 @@ export function SummonRequestState(props: {
     empty,
     emptyMessage = "Nothing here yet.",
     emptyTitle,
-    emptyIcon: EmptyIcon = Inbox,
+    emptyAsset,
     emptyAction,
     validationError,
     permissionError,
@@ -75,14 +75,15 @@ export function SummonRequestState(props: {
     );
   if (empty)
     return (
-      <div className="flex flex-col items-center rounded-xl bg-dot-grid px-6 py-10 text-center">
-        <span className="grid size-8 place-items-center rounded-lg bg-surface-1 text-tertiary shadow-raised-100 ring ring-subtle">
-          <EmptyIcon aria-hidden className="size-4" />
-        </span>
-        {emptyTitle ? <p className="mt-3 text-14 font-medium text-primary">{emptyTitle}</p> : null}
-        <p className={`${emptyTitle ? "mt-1" : "mt-3"} max-w-sm text-13 text-tertiary`}>{emptyMessage}</p>
-        {emptyAction ? <div className="mt-4">{emptyAction}</div> : null}
-      </div>
+      <EmptyStateDetailed
+        align="center"
+        assetKey={emptyAsset}
+        assetClassName="h-auto w-32"
+        title={emptyTitle}
+        description={emptyMessage}
+        customButton={emptyAction}
+        rootClassName={emptyAsset ? "px-6 py-12" : "px-4 py-6"}
+      />
     );
   return null;
 }

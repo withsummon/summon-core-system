@@ -215,7 +215,9 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
                 loading={Boolean(selected) && (detailLoading || !detailError)}
                 error={detailError}
                 empty={!selected}
-                emptyMessage="No opportunity to show for these filters."
+                emptyAsset="opportunity"
+                emptyTitle="No opportunities here"
+                emptyMessage="Change the stage or search to see opportunities."
                 onRetry={() => void mutateDetail()}
               />
             )}

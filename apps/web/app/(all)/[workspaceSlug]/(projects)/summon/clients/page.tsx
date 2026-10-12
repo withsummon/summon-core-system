@@ -95,7 +95,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
         ) : clients.length === 0 ? (
           <SummonRequestState
             empty
-            emptyIcon={Building2}
+            emptyAsset={data.length ? "search" : "customer"}
             emptyTitle={data.length ? "No matching clients" : "No clients yet"}
             emptyMessage={data.length ? "Try another search." : "Add the companies you work with."}
           />

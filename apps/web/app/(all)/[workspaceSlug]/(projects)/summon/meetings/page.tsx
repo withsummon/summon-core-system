@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { CalendarDays, Link2, Plus } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
@@ -110,7 +110,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
           loading={isLoading}
           error={error}
           empty={!isLoading && data.length === 0}
-          emptyIcon={CalendarDays}
+          emptyAsset="meeting"
           emptyTitle="No meetings yet"
           emptyMessage="Schedule a meeting to keep its notes and action items together."
           onRetry={() => void mutate()}

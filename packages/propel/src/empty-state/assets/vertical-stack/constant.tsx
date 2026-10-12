@@ -8,7 +8,10 @@ import {
   ArchivedCycleVerticalStackIllustration,
   ArchivedModuleVerticalStackIllustration,
   ArchivedWorkItemVerticalStackIllustration,
+  AutomationVerticalStackIllustration,
   ChangelogVerticalStackIllustration,
+  ConversationVerticalStackIllustration,
+  CredentialVerticalStackIllustration,
   CustomerVerticalStackIllustration,
   CycleVerticalStackIllustration,
   DashboardVerticalStackIllustration,
@@ -17,8 +20,11 @@ import {
   Error404VerticalStackIllustration,
   InitiativeVerticalStackIllustration,
   InvalidLinkVerticalStackIllustration,
+  KnowledgeVerticalStackIllustration,
+  MeetingVerticalStackIllustration,
   ModuleVerticalStackIllustration,
   NoAccessVerticalStackIllustration,
+  OpportunityVerticalStackIllustration,
   PageVerticalStackIllustration,
   ProjectVerticalStackIllustration,
   ServerErrorVerticalStackIllustration,
@@ -41,8 +47,20 @@ export const VerticalStackAssetsMap = [
     title: "ArchivedWorkItemVerticalStackIllustration",
   },
   {
+    asset: <AutomationVerticalStackIllustration />,
+    title: "AutomationVerticalStackIllustration",
+  },
+  {
     asset: <ChangelogVerticalStackIllustration />,
     title: "ChangelogVerticalStackIllustration",
+  },
+  {
+    asset: <ConversationVerticalStackIllustration />,
+    title: "ConversationVerticalStackIllustration",
+  },
+  {
+    asset: <CredentialVerticalStackIllustration />,
+    title: "CredentialVerticalStackIllustration",
   },
   {
     asset: <CustomerVerticalStackIllustration />,
@@ -77,12 +95,24 @@ export const VerticalStackAssetsMap = [
     title: "InvalidLinkVerticalStackIllustration",
   },
   {
+    asset: <KnowledgeVerticalStackIllustration />,
+    title: "KnowledgeVerticalStackIllustration",
+  },
+  {
+    asset: <MeetingVerticalStackIllustration />,
+    title: "MeetingVerticalStackIllustration",
+  },
+  {
     asset: <ModuleVerticalStackIllustration />,
     title: "ModuleVerticalStackIllustration",
   },
   {
     asset: <NoAccessVerticalStackIllustration />,
     title: "NoAccessVerticalStackIllustration",
+  },
+  {
+    asset: <OpportunityVerticalStackIllustration />,
+    title: "OpportunityVerticalStackIllustration",
   },
   {
     asset: <PageVerticalStackIllustration />,

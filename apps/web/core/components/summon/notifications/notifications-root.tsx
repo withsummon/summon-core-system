@@ -8,7 +8,7 @@ import React, { useState, useMemo } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Bell, Inbox, Clock, ExternalLink, MessageSquare } from "lucide-react";
+import { Inbox, Clock, ExternalLink, MessageSquare } from "lucide-react";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { getButtonStyling } from "@plane/propel/button";
@@ -92,7 +92,7 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
         loading={isLoading || !!loader}
         error={error}
         empty={!isLoading && !loader && filteredRecords.length === 0}
-        emptyIcon={Bell}
+        emptyAsset="inbox"
         emptyTitle="You're all caught up"
         emptyMessage="New mentions and updates will appear here."
         onRetry={() => void mutate()}

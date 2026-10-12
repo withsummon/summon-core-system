@@ -219,7 +219,9 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               loading={isLoading}
               error={error}
               empty={!isLoading && filteredPages.length === 0}
-              emptyMessage="No accessible knowledge matches this filter."
+              emptyAsset="knowledge"
+              emptyTitle="No knowledge here yet"
+              emptyMessage="Pages you can access in this category show up here."
               onRetry={() => void mutate()}
             />
             {!!filteredPages.length && (

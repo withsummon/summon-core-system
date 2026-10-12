@@ -248,7 +248,12 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-4">
-              <SummonRequestState empty emptyMessage="No credentials match this filter." />
+              <SummonRequestState
+                empty
+                emptyAsset="search"
+                emptyTitle="No matching credentials"
+                emptyMessage="Try another search or filter."
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -447,6 +452,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               ) : (
                 <SummonRequestState
                   empty
+                  emptyAsset="credential"
                   emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
                 />
               )}
