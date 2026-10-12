@@ -36,6 +36,7 @@ import { getFileURL } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
@@ -82,7 +83,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
     mutate,
   } = useSWR(["summon-plane-issues", workspaceSlug], () => listAccessiblePlaneIssues(workspaceSlug));
   const [today, setToday] = useState("");
-  const [scope, setScope] = useState<TTaskCenterScope>("mine");
+  const [scope, setScope] = useHashTab(scopes.map((item) => item.value));
   const [due, setDue] = useState<TTaskCenterDue>("all");
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);

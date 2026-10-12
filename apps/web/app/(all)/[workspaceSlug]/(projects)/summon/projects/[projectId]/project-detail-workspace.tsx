@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ArrowLeft, CalendarPlus, ChevronDown, FilePlus2, ListPlus, Pencil, Settings2, Users } from "lucide-react";
 import { Button, getButtonStyling } from "@plane/propel/button";
@@ -16,6 +16,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import projectMemberService from "@/services/project/project-member.service";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { summonService } from "@/services/summon.service";
 import { PROJECT_TABS, ProjectDetailTab } from "./project-detail-tabs";
 import type { TProjectTab } from "./project-detail-tabs";
@@ -36,18 +37,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
   const { overview, workspaceSlug, projectId, onRefresh } = props;
   const [editingProfile, setEditingProfile] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const requestedTab = searchParams.get("tab");
-  const activeTab: TProjectTab = PROJECT_TABS.some((tab) => tab.id === requestedTab)
-    ? (requestedTab as TProjectTab)
-    : "overview";
-  const selectTab = (tab: TProjectTab) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (tab === "overview") params.delete("tab");
-    else params.set("tab", tab);
-    const query = params.toString();
-    router.replace(`/${workspaceSlug}/summon/projects/${projectId}/${query ? `?${query}` : ""}`);
-  };
+  const [activeTab, selectTab] = useHashTab(PROJECT_TABS.map((tab) => tab.id));
   const { allowPermissions } = useUserPermissions();
   const { getProjectById } = useProject();
   const { getUserDetails } = useMember();

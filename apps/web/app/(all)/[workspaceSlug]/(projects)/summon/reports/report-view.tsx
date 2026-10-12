@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   AddressBookIcon,
@@ -31,6 +31,7 @@ import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
 import { statusLabel } from "@/components/summon/status-label";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { percentage, type TReportFilterParam } from "./report-view-model";
 
 type TReportViewProps = {
@@ -67,7 +68,7 @@ const REPORT_TABS: TSectionTab<TReportTab>[] = [
 export function ReportView(props: TReportViewProps) {
   const { workspaceSlug, data, error, isLoading, filters, projects, clients, exportUrl, onFilterChange, onRetry } =
     props;
-  const [activeTab, setActiveTab] = useState<TReportTab>("overview");
+  const [activeTab, setActiveTab] = useHashTab(REPORT_TABS.map((tab) => tab.value));
   const completion = data ? percentage(data.issues.completed, data.issues.total) : 0;
 
   if (!data) {

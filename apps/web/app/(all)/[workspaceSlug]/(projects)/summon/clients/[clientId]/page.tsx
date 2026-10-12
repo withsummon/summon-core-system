@@ -43,6 +43,7 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage } from "@/components/summon/screen";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -81,7 +82,7 @@ const CLIENT_TABS: TSectionTab<TClientTab>[] = [
 export default function SummonClientDetailPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, clientId } = params;
   const { getUserDetails } = useMember();
-  const [activeTab, setActiveTab] = useState<TClientTab>("overview");
+  const [activeTab, setActiveTab] = useHashTab(CLIENT_TABS.map((tab) => tab.value));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
