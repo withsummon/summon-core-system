@@ -305,7 +305,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     value: "activity",
                     label: "Activity",
                     icon: ClockCounterClockwiseIcon,
-                    href: `/${workspaceSlug}/summon/projects/${activeProjectId}/`,
+                    href: `/${workspaceSlug}/summon/projects/${activeProjectId}/#activity`,
                   },
                   {
                     value: "notes",

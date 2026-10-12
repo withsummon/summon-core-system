@@ -35,18 +35,19 @@ import { SummonPageHeader, summonPageClassName } from "@/components/summon/scree
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
 const KNOWLEDGE_TABS: TSectionTab<string>[] = [
-  { value: "All", label: "All", icon: SquaresFourIcon },
-  { value: "Notes", label: "Notes", icon: NoteIcon },
-  { value: "Documents", label: "Documents", icon: FileTextIcon },
-  { value: "Guides", label: "Guides", icon: CompassIcon },
-  { value: "FAQs", label: "FAQs", icon: QuestionIcon },
-  { value: "Lessons Learned", label: "Lessons Learned", icon: LightbulbIcon },
+  { value: "all", label: "All", icon: SquaresFourIcon },
+  { value: "notes", label: "Notes", icon: NoteIcon },
+  { value: "documents", label: "Documents", icon: FileTextIcon },
+  { value: "guides", label: "Guides", icon: CompassIcon },
+  { value: "faqs", label: "FAQs", icon: QuestionIcon },
+  { value: "lessons-learned", label: "Lessons Learned", icon: LightbulbIcon },
 ];
 
 const formatDate = (value?: Date) => {
@@ -58,7 +59,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const { getUserDetails } = useMember();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("All");
+  const [tab, setTab] = useHashTab(KNOWLEDGE_TABS.map((item) => item.value));
   const {
     data: pages = [],
     error,
@@ -81,9 +82,9 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
         const matchesQuery = `${page.name || ""} ${project.name} ${context?.category || ""}`
           .toLowerCase()
           .includes(normalizedQuery);
-        if (!matchesQuery || tab === "All") return matchesQuery;
-        if (tab === "Documents") return context?.category === "document" || !context?.category;
-        return context?.category?.toLowerCase() === tab.toLowerCase().replace(" ", "_");
+        if (!matchesQuery || tab === "all") return matchesQuery;
+        if (tab === "documents") return context?.category === "document" || !context?.category;
+        return context?.category?.toLowerCase() === tab.replace("-", "_");
       }),
     [contextByPage, normalizedQuery, pages, tab]
   );

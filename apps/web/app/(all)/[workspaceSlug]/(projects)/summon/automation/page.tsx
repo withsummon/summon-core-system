@@ -37,6 +37,7 @@ import { SummonDrawer } from "@/components/summon/drawer";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonPageHeader, summonLLMErrorMessage, summonPageClassName } from "@/components/summon/screen";
+import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useProject } from "@/hooks/store/use-project";
 import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
@@ -133,7 +134,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const router = useRouter();
   const { joinedProjectIds, getProjectById } = useProject();
   const [query, setQuery] = useState("");
-  const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
   const [template, setTemplate] = useState("");
   const [generatorOpen, setGeneratorOpen] = useState(false);
@@ -179,6 +179,14 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     () => new Map(joinedProjectIds.map((id) => [id, getProjectById(id)?.name ?? id])),
     [getProjectById, joinedProjectIds]
   );
+  const typeTabs = useMemo(() => {
+    const types = Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map(({ type }) => type)]));
+    return [
+      { value: "all", label: "All", icon: SquaresFourIcon },
+      ...types.slice(0, 6).map((type) => ({ value: type, label: templateLabel(type), icon: templateTabIcon(type) })),
+    ];
+  }, [jobs, templates]);
+  const [activeType, selectType] = useHashTab(typeTabs.map((tab) => tab.value));
   const filteredJobs = useMemo(
     () => filterAutomationJobs(jobs, projectNames, query, activeType),
     [activeType, jobs, projectNames, query]
@@ -186,10 +194,6 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const pageCount = Math.max(1, Math.ceil(filteredJobs.length / 8));
   const currentPage = Math.min(page, pageCount);
   const pagedJobs = filteredJobs.slice((currentPage - 1) * 8, currentPage * 8);
-  const types = useMemo(
-    () => Array.from(new Set([...templates.map(({ type }) => type), ...jobs.map(({ type }) => type)])),
-    [jobs, templates]
-  );
   const canGeneratePreview = Boolean(
     template && outputProject && title.trim() && meetingTranscriptReady(selectedMeeting)
   );
@@ -370,15 +374,10 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             <h2 className="text-sm font-semibold text-primary">Generated documents</h2>
           </div>
           <SectionTabs
-            items={[
-              { value: "all", label: "All", icon: SquaresFourIcon },
-              ...types
-                .slice(0, 6)
-                .map((type) => ({ value: type, label: templateLabel(type), icon: templateTabIcon(type) })),
-            ]}
+            items={typeTabs}
             value={activeType}
             onValueChange={(type) => {
-              setActiveType(type);
+              selectType(type);
               setPage(1);
             }}
             label="Generated document types"
