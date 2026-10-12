@@ -36,7 +36,7 @@ import { CredentialDrawer } from "@/components/summon/credential-drawer";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionTabs } from "@/components/summon/section-tabs";
+import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import {
   SummonMetric,
@@ -349,113 +349,115 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               className="px-5"
             />
             <div className="p-5">
-              {activeTab === "Overview" ? (
-                <div className="grid items-start gap-4">
-                  <div className="rounded-xl border border-subtle p-4">
-                    <dl className="grid gap-4 text-xs">
-                      <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
-                      <Detail
-                        label="Password"
-                        value={selected.secret}
-                        action={
-                          <button type="button" onClick={() => setManageOpen(true)} className="text-accent-primary">
-                            <Eye className="size-4" />
-                          </button>
-                        }
-                      />
-                      <Detail label="Host / IP" value={textMetadata(selected, "host")} copy />
-                      <Detail label="Port" value={textMetadata(selected, "port")} />
-                      <Detail label="Protocol" value={textMetadata(selected, "protocol")} />
-                      <Detail label="Description" value={textMetadata(selected, "description")} />
-                      <Detail
-                        label="Tags"
-                        value={
-                          <div className="flex flex-wrap gap-1.5">
-                            {credentialTags(selected).length
-                              ? credentialTags(selected).map((tag) => (
-                                  <Badge key={tag} tone="blue">
-                                    {tag}
-                                  </Badge>
-                                ))
-                              : "Not set"}
-                          </div>
-                        }
-                      />
-                      <Detail
-                        label="Project"
-                        value={selected.project ? projectNames.get(selected.project) || "Linked project" : "Not set"}
-                      />
-                      <Detail
-                        label="Environment"
-                        value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>}
-                      />
-                      <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
-                    </dl>
-                  </div>
-                  <div className="space-y-4">
+              <SectionPanel value={activeTab}>
+                {activeTab === "Overview" ? (
+                  <div className="grid items-start gap-4">
                     <div className="rounded-xl border border-subtle p-4">
-                      <h4 className="text-sm font-semibold text-primary">Quick Actions</h4>
-                      <div className="mt-3 grid gap-1">
-                        <Action icon={Eye} label="Reveal Password" onClick={() => setManageOpen(true)} />
-                        <Action icon={Pencil} label="Update Credential" onClick={openEdit} />
-                        <Action icon={Clock3} label="Rotate Password" onClick={() => setManageOpen(true)} />
-                        <Action icon={UserRoundPlus} label="Share Access" onClick={() => setManageOpen(true)} />
-                        <Action icon={Copy} label="Duplicate" disabled />
-                        <Action icon={Trash2} label="Delete" danger onClick={() => setManageOpen(true)} />
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-subtle p-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-primary">Access Summary</h4>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("Access")}
-                          className="text-12 text-accent-primary"
-                        >
-                          View all
-                        </button>
-                      </div>
-                      <dl className="mt-3 grid gap-3">
-                        <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
-                        <MiniDetail label="Users with access" value={String(accessData?.grants.length ?? 0)} />
-                        <MiniDetail label="Last accessed" value={formatRelative(lastUsed)} />
+                      <dl className="grid gap-4 text-xs">
+                        <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
+                        <Detail
+                          label="Password"
+                          value={selected.secret}
+                          action={
+                            <button type="button" onClick={() => setManageOpen(true)} className="text-accent-primary">
+                              <Eye className="size-4" />
+                            </button>
+                          }
+                        />
+                        <Detail label="Host / IP" value={textMetadata(selected, "host")} copy />
+                        <Detail label="Port" value={textMetadata(selected, "port")} />
+                        <Detail label="Protocol" value={textMetadata(selected, "protocol")} />
+                        <Detail label="Description" value={textMetadata(selected, "description")} />
+                        <Detail
+                          label="Tags"
+                          value={
+                            <div className="flex flex-wrap gap-1.5">
+                              {credentialTags(selected).length
+                                ? credentialTags(selected).map((tag) => (
+                                    <Badge key={tag} tone="blue">
+                                      {tag}
+                                    </Badge>
+                                  ))
+                                : "Not set"}
+                            </div>
+                          }
+                        />
+                        <Detail
+                          label="Project"
+                          value={selected.project ? projectNames.get(selected.project) || "Linked project" : "Not set"}
+                        />
+                        <Detail
+                          label="Environment"
+                          value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>}
+                        />
+                        <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
                       </dl>
                     </div>
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-subtle p-4">
+                        <h4 className="text-sm font-semibold text-primary">Quick Actions</h4>
+                        <div className="mt-3 grid gap-1">
+                          <Action icon={Eye} label="Reveal Password" onClick={() => setManageOpen(true)} />
+                          <Action icon={Pencil} label="Update Credential" onClick={openEdit} />
+                          <Action icon={Clock3} label="Rotate Password" onClick={() => setManageOpen(true)} />
+                          <Action icon={UserRoundPlus} label="Share Access" onClick={() => setManageOpen(true)} />
+                          <Action icon={Copy} label="Duplicate" disabled />
+                          <Action icon={Trash2} label="Delete" danger onClick={() => setManageOpen(true)} />
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-subtle p-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-primary">Access Summary</h4>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab("Access")}
+                            className="text-12 text-accent-primary"
+                          >
+                            View all
+                          </button>
+                        </div>
+                        <dl className="mt-3 grid gap-3">
+                          <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
+                          <MiniDetail label="Users with access" value={String(accessData?.grants.length ?? 0)} />
+                          <MiniDetail label="Last accessed" value={formatRelative(lastUsed)} />
+                        </dl>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ) : activeTab === "Access" ? (
-                <PanelList
-                  title="Users with access"
-                  empty="No active credential grants."
-                  error={accessError}
-                  items={
-                    accessData?.grants.map((grant) => ({
-                      id: grant.id,
-                      title: getUserDetails(grant.member)?.display_name || grant.member,
-                      detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
-                    })) ?? []
-                  }
-                />
-              ) : activeTab === "Activity Log" ? (
-                <PanelList
-                  title="Audit trail"
-                  empty="No credential activity."
-                  error={accessError}
-                  items={
-                    accessData?.audit.map((audit) => ({
-                      id: audit.id,
-                      title: audit.action.replaceAll("_", " "),
-                      detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
-                    })) ?? []
-                  }
-                />
-              ) : (
-                <SummonRequestState
-                  empty
-                  emptyAsset="credential"
-                  emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
-                />
-              )}
+                ) : activeTab === "Access" ? (
+                  <PanelList
+                    title="Users with access"
+                    empty="No active credential grants."
+                    error={accessError}
+                    items={
+                      accessData?.grants.map((grant) => ({
+                        id: grant.id,
+                        title: getUserDetails(grant.member)?.display_name || grant.member,
+                        detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
+                      })) ?? []
+                    }
+                  />
+                ) : activeTab === "Activity Log" ? (
+                  <PanelList
+                    title="Audit trail"
+                    empty="No credential activity."
+                    error={accessError}
+                    items={
+                      accessData?.audit.map((audit) => ({
+                        id: audit.id,
+                        title: audit.action.replaceAll("_", " "),
+                        detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
+                      })) ?? []
+                    }
+                  />
+                ) : (
+                  <SummonRequestState
+                    empty
+                    emptyAsset="credential"
+                    emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
+                  />
+                )}
+              </SectionPanel>
             </div>
             <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
               <ShieldCheck className="size-4 flex-none text-accent-primary" />

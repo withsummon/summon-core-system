@@ -40,7 +40,7 @@ import { Input } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { opportunityCreateHref } from "@/components/summon/opportunities/delivery-handoff";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionTabs } from "@/components/summon/section-tabs";
+import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -196,326 +196,339 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         className="mt-5"
       />
 
-      <div
-        className={`mt-4 grid min-w-0 items-start gap-4 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}
-      >
-        <main className="min-w-0 space-y-4">
-          {activeTab === "overview" ? (
-            <section className="grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 lg:grid-cols-4">
-              <ClientMetric
-                icon={<Target className="size-4.5" />}
-                label="Active Opportunities"
-                value={activeOpportunities.length}
-                detail="View opportunities"
-              />
-              <ClientMetric
-                icon={<FolderKanban className="size-4.5" />}
-                label="Active Projects"
-                value={data.projects.length}
-                detail="View projects"
-              />
-              <ClientMetric
-                icon={<Building2 className="size-4.5" />}
-                label="Total Projects"
-                value={data.projects.length}
-                detail="Projects you can see"
-              />
-              <ClientMetric
-                icon={<CalendarDays className="size-4.5" />}
-                label="Last Interaction"
-                value={lastInteraction ? formatDate(lastInteraction.created_at) : "No activity"}
-                detail={lastInteraction?.label || "Nothing recorded"}
-              />
-            </section>
-          ) : null}
+      <SectionPanel value={activeTab}>
+        <div
+          className={`mt-4 grid min-w-0 items-start gap-4 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}
+        >
+          <main className="min-w-0 space-y-4">
+            {activeTab === "overview" ? (
+              <section className="grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 lg:grid-cols-4">
+                <ClientMetric
+                  icon={<Target className="size-4.5" />}
+                  label="Active Opportunities"
+                  value={activeOpportunities.length}
+                  detail="View opportunities"
+                />
+                <ClientMetric
+                  icon={<FolderKanban className="size-4.5" />}
+                  label="Active Projects"
+                  value={data.projects.length}
+                  detail="View projects"
+                />
+                <ClientMetric
+                  icon={<Building2 className="size-4.5" />}
+                  label="Total Projects"
+                  value={data.projects.length}
+                  detail="Projects you can see"
+                />
+                <ClientMetric
+                  icon={<CalendarDays className="size-4.5" />}
+                  label="Last Interaction"
+                  value={lastInteraction ? formatDate(lastInteraction.created_at) : "No activity"}
+                  detail={lastInteraction?.label || "Nothing recorded"}
+                />
+              </section>
+            ) : null}
 
-          {showTab("opportunities") ? (
-            <DataSection
-              title="Opportunities"
-              action="View all opportunities"
-              href={`/${workspaceSlug}/summon/opportunities/`}
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-12">
-                  <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
-                    <tr>
-                      {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
-                        <th key={label} className="px-4 py-3 font-medium">
-                          {label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {data.opportunities.map((opportunity) => {
-                      const opportunityOwner = opportunity.owner ? getUserDetails(opportunity.owner) : undefined;
-                      return (
-                        <tr key={opportunity.id}>
-                          <td className="px-4 py-3">
-                            <Link
-                              href={`/${workspaceSlug}/summon/opportunities/${opportunity.id}/`}
-                              className="font-semibold text-primary"
-                            >
-                              {opportunity.title}
-                            </Link>
-                            <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Badge>{statusLabel(opportunity.stage)}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-primary">{opportunityOwner?.display_name || "Not assigned"}</td>
-                          <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
-                          <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
-                              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
-                                <div
-                                  className="h-full rounded-full bg-accent-primary"
-                                  style={{ width: `${opportunity.probability}%` }}
-                                />
+            {showTab("opportunities") ? (
+              <DataSection
+                title="Opportunities"
+                action="View all opportunities"
+                href={`/${workspaceSlug}/summon/opportunities/`}
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-left text-12">
+                    <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
+                      <tr>
+                        {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
+                          <th key={label} className="px-4 py-3 font-medium">
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-subtle">
+                      {data.opportunities.map((opportunity) => {
+                        const opportunityOwner = opportunity.owner ? getUserDetails(opportunity.owner) : undefined;
+                        return (
+                          <tr key={opportunity.id}>
+                            <td className="px-4 py-3">
+                              <Link
+                                href={`/${workspaceSlug}/summon/opportunities/${opportunity.id}/`}
+                                className="font-semibold text-primary"
+                              >
+                                {opportunity.title}
+                              </Link>
+                              <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge>{statusLabel(opportunity.stage)}</Badge>
+                            </td>
+                            <td className="px-4 py-3 text-primary">
+                              {opportunityOwner?.display_name || "Not assigned"}
+                            </td>
+                            <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
+                            <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
+                                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
+                                  <div
+                                    className="h-full rounded-full bg-accent-primary"
+                                    style={{ width: `${opportunity.probability}%` }}
+                                  />
+                                </div>
                               </div>
-                            </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {!data.opportunities.length ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
+                            No opportunities linked to this client.
                           </td>
                         </tr>
-                      );
-                    })}
-                    {!data.opportunities.length ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
-                          No opportunities linked to this client.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </DataSection>
-          ) : null}
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </DataSection>
+            ) : null}
 
-          {showTab("projects") ? (
-            <DataSection title="Recent Projects" action="View all projects" href={`/${workspaceSlug}/summon/projects/`}>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-12">
-                  <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
-                    <tr>
-                      {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
-                        <th key={label} className="px-4 py-3 font-medium">
-                          {label}
-                        </th>
+            {showTab("projects") ? (
+              <DataSection
+                title="Recent Projects"
+                action="View all projects"
+                href={`/${workspaceSlug}/summon/projects/`}
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] text-left text-12">
+                    <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
+                      <tr>
+                        {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
+                          <th key={label} className="px-4 py-3 font-medium">
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-subtle">
+                      {data.projects.slice(0, 5).map((project) => (
+                        <tr key={project.id}>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/${workspaceSlug}/summon/projects/${project.id}/`}
+                              className="font-semibold text-primary"
+                            >
+                              {project.name}
+                            </Link>
+                            <p className="mt-1 text-tertiary">{project.identifier}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge>Project</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
+                              <CheckCircle2 className="size-3" /> Linked
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-tertiary">Not available</td>
+                          <td className="px-4 py-3 text-tertiary">Not available</td>
+                          <td className="px-4 py-3 text-tertiary">Not available</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {data.projects.slice(0, 5).map((project) => (
-                      <tr key={project.id}>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/${workspaceSlug}/summon/projects/${project.id}/`}
-                            className="font-semibold text-primary"
-                          >
-                            {project.name}
-                          </Link>
-                          <p className="mt-1 text-tertiary">{project.identifier}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge>Project</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
-                            <CheckCircle2 className="size-3" /> Linked
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                        <td className="px-4 py-3 text-tertiary">Not available</td>
-                      </tr>
-                    ))}
-                    {!data.projects.length ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
-                          No visible Plane projects linked to this client.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </DataSection>
-          ) : null}
+                      {!data.projects.length ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
+                            No visible Plane projects linked to this client.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </DataSection>
+            ) : null}
 
-          {showTab("contacts") ? (
-            <DataSection title="Key Contacts" action="View all contacts">
-              <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
-                {data.contacts.slice(0, 3).map((contact) => (
-                  <article key={contact.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle text-sm font-semibold text-accent-primary">
-                      {contact.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-12 font-semibold text-primary">{contact.name}</h3>
-                      <p className="mt-0.5 truncate text-12 text-secondary">{contact.title || "Role not set"}</p>
-                      {contact.email ? (
-                        <a href={`mailto:${contact.email}`} className="mt-1 block truncate text-12 text-accent-primary">
-                          {contact.email}
+            {showTab("contacts") ? (
+              <DataSection title="Key Contacts" action="View all contacts">
+                <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {data.contacts.slice(0, 3).map((contact) => (
+                    <article key={contact.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
+                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle text-sm font-semibold text-accent-primary">
+                        {contact.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-12 font-semibold text-primary">{contact.name}</h3>
+                        <p className="mt-0.5 truncate text-12 text-secondary">{contact.title || "Role not set"}</p>
+                        {contact.email ? (
+                          <a
+                            href={`mailto:${contact.email}`}
+                            className="mt-1 block truncate text-12 text-accent-primary"
+                          >
+                            {contact.email}
+                          </a>
+                        ) : null}
+                        {contact.phone ? (
+                          <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-12 text-secondary">
+                            {contact.phone}
+                          </a>
+                        ) : null}
+                        <div className="mt-2 flex gap-2">
+                          <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
+                            <Mail className="size-3" />
+                          </span>
+                          <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
+                            <Phone className="size-3" />
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                  {!data.contacts.length ? (
+                    <p className="py-8 text-center text-12 text-tertiary md:col-span-2 2xl:col-span-3">
+                      No contacts added.
+                    </p>
+                  ) : null}
+                </div>
+              </DataSection>
+            ) : null}
+
+            {showTab("activity") ? (
+              <DataSection title="Recent Activity" action="View all activity">
+                <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+                  {data.recent_activity.slice(0, 5).map((activity) => (
+                    <Link key={activity.id} href={activity.href} className="flex min-w-0 items-start gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-subtle text-accent-primary">
+                        <FileText className="size-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-12 font-semibold text-primary">{activity.label}</span>
+                        <time className="mt-1 block text-12 text-secondary" dateTime={activity.created_at}>
+                          {formatDate(activity.created_at)}
+                        </time>
+                      </span>
+                    </Link>
+                  ))}
+                  {!data.recent_activity.length ? <p className="text-12 text-tertiary">No recent activity.</p> : null}
+                </div>
+              </DataSection>
+            ) : null}
+
+            {activeTab === "documents" || activeTab === "notes" ? (
+              <DataSection
+                title={activeTab === "documents" ? "Documents" : "Notes"}
+                action={`${visiblePageContexts.length} linked pages`}
+              >
+                <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {visiblePageContexts.map((context) => (
+                    <article key={context.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+                        <FileText className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-12 font-semibold text-primary">
+                          {context.page_detail.name || "Untitled page"}
+                        </p>
+                        <p className="mt-1 text-12 text-secondary">
+                          {statusLabel(context.category || "page")} · {formatDate(context.updated_at)}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                  {!visiblePageContexts.length ? (
+                    <p className="py-8 text-center text-12 text-tertiary sm:col-span-2 xl:col-span-3">
+                      No linked {activeTab}.
+                    </p>
+                  ) : null}
+                </div>
+              </DataSection>
+            ) : null}
+
+            {activeTab === "settings" ? (
+              <DataSection title="Client Settings" action="Manage client record">
+                <div className="grid gap-4 p-4 sm:grid-cols-2">
+                  <Detail label="Legal Name" value={data.company_name || "Not set"} />
+                  <Detail label="Industry" value={data.industry || "Not set"} />
+                  <Detail label="Head Office" value={data.head_office || "Not set"} />
+                  <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
+                  <div className="sm:col-span-2">
+                    <Button size="xl" type="button" onClick={() => setEditing(true)}>
+                      <Pencil className="mr-2 size-3.5" /> Edit Client
+                    </Button>
+                  </div>
+                </div>
+              </DataSection>
+            ) : null}
+          </main>
+
+          {activeTab === "overview" ? (
+            <aside className="min-w-0 space-y-4">
+              <SideCard title="Relationship Health">
+                <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-12 font-medium text-secondary">
+                  Not scored
+                </span>
+                <p className="mt-2 text-12 leading-4 text-secondary">
+                  No relationship-health data source is configured.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <HealthRow label="Communication records" detail={`${data.meetings.length} meetings linked`} />
+                  <HealthRow label="Projects tracked" detail={`${data.projects.length} visible projects`} />
+                  <HealthRow label="Client contacts" detail={`${data.contacts.length} contacts recorded`} />
+                </div>
+              </SideCard>
+
+              <SideCard title="Client Information">
+                <dl className="space-y-4">
+                  <Detail label="Legal Name" value={data.company_name || "Not set"} />
+                  <Detail label="Industry" value={data.industry || "Not set"} />
+                  <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-12">
+                    <dt className="text-secondary">Website</dt>
+                    <dd className="min-w-0 font-medium text-primary">
+                      {data.website ? (
+                        <a
+                          href={data.website}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex max-w-full items-center gap-1 truncate text-accent-primary"
+                        >
+                          {data.website.replace(/^https?:\/\//, "")}
+                          <ExternalLink className="size-3 shrink-0" />
                         </a>
-                      ) : null}
-                      {contact.phone ? (
-                        <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-12 text-secondary">
-                          {contact.phone}
-                        </a>
-                      ) : null}
-                      <div className="mt-2 flex gap-2">
-                        <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
-                          <Mail className="size-3" />
-                        </span>
-                        <span className="grid size-6 place-items-center rounded-md bg-layer-1 text-accent-primary">
-                          <Phone className="size-3" />
-                        </span>
+                      ) : (
+                        "Not set"
+                      )}
+                    </dd>
+                  </div>
+                  <Detail label="Head Office" value={data.head_office || "Not set"} />
+                  <Detail label="Client Since" value={formatDate(data.relationship_started_at)} />
+                  <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
+                </dl>
+              </SideCard>
+
+              <SideCard title="Notes" action="View all notes">
+                <div className="space-y-2">
+                  {data.page_contexts.slice(0, 3).map((context) => (
+                    <div key={context.id} className="flex min-w-0 gap-3 rounded-lg border border-subtle p-3">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+                        <FileText className="size-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-12 font-semibold text-primary">
+                          {context.page_detail.name || "Untitled page"}
+                        </p>
+                        <p className="mt-1 text-12 text-secondary">{formatDate(context.updated_at)}</p>
                       </div>
                     </div>
-                  </article>
-                ))}
-                {!data.contacts.length ? (
-                  <p className="py-8 text-center text-12 text-tertiary md:col-span-2 2xl:col-span-3">
-                    No contacts added.
-                  </p>
-                ) : null}
-              </div>
-            </DataSection>
-          ) : null}
-
-          {showTab("activity") ? (
-            <DataSection title="Recent Activity" action="View all activity">
-              <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-                {data.recent_activity.slice(0, 5).map((activity) => (
-                  <Link key={activity.id} href={activity.href} className="flex min-w-0 items-start gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-subtle text-accent-primary">
-                      <FileText className="size-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-12 font-semibold text-primary">{activity.label}</span>
-                      <time className="mt-1 block text-12 text-secondary" dateTime={activity.created_at}>
-                        {formatDate(activity.created_at)}
-                      </time>
-                    </span>
-                  </Link>
-                ))}
-                {!data.recent_activity.length ? <p className="text-12 text-tertiary">No recent activity.</p> : null}
-              </div>
-            </DataSection>
-          ) : null}
-
-          {activeTab === "documents" || activeTab === "notes" ? (
-            <DataSection
-              title={activeTab === "documents" ? "Documents" : "Notes"}
-              action={`${visiblePageContexts.length} linked pages`}
-            >
-              <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-                {visiblePageContexts.map((context) => (
-                  <article key={context.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                      <FileText className="size-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-12 font-semibold text-primary">
-                        {context.page_detail.name || "Untitled page"}
-                      </p>
-                      <p className="mt-1 text-12 text-secondary">
-                        {statusLabel(context.category || "page")} · {formatDate(context.updated_at)}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-                {!visiblePageContexts.length ? (
-                  <p className="py-8 text-center text-12 text-tertiary sm:col-span-2 xl:col-span-3">
-                    No linked {activeTab}.
-                  </p>
-                ) : null}
-              </div>
-            </DataSection>
-          ) : null}
-
-          {activeTab === "settings" ? (
-            <DataSection title="Client Settings" action="Manage client record">
-              <div className="grid gap-4 p-4 sm:grid-cols-2">
-                <Detail label="Legal Name" value={data.company_name || "Not set"} />
-                <Detail label="Industry" value={data.industry || "Not set"} />
-                <Detail label="Head Office" value={data.head_office || "Not set"} />
-                <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
-                <div className="sm:col-span-2">
-                  <Button size="xl" type="button" onClick={() => setEditing(true)}>
-                    <Pencil className="mr-2 size-3.5" /> Edit Client
-                  </Button>
+                  ))}
+                  {!data.page_contexts.length ? <p className="py-4 text-12 text-tertiary">No linked notes.</p> : null}
                 </div>
-              </div>
-            </DataSection>
+              </SideCard>
+            </aside>
           ) : null}
-        </main>
-
-        {activeTab === "overview" ? (
-          <aside className="min-w-0 space-y-4">
-            <SideCard title="Relationship Health">
-              <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-12 font-medium text-secondary">
-                Not scored
-              </span>
-              <p className="mt-2 text-12 leading-4 text-secondary">No relationship-health data source is configured.</p>
-              <div className="mt-4 space-y-3">
-                <HealthRow label="Communication records" detail={`${data.meetings.length} meetings linked`} />
-                <HealthRow label="Projects tracked" detail={`${data.projects.length} visible projects`} />
-                <HealthRow label="Client contacts" detail={`${data.contacts.length} contacts recorded`} />
-              </div>
-            </SideCard>
-
-            <SideCard title="Client Information">
-              <dl className="space-y-4">
-                <Detail label="Legal Name" value={data.company_name || "Not set"} />
-                <Detail label="Industry" value={data.industry || "Not set"} />
-                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-12">
-                  <dt className="text-secondary">Website</dt>
-                  <dd className="min-w-0 font-medium text-primary">
-                    {data.website ? (
-                      <a
-                        href={data.website}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex max-w-full items-center gap-1 truncate text-accent-primary"
-                      >
-                        {data.website.replace(/^https?:\/\//, "")}
-                        <ExternalLink className="size-3 shrink-0" />
-                      </a>
-                    ) : (
-                      "Not set"
-                    )}
-                  </dd>
-                </div>
-                <Detail label="Head Office" value={data.head_office || "Not set"} />
-                <Detail label="Client Since" value={formatDate(data.relationship_started_at)} />
-                <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
-              </dl>
-            </SideCard>
-
-            <SideCard title="Notes" action="View all notes">
-              <div className="space-y-2">
-                {data.page_contexts.slice(0, 3).map((context) => (
-                  <div key={context.id} className="flex min-w-0 gap-3 rounded-lg border border-subtle p-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                      <FileText className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-12 font-semibold text-primary">
-                        {context.page_detail.name || "Untitled page"}
-                      </p>
-                      <p className="mt-1 text-12 text-secondary">{formatDate(context.updated_at)}</p>
-                    </div>
-                  </div>
-                ))}
-                {!data.page_contexts.length ? <p className="py-4 text-12 text-tertiary">No linked notes.</p> : null}
-              </div>
-            </SideCard>
-          </aside>
-        ) : null}
-      </div>
+        </div>
+      </SectionPanel>
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <Dialog.Panel

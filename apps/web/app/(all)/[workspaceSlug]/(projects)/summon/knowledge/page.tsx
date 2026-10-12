@@ -35,7 +35,7 @@ import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { PageHead } from "@/components/core/page-title";
 import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionTabs } from "@/components/summon/section-tabs";
+import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
@@ -217,57 +217,59 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               </div>
               <span className="text-12 text-secondary">{filteredPages.length} accessible items</span>
             </div>
-            <SummonRequestState
-              loading={isLoading}
-              error={error}
-              empty={!isLoading && filteredPages.length === 0}
-              emptyAsset="knowledge"
-              emptyTitle="No knowledge here yet"
-              emptyMessage="Pages you can access in this category show up here."
-              onRetry={() => void mutate()}
-            />
-            {!!filteredPages.length && (
-              <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
-                <table className="w-full min-w-[46rem] text-left text-xs">
-                  <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Title</th>
-                      <th className="px-4 py-3 font-medium">Context</th>
-                      <th className="px-4 py-3 font-medium">Type</th>
-                      <th className="px-4 py-3 font-medium">Updated</th>
-                      <th className="px-4 py-3 font-medium">Updated by</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {filteredPages.slice(0, 8).map(({ page, project }) => {
-                      const context = page.id ? contextByPage.get(page.id) : undefined;
-                      const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
-                      return (
-                        <tr key={page.id} className="hover:bg-layer-1">
-                          <td className="px-4 py-3">
-                            <Link
-                              href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-                              className="flex items-center gap-2 font-medium text-primary"
-                            >
-                              <FileText className="size-4 shrink-0 text-accent-primary" />
-                              <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-secondary">{project.name}</td>
-                          <td className="px-4 py-3">
-                            <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
-                              {context?.category || "Page"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
-                          <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <SectionPanel value={tab}>
+              <SummonRequestState
+                loading={isLoading}
+                error={error}
+                empty={!isLoading && filteredPages.length === 0}
+                emptyAsset="knowledge"
+                emptyTitle="No knowledge here yet"
+                emptyMessage="Pages you can access in this category show up here."
+                onRetry={() => void mutate()}
+              />
+              {!!filteredPages.length && (
+                <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
+                  <table className="w-full min-w-[46rem] text-left text-xs">
+                    <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Title</th>
+                        <th className="px-4 py-3 font-medium">Context</th>
+                        <th className="px-4 py-3 font-medium">Type</th>
+                        <th className="px-4 py-3 font-medium">Updated</th>
+                        <th className="px-4 py-3 font-medium">Updated by</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-subtle">
+                      {filteredPages.slice(0, 8).map(({ page, project }) => {
+                        const context = page.id ? contextByPage.get(page.id) : undefined;
+                        const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
+                        return (
+                          <tr key={page.id} className="hover:bg-layer-1">
+                            <td className="px-4 py-3">
+                              <Link
+                                href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                                className="flex items-center gap-2 font-medium text-primary"
+                              >
+                                <FileText className="size-4 shrink-0 text-accent-primary" />
+                                <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
+                              </Link>
+                            </td>
+                            <td className="px-4 py-3 text-secondary">{project.name}</td>
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
+                                {context?.category || "Page"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
+                            <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </SectionPanel>
           </section>
         </main>
 

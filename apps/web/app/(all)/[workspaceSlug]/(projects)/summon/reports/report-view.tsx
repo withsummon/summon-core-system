@@ -27,7 +27,7 @@ import {
 import type { ISummonClient, ISummonReportFilters, ISummonReportSummary } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SectionTabs } from "@/components/summon/section-tabs";
+import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
 import { statusLabel } from "@/components/summon/status-label";
@@ -125,260 +125,261 @@ export function ReportView(props: TReportViewProps) {
         label="Report sections"
         className="mt-4"
       />
-
-      {activeTab === "overview" ? (
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <ReportKpi
-            icon={<WalletCards className="size-4.5" />}
-            label="Total Revenue (YTD)"
-            value="—"
-            detail={<span>No revenue data source</span>}
-          />
-          <ReportKpi
-            icon={<FolderKanban className="size-4.5" />}
-            label="Active Projects"
-            value={data.projects}
-            detail={<span className="text-success-primary">Authorized portfolio</span>}
-          />
-          <ReportKpi
-            icon={<Target className="size-4.5" />}
-            label="Open Opportunities"
-            value={openOpportunities}
-            detail={<span>{data.commercial.pipeline_value} potential value</span>}
-          />
-          <ReportKpi
-            icon={<HeartPulse className="size-4.5" />}
-            label="Project Health (Avg)"
-            value={
-              <>
-                {averageHealth}
-                <span className="ml-1 text-xs text-secondary">/100</span>
-              </>
-            }
-            detail={<span className="text-success-primary">Based on delivery completion</span>}
-          />
-          <ReportKpi
-            icon={<Clock3 className="size-4.5" />}
-            label="Overdue Tasks"
-            value={data.issues.overdue}
-            detail={<span className="text-danger-primary">Open past due date</span>}
-          />
-        </div>
-      ) : null}
-
-      {showTab("company_progress") || showTab("project_health") || showTab("pipeline") ? (
-        <div
-          className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1fr_1fr_1.08fr]" : "grid-cols-1"}`}
-        >
-          {showTab("company_progress") ? (
-            <ReportPanel className="flex flex-col p-4">
-              <PanelHeader title="Company Progress" />
-              <div className="mt-4 grid flex-1 items-center gap-4 sm:grid-cols-[1fr_1fr]">
-                <ReportDonut
-                  items={[
-                    { label: "Completed", count: data.issues.completed, color: "#376df6" },
-                    {
-                      label: "Remaining",
-                      count: Math.max(0, data.issues.total - data.issues.completed),
-                      color: "#b8c9f5",
-                    },
-                  ]}
-                  center={`${completion}%`}
-                  caption="Overall Progress"
-                />
-                <ReportLegend
-                  items={[
-                    { label: "Completed", count: data.issues.completed, color: "#376df6" },
-                    {
-                      label: "Remaining",
-                      count: Math.max(0, data.issues.total - data.issues.completed),
-                      color: "#48b979",
-                    },
-                    { label: "Overdue", count: data.issues.overdue, color: "#f4bd42" },
-                    {
-                      label: "No due date",
-                      count: data.due_date_buckets.find(({ label }) => label === "No due date")?.count ?? 0,
-                      color: "#b8bfd1",
-                    },
-                  ]}
-                />
-              </div>
-              <div className="mt-4 flex items-start gap-3 rounded-lg bg-accent-subtle px-3 py-2.5">
-                <Sparkles className="mt-0.5 size-4 shrink-0 text-accent-primary" />
-                <div>
-                  <p className="text-12 font-semibold text-accent-primary">Summon Insight</p>
-                  <p className="mt-0.5 text-12 text-secondary">
-                    {data.issues.total
-                      ? `${completion}% of authorized work items are complete.`
-                      : "No delivery data in this period."}
-                  </p>
-                </div>
-              </div>
-            </ReportPanel>
-          ) : null}
-
-          {showTab("project_health") ? (
-            <ReportPanel className="flex flex-col p-4">
-              <PanelHeader title="Project Health" />
-              <div className="mt-4 grid items-center gap-4 sm:grid-cols-[1fr_1fr]">
-                <ReportDonut items={projectHealth} center={data.projects} caption="Projects" />
-                <ReportLegend items={projectHealth} />
-              </div>
-              <div className="mt-4 border-t border-subtle pt-3">
-                <div className="flex items-center justify-between text-12">
-                  <span className="font-semibold text-primary">Top Attention Needed</span>
-                  <Link href={`/${workspaceSlug}/summon/projects/`} className="font-medium text-accent-primary">
-                    View all projects →
-                  </Link>
-                </div>
-                <div className="mt-2 divide-y divide-subtle">
-                  {attentionProjects.map((project) => (
-                    <Link
-                      key={project.project_id}
-                      href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
-                      className="flex items-center justify-between gap-3 py-2 text-12"
-                    >
-                      <span className="truncate font-medium text-primary">{project.name}</span>
-                      <span className="rounded-md bg-warning-subtle px-2 py-1 font-semibold text-warning-primary">
-                        {project.completion}
-                      </span>
-                    </Link>
-                  ))}
-                  {!attentionProjects.length ? (
-                    <p className="py-3 text-12 text-tertiary">No projects currently need attention.</p>
-                  ) : null}
-                </div>
-              </div>
-            </ReportPanel>
-          ) : null}
-
-          {showTab("pipeline") ? (
-            <ReportPanel className="flex flex-col p-4">
-              <PanelHeader title="Pipeline Overview" />
-              <div className="mt-4 flex-1">
-                <PipelineBars
-                  items={data.opportunity_stages.map((stage) => ({ ...stage, value: stage.value }))}
-                  total={data.commercial.opportunities}
-                />
-              </div>
-              <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
-                <div className="pr-3">
-                  <p className="text-12 text-secondary">Total Pipeline Value</p>
-                  <p className="mt-1 text-lg font-semibold text-primary">{data.commercial.pipeline_value}</p>
-                </div>
-                <div className="pl-3">
-                  <p className="text-12 text-secondary">Win Rate</p>
-                  <p className="mt-1 text-lg font-semibold text-primary">
-                    {percentage(wonOpportunities, data.commercial.opportunities)}%
-                  </p>
-                </div>
-              </div>
-            </ReportPanel>
-          ) : null}
-        </div>
-      ) : null}
-
-      {showTab("investment") || showTab("portfolio") ? (
-        <div
-          className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1.45fr_1fr]" : "grid-cols-1"}`}
-        >
-          {showTab("investment") ? (
-            <ReportPanel className="overflow-hidden">
-              <div className="p-4">
-                <PanelHeader title="Investment Disbursement Progress" />
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-12">
-                  <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
-                    <tr>
-                      {["Project", "Client", "Total Investment", "Disbursed", "Progress", "Next Disbursement"].map(
-                        (label) => (
-                          <th key={label} className="px-4 py-3 font-medium">
-                            {label}
-                          </th>
-                        )
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-secondary">
-                        <WalletCards className="mx-auto mb-2 size-5 text-tertiary" />
-                        No disbursement data source configured
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-subtle px-4 py-3 text-12 text-tertiary">
-                No investment records available
-              </div>
-            </ReportPanel>
-          ) : null}
-
-          {showTab("portfolio") ? (
-            <ReportPanel className="p-4">
-              <PanelHeader
-                title="Portfolio / Client Database"
-                href={`/${workspaceSlug}/summon/clients/`}
-                label="View all clients"
-              />
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-                <MiniMetric label="Total Clients" value={clients.length} detail="Workspace records" />
-                <MiniMetric
-                  label="Active Clients"
-                  value={activeClients}
-                  detail={`${percentage(activeClients, clients.length)}% of total`}
-                />
-                <MiniMetric label="New Clients (YTD)" value={newClients} detail={reportingYear} />
-                <MiniMetric label="Client Retention" value="—" detail="No data source" />
-              </div>
-              <div className="mt-4">
-                <p className="text-12 font-semibold text-primary">Top Clients by Revenue (YTD)</p>
-                <div className="mt-2 rounded-lg border border-dashed border-subtle py-10 text-center text-12 text-tertiary">
-                  Revenue attribution is not configured for client records.
-                </div>
-              </div>
-            </ReportPanel>
-          ) : null}
-        </div>
-      ) : null}
-
-      {activeTab === "overview" ? (
-        <ReportPanel className="mt-4 p-4">
-          <PanelHeader title="Recent Reports" />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <a
-              href={exportUrl}
-              className="hover:border-accent-primary/50 flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3"
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
-                <FileSpreadsheet className="size-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-12 font-semibold text-primary">Current Portfolio Report</span>
-                <span className="mt-1 block text-12 text-secondary">CSV · Live data</span>
-              </span>
-            </a>
-            {["Project Health Report", "Pipeline Report", "Investment Report", "Client Performance Report"].map(
-              (name) => (
-                <div
-                  key={name}
-                  className="flex min-w-0 items-center gap-3 rounded-lg border border-dashed border-subtle p-3 opacity-70"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
-                    <FileSpreadsheet className="size-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-12 font-semibold text-primary">{name}</span>
-                    <span className="mt-1 block text-12 text-tertiary">Not generated</span>
-                  </span>
-                </div>
-              )
-            )}
+      <SectionPanel value={activeTab}>
+        {activeTab === "overview" ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+            <ReportKpi
+              icon={<WalletCards className="size-4.5" />}
+              label="Total Revenue (YTD)"
+              value="—"
+              detail={<span>No revenue data source</span>}
+            />
+            <ReportKpi
+              icon={<FolderKanban className="size-4.5" />}
+              label="Active Projects"
+              value={data.projects}
+              detail={<span className="text-success-primary">Authorized portfolio</span>}
+            />
+            <ReportKpi
+              icon={<Target className="size-4.5" />}
+              label="Open Opportunities"
+              value={openOpportunities}
+              detail={<span>{data.commercial.pipeline_value} potential value</span>}
+            />
+            <ReportKpi
+              icon={<HeartPulse className="size-4.5" />}
+              label="Project Health (Avg)"
+              value={
+                <>
+                  {averageHealth}
+                  <span className="ml-1 text-xs text-secondary">/100</span>
+                </>
+              }
+              detail={<span className="text-success-primary">Based on delivery completion</span>}
+            />
+            <ReportKpi
+              icon={<Clock3 className="size-4.5" />}
+              label="Overdue Tasks"
+              value={data.issues.overdue}
+              detail={<span className="text-danger-primary">Open past due date</span>}
+            />
           </div>
-        </ReportPanel>
-      ) : null}
+        ) : null}
+
+        {showTab("company_progress") || showTab("project_health") || showTab("pipeline") ? (
+          <div
+            className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1fr_1fr_1.08fr]" : "grid-cols-1"}`}
+          >
+            {showTab("company_progress") ? (
+              <ReportPanel className="flex flex-col p-4">
+                <PanelHeader title="Company Progress" />
+                <div className="mt-4 grid flex-1 items-center gap-4 sm:grid-cols-[1fr_1fr]">
+                  <ReportDonut
+                    items={[
+                      { label: "Completed", count: data.issues.completed, color: "#376df6" },
+                      {
+                        label: "Remaining",
+                        count: Math.max(0, data.issues.total - data.issues.completed),
+                        color: "#b8c9f5",
+                      },
+                    ]}
+                    center={`${completion}%`}
+                    caption="Overall Progress"
+                  />
+                  <ReportLegend
+                    items={[
+                      { label: "Completed", count: data.issues.completed, color: "#376df6" },
+                      {
+                        label: "Remaining",
+                        count: Math.max(0, data.issues.total - data.issues.completed),
+                        color: "#48b979",
+                      },
+                      { label: "Overdue", count: data.issues.overdue, color: "#f4bd42" },
+                      {
+                        label: "No due date",
+                        count: data.due_date_buckets.find(({ label }) => label === "No due date")?.count ?? 0,
+                        color: "#b8bfd1",
+                      },
+                    ]}
+                  />
+                </div>
+                <div className="mt-4 flex items-start gap-3 rounded-lg bg-accent-subtle px-3 py-2.5">
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-accent-primary" />
+                  <div>
+                    <p className="text-12 font-semibold text-accent-primary">Summon Insight</p>
+                    <p className="mt-0.5 text-12 text-secondary">
+                      {data.issues.total
+                        ? `${completion}% of authorized work items are complete.`
+                        : "No delivery data in this period."}
+                    </p>
+                  </div>
+                </div>
+              </ReportPanel>
+            ) : null}
+
+            {showTab("project_health") ? (
+              <ReportPanel className="flex flex-col p-4">
+                <PanelHeader title="Project Health" />
+                <div className="mt-4 grid items-center gap-4 sm:grid-cols-[1fr_1fr]">
+                  <ReportDonut items={projectHealth} center={data.projects} caption="Projects" />
+                  <ReportLegend items={projectHealth} />
+                </div>
+                <div className="mt-4 border-t border-subtle pt-3">
+                  <div className="flex items-center justify-between text-12">
+                    <span className="font-semibold text-primary">Top Attention Needed</span>
+                    <Link href={`/${workspaceSlug}/summon/projects/`} className="font-medium text-accent-primary">
+                      View all projects →
+                    </Link>
+                  </div>
+                  <div className="mt-2 divide-y divide-subtle">
+                    {attentionProjects.map((project) => (
+                      <Link
+                        key={project.project_id}
+                        href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
+                        className="flex items-center justify-between gap-3 py-2 text-12"
+                      >
+                        <span className="truncate font-medium text-primary">{project.name}</span>
+                        <span className="rounded-md bg-warning-subtle px-2 py-1 font-semibold text-warning-primary">
+                          {project.completion}
+                        </span>
+                      </Link>
+                    ))}
+                    {!attentionProjects.length ? (
+                      <p className="py-3 text-12 text-tertiary">No projects currently need attention.</p>
+                    ) : null}
+                  </div>
+                </div>
+              </ReportPanel>
+            ) : null}
+
+            {showTab("pipeline") ? (
+              <ReportPanel className="flex flex-col p-4">
+                <PanelHeader title="Pipeline Overview" />
+                <div className="mt-4 flex-1">
+                  <PipelineBars
+                    items={data.opportunity_stages.map((stage) => ({ ...stage, value: stage.value }))}
+                    total={data.commercial.opportunities}
+                  />
+                </div>
+                <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
+                  <div className="pr-3">
+                    <p className="text-12 text-secondary">Total Pipeline Value</p>
+                    <p className="mt-1 text-lg font-semibold text-primary">{data.commercial.pipeline_value}</p>
+                  </div>
+                  <div className="pl-3">
+                    <p className="text-12 text-secondary">Win Rate</p>
+                    <p className="mt-1 text-lg font-semibold text-primary">
+                      {percentage(wonOpportunities, data.commercial.opportunities)}%
+                    </p>
+                  </div>
+                </div>
+              </ReportPanel>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showTab("investment") || showTab("portfolio") ? (
+          <div
+            className={`mt-4 grid items-stretch gap-3 ${activeTab === "overview" ? "xl:grid-cols-[1.45fr_1fr]" : "grid-cols-1"}`}
+          >
+            {showTab("investment") ? (
+              <ReportPanel className="overflow-hidden">
+                <div className="p-4">
+                  <PanelHeader title="Investment Disbursement Progress" />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] text-left text-12">
+                    <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
+                      <tr>
+                        {["Project", "Client", "Total Investment", "Disbursed", "Progress", "Next Disbursement"].map(
+                          (label) => (
+                            <th key={label} className="px-4 py-3 font-medium">
+                              {label}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={6} className="px-4 py-12 text-center text-secondary">
+                          <WalletCards className="mx-auto mb-2 size-5 text-tertiary" />
+                          No disbursement data source configured
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="border-t border-subtle px-4 py-3 text-12 text-tertiary">
+                  No investment records available
+                </div>
+              </ReportPanel>
+            ) : null}
+
+            {showTab("portfolio") ? (
+              <ReportPanel className="p-4">
+                <PanelHeader
+                  title="Portfolio / Client Database"
+                  href={`/${workspaceSlug}/summon/clients/`}
+                  label="View all clients"
+                />
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+                  <MiniMetric label="Total Clients" value={clients.length} detail="Workspace records" />
+                  <MiniMetric
+                    label="Active Clients"
+                    value={activeClients}
+                    detail={`${percentage(activeClients, clients.length)}% of total`}
+                  />
+                  <MiniMetric label="New Clients (YTD)" value={newClients} detail={reportingYear} />
+                  <MiniMetric label="Client Retention" value="—" detail="No data source" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-12 font-semibold text-primary">Top Clients by Revenue (YTD)</p>
+                  <div className="mt-2 rounded-lg border border-dashed border-subtle py-10 text-center text-12 text-tertiary">
+                    Revenue attribution is not configured for client records.
+                  </div>
+                </div>
+              </ReportPanel>
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === "overview" ? (
+          <ReportPanel className="mt-4 p-4">
+            <PanelHeader title="Recent Reports" />
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <a
+                href={exportUrl}
+                className="hover:border-accent-primary/50 flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
+                  <FileSpreadsheet className="size-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-12 font-semibold text-primary">Current Portfolio Report</span>
+                  <span className="mt-1 block text-12 text-secondary">CSV · Live data</span>
+                </span>
+              </a>
+              {["Project Health Report", "Pipeline Report", "Investment Report", "Client Performance Report"].map(
+                (name) => (
+                  <div
+                    key={name}
+                    className="flex min-w-0 items-center gap-3 rounded-lg border border-dashed border-subtle p-3 opacity-70"
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
+                      <FileSpreadsheet className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-12 font-semibold text-primary">{name}</span>
+                      <span className="mt-1 block text-12 text-tertiary">Not generated</span>
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          </ReportPanel>
+        ) : null}
+      </SectionPanel>
     </section>
   );
 }

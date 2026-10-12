@@ -34,7 +34,7 @@ import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
-import { SectionTabs } from "@/components/summon/section-tabs";
+import { SectionPanel, SectionTabs } from "@/components/summon/section-tabs";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonPageHeader, summonLLMErrorMessage, summonPageClassName } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
@@ -386,132 +386,134 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             label="Generated document types"
             className="px-4"
           />
-          <SummonRequestState
-            loading={isLoading}
-            error={error}
-            empty={!isLoading && filteredJobs.length === 0}
-            emptyAsset="automation"
-            emptyTitle="No generated documents yet"
-            emptyMessage="Pick a template above to generate your first document."
-            onRetry={() => void mutate()}
-          />
-          {filteredJobs.length > 0 && (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px] text-left">
-                  <thead className="border-b border-subtle bg-layer-1/40 text-12 font-semibold text-tertiary">
-                    <tr>
-                      <th className="px-4 py-3">Document</th>
-                      <th className="px-3 py-3">Type</th>
-                      <th className="px-3 py-3">Context</th>
-                      <th className="px-3 py-3">Engine</th>
-                      <th className="px-3 py-3">Created At</th>
-                      <th className="px-3 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-subtle">
-                    {pagedJobs.map((job) => {
-                      const status = jobStatus(job);
-                      const { Icon, tone: iconTone } = templateVisual(job.type);
-                      return (
-                        <tr key={job.id} className="hover:bg-layer-1/40">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${iconTone}`}>
-                                <Icon className="size-3.5" />
-                              </span>
-                              <div className="min-w-0">
-                                <p className="max-w-56 truncate text-xs font-medium text-primary">
-                                  {automationInputValue(job.input, "title") || templateLabel(job.type)}
-                                </p>
-                                <p className="mt-0.5 max-w-56 truncate text-12 text-tertiary">
-                                  {automationInputValue(job.input, "brief") ||
-                                    "Generated from verified workspace context"}
-                                </p>
+          <SectionPanel value={activeType}>
+            <SummonRequestState
+              loading={isLoading}
+              error={error}
+              empty={!isLoading && filteredJobs.length === 0}
+              emptyAsset="automation"
+              emptyTitle="No generated documents yet"
+              emptyMessage="Pick a template above to generate your first document."
+              onRetry={() => void mutate()}
+            />
+            {filteredJobs.length > 0 && (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px] text-left">
+                    <thead className="border-b border-subtle bg-layer-1/40 text-12 font-semibold text-tertiary">
+                      <tr>
+                        <th className="px-4 py-3">Document</th>
+                        <th className="px-3 py-3">Type</th>
+                        <th className="px-3 py-3">Context</th>
+                        <th className="px-3 py-3">Engine</th>
+                        <th className="px-3 py-3">Created At</th>
+                        <th className="px-3 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-subtle">
+                      {pagedJobs.map((job) => {
+                        const status = jobStatus(job);
+                        const { Icon, tone: iconTone } = templateVisual(job.type);
+                        return (
+                          <tr key={job.id} className="hover:bg-layer-1/40">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2.5">
+                                <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${iconTone}`}>
+                                  <Icon className="size-3.5" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="max-w-56 truncate text-xs font-medium text-primary">
+                                    {automationInputValue(job.input, "title") || templateLabel(job.type)}
+                                  </p>
+                                  <p className="mt-0.5 max-w-56 truncate text-12 text-tertiary">
+                                    {automationInputValue(job.input, "brief") ||
+                                      "Generated from verified workspace context"}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className="bg-blue-50 text-blue-600 rounded-md px-2 py-1 text-12 font-medium">
-                              {templateLabel(job.type)}
-                            </span>
-                          </td>
-                          <td className="max-w-48 truncate px-3 py-3 text-12 text-secondary">
-                            {job.project ? (projectNames.get(job.project) ?? job.project) : "No project"}
-                          </td>
-                          <td className="px-3 py-3 text-12 text-secondary">{job.provider || "Pending"}</td>
-                          <td className="px-3 py-3 text-12 whitespace-nowrap text-secondary">
-                            {formatDate(job.created_at)}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium ${status.className}`}
-                            >
-                              {job.status === "completed" ? (
-                                <Check className="size-3" />
-                              ) : job.status === "failed" ? (
-                                <CircleAlert className="size-3" />
-                              ) : null}
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-1.5">
-                              <Link
-                                href={automationJobPath(workspaceSlug, job.id)}
-                                aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
-                                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className="bg-blue-50 text-blue-600 rounded-md px-2 py-1 text-12 font-medium">
+                                {templateLabel(job.type)}
+                              </span>
+                            </td>
+                            <td className="max-w-48 truncate px-3 py-3 text-12 text-secondary">
+                              {job.project ? (projectNames.get(job.project) ?? job.project) : "No project"}
+                            </td>
+                            <td className="px-3 py-3 text-12 text-secondary">{job.provider || "Pending"}</td>
+                            <td className="px-3 py-3 text-12 whitespace-nowrap text-secondary">
+                              {formatDate(job.created_at)}
+                            </td>
+                            <td className="px-3 py-3">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium ${status.className}`}
                               >
-                                <Eye className="size-3.5" />
-                              </Link>
-                              <Link
-                                href={automationJobPath(workspaceSlug, job.id)}
-                                aria-label="More document actions"
-                                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-                              >
-                                <MoreHorizontal className="size-3.5" />
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
-                <p className="text-12 text-secondary">
-                  Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
-                  {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    aria-label="Previous page"
-                    disabled={currentPage === 1}
-                    onClick={() => setPage((value) => Math.max(1, value - 1))}
-                    className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-                  >
-                    <ChevronLeft className="size-3.5" />
-                  </button>
-                  <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-12 font-semibold text-white">
-                    {currentPage}
-                  </span>
-                  <span className="px-1 text-12 text-tertiary">/ {pageCount}</span>
-                  <button
-                    type="button"
-                    aria-label="Next page"
-                    disabled={currentPage === pageCount}
-                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                    className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-                  >
-                    <ChevronRight className="size-3.5" />
-                  </button>
+                                {job.status === "completed" ? (
+                                  <Check className="size-3" />
+                                ) : job.status === "failed" ? (
+                                  <CircleAlert className="size-3" />
+                                ) : null}
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end gap-1.5">
+                                <Link
+                                  href={automationJobPath(workspaceSlug, job.id)}
+                                  aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
+                                  className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+                                >
+                                  <Eye className="size-3.5" />
+                                </Link>
+                                <Link
+                                  href={automationJobPath(workspaceSlug, job.id)}
+                                  aria-label="More document actions"
+                                  className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+                                >
+                                  <MoreHorizontal className="size-3.5" />
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            </>
-          )}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
+                  <p className="text-12 text-secondary">
+                    Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
+                    {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label="Previous page"
+                      disabled={currentPage === 1}
+                      onClick={() => setPage((value) => Math.max(1, value - 1))}
+                      className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                    <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-12 font-semibold text-white">
+                      {currentPage}
+                    </span>
+                    <span className="px-1 text-12 text-tertiary">/ {pageCount}</span>
+                    <button
+                      type="button"
+                      aria-label="Next page"
+                      disabled={currentPage === pageCount}
+                      onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                      className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </SectionPanel>
         </section>
       </div>
 
