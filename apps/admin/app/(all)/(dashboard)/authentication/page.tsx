@@ -145,7 +145,7 @@ const InstanceAuthenticationPage = observer(function InstanceAuthenticationPage(
               </div>
             </div>
           </div>
-          <div className="text-lg pt-6 font-medium">Available authentication modes</div>
+          <div className="pt-6 text-lg font-medium">Available authentication modes</div>
           {authenticationModes.map((method) => (
             <AuthenticationMethodCard
               key={method.key}

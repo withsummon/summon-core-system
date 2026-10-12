@@ -37,7 +37,7 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({ searchQuery, 
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">Knowledge</h1>
-          <p className="text-xs mt-0.5 text-secondary">Your company knowledge, notes and insights in one place</p>
+          <p className="mt-0.5 text-xs text-secondary">Your company knowledge, notes and insights in one place</p>
         </div>
 
         {/* Right header icons */}
@@ -46,7 +46,7 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({ searchQuery, 
           <button
             type="button"
             onClick={handleBellClick}
-            className="shadow-xs relative flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:border-strong hover:text-primary"
+            className="relative flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary shadow-xs transition-colors hover:border-strong hover:text-primary"
           >
             <Bell size={16} />
             <span className="bg-red-500 ring-surface-1 absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white ring-2">
@@ -58,13 +58,13 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({ searchQuery, 
           <button
             type="button"
             onClick={handleNotesClick}
-            className="shadow-xs flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:border-strong hover:text-primary"
+            className="flex size-9 items-center justify-center rounded-full border border-subtle bg-surface-1 text-secondary shadow-xs transition-colors hover:border-strong hover:text-primary"
           >
             <FileText size={16} />
           </button>
 
           {/* Avatar Profile */}
-          <div className="text-xs shadow-xs flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-subtle bg-surface-2 font-semibold text-primary ring-1 ring-subtle">
+          <div className="flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-subtle bg-surface-2 text-xs font-semibold text-primary shadow-xs ring-1 ring-subtle">
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
               alt="Profile"
@@ -76,14 +76,14 @@ export const KnowledgeHeader: React.FC<IKnowledgeHeaderProps> = ({ searchQuery, 
 
       {/* Global Search Bar */}
       <div className="relative w-full">
-        <div className="shadow-xs focus-within:border-blue-500 focus-within:ring-blue-500/20 flex items-center rounded-xl border border-subtle bg-surface-1 px-4 py-2.5 transition-all focus-within:ring-2">
+        <div className="focus-within:border-blue-500 focus-within:ring-blue-500/20 flex items-center rounded-xl border border-subtle bg-surface-1 px-4 py-2.5 shadow-xs transition-all focus-within:ring-2">
           <Search size={17} className="mr-3 shrink-0 text-placeholder" />
           <input
             type="text"
             placeholder="Search knowledge, notes, topics, or ask anything..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="text-xs w-full bg-transparent text-primary placeholder:text-placeholder focus:outline-none"
+            className="w-full bg-transparent text-xs text-primary placeholder:text-placeholder focus:outline-none"
           />
           <button
             type="button"

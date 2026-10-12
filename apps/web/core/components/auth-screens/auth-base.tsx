@@ -24,7 +24,7 @@ export function AuthBase({ authType }: AuthBaseProps) {
           className="relative hidden overflow-hidden bg-gradient-to-br from-[#edf3ff] via-[#f7f9ff] to-white p-10 lg:flex lg:flex-col dark:from-[#121c32] dark:via-[#151b29] dark:to-[#121824]"
           aria-label="Summon Core product overview"
         >
-          <div className="text-base relative z-10 flex items-center gap-2 font-semibold text-[#111827] dark:text-white">
+          <div className="relative z-10 flex items-center gap-2 text-base font-semibold text-[#111827] dark:text-white">
             <span className="grid size-8 place-items-center rounded-xl bg-[#2f5bea] text-white">
               <Sparkles className="size-4" />
             </span>
@@ -36,7 +36,7 @@ export function AuthBase({ authType }: AuthBaseProps) {
               <br />
               Summon <span className="text-[#2f5bea]">Core</span>
             </h1>
-            <p className="text-sm mt-4 leading-6 text-[#64708a] dark:text-[#aeb9ce]">
+            <p className="mt-4 text-sm leading-6 text-[#64708a] dark:text-[#aeb9ce]">
               Your central workspace for projects, knowledge, automation, and everything that drives Summon forward.
             </p>
             <div className="mt-8 space-y-5">
@@ -58,12 +58,12 @@ export function AuthBase({ authType }: AuthBaseProps) {
                 },
               ].map(({ Icon, title, copy }) => (
                 <div key={title} className="flex items-start gap-3">
-                  <span className="shadow-sm grid size-9 flex-shrink-0 place-items-center rounded-xl bg-white text-[#2f5bea] dark:bg-[#202a3e] dark:text-[#7da0ff]">
+                  <span className="grid size-9 flex-shrink-0 place-items-center rounded-xl bg-white text-[#2f5bea] shadow-sm dark:bg-[#202a3e] dark:text-[#7da0ff]">
                     <Icon className="size-4" />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-[#17213a] dark:text-white">{title}</p>
-                    <p className="text-xs mt-1 leading-5 text-[#7a849b] dark:text-[#9daac0]">{copy}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#7a849b] dark:text-[#9daac0]">{copy}</p>
                   </div>
                 </div>
               ))}

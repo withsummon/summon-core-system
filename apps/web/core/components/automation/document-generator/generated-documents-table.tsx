@@ -90,7 +90,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
   };
 
   return (
-    <div className="shadow-xs flex h-full flex-col rounded-xl border border-subtle bg-surface-1 p-5">
+    <div className="flex h-full flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-primary">Generated Documents</h2>
@@ -99,7 +99,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className={cn(
-              "text-xs flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 font-medium text-secondary transition-colors hover:border-strong hover:text-primary",
+              "flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-strong hover:text-primary",
               isFilterOpen && "border-strong bg-surface-2 text-primary"
             )}
           >
@@ -119,7 +119,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               placeholder="Search by title, context, or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-xs focus:border-blue-500 w-full rounded-md border border-subtle bg-surface-1 py-1.5 pr-3 pl-8 text-primary placeholder:text-placeholder focus:outline-none"
+              className="focus:border-blue-500 w-full rounded-md border border-subtle bg-surface-1 py-1.5 pr-3 pl-8 text-xs text-primary placeholder:text-placeholder focus:outline-none"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="text-xs focus:border-blue-500 rounded-md border border-subtle bg-surface-1 px-2 py-1.5 text-primary focus:outline-none"
+              className="focus:border-blue-500 rounded-md border border-subtle bg-surface-1 px-2 py-1.5 text-xs text-primary focus:outline-none"
             >
               <option value="All">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -151,7 +151,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                   setCurrentPage(1);
                 }}
                 className={cn(
-                  "text-xs relative pb-2.5 font-medium whitespace-nowrap transition-colors",
+                  "relative pb-2.5 text-xs font-medium whitespace-nowrap transition-colors",
                   isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
@@ -179,7 +179,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               <th className="pr-2 pb-2.5 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="text-xs divide-y divide-subtle">
+          <tbody className="divide-y divide-subtle text-xs">
             {paginatedDocs.length > 0 ? (
               paginatedDocs.map((doc) => {
                 const theme = getDocumentTypeTheme(doc.type);
@@ -274,7 +274,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                         {/* Action Dropdown Menu */}
                         {isMenuOpen && (
                           <div
-                            className="shadow-lg absolute top-full right-0 z-40 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1 text-left"
+                            className="absolute top-full right-0 z-40 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1 text-left shadow-lg"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -314,7 +314,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               })
             ) : (
               <tr>
-                <td colSpan={7} className="text-xs py-8 text-center text-secondary">
+                <td colSpan={7} className="py-8 text-center text-xs text-secondary">
                   No documents found for this filter.
                 </td>
               </tr>
@@ -324,7 +324,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
       </div>
 
       {/* Pagination Footer */}
-      <div className="text-xs mt-4 flex items-center justify-between border-t border-subtle pt-3 text-secondary">
+      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3 text-xs text-secondary">
         <div>
           Showing {Math.min(1, filteredDocuments.length)} to {Math.min(pageSize, filteredDocuments.length)} of{" "}
           {filteredDocuments.length} documents
@@ -344,9 +344,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
             type="button"
             onClick={() => setCurrentPage(1)}
             className={cn(
-              "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
+              "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
               currentPage === 1
-                ? "bg-blue-600 shadow-xs text-white"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
             )}
           >
@@ -358,9 +358,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(2)}
               className={cn(
-                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
+                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
                 currentPage === 2
-                  ? "bg-blue-600 shadow-xs text-white"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -373,9 +373,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(3)}
               className={cn(
-                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
+                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
                 currentPage === 3
-                  ? "bg-blue-600 shadow-xs text-white"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >
@@ -390,9 +390,9 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
               type="button"
               onClick={() => setCurrentPage(totalPages)}
               className={cn(
-                "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
+                "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
                 currentPage === totalPages
-                  ? "bg-blue-600 shadow-xs text-white"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
               )}
             >

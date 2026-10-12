@@ -75,27 +75,27 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
 
         {/* Modal Body / Markdown Document Content */}
         <div className="flex-1 overflow-y-auto bg-surface-1 p-8">
-          <div className="text-sm mx-auto max-w-3xl space-y-6 text-primary">
+          <div className="mx-auto max-w-3xl space-y-6 text-sm text-primary">
             {document.content ? (
               <div className="prose-sm dark:prose-invert max-w-none space-y-4 prose">
                 {document.content.split("\n\n").map((paragraph, idx) => {
                   if (paragraph.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="text-2xl border-b border-subtle pb-2 font-bold text-primary">
+                      <h1 key={idx} className="border-b border-subtle pb-2 text-2xl font-bold text-primary">
                         {paragraph.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (paragraph.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="text-lg mt-4 font-semibold text-primary">
+                      <h2 key={idx} className="mt-4 text-lg font-semibold text-primary">
                         {paragraph.replace("## ", "")}
                       </h2>
                     );
                   }
                   if (paragraph.startsWith("### ")) {
                     return (
-                      <h3 key={idx} className="text-sm mt-3 font-semibold text-primary">
+                      <h3 key={idx} className="mt-3 text-sm font-semibold text-primary">
                         {paragraph.replace("### ", "")}
                       </h3>
                     );
@@ -131,14 +131,14 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <FileText size={48} className="mb-3 text-placeholder" />
                 <p className="text-sm font-medium text-primary">{document.title}</p>
-                <p className="text-xs mt-1 text-secondary">{document.description}</p>
+                <p className="mt-1 text-xs text-secondary">{document.description}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="text-xs flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-secondary">
+        <div className="flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-xs text-secondary">
           <div className="flex items-center gap-2">
             <span>
               Author: <strong className="text-primary">{document.createdBy.name}</strong>

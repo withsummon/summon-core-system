@@ -119,14 +119,14 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
   const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-5">
+    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-5 shadow-xs">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-primary">Recent Knowledge</h2>
         <button
           type="button"
           onClick={onViewAllKnowledge}
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
         >
           <span>View all knowledge</span>
           <ArrowRight size={13} />
@@ -147,7 +147,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                   setCurrentPage(1);
                 }}
                 className={cn(
-                  "text-xs relative pb-2 font-medium whitespace-nowrap transition-colors",
+                  "relative pb-2 text-xs font-medium whitespace-nowrap transition-colors",
                   isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-secondary hover:text-primary"
                 )}
               >
@@ -174,7 +174,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
               <th className="py-2.5 pr-2 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="text-xs divide-y divide-subtle">
+          <tbody className="divide-y divide-subtle text-xs">
             {paginatedItems.length > 0 ? (
               paginatedItems.map((item) => {
                 const { icon: IconComp, iconClass, badge } = getTypeStyle(item.type);
@@ -242,7 +242,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
 
                         {isMenuOpen && (
                           <div
-                            className="shadow-lg absolute top-full right-0 z-40 mt-1 w-32 rounded-lg border border-subtle bg-surface-1 py-1 text-left"
+                            className="absolute top-full right-0 z-40 mt-1 w-32 rounded-lg border border-subtle bg-surface-1 py-1 text-left shadow-lg"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -297,7 +297,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
               })
             ) : (
               <tr>
-                <td colSpan={6} className="text-xs py-6 text-center text-secondary">
+                <td colSpan={6} className="py-6 text-center text-xs text-secondary">
                   No knowledge items in this category.
                 </td>
               </tr>
@@ -307,7 +307,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
       </div>
 
       {/* Pagination Footer */}
-      <div className="text-xs mt-4 flex items-center justify-between border-t border-subtle pt-3 text-secondary">
+      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3 text-xs text-secondary">
         <div>Showing 1 to {Math.min(pageSize, filteredItems.length)} of 156 knowledge items</div>
         <div className="flex items-center gap-1">
           <button
@@ -322,9 +322,9 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
             type="button"
             onClick={() => setCurrentPage(1)}
             className={cn(
-              "text-xs flex size-7 items-center justify-center rounded-md font-semibold transition-colors",
+              "flex size-7 items-center justify-center rounded-md text-xs font-semibold transition-colors",
               currentPage === 1
-                ? "bg-blue-600 shadow-xs text-white"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "border border-subtle bg-surface-1 text-primary hover:bg-surface-2"
             )}
           >
@@ -333,14 +333,14 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
           <button
             type="button"
             onClick={() => setCurrentPage(2)}
-            className="text-xs flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 font-semibold text-primary hover:bg-surface-2"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-xs font-semibold text-primary hover:bg-surface-2"
           >
             2
           </button>
           <button
             type="button"
             onClick={() => setCurrentPage(3)}
-            className="text-xs flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 font-semibold text-primary hover:bg-surface-2"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-xs font-semibold text-primary hover:bg-surface-2"
           >
             3
           </button>
@@ -348,7 +348,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
           <button
             type="button"
             onClick={() => setCurrentPage(32)}
-            className="text-xs flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 font-semibold text-primary hover:bg-surface-2"
+            className="flex size-7 items-center justify-center rounded-md border border-subtle bg-surface-1 text-xs font-semibold text-primary hover:bg-surface-2"
           >
             32
           </button>

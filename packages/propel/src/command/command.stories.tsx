@@ -168,7 +168,7 @@ export const WithoutSearch: Story = {
 export const CustomStyling: Story = {
   render() {
     return (
-      <Command className="border-blue-300 bg-blue-50 shadow-lg w-96 rounded-lg border-2 p-2">
+      <Command className="border-blue-300 bg-blue-50 w-96 rounded-lg border-2 p-2 shadow-lg">
         <Command.Input
           placeholder="Search with custom styling..."
           className="text-blue-900 placeholder:text-blue-400 h-9 w-full bg-transparent py-3 text-13 outline-none"

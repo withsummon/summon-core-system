@@ -219,7 +219,7 @@ export function ResizableSidebar({
       {/* Peek View */}
       <div
         className={cn(
-          "shadow-sm absolute left-0 z-20 h-full bg-surface-1",
+          "absolute left-0 z-20 h-full bg-surface-1 shadow-sm",
           !isResizing && "transition-all duration-300 ease-in-out",
           isCollapsed && showPeek ? "visible translate-x-0 opacity-100" : "invisible translate-x-[-100%] opacity-0",
           "pointer-events-none",

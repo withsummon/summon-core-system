@@ -24,7 +24,7 @@ export const TopTemplatesRow: React.FC<ITopTemplatesRowProps> = ({ onSelectTempl
         <button
           type="button"
           onClick={onViewAllTemplates}
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
         >
           View all templates
           <ArrowRight size={13} />
@@ -37,12 +37,12 @@ export const TopTemplatesRow: React.FC<ITopTemplatesRowProps> = ({ onSelectTempl
           <div
             key={tpl.id}
             onClick={() => onSelectTemplate?.(tpl.name)}
-            className="group shadow-xs hover:border-blue-400 hover:shadow-md relative flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-3.5 transition-all duration-200 hover:-translate-y-0.5"
+            className="group hover:border-blue-400 relative flex cursor-pointer flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="space-y-2.5">
               <TypeIcon type={tpl.name} boxed size={18} />
               <div>
-                <h3 className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1 font-semibold text-primary transition-colors">
+                <h3 className="group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-1 text-xs font-semibold text-primary transition-colors">
                   {tpl.title}
                 </h3>
                 <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-secondary">{tpl.description}</p>

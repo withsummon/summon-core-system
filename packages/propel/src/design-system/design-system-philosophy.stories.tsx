@@ -206,7 +206,7 @@ export const ModalException: Story = {
 
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-backdrop" />
-        <div className="shadow-lg relative z-10 max-w-md rounded-lg bg-surface-1 p-6">
+        <div className="relative z-10 max-w-md rounded-lg bg-surface-1 p-6 shadow-lg">
           <h4 className="mb-3 font-semibold text-primary">Modal Dialog</h4>
           <p className="mb-4 text-13 text-secondary">
             This modal uses bg-surface-1 even though the page below also uses bg-surface-1. This is allowed because

@@ -16,7 +16,7 @@ export function SummonProgressRing({ value, label }: { value: number; label: str
       aria-valuemax={100}
       aria-valuenow={safeValue}
     >
-      <span className="text-sm grid size-16 place-items-center rounded-full bg-surface-1 font-semibold text-primary">
+      <span className="grid size-16 place-items-center rounded-full bg-surface-1 text-sm font-semibold text-primary">
         {safeValue}%
       </span>
     </div>

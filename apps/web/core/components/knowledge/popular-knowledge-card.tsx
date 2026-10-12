@@ -36,7 +36,7 @@ export const PopularKnowledgeCard: React.FC<IPopularKnowledgeCardProps> = ({
   onViewAllPopular,
 }) => {
   return (
-    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-4">
+    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-primary">Popular Knowledge</h2>
@@ -60,7 +60,7 @@ export const PopularKnowledgeCard: React.FC<IPopularKnowledgeCardProps> = ({
           >
             <div className="flex min-w-0 items-center gap-2">
               <Flame size={15} className={cn("shrink-0", getFireColor(item.fireColor))} />
-              <span className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate font-medium text-primary transition-colors">
+              <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate text-xs font-medium text-primary transition-colors">
                 {item.title}
               </span>
             </div>

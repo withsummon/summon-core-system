@@ -15,26 +15,26 @@ interface IKnowledgeStatsCardProps {
 
 export const KnowledgeStatsCard: React.FC<IKnowledgeStatsCardProps> = ({ stats = KNOWLEDGE_STATS }) => {
   return (
-    <div className="shadow-xs flex flex-col rounded-xl border border-subtle bg-surface-1 p-4">
-      <h2 className="text-xs mb-3 font-semibold text-primary">Knowledge Stats</h2>
+    <div className="flex flex-col rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs">
+      <h2 className="mb-3 text-xs font-semibold text-primary">Knowledge Stats</h2>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Total Articles */}
         <div>
           <span className="text-[11px] font-medium text-secondary">Total Articles</span>
-          <p className="text-lg mt-1 font-bold tracking-tight text-primary">{stats.totalArticles}</p>
+          <p className="mt-1 text-lg font-bold tracking-tight text-primary">{stats.totalArticles}</p>
         </div>
 
         {/* Total Views */}
         <div>
           <span className="text-[11px] font-medium text-secondary">Total Views</span>
-          <p className="text-lg mt-1 font-bold tracking-tight text-primary">{stats.totalViews}</p>
+          <p className="mt-1 text-lg font-bold tracking-tight text-primary">{stats.totalViews}</p>
         </div>
 
         {/* Contributors */}
         <div>
           <span className="text-[11px] font-medium text-secondary">Contributors</span>
-          <p className="text-lg mt-1 font-bold tracking-tight text-primary">{stats.contributors}</p>
+          <p className="mt-1 text-lg font-bold tracking-tight text-primary">{stats.contributors}</p>
         </div>
 
         {/* This Month */}

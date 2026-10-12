@@ -63,12 +63,12 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-primary">Browse by Context</h2>
-          <p className="text-xs mt-0.5 text-secondary">Access knowledge organized by your work context</p>
+          <p className="mt-0.5 text-xs text-secondary">Access knowledge organized by your work context</p>
         </div>
         <button
           type="button"
           onClick={onViewAllContexts}
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
         >
           <span>View all contexts</span>
           <ArrowRight size={13} />
@@ -86,7 +86,7 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
               key={card.id}
               onClick={() => onSelectContext?.(card.name)}
               className={cn(
-                "group shadow-2xs hover:border-blue-400 hover:shadow-md flex cursor-pointer flex-col justify-between rounded-xl border bg-surface-1 p-3.5 transition-all duration-200 hover:-translate-y-0.5",
+                "group hover:border-blue-400 flex cursor-pointer flex-col justify-between rounded-xl border bg-surface-1 p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                 isSelected
                   ? "border-blue-500 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 ring-2"
                   : "border-subtle"
@@ -105,7 +105,7 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
                 </div>
 
                 <div>
-                  <h3 className="text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 font-semibold text-primary transition-colors">
+                  <h3 className="group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs font-semibold text-primary transition-colors">
                     {card.title}
                   </h3>
                   <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-secondary">{card.description}</p>

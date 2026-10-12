@@ -126,9 +126,9 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             <span className="text-xs text-secondary tabular-nums">{count || 0}</span>
           </Button>
         ) : (
-          <h2 className="text-sm flex min-w-0 flex-1 items-center gap-2 py-1 font-medium text-primary">
+          <h2 className="flex min-w-0 flex-1 items-center gap-2 py-1 text-sm font-medium text-primary">
             <span className="truncate">{title}</span>
-            <span className="text-xs font-normal text-secondary tabular-nums">{count || 0}</span>
+            <span className="font-normal text-xs text-secondary tabular-nums">{count || 0}</span>
           </h2>
         )}
 

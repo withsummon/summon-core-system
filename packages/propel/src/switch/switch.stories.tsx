@@ -127,7 +127,7 @@ export const InForm: Story = {
     const [updates, setUpdates] = useState(true);
 
     return (
-      <div className="border-gray-200 shadow-md w-80 rounded-lg border bg-white p-6">
+      <div className="border-gray-200 w-80 rounded-lg border bg-white p-6 shadow-md">
         <h3 className="text-16 font-semibold">Notification Settings</h3>
         <div className="mt-4 space-y-4">
           <div className="flex items-center justify-between">

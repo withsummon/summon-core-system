@@ -76,7 +76,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto bg-surface-1 p-8">
-          <div className="text-sm mx-auto max-w-3xl space-y-6 text-primary">
+          <div className="mx-auto max-w-3xl space-y-6 text-sm text-primary">
             {item.tags && item.tags.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Tag size={13} className="text-placeholder" />
@@ -96,21 +96,21 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
                 {item.content.split("\n\n").map((paragraph, idx) => {
                   if (paragraph.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="text-2xl border-b border-subtle pb-2 font-bold text-primary">
+                      <h1 key={idx} className="border-b border-subtle pb-2 text-2xl font-bold text-primary">
                         {paragraph.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (paragraph.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="text-lg mt-4 font-semibold text-primary">
+                      <h2 key={idx} className="mt-4 text-lg font-semibold text-primary">
                         {paragraph.replace("## ", "")}
                       </h2>
                     );
                   }
                   if (paragraph.startsWith("### ")) {
                     return (
-                      <h3 key={idx} className="text-sm mt-3 font-semibold text-primary">
+                      <h3 key={idx} className="mt-3 text-sm font-semibold text-primary">
                         {paragraph.replace("### ", "")}
                       </h3>
                     );
@@ -149,7 +149,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
         </div>
 
         {/* Modal Footer */}
-        <div className="text-xs flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-secondary">
+        <div className="flex items-center justify-between border-t border-subtle bg-surface-2/40 px-6 py-3 text-xs text-secondary">
           <div className="flex items-center gap-2">
             <span>
               Author: <strong className="text-primary">{item.updatedBy.name}</strong>

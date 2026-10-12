@@ -40,7 +40,7 @@ export function NewEmptyState({ title, description, image, primaryButton, disabl
   return (
     <div className="flex items-center justify-center overflow-y-auto">
       <div className="flex h-full w-full flex-col items-center justify-center">
-        <div className="shadow-sm m-5 flex max-w-6xl flex-col gap-5 rounded-xl border border-subtle px-10 py-7 md:m-8">
+        <div className="m-5 flex max-w-6xl flex-col gap-5 rounded-xl border border-subtle px-10 py-7 shadow-sm md:m-8">
           <h3 className="text-20 font-semibold">{title}</h3>
           {description && <p className="text-16">{description}</p>}
           <div className="relative w-full max-w-6xl">

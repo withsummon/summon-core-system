@@ -124,12 +124,12 @@ export const CustomStyling: Story = {
     const [isOpen, setIsOpen] = useState(args.isOpen);
     return (
       <Collapsible.CollapsibleRoot {...args} isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)} className="w-96">
-        <Collapsible.CollapsibleTrigger className="from-purple-500 to-pink-500 shadow-lg hover:shadow-xl flex w-full items-center justify-between rounded-lg bg-gradient-to-r px-6 py-3 text-on-color transition-all">
+        <Collapsible.CollapsibleTrigger className="from-purple-500 to-pink-500 flex w-full items-center justify-between rounded-lg bg-gradient-to-r px-6 py-3 text-on-color shadow-lg transition-all hover:shadow-xl">
           <span className="text-16 font-bold">Custom Styled Trigger</span>
           <ChevronDownIcon className="h-5 w-5 transition-transform group-data-[panel-open]:rotate-180" />
         </Collapsible.CollapsibleTrigger>
         <Collapsible.CollapsibleContent className="mt-4">
-          <div className="from-purple-100 to-pink-100 shadow-md rounded-lg bg-gradient-to-br p-6">
+          <div className="from-purple-100 to-pink-100 rounded-lg bg-gradient-to-br p-6 shadow-md">
             <p className="text-purple-900">This collapsible has custom styling with gradients, shadows, and colors.</p>
           </div>
         </Collapsible.CollapsibleContent>
