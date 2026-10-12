@@ -46,20 +46,13 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
-// Unset properties stay quiet until the row is hovered or focused; touch devices keep them visible.
-// List rows fade them in place so property columns line up. Board cards show only set properties, as Linear
-// does; hovering would reflow the card, so unset slots return only for keyboard focus or an open dropdown.
+// Unset properties stay quiet until the row is hovered or focused, fading in place so list columns line up;
+// touch devices keep them visible. Board cards show only set properties, as Linear does: clicking a card opens
+// the work item, where unset ones are edited.
 const EMPTY_LIST_SLOT_CLASSNAME =
   "transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover/list-block:opacity-100 pointer-fine:focus-within:opacity-100 pointer-fine:has-[[aria-expanded=true]]:opacity-100";
-const EMPTY_CARD_SLOT_CLASSNAME = {
-  block:
-    "order-last pointer-fine:hidden pointer-fine:group-focus-within/kanban-block:block pointer-fine:has-[[aria-expanded=true]]:block",
-  flex: "order-last pointer-fine:hidden pointer-fine:group-focus-within/kanban-block:flex pointer-fine:has-[[aria-expanded=true]]:flex",
-};
-const emptySlotClassName = (layout: string, display: "block" | "flex") =>
-  layout === "Kanban" ? EMPTY_CARD_SLOT_CLASSNAME[display] : EMPTY_LIST_SLOT_CLASSNAME;
-const propertySlotClassName = (layout: string, isEmpty: boolean) =>
-  cn("h-5", isEmpty && emptySlotClassName(layout, "block"));
+const emptySlotClassName = (layout: string) => (layout === "Kanban" ? "hidden" : EMPTY_LIST_SLOT_CLASSNAME);
+const propertySlotClassName = (layout: string, isEmpty: boolean) => cn("h-5", isEmpty && emptySlotClassName(layout));
 
 export interface IIssueProperties {
   issue: TIssue;
@@ -525,7 +518,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
       {/* label */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="labels">
-        <div className={cn("flex", !issue?.label_ids?.length && emptySlotClassName(activeLayout, "flex"))}>
+        <div className={cn("flex", !issue?.label_ids?.length && emptySlotClassName(activeLayout))}>
           <IssuePropertyLabels
             projectId={issue?.project_id || null}
             value={issue?.label_ids || []}
