@@ -63,7 +63,7 @@ export function StageChip({ stage }: { stage: TSummonOpportunityStage }) {
   const tone = OPPORTUNITY_STAGE_TONE[stage];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-11 font-medium whitespace-nowrap ${tone.chip}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-12 font-medium whitespace-nowrap ${tone.chip}`}
     >
       <span aria-hidden className={`size-1.5 rounded-full ${tone.dot}`} />
       {OPPORTUNITY_STAGE_LABEL[stage]}
@@ -181,13 +181,13 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                 <li key={contact.id} className="flex items-center gap-3 py-1">
                   <span
                     aria-hidden
-                    className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-11 font-semibold text-secondary"
+                    className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-12 font-semibold text-secondary"
                   >
                     {initials(contact.name)}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-12 font-medium text-primary">{contact.name}</span>
-                    <span className="block truncate text-11 text-secondary">{contact.title || "Contact"}</span>
+                    <span className="block truncate text-12 text-secondary">{contact.title || "Contact"}</span>
                   </span>
                   {contact.email ? (
                     <a
@@ -217,7 +217,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                       className={`size-3.5 flex-none rounded-full border-2 ${item.issue.completed ? "border-success-strong bg-success-primary" : "border-strong"}`}
                     />
                     <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{item.issue.name}</span>
-                    <span className="text-11 text-secondary">
+                    <span className="text-12 text-secondary">
                       {item.issue.project.identifier}-{item.issue.sequence_id}
                     </span>
                   </Link>
@@ -236,7 +236,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                     <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
                       {context.page_detail.name || "Untitled page"}
                     </span>
-                    <span className="text-11 text-secondary">{context.category}</span>
+                    <span className="text-12 text-secondary">{context.category}</span>
                   </>
                 );
                 return (
@@ -262,7 +262,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                   >
                     <Video className="size-4 flex-none text-accent-primary" />
                     <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{meeting.title}</span>
-                    <span className="text-11 text-secondary">{formatDate(meeting.starts_at)}</span>
+                    <span className="text-12 text-secondary">{formatDate(meeting.starts_at)}</span>
                   </Link>
                 </li>
               ))}
@@ -282,7 +282,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                   >
                     <MessageSquare className="size-4 flex-none text-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-12 text-primary">{activity.label}</span>
-                    <span className="text-11 text-secondary">{formatDate(activity.created_at)}</span>
+                    <span className="text-12 text-secondary">{formatDate(activity.created_at)}</span>
                   </Link>
                 </li>
               ))}
@@ -339,7 +339,7 @@ function StageTrack({ stage }: { stage: TSummonOpportunityStage }) {
               className={`block h-1.5 rounded-full transition-colors duration-300 motion-reduce:transition-none ${reached ? OPPORTUNITY_STAGE_TONE[stage].bar : lost ? "bg-label-crimson-bg" : "bg-layer-3"}`}
             />
             <span
-              className={`mt-1.5 hidden truncate text-11 @sm:block ${item === stage ? "font-semibold text-primary" : "text-secondary"}`}
+              className={`mt-1.5 hidden truncate text-12 @sm:block ${item === stage ? "font-semibold text-primary" : "text-secondary"}`}
             >
               {OPPORTUNITY_STAGE_LABEL[item]}
             </span>
@@ -446,7 +446,7 @@ function StageForm(props: {
 function Fact(props: { label: string; value: string; children?: React.ReactNode }) {
   return (
     <div className="min-w-0 p-3 odd:border-r odd:border-subtle @xl:border-r @xl:border-subtle @xl:last:border-r-0">
-      <dt className="text-11 text-secondary">{props.label}</dt>
+      <dt className="text-12 text-secondary">{props.label}</dt>
       <dd className="mt-1 truncate text-13 font-semibold text-primary tabular-nums">{props.value}</dd>
       {props.children}
     </div>
@@ -482,7 +482,7 @@ function InlineLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="relative text-11 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="relative text-12 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong"
     >
       {children} →
     </Link>

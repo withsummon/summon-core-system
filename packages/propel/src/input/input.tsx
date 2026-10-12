@@ -8,6 +8,7 @@ import * as React from "react";
 import { Input as BaseInput } from "@base-ui/react/input";
 // helpers
 import { cn } from "../utils";
+import { FIELD_CLASSNAME } from "./field";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   mode?: "primary" | "transparent" | "true-transparent";
@@ -35,15 +36,15 @@ const Input = React.forwardRef(function Input(props: InputProps, ref: React.Forw
       type={type}
       name={name}
       className={cn(
-        "block rounded-lg border-subtle bg-layer-2 text-13 text-primary transition-[border-color,box-shadow] duration-150 placeholder:text-placeholder focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle focus-visible:outline-none",
+        "block rounded-lg bg-layer-2 text-13 text-primary placeholder:text-placeholder focus-visible:outline-none",
         {
-          "border shadow-raised-100": mode === "primary",
+          [FIELD_CLASSNAME]: mode === "primary",
           "rounded-sm border-none bg-transparent ring-0 transition-all focus:ring-1 focus:ring-accent-strong":
             mode === "transparent",
           "rounded-sm border-none bg-transparent ring-0": mode === "true-transparent",
           "border-danger-strong": hasError,
           "px-1.5 py-1": inputSize === "xs",
-          "px-3 py-2": inputSize === "sm",
+          "h-9 px-3 py-2": inputSize === "sm",
           "p-3": inputSize === "md",
         },
         className

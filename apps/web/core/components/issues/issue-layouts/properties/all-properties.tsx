@@ -46,6 +46,11 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
+// Unset properties stay quiet until the row or card is hovered or focused. Touch devices keep them visible.
+const EMPTY_PROPERTY_SLOT_CLASSNAME =
+  "transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover/list-block:opacity-100 pointer-fine:group-hover/kanban-block:opacity-100 pointer-fine:focus-within:opacity-100 pointer-fine:has-[[aria-expanded=true]]:opacity-100";
+const propertySlotClassName = (isEmpty: boolean) => cn("h-5", isEmpty && EMPTY_PROPERTY_SLOT_CLASSNAME);
+
 export interface IIssueProperties {
   issue: TIssue;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -217,12 +222,18 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       {/* priority */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <div
+          className={propertySlotClassName(!issue?.priority || issue.priority === "none")}
+          onFocus={handleEventPropagation}
+          onClick={handleEventPropagation}
+        >
           <PriorityDropdown
             value={issue?.priority}
             onChange={handlePriority}
             disabled={isReadOnly}
-            buttonVariant="border-without-text"
+            buttonVariant={
+              !issue?.priority || issue.priority === "none" ? "transparent-without-text" : "border-without-text"
+            }
             renderByDefault={isMobile}
             showTooltip
           />
@@ -236,7 +247,11 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         shouldRenderProperty={() => isDateRangeEnabled}
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <div
+          className={propertySlotClassName(!issue.start_date && !issue.target_date)}
+          onFocus={handleEventPropagation}
+          onClick={handleEventPropagation}
+        >
           <DateRangeDropdown
             value={{
               from: getDate(issue.start_date) || undefined,
@@ -251,7 +266,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             }}
             isClearable
             mergeDates
-            buttonVariant={issue.start_date || issue.target_date ? "border-with-text" : "border-without-text"}
+            buttonVariant={issue.start_date || issue.target_date ? "border-with-text" : "transparent-without-text"}
             buttonClassName={
               shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group) ? "text-danger-primary" : ""
             }
@@ -272,14 +287,18 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <div
+          className={propertySlotClassName(!issue.start_date)}
+          onFocus={handleEventPropagation}
+          onClick={handleEventPropagation}
+        >
           <DateDropdown
             value={issue.start_date ?? null}
             onChange={handleStartDate}
             maxDate={maxDate}
             placeholder={t("common.order_by.start_date")}
             icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
-            buttonVariant={issue.start_date ? "border-with-text" : "border-without-text"}
+            buttonVariant={issue.start_date ? "border-with-text" : "transparent-without-text"}
             optionsClassName="z-10"
             disabled={isReadOnly}
             renderByDefault={isMobile}
@@ -296,14 +315,18 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <div
+          className={propertySlotClassName(!issue.target_date)}
+          onFocus={handleEventPropagation}
+          onClick={handleEventPropagation}
+        >
           <DateDropdown
             value={issue?.target_date ?? null}
             onChange={handleTargetDate}
             minDate={minDate}
             placeholder={t("common.order_by.due_date")}
             icon={<DueDatePropertyIcon className="h-3 w-3 shrink-0" />}
-            buttonVariant={issue.target_date ? "border-with-text" : "border-without-text"}
+            buttonVariant={issue.target_date ? "border-with-text" : "transparent-without-text"}
             buttonClassName={
               shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group) ? "text-danger-primary" : ""
             }
@@ -320,14 +343,18 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       {/* assignee */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="assignee">
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <div
+          className={propertySlotClassName(!issue.assignee_ids?.length)}
+          onFocus={handleEventPropagation}
+          onClick={handleEventPropagation}
+        >
           <MemberDropdown
             projectId={issue?.project_id}
             value={issue?.assignee_ids}
             onChange={handleAssignee}
             disabled={isReadOnly}
             multiple
-            buttonVariant={issue.assignee_ids?.length > 0 ? "transparent-without-text" : "border-without-text"}
+            buttonVariant="transparent-without-text"
             buttonClassName={issue.assignee_ids?.length > 0 ? "hover:bg-transparent px-0" : ""}
             showTooltip={issue?.assignee_ids?.length === 0}
             placeholder={t("common.assignees")}
@@ -488,16 +515,18 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
       {/* label */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="labels">
-        <IssuePropertyLabels
-          projectId={issue?.project_id || null}
-          value={issue?.label_ids || []}
-          defaultOptions={defaultLabelOptions}
-          onChange={handleLabel}
-          disabled={isReadOnly}
-          renderByDefault={isMobile}
-          hideDropdownArrow
-          maxRender={3}
-        />
+        <div className={cn("flex", !issue?.label_ids?.length && EMPTY_PROPERTY_SLOT_CLASSNAME)}>
+          <IssuePropertyLabels
+            projectId={issue?.project_id || null}
+            value={issue?.label_ids || []}
+            defaultOptions={defaultLabelOptions}
+            onChange={handleLabel}
+            disabled={isReadOnly}
+            renderByDefault={isMobile}
+            hideDropdownArrow
+            maxRender={3}
+          />
+        </div>
       </WithDisplayPropertiesHOC>
     </div>
   );

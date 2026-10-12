@@ -22,14 +22,21 @@ type Props = {
     | { iconNode: React.ReactElement }
   );
 
+/** Settings links arrive with and without a trailing slash, so compare both sides without it. */
+export function isSettingsPathActive(pathname: string, href: string, exact = false) {
+  const path = pathname.replace(/\/+$/, "");
+  const target = href.replace(/\/+$/, "");
+  return exact ? path === target : path === target || path.startsWith(`${target}/`);
+}
+
 export function SettingsSidebarItem(props: Props) {
   const { as, isActive, label } = props;
   // common class
   const className = cn(
-    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-body-sm-medium text-secondary transition-colors",
+    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-body-sm-medium transition-colors duration-150",
     {
-      "bg-layer-transparent-selected text-primary": isActive,
-      "hover:bg-layer-transparent-hover": !isActive,
+      "bg-accent-subtle font-semibold text-accent-primary [&_svg]:text-accent-primary": isActive,
+      "text-secondary hover:bg-layer-transparent-hover hover:text-primary [&_svg]:text-tertiary": !isActive,
     }
   );
   // common content
@@ -53,7 +60,7 @@ export function SettingsSidebarItem(props: Props) {
   }
 
   return (
-    <Link className={className} href={props.href}>
+    <Link className={className} href={props.href} aria-current={isActive ? "page" : undefined}>
       {content}
     </Link>
   );

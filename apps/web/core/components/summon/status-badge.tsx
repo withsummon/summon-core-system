@@ -22,7 +22,7 @@ import {
 import type { Icon } from "@phosphor-icons/react";
 import { Badge } from "@plane/propel/badge";
 import type { TBadgeVariant } from "@plane/propel/badge";
-import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { statusLabel } from "./status-label";
 
 type TStatusPresentation = { icon: Icon; variant: TBadgeVariant };
 
@@ -60,7 +60,7 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
   const presentation = STATUS_PRESENTATION[status] ?? { icon: CircleIcon, variant: "neutral" };
   return (
     <Badge variant={presentation.variant} size="lg" icon={presentation.icon}>
-      {label ?? capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(status))}
+      {label ?? statusLabel(status)}
     </Badge>
   );
 }

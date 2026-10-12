@@ -32,7 +32,7 @@ export const ModulesListHeader = observer(function ModulesListHeader() {
   const { toggleCreateModuleModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
 
-  const { loader } = useProject();
+  const { currentProjectDetails, loader } = useProject();
 
   const { t } = useTranslation();
 
@@ -62,24 +62,26 @@ export const ModulesListHeader = observer(function ModulesListHeader() {
           </Breadcrumbs>
         </div>
       </Header.LeftItem>
-      <Header.RightItem>
-        <ModuleViewHeader />
-        {canUserCreateModule ? (
-          <Button
-            variant="primary"
-            data-ph-element={MODULE_TRACKER_ELEMENTS.RIGHT_HEADER_ADD_BUTTON}
-            onClick={() => {
-              toggleCreateModuleModal(true);
-            }}
-            size="lg"
-          >
-            <div className="block sm:hidden">{t("add")}</div>
-            <div className="hidden sm:block">{t("project_module.add_module")}</div>
-          </Button>
-        ) : (
-          <></>
-        )}
-      </Header.RightItem>
+      {currentProjectDetails?.module_view !== false && (
+        <Header.RightItem>
+          <ModuleViewHeader />
+          {canUserCreateModule ? (
+            <Button
+              variant="primary"
+              data-ph-element={MODULE_TRACKER_ELEMENTS.RIGHT_HEADER_ADD_BUTTON}
+              onClick={() => {
+                toggleCreateModuleModal(true);
+              }}
+              size="lg"
+            >
+              <div className="block sm:hidden">{t("add")}</div>
+              <div className="hidden sm:block">{t("project_module.add_module")}</div>
+            </Button>
+          ) : (
+            <></>
+          )}
+        </Header.RightItem>
+      )}
     </Header>
   );
 });

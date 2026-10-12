@@ -57,7 +57,7 @@ export const CyclesListHeader = observer(function CyclesListHeader() {
           />
         </Breadcrumbs>
       </Header.LeftItem>
-      {canUserCreateCycle && currentProjectDetails ? (
+      {canUserCreateCycle && currentProjectDetails && currentProjectDetails.cycle_view !== false ? (
         <Header.RightItem>
           <CyclesViewHeader projectId={currentProjectDetails.id} />
           <Button

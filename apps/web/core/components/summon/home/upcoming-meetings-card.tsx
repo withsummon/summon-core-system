@@ -16,7 +16,7 @@ interface IUpcomingMeetingsCardProps {
 
 export function UpcomingMeetingsCard({ meetings, workspaceSlug }: IUpcomingMeetingsCardProps) {
   return (
-    <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="bg-purple-500/10 text-purple-600 dark:text-purple-400 flex size-7 items-center justify-center rounded-lg">
@@ -24,7 +24,7 @@ export function UpcomingMeetingsCard({ meetings, workspaceSlug }: IUpcomingMeeti
           </div>
           <div>
             <h3 className="text-sm font-bold text-primary">Upcoming Meetings</h3>
-            <p className="text-[11px] text-tertiary">Client & team sync sessions</p>
+            <p className="text-12 text-tertiary">Client & team sync sessions</p>
           </div>
         </div>
         <Link
@@ -47,10 +47,10 @@ export function UpcomingMeetingsCard({ meetings, workspaceSlug }: IUpcomingMeeti
                 <Video className="size-3.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs truncate font-semibold text-primary group-hover:text-accent-primary">
+                <h4 className="truncate text-xs font-semibold text-primary group-hover:text-accent-primary">
                   {meeting.title}
                 </h4>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-tertiary">
+                <div className="mt-0.5 flex items-center gap-1.5 text-12 text-tertiary">
                   <Clock className="size-3" />
                   <span>
                     {new Date(meeting.starts_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
@@ -64,7 +64,7 @@ export function UpcomingMeetingsCard({ meetings, workspaceSlug }: IUpcomingMeeti
             </Link>
           ))
         ) : (
-          <div className="text-xs py-4 text-center text-tertiary">No upcoming meetings scheduled.</div>
+          <div className="py-4 text-center text-xs text-tertiary">No upcoming meetings scheduled.</div>
         )}
       </div>
     </div>

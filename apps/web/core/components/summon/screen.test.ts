@@ -11,11 +11,10 @@ test("shared Summon UI exposes progress primitives without a chart package", () 
   assert.doesNotMatch(source, /recharts|chart\.js|echarts/);
 });
 
-test("Summon keeps the canonical sidebar recovery control in its collapsed header", () => {
-  assert.match(screenSource, /AppSidebarToggleButton/);
-  assert.match(screenSource, /useAppTheme/);
-  assert.match(screenSource, /const \{ sidebarCollapsed \} = useAppTheme\(\)/);
-  assert.match(screenSource, /sidebarCollapsed && <AppSidebarToggleButton \/>/);
+test("Summon pages share one header owner and leave the sidebar toggle to the top bar", () => {
+  assert.match(screenSource, /export function SummonPageHeader/);
+  assert.match(screenSource, /<SummonPageHeader title=\{props.title\}/);
+  assert.doesNotMatch(screenSource, /AppSidebarToggleButton/);
 });
 
 test("Summon renders typed project requirements and revoked-access errors", () => {

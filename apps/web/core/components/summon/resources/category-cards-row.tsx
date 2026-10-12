@@ -116,7 +116,7 @@ export function CategoryCardsRow({
 
   return (
     <div className="space-y-3">
-      <div className="text-xs tracking-wider font-semibold text-secondary uppercase">Resource Categories</div>
+      <div className="text-12 font-medium text-tertiary">Resource categories</div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {categories.map((cat) => {
@@ -129,15 +129,15 @@ export function CategoryCardsRow({
               onClick={() => onSelectCategory(isSelected ? "all" : cat.id)}
               className={`group flex flex-col justify-between rounded-2xl border p-4 text-left transition-all ${
                 isSelected
-                  ? `border-accent-primary shadow-sm ring-accent-primary bg-surface-1 ring-1`
-                  : "hover:border-accent-primary/40 hover:shadow-sm border-subtle bg-surface-1"
+                  ? `border-accent-primary ring-accent-primary bg-surface-1 shadow-sm ring-1`
+                  : "hover:border-accent-primary/40 border-subtle bg-surface-1 hover:shadow-sm"
               }`}
             >
               <div className={`flex size-10 items-center justify-center rounded-xl ${cat.bg}`}>{cat.icon}</div>
 
               <div className="mt-3.5">
                 <div className="text-xs font-bold text-primary group-hover:text-accent-primary">{cat.label}</div>
-                <div className="mt-0.5 text-[11px] font-medium text-tertiary">
+                <div className="mt-0.5 text-12 font-medium text-tertiary">
                   {cat.count} {cat.count === 1 ? "item" : "items"}
                 </div>
               </div>

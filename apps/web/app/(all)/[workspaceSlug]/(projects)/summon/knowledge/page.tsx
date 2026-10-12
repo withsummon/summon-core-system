@@ -29,6 +29,9 @@ import {
   Upload,
   Users,
 } from "lucide-react";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { PageHead } from "@/components/core/page-title";
+import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
@@ -127,13 +130,11 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
   const firstProject = home?.projects[0];
 
   return (
-    <div className="mx-auto min-h-full w-full max-w-[1600px] bg-surface-1 p-4 lg:p-5">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-primary">Knowledge</h1>
-        <p className="mt-1 text-xs text-secondary">Your company knowledge, notes, and insights in one place</p>
-      </header>
+    <div className={summonPageClassName}>
+      <PageHead title="Knowledge · Summon Core" />
+      <SummonPageHeader title="Knowledge" description="Company knowledge, notes and insights in one place" />
 
-      <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <main className="min-w-0 space-y-5">
           <label className="relative block max-w-3xl">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
@@ -141,11 +142,9 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search knowledge, notes, topics, or ask anything..."
-              className="focus:border-accent-primary h-11 w-full rounded-xl border border-subtle bg-surface-1 pr-12 pl-10 text-xs text-primary shadow-xs outline-none"
+              aria-label="Search knowledge"
+              className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
             />
-            <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md bg-layer-1 px-2 py-1 text-[10px] text-tertiary">
-              ⌘ K
-            </kbd>
           </label>
 
           <section className="border-accent-primary/20 rounded-2xl border bg-accent-subtle/50 p-5">
@@ -172,7 +171,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                 <Link
                   key={prompt}
                   href={`/${workspaceSlug}/summon/assistant/`}
-                  className="rounded-full border border-subtle bg-surface-1 px-3 py-2 text-[10px] text-secondary"
+                  className="rounded-full border border-subtle bg-surface-1 px-3 py-2 text-12 text-secondary"
                 >
                   {prompt}
                 </Link>
@@ -183,7 +182,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
           <section>
             <div className="mb-3">
               <h2 className="text-sm font-semibold text-primary">Browse by Context</h2>
-              <p className="mt-1 text-[11px] text-secondary">Knowledge organized by its real workspace context</p>
+              <p className="mt-1 text-12 text-secondary">Knowledge organized by its real workspace context</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               {contextCards.map(({ label, count, icon: Icon, detail }) => (
@@ -192,10 +191,10 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                     <span className="grid size-8 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                       <Icon className="size-4" />
                     </span>
-                    <span className="rounded-full bg-layer-1 px-2 py-1 text-[10px] text-secondary">{count}</span>
+                    <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">{count}</span>
                   </div>
                   <h3 className="mt-4 text-xs font-semibold text-primary">{label}</h3>
-                  <p className="mt-1 text-[10px] leading-relaxed text-secondary">{detail}</p>
+                  <p className="mt-1 text-12 leading-relaxed text-secondary">{detail}</p>
                 </article>
               ))}
             </div>
@@ -213,7 +212,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                   className="mt-2"
                 />
               </div>
-              <span className="text-[10px] text-secondary">{filteredPages.length} accessible items</span>
+              <span className="text-12 text-secondary">{filteredPages.length} accessible items</span>
             </div>
             <SummonRequestState
               loading={isLoading}
@@ -225,7 +224,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             {!!filteredPages.length && (
               <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
                 <table className="w-full min-w-[46rem] text-left text-xs">
-                  <thead className="border-b border-subtle bg-layer-1 text-[10px] text-tertiary">
+                  <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
                     <tr>
                       <th className="px-4 py-3 font-medium">Title</th>
                       <th className="px-4 py-3 font-medium">Context</th>
@@ -251,7 +250,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                           </td>
                           <td className="px-4 py-3 text-secondary">{project.name}</td>
                           <td className="px-4 py-3">
-                            <span className="rounded-full bg-accent-subtle px-2 py-1 text-[10px] text-accent-primary">
+                            <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
                               {context?.category || "Page"}
                             </span>
                           </td>
@@ -298,25 +297,21 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                 >
                   <FileText className="mt-0.5 size-4 shrink-0 text-accent-primary" />
                   <span className="min-w-0">
-                    <strong className="block truncate text-[11px] font-medium text-primary">
+                    <strong className="block truncate text-12 font-medium text-primary">
                       {page.name || "Untitled Page"}
                     </strong>
-                    <small className="text-[10px] text-secondary">{formatDate(page.updated_at)}</small>
+                    <small className="text-12 text-secondary">{formatDate(page.updated_at)}</small>
                   </span>
                 </Link>
               ))}
               {!recentPages.length && <Empty text="No accessible notes." />}
             </div>
           </SidePanel>
-          <SidePanel title="Popular Knowledge">
-            <Empty text="View analytics are not available from Plane Pages." />
-          </SidePanel>
           <SidePanel title="Knowledge Stats">
             <div className="grid grid-cols-2 gap-2">
               <Stat label="Total Pages" value={String(pages.length)} />
               <Stat label="Projects" value={String(new Set(pages.map(({ project }) => project.id)).size)} />
               <Stat label="Contributors" value={String(uniqueContributors.size)} />
-              <Stat label="Total Views" value="Unavailable" />
             </div>
           </SidePanel>
         </aside>
@@ -331,7 +326,7 @@ function SidePanel({ title, href, children }: { title: string; href?: string; ch
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-primary">{title}</h2>
         {href && (
-          <Link href={href} className="inline-flex items-center gap-1 text-[10px] text-accent-primary">
+          <Link href={href} className="inline-flex items-center gap-1 text-12 text-accent-primary">
             View all <ArrowRight className="size-3" />
           </Link>
         )}
@@ -342,10 +337,7 @@ function SidePanel({ title, href, children }: { title: string; href?: string; ch
 }
 function QuickAction({ icon: Icon, label, href }: { icon: typeof FileText; label: string; href: string }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-[11px] text-primary hover:bg-layer-1"
-    >
+    <Link href={href} className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-12 text-primary hover:bg-layer-1">
       <Icon className="size-4 text-accent-primary" />
       <span className="flex-1">{label}</span>
       <ChevronRight className="size-3.5 text-tertiary" />
@@ -355,13 +347,11 @@ function QuickAction({ icon: Icon, label, href }: { icon: typeof FileText; label
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-subtle p-3">
-      <p className="text-[9px] text-tertiary">{label}</p>
+      <p className="text-12 text-tertiary">{label}</p>
       <p className="mt-1 truncate text-sm font-semibold text-primary">{value}</p>
     </div>
   );
 }
 function Empty({ text }: { text: string }) {
-  return (
-    <p className="rounded-xl border border-dashed border-subtle p-3 text-center text-[11px] text-tertiary">{text}</p>
-  );
+  return <p className="rounded-xl border border-dashed border-subtle p-3 text-center text-12 text-tertiary">{text}</p>;
 }

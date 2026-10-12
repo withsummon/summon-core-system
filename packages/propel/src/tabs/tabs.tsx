@@ -89,6 +89,41 @@ const TabsIndicator = React.forwardRef(function TabsIndicator(
   );
 });
 
+/*
+ * Underline lists scroll sideways when tabs outrun the width. Edges that hide tabs fade out
+ * (`data-overflow-start` / `data-overflow-end`), and the active tab scrolls into view.
+ */
+function useOverflowEdges(variant: TabsVariant) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  React.useLayoutEffect(() => {
+    const list = ref.current;
+    if (!list || variant !== "underline") return;
+    const update = () => {
+      const max = list.scrollWidth - list.clientWidth;
+      list.toggleAttribute("data-overflow-start", list.scrollLeft > 1);
+      list.toggleAttribute("data-overflow-end", max > 1 && list.scrollLeft < max - 1);
+    };
+    const reveal = () => {
+      const active = list.querySelector<HTMLElement>("[data-active]");
+      if (active && list.scrollWidth > list.clientWidth)
+        active.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+    };
+    update();
+    reveal();
+    const resize = new ResizeObserver(update);
+    resize.observe(list);
+    const mutation = new MutationObserver(reveal);
+    mutation.observe(list, { subtree: true, attributeFilter: ["data-active"] });
+    list.addEventListener("scroll", update, { passive: true });
+    return () => {
+      resize.disconnect();
+      mutation.disconnect();
+      list.removeEventListener("scroll", update);
+    };
+  }, [variant]);
+  return ref;
+}
+
 const TabsList = React.forwardRef(function TabsList(
   {
     className,
@@ -101,13 +136,27 @@ const TabsList = React.forwardRef(function TabsList(
   ref: React.ForwardedRef<React.ElementRef<typeof TabsPrimitive.List>>
 ) {
   const variant = useTabsVariant();
+  const overflowRef = useOverflowEdges(variant);
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      overflowRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+    },
+    [overflowRef, ref]
+  );
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
         "relative isolate flex w-full items-center overflow-auto text-13",
         variant === "underline"
-          ? "gap-5 border-b border-subtle [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          ? [
+              "snap-x snap-proximity gap-5 border-b border-subtle [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "data-[overflow-end]:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]",
+              "data-[overflow-start]:[mask-image:linear-gradient(to_right,transparent,black_2.5rem)]",
+              "data-[overflow-start]:data-[overflow-end]:[mask-image:linear-gradient(to_right,transparent,black_2.5rem,black_calc(100%-2.5rem),transparent)]",
+            ]
           : "justify-between gap-1.5 rounded-lg p-0.5",
         {
           "bg-layer-1 ring ring-subtle ring-inset": variant === "contained" && background === "contained",
@@ -115,7 +164,7 @@ const TabsList = React.forwardRef(function TabsList(
         className
       )}
       {...props}
-      ref={ref}
+      ref={setRefs}
     >
       {children}
       <TabsIndicator />
@@ -140,7 +189,7 @@ const TabsTrigger = React.forwardRef(function TabsTrigger(
         "text-tertiary hover:text-primary data-[active]:text-primary",
         "disabled:cursor-not-allowed disabled:text-placeholder",
         variant === "underline"
-          ? "h-10 shrink-0 px-0.5 data-[active]:[&_svg]:text-accent-primary"
+          ? "h-10 shrink-0 snap-start scroll-mx-6 px-0.5 data-[active]:[&_svg]:text-accent-primary"
           : "w-full rounded-md border border-transparent p-1",
         {
           "text-11": size === "sm",
@@ -162,7 +211,7 @@ const TabsContent = React.forwardRef(function TabsContent(
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn("relative outline-none", className)}
+      className={cn("relative outline-none motion-safe:animate-panel-rise", className)}
       {...props}
       ref={ref}
     />

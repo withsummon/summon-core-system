@@ -8,7 +8,8 @@ import type { ReactNode } from "react";
 import { CalendarDays, ChevronDown, Download, SlidersHorizontal } from "lucide-react";
 import type { ISummonClient, ISummonReportFilters } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
-import { percentage, reportLabel, type TReportFilterParam } from "./report-view-model";
+import { statusLabel } from "@/components/summon/status-label";
+import { percentage, type TReportFilterParam } from "./report-view-model";
 import { Select } from "@plane/propel/select";
 import { DatePicker } from "@plane/propel/date-picker";
 
@@ -29,9 +30,9 @@ export function ReportKpi(props: { icon: ReactNode; label: string; value: ReactN
         {props.icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium text-secondary">{props.label}</p>
-        <p className="text-xl mt-1.5 truncate font-semibold tracking-tight text-primary">{props.value}</p>
-        <div className="mt-1 text-[10px] text-tertiary">{props.detail}</div>
+        <p className="text-12 font-medium text-secondary">{props.label}</p>
+        <p className="mt-1.5 truncate text-xl font-semibold tracking-tight text-primary">{props.value}</p>
+        <div className="mt-1 text-12 text-tertiary">{props.detail}</div>
       </div>
     </ReportPanel>
   );
@@ -71,7 +72,7 @@ export function ReportDonut(props: {
         </svg>
         <div className="absolute inset-0 grid place-content-center text-center">
           <strong className="text-2xl font-semibold tracking-tight text-primary">{props.center}</strong>
-          <span className="mt-0.5 text-[10px] text-secondary">{props.caption}</span>
+          <span className="mt-0.5 text-12 text-secondary">{props.caption}</span>
         </div>
       </div>
     </div>
@@ -84,7 +85,7 @@ export function ReportLegend(props: {
   return (
     <div className="grid min-w-0 content-center gap-3">
       {props.items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-[11px]">
+        <div key={item.label} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-12">
           <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
           <span className="truncate font-medium text-secondary">{item.label}</span>
           <span className="text-right font-semibold text-primary">
@@ -102,8 +103,8 @@ export function PipelineBars(props: { items: Array<{ stage: string; count: numbe
   return (
     <div className="space-y-3">
       {props.items.map((item) => (
-        <div key={item.stage} className="grid grid-cols-[5rem_minmax(5rem,1fr)_auto] items-center gap-2 text-[10px]">
-          <span className="truncate text-secondary">{reportLabel(item.stage)}</span>
+        <div key={item.stage} className="grid grid-cols-[5rem_minmax(5rem,1fr)_auto] items-center gap-2 text-12">
+          <span className="truncate text-secondary">{statusLabel(item.stage)}</span>
           <div className="h-5 overflow-hidden rounded bg-layer-1">
             <div
               className={`h-full rounded ${item.stage === "won" ? "bg-success-primary/20" : item.stage === "lost" ? "bg-danger-primary/15" : "bg-accent-primary/20"}`}
@@ -133,12 +134,12 @@ export function ReportFilters(props: {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <details className="group relative">
-        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-[11px] font-medium text-primary">
+        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-12 font-medium text-primary">
           <CalendarDays className="size-3.5 text-secondary" />
           <span>{dateLabel}</span>
           <ChevronDown className="size-3 text-tertiary transition-transform group-open:rotate-180" />
         </summary>
-        <div className="shadow-xl absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3">
+        <div className="absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3 shadow-xl">
           <SummonField label="From date">
             <DatePicker
               id="report-date-from"
@@ -159,11 +160,11 @@ export function ReportFilters(props: {
       </details>
 
       <details className="group relative">
-        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-[11px] font-medium text-primary">
+        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-12 font-medium text-primary">
           <SlidersHorizontal className="size-3.5 text-secondary" /> Filters
           <ChevronDown className="size-3 text-tertiary transition-transform group-open:rotate-180" />
         </summary>
-        <div className="shadow-xl absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3">
+        <div className="absolute right-0 z-30 mt-2 grid w-72 gap-3 rounded-xl border border-subtle bg-surface-1 p-3 shadow-xl">
           <SummonField label="Project">
             <Select
               value={filters.projectId ?? ""}
@@ -190,7 +191,7 @@ export function ReportFilters(props: {
       {canExport ? (
         <a
           href={exportUrl}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 text-[11px] font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent-primary px-4 text-12 font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <Download className="size-3.5" /> Export Report <ChevronDown className="size-3" />
         </a>
@@ -198,7 +199,7 @@ export function ReportFilters(props: {
         <button
           type="button"
           disabled
-          className="h-9 cursor-not-allowed rounded-lg bg-layer-2 px-4 text-[11px] text-tertiary"
+          className="h-9 cursor-not-allowed rounded-lg bg-layer-2 px-4 text-12 text-tertiary"
         >
           Export Report
         </button>

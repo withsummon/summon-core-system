@@ -127,7 +127,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
   return (
     <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
       <PageHead title={`${data.name} · Summon Core`} />
-      <div className="flex items-center gap-2 text-[11px] text-secondary">
+      <div className="flex items-center gap-2 text-12 text-secondary">
         <Link href={`/${workspaceSlug}/summon/clients/`} className="hover:text-primary">
           Clients
         </Link>
@@ -142,7 +142,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-primary">{data.name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-secondary">
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-12 text-secondary">
               <span className="rounded-full bg-success-subtle px-2.5 py-1 font-medium text-success-primary">
                 {statusLabel(data.status)} Client
               </span>
@@ -217,7 +217,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                 icon={<Building2 className="size-4.5" />}
                 label="Total Projects"
                 value={data.projects.length}
-                detail="Visible Plane projects"
+                detail="Projects you can see"
               />
               <ClientMetric
                 icon={<CalendarDays className="size-4.5" />}
@@ -235,7 +235,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
               href={`/${workspaceSlug}/summon/opportunities/`}
             >
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-[10px]">
+                <table className="w-full min-w-[720px] text-left text-12">
                   <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                     <tr>
                       {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
@@ -295,7 +295,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           {showTab("projects") ? (
             <DataSection title="Recent Projects" action="View all projects" href={`/${workspaceSlug}/summon/projects/`}>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-[10px]">
+                <table className="w-full min-w-[680px] text-left text-12">
                   <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                     <tr>
                       {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
@@ -318,7 +318,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                           <p className="mt-1 text-tertiary">{project.identifier}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge>Plane Project</Badge>
+                          <Badge>Project</Badge>
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
@@ -352,18 +352,15 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                       {contact.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-[11px] font-semibold text-primary">{contact.name}</h3>
-                      <p className="mt-0.5 truncate text-[10px] text-secondary">{contact.title || "Role not set"}</p>
+                      <h3 className="truncate text-12 font-semibold text-primary">{contact.name}</h3>
+                      <p className="mt-0.5 truncate text-12 text-secondary">{contact.title || "Role not set"}</p>
                       {contact.email ? (
-                        <a
-                          href={`mailto:${contact.email}`}
-                          className="mt-1 block truncate text-[10px] text-accent-primary"
-                        >
+                        <a href={`mailto:${contact.email}`} className="mt-1 block truncate text-12 text-accent-primary">
                           {contact.email}
                         </a>
                       ) : null}
                       {contact.phone ? (
-                        <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-[10px] text-secondary">
+                        <a href={`tel:${contact.phone}`} className="mt-1 block truncate text-12 text-secondary">
                           {contact.phone}
                         </a>
                       ) : null}
@@ -379,7 +376,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   </article>
                 ))}
                 {!data.contacts.length ? (
-                  <p className="py-8 text-center text-[10px] text-tertiary md:col-span-2 2xl:col-span-3">
+                  <p className="py-8 text-center text-12 text-tertiary md:col-span-2 2xl:col-span-3">
                     No contacts added.
                   </p>
                 ) : null}
@@ -396,14 +393,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                       <FileText className="size-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-[10px] font-semibold text-primary">{activity.label}</span>
-                      <time className="mt-1 block text-[9px] text-secondary" dateTime={activity.created_at}>
+                      <span className="block truncate text-12 font-semibold text-primary">{activity.label}</span>
+                      <time className="mt-1 block text-12 text-secondary" dateTime={activity.created_at}>
                         {formatDate(activity.created_at)}
                       </time>
                     </span>
                   </Link>
                 ))}
-                {!data.recent_activity.length ? <p className="text-[10px] text-tertiary">No recent activity.</p> : null}
+                {!data.recent_activity.length ? <p className="text-12 text-tertiary">No recent activity.</p> : null}
               </div>
             </DataSection>
           ) : null}
@@ -420,17 +417,17 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                       <FileText className="size-4" />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[11px] font-semibold text-primary">
+                      <p className="truncate text-12 font-semibold text-primary">
                         {context.page_detail.name || "Untitled page"}
                       </p>
-                      <p className="mt-1 text-[9px] text-secondary">
+                      <p className="mt-1 text-12 text-secondary">
                         {statusLabel(context.category || "page")} · {formatDate(context.updated_at)}
                       </p>
                     </div>
                   </article>
                 ))}
                 {!visiblePageContexts.length ? (
-                  <p className="py-8 text-center text-[10px] text-tertiary sm:col-span-2 xl:col-span-3">
+                  <p className="py-8 text-center text-12 text-tertiary sm:col-span-2 xl:col-span-3">
                     No linked {activeTab}.
                   </p>
                 ) : null}
@@ -458,12 +455,10 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         {activeTab === "overview" ? (
           <aside className="min-w-0 space-y-4">
             <SideCard title="Relationship Health">
-              <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-[10px] font-medium text-secondary">
+              <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-12 font-medium text-secondary">
                 Not scored
               </span>
-              <p className="mt-2 text-[10px] leading-4 text-secondary">
-                No relationship-health data source is configured.
-              </p>
+              <p className="mt-2 text-12 leading-4 text-secondary">No relationship-health data source is configured.</p>
               <div className="mt-4 space-y-3">
                 <HealthRow label="Communication records" detail={`${data.meetings.length} meetings linked`} />
                 <HealthRow label="Projects tracked" detail={`${data.projects.length} visible projects`} />
@@ -475,7 +470,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
               <dl className="space-y-4">
                 <Detail label="Legal Name" value={data.company_name || "Not set"} />
                 <Detail label="Industry" value={data.industry || "Not set"} />
-                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-[10px]">
+                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-12">
                   <dt className="text-secondary">Website</dt>
                   <dd className="min-w-0 font-medium text-primary">
                     {data.website ? (
@@ -507,14 +502,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                       <FileText className="size-3.5" />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[10px] font-semibold text-primary">
+                      <p className="truncate text-12 font-semibold text-primary">
                         {context.page_detail.name || "Untitled page"}
                       </p>
-                      <p className="mt-1 text-[9px] text-secondary">{formatDate(context.updated_at)}</p>
+                      <p className="mt-1 text-12 text-secondary">{formatDate(context.updated_at)}</p>
                     </div>
                   </div>
                 ))}
-                {!data.page_contexts.length ? <p className="py-4 text-[10px] text-tertiary">No linked notes.</p> : null}
+                {!data.page_contexts.length ? <p className="py-4 text-12 text-tertiary">No linked notes.</p> : null}
               </div>
             </SideCard>
           </aside>
@@ -570,7 +565,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                 ]}
               />
             </EditField>
-            <label className="text-[11px] text-secondary sm:col-span-2">
+            <label className="text-12 text-secondary sm:col-span-2">
               Notes
               <textarea
                 name="notes"
@@ -602,9 +597,9 @@ function ClientMetric(props: { icon: React.ReactNode; label: string; value: Reac
         {props.icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-medium text-secondary">{props.label}</p>
+        <p className="text-12 font-medium text-secondary">{props.label}</p>
         <p className="mt-1.5 truncate text-lg font-semibold text-primary">{props.value}</p>
-        <p className="mt-2 truncate text-[9px] font-medium text-accent-primary">{props.detail} →</p>
+        <p className="mt-2 truncate text-12 font-medium text-accent-primary">{props.detail} →</p>
       </div>
     </div>
   );
@@ -616,14 +611,11 @@ function DataSection(props: { title: string; action: string; href?: string; chil
       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
         <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
         {props.href ? (
-          <Link
-            href={props.href}
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary"
-          >
+          <Link href={props.href} className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
             {props.action} <ArrowRight className="size-3" />
           </Link>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary">
+          <span className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
             {props.action} <ArrowRight className="size-3" />
           </span>
         )}
@@ -638,7 +630,7 @@ function SideCard(props: { title: string; action?: string; children: React.React
     <section className="rounded-xl border border-subtle bg-surface-1 p-4">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
-        {props.action ? <span className="text-[10px] font-medium text-accent-primary">{props.action} →</span> : null}
+        {props.action ? <span className="text-12 font-medium text-accent-primary">{props.action} →</span> : null}
       </div>
       {props.children}
     </section>
@@ -650,8 +642,8 @@ function HealthRow(props: { label: string; detail: string }) {
     <div className="flex gap-2">
       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success-primary" />
       <div>
-        <p className="text-[10px] font-medium text-primary">{props.label}</p>
-        <p className="mt-0.5 text-[9px] text-secondary">{props.detail}</p>
+        <p className="text-12 font-medium text-primary">{props.label}</p>
+        <p className="mt-0.5 text-12 text-secondary">{props.detail}</p>
       </div>
     </div>
   );
@@ -659,7 +651,7 @@ function HealthRow(props: { label: string; detail: string }) {
 
 function Detail(props: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-[10px]">
+    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 text-12">
       <dt className="text-secondary">{props.label}</dt>
       <dd className="font-medium text-primary">{props.value}</dd>
     </div>
@@ -676,7 +668,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 
 function EditField(props: { label: string; children: React.ReactNode }) {
   return (
-    <label className="text-[11px] text-secondary">
+    <label className="text-12 text-secondary">
       {props.label}
       <span className="mt-1 block">{props.children}</span>
     </label>

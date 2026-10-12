@@ -19,7 +19,7 @@ import type { Route } from "./+types/page";
 import { automationInputValue } from "../automation-form";
 
 const OUTPUT_FORMAT_LABELS: Record<ISummonGeneratedArtifact["format"], string> = {
-  page: "Plane Page",
+  page: "Page",
   pdf: "PDF",
   docx: "DOCX",
   xlsx: "XLSX",
@@ -67,7 +67,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
 
   const publishPreview = async () => {
     if (!hasPreview || pageArtifact) return;
-    if (!window.confirm(`Publish ${title} from ${projectName} to one canonical Plane Page?`)) return;
+    if (!window.confirm(`Publish ${title} from ${projectName} as a page?`)) return;
     setPublishing(true);
     setActionError("");
     try {
@@ -87,7 +87,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
       actions={
         <Link
           href={`/${workspaceSlug}/summon/automation/`}
-          className="text-xs inline-flex h-9 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-primary"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 text-xs font-medium text-primary"
         >
           <ArrowLeft className="size-3.5" /> Generated documents
         </Link>
@@ -98,15 +98,15 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle pb-3">
             <div>
               <p className="text-xs font-semibold text-primary">Document preview</p>
-              <p className="mt-1 text-[10px] text-secondary">Rendered Markdown · full document</p>
+              <p className="mt-1 text-12 text-secondary">Rendered Markdown · full document</p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2.5 py-1 text-[10px] font-medium text-success-primary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2.5 py-1 text-12 font-medium text-success-primary">
               {data.status === "completed" ? <Check className="size-3" /> : <CircleAlert className="size-3" />}
               {data.status}
             </span>
           </div>
           {data.context_truncated ? (
-            <p className="bg-amber-50 text-amber-700 mt-3 rounded-lg px-3 py-2 text-[11px]">
+            <p className="bg-amber-50 text-amber-700 mt-3 rounded-lg px-3 py-2 text-12">
               Selected context was truncated to 30,000 characters.
             </p>
           ) : null}
@@ -115,7 +115,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
               <MarkdownRenderer markdown={data.preview_markdown} />
             </article>
           ) : (
-            <p className="text-xs mt-4 text-tertiary">No completed preview is available.</p>
+            <p className="mt-4 text-xs text-tertiary">No completed preview is available.</p>
           )}
         </SummonCard>
 
@@ -123,7 +123,8 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
           <SummonCard>
             <h2 className="text-xs font-semibold text-primary">Document actions</h2>
             <div className="mt-3 grid gap-2">
-              <Button size="xl"
+              <Button
+                size="xl"
                 variant="secondary"
                 disabled={!hasPreview || Boolean(fileArtifacts.length)}
                 loading={rendering}
@@ -131,16 +132,17 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
               >
                 Generate files
               </Button>
-              <Button size="xl"
+              <Button
+                size="xl"
                 disabled={!hasPreview || Boolean(pageArtifact)}
                 loading={publishing}
                 onClick={() => void publishPreview()}
               >
-                Publish to Plane Page
+                Publish as page
               </Button>
             </div>
             {actionError ? (
-              <p className="mt-3 text-[11px] text-danger-primary" role="alert">
+              <p className="mt-3 text-12 text-danger-primary" role="alert">
                 {actionError}
               </p>
             ) : null}
@@ -155,19 +157,19 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
                     key={artifact.id}
                     href={artifact.file_detail.href}
                     download={artifact.file_detail.name}
-                    className="rounded-lg border border-subtle px-3 py-2 text-[11px] font-medium text-accent-primary"
+                    className="rounded-lg border border-subtle px-3 py-2 text-12 font-medium text-accent-primary"
                   >
                     Download {OUTPUT_FORMAT_LABELS[artifact.format]}
                   </a>
                 ) : null
               )}
               {pageArtifact?.page_detail ? (
-                <Link href={pageArtifact.page_detail.href} className="text-[11px] font-semibold text-accent-primary">
-                  Open published Plane Page →
+                <Link href={pageArtifact.page_detail.href} className="text-12 font-semibold text-accent-primary">
+                  Open published page →
                 </Link>
               ) : null}
               {!fileArtifacts.length && !pageArtifact ? (
-                <p className="text-[11px] text-tertiary">No files or published page yet.</p>
+                <p className="text-12 text-tertiary">No files or published page yet.</p>
               ) : null}
             </div>
           </SummonCard>
@@ -176,11 +178,11 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
             <h2 className="text-xs font-semibold text-primary">Sources</h2>
             <div className="mt-3 grid gap-2">
               {data.citations.map((citation) => (
-                <Link key={citation.id} href={citation.href} className="text-[11px] font-medium text-accent-primary">
+                <Link key={citation.id} href={citation.href} className="text-12 font-medium text-accent-primary">
                   {citation.label}
                 </Link>
               ))}
-              {!data.citations.length ? <p className="text-[11px] text-tertiary">No linked sources.</p> : null}
+              {!data.citations.length ? <p className="text-12 text-tertiary">No linked sources.</p> : null}
             </div>
           </SummonCard>
         </aside>

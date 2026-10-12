@@ -37,7 +37,7 @@ export function ResourceBadge({ category }: IResourceBadgeProps) {
   }
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${colorClasses}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-12 font-semibold ${colorClasses}`}>
       {label}
     </span>
   );

@@ -21,7 +21,7 @@ const timestamp = (value: string) =>
 
 function Panel(props: { id?: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section id={props.id} className="shadow-sm scroll-mt-24 rounded-xl border border-subtle bg-surface-1">
+    <section id={props.id} className="scroll-mt-24 rounded-xl border border-subtle bg-surface-1 shadow-sm">
       <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <h2 className="text-sm font-semibold text-primary">{props.title}</h2>
         {props.action}
@@ -69,15 +69,15 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
             type="button"
             onClick={onRegenerate}
             disabled={!canRegenerate || summarizing}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 text-12 font-semibold text-accent-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <RefreshCw className={`size-3.5 ${summarizing ? "animate-spin" : ""}`} />
-            {summarizing ? "Membuat MoM…" : summary ? "Buat Ulang MoM" : "Buat MoM"}
+            {summarizing ? "Generating minutes…" : summary ? "Regenerate minutes" : "Generate minutes"}
           </button>
         }
       >
         {summary?.summary ? (
-          <div className="text-xs space-y-4 leading-5 text-secondary">
+          <div className="space-y-4 text-xs leading-5 text-secondary">
             <div>
               <p className="mb-1 font-semibold text-primary">Key Discussion</p>
               <p className="whitespace-pre-wrap">{summary.summary}</p>
@@ -97,18 +97,18 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
             </div>
           </div>
         ) : (
-          <div className="text-xs flex gap-2 rounded-lg bg-layer-1 p-3 text-tertiary">
+          <div className="flex gap-2 rounded-lg bg-layer-1 p-3 text-xs text-tertiary">
             <Sparkles className="size-4 flex-shrink-0 text-accent-primary" />
             No generated summary is available for this meeting.
           </div>
         )}
         {summaryError || data.summary_error ? (
-          <p className="text-xs mt-3 text-danger-primary" role="alert">
+          <p className="mt-3 text-xs text-danger-primary" role="alert">
             {summaryError ||
               (data.summary_error === "transcribing"
-                ? "Audio sedang ditranskripsi. Tombol Buat MoM akan aktif setelah selesai."
+                ? "Transcribing audio. Generate minutes becomes available when it finishes."
                 : data.summary_error === "transcription_failed"
-                  ? "Transkripsi audio gagal. Silakan unggah ulang audio."
+                  ? "Audio transcription failed. Upload the audio again."
                   : data.summary_error)}
           </p>
         ) : null}
@@ -119,7 +119,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
         title="Action Items"
         action={
           data.project ? (
-            <Link href={projectIssuesHref} className="text-[11px] font-semibold text-accent-primary">
+            <Link href={projectIssuesHref} className="text-12 font-semibold text-accent-primary">
               + Add Action Item
             </Link>
           ) : null
@@ -139,24 +139,23 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
               ) : (
                 <Circle className="size-4 text-placeholder" />
               )}
-              <span className="text-xs min-w-0 flex-1 truncate font-medium text-primary">{workItem.issue.name}</span>
-              <span className="text-[10px] font-medium text-tertiary">{workItem.issue.state?.name ?? "No state"}</span>
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-primary">{workItem.issue.name}</span>
+              <span className="text-12 font-medium text-tertiary">{workItem.issue.state?.name ?? "No state"}</span>
             </Link>
           ))}
-          {!data.work_items.length ? <p className="text-xs py-3 text-tertiary">No Plane action items linked.</p> : null}
+          {!data.work_items.length ? <p className="py-3 text-xs text-tertiary">No action items linked yet.</p> : null}
         </div>
         {summary?.action_suggestions.length && data.project ? (
           <div className="mt-3 border-t border-subtle pt-3">
-            <p className="mb-2 text-[10px] font-semibold tracking-wide text-tertiary uppercase">AI suggestions</p>
+            <p className="mb-2 text-12 font-medium text-tertiary">AI suggestions</p>
             {summary.action_suggestions.map((suggestion) => (
               <Link
                 key={`${suggestion.title}-${suggestion.details}`}
                 href={projectIssuesHref}
                 onClick={(event) => {
-                  if (!window.confirm(`Open Plane work items to create or link “${suggestion.title}”?`))
-                    event.preventDefault();
+                  if (!window.confirm(`Open tasks to create or link “${suggestion.title}”?`)) event.preventDefault();
                 }}
-                className="text-xs block py-1.5 font-medium text-primary hover:text-accent-primary"
+                className="block py-1.5 text-xs font-medium text-primary hover:text-accent-primary"
               >
                 + {suggestion.title}
               </Link>
@@ -164,10 +163,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
           </div>
         ) : null}
         {data.project ? (
-          <Link
-            href={projectIssuesHref}
-            className="mt-3 block text-right text-[11px] font-semibold text-accent-primary"
-          >
+          <Link href={projectIssuesHref} className="mt-3 block text-right text-12 font-semibold text-accent-primary">
             View all tasks →
           </Link>
         ) : null}
@@ -182,8 +178,8 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
                   <Icon className="size-3.5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="text-xs block truncate font-semibold text-primary">{name}</span>
-                  <span className="block text-[10px] text-tertiary">{detail}</span>
+                  <span className="block truncate text-xs font-semibold text-primary">{name}</span>
+                  <span className="block text-12 text-tertiary">{detail}</span>
                 </span>
               </div>
             );
@@ -195,7 +191,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
               <div key={id}>{content}</div>
             );
           })}
-          {!documents.length ? <p className="text-xs py-2 text-tertiary">No related documents available.</p> : null}
+          {!documents.length ? <p className="py-2 text-xs text-tertiary">No related documents available.</p> : null}
         </div>
       </Panel>
 
@@ -230,8 +226,8 @@ function Activity({ icon: Icon, label, detail }: { icon: React.ElementType; labe
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0">
-        <p className="text-xs truncate font-medium text-primary">{label}</p>
-        <p className="mt-0.5 text-[10px] text-tertiary">{detail}</p>
+        <p className="truncate text-xs font-medium text-primary">{label}</p>
+        <p className="mt-0.5 text-12 text-tertiary">{detail}</p>
       </div>
     </div>
   );

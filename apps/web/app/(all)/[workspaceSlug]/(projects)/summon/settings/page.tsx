@@ -9,6 +9,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { CheckCircle2, Copy, PlugZap } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -59,10 +60,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
   };
 
   return (
-    <SummonScreen
-      title="Workspace Settings"
-      description="Plane-owned workspace identity with Summon-specific business settings."
-    >
+    <SummonScreen title="Workspace Settings" description="Workspace identity and business settings.">
       {!data ? (
         <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
       ) : (
@@ -94,17 +92,17 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                     name="description"
                     rows={4}
                     defaultValue={data.description}
-                    className="text-xs w-full rounded-md border border-subtle bg-surface-1 p-2 text-primary"
+                    className={`${FIELD_CLASSNAME} w-full px-3 py-2`}
                   />
                 </SummonField>
               </div>
               <fieldset className="sm:col-span-2">
-                <legend className="text-xs mb-2 font-medium text-secondary">Workweek</legend>
+                <legend className="mb-2 text-xs font-medium text-secondary">Workweek</legend>
                 <div className="flex flex-wrap gap-2">
                   {weekdays.map((day) => (
                     <label
                       key={day}
-                      className="text-xs flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-primary capitalize"
+                      className="flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-xs text-primary capitalize"
                     >
                       <input type="checkbox" name="workweek" value={day} defaultChecked={data.workweek.includes(day)} />
                       {day}
@@ -117,7 +115,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                   Save settings
                 </Button>
                 {saved ? (
-                  <span className="text-xs flex items-center gap-1 text-success-primary">
+                  <span className="flex items-center gap-1 text-xs text-success-primary">
                     <CheckCircle2 className="size-3.5" /> Saved
                   </span>
                 ) : null}
@@ -134,28 +132,26 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                   <h2 className="text-sm font-semibold text-primary">Plane MCP</h2>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-1 text-[10px] font-medium ${mcpStatus?.reachable ? "bg-success-subtle text-success-primary" : "bg-warning-subtle text-warning-primary"}`}
+                  className={`rounded-full px-2 py-1 text-12 font-medium ${mcpStatus?.reachable ? "bg-success-subtle text-success-primary" : "bg-warning-subtle text-warning-primary"}`}
                 >
                   {mcpStatus?.reachable ? "Service reachable" : "Unavailable"}
                 </span>
               </div>
-              <p className="text-xs mt-3 leading-relaxed text-secondary">
+              <p className="mt-3 text-xs leading-relaxed text-secondary">
                 Connect external MCP clients with a Plane personal access token. Tokens are shown only once by Plane and
                 must not be pasted into logs.
               </p>
               <div className="mt-3 rounded-xl bg-layer-1 p-3">
-                <code className="text-[11px] break-all text-primary">
-                  https://&lt;your-domain&gt;/mcp/http/api-key/mcp
-                </code>
+                <code className="text-12 break-all text-primary">https://&lt;your-domain&gt;/mcp/http/api-key/mcp</code>
                 <button
                   type="button"
                   onClick={() => void navigator.clipboard.writeText("/mcp/http/api-key/mcp")}
-                  className="mt-2 flex items-center gap-1 text-[11px] font-medium text-accent-primary"
+                  className="mt-2 flex items-center gap-1 text-12 font-medium text-accent-primary"
                 >
                   <Copy className="size-3" /> Copy path
                 </button>
               </div>
-              <dl className="text-xs mt-3 space-y-2">
+              <dl className="mt-3 space-y-2 text-xs">
                 <div>
                   <dt className="text-tertiary">Authorization</dt>
                   <dd className="mt-0.5 text-primary">Bearer &lt;PAT&gt;</dd>
@@ -168,7 +164,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
               <div className="mt-4 flex gap-2">
                 <Link
                   href={`/${workspaceSlug}/settings/api-tokens`}
-                  className="text-xs rounded-md bg-accent-primary px-3 py-2 font-medium text-white"
+                  className="rounded-md bg-accent-primary px-3 py-2 text-xs font-medium text-white"
                 >
                   Manage API tokens
                 </Link>
@@ -179,16 +175,16 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
             </SummonCard>
             <SummonCard>
               <h2 className="text-sm font-semibold text-primary">Assistant identity</h2>
-              <p className="text-xs mt-2 leading-relaxed text-secondary">
+              <p className="mt-2 text-xs leading-relaxed text-secondary">
                 Store a Plane PAT as provider <strong>Plane MCP PAT</strong> in Credential Vault, then select it in a
                 Summon Assistant conversation. Decryption and tool calls remain server-side.
               </p>
-              <p className="text-xs mt-2 text-secondary">
+              <p className="mt-2 text-xs text-secondary">
                 AI provider: {aiStatus?.configured ? `${aiStatus.provider} · ${aiStatus.model}` : "Not configured"}
               </p>
               <Link
                 href={`/${workspaceSlug}/summon/credentials`}
-                className="text-xs mt-3 inline-block font-medium text-accent-primary"
+                className="mt-3 inline-block text-xs font-medium text-accent-primary"
               >
                 Open Credential Vault →
               </Link>

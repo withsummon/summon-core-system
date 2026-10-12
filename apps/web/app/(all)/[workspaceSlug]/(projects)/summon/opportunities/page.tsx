@@ -10,6 +10,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { Select } from "@plane/propel/select";
 import { Input } from "@plane/ui";
 import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
@@ -32,12 +34,11 @@ import {
   stageCounts,
 } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { summonErrorMessage } from "@/components/summon/screen";
+import { SummonPageHeader, summonErrorMessage, summonPageClassName } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
 import { filterOpportunityRecords } from "../reference-view-model";
 import type { Route } from "./+types/page";
-import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
 
@@ -103,31 +104,35 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
   };
 
   return (
-    <section className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 lg:p-5">
+    <section className={summonPageClassName}>
       <PageHead title="Opportunities · Summon Core" />
-      <header className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h1 className="text-20 font-semibold tracking-tight text-primary">Opportunities</h1>
-          <p className="mt-0.5 text-12 text-secondary tabular-nums">
+      <SummonPageHeader
+        title="Opportunities"
+        description={
+          <span className="tabular-nums">
             {data ? `${data.length} in pipeline · ${counts.get("won") ?? 0} won` : "Loading pipeline"}
-          </p>
-        </div>
-        <div role="search" className="relative w-full min-w-0 sm:w-80">
-          <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-          <Input
-            type="search"
-            aria-label="Search opportunities"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search title, client, product"
-            className="h-10 w-full pl-9"
-          />
-        </div>
-        <Button size="xl" className="h-10" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          New opportunity
-        </Button>
-      </header>
+          </span>
+        }
+        actions={
+          <>
+            <div role="search" className="relative w-full min-w-0 sm:w-80">
+              <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
+              <Input
+                type="search"
+                aria-label="Search opportunities"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search title, client, product"
+                className="w-full pl-9"
+              />
+            </div>
+            <Button size="lg" onClick={() => setCreateOpen(true)}>
+              <Plus />
+              New opportunity
+            </Button>
+          </>
+        }
+      />
 
       <StageFilter
         stage={stage}
@@ -161,11 +166,7 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
                     </Button>
                   ) : null}
                   {stage !== "all" ? (
-                    <Button
-                      size="xl"
-                      variant="secondary"
-                      onClick={() => router.replace(hrefFor({ stage: "all" }))}
-                    >
+                    <Button size="xl" variant="secondary" onClick={() => router.replace(hrefFor({ stage: "all" }))}>
                       Show all stages
                     </Button>
                   ) : null}
@@ -175,7 +176,7 @@ export default function SummonOpportunitiesPage({ params }: Route.ComponentProps
               <div className="vertical-scrollbar min-h-0 flex-1 overflow-y-auto">
                 {groups.map((group) => (
                   <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
-                    <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-11 font-semibold text-secondary backdrop-blur">
+                    <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-12 font-semibold text-secondary backdrop-blur">
                       <span aria-hidden className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`} />
                       {OPPORTUNITY_STAGE_LABEL[group.stage]}
                       <span className="font-normal text-tertiary tabular-nums">{group.items.length}</span>
@@ -244,10 +245,23 @@ function StageFilter(props: {
   const { stage, total, counts } = props;
   return (
     <div className="grid gap-2">
+      <Select
+        aria-label="Filter by stage"
+        value={stage}
+        onValueChange={(next) => props.onSelect(next as TStageFilter)}
+        options={[
+          { value: "all", label: `All stages · ${total}` },
+          ...OPPORTUNITY_STAGES.map((item) => ({
+            value: item,
+            label: `${OPPORTUNITY_STAGE_LABEL[item]} · ${counts.get(item) ?? 0}`,
+          })),
+        ]}
+        className="w-full sm:hidden"
+      />
       <div
         role="group"
         aria-label="Filter by stage"
-        className="-mx-1 scrollbar-hide flex gap-1 overflow-x-auto px-1 py-0.5"
+        className="-mx-1 scrollbar-hide hidden gap-1 overflow-x-auto px-1 py-0.5 sm:flex"
       >
         <FilterChip active={stage === "all"} onClick={() => props.onSelect("all")} label="All" count={total} />
         {OPPORTUNITY_STAGES.map((item) => (
@@ -333,19 +347,23 @@ function OpportunityRow(props: {
           </span>
         </span>
         <span className="flex flex-none flex-col items-end gap-1.5">
-          <span className="text-12 font-medium text-primary tabular-nums">
-            {opportunity.value ? money(opportunity.value) : "—"}
-          </span>
-          <span className="flex items-center gap-1.5 text-11 text-secondary tabular-nums">
-            {opportunity.probability}%
-            <span
-              title={owner || "No owner"}
-              className="grid size-5 place-items-center rounded-full bg-layer-3 text-9 font-semibold text-secondary"
-            >
-              {owner ? initials(owner) : "–"}
-              <span className="sr-only">Owner: {owner || "not assigned"}</span>
+          {opportunity.value ? (
+            <span className="text-12 font-medium text-primary tabular-nums">{money(opportunity.value)}</span>
+          ) : null}
+          {opportunity.probability || owner ? (
+            <span className="flex items-center gap-1.5 text-12 text-secondary tabular-nums">
+              {opportunity.probability ? `${opportunity.probability}%` : null}
+              {owner ? (
+                <span
+                  title={owner}
+                  className="grid size-6 place-items-center rounded-full bg-layer-3 text-12 font-semibold text-secondary"
+                >
+                  {initials(owner)}
+                  <span className="sr-only">Owner: {owner}</span>
+                </span>
+              ) : null}
             </span>
-          </span>
+          ) : null}
         </span>
       </Link>
     </li>
@@ -457,11 +475,7 @@ function CreateOpportunityDialog(props: {
             </SummonField>
             <div className="sm:col-span-2">
               <SummonField label="Description">
-                <textarea
-                  name="description"
-                  rows={3}
-                  className="rounded-md border border-strong bg-surface-1 p-2 text-13 text-primary outline-none focus:border-accent-strong"
-                />
+                <textarea name="description" rows={3} className={`${FIELD_CLASSNAME} w-full px-3 py-2`} />
               </SummonField>
             </div>
           </div>
@@ -471,14 +485,7 @@ function CreateOpportunityDialog(props: {
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              size="xl"
-              variant="secondary"
-              className="h-10"
-              onClick={close}
-              disabled={saving}
-            >
+            <Button type="button" size="xl" variant="secondary" className="h-10" onClick={close} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" size="xl" className="h-10" loading={saving}>

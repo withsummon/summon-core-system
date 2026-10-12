@@ -30,7 +30,8 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
-import { percentage, reportLabel, type TReportFilterParam } from "./report-view-model";
+import { statusLabel } from "@/components/summon/status-label";
+import { percentage, type TReportFilterParam } from "./report-view-model";
 
 type TReportViewProps = {
   workspaceSlug: string;
@@ -86,7 +87,7 @@ export function ReportView(props: TReportViewProps) {
     ? Math.round(data.project_health.reduce((sum, project) => sum + project.completion, 0) / data.project_health.length)
     : 0;
   const projectHealth = ["not_assessed", "on_track", "at_risk", "off_track"].map((health) => ({
-    label: reportLabel(health),
+    label: statusLabel(health),
     count: data.project_health.filter((project) => project.health === health).length,
     color: HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
   }));
@@ -204,8 +205,8 @@ export function ReportView(props: TReportViewProps) {
               <div className="mt-4 flex items-start gap-3 rounded-lg bg-accent-subtle px-3 py-2.5">
                 <Sparkles className="mt-0.5 size-4 shrink-0 text-accent-primary" />
                 <div>
-                  <p className="text-[10px] font-semibold text-accent-primary">Summon Insight</p>
-                  <p className="mt-0.5 text-[10px] text-secondary">
+                  <p className="text-12 font-semibold text-accent-primary">Summon Insight</p>
+                  <p className="mt-0.5 text-12 text-secondary">
                     {data.issues.total
                       ? `${completion}% of authorized work items are complete.`
                       : "No delivery data in this period."}
@@ -223,7 +224,7 @@ export function ReportView(props: TReportViewProps) {
                 <ReportLegend items={projectHealth} />
               </div>
               <div className="mt-4 border-t border-subtle pt-3">
-                <div className="flex items-center justify-between text-[10px]">
+                <div className="flex items-center justify-between text-12">
                   <span className="font-semibold text-primary">Top Attention Needed</span>
                   <Link href={`/${workspaceSlug}/summon/projects/`} className="font-medium text-accent-primary">
                     View all projects →
@@ -234,7 +235,7 @@ export function ReportView(props: TReportViewProps) {
                     <Link
                       key={project.project_id}
                       href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
-                      className="flex items-center justify-between gap-3 py-2 text-[10px]"
+                      className="flex items-center justify-between gap-3 py-2 text-12"
                     >
                       <span className="truncate font-medium text-primary">{project.name}</span>
                       <span className="rounded-md bg-warning-subtle px-2 py-1 font-semibold text-warning-primary">
@@ -243,7 +244,7 @@ export function ReportView(props: TReportViewProps) {
                     </Link>
                   ))}
                   {!attentionProjects.length ? (
-                    <p className="py-3 text-[10px] text-tertiary">No projects currently need attention.</p>
+                    <p className="py-3 text-12 text-tertiary">No projects currently need attention.</p>
                   ) : null}
                 </div>
               </div>
@@ -261,11 +262,11 @@ export function ReportView(props: TReportViewProps) {
               </div>
               <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
                 <div className="pr-3">
-                  <p className="text-[10px] text-secondary">Total Pipeline Value</p>
+                  <p className="text-12 text-secondary">Total Pipeline Value</p>
                   <p className="mt-1 text-lg font-semibold text-primary">{data.commercial.pipeline_value}</p>
                 </div>
                 <div className="pl-3">
-                  <p className="text-[10px] text-secondary">Win Rate</p>
+                  <p className="text-12 text-secondary">Win Rate</p>
                   <p className="mt-1 text-lg font-semibold text-primary">
                     {percentage(wonOpportunities, data.commercial.opportunities)}%
                   </p>
@@ -286,7 +287,7 @@ export function ReportView(props: TReportViewProps) {
                 <PanelHeader title="Investment Disbursement Progress" />
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-[10px]">
+                <table className="w-full min-w-[680px] text-left text-12">
                   <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                     <tr>
                       {["Project", "Client", "Total Investment", "Disbursed", "Progress", "Next Disbursement"].map(
@@ -308,7 +309,7 @@ export function ReportView(props: TReportViewProps) {
                   </tbody>
                 </table>
               </div>
-              <div className="border-t border-subtle px-4 py-3 text-[10px] text-tertiary">
+              <div className="border-t border-subtle px-4 py-3 text-12 text-tertiary">
                 No investment records available
               </div>
             </ReportPanel>
@@ -332,8 +333,8 @@ export function ReportView(props: TReportViewProps) {
                 <MiniMetric label="Client Retention" value="—" detail="No data source" />
               </div>
               <div className="mt-4">
-                <p className="text-[10px] font-semibold text-primary">Top Clients by Revenue (YTD)</p>
-                <div className="mt-2 rounded-lg border border-dashed border-subtle py-10 text-center text-[10px] text-tertiary">
+                <p className="text-12 font-semibold text-primary">Top Clients by Revenue (YTD)</p>
+                <div className="mt-2 rounded-lg border border-dashed border-subtle py-10 text-center text-12 text-tertiary">
                   Revenue attribution is not configured for client records.
                 </div>
               </div>
@@ -354,8 +355,8 @@ export function ReportView(props: TReportViewProps) {
                 <FileSpreadsheet className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[11px] font-semibold text-primary">Current Portfolio Report</span>
-                <span className="mt-1 block text-[10px] text-secondary">CSV · Live data</span>
+                <span className="block truncate text-12 font-semibold text-primary">Current Portfolio Report</span>
+                <span className="mt-1 block text-12 text-secondary">CSV · Live data</span>
               </span>
             </a>
             {["Project Health Report", "Pipeline Report", "Investment Report", "Client Performance Report"].map(
@@ -368,8 +369,8 @@ export function ReportView(props: TReportViewProps) {
                     <FileSpreadsheet className="size-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-[11px] font-semibold text-primary">{name}</span>
-                    <span className="mt-1 block text-[10px] text-tertiary">Not generated</span>
+                    <span className="block truncate text-12 font-semibold text-primary">{name}</span>
+                    <span className="mt-1 block text-12 text-tertiary">Not generated</span>
                   </span>
                 </div>
               )
@@ -386,11 +387,11 @@ function PanelHeader(props: { title: string; href?: string; label?: string }) {
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
       {props.href ? (
-        <Link href={props.href} className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary">
+        <Link href={props.href} className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
           {props.label || "View detail"} <ArrowRight className="size-3" />
         </Link>
       ) : (
-        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-primary">
+        <span className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
           View detail <ArrowRight className="size-3" />
         </span>
       )}
@@ -401,9 +402,9 @@ function PanelHeader(props: { title: string; href?: string; label?: string }) {
 function MiniMetric(props: { label: string; value: ReactNode; detail: string }) {
   return (
     <div className="rounded-lg border border-subtle p-3">
-      <p className="text-[10px] text-secondary">{props.label}</p>
+      <p className="text-12 text-secondary">{props.label}</p>
       <p className="mt-1 text-lg font-semibold text-primary">{props.value}</p>
-      <p className="mt-1 truncate text-[9px] text-tertiary">{props.detail}</p>
+      <p className="mt-1 truncate text-12 text-tertiary">{props.detail}</p>
     </div>
   );
 }

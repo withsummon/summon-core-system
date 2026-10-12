@@ -8,7 +8,8 @@ import React from "react";
 import Link from "next/link";
 import { AlertCircle, CheckCircle, Clock, FolderGit2 } from "lucide-react";
 import type { ISummonHomeSummary } from "@plane/types";
-import { projectHealthLabel, projectHealthTone } from "@/components/summon/projects/project-workspace";
+import { projectHealthTone } from "@/components/summon/projects/project-workspace";
+import { statusLabel } from "@/components/summon/status-label";
 
 interface IActiveProjectsMatrixProps {
   projects: ISummonHomeSummary["projects"];
@@ -24,7 +25,7 @@ const getHealthBadge = (health: string) => {
     normalizedHealth.includes("excellent")
   ) {
     return (
-      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-12 font-semibold">
         <CheckCircle className="size-3" />
         On Track
       </span>
@@ -32,7 +33,7 @@ const getHealthBadge = (health: string) => {
   }
   if (normalizedHealth.includes("risk") || normalizedHealth.includes("attention")) {
     return (
-      <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+      <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-12 font-semibold">
         <AlertCircle className="size-3" />
         At Risk
       </span>
@@ -41,17 +42,17 @@ const getHealthBadge = (health: string) => {
   const tone = projectHealthTone(health);
   return (
     <span
-      className={`${tone === "neutral" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold`}
+      className={`${tone === "neutral" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-12 font-semibold`}
     >
       <Clock className="size-3" />
-      {projectHealthLabel(health)}
+      {statusLabel(health)}
     </span>
   );
 };
 
 export function ActiveProjectsMatrix({ projects, workspaceSlug, onSelect }: IActiveProjectsMatrixProps) {
   return (
-    <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 flex size-7 items-center justify-center rounded-lg">
@@ -59,7 +60,7 @@ export function ActiveProjectsMatrix({ projects, workspaceSlug, onSelect }: IAct
           </div>
           <div>
             <h2 className="text-sm font-bold text-primary">Active Projects Health</h2>
-            <p className="text-[11px] text-tertiary">Real-time completion and delivery progress</p>
+            <p className="text-12 text-tertiary">Real-time completion and delivery progress</p>
           </div>
         </div>
         <Link
@@ -77,15 +78,13 @@ export function ActiveProjectsMatrix({ projects, workspaceSlug, onSelect }: IAct
               key={project.id}
               type="button"
               onClick={() => onSelect(project.id)}
-              className="group hover:border-accent-primary/40 hover:shadow-xs flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-3.5 transition-all hover:bg-layer-2"
+              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-3.5 transition-all hover:bg-layer-2 hover:shadow-xs"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="tracking-wider text-[10px] font-bold text-secondary uppercase">
-                      {project.identifier}
-                    </span>
-                    <h3 className="text-xs mt-0.5 truncate font-bold text-primary group-hover:text-accent-primary">
+                    <span className="text-12 font-medium text-tertiary">{project.identifier}</span>
+                    <h3 className="mt-0.5 truncate text-xs font-bold text-primary group-hover:text-accent-primary">
                       {project.name}
                     </h3>
                   </div>
@@ -94,7 +93,7 @@ export function ActiveProjectsMatrix({ projects, workspaceSlug, onSelect }: IAct
               </div>
 
               <div className="mt-4">
-                <div className="flex items-center justify-between text-[11px] font-medium text-secondary">
+                <div className="flex items-center justify-between text-12 font-medium text-secondary">
                   <span>Progress</span>
                   <span className="font-bold text-primary">{project.completion}%</span>
                 </div>
@@ -108,7 +107,7 @@ export function ActiveProjectsMatrix({ projects, workspaceSlug, onSelect }: IAct
             </button>
           ))
         ) : (
-          <div className="text-xs col-span-2 py-6 text-center text-tertiary">
+          <div className="col-span-2 py-6 text-center text-xs text-tertiary">
             No active projects available in this workspace.
           </div>
         )}

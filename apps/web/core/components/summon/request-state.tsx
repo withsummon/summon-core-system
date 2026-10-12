@@ -4,6 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import type { ReactNode } from "react";
+import { Inbox } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@plane/propel/button";
 
 export function SummonRequestState(props: {
@@ -11,6 +14,9 @@ export function SummonRequestState(props: {
   error?: unknown;
   empty?: boolean;
   emptyMessage?: string;
+  emptyTitle?: string;
+  emptyIcon?: LucideIcon;
+  emptyAction?: ReactNode;
   validationError?: string;
   permissionError?: boolean;
   permissionMessage?: string;
@@ -20,7 +26,10 @@ export function SummonRequestState(props: {
     loading,
     error,
     empty,
-    emptyMessage = "No records yet.",
+    emptyMessage = "Nothing here yet.",
+    emptyTitle,
+    emptyIcon: EmptyIcon = Inbox,
+    emptyAction,
     validationError,
     permissionError,
     permissionMessage = "You do not have permission to view this module.",
@@ -28,17 +37,14 @@ export function SummonRequestState(props: {
   } = props;
   if (loading)
     return (
-      <div
-        className="text-sm rounded-xl border border-subtle bg-surface-1 p-6 text-center text-secondary"
-        role="status"
-      >
-        Loading Summon data…
+      <div className="grid place-items-center rounded-xl px-6 py-10 text-13 text-tertiary" role="status">
+        Loading…
       </div>
     );
   if (validationError)
     return (
       <div
-        className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary"
+        className="rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-sm text-danger-primary"
         role="alert"
       >
         {validationError}
@@ -47,7 +53,7 @@ export function SummonRequestState(props: {
   if (permissionError)
     return (
       <div
-        className="text-sm rounded-xl border border-warning-subtle bg-warning-subtle/20 p-4 text-warning-primary"
+        className="rounded-xl border border-warning-subtle bg-warning-subtle/20 p-4 text-sm text-warning-primary"
         role="alert"
       >
         {permissionMessage}
@@ -56,7 +62,7 @@ export function SummonRequestState(props: {
   if (error)
     return (
       <div
-        className="text-sm rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-danger-primary"
+        className="rounded-xl border border-danger-subtle bg-danger-subtle/20 p-4 text-sm text-danger-primary"
         role="alert"
       >
         <p>Could not load this module. Check your access or try again.</p>
@@ -69,8 +75,13 @@ export function SummonRequestState(props: {
     );
   if (empty)
     return (
-      <div className="text-sm rounded-xl border border-dashed border-subtle bg-surface-1 p-8 text-center text-secondary">
-        {emptyMessage}
+      <div className="flex flex-col items-center rounded-xl bg-dot-grid px-6 py-10 text-center">
+        <span className="grid size-8 place-items-center rounded-lg bg-surface-1 text-tertiary shadow-raised-100 ring ring-subtle">
+          <EmptyIcon aria-hidden className="size-4" />
+        </span>
+        {emptyTitle ? <p className="mt-3 text-14 font-medium text-primary">{emptyTitle}</p> : null}
+        <p className={`${emptyTitle ? "mt-1" : "mt-3"} max-w-sm text-13 text-tertiary`}>{emptyMessage}</p>
+        {emptyAction ? <div className="mt-4">{emptyAction}</div> : null}
       </div>
     );
   return null;

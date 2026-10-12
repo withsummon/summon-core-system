@@ -18,6 +18,8 @@ export const ModulesListMobileHeader = observer(function ModulesListMobileHeader
   const { updateDisplayFilters } = useModuleFilter();
   const { t } = useTranslation();
 
+  if (currentProjectDetails?.module_view === false) return null;
+
   return (
     <div className="flex justify-start md:hidden">
       <CustomMenu

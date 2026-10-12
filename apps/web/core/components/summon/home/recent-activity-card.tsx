@@ -16,7 +16,7 @@ interface IRecentActivityCardProps {
 
 export function RecentActivityCard({ recentActivity }: IRecentActivityCardProps) {
   return (
-    <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex size-7 items-center justify-center rounded-lg">
@@ -24,7 +24,7 @@ export function RecentActivityCard({ recentActivity }: IRecentActivityCardProps)
           </div>
           <div>
             <h3 className="text-sm font-bold text-primary">Workspace Activity</h3>
-            <p className="text-[11px] text-tertiary">Real-time updates and operational events</p>
+            <p className="text-12 text-tertiary">Real-time updates and operational events</p>
           </div>
         </div>
       </div>
@@ -38,10 +38,10 @@ export function RecentActivityCard({ recentActivity }: IRecentActivityCardProps)
               className="group flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-layer-1"
             >
               <div className="min-w-0">
-                <p className="text-xs truncate font-semibold text-primary group-hover:text-accent-primary">
+                <p className="truncate text-xs font-semibold text-primary group-hover:text-accent-primary">
                   {activity.label}
                 </p>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-tertiary">
+                <div className="mt-0.5 flex items-center gap-1.5 text-12 text-tertiary">
                   <Clock className="size-3" />
                   <time dateTime={activity.created_at}>{activity.created_at.slice(0, 10)}</time>
                 </div>
@@ -50,7 +50,7 @@ export function RecentActivityCard({ recentActivity }: IRecentActivityCardProps)
             </Link>
           ))
         ) : (
-          <div className="text-xs py-4 text-center text-tertiary">No recent activity logged.</div>
+          <div className="py-4 text-center text-xs text-tertiary">No recent activity logged.</div>
         )}
       </div>
     </div>

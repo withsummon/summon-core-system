@@ -42,6 +42,8 @@ export const CyclesListMobileHeader = observer(function CyclesListMobileHeader()
   const { currentProjectDetails } = useProject();
   // hooks
   const { updateDisplayFilters } = useCycleFilter();
+  if (currentProjectDetails?.cycle_view === false) return null;
+
   return (
     <div className="flex justify-center sm:hidden">
       <CustomMenu

@@ -30,12 +30,11 @@ import {
   Users,
 } from "lucide-react";
 import type { ISummonMeeting } from "@plane/types";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Avatar } from "@plane/ui";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
-import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { MeetingDetailMeta } from "./meeting-detail-meta";
@@ -84,7 +83,6 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   onUploadRecording,
   onRegenerate,
 }: Props) {
-  const { sidebarCollapsed } = useAppTheme();
   const [section, setSection] = useState("overview");
   const [search, setSearch] = useState("");
   const [showAllTranscript, setShowAllTranscript] = useState(false);
@@ -117,8 +115,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
       <PageHead title={`${data.title} · Summon Core`} />
       <main id="overview" className="mx-auto min-h-full w-full max-w-[1680px] bg-surface-2">
         <header className="border-b border-subtle bg-surface-1 px-5 pt-4 lg:px-8">
-          <div className="flex items-center gap-2 text-[11px] font-medium text-secondary">
-            {sidebarCollapsed ? <AppSidebarToggleButton /> : null}
+          <div className="flex items-center gap-2 text-12 font-medium text-secondary">
             <Link href={`/${workspaceSlug}/summon/meetings/`} className="hover:text-primary">
               Meetings
             </Link>
@@ -128,8 +125,8 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-2xl font-semibold tracking-tight text-primary">{data.title}</h1>
-                <span className="rounded-md bg-accent-subtle px-2 py-1 text-[10px] font-semibold text-accent-primary capitalize">
+                <h1 className="text-20 font-semibold tracking-tight text-primary">{data.title}</h1>
+                <span className="rounded-md bg-accent-subtle px-2 py-1 text-12 font-semibold text-accent-primary capitalize">
                   {data.status}
                 </span>
               </div>
@@ -146,7 +143,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   "Workspace meeting"
                 )}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-secondary">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-12 text-secondary">
                 <Meta icon={CalendarDays}>{date(data.starts_at)}</Meta>
                 <Meta icon={Clock3}>
                   {time(data.starts_at)}
@@ -212,12 +209,12 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                     <a
                       href={data.recording_asset_detail.url}
                       download
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-[11px] font-semibold text-primary"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-12 font-semibold text-primary"
                     >
                       <Download className="size-3.5" /> Download
                     </a>
                   ) : null}
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-[11px] font-semibold text-primary">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-12 font-semibold text-primary">
                     <Upload className="size-3.5" /> {uploadingRecording ? "Uploading…" : "Upload audio"}
                     <input
                       type="file"
@@ -240,7 +237,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                 </audio>
               ) : (
                 <p className="text-xs text-tertiary">
-                  {data.summary_error === "transcribing" ? "Audio sedang ditranskripsi…" : "No recording attached."}
+                  {data.summary_error === "transcribing" ? "Transcribing audio…" : "No recording attached."}
                 </p>
               )}
             </Card>
@@ -257,14 +254,15 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                       placeholder="Search in transcript..."
-                      className="focus:border-accent-primary h-8 w-56 rounded-lg border border-subtle bg-surface-1 pr-3 pl-8 text-[11px] text-primary outline-none"
+                      aria-label="Search transcript"
+                      className={`${FIELD_CLASSNAME} h-8 w-56 pr-3 pl-8`}
                     />
                   </label>
                   <button
                     type="button"
                     disabled
                     title="Speaker labels are not available for this transcript"
-                    className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-lg border border-subtle px-3 text-[11px] text-secondary opacity-60"
+                    className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-lg border border-subtle px-3 text-12 text-secondary opacity-60"
                   >
                     All Speakers <ChevronDown className="size-3" />
                   </button>
@@ -278,8 +276,8 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                       <div className="flex items-center gap-2.5">
                         <Avatar size={28} name="Transcript" />
                         <div>
-                          <p className="text-[11px] font-semibold text-primary">Transcript</p>
-                          <p className="text-[10px] text-tertiary">Speaker not identified</p>
+                          <p className="text-12 font-semibold text-primary">Transcript</p>
+                          <p className="text-12 text-tertiary">Speaker not identified</p>
                         </div>
                       </div>
                       <p className="text-xs leading-5 text-secondary">{line}</p>
@@ -293,7 +291,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                 <button
                   type="button"
                   onClick={() => setShowAllTranscript((value) => !value)}
-                  className="mx-auto mt-3 flex items-center gap-1 text-[11px] font-semibold text-secondary"
+                  className="mx-auto mt-3 flex items-center gap-1 text-12 font-semibold text-secondary"
                 >
                   {showAllTranscript ? "Show Less" : "Show More"} <ChevronDown className="size-3" />
                 </button>

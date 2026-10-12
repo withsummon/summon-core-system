@@ -7,6 +7,7 @@
 import React, { useState } from "react";
 import { X, Plus, Link2 } from "lucide-react";
 import type { ICreateResourcePayload } from "./types";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 
@@ -81,13 +82,13 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 p-6">
           {error && (
-            <div className="bg-red-500/10 text-xs text-red-600 dark:text-red-400 rounded-lg p-2.5 font-semibold">
+            <div className="bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg p-2.5 text-xs font-semibold">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="resource-title" className="text-xs block font-semibold text-primary">
+            <label htmlFor="resource-title" className="block text-xs font-semibold text-primary">
               Resource Title *
             </label>
             <input
@@ -97,12 +98,12 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Technical Proposal - BSB v1.2.pdf"
-              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
+              className={`${FIELD_CLASSNAME} mt-1 h-9 w-full px-3`}
             />
           </div>
 
           <div>
-            <label htmlFor="resource-url" className="text-xs block font-semibold text-primary">
+            <label htmlFor="resource-url" className="block text-xs font-semibold text-primary">
               External URL *
             </label>
             <input
@@ -112,13 +113,13 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
+              className={`${FIELD_CLASSNAME} mt-1 h-9 w-full px-3`}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="resource-category" className="text-xs block font-semibold text-primary">
+              <label htmlFor="resource-category" className="block text-xs font-semibold text-primary">
                 Category / Type
               </label>
               <Select
@@ -139,7 +140,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             </div>
 
             <div>
-              <label htmlFor="resource-project" className="text-xs block font-semibold text-primary">
+              <label htmlFor="resource-project" className="block text-xs font-semibold text-primary">
                 Linked Project
               </label>
               <Select
@@ -156,7 +157,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
           </div>
 
           <div>
-            <label htmlFor="resource-description" className="text-xs block font-semibold text-primary">
+            <label htmlFor="resource-description" className="block text-xs font-semibold text-primary">
               Description (Optional)
             </label>
             <textarea
@@ -165,7 +166,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Context or notes about this resource..."
-              className="focus:border-accent-primary mt-1 w-full rounded-lg border border-subtle bg-layer-1 p-2 text-12 text-primary focus:outline-none"
+              className={`${FIELD_CLASSNAME} mt-1 w-full px-3 py-2`}
             />
           </div>
 
@@ -173,14 +174,14 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             <button
               type="button"
               onClick={onClose}
-              className="text-xs rounded-lg border border-subtle bg-surface-1 px-4 py-2 font-semibold text-secondary hover:bg-layer-1 hover:text-primary"
+              className="rounded-lg border border-subtle bg-surface-1 px-4 py-2 text-xs font-semibold text-secondary hover:bg-layer-1 hover:text-primary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="text-xs shadow-sm flex items-center gap-1.5 rounded-lg bg-accent-primary px-5 py-2 font-bold text-white hover:bg-accent-primary/90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-accent-primary px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-accent-primary/90 disabled:opacity-50"
             >
               <Plus className="size-3.5" />
               {isSubmitting ? "Saving..." : "Save Resource"}

@@ -22,6 +22,7 @@ export interface IThemeStore {
   // actions
   toggleAnySidebarDropdown: (open?: boolean) => void;
   toggleSidebar: (collapsed?: boolean) => void;
+  syncSidebarToViewport: (isMobile: boolean) => void;
   toggleSidebarPeek: (peek?: boolean) => void;
   toggleExtendedSidebar: (collapsed?: boolean) => void;
   toggleExtendedProjectSidebar: (collapsed?: boolean) => void;
@@ -64,6 +65,7 @@ export class ThemeStore implements IThemeStore {
       // action
       toggleAnySidebarDropdown: action,
       toggleSidebar: action,
+      syncSidebarToViewport: action,
       toggleSidebarPeek: action,
       toggleExtendedSidebar: action,
       toggleExtendedProjectSidebar: action,
@@ -95,6 +97,14 @@ export class ThemeStore implements IThemeStore {
       this.sidebarCollapsed = collapsed;
     }
     localStorage.setItem("app_sidebar_collapsed", this.sidebarCollapsed.toString());
+  };
+
+  /**
+   * Phone widths close the sidebar without remembering it; wider widths restore the user's own choice.
+   * Only `toggleSidebar` (an explicit user action) writes the remembered value.
+   */
+  syncSidebarToViewport = (isMobile: boolean) => {
+    this.sidebarCollapsed = isMobile ? true : localStorage.getItem("app_sidebar_collapsed") === "true";
   };
 
   /**

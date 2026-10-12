@@ -99,12 +99,12 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
 
       {state.kind === "linked" ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="grid size-9 flex-none place-items-center rounded-lg bg-accent-subtle text-11 font-semibold text-accent-primary">
+          <span className="grid size-9 flex-none place-items-center rounded-lg bg-accent-subtle text-12 font-semibold text-accent-primary">
             {state.project.identifier.slice(0, 3)}
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-12 font-semibold text-primary">{state.project.name}</p>
-            <p className="mt-0.5 text-11 text-secondary">Delivery project · {state.project.identifier}</p>
+            <p className="mt-0.5 text-12 text-secondary">Delivery project · {state.project.identifier}</p>
           </div>
           <Link
             href={`/${workspaceSlug}/projects/${state.project.id}/issues/`}
@@ -142,7 +142,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
             <Button size="lg" disabled={!selectedClient || busy} loading={busy} onClick={() => void saveClient()}>
               Save client
             </Button>
-            <Link href={`/${workspaceSlug}/summon/clients/`} className="text-11 font-medium text-accent-primary">
+            <Link href={`/${workspaceSlug}/summon/clients/`} className="text-12 font-medium text-accent-primary">
               Add a client
             </Link>
           </div>
@@ -152,7 +152,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
       {state.kind === "ready" && !unlinkedProjectId ? (
         <div className="mt-2 grid gap-3">
           <p className="text-12 text-secondary">
-            Create a Plane project for {opportunity.client_detail?.name || "this client"}, or link one you manage.
+            Create a project for {opportunity.client_detail?.name || "this client"}, or link one you manage.
           </p>
           {mode === "choose" ? (
             <div className="flex flex-wrap gap-2">
@@ -206,7 +206,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
             </Button>
             <Link
               href={`/${workspaceSlug}/summon/projects/${unlinkedProjectId}/`}
-              className="text-11 font-medium text-accent-primary"
+              className="text-12 font-medium text-accent-primary"
             >
               Open project
             </Link>

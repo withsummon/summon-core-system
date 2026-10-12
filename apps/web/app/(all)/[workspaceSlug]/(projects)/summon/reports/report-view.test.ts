@@ -11,17 +11,11 @@ const modelUrl = `data:text/javascript;base64,${Buffer.from(
 ).toString("base64")}`;
 // SAFETY: The loaded module is a direct TypeScript transpilation of report-view-model.ts above.
 const model = (await import(modelUrl)) as typeof import("./report-view-model");
-const { percentage, readReportFilters, reportLabel, reportRequestKey, trendPolylinePoints, updateReportFilter } = model;
+const { percentage, readReportFilters, reportRequestKey, trendPolylinePoints, updateReportFilter } = model;
 
 test("report percentages handle empty and populated totals", () => {
   assert.equal(percentage(0, 0), 0);
   assert.equal(percentage(3, 4), 75);
-});
-
-test("report status labels expose meaning beyond color", () => {
-  assert.equal(reportLabel("on_track"), "On track");
-  assert.equal(reportLabel("not_assessed"), "Belum dinilai");
-  assert.equal(reportLabel("in-progress"), "In progress");
 });
 
 test("report filters round-trip through the URL and request key", () => {

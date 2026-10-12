@@ -17,7 +17,7 @@ import {
 import { useTranslation } from "@plane/i18n";
 import { joinUrlPath } from "@plane/utils";
 // components
-import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
+import { SettingsSidebarItem, isSettingsPathActive } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
@@ -49,10 +49,11 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
             </div>
             <div className="flex flex-col">
               {accessibleItems.map((item) => {
-                const isItemActive =
+                const isItemActive = isSettingsPathActive(
+                  pathname,
+                  `/${workspaceSlug}${item.href}`,
                   item.href === "/settings"
-                    ? pathname === `/${workspaceSlug}${item.href}/`
-                    : new RegExp(`^/${workspaceSlug}${item.href}/`).test(pathname);
+                );
 
                 return (
                   <SettingsSidebarItem

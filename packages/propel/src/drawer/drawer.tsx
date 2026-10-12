@@ -40,11 +40,30 @@ const popupEdge = {
  * the click immediately; exit is a slower symmetric ease back to the same edge so the panel
  * leaves gracefully the way it came.
  */
+const PHONE_QUERY = "(max-width: 767px)";
+
+/** `"auto"`: a right-side drawer from md up, a bottom sheet on a phone. */
+function useDrawerSide(side: TDrawerSide | "auto"): TDrawerSide {
+  const isPhone = React.useSyncExternalStore(
+    (onChange) => {
+      if (side !== "auto") return () => {};
+      const query = window.matchMedia(PHONE_QUERY);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => side === "auto" && window.matchMedia(PHONE_QUERY).matches,
+    () => false
+  );
+  if (side !== "auto") return side;
+  return isPhone ? "bottom" : "right";
+}
+
 export function Drawer({
-  side = "right",
+  side: sideProp = "right",
   swipeDirection: swipeDirectionProp,
   ...props
-}: DrawerPrimitive.Root.Props & { side?: TDrawerSide }) {
+}: DrawerPrimitive.Root.Props & { side?: TDrawerSide | "auto" }) {
+  const side = useDrawerSide(sideProp);
   return (
     <DrawerSideContext.Provider value={side}>
       <DrawerPrimitive.Root swipeDirection={swipeDirectionProp ?? swipeDirection[side]} {...props} />
@@ -65,6 +84,8 @@ export const DrawerContent = React.forwardRef(function DrawerContent(
 ) {
   const side = React.useContext(DrawerSideContext);
   const position = container ? "absolute" : "fixed";
+  // A body-mounted drawer covers the app chrome (top bar z-27); dialogs (z-90+) and menus still stack above it.
+  const layer = container ? "z-[25]" : "z-[80]";
 
   return (
     <DrawerPrimitive.Portal container={container}>
@@ -72,12 +93,13 @@ export const DrawerContent = React.forwardRef(function DrawerContent(
         <DrawerPrimitive.Backdrop
           className={cn(
             position,
-            "inset-0 z-[25] bg-backdrop opacity-0 transition-opacity duration-200 ease-out data-[ending-style]:opacity-0 data-[open]:opacity-100 data-[starting-style]:opacity-0 motion-reduce:transition-none"
+            layer,
+            "inset-0 bg-backdrop opacity-0 transition-opacity duration-200 ease-out data-[ending-style]:opacity-0 data-[open]:opacity-100 data-[starting-style]:opacity-0 motion-reduce:transition-none"
           )}
         />
       )}
       <DrawerPrimitive.Viewport
-        className={cn(position, "pointer-events-none inset-0 z-[25] flex", viewportAlign[side], viewportClassName)}
+        className={cn(position, layer, "pointer-events-none inset-0 flex", viewportAlign[side], viewportClassName)}
       >
         <DrawerPrimitive.Popup
           ref={ref}

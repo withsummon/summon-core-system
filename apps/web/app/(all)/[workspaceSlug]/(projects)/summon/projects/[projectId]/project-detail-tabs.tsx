@@ -9,10 +9,11 @@ import {
   RocketLaunchIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
-import { ArrowUpRight, Download, FileText } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Download, FileText } from "lucide-react";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import type { ISummonProjectOverview } from "@plane/types";
 import { filterProjectResources } from "@/components/summon/projects/project-workspace";
+import { StatusBadge } from "@/components/summon/status-badge";
 
 export type TProjectTab =
   | "overview"
@@ -54,9 +55,15 @@ export function ProjectDetailTab(props: {
           <Row
             key={issue.id}
             href={`/${workspaceSlug}/projects/${projectId}/issues/${issue.id}/`}
-            title={`${issue.project.identifier}-${issue.sequence_id} · ${issue.name}`}
-            detail={issue.state?.name || "State not set"}
-            badge={issue.completed ? "Completed" : "Open"}
+            title={issue.name}
+            detail={`${issue.project.identifier}-${issue.sequence_id}`}
+            badge={
+              issue.state ? (
+                <StatusBadge status={issue.state.group} label={issue.state.name} />
+              ) : (
+                <StatusBadge status="backlog" label="No state" />
+              )
+            }
           />
         ))}
         {!overview.issues.length && <Empty text="No tasks yet." />}
@@ -72,7 +79,7 @@ export function ProjectDetailTab(props: {
             href={item.href}
             title={item.name}
             detail={`Target ${formatDate(item.target_date)}`}
-            badge={`${item.completion}%`}
+            badge={<span className="text-12 text-secondary tabular-nums">{item.completion}%</span>}
           />
         ))}
         {!overview.milestones.length && <Empty text="No modules or cycles yet." />}
@@ -126,7 +133,7 @@ export function ProjectDetailTab(props: {
           key={file.id}
           href={file.url}
           download
-          className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
         >
           <FileText className="size-4 shrink-0 text-accent-primary" />
           <span className="min-w-0 flex-1">
@@ -159,17 +166,18 @@ function TabPanel({ title, manageHref, children }: { title: string; manageHref?:
   );
 }
 
-function Row({ href, title, detail, badge }: { href: string; title: string; detail: string; badge?: string }) {
+function Row({ href, title, detail, badge }: { href: string; title: string; detail: string; badge?: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
     >
       <span className="min-w-0 flex-1">
         <strong className="block text-sm font-medium break-words text-primary">{title}</strong>
         <small className="text-xs text-secondary">{detail}</small>
       </span>
-      {badge && <span className="rounded-full bg-layer-1 px-2 py-1 text-xs text-secondary">{badge}</span>}
+      {badge}
+      <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-tertiary" />
     </Link>
   );
 }
@@ -180,7 +188,7 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-3 border-b border-subtle py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
+      className="-mx-2 flex items-center gap-3 rounded-md border-b border-subtle px-2 py-3 last:border-0 hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
     >
       <span className="min-w-0 flex-1">
         <strong className="block text-sm font-medium break-words text-primary">{title}</strong>

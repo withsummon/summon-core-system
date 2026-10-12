@@ -9,7 +9,6 @@ export * from "./resources-root";
 export * from "./resource-icon";
 export * from "./resource-badge";
 export * from "./category-cards-row";
-export * from "./quick-access-card";
 export * from "./recent-files-card";
 export * from "./credentials-sidebar-card";
 export * from "./add-resource-modal";

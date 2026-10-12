@@ -35,6 +35,7 @@ import { Collapsible } from "@plane/propel/collapsible";
 import { getFileURL } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonPageHeader } from "@/components/summon/screen";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
@@ -131,22 +132,26 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   return (
     <section className="flex min-h-full min-w-0 flex-col bg-surface-1">
       <PageHead title="Tasks · Summon Core" />
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-base font-semibold text-primary">Tasks</h1>
-          <span className="text-13 text-secondary tabular-nums" role="status">
-            {!isLoading && !error && filtered.length}
-          </span>
-        </div>
-        <Button
-          size="base"
-          prependIcon={<Plus aria-hidden="true" />}
-          disabled={!canCreate}
-          onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT)}
-        >
-          New task
-        </Button>
-      </header>
+      <div className="border-b border-subtle px-4 py-3 sm:px-6">
+        <SummonPageHeader
+          title="Tasks"
+          description={
+            <span className="tabular-nums" role="status">
+              {isLoading || error ? "\u00a0" : `${filtered.length} ${filtered.length === 1 ? "task" : "tasks"}`}
+            </span>
+          }
+          actions={
+            <Button
+              size="lg"
+              prependIcon={<Plus aria-hidden="true" />}
+              disabled={!canCreate}
+              onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT)}
+            >
+              New task
+            </Button>
+          }
+        />
+      </div>
       <Tabs
         variant="underline"
         value={scope}

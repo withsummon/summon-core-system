@@ -36,12 +36,6 @@ export const reportRequestKey = (workspaceSlug: string, filters: ISummonReportFi
     filters.dateTo ?? "",
   ] as const;
 
-export function reportLabel(value: string) {
-  if (value === "not_assessed") return "Belum dinilai";
-  const label = value.replaceAll(/[_-]+/g, " ");
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
 export function trendPolylinePoints(values: number[], width = 320, height = 80) {
   if (values.length === 0) return "";
   const max = Math.max(1, ...values);

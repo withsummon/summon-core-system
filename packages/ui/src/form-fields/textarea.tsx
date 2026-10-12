@@ -7,6 +7,7 @@
 import React, { useRef } from "react";
 // helpers
 import { useAutoResizeTextArea } from "../hooks/use-auto-resize-textarea";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { cn } from "../utils";
 // hooks
 
@@ -43,9 +44,9 @@ const TextArea = React.forwardRef(function TextArea(
       ref={textAreaRef}
       value={value}
       className={cn(
-        "no-scrollbar w-full bg-layer-2 placeholder-(--text-color-placeholder) outline-none",
+        "no-scrollbar w-full bg-layer-2 text-13 placeholder-(--text-color-placeholder) outline-none",
         {
-          "rounded-md border-[0.5px] border-subtle-1": mode === "primary",
+          [FIELD_CLASSNAME]: mode === "primary",
           "focus:ring-theme rounded-sm border-none bg-transparent ring-0 transition-all focus:ring-1":
             mode === "transparent",
           "rounded-sm border-none bg-transparent ring-0": mode === "true-transparent",

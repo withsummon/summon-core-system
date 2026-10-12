@@ -8,6 +8,7 @@ import { memo, useState } from "react";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Calendar } from "../calendar/root";
 import { CloseIcon } from "../icons/actions/close-icon";
+import { FIELD_CLASSNAME } from "../input/field";
 import { cn } from "../utils/classname";
 
 /** Dates travel as local calendar days in `YYYY-MM-DD`, the same format a native date input submits. */
@@ -73,9 +74,9 @@ export const DatePicker = memo(function DatePicker({
           disabled={disabled}
           data-slot="date-picker-trigger"
           className={cn(
-            "flex h-full w-full min-w-0 items-center gap-2 rounded-md border border-strong bg-surface-1 px-3 text-left text-13 outline-none",
-            "transition-[border-color,background-color] duration-150 hover:bg-layer-1 focus-visible:border-accent-strong focus-visible:ring-2 focus-visible:ring-accent-strong/30",
-            "disabled:cursor-not-allowed disabled:opacity-60 data-[popup-open]:border-accent-strong motion-reduce:transition-none",
+            FIELD_CLASSNAME,
+            "flex h-full w-full min-w-0 items-center gap-2 px-3 text-left hover:bg-layer-2-hover",
+            "disabled:cursor-not-allowed disabled:opacity-60 data-[popup-open]:border-accent-strong",
             clearable && value ? "pr-9" : ""
           )}
           {...aria}

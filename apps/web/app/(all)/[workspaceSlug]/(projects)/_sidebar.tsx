@@ -24,6 +24,7 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
   const {
     sidebarCollapsed,
     toggleSidebar,
+    syncSidebarToViewport,
     sidebarPeek,
     toggleSidebarPeek,
     isExtendedSidebarOpened,
@@ -38,11 +39,9 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
   const [viewportWidth] = useSize();
   const isMobile = viewportWidth < 768;
   useEffect(() => {
-    if (isMobile) {
-      toggleSidebar(true);
-      toggleSidebarPeek(false);
-    }
-  }, [isMobile, pathname, toggleSidebar, toggleSidebarPeek]);
+    syncSidebarToViewport(isMobile);
+    if (isMobile) toggleSidebarPeek(false);
+  }, [isMobile, pathname, syncSidebarToViewport, toggleSidebarPeek]);
   // derived values
   const isAnyExtendedSidebarOpen = isExtendedSidebarOpened;
 

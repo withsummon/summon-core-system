@@ -7,11 +7,14 @@
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Search, FileText, FolderGit2, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
+import { Search, FileText, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { useProject } from "@/hooks/store/use-project";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { getButtonStyling } from "@plane/propel/button";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
+import { SummonMetric, SummonMetricStrip, SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 
 interface IDocumentsRootProps {
   workspaceSlug: string;
@@ -57,77 +60,28 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
   }, [pages, searchQuery, selectedProjectId]);
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">Documents & Knowledge Base</h1>
-          <p className="text-xs font-medium text-secondary">
-            Indexed Plane Pages, collaborative project specifications, and enterprise documentation
-          </p>
-        </div>
+    <div className={summonPageClassName}>
+      <SummonPageHeader
+        title="Documents"
+        description="Project pages, specifications and shared documentation"
+        actions={
+          <>
+            <Link href={`/${workspaceSlug}/summon/automation/`} className={getButtonStyling("secondary", "lg")}>
+              <Sparkles className="text-accent-primary" />
+              Generate document
+            </Link>
+            <Link href={`/${workspaceSlug}/summon/reports/`} className={getButtonStyling("primary", "lg")}>
+              <Plus />
+              New deliverable
+            </Link>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2.5">
-          <Link
-            href={`/${workspaceSlug}/summon/automation/`}
-            className="text-xs shadow-xs hover:border-accent-primary/40 flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3.5 py-2 font-bold text-primary hover:bg-layer-1"
-          >
-            <Sparkles className="size-3.5 text-accent-primary" />
-            <span>AI Document Generator</span>
-          </Link>
-          <Link
-            href={`/${workspaceSlug}/summon/reports/`}
-            className="text-xs shadow-xs flex items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 py-2 font-bold text-white hover:bg-accent-primary/90"
-          >
-            <Plus className="size-3.5" />
-            <span>Generate Deliverable</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* KPI Stats */}
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
-        <div className="shadow-sm flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">Total Pages</span>
-            <div className="bg-blue-500/10 text-blue-600 flex size-8 items-center justify-center rounded-xl">
-              <FileText className="size-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-primary">{pages.length}</div>
-            <div className="mt-1 text-[11px] font-medium text-tertiary">Indexed across workspaces</div>
-          </div>
-        </div>
-
-        <div className="shadow-sm flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">Connected Projects</span>
-            <div className="bg-indigo-500/10 text-indigo-600 flex size-8 items-center justify-center rounded-xl">
-              <FolderGit2 className="size-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-primary">
-              {new Set(pages.map((p) => p.project.id)).size}
-            </div>
-            <div className="mt-1 text-[11px] font-medium text-tertiary">Workspaces with documents</div>
-          </div>
-        </div>
-
-        <div className="shadow-sm col-span-2 flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-4 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">Editor Integration</span>
-            <div className="bg-emerald-500/10 text-emerald-600 flex size-8 items-center justify-center rounded-xl">
-              <Sparkles className="size-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl text-emerald-600 dark:text-emerald-400 font-bold tracking-tight">Native Plane</div>
-            <div className="mt-1 text-[11px] font-medium text-tertiary">Real-time collaborative pages</div>
-          </div>
-        </div>
-      </div>
+      <SummonMetricStrip>
+        <SummonMetric label="Pages" value={pages.length} />
+        <SummonMetric label="Projects with pages" value={new Set(pages.map((p) => p.project.id)).size} />
+      </SummonMetricStrip>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -138,7 +92,8 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search documents by name or project..."
-            className="text-xs placeholder-tertiary shadow-xs focus:border-accent-primary w-full rounded-xl border border-subtle bg-surface-1 py-2 pr-4 pl-9 text-primary focus:outline-none"
+            aria-label="Search documents"
+            className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
           />
         </div>
 
@@ -153,7 +108,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             ]}
           />
 
-          <div className="shadow-xs flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5">
+          <div className="flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5 shadow-xs">
             <button
               type="button"
               onClick={() => setViewMode("grid")}
@@ -182,7 +137,11 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
         loading={isLoading}
         error={error}
         empty={!isLoading && filteredPages.length === 0}
-        emptyMessage="No documents found matching the search criteria."
+        emptyIcon={FileText}
+        emptyTitle={pages.length ? "No matching documents" : "No documents yet"}
+        emptyMessage={
+          pages.length ? "Try another search or project." : "Pages you create in your projects show up here."
+        }
         onRetry={() => void mutate()}
       />
 
@@ -193,36 +152,36 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             <Link
               key={page.id}
               href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-              className="group shadow-sm hover:border-accent-primary/40 hover:shadow-md flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-5 transition-all"
+              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm transition-all hover:shadow-md"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="bg-blue-500/10 text-blue-600 flex size-9 items-center justify-center rounded-xl">
                     <FileText className="size-4.5" />
                   </div>
-                  <span className="rounded-md bg-layer-2 px-2 py-0.5 text-[10px] font-bold text-secondary">
+                  <span className="rounded-md bg-layer-2 px-2 py-0.5 text-12 font-bold text-secondary">
                     {project.identifier}
                   </span>
                 </div>
 
-                <h3 className="text-sm mt-3.5 line-clamp-2 font-bold text-primary group-hover:text-accent-primary">
+                <h3 className="mt-3.5 line-clamp-2 text-sm font-bold text-primary group-hover:text-accent-primary">
                   {page.name || "Untitled Document"}
                 </h3>
-                <p className="text-xs mt-1 truncate text-tertiary">{project.name}</p>
+                <p className="mt-1 truncate text-xs text-tertiary">{project.name}</p>
               </div>
 
-              <div className="mt-5 flex items-center justify-between border-t border-subtle pt-3 text-[11px] font-semibold text-accent-primary">
-                <span>Open in Plane Editor</span>
+              <div className="mt-5 flex items-center justify-between border-t border-subtle pt-3 text-12 font-semibold text-accent-primary">
+                <span>Open in editor</span>
                 <ExternalLink className="size-3.5 transition-transform group-hover:translate-x-0.5" />
               </div>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="shadow-sm overflow-hidden rounded-2xl border border-subtle bg-surface-1">
-          <table className="text-xs w-full text-left">
+        <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-sm">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-subtle bg-layer-1 text-[11px] font-semibold text-tertiary uppercase">
+              <tr className="border-b border-subtle bg-layer-1 text-12 font-medium text-tertiary">
                 <th className="px-5 py-3.5">Document Title</th>
                 <th className="px-5 py-3.5">Project</th>
                 <th className="px-5 py-3.5 text-right">Action</th>

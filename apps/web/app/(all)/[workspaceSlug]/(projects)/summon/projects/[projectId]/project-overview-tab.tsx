@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
-import { projectHealthLabel } from "@/components/summon/projects/project-workspace";
+import { statusLabel } from "@/components/summon/status-label";
 
 const formatDate = (value?: string | null) =>
   value
@@ -33,7 +33,7 @@ export function ProjectOverviewTab({
             </h2>
             <Link
               href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-              className="text-xs inline-flex items-center gap-1 rounded text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+              className="inline-flex items-center gap-1 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
             >
               View all tasks <ArrowUpRight aria-hidden="true" className="size-3.5" />
             </Link>
@@ -53,14 +53,14 @@ export function ProjectOverviewTab({
             />
           </div>
           {overview.progress.overdue > 0 && (
-            <p className="text-xs mt-3 inline-flex items-center gap-1.5 text-warning-primary">
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-warning-primary">
               <AlertCircle aria-hidden="true" className="size-3.5" />
               {overview.progress.overdue} overdue
             </p>
           )}
         </section>
         <section aria-labelledby="project-milestones" className="border-t border-subtle pt-5">
-          <h2 id="project-milestones" className="text-sm mb-3 font-semibold text-primary">
+          <h2 id="project-milestones" className="mb-3 text-sm font-semibold text-primary">
             Milestones
           </h2>
           {overview.milestones.length ? (
@@ -73,7 +73,7 @@ export function ProjectOverviewTab({
                   >
                     <Flag aria-hidden="true" className="size-4 shrink-0 text-secondary" />
                     <span className="min-w-0 flex-1">
-                      <span className="text-sm block break-words text-primary">{milestone.name}</span>
+                      <span className="block text-sm break-words text-primary">{milestone.name}</span>
                       <span className="text-xs text-secondary">{formatDate(milestone.target_date)}</span>
                     </span>
                     <span className="text-xs text-secondary tabular-nums">{milestone.completion}%</span>
@@ -86,7 +86,7 @@ export function ProjectOverviewTab({
           )}
         </section>
         <section aria-labelledby="project-activity" className="border-t border-subtle pt-5">
-          <h2 id="project-activity" className="text-sm mb-3 font-semibold text-primary">
+          <h2 id="project-activity" className="mb-3 text-sm font-semibold text-primary">
             Latest activity
           </h2>
           {overview.activity.length ? (
@@ -99,7 +99,7 @@ export function ProjectOverviewTab({
                   >
                     <Activity aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-secondary" />
                     <span className="min-w-0">
-                      <span className="text-sm block break-words text-primary">{item.label}</span>
+                      <span className="block text-sm break-words text-primary">{item.label}</span>
                       <span className="text-xs text-secondary">{formatDate(item.created_at)}</span>
                     </span>
                   </Link>
@@ -113,34 +113,32 @@ export function ProjectOverviewTab({
       </div>
       <aside className="min-w-0 space-y-6 border-t border-subtle pt-5 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-6">
         <section aria-labelledby="project-properties">
-          <h2 id="project-properties" className="text-sm mb-4 font-semibold text-primary">
+          <h2 id="project-properties" className="mb-4 text-sm font-semibold text-primary">
             Properties
           </h2>
-          <dl className="text-xs space-y-4">
+          <dl className="space-y-4 text-xs">
             <Property label="Health">
               <span
                 className={`inline-flex items-center gap-1.5 ${healthy ? "text-success-primary" : atRisk ? "text-warning-primary" : "text-secondary"}`}
               >
                 <HealthIcon aria-hidden="true" className="size-3.5" />
-                {projectHealthLabel(health)}
+                {statusLabel(health)}
               </span>
             </Property>
-            <Property label="Status">
-              {projectHealthLabel(overview.profile?.delivery_status || "not_assessed")}
-            </Property>
+            <Property label="Status">{statusLabel(overview.profile?.delivery_status || "not_assessed")}</Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
             <Property label="Budget">{overview.profile?.budget || "Not set"}</Property>
           </dl>
         </section>
         <section className="border-t border-subtle pt-5" aria-labelledby="project-members">
-          <h2 id="project-members" className="text-sm mb-3 font-semibold text-primary">
-            Members <span className="text-xs font-normal ml-1 text-secondary tabular-nums">{members.length}</span>
+          <h2 id="project-members" className="mb-3 text-sm font-semibold text-primary">
+            Members <span className="font-normal ml-1 text-xs text-secondary tabular-nums">{members.length}</span>
           </h2>
           {members.length ? (
             <ul className="space-y-2.5">
               {members.slice(0, 6).map((member) => (
-                <li key={member.id} className="text-xs flex items-center gap-2.5 text-primary">
+                <li key={member.id} className="flex items-center gap-2.5 text-xs text-primary">
                   <span
                     aria-hidden="true"
                     className="grid size-6 shrink-0 place-items-center rounded-full bg-layer-2 text-secondary"
@@ -156,7 +154,7 @@ export function ProjectOverviewTab({
           )}
         </section>
         <section className="border-t border-subtle pt-5" aria-labelledby="project-links">
-          <h2 id="project-links" className="text-sm mb-3 font-semibold text-primary">
+          <h2 id="project-links" className="mb-3 text-sm font-semibold text-primary">
             Resources
           </h2>
           {overview.resources.length ? (
@@ -167,7 +165,7 @@ export function ProjectOverviewTab({
                     href={resource.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs flex items-center gap-2 rounded text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+                    className="flex items-center gap-2 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
                   >
                     <span className="min-w-0 flex-1 break-words">{resource.title}</span>
                     <ArrowUpRight aria-hidden="true" className="size-3.5 shrink-0" />

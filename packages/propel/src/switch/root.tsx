@@ -25,15 +25,15 @@ function Switch({ value, onChange, label, size = "sm", disabled, className }: IT
       onCheckedChange={onChange}
       aria-label={label}
       className={cn(
-        "relative inline-flex flex-shrink-0 cursor-pointer rounded-full border border-subtle transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
+        "relative inline-flex flex-shrink-0 cursor-pointer rounded-full border transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
         // size
         size === "sm" ? "h-4 w-6" : size === "md" ? "h-5 w-8" : "h-6 w-10",
         // state
         disabled
-          ? "cursor-not-allowed bg-layer-1"
+          ? "cursor-not-allowed border-subtle bg-layer-1"
           : value
-            ? "cursor-pointer bg-accent-primary"
-            : "cursor-pointer bg-surface-2",
+            ? "cursor-pointer border-transparent bg-accent-primary"
+            : "cursor-pointer border-strong bg-layer-3-active",
         className
       )}
     >
@@ -41,7 +41,7 @@ function Switch({ value, onChange, label, size = "sm", disabled, className }: IT
       <BaseSwitch.Thumb
         aria-hidden="true"
         className={cn(
-          "shadow inline-block self-center rounded-full ring-0 transition-transform duration-150 ease-out motion-reduce:transition-none",
+          "inline-block self-center rounded-full shadow-raised-100 ring-0 transition-transform duration-150 ease-out motion-reduce:transition-none",
           // size
           size === "sm" ? "h-3 w-3" : size === "md" ? "h-4 w-4" : "h-5 w-5",
           // position + color by state

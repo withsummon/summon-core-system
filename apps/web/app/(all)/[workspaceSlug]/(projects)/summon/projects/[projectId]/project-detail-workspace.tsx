@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { ArrowLeft, CalendarPlus, FilePlus2, ListPlus, Pencil, Settings2 } from "lucide-react";
-import { Button } from "@plane/propel/button";
+import { ArrowLeft, CalendarPlus, ChevronDown, FilePlus2, ListPlus, Pencil, Settings2, Users } from "lucide-react";
+import { Button, getButtonStyling } from "@plane/propel/button";
+import { Menu } from "@plane/propel/menu";
 import { SelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -16,6 +18,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import projectMemberService from "@/services/project/project-member.service";
 import { summonService } from "@/services/summon.service";
 import { PROJECT_TABS, ProjectDetailTab } from "./project-detail-tabs";
+import type { TProjectTab } from "./project-detail-tabs";
 import { ProjectOverviewTab } from "./project-overview-tab";
 import { ProjectProfileEditor } from "./project-profile-editor";
 
@@ -32,6 +35,19 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
 }) {
   const { overview, workspaceSlug, projectId, onRefresh } = props;
   const [editingProfile, setEditingProfile] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab: TProjectTab = PROJECT_TABS.some((tab) => tab.id === requestedTab)
+    ? (requestedTab as TProjectTab)
+    : "overview";
+  const selectTab = (tab: TProjectTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "overview") params.delete("tab");
+    else params.set("tab", tab);
+    const query = params.toString();
+    router.replace(`/${workspaceSlug}/summon/projects/${projectId}/${query ? `?${query}` : ""}`);
+  };
   const { allowPermissions } = useUserPermissions();
   const { getProjectById } = useProject();
   const { getUserDetails } = useMember();
@@ -75,22 +91,53 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin && (
-              <Button
-                variant="secondary"
-                size="base"
-                prependIcon={<Pencil aria-hidden="true" />}
-                onClick={() => setEditingProfile((value) => !value)}
-              >
-                Edit profile
-              </Button>
+              <>
+                <Link
+                  href={`/${workspaceSlug}/settings/projects/${projectId}/`}
+                  aria-label="Project settings"
+                  className={getButtonStyling("ghost", "base")}
+                >
+                  <Settings2 aria-hidden="true" className="size-3.5" />
+                </Link>
+                <Button
+                  variant="secondary"
+                  size="base"
+                  prependIcon={<Pencil aria-hidden="true" />}
+                  onClick={() => setEditingProfile((value) => !value)}
+                >
+                  Edit profile
+                </Button>
+              </>
             )}
-            <Button
-              size="base"
-              prependIcon={<ListPlus aria-hidden="true" />}
-              onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT, [projectId])}
-            >
-              New task
-            </Button>
+            <div className="flex items-center">
+              <Button
+                size="base"
+                className="rounded-r-none"
+                prependIcon={<ListPlus aria-hidden="true" />}
+                onClick={() => toggleCreateIssueModal(true, EIssuesStoreType.PROJECT, [projectId])}
+              >
+                New task
+              </Button>
+              <Menu
+                ariaLabel="Create something else"
+                placement="bottom-end"
+                customButtonClassName={`${getButtonStyling("primary", "base")} rounded-l-none border-l border-white/25 px-2`}
+                customButton={<ChevronDown aria-hidden="true" className="size-3.5" />}
+              >
+                <Menu.MenuItem onClick={() => toggleCreateModuleModal(true)}>
+                  <CalendarPlus aria-hidden="true" className="size-3.5 text-secondary" />
+                  Milestone
+                </Menu.MenuItem>
+                <Menu.MenuItem onClick={() => toggleCreatePageModal({ isOpen: true })}>
+                  <FilePlus2 aria-hidden="true" className="size-3.5 text-secondary" />
+                  Document
+                </Menu.MenuItem>
+                <Menu.MenuItem onClick={() => router.push(`/${workspaceSlug}/summon/meetings/?project=${projectId}`)}>
+                  <Users aria-hidden="true" className="size-3.5 text-secondary" />
+                  Meeting
+                </Menu.MenuItem>
+              </Menu>
+            </div>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs">
@@ -110,40 +157,6 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
           <Meta label="Target" value={formatDate(overview.profile?.target_date)} />
         </div>
       </header>
-      <div className="flex flex-wrap items-center gap-1 border-b border-subtle px-3 py-2 sm:px-5">
-        <Button
-          variant="ghost"
-          size="base"
-          prependIcon={<CalendarPlus aria-hidden="true" />}
-          onClick={() => toggleCreateModuleModal(true)}
-        >
-          Milestone
-        </Button>
-        <Button
-          variant="ghost"
-          size="base"
-          prependIcon={<FilePlus2 aria-hidden="true" />}
-          onClick={() => toggleCreatePageModal({ isOpen: true })}
-        >
-          Document
-        </Button>
-        <Link
-          href={`/${workspaceSlug}/summon/meetings/?project=${projectId}`}
-          className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
-        >
-          <CalendarPlus aria-hidden="true" className="size-3.5" />
-          Meeting
-        </Link>
-        {isAdmin && (
-          <Link
-            href={`/${workspaceSlug}/settings/projects/${projectId}/`}
-            className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs text-secondary hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong"
-          >
-            <Settings2 aria-hidden="true" className="size-3.5" />
-            Settings
-          </Link>
-        )}
-      </div>
       <main className="min-w-0 px-4 py-4 sm:px-6">
         {editingProfile && (
           <div className="mb-4">
@@ -156,7 +169,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
             />
           </div>
         )}
-        <Tabs variant="underline" defaultValue="overview">
+        <Tabs variant="underline" value={activeTab} onValueChange={(value) => selectTab(value as TProjectTab)}>
           <Tabs.List aria-label="Project sections">
             {PROJECT_TABS.map((tab) => (
               <Tabs.Trigger key={tab.id} value={tab.id}>

@@ -4,7 +4,6 @@ import type { ISummonResourceLink } from "@plane/types";
 const {
   filterProjectResources,
   mergeProjectSummaries,
-  projectHealthLabel,
   projectHealthTone,
   projectProfileDateError,
   projectProfileForm,
@@ -46,9 +45,7 @@ test("unassessed projects stay neutral until delivery metadata is recorded", () 
     target_date: "",
     budget: "",
   });
-  assert.equal(projectHealthLabel("not_assessed"), "Belum dinilai");
   assert.equal(projectHealthTone("not_assessed"), "neutral");
-  assert.equal(projectHealthLabel("on_track"), "On track");
 });
 
 test("project resource tabs use authoritative categories", () => {

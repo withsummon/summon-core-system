@@ -11,7 +11,6 @@ import { BookOpenIcon, FileTextIcon, PresentationIcon, SquaresFourIcon, TableIco
 import useSWR from "swr";
 import {
   ArrowRight,
-  Bell,
   BookOpen,
   Check,
   ChevronLeft,
@@ -21,24 +20,23 @@ import {
   FileCheck2,
   FileSpreadsheet,
   FileText,
-  Filter,
-  History,
   MoreHorizontal,
   Presentation,
   Search,
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@plane/propel/button";
+import { Button, getButtonStyling } from "@plane/propel/button";
 import { Input, TextArea } from "@plane/ui";
 import { EFileAssetType } from "@plane/types";
 import type { ISummonAutomationJob, ISummonAutomationTemplate, ISummonGeneratedArtifact } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonDrawer } from "@/components/summon/drawer";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSelectableIcon } from "@plane/propel/icons";
-import { summonLLMErrorMessage } from "@/components/summon/screen";
+import { SummonPageHeader, summonLLMErrorMessage, summonPageClassName } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { FileService } from "@/services/file.service";
 import { summonService } from "@/services/summon.service";
@@ -59,7 +57,7 @@ import { MultiSelect, Select } from "@plane/propel/select";
 const fileService = new FileService();
 
 const OUTPUT_FORMAT_LABELS: Record<ISummonGeneratedArtifact["format"], string> = {
-  page: "Plane Page",
+  page: "Page",
   pdf: "PDF",
   docx: "DOCX",
   xlsx: "XLSX",
@@ -138,6 +136,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
   const [template, setTemplate] = useState("");
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const [outputProject, setOutputProject] = useState("");
   const [title, setTitle] = useState("");
   const [brief, setBrief] = useState("");
@@ -195,6 +194,11 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     template && outputProject && title.trim() && meetingTranscriptReady(selectedMeeting)
   );
 
+  const openGenerator = (templateId?: string) => {
+    if (templateId) selectTemplate(templateId);
+    setGeneratorOpen(true);
+  };
+
   const selectTemplate = (templateId: string) => {
     const item = templates.find(({ id }) => id === templateId);
     setTemplate(templateId);
@@ -220,7 +224,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
     try {
       const extracted = await summonService.extractAutomationContext(workspaceSlug, file);
       setBrief([brief.trim(), `[Document: ${extracted.name}]\n${extracted.text}`].filter(Boolean).join("\n\n"));
-      setDocumentName(`${extracted.name}${extracted.truncated ? " (context dibatasi 30.000 karakter)" : ""}`);
+      setDocumentName(`${extracted.name}${extracted.truncated ? " (trimmed to 30,000 characters)" : ""}`);
     } catch (requestError) {
       setFormError(summonLLMErrorMessage(requestError));
     } finally {
@@ -285,55 +289,43 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
   };
 
   return (
-    <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
+    <section className={summonPageClassName}>
       <PageHead title="Automation Studio · Summon Core" />
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-primary">Automation Studio</h1>
-          <p className="mt-1 text-xs text-secondary">AI-powered document generation and business automation</p>
-        </div>
-        <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-          <div role="search" className="relative hidden w-full max-w-[460px] md:block">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search templates, documents, or ask anything..."
-              className="h-10 rounded-xl pr-12 pl-9"
-            />
-            <span className="absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-semibold text-tertiary">
-              ⌘ K
-            </span>
-          </div>
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
-          >
-            <Bell className="size-4" />
-          </button>
-          <Link
-            href={`/${workspaceSlug}/summon/knowledge/`}
-            aria-label="Knowledge"
-            className="grid size-10 place-items-center rounded-xl border border-subtle bg-surface-1 text-secondary"
-          >
-            <BookOpen className="size-4" />
-          </Link>
-          <Link
-            href={`/${workspaceSlug}/summon/settings/`}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-3 text-xs font-medium text-primary"
-          >
-            <Settings className="size-4" /> Studio Settings
-          </Link>
-        </div>
-      </header>
+      <SummonPageHeader
+        title="Automation Studio"
+        description="Generate documents and automate routine work"
+        actions={
+          <>
+            <div role="search" className="relative w-full min-w-0 sm:w-80">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search"
+                aria-label="Search templates and documents"
+                className="w-full pl-9"
+              />
+            </div>
+            <Link href={`/${workspaceSlug}/summon/knowledge/`} className={getButtonStyling("secondary", "lg")}>
+              <BookOpen />
+              Knowledge
+            </Link>
+            <Link href={`/${workspaceSlug}/summon/settings/`} className={getButtonStyling("secondary", "lg")}>
+              <Settings />
+              Settings
+            </Link>
+            <Button size="lg" onClick={() => openGenerator()}>
+              <Sparkles />
+              New document
+            </Button>
+          </>
+        }
+      />
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-primary">Create New</h2>
-          <a href="#template-library" className="text-xs font-medium text-accent-primary">
-            View all templates →
-          </a>
+          <h2 className="text-sm font-semibold text-primary">Templates</h2>
+          <span className="text-12 text-tertiary">{templates.length} available</span>
         </div>
         <SummonRequestState
           loading={isLoading}
@@ -341,271 +333,41 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           empty={!isLoading && templates.length === 0}
           onRetry={() => void mutate()}
         />
-        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-6">
-          {templates.slice(0, 6).map((item) => {
+        <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3 xl:grid-cols-4">
+          {templates.map((item) => {
             const { Icon, tone: iconTone } = templateVisual(item.type);
             return (
-              <a
+              <button
+                type="button"
                 key={item.id}
-                href="#automation-generator"
-                onClick={() => selectTemplate(item.id)}
-                className={`group flex min-h-28 flex-col rounded-2xl border bg-surface-1 p-4 transition-colors hover:border-accent-strong ${
+                onClick={() => openGenerator(item.id)}
+                className={`group flex items-center gap-3 rounded-xl border bg-surface-1 p-3 text-left transition-colors hover:border-accent-strong sm:p-4 ${
                   template === item.id ? "ring-accent-primary/20 border-accent-strong ring-1" : "border-subtle"
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${iconTone}`}>
-                    <Icon className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-primary">{item.name}</p>
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-secondary">
-                      {item.description ||
-                        `Generate ${templateLabel(item.type).toLowerCase()} from verified workspace context.`}
-                    </p>
-                  </div>
+                <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${iconTone}`}>
+                  <Icon className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p title={item.name} className="truncate text-13 font-semibold text-primary">
+                    {item.name}
+                  </p>
+                  <p className="mt-0.5 hidden truncate text-12 text-secondary sm:block">
+                    {item.description ||
+                      `Generate ${templateLabel(item.type).toLowerCase()} from verified workspace context.`}
+                  </p>
                 </div>
-                <ArrowRight className="mt-auto size-4 self-end text-tertiary transition-transform group-hover:translate-x-0.5" />
-              </a>
+                <ArrowRight className="size-4 shrink-0 text-tertiary transition-transform group-hover:translate-x-0.5" />
+              </button>
             );
           })}
         </div>
       </section>
 
-      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[310px_minmax(0,1fr)]">
-        <section
-          id="automation-generator"
-          className="rounded-2xl border border-subtle bg-surface-1 p-3.5 shadow-[0_8px_30px_rgba(36,55,99,0.035)]"
-        >
-          <h2 className="text-sm font-semibold text-primary">AI Document Generator</h2>
-          <p className="mt-1 text-[11px] text-secondary">
-            Generate a validated preview before creating editable office files and PDF.
-          </p>
-          <form onSubmit={generatePreview} className="mt-5 grid gap-4">
-            <div className="relative pl-7">
-              <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-[10px] font-semibold text-white">
-                1
-              </span>
-              <SummonField label="Select Template">
-                <Select
-                  required
-                  value={template}
-                  onValueChange={(value) => selectTemplate(value)}
-                  options={[
-                    { value: "", label: "Select template" },
-                    ...(data?.templates ?? []).map((item) => ({ value: item.id, label: item.name })),
-                  ]}
-                />
-              </SummonField>
-            </div>
-            <div className="relative pl-7">
-              <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-[10px] font-semibold text-white">
-                2
-              </span>
-              <SummonField label="Select Project Context">
-                <Select
-                  required
-                  value={outputProject}
-                  onValueChange={(value) => selectProject(value)}
-                  options={[
-                    { value: "", label: "Select Plane Project" },
-                    ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
-                  ]}
-                />
-              </SummonField>
-            </div>
-            <div className="relative grid gap-2.5 pl-7">
-              <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-[10px] font-semibold text-white">
-                3
-              </span>
-              <SummonField label="Document Title">
-                <Input
-                  required
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Name this document"
-                />
-              </SummonField>
-              <SummonField label="Additional Context (Optional)">
-                <TextArea
-                  value={brief}
-                  onChange={(event) => setBrief(event.target.value)}
-                  placeholder="Add project, scope, or client-specific requirements..."
-                  className="min-h-20"
-                />
-              </SummonField>
-              <SummonField label="Upload context document (Optional)">
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv"
-                  disabled={extractingDocument}
-                  onChange={(event) => void extractDocument(event)}
-                  className="block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
-                />
-                <span className="mt-1 block text-[10px] text-tertiary">
-                  {extractingDocument
-                    ? "Reading document..."
-                    : documentName || "PDF, DOCX, XLSX, PPTX, TXT, MD, CSV · max 10 MB"}
-                </span>
-              </SummonField>
-              <SummonField label="Meeting / audio transcript (Optional)">
-                <Select
-                  value={meetingId}
-                  onValueChange={(value) => setMeetingId(value)}
-                  options={[
-                    { value: "", label: "No meeting source" },
-                    ...(data?.meetings ?? []).map((meeting) => ({ value: meeting.id, label: meeting.title })),
-                  ]}
-                />
-                <input
-                  type="file"
-                  accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"
-                  disabled={!meetingId || uploadingAudio}
-                  onChange={(event) => void uploadMeetingAudio(event)}
-                  className="mt-2 block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
-                />
-                <span className="mt-1 block text-[10px] text-tertiary">
-                  {uploadingAudio
-                    ? "Uploading audio..."
-                    : selectedMeeting?.summary_error === "transcribing"
-                      ? "Audio sedang ditranskripsi..."
-                      : selectedMeeting?.summary_error === "transcription_failed"
-                        ? "Transkripsi gagal. Upload ulang MP3 atau M4A."
-                        : selectedMeeting?.transcript_text
-                          ? "Transcript siap digunakan."
-                          : "Pilih meeting, lalu upload MP3 atau M4A · max 250 MB"}
-                </span>
-              </SummonField>
-              {templateVariables.length ? (
-                <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5" open>
-                  <summary className="cursor-pointer text-[11px] font-semibold text-primary">
-                    Document fields (Optional)
-                  </summary>
-                  <div className="mt-3 grid gap-2.5">
-                    {templateVariables.map((variable) => (
-                      <SummonField key={variable} label={templateVariableLabel(variable)}>
-                        {isMultilineTemplateVariable(variable) ? (
-                          <TextArea
-                            value={variableValues[variable] ?? ""}
-                            onChange={(event) => updateVariable(variable, event.target.value)}
-                            placeholder="Enter one item per line or structured details"
-                            className="min-h-16"
-                          />
-                        ) : (
-                          <Input
-                            value={variableValues[variable] ?? ""}
-                            onChange={(event) => updateVariable(variable, event.target.value)}
-                          />
-                        )}
-                      </SummonField>
-                    ))}
-                  </div>
-                </details>
-              ) : null}
-              <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5">
-                <summary className="cursor-pointer text-[11px] font-semibold text-primary">
-                  More verified context
-                </summary>
-                <div className="mt-3 grid gap-2.5">
-                  <SummonField label="Client">
-                    <Select
-                      value={clientId}
-                      onValueChange={(value) => setClientId(value)}
-                      options={[
-                        { value: "", label: "No client source" },
-                        ...(data?.clients ?? []).map((client) => ({ value: client.id, label: client.name })),
-                      ]}
-                    />
-                  </SummonField>
-                  <SummonField label="Plane Pages / documents">
-                    <MultiSelect
-                      value={pageIds}
-                      onValueChange={(values) => setPageIds(values)}
-                      options={(data?.pages ?? []).map((item) => ({ value: item.page, label: item.page_detail.name }))}
-                    />
-                  </SummonField>
-                  <label className="inline-flex items-center gap-2 text-[11px] font-medium text-secondary">
-                    <input
-                      type="checkbox"
-                      checked={workspaceContext}
-                      onChange={(event) => setWorkspaceContext(event.target.checked)}
-                      className="accent-accent-primary size-4"
-                    />
-                    Include workspace name
-                  </label>
-                </div>
-              </details>
-            </div>
-            <div className="relative pl-7">
-              <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-[10px] font-semibold text-white">
-                4
-              </span>
-              <p className="text-xs font-medium text-secondary">Output Preferences</p>
-              <div className="mt-2 flex gap-2">
-                {outputFormats(selectedTemplate?.type).map((format) => (
-                  <span
-                    key={format}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent-strong bg-accent-subtle/20 text-[11px] font-semibold text-accent-primary"
-                  >
-                    <FileText className="size-3.5" /> {OUTPUT_FORMAT_LABELS[format]}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <SummonField label="Tone">
-                  <Select
-                    value={tone}
-                    onValueChange={(value) => setTone(value)}
-                    options={[
-                      { value: "Professional", label: "Professional" },
-                      { value: "Concise", label: "Concise" },
-                      { value: "Formal", label: "Formal" },
-                    ]}
-                  />
-                </SummonField>
-                <SummonField label="Detail Level">
-                  <Select
-                    value={detailLevel}
-                    onValueChange={(value) => setDetailLevel(value)}
-                    options={[
-                      { value: "Comprehensive", label: "Comprehensive" },
-                      { value: "Standard", label: "Standard" },
-                      { value: "Summary", label: "Summary" },
-                    ]}
-                  />
-                </SummonField>
-              </div>
-            </div>
-            <Button size="xl" type="submit" disabled={!canGeneratePreview} loading={generating} className="w-full">
-              <Sparkles className="mr-2 size-4" /> Generate Preview
-            </Button>
-            <p className="text-center text-[10px] text-tertiary">
-              Files and Plane Pages require a second explicit action.
-            </p>
-            {formError ? (
-              <div className="bg-red-50 text-red-600 grid gap-2 rounded-lg p-2.5 text-[11px]" role="alert">
-                <span>{formError}</span>
-                <Button type="button" size="lg" variant="secondary" onClick={() => void generatePreview()}>
-                  Retry preview
-                </Button>
-              </div>
-            ) : null}
-          </form>
-        </section>
-
+      <div className="mt-4">
         <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-[0_8px_30px_rgba(36,55,99,0.035)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3.5">
-            <h2 className="text-sm font-semibold text-primary">Generated Documents</h2>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveType("all");
-                setPage(1);
-              }}
-              className="inline-flex h-8 items-center gap-2 rounded-lg border border-subtle px-3 text-[11px] font-medium text-secondary"
-            >
-              <Filter className="size-3.5" /> Filters
-            </button>
+            <h2 className="text-sm font-semibold text-primary">Generated documents</h2>
           </div>
           <SectionTabs
             items={[
@@ -628,190 +390,338 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             empty={!isLoading && filteredJobs.length === 0}
             onRetry={() => void mutate()}
           />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left">
-              <thead className="border-b border-subtle bg-layer-1/40 text-[10px] font-semibold text-tertiary">
-                <tr>
-                  <th className="px-4 py-3">Document</th>
-                  <th className="px-3 py-3">Type</th>
-                  <th className="px-3 py-3">Context</th>
-                  <th className="px-3 py-3">Engine</th>
-                  <th className="px-3 py-3">Created At</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-subtle">
-                {pagedJobs.map((job) => {
-                  const status = jobStatus(job);
-                  const { Icon, tone: iconTone } = templateVisual(job.type);
-                  return (
-                    <tr key={job.id} className="hover:bg-layer-1/40">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${iconTone}`}>
-                            <Icon className="size-3.5" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="max-w-56 truncate text-xs font-medium text-primary">
-                              {automationInputValue(job.input, "title") || templateLabel(job.type)}
-                            </p>
-                            <p className="mt-0.5 max-w-56 truncate text-[10px] text-tertiary">
-                              {automationInputValue(job.input, "brief") || "Generated from verified workspace context"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="bg-blue-50 text-blue-600 rounded-md px-2 py-1 text-[10px] font-medium">
-                          {templateLabel(job.type)}
-                        </span>
-                      </td>
-                      <td className="max-w-48 truncate px-3 py-3 text-[11px] text-secondary">
-                        {job.project ? (projectNames.get(job.project) ?? job.project) : "No project"}
-                      </td>
-                      <td className="px-3 py-3 text-[11px] text-secondary">{job.provider || "Pending"}</td>
-                      <td className="px-3 py-3 text-[11px] whitespace-nowrap text-secondary">
-                        {formatDate(job.created_at)}
-                      </td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${status.className}`}
-                        >
-                          {job.status === "completed" ? (
-                            <Check className="size-3" />
-                          ) : job.status === "failed" ? (
-                            <CircleAlert className="size-3" />
-                          ) : null}
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1.5">
-                          <Link
-                            href={automationJobPath(workspaceSlug, job.id)}
-                            aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
-                            className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-                          >
-                            <Eye className="size-3.5" />
-                          </Link>
-                          <Link
-                            href={automationJobPath(workspaceSlug, job.id)}
-                            aria-label="More document actions"
-                            className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-                          >
-                            <MoreHorizontal className="size-3.5" />
-                          </Link>
-                        </div>
-                      </td>
+          {filteredJobs.length > 0 && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px] text-left">
+                  <thead className="border-b border-subtle bg-layer-1/40 text-12 font-semibold text-tertiary">
+                    <tr>
+                      <th className="px-4 py-3">Document</th>
+                      <th className="px-3 py-3">Type</th>
+                      <th className="px-3 py-3">Context</th>
+                      <th className="px-3 py-3">Engine</th>
+                      <th className="px-3 py-3">Created At</th>
+                      <th className="px-3 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
-            <p className="text-[10px] text-secondary">
-              Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
-              {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
-            </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                aria-label="Previous page"
-                disabled={currentPage === 1}
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-              >
-                <ChevronLeft className="size-3.5" />
-              </button>
-              <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-[11px] font-semibold text-white">
-                {currentPage}
-              </span>
-              <span className="px-1 text-[10px] text-tertiary">/ {pageCount}</span>
-              <button
-                type="button"
-                aria-label="Next page"
-                disabled={currentPage === pageCount}
-                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-              >
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-subtle">
+                    {pagedJobs.map((job) => {
+                      const status = jobStatus(job);
+                      const { Icon, tone: iconTone } = templateVisual(job.type);
+                      return (
+                        <tr key={job.id} className="hover:bg-layer-1/40">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${iconTone}`}>
+                                <Icon className="size-3.5" />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="max-w-56 truncate text-xs font-medium text-primary">
+                                  {automationInputValue(job.input, "title") || templateLabel(job.type)}
+                                </p>
+                                <p className="mt-0.5 max-w-56 truncate text-12 text-tertiary">
+                                  {automationInputValue(job.input, "brief") ||
+                                    "Generated from verified workspace context"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="bg-blue-50 text-blue-600 rounded-md px-2 py-1 text-12 font-medium">
+                              {templateLabel(job.type)}
+                            </span>
+                          </td>
+                          <td className="max-w-48 truncate px-3 py-3 text-12 text-secondary">
+                            {job.project ? (projectNames.get(job.project) ?? job.project) : "No project"}
+                          </td>
+                          <td className="px-3 py-3 text-12 text-secondary">{job.provider || "Pending"}</td>
+                          <td className="px-3 py-3 text-12 whitespace-nowrap text-secondary">
+                            {formatDate(job.created_at)}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium ${status.className}`}
+                            >
+                              {job.status === "completed" ? (
+                                <Check className="size-3" />
+                              ) : job.status === "failed" ? (
+                                <CircleAlert className="size-3" />
+                              ) : null}
+                              {status.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1.5">
+                              <Link
+                                href={automationJobPath(workspaceSlug, job.id)}
+                                aria-label={`View ${automationInputValue(job.input, "title") || templateLabel(job.type)}`}
+                                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+                              >
+                                <Eye className="size-3.5" />
+                              </Link>
+                              <Link
+                                href={automationJobPath(workspaceSlug, job.id)}
+                                aria-label="More document actions"
+                                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
+                <p className="text-12 text-secondary">
+                  Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
+                  {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="Previous page"
+                    disabled={currentPage === 1}
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </button>
+                  <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-12 font-semibold text-white">
+                    {currentPage}
+                  </span>
+                  <span className="px-1 text-12 text-tertiary">/ {pageCount}</span>
+                  <button
+                    type="button"
+                    aria-label="Next page"
+                    disabled={currentPage === pageCount}
+                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                    className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </section>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
-        <section id="template-library" className="rounded-2xl border border-subtle bg-surface-1 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-primary">Template Library</h2>
-            <span className="text-xs font-medium text-accent-primary">{templates.length} templates</span>
+      <SummonDrawer
+        open={generatorOpen}
+        onOpenChange={setGeneratorOpen}
+        title="Generate a document"
+        description="Preview first; files and pages are created only when you publish."
+      >
+        <form onSubmit={generatePreview} className="grid gap-4">
+          <div className="relative pl-7">
+            <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-12 font-semibold text-white">
+              1
+            </span>
+            <SummonField label="Select Template">
+              <Select
+                required
+                value={template}
+                onValueChange={(value) => selectTemplate(value)}
+                options={[
+                  { value: "", label: "Select template" },
+                  ...(data?.templates ?? []).map((item) => ({ value: item.id, label: item.name })),
+                ]}
+              />
+            </SummonField>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {templates.slice(0, 4).map((item) => {
-              const { Icon, tone: iconTone } = templateVisual(item.type);
-              return (
-                <a
-                  key={item.id}
-                  href="#automation-generator"
-                  onClick={() => selectTemplate(item.id)}
-                  className="rounded-xl border border-subtle p-3 hover:border-accent-strong"
-                >
-                  <div className="flex items-start gap-2.5">
-                    <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${iconTone}`}>
-                      <Icon className="size-3.5" />
-                    </span>
-                    <div>
-                      <p className="text-[11px] font-semibold text-primary">{item.name}</p>
-                      <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-secondary">
-                        {item.description || templateLabel(item.type)}
-                      </p>
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
+          <div className="relative pl-7">
+            <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-12 font-semibold text-white">
+              2
+            </span>
+            <SummonField label="Select Project Context">
+              <Select
+                required
+                value={outputProject}
+                onValueChange={(value) => selectProject(value)}
+                options={[
+                  { value: "", label: "Select project" },
+                  ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
+                ]}
+              />
+            </SummonField>
           </div>
-        </section>
-        <section className="rounded-2xl border border-subtle bg-surface-1 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-primary">Recent Activity</h2>
-            <History className="size-4 text-tertiary" />
-          </div>
-          <div className="mt-3 grid gap-3">
-            {jobs.slice(0, 4).map((job) => (
-              <Link
-                key={job.id}
-                href={automationJobPath(workspaceSlug, job.id)}
-                className="flex items-start gap-3 text-left"
-              >
-                <span
-                  className={`mt-1 size-2 rounded-full ${
-                    job.status === "completed"
-                      ? "bg-emerald-500"
-                      : job.status === "failed"
-                        ? "bg-red-500"
-                        : "bg-amber-500"
-                  }`}
-                />
-                <span className="min-w-0">
-                  <span className="block truncate text-[11px] font-medium text-primary">
-                    {automationInputValue(job.input, "title") || templateLabel(job.type)}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] text-tertiary">
-                    {formatDate(job.created_at)} · {jobStatus(job).label}
-                  </span>
-                </span>
-              </Link>
-            ))}
-            {!jobs.length && !isLoading ? (
-              <p className="text-[11px] text-tertiary">No generation activity yet.</p>
+          <div className="relative grid gap-2.5 pl-7">
+            <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-12 font-semibold text-white">
+              3
+            </span>
+            <SummonField label="Document Title">
+              <Input
+                required
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Name this document"
+              />
+            </SummonField>
+            <SummonField label="Additional Context (Optional)">
+              <TextArea
+                value={brief}
+                onChange={(event) => setBrief(event.target.value)}
+                placeholder="Add project, scope, or client-specific requirements..."
+                className="min-h-20"
+              />
+            </SummonField>
+            <SummonField label="Upload context document (Optional)">
+              <input
+                type="file"
+                accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv"
+                disabled={extractingDocument}
+                onChange={(event) => void extractDocument(event)}
+                className="block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+              />
+              <span className="mt-1 block text-12 text-tertiary">
+                {extractingDocument
+                  ? "Reading document..."
+                  : documentName || "PDF, DOCX, XLSX, PPTX, TXT, MD, CSV · max 10 MB"}
+              </span>
+            </SummonField>
+            <SummonField label="Meeting / audio transcript (Optional)">
+              <Select
+                value={meetingId}
+                onValueChange={(value) => setMeetingId(value)}
+                options={[
+                  { value: "", label: "No meeting source" },
+                  ...(data?.meetings ?? []).map((meeting) => ({ value: meeting.id, label: meeting.title })),
+                ]}
+              />
+              <input
+                type="file"
+                accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"
+                disabled={!meetingId || uploadingAudio}
+                onChange={(event) => void uploadMeetingAudio(event)}
+                className="mt-2 block w-full rounded-lg border border-subtle bg-surface-1 p-2 text-xs text-secondary file:mr-2 file:rounded-md file:border-0 file:bg-layer-2 file:px-2 file:py-1 file:text-primary"
+              />
+              <span className="mt-1 block text-12 text-tertiary">
+                {uploadingAudio
+                  ? "Uploading audio..."
+                  : selectedMeeting?.summary_error === "transcribing"
+                    ? "Transcribing audio…"
+                    : selectedMeeting?.summary_error === "transcription_failed"
+                      ? "Transcription failed. Upload the MP3 or M4A again."
+                      : selectedMeeting?.transcript_text
+                        ? "Transcript siap digunakan."
+                        : "Pick a meeting, then upload an MP3 or M4A · max 250 MB"}
+              </span>
+            </SummonField>
+            {templateVariables.length ? (
+              <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5" open>
+                <summary className="cursor-pointer text-12 font-semibold text-primary">
+                  Document fields (Optional)
+                </summary>
+                <div className="mt-3 grid gap-2.5">
+                  {templateVariables.map((variable) => (
+                    <SummonField key={variable} label={templateVariableLabel(variable)}>
+                      {isMultilineTemplateVariable(variable) ? (
+                        <TextArea
+                          value={variableValues[variable] ?? ""}
+                          onChange={(event) => updateVariable(variable, event.target.value)}
+                          placeholder="Enter one item per line or structured details"
+                          className="min-h-16"
+                        />
+                      ) : (
+                        <Input
+                          value={variableValues[variable] ?? ""}
+                          onChange={(event) => updateVariable(variable, event.target.value)}
+                        />
+                      )}
+                    </SummonField>
+                  ))}
+                </div>
+              </details>
             ) : null}
+            <details className="rounded-xl border border-subtle bg-layer-1/40 p-2.5">
+              <summary className="cursor-pointer text-12 font-semibold text-primary">More verified context</summary>
+              <div className="mt-3 grid gap-2.5">
+                <SummonField label="Client">
+                  <Select
+                    value={clientId}
+                    onValueChange={(value) => setClientId(value)}
+                    options={[
+                      { value: "", label: "No client source" },
+                      ...(data?.clients ?? []).map((client) => ({ value: client.id, label: client.name })),
+                    ]}
+                  />
+                </SummonField>
+                <SummonField label="Documents">
+                  <MultiSelect
+                    value={pageIds}
+                    onValueChange={(values) => setPageIds(values)}
+                    options={(data?.pages ?? []).map((item) => ({ value: item.page, label: item.page_detail.name }))}
+                  />
+                </SummonField>
+                <label className="inline-flex items-center gap-2 text-12 font-medium text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={workspaceContext}
+                    onChange={(event) => setWorkspaceContext(event.target.checked)}
+                    className="accent-accent-primary size-4"
+                  />
+                  Include workspace name
+                </label>
+              </div>
+            </details>
           </div>
-        </section>
-      </div>
+          <div className="relative pl-7">
+            <span className="absolute top-0 left-0 grid size-5 place-items-center rounded-full bg-accent-primary text-12 font-semibold text-white">
+              4
+            </span>
+            <p className="text-xs font-medium text-secondary">Output Preferences</p>
+            <div className="mt-2 flex gap-2">
+              {outputFormats(selectedTemplate?.type).map((format) => (
+                <span
+                  key={format}
+                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent-strong bg-accent-subtle/20 text-12 font-semibold text-accent-primary"
+                >
+                  <FileText className="size-3.5" /> {OUTPUT_FORMAT_LABELS[format]}
+                </span>
+              ))}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <SummonField label="Tone">
+                <Select
+                  value={tone}
+                  onValueChange={(value) => setTone(value)}
+                  options={[
+                    { value: "Professional", label: "Professional" },
+                    { value: "Concise", label: "Concise" },
+                    { value: "Formal", label: "Formal" },
+                  ]}
+                />
+              </SummonField>
+              <SummonField label="Detail Level">
+                <Select
+                  value={detailLevel}
+                  onValueChange={(value) => setDetailLevel(value)}
+                  options={[
+                    { value: "Comprehensive", label: "Comprehensive" },
+                    { value: "Standard", label: "Standard" },
+                    { value: "Summary", label: "Summary" },
+                  ]}
+                />
+              </SummonField>
+            </div>
+          </div>
+          <Button size="xl" type="submit" disabled={!canGeneratePreview} loading={generating} className="w-full">
+            <Sparkles className="mr-2 size-4" /> Generate Preview
+          </Button>
+          {formError ? (
+            <div className="bg-red-50 text-red-600 grid gap-2 rounded-lg p-2.5 text-12" role="alert">
+              <span>{formError}</span>
+              <Button type="button" size="lg" variant="secondary" onClick={() => void generatePreview()}>
+                Retry preview
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </SummonDrawer>
     </section>
   );
 }

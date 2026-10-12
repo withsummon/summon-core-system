@@ -25,10 +25,10 @@ test("Automation previews before an explicit idempotent publish", () => {
   assert.match(service, /generateAutomationPreview/);
   assert.match(service, /publishAutomationJob/);
   assert.match(detailSource, /preview_markdown/);
-  assert.match(detailSource, /Publish to Plane Page/);
+  assert.match(detailSource, /Publish as page/);
   assert.match(detailSource, /window\.confirm/);
   assert.match(detailSource, /page_detail/);
-  assert.match(source, /Select Plane Project/);
+  assert.match(source, /Select project/);
   assert.match(source, /canGeneratePreview/);
   assert.doesNotMatch(source, /Workspace Page/);
 });
@@ -76,7 +76,7 @@ test("Automation waits for a selected meeting audio transcript before generating
 test("Automation renders editable files without coupling them to Plane Page publishing", () => {
   assert.match(service, /renderAutomationJob/);
   assert.match(service, /\/api\/workspaces\/\$\{workspaceSlug\}\/summon\/automation-jobs\/\$\{jobId\}\/render\//);
-  assert.match(source, /AI Document Generator/);
+  assert.match(source, /Generate a document/);
   assert.match(detailSource, /Generate files/);
   assert.match(detailSource, /file_detail/);
   assert.match(detailSource, /download/);

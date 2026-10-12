@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { FolderGit2, CheckSquare, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { FolderGit2, CheckSquare, Users, TrendingUp } from "lucide-react";
 
 interface IHomeKpiRowProps {
   counts: {
@@ -55,7 +55,7 @@ export function HomeKpiRow({ counts, priorityCount }: IHomeKpiRowProps) {
       {kpis.map((kpi) => (
         <div
           key={kpi.label}
-          className="shadow-sm hover:border-accent-primary/30 hover:shadow-md flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-4 transition-all"
+          className="hover:border-accent-primary/30 flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-4 shadow-sm transition-all hover:shadow-md"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-secondary">{kpi.label}</span>
@@ -63,7 +63,7 @@ export function HomeKpiRow({ counts, priorityCount }: IHomeKpiRowProps) {
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold tracking-tight text-primary">{kpi.value}</div>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-tertiary">{kpi.subtext}</div>
+            <div className="mt-1 flex items-center gap-1.5 text-12 font-medium text-tertiary">{kpi.subtext}</div>
           </div>
         </div>
       ))}

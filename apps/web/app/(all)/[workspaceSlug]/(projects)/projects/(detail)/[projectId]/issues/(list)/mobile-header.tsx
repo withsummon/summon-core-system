@@ -6,11 +6,12 @@
 
 import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
+import { ChartNoAxesColumn, SlidersHorizontal } from "lucide-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { Button } from "@plane/propel/button";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 // components
@@ -68,43 +69,43 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
         onClose={() => setAnalyticsModal(false)}
         projectDetails={currentProjectDetails ?? undefined}
       />
-      <div className="z-[13] flex justify-evenly border-b border-subtle bg-surface-1 py-2 md:hidden">
+      <div className="z-[13] flex items-center gap-2 border-b border-subtle bg-surface-1 px-4 py-2 md:hidden">
         <MobileLayoutSelection
           activeLayout={activeLayout}
           layouts={[EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.CALENDAR]}
           onChange={handleLayoutChange}
         />
-        <div className="flex flex-grow items-center justify-center border-l border-subtle text-13 text-secondary">
-          <FiltersDropdown
-            title={t("common.display")}
-            placement="bottom-end"
-            menuButton={
-              <span className="flex items-center text-13 text-secondary">
-                {t("common.display")}
-                <ChevronDownIcon className="ml-2 h-4 w-4 text-secondary" />
-              </span>
-            }
-          >
-            <DisplayFiltersSelection
-              layoutDisplayFiltersOptions={
-                activeLayout ? ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[activeLayout] : undefined
-              }
-              displayFilters={issueFilters?.displayFilters ?? {}}
-              handleDisplayFiltersUpdate={handleDisplayFilters}
-              displayProperties={issueFilters?.displayProperties ?? {}}
-              handleDisplayPropertiesUpdate={handleDisplayProperties}
-              cycleViewDisabled={!currentProjectDetails?.cycle_view}
-              moduleViewDisabled={!currentProjectDetails?.module_view}
-            />
-          </FiltersDropdown>
-        </div>
-
-        <button
-          onClick={() => setAnalyticsModal(true)}
-          className="flex flex-grow justify-center border-l border-subtle text-13 text-secondary"
+        <FiltersDropdown
+          title={t("common.display")}
+          placement="bottom-end"
+          menuButton={
+            <span className="flex items-center gap-1.5">
+              <SlidersHorizontal aria-hidden="true" className="size-3.5" />
+              {t("common.display")}
+            </span>
+          }
         >
-          {t("common.analytics")}
-        </button>
+          <DisplayFiltersSelection
+            layoutDisplayFiltersOptions={
+              activeLayout ? ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[activeLayout] : undefined
+            }
+            displayFilters={issueFilters?.displayFilters ?? {}}
+            handleDisplayFiltersUpdate={handleDisplayFilters}
+            displayProperties={issueFilters?.displayProperties ?? {}}
+            handleDisplayPropertiesUpdate={handleDisplayProperties}
+            cycleViewDisabled={!currentProjectDetails?.cycle_view}
+            moduleViewDisabled={!currentProjectDetails?.module_view}
+          />
+        </FiltersDropdown>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="ml-auto px-2"
+          aria-label={t("common.analytics")}
+          onClick={() => setAnalyticsModal(true)}
+        >
+          <ChartNoAxesColumn aria-hidden="true" className="size-3.5" />
+        </Button>
       </div>
     </>
   );

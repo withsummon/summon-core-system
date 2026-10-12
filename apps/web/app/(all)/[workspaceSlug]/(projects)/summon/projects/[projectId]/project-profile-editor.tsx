@@ -104,7 +104,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-primary">Edit project profile</h2>
-          <p className="text-xs mt-1 text-secondary">
+          <p className="mt-1 text-xs text-secondary">
             Update delivery details. Changes to the project manager save immediately.
           </p>
         </div>
@@ -129,7 +129,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             value={form.delivery_status}
             onValueChange={(value) => updateField("delivery_status", value)}
             options={[
-              { value: "not_assessed", label: "Belum dinilai" },
+              { value: "not_assessed", label: "Not assessed" },
               { value: "planning", label: "Planning" },
               { value: "active", label: "Active" },
               { value: "on_hold", label: "On hold" },
@@ -142,7 +142,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             value={form.phase}
             maxLength={80}
             onChange={(event) => updateField("phase", event.target.value)}
-            className="text-base sm:text-sm w-full"
+            className="w-full text-base sm:text-sm"
             placeholder="e.g. Delivery"
           />
         </Field>
@@ -151,7 +151,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             value={form.health}
             onValueChange={(value) => updateField("health", value)}
             options={[
-              { value: "not_assessed", label: "Belum dinilai" },
+              { value: "not_assessed", label: "Not assessed" },
               { value: "on_track", label: "On track" },
               { value: "at_risk", label: "At risk" },
               { value: "off_track", label: "Off track" },
@@ -175,7 +175,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             step="0.01"
             value={form.budget}
             onChange={(event) => updateField("budget", event.target.value)}
-            className="text-base sm:text-sm w-full"
+            className="w-full text-base sm:text-sm"
             placeholder="0.00"
           />
         </Field>
@@ -197,7 +197,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
         </Field>
       </div>
       {error && (
-        <p role="alert" className="text-xs mt-3 rounded-md bg-danger-subtle px-3 py-2 text-danger-primary">
+        <p role="alert" className="mt-3 rounded-md bg-danger-subtle px-3 py-2 text-xs text-danger-primary">
           {error}
         </p>
       )}
@@ -215,7 +215,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="text-xs grid gap-1.5 font-medium text-secondary">
+    <label className="grid gap-1.5 text-xs font-medium text-secondary">
       <span>{label}</span>
       {children}
     </label>

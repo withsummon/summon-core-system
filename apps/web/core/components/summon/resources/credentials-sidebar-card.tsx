@@ -19,7 +19,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
   const displayCredentials = credentials.slice(0, 3);
 
   return (
-    <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-primary">Credentials</h3>
         <Link href={credentialsHref} className="text-xs font-semibold text-accent-primary hover:underline">
@@ -36,7 +36,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
             return (
               <div
                 key={cred.id}
-                className="text-xs flex items-center justify-between rounded-xl border border-subtle bg-layer-1 p-2.5 transition-colors hover:bg-layer-2"
+                className="flex items-center justify-between rounded-xl border border-subtle bg-layer-1 p-2.5 text-xs transition-colors hover:bg-layer-2"
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <div
@@ -58,7 +58,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
                   </div>
                   <div className="min-w-0 truncate">
                     <div className="truncate font-semibold text-primary">{cred.name}</div>
-                    <div className="truncate text-[10px] text-tertiary">
+                    <div className="truncate text-12 text-tertiary">
                       {cred.account_identifier || cred.provider || "Authorized"}
                     </div>
                   </div>
@@ -69,13 +69,13 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
             );
           })
         ) : (
-          <div className="text-xs py-3 text-center text-tertiary">No credentials configured</div>
+          <div className="py-3 text-center text-xs text-tertiary">No credentials configured</div>
         )}
       </div>
 
       <Link
         href={credentialsHref}
-        className="text-xs mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary/10 py-2.5 font-bold text-accent-primary transition-all hover:bg-accent-primary hover:text-white"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary/10 py-2.5 text-xs font-bold text-accent-primary transition-all hover:bg-accent-primary hover:text-white"
       >
         <Lock className="size-3.5" />
         Open Credential Manager

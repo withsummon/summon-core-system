@@ -14,11 +14,12 @@ import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
-import { InboxIcon } from "@plane/propel/icons";
+import { InboxIcon, SearchIcon } from "@plane/propel/icons";
 import Link from "next/link";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { usePowerK } from "@/hooks/store/use-power-k";
 import { useUserProfile } from "@/hooks/store/user";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
@@ -31,6 +32,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
   const { sidebarCollapsed } = useAppTheme();
   const { updateUserTheme } = useUserProfile();
+  const { togglePowerKModal } = usePowerK();
   const { preferences } = useAppRailPreferences();
 
   const showLabel = preferences.displayMode === "icon_with_label";
@@ -57,15 +59,24 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         <AppSidebarToggleButton />
       </div>
       {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
+      <div className="flex min-w-0 flex-1">
         <WorkspaceMenuRoot variant="top-navigation" />
       </div>
-      {/* Power K Search */}
-      <div className="shrink-0">
+      {/* Power K Search: an inline field from md up, an icon that opens the palette on a phone */}
+      <div className="hidden shrink-0 md:block">
         <TopNavPowerK />
       </div>
       {/* Additional Actions */}
-      <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
+      <div className="flex flex-none items-center justify-end gap-1 md:flex-1">
+        <button
+          type="button"
+          aria-label="Search"
+          title="Search"
+          onClick={() => togglePowerKModal(true)}
+          className="grid size-8 place-items-center rounded-md text-tertiary hover:bg-layer-transparent-hover md:hidden"
+        >
+          <SearchIcon className="size-5" />
+        </button>
         <Link
           href={`/${workspaceSlug?.toString()}/notifications/`}
           aria-label="Inbox"

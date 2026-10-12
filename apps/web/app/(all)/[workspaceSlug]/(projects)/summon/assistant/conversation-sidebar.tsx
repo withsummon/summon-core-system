@@ -20,15 +20,9 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
       <div className="flex items-center justify-between gap-2 border-b border-subtle pb-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-primary">Chats</h2>
-          <p className="truncate text-[11px] text-secondary">Private to you</p>
+          <p className="truncate text-12 text-secondary">Private to you</p>
         </div>
-        <Button
-          size="lg"
-          variant="secondary"
-          loading={props.creating}
-          onClick={props.onCreate}
-          aria-label="New chat"
-        >
+        <Button size="lg" variant="secondary" loading={props.creating} onClick={props.onCreate} aria-label="New chat">
           <Plus className="size-3.5" /> New
         </Button>
       </div>
@@ -52,7 +46,7 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
             }`}
           >
             <MessageSquareText className="size-4 flex-none" />
-            <span className="text-sm truncate font-medium">{conversation.title}</span>
+            <span className="truncate text-sm font-medium">{conversation.title}</span>
           </button>
         ))}
       </div>

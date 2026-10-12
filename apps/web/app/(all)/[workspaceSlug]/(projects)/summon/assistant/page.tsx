@@ -340,17 +340,17 @@ export default function SummonAssistantPage({ params }: Route.ComponentProps) {
         <SummonCard className="flex min-h-[36rem] flex-col overflow-hidden p-0 lg:h-[calc(100dvh-10.5rem)]">
           <header className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3 sm:px-5">
             <div className="min-w-0">
-              <h2 className="text-sm truncate font-semibold text-primary">
+              <h2 className="truncate text-sm font-semibold text-primary">
                 {conversation?.title ?? "New conversation"}
               </h2>
-              <p className="truncate text-[11px] text-secondary">
+              <p className="truncate text-12 text-secondary">
                 {providerMessage
                   ? `${providerMessage.provider || "Provider unavailable"}${providerMessage.model ? ` · ${providerMessage.model}` : ""}`
-                  : "Automatic RAG · provider appears after the first response"}
+                  : "Answers use the sources you can access"}
               </p>
             </div>
             {providerMessage ? (
-              <span className="rounded-full bg-layer-1 px-2.5 py-1 text-[11px] font-medium text-secondary">
+              <span className="rounded-full bg-layer-1 px-2.5 py-1 text-12 font-medium text-secondary">
                 {providerMessage.provider === "deterministic" ? "Degraded mode" : providerMessage.status}
               </span>
             ) : null}

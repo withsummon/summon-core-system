@@ -12,9 +12,9 @@ import { summonErrorMessage } from "@/components/summon/screen";
 import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 
 const SUGGESTED_PROMPTS = [
-  "Ringkas status seluruh proyek aktif",
-  "Temukan keputusan terbaru dari meeting",
-  "Susun update progres untuk klien",
+  "Summarize the status of every active project",
+  "Find the latest decisions from meetings",
+  "Draft a progress update for a client",
 ];
 
 export function assistantErrorMessage(error: unknown) {
@@ -47,7 +47,7 @@ function AssistantArtifactCard({ job, workspaceSlug }: { job: ISummonAutomationJ
       <div className="mt-2 flex flex-wrap gap-2">
         <Link
           href={`/${workspaceSlug}/summon/automation/${job.id}/`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-[11px] font-medium text-accent-primary"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-12 font-medium text-accent-primary"
         >
           <Eye className="size-3.5" /> Preview
         </Link>
@@ -56,7 +56,7 @@ function AssistantArtifactCard({ job, workspaceSlug }: { job: ISummonAutomationJ
             key={artifact.id}
             href={artifact.file_detail?.href}
             download={artifact.file_detail?.name}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-[11px] font-medium text-accent-primary"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-12 font-medium text-accent-primary"
           >
             <Download className="size-3.5" /> Download {artifact.format.toUpperCase()}
           </a>
@@ -86,10 +86,10 @@ export function AssistantMessageList(props: {
           <span className="mx-auto grid size-11 place-items-center rounded-2xl bg-accent-subtle text-accent-primary">
             <Sparkles className="size-5" />
           </span>
-          <p className="text-lg mt-4 font-semibold tracking-tight text-primary">Apa yang ingin kamu ketahui?</p>
-          <p className="text-sm mt-1 text-secondary">
-            Tanya tentang proyek, dokumen, meeting, atau proses kerja Summon. Sumber yang dapat kamu akses akan dicari
-            otomatis.
+          <p className="mt-4 text-lg font-semibold tracking-tight text-primary">What would you like to know?</p>
+          <p className="mt-1 text-sm text-secondary">
+            Ask about projects, documents, meetings or how your team works. Sources you can access are searched
+            automatically.
           </p>
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             {SUGGESTED_PROMPTS.map((prompt) => (
@@ -97,7 +97,7 @@ export function AssistantMessageList(props: {
                 key={prompt}
                 type="button"
                 onClick={() => props.onSuggestion(prompt)}
-                className="text-xs rounded-xl border border-subtle bg-surface-1 px-3 py-2.5 text-left text-secondary transition-colors hover:border-strong hover:bg-layer-1 hover:text-primary focus-visible:outline focus-visible:outline-2"
+                className="rounded-xl border border-subtle bg-surface-1 px-3 py-2.5 text-left text-xs text-secondary transition-colors hover:border-strong hover:bg-layer-1 hover:text-primary focus-visible:outline focus-visible:outline-2"
               >
                 {prompt}
               </button>
@@ -120,13 +120,13 @@ export function AssistantMessageList(props: {
           </span>
           <div className={`max-w-[88%] min-w-0 ${message.role === "user" ? "text-right" : ""}`}>
             <div
-              className={`mb-1 flex gap-2 text-[11px] font-medium text-tertiary ${message.role === "user" ? "justify-end" : ""}`}
+              className={`mb-1 flex gap-2 text-12 font-medium text-tertiary ${message.role === "user" ? "justify-end" : ""}`}
             >
               <span>{message.role === "user" ? "You" : "Summon Assistant"}</span>
               {message.role === "assistant" ? <span>{message.status}</span> : null}
             </div>
             <div
-              className={`text-sm rounded-2xl px-4 py-3 text-left ${
+              className={`rounded-2xl px-4 py-3 text-left text-sm ${
                 message.role === "user"
                   ? "border border-accent-strong bg-accent-primary text-on-color"
                   : "border border-subtle bg-layer-1 text-primary"
@@ -144,7 +144,7 @@ export function AssistantMessageList(props: {
                   {message.attachments.map((attachment) => (
                     <span
                       key={attachment.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-current/20 px-2 py-1 text-[10px] font-medium"
+                      className="inline-flex items-center gap-1 rounded-full border border-current/20 px-2 py-1 text-12 font-medium"
                     >
                       <Paperclip className="size-3" /> {attachment.original_name}
                     </span>
@@ -160,7 +160,7 @@ export function AssistantMessageList(props: {
                       onClick={(event) => {
                         if (!window.confirm(`Open ${citation.label}? No data will be changed.`)) event.preventDefault();
                       }}
-                      className="inline-flex items-center gap-1 rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-[11px] font-medium text-accent-primary focus-visible:outline focus-visible:outline-2"
+                      className="inline-flex items-center gap-1 rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-12 font-medium text-accent-primary focus-visible:outline focus-visible:outline-2"
                     >
                       {citation.label} <ArrowUpRight className="size-3" />
                     </Link>
@@ -180,7 +180,7 @@ export function AssistantMessageList(props: {
             <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-primary text-on-color">
               <User className="size-4" />
             </span>
-            <div className="text-sm max-w-[88%] rounded-2xl border border-accent-strong bg-accent-primary px-4 py-3 text-on-color">
+            <div className="max-w-[88%] rounded-2xl border border-accent-strong bg-accent-primary px-4 py-3 text-sm text-on-color">
               {pending}
             </div>
           </div>
@@ -188,7 +188,7 @@ export function AssistantMessageList(props: {
             <span className="grid size-8 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">
               <Bot className="size-4" />
             </span>
-            <div className="text-sm animate-pulse rounded-2xl border border-subtle bg-layer-1 px-4 py-3 text-secondary">
+            <div className="animate-pulse rounded-2xl border border-subtle bg-layer-1 px-4 py-3 text-sm text-secondary">
               Summon Assistant is thinking…
             </div>
           </div>

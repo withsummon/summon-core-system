@@ -20,11 +20,6 @@ export const mergeProjectSummaries = (
   ];
 };
 
-export const projectHealthLabel = (health: string) => {
-  if (health === "not_assessed") return "Belum dinilai";
-  return health.replaceAll("_", " ").replace(/^./, (value) => value.toUpperCase());
-};
-
 export const projectHealthTone = (health: string) => (health === "not_assessed" ? "neutral" : "default");
 
 export const projectProfileForm = (profile: ISummonProjectOverview["profile"]) => ({

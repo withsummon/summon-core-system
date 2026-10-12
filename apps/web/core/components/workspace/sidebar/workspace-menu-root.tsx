@@ -73,7 +73,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
       <div
         className={cn("relative flex h-full w-fit max-w-48", {
           "w-full justify-center": variant === "sidebar",
-          "flex-grow": variant === "top-navigation",
+          "min-w-0 flex-grow": variant === "top-navigation",
         })}
       >
         {variant === "sidebar" && (
@@ -96,14 +96,14 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
         {variant === "top-navigation" && (
           <Menu.Trigger
             className={cn(
-              "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+              "group/menu-button flex min-w-0 flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
               {
                 "bg-layer-1": open,
               }
             )}
             aria-label={t("aria_labels.projects_sidebar.open_workspace_switcher")}
           >
-            <div className="flex flex-grow items-center gap-2 truncate">
+            <div className="flex min-w-0 flex-grow items-center gap-2 truncate">
               <WorkspaceLogo
                 logo={activeWorkspace?.logo_url}
                 name={activeWorkspace?.name}

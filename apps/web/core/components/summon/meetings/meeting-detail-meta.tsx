@@ -15,7 +15,7 @@ type Props = {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="shadow-sm rounded-xl border border-subtle bg-surface-1">
+    <section className="rounded-xl border border-subtle bg-surface-1 shadow-sm">
       <div className="border-b border-subtle px-4 py-3.5">
         <h2 className="text-sm font-semibold text-primary">{title}</h2>
       </div>
@@ -28,7 +28,7 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       <Panel title="Meeting Details">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[11px] sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-12 sm:grid-cols-3">
           <Detail label="Status" value={data.status} />
           <Detail label="Organizer" value={organizer || "Not available"} />
           <Detail label="Created At" value={createdAt} />
@@ -44,15 +44,15 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
           {data.participants.slice(0, 5).map((participant) => (
             <div key={participant.id} className="flex items-center gap-2.5">
               <Avatar size={26} name={participant.member.display_name} />
-              <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-primary">
+              <p className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
                 {participant.member.display_name}
               </p>
-              <span className="text-[10px] text-tertiary capitalize">{participant.response}</span>
+              <span className="text-12 text-tertiary capitalize">{participant.response}</span>
             </div>
           ))}
           {!data.participants.length ? <p className="text-xs text-tertiary">No participants added.</p> : null}
           {data.participants.length > 5 ? (
-            <p className="text-[11px] font-medium text-secondary">+{data.participants.length - 5} more participants</p>
+            <p className="text-12 font-medium text-secondary">+{data.participants.length - 5} more participants</p>
           ) : null}
         </div>
       </Panel>
@@ -63,7 +63,7 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[10px] text-tertiary">{label}</dt>
+      <dt className="text-12 text-tertiary">{label}</dt>
       <dd className="mt-1 truncate font-medium text-primary capitalize">{value}</dd>
     </div>
   );

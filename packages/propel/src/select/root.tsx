@@ -8,6 +8,7 @@ import { memo } from "react";
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { CheckIcon } from "../icons/actions/check-icon";
 import { ChevronDownIcon } from "../icons/arrows/chevron-down";
+import { FIELD_CLASSNAME } from "../input/field";
 import { cn } from "../utils/classname";
 
 export type SelectOption = { value: string; label: React.ReactNode; disabled?: boolean };
@@ -30,9 +31,9 @@ export interface SelectProps {
 }
 
 const TRIGGER_CLASSNAME = cn(
-  "flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-subtle bg-surface-1 px-3 text-left text-13 text-primary shadow-raised-100 outline-none",
-  "transition-[border-color,background-color] duration-150 hover:bg-layer-1 focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle",
-  "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[popup-open]:border-accent-strong motion-reduce:transition-none"
+  FIELD_CLASSNAME,
+  "flex h-9 w-full min-w-0 items-center justify-between gap-2 px-3 text-left hover:bg-layer-2-hover",
+  "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[popup-open]:border-accent-strong"
 );
 
 function SelectPopup({ options, popupClassName }: { options: SelectOption[]; popupClassName?: string }) {

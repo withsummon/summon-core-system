@@ -8,11 +8,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
+import { CalendarDays, Link2, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonCard, SummonMetric, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
+import { SummonDrawer } from "@/components/summon/drawer";
+import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -29,6 +31,11 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
   const [issueId, setIssueId] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [panel, setPanel] = useState<"schedule" | "link" | null>(null);
+  const openPanel = (next: "schedule" | "link" | null) => {
+    setFormError("");
+    setPanel(next);
+  };
   const {
     data = [],
     error,
@@ -48,6 +55,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
       });
       setTitle("");
       setStartsAt("");
+      setPanel(null);
       await mutate();
     } catch (requestError) {
       setFormError(summonErrorMessage(requestError));
@@ -62,6 +70,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
     try {
       await summonService.linkMeetingIssue(params.workspaceSlug, meetingId, issueId);
       setIssueId("");
+      setPanel(null);
       await mutate();
     } catch (requestError) {
       setFormError(summonErrorMessage(requestError));
@@ -73,117 +82,133 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
   return (
     <SummonScreen
       title="Meeting Workspace"
-      description="Schedules and notes live in Summon; every action item is a live Plane work item."
+      description="Meeting schedules, notes and the tasks that come out of them."
+      actions={
+        <>
+          <Button variant="secondary" size="lg" onClick={() => openPanel("link")} disabled={!data.length}>
+            <Link2 />
+            Link action item
+          </Button>
+          <Button size="lg" onClick={() => openPanel("schedule")}>
+            <Plus />
+            Schedule meeting
+          </Button>
+        </>
+      }
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <SummonMetric label="All meetings" value={data.length} detail="Workspace schedule" />
-        <SummonMetric
-          label="Scheduled"
-          value={data.filter(({ status }) => status === "scheduled").length}
-          detail="Upcoming sessions"
-        />
+      <SummonMetricStrip>
+        <SummonMetric label="All meetings" value={data.length} />
+        <SummonMetric label="Scheduled" value={data.filter(({ status }) => status === "scheduled").length} />
         <SummonMetric
           label="Action items"
           value={data.reduce((total, item) => total + item.work_items.length, 0)}
-          detail="Live Plane work items"
+          detail="Linked tasks"
         />
+      </SummonMetricStrip>
+      <div className="space-y-3">
+        <SummonRequestState
+          loading={isLoading}
+          error={error}
+          empty={!isLoading && data.length === 0}
+          emptyIcon={CalendarDays}
+          emptyTitle="No meetings yet"
+          emptyMessage="Schedule a meeting to keep its notes and action items together."
+          onRetry={() => void mutate()}
+        />
+        {data.length ? (
+          <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+            {data.map((item) => (
+              <Link
+                key={item.id}
+                href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
+                className="block px-3.5 py-2.5 hover:bg-layer-1"
+              >
+                <p className="text-sm font-medium text-primary">{item.title}</p>
+                <p className="mt-1 text-xs text-secondary">
+                  {new Date(item.starts_at).toLocaleString()} · {item.work_items.length} action items · {item.status}
+                </p>
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </div>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-3">
-          <SummonRequestState
-            loading={isLoading}
-            error={error}
-            empty={!isLoading && data.length === 0}
-            onRetry={() => void mutate()}
-          />
-          {data.length ? (
-            <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
-              {data.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
-                  className="block px-3.5 py-2.5 hover:bg-layer-1"
-                >
-                  <p className="text-sm font-medium text-primary">{item.title}</p>
-                  <p className="text-xs mt-1 text-secondary">
-                    {new Date(item.starts_at).toLocaleString()} · {item.work_items.length} Plane actions · {item.status}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="space-y-4">
-          <SummonCard>
-            <h2 className="text-sm font-semibold text-primary">Schedule meeting</h2>
-            <form onSubmit={createMeeting} className="mt-4 grid gap-3">
-              <SummonField label="Title">
-                <Input required value={title} onChange={(event) => setTitle(event.target.value)} />
-              </SummonField>
-              <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
-                <SummonField label="Start date">
-                  <DatePicker
-                    required
-                    clearable={false}
-                    value={startsAt.slice(0, 10)}
-                    onValueChange={(date) => setStartsAt(date ? `${date}T${startsAt.slice(11, 16) || "09:00"}` : "")}
-                  />
-                </SummonField>
-                <SummonField label="Time">
-                  <Input
-                    required
-                    type="time"
-                    value={startsAt.slice(11, 16)}
-                    disabled={!startsAt}
-                    onChange={(event) => setStartsAt(`${startsAt.slice(0, 10)}T${event.target.value}`)}
-                  />
-                </SummonField>
-              </div>
-              <SummonField label="Plane Project">
-                <Select
-                  value={project}
-                  onValueChange={(value) => setProject(value)}
-                  options={[
-                    { value: "", label: "Workspace meeting" },
-                    ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
-                  ]}
-                />
-              </SummonField>
-              <Button size="xl" type="submit" loading={saving}>
-                Create meeting
-              </Button>
-            </form>
-          </SummonCard>
-          <SummonCard>
-            <h2 className="text-sm font-semibold text-primary">Link Plane action item</h2>
-            <form onSubmit={linkIssue} className="mt-4 grid gap-3">
-              <SummonField label="Meeting">
-                <Select
-                  required
-                  value={meetingId}
-                  onValueChange={(value) => setMeetingId(value)}
-                  options={[
-                    { value: "", label: "Select meeting" },
-                    ...data.map((item) => ({ value: item.id, label: item.title })),
-                  ]}
-                />
-              </SummonField>
-              <SummonField label="Plane work item ID">
-                <Input
-                  required
-                  value={issueId}
-                  onChange={(event) => setIssueId(event.target.value)}
-                  placeholder="UUID from the work item URL"
-                />
-              </SummonField>
-              <Button size="xl" type="submit" loading={saving}>
-                Link work item
-              </Button>
-            </form>
-          </SummonCard>
-          {formError ? <p className="text-xs text-danger-primary">{formError}</p> : null}
-        </div>
-      </div>
+
+      <SummonDrawer
+        open={panel === "schedule"}
+        onOpenChange={(open) => openPanel(open ? "schedule" : null)}
+        title="Schedule meeting"
+      >
+        <form onSubmit={createMeeting} className="grid gap-3">
+          <SummonField label="Title">
+            <Input required value={title} onChange={(event) => setTitle(event.target.value)} />
+          </SummonField>
+          <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
+            <SummonField label="Start date">
+              <DatePicker
+                required
+                clearable={false}
+                value={startsAt.slice(0, 10)}
+                onValueChange={(date) => setStartsAt(date ? `${date}T${startsAt.slice(11, 16) || "09:00"}` : "")}
+              />
+            </SummonField>
+            <SummonField label="Time">
+              <Input
+                required
+                type="time"
+                value={startsAt.slice(11, 16)}
+                disabled={!startsAt}
+                onChange={(event) => setStartsAt(`${startsAt.slice(0, 10)}T${event.target.value}`)}
+              />
+            </SummonField>
+          </div>
+          <SummonField label="Project">
+            <Select
+              value={project}
+              onValueChange={(value) => setProject(value)}
+              options={[
+                { value: "", label: "Workspace meeting" },
+                ...joinedProjectIds.map((id) => ({ value: id, label: getProjectById(id)?.name ?? id })),
+              ]}
+            />
+          </SummonField>
+          {formError ? <p className="text-12 text-danger-primary">{formError}</p> : null}
+          <Button size="lg" type="submit" loading={saving}>
+            Create meeting
+          </Button>
+        </form>
+      </SummonDrawer>
+      <SummonDrawer
+        open={panel === "link"}
+        onOpenChange={(open) => openPanel(open ? "link" : null)}
+        title="Link an action item"
+        description="Attach an existing task to a meeting."
+      >
+        <form onSubmit={linkIssue} className="grid gap-3">
+          <SummonField label="Meeting">
+            <Select
+              required
+              value={meetingId}
+              onValueChange={(value) => setMeetingId(value)}
+              options={[
+                { value: "", label: "Select meeting" },
+                ...data.map((item) => ({ value: item.id, label: item.title })),
+              ]}
+            />
+          </SummonField>
+          <SummonField label="Task ID">
+            <Input
+              required
+              value={issueId}
+              onChange={(event) => setIssueId(event.target.value)}
+              placeholder="Copy it from the task's link"
+            />
+          </SummonField>
+          {formError ? <p className="text-12 text-danger-primary">{formError}</p> : null}
+          <Button size="lg" type="submit" loading={saving}>
+            Link task
+          </Button>
+        </form>
+      </SummonDrawer>
     </SummonScreen>
   );
 }

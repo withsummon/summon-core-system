@@ -14,17 +14,10 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import {
-  AlertTriangle,
   Check,
-  ChevronDown,
   Clock3,
   Copy,
   Eye,
-  Filter,
-  Grid2X2,
-  KeyRound,
-  List,
-  LockKeyhole,
   Pencil,
   Plus,
   Search,
@@ -32,19 +25,26 @@ import {
   ShieldCheck,
   Trash2,
   UserRoundPlus,
-  UsersRound,
   X,
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { CredentialDrawer } from "@/components/summon/credential-drawer";
+import { SummonDrawer } from "@/components/summon/drawer";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { summonErrorMessage } from "@/components/summon/screen";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonPageHeader,
+  summonErrorMessage,
+  summonPageClassName,
+} from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
 import { ProjectService } from "@/services/project";
@@ -93,6 +93,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
   const [projectFilter, setProjectFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Overview");
   const [selectedId, setSelectedId] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingCredential, setEditingCredential] = useState<ISummonCredential | null>(null);
@@ -192,71 +193,41 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
   };
 
   return (
-    <section className="mx-auto min-h-full w-full max-w-[1600px] overflow-hidden p-4 lg:p-5">
+    <section className={summonPageClassName}>
       <PageHead title="Credential Vault · Summon Core" />
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-primary">Credential Vault</h1>
-            <ShieldCheck className="size-4 text-secondary" />
-          </div>
-          <p className="mt-1 text-xs text-secondary">
-            Securely store and manage accounts, API keys, and access credentials.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="relative w-80 max-w-full">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search credentials, projects, accounts..."
-              className="pl-9"
-            />
-          </div>
-          <Button variant="secondary" size="lg">
-            <Filter className="mr-1.5 size-3.5" /> Filter
-          </Button>
-          <Button size="lg" onClick={openCreate}>
-            <Plus className="mr-1.5 size-3.5" /> Add Credential <ChevronDown className="ml-2 size-3.5" />
-          </Button>
-        </div>
-      </header>
+      <SummonPageHeader
+        title="Credential Vault"
+        description="Accounts, API keys and access credentials for your projects"
+        actions={
+          <>
+            <div role="search" className="relative w-full min-w-0 sm:w-80">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search credentials, projects, accounts"
+                aria-label="Search credentials"
+                className="w-full pl-9"
+              />
+            </div>
+            <Button size="lg" onClick={openCreate}>
+              <Plus />
+              Add credential
+            </Button>
+          </>
+        }
+      />
 
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Metric
-          icon={LockKeyhole}
-          tone="blue"
-          label="Total Credentials"
-          value={metrics.total}
-          detail="Accessible to you"
-        />
-        <Metric icon={KeyRound} tone="green" label="Active Accounts" value={metrics.active} detail="Not revoked" />
-        <Metric
-          icon={UsersRound}
-          tone="orange"
-          label="Shared With Me"
-          value={metrics.sharedWithMe}
-          detail="Owned by another member"
-        />
-        <Metric
-          icon={ShieldCheck}
-          tone="purple"
-          label="Expiring Soon"
-          value={now ? metrics.expiringSoon : "—"}
-          detail="Within 30 days"
-        />
-        <Metric
-          icon={AlertTriangle}
-          tone="red"
-          label="Risky Credentials"
-          value={metrics.risky}
-          detail="Marked high or critical"
-        />
-      </div>
+      <SummonMetricStrip>
+        <SummonMetric label="Credentials" value={metrics.total} detail="Accessible to you" />
+        <SummonMetric label="Active" value={metrics.active} detail="Not revoked" />
+        <SummonMetric label="Shared with me" value={metrics.sharedWithMe} detail="Owned by another member" />
+        <SummonMetric label="Expiring soon" value={now ? metrics.expiringSoon : "—"} detail="Within 30 days" />
+        <SummonMetric label="High risk" value={metrics.risky} detail="Marked high or critical" />
+      </SummonMetricStrip>
 
-      <div className="mt-5 grid min-h-[720px] overflow-hidden rounded-2xl border border-subtle bg-surface-1 xl:grid-cols-[minmax(0,1.08fr)_minmax(30rem,0.92fr)]">
-        <div className="min-w-0 border-b border-subtle xl:border-r xl:border-b-0">
+      <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+        <div className="min-w-0">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <Select
               value={projectFilter}
@@ -267,23 +238,9 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                 ...projects.map((project) => ({ value: project.id, label: project.name })),
               ]}
             />
-            <div className="flex items-center gap-2 text-[11px] text-secondary">
-              <span>{filtered.length} credentials</span>
-              <button
-                type="button"
-                className="border-accent-primary grid size-8 place-items-center rounded-lg border bg-accent-subtle text-accent-primary"
-                aria-label="List view"
-              >
-                <List className="size-4" />
-              </button>
-              <button
-                type="button"
-                className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary"
-                aria-label="Grid view"
-              >
-                <Grid2X2 className="size-4" />
-              </button>
-            </div>
+            <span className="text-12 text-secondary tabular-nums">
+              {filtered.length} {filtered.length === 1 ? "credential" : "credentials"}
+            </span>
           </div>
           {!data ? (
             <div className="p-4">
@@ -296,7 +253,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-left text-xs">
-                <thead className="border-y border-subtle bg-layer-1/60 text-[10px] text-tertiary">
+                <thead className="border-y border-subtle bg-layer-1/60 text-12 text-tertiary">
                   <tr>
                     <th className="px-4 py-3">Credential Name</th>
                     <th className="px-3 py-3">Type</th>
@@ -315,7 +272,10 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                       <td className="px-4 py-3">
                         <button
                           type="button"
-                          onClick={() => setSelectedId(credential.id)}
+                          onClick={() => {
+                            setSelectedId(credential.id);
+                            setDetailOpen(true);
+                          }}
                           className="flex w-full items-center gap-3 text-left"
                         >
                           <span className="grid size-8 flex-none place-items-center rounded-lg bg-accent-subtle text-accent-primary">
@@ -323,7 +283,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate font-medium text-primary">{credential.name}</span>
-                            <span className="mt-0.5 block truncate text-[10px] text-secondary">
+                            <span className="mt-0.5 block truncate text-12 text-secondary">
                               {credential.account_identifier || "No account identifier"}
                             </span>
                           </span>
@@ -348,175 +308,159 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               </table>
             </div>
           )}
-          <div className="flex items-center justify-between border-t border-subtle px-4 py-4 text-[11px] text-secondary">
-            <span>
-              Showing {filtered.length ? `1 to ${filtered.length}` : "0"} of {filtered.length} credentials
-            </span>
-            <div className="flex items-center gap-1">
-              <button type="button" className="grid size-7 place-items-center rounded-md border border-subtle">
-                1
-              </button>
-              <span className="ml-3">Rows per page: 10</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <div className="flex items-center justify-between border-b border-subtle px-5 py-4">
-            <h2 className="text-sm font-semibold text-primary">Credential Details</h2>
-            <button type="button" aria-label="Close details" className="text-secondary">
-              <X className="size-4" />
-            </button>
-          </div>
-          {!selected ? (
-            <div className="p-5">
-              <SummonRequestState empty emptyMessage="Select a credential to inspect." />
-            </div>
-          ) : (
-            <>
-              <div className="flex items-start gap-4 px-5 py-5">
-                <span className="grid size-14 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">
-                  <Server className="size-6" />
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="truncate text-lg font-semibold text-primary">{selected.name}</h3>
-                    <Status value={selected.status} />
-                  </div>
-                  <p className="mt-1 text-xs text-secondary capitalize">
-                    {selected.provider.replaceAll("_", " ")} · {textMetadata(selected, "environment")}
-                  </p>
-                  <p className="mt-2 text-[11px] text-tertiary">
-                    Last used {formatRelative(lastUsed)} · Created {formatDate(selected.created_at)}
-                  </p>
-                </div>
-              </div>
-              <SectionTabs
-                items={tabItems}
-                value={activeTab}
-                onValueChange={setActiveTab}
-                label="Credential sections"
-                className="px-5"
-              />
-              <div className="p-5">
-                {activeTab === "Overview" ? (
-                  <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
-                    <div className="rounded-xl border border-subtle p-4">
-                      <dl className="grid gap-4 text-xs">
-                        <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
-                        <Detail
-                          label="Password"
-                          value={selected.secret}
-                          action={
-                            <button type="button" onClick={() => setManageOpen(true)} className="text-accent-primary">
-                              <Eye className="size-4" />
-                            </button>
-                          }
-                        />
-                        <Detail label="Host / IP" value={textMetadata(selected, "host")} copy />
-                        <Detail label="Port" value={textMetadata(selected, "port")} />
-                        <Detail label="Protocol" value={textMetadata(selected, "protocol")} />
-                        <Detail label="Description" value={textMetadata(selected, "description")} />
-                        <Detail
-                          label="Tags"
-                          value={
-                            <div className="flex flex-wrap gap-1.5">
-                              {credentialTags(selected).length
-                                ? credentialTags(selected).map((tag) => (
-                                    <Badge key={tag} tone="blue">
-                                      {tag}
-                                    </Badge>
-                                  ))
-                                : "Not set"}
-                            </div>
-                          }
-                        />
-                        <Detail
-                          label="Project"
-                          value={selected.project ? projectNames.get(selected.project) || "Linked project" : "Not set"}
-                        />
-                        <Detail
-                          label="Environment"
-                          value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>}
-                        />
-                        <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
-                      </dl>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-subtle p-4">
-                        <h4 className="text-sm font-semibold text-primary">Quick Actions</h4>
-                        <div className="mt-3 grid gap-1">
-                          <Action icon={Eye} label="Reveal Password" onClick={() => setManageOpen(true)} />
-                          <Action icon={Pencil} label="Update Credential" onClick={openEdit} />
-                          <Action icon={Clock3} label="Rotate Password" onClick={() => setManageOpen(true)} />
-                          <Action icon={UserRoundPlus} label="Share Access" onClick={() => setManageOpen(true)} />
-                          <Action icon={Copy} label="Duplicate" disabled />
-                          <Action icon={Trash2} label="Delete" danger onClick={() => setManageOpen(true)} />
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-subtle p-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-semibold text-primary">Access Summary</h4>
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab("Access")}
-                            className="text-[11px] text-accent-primary"
-                          >
-                            View all
-                          </button>
-                        </div>
-                        <dl className="mt-3 grid gap-3">
-                          <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
-                          <MiniDetail label="Users with access" value={String(accessData?.grants.length ?? 0)} />
-                          <MiniDetail label="Last accessed" value={formatRelative(lastUsed)} />
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                ) : activeTab === "Access" ? (
-                  <PanelList
-                    title="Users with access"
-                    empty="No active credential grants."
-                    error={accessError}
-                    items={
-                      accessData?.grants.map((grant) => ({
-                        id: grant.id,
-                        title: getUserDetails(grant.member)?.display_name || grant.member,
-                        detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
-                      })) ?? []
-                    }
-                  />
-                ) : activeTab === "Activity Log" ? (
-                  <PanelList
-                    title="Audit trail"
-                    empty="No credential activity."
-                    error={accessError}
-                    items={
-                      accessData?.audit.map((audit) => ({
-                        id: audit.id,
-                        title: audit.action.replaceAll("_", " "),
-                        detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
-                      })) ?? []
-                    }
-                  />
-                ) : (
-                  <SummonRequestState
-                    empty
-                    emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
-                  />
-                )}
-              </div>
-              <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
-                <ShieldCheck className="size-4 flex-none text-accent-primary" />
-                <p>
-                  This credential is encrypted and stored securely. Secret values are revealed only after password
-                  confirmation and are audited.
-                </p>
-              </div>
-            </>
-          )}
         </div>
       </div>
+
+      <SummonDrawer
+        open={detailOpen && Boolean(selected)}
+        onOpenChange={setDetailOpen}
+        title="Credential details"
+        flush
+      >
+        {selected ? (
+          <>
+            <div className="flex items-start gap-4 px-5 py-5">
+              <span className="grid size-14 flex-none place-items-center rounded-xl bg-accent-subtle text-accent-primary">
+                <Server className="size-6" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-lg font-semibold text-primary">{selected.name}</h3>
+                  <Status value={selected.status} />
+                </div>
+                <p className="mt-1 text-xs text-secondary capitalize">
+                  {selected.provider.replaceAll("_", " ")} · {textMetadata(selected, "environment")}
+                </p>
+                <p className="mt-2 text-12 text-tertiary">
+                  Last used {formatRelative(lastUsed)} · Created {formatDate(selected.created_at)}
+                </p>
+              </div>
+            </div>
+            <SectionTabs
+              items={tabItems}
+              value={activeTab}
+              onValueChange={setActiveTab}
+              label="Credential sections"
+              className="px-5"
+            />
+            <div className="p-5">
+              {activeTab === "Overview" ? (
+                <div className="grid items-start gap-4">
+                  <div className="rounded-xl border border-subtle p-4">
+                    <dl className="grid gap-4 text-xs">
+                      <Detail label="Username" value={selected.account_identifier || "Not set"} copy />
+                      <Detail
+                        label="Password"
+                        value={selected.secret}
+                        action={
+                          <button type="button" onClick={() => setManageOpen(true)} className="text-accent-primary">
+                            <Eye className="size-4" />
+                          </button>
+                        }
+                      />
+                      <Detail label="Host / IP" value={textMetadata(selected, "host")} copy />
+                      <Detail label="Port" value={textMetadata(selected, "port")} />
+                      <Detail label="Protocol" value={textMetadata(selected, "protocol")} />
+                      <Detail label="Description" value={textMetadata(selected, "description")} />
+                      <Detail
+                        label="Tags"
+                        value={
+                          <div className="flex flex-wrap gap-1.5">
+                            {credentialTags(selected).length
+                              ? credentialTags(selected).map((tag) => (
+                                  <Badge key={tag} tone="blue">
+                                    {tag}
+                                  </Badge>
+                                ))
+                              : "Not set"}
+                          </div>
+                        }
+                      />
+                      <Detail
+                        label="Project"
+                        value={selected.project ? projectNames.get(selected.project) || "Linked project" : "Not set"}
+                      />
+                      <Detail
+                        label="Environment"
+                        value={<Badge tone="green">{textMetadata(selected, "environment")}</Badge>}
+                      />
+                      <Detail label="Created By" value={selectedOwner?.display_name || "Not available"} />
+                    </dl>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-subtle p-4">
+                      <h4 className="text-sm font-semibold text-primary">Quick Actions</h4>
+                      <div className="mt-3 grid gap-1">
+                        <Action icon={Eye} label="Reveal Password" onClick={() => setManageOpen(true)} />
+                        <Action icon={Pencil} label="Update Credential" onClick={openEdit} />
+                        <Action icon={Clock3} label="Rotate Password" onClick={() => setManageOpen(true)} />
+                        <Action icon={UserRoundPlus} label="Share Access" onClick={() => setManageOpen(true)} />
+                        <Action icon={Copy} label="Duplicate" disabled />
+                        <Action icon={Trash2} label="Delete" danger onClick={() => setManageOpen(true)} />
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-subtle p-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-primary">Access Summary</h4>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("Access")}
+                          className="text-12 text-accent-primary"
+                        >
+                          View all
+                        </button>
+                      </div>
+                      <dl className="mt-3 grid gap-3">
+                        <MiniDetail label="Owner" value={selectedOwner?.display_name || "Not available"} />
+                        <MiniDetail label="Users with access" value={String(accessData?.grants.length ?? 0)} />
+                        <MiniDetail label="Last accessed" value={formatRelative(lastUsed)} />
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === "Access" ? (
+                <PanelList
+                  title="Users with access"
+                  empty="No active credential grants."
+                  error={accessError}
+                  items={
+                    accessData?.grants.map((grant) => ({
+                      id: grant.id,
+                      title: getUserDetails(grant.member)?.display_name || grant.member,
+                      detail: `${grant.permission} access${grant.expires_at ? ` · expires ${formatDate(grant.expires_at)}` : ""}`,
+                    })) ?? []
+                  }
+                />
+              ) : activeTab === "Activity Log" ? (
+                <PanelList
+                  title="Audit trail"
+                  empty="No credential activity."
+                  error={accessError}
+                  items={
+                    accessData?.audit.map((audit) => ({
+                      id: audit.id,
+                      title: audit.action.replaceAll("_", " "),
+                      detail: `${formatDate(audit.created_at)}${audit.member ? ` · ${getUserDetails(audit.member)?.display_name || audit.member}` : ""}`,
+                    })) ?? []
+                  }
+                />
+              ) : (
+                <SummonRequestState
+                  empty
+                  emptyMessage={`No ${activeTab.toLowerCase()} data source is configured for credentials.`}
+                />
+              )}
+            </div>
+            <div className="mx-5 mb-5 flex gap-3 rounded-xl bg-accent-subtle/50 p-4 text-xs text-secondary">
+              <ShieldCheck className="size-4 flex-none text-accent-primary" />
+              <p>
+                This credential is encrypted and stored securely. Secret values are revealed only after password
+                confirmation and are audited.
+              </p>
+            </div>
+          </>
+        ) : null}
+      </SummonDrawer>
 
       {formOpen ? (
         <CredentialForm
@@ -539,35 +483,6 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
   );
 }
 
-function Metric(props: {
-  icon: typeof LockKeyhole;
-  tone: "blue" | "green" | "orange" | "purple" | "red";
-  label: string;
-  value: React.ReactNode;
-  detail: string;
-}) {
-  const tones = {
-    blue: "bg-blue-500/10 text-blue-600",
-    green: "bg-green-500/10 text-green-600",
-    orange: "bg-amber-500/10 text-amber-600",
-    purple: "bg-violet-500/10 text-violet-600",
-    red: "bg-red-500/10 text-red-600",
-  };
-  const Icon = props.icon;
-  return (
-    <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-subtle bg-surface-1 p-4">
-      <span className={`grid size-12 flex-none place-items-center rounded-xl ${tones[props.tone]}`}>
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-[11px] font-medium text-secondary">{props.label}</p>
-        <p className="mt-1 text-2xl font-semibold tracking-tight text-primary">{props.value}</p>
-        <p className="mt-1 truncate text-[10px] text-tertiary">{props.detail}</p>
-      </div>
-    </div>
-  );
-}
-
 function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "blue" | "green" }) {
   const tones = {
     neutral: "bg-layer-2 text-secondary",
@@ -575,16 +490,14 @@ function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone
     green: "bg-green-500/10 text-green-600",
   };
   return (
-    <span className={`inline-flex rounded-md px-2 py-1 text-[10px] font-medium capitalize ${tones[tone]}`}>
-      {children}
-    </span>
+    <span className={`inline-flex rounded-md px-2 py-1 text-12 font-medium capitalize ${tones[tone]}`}>{children}</span>
   );
 }
 
 function Status({ value }: { value: ISummonCredential["status"] }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium capitalize ${value === "active" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium capitalize ${value === "active" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
     >
       <span className="size-1.5 rounded-full bg-current" />
       {value}
@@ -617,7 +530,7 @@ function Detail({
 
 function MiniDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-[11px]">
+    <div className="flex items-start justify-between gap-3 text-12">
       <dt className="text-secondary">{label}</dt>
       <dd className="text-right font-medium text-primary">{value}</dd>
     </div>
@@ -659,7 +572,7 @@ function PanelList(props: {
         {props.items.map((item) => (
           <div key={item.id} className="px-4 py-3">
             <p className="text-xs font-medium text-primary capitalize">{item.title}</p>
-            <p className="mt-1 text-[10px] text-secondary">{item.detail}</p>
+            <p className="mt-1 text-12 text-secondary">{item.detail}</p>
           </div>
         ))}
         {!props.items.length ? <p className="p-4 text-xs text-tertiary">{props.empty}</p> : null}
@@ -769,9 +682,9 @@ function CredentialForm(props: {
             rows={3}
             defaultValue={typeof metadata.description === "string" ? metadata.description : ""}
             placeholder="Description"
-            className="rounded-md border border-subtle bg-surface-1 p-2 text-xs text-primary sm:col-span-2"
+            className={`${FIELD_CLASSNAME} w-full px-3 py-2 sm:col-span-2`}
           />
-          <p className="text-[10px] text-tertiary sm:col-span-2">
+          <p className="text-12 text-tertiary sm:col-span-2">
             Secrets are encrypted server-side and are never returned in list responses.
           </p>
           {props.error ? <p className="text-xs text-danger-primary sm:col-span-2">{props.error}</p> : null}

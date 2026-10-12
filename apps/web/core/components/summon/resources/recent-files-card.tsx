@@ -35,7 +35,7 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
   const recentFiles = resources.slice(0, 5);
 
   return (
-    <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-primary">Recent Files</h3>
         <button
@@ -59,15 +59,15 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
             >
               <ResourceIcon category={file.category} title={file.title} url={file.url} className="size-4" />
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs truncate font-semibold text-primary group-hover:text-accent-primary">
+                <h4 className="truncate text-xs font-semibold text-primary group-hover:text-accent-primary">
                   {file.title}
                 </h4>
-                <p className="mt-0.5 text-[10px] text-tertiary">{formatRelativeTime(file.updated_at)}</p>
+                <p className="mt-0.5 text-12 text-tertiary">{formatRelativeTime(file.updated_at)}</p>
               </div>
             </a>
           ))
         ) : (
-          <div className="text-xs py-4 text-center text-tertiary">No recent files found</div>
+          <div className="py-4 text-center text-xs text-tertiary">No recent files found</div>
         )}
       </div>
     </div>

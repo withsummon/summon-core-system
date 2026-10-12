@@ -13,9 +13,6 @@ import {
   List,
   LayoutGrid,
   MoreHorizontal,
-  Bell,
-  Calendar as CalendarIcon,
-  Settings as SettingsIcon,
   Plus,
   ExternalLink,
   Trash2,
@@ -25,14 +22,15 @@ import {
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import { CategoryCardsRow } from "./category-cards-row";
-import { QuickAccessCard } from "./quick-access-card";
 import { RecentFilesCard } from "./recent-files-card";
 import { CredentialsSidebarCard } from "./credentials-sidebar-card";
 import { ResourceIcon } from "./resource-icon";
 import { ResourceBadge } from "./resource-badge";
+import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 import { AddResourceModal } from "./add-resource-modal";
 import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload } from "./types";
 import { Select } from "@plane/propel/select";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
 
 interface IResourcesRootProps {
   workspaceSlug: string;
@@ -187,46 +185,14 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      {/* Top Header */}
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">Resources</h1>
-          <p className="text-xs font-medium text-secondary">All project assets, links and resources in one place</p>
-        </div>
-
-        {/* Top Right Utility Icons */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="shadow-xs relative flex size-8.5 items-center justify-center rounded-xl border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-            title="Notifications"
-          >
-            <Bell className="size-4" />
-            <span className="bg-red-500 ring-surface-1 absolute top-1.5 right-1.5 size-2 rounded-full ring-2" />
-          </button>
-          <button
-            type="button"
-            className="shadow-xs flex size-8.5 items-center justify-center rounded-xl border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-            title="Schedule"
-          >
-            <CalendarIcon className="size-4" />
-          </button>
-          <button
-            type="button"
-            className="shadow-xs flex size-8.5 items-center justify-center rounded-xl border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-            title="Settings"
-          >
-            <SettingsIcon className="size-4" />
-          </button>
-        </div>
-      </div>
+    <div className={summonPageClassName}>
+      <SummonPageHeader title="Resources" description="Project assets, links and files in one place" />
 
       {/* Search Bar & Controls Bar */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Large Centered Search Input */}
         <div className="relative max-w-2xl flex-1">
-          <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-tertiary" />
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
           <input
             type="text"
             value={searchQuery}
@@ -235,11 +201,9 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               setCurrentPage(1);
             }}
             placeholder="Search resources by name, project, type, or keyword..."
-            className="text-xs placeholder-tertiary shadow-xs focus:border-accent-primary focus:ring-accent-primary w-full rounded-2xl border border-subtle bg-surface-1 py-2.5 pr-12 pl-10 text-primary focus:ring-1 focus:outline-none"
+            aria-label="Search resources"
+            className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
           />
-          <div className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-subtle bg-layer-1 px-1.5 py-0.5 text-[10px] font-semibold text-tertiary">
-            ⌘ K
-          </div>
         </div>
 
         {/* Action Buttons: Project Select, Filter, Add Resource */}
@@ -265,7 +229,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
           <button
             type="button"
             onClick={() => setSelectedCategory(selectedCategory === "all" ? "document" : "all")}
-            className="text-xs shadow-xs hover:border-accent-primary/40 flex h-9 items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 font-medium text-secondary hover:text-primary"
+            className="hover:border-accent-primary/40 flex h-9 items-center gap-1.5 rounded-xl border border-subtle bg-surface-1 px-3 text-xs font-medium text-secondary shadow-xs hover:text-primary"
           >
             <Filter className="size-3.5" />
             <span>Filter</span>
@@ -275,7 +239,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="text-xs shadow-xs flex h-9 items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 font-bold text-white transition-all hover:bg-accent-primary/90"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-accent-primary px-3.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-accent-primary/90"
           >
             <Plus className="size-3.5" />
             <span>Add Resource</span>
@@ -298,12 +262,12 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
         {/* Left Column: All Resources Table */}
         <div className="flex flex-col gap-4">
-          <div className="shadow-sm rounded-2xl border border-subtle bg-surface-1 p-5">
+          <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
             {/* Table Header Controls */}
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-primary">All Resources</h2>
-                <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[11px] font-bold text-secondary">
+                <span className="rounded-full bg-layer-2 px-2 py-0.5 text-12 font-bold text-secondary">
                   {totalItems}
                 </span>
               </div>
@@ -331,7 +295,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                     onClick={() => setViewMode("list")}
                     className={`flex size-7 items-center justify-center rounded-md transition-all ${
                       viewMode === "list"
-                        ? "shadow-xs bg-surface-1 font-bold text-accent-primary"
+                        ? "bg-surface-1 font-bold text-accent-primary shadow-xs"
                         : "text-tertiary hover:text-primary"
                     }`}
                     title="List view"
@@ -343,7 +307,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                     onClick={() => setViewMode("grid")}
                     className={`flex size-7 items-center justify-center rounded-md transition-all ${
                       viewMode === "grid"
-                        ? "shadow-xs bg-surface-1 font-bold text-accent-primary"
+                        ? "bg-surface-1 font-bold text-accent-primary shadow-xs"
                         : "text-tertiary hover:text-primary"
                     }`}
                     title="Grid view"
@@ -357,9 +321,9 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
             {/* List / Table View */}
             {viewMode === "list" ? (
               <div className="mt-4 overflow-x-auto">
-                <table className="text-xs w-full text-left">
+                <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-subtle text-[11px] font-semibold text-tertiary uppercase">
+                    <tr className="border-b border-subtle text-12 font-medium text-tertiary">
                       <th className="pb-2.5 font-medium">Name</th>
                       <th className="pb-2.5 font-medium">Project</th>
                       <th className="pb-2.5 font-medium">Type</th>
@@ -412,7 +376,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                             {/* Updated By */}
                             <td className="py-3">
                               <div className="flex items-center gap-2 font-medium text-primary">
-                                <div className="flex size-6 items-center justify-center rounded-full bg-layer-2 text-[10px] font-bold text-primary">
+                                <div className="flex size-6 items-center justify-center rounded-full bg-layer-2 text-12 font-bold text-primary">
                                   {updatedBy.charAt(0).toUpperCase()}
                                 </div>
                                 <span className="max-w-[120px] truncate">{updatedBy}</span>
@@ -430,12 +394,12 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                               </button>
 
                               {activeMenuId === item.id && (
-                                <div className="shadow-xl absolute top-full right-0 z-30 mt-1 w-36 rounded-xl border border-subtle bg-surface-1 p-1 text-left">
+                                <div className="absolute top-full right-0 z-30 mt-1 w-36 rounded-xl border border-subtle bg-surface-1 p-1 text-left shadow-xl">
                                   <a
                                     href={item.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-secondary hover:bg-layer-1 hover:text-primary"
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
                                     onClick={() => setActiveMenuId(null)}
                                   >
                                     <ExternalLink className="size-3.5" />
@@ -444,7 +408,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                   <button
                                     type="button"
                                     onClick={() => handleCopyUrl(item.id, item.url)}
-                                    className="text-xs flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-secondary hover:bg-layer-1 hover:text-primary"
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-secondary hover:bg-layer-1 hover:text-primary"
                                   >
                                     {copiedId === item.id ? (
                                       <Check className="text-emerald-500 size-3.5" />
@@ -456,7 +420,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteResource(item.id)}
-                                    className="text-xs text-red-600 hover:bg-red-500/10 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5"
+                                    className="text-red-600 hover:bg-red-500/10 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
                                   >
                                     <Trash2 className="size-3.5" />
                                     Delete
@@ -469,7 +433,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="text-xs py-8 text-center text-tertiary">
+                        <td colSpan={6} className="py-8 text-center text-xs text-tertiary">
                           {isResourcesLoading ? (
                             "Loading resources from database..."
                           ) : (
@@ -505,7 +469,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                       href={item.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="group hover:border-accent-primary/40 hover:shadow-xs flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2"
+                      className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2 hover:shadow-xs"
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
@@ -518,13 +482,13 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                           <ResourceBadge category={item.category} />
                         </div>
 
-                        <h3 className="text-xs mt-3 line-clamp-2 font-bold text-primary group-hover:text-accent-primary">
+                        <h3 className="mt-3 line-clamp-2 text-xs font-bold text-primary group-hover:text-accent-primary">
                           {item.title}
                         </h3>
-                        <p className="mt-1 line-clamp-1 text-[11px] text-tertiary">{projectName}</p>
+                        <p className="mt-1 line-clamp-1 text-12 text-tertiary">{projectName}</p>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-2.5 text-[10px] text-tertiary">
+                      <div className="mt-4 flex items-center justify-between border-t border-subtle pt-2.5 text-12 text-tertiary">
                         <span>{formatRelativeTime(item.updated_at)}</span>
                         <ExternalLink className="size-3 text-secondary group-hover:text-accent-primary" />
                       </div>
@@ -535,7 +499,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
             )}
 
             {/* Pagination Footer */}
-            <div className="text-xs mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-secondary sm:flex-row">
+            <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-xs text-secondary sm:flex-row">
               <div>
                 Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
                 {Math.min(currentPage * pageSize, totalItems)} of {totalItems} resources
@@ -560,9 +524,9 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`text-xs flex size-7 items-center justify-center rounded-lg font-bold transition-all ${
+                        className={`flex size-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${
                           isActive
-                            ? "shadow-xs bg-accent-primary text-white"
+                            ? "bg-accent-primary text-white shadow-xs"
                             : "border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
                         }`}
                       >
@@ -577,7 +541,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                       <button
                         type="button"
                         onClick={() => setCurrentPage(totalPages)}
-                        className={`text-xs flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 font-bold text-secondary hover:bg-layer-1 hover:text-primary`}
+                        className={`flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-xs font-bold text-secondary hover:bg-layer-1 hover:text-primary`}
                       >
                         {totalPages}
                       </button>
@@ -598,18 +562,9 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
           </div>
         </div>
 
-        {/* Right Column: 3 Sidebar Widgets */}
+        {/* Right Column: sidebar widgets */}
         <div className="flex flex-col gap-6">
-          {/* 1. Quick Access */}
-          <QuickAccessCard
-            workspaceSlug={workspaceSlug}
-            onSelectCategory={(cat) => {
-              setSelectedCategory(cat);
-              setCurrentPage(1);
-            }}
-          />
-
-          {/* 2. Recent Files */}
+          {/* Recent Files */}
           <RecentFilesCard
             resources={resources}
             onSelectCategory={(cat) => {
@@ -618,7 +573,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
             }}
           />
 
-          {/* 3. Credentials */}
+          {/* Credentials */}
           <CredentialsSidebarCard credentials={credentials} workspaceSlug={workspaceSlug} />
         </div>
       </div>

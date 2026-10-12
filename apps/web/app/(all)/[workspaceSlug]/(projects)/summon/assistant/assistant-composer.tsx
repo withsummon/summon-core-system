@@ -63,15 +63,15 @@ export function AssistantComposer(props: AssistantComposerProps) {
     <form onSubmit={props.onSubmit} className="border-t border-subtle bg-surface-1 px-3 py-3 sm:px-5">
       <div className="mx-auto max-w-3xl space-y-2.5">
         <details className="group rounded-xl border border-subtle bg-layer-1/50">
-          <summary className="text-xs flex cursor-pointer list-none items-center gap-2 px-3 py-2 font-medium text-secondary focus-visible:outline focus-visible:outline-2">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium text-secondary focus-visible:outline focus-visible:outline-2">
             <SlidersHorizontal className="size-3.5" />
             <span>Context & tools</span>
             {focusCount ? (
-              <span className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-[10px] text-accent-primary">
+              <span className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-12 text-accent-primary">
                 {focusCount} active
               </span>
             ) : (
-              <span className="text-[10px] text-tertiary">Automatic RAG</span>
+              <span className="text-12 text-tertiary">Automatic</span>
             )}
             <ChevronDown className="ml-auto size-3.5 transition-transform group-open:rotate-180" />
           </summary>
@@ -112,7 +112,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
               />
             </SummonField>
             {["update_work_item", "add_comment"].includes(value.toolMode) ? (
-              <SummonField label="Plane work item ID">
+              <SummonField label="Task ID">
                 <Input
                   value={value.workItemId}
                   onChange={(event) => props.onChange({ workItemId: event.target.value })}
@@ -140,7 +140,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
                 ]}
               />
             </SummonField>
-            <SummonField label="Plane Pages context">
+            <SummonField label="Documents">
               <MultiSelect
                 value={value.pageIds}
                 onValueChange={(values) => props.onChange({ pageIds: values })}
@@ -148,7 +148,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
                 options={(props.pages ?? []).map((page) => ({ value: page.page, label: page.page_detail.name }))}
               />
             </SummonField>
-            <label className="text-xs inline-flex items-center gap-2 self-end pb-2 font-medium text-secondary">
+            <label className="inline-flex items-center gap-2 self-end pb-2 text-xs font-medium text-secondary">
               <input
                 type="checkbox"
                 checked={value.workspaceContext}
@@ -157,7 +157,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
               />
               Include workspace summary
             </label>
-            <p id="assistant-page-context-help" className="self-end pb-2 text-[11px] text-tertiary">
+            <p id="assistant-page-context-help" className="self-end pb-2 text-12 text-tertiary">
               Authorized project and document context is retrieved automatically. These selections add focus.
             </p>
           </div>
@@ -167,7 +167,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
           <p className="text-xs text-danger-primary">Could not load every context option.</p>
         ) : null}
         {props.contextTruncated ? (
-          <p className="text-xs rounded-lg bg-warning-subtle/20 px-3 py-2 text-warning-primary" role="status">
+          <p className="rounded-lg bg-warning-subtle/20 px-3 py-2 text-xs text-warning-primary" role="status">
             Selected source context was truncated to the 30,000-character limit.
           </p>
         ) : null}
@@ -189,7 +189,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
               return (
                 <span
                   key={attachment.id}
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-[11px] text-secondary"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 text-secondary"
                 >
                   <AudioIcon className="size-3.5 flex-none" />
                   <span className="max-w-44 truncate">{attachment.original_name}</span>
@@ -215,7 +215,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
             {props.uploadingFiles.map((file) => (
               <span
                 key={`${file.name}-${file.size}-${file.lastModified}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-[11px] text-secondary"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 text-secondary"
               >
                 <LoaderCircle className="size-3.5 animate-spin" /> {file.name} · uploading
               </span>
@@ -224,7 +224,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
         ) : null}
 
         <div
-          className="shadow-sm flex items-end gap-2 rounded-2xl border border-strong bg-surface-1 p-2 focus-within:border-accent-strong"
+          className="flex items-end gap-2 rounded-2xl border border-strong bg-surface-1 p-2 shadow-sm focus-within:border-accent-strong"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -270,7 +270,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
             <Send className="size-4" />
           </Button>
         </div>
-        <p className="text-center text-[10px] text-tertiary">
+        <p className="text-center text-12 text-tertiary">
           Attach up to {MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB
         </p>
       </div>

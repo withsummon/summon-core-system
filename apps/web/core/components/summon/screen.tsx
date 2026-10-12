@@ -5,35 +5,38 @@
  */
 
 import type { HTMLAttributes, ReactNode } from "react";
-import { ArrowUpRight } from "lucide-react";
-import { observer } from "mobx-react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { PageHead } from "@/components/core/page-title";
-import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 
-export const SummonScreen = observer(function SummonScreen(props: {
+/** The one gutter and width every Summon page uses. */
+export const summonPageClassName = "mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 lg:p-5";
+
+/** The one page header: 20px title, optional one-line description, actions on the right. */
+export function SummonPageHeader(props: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <div className="min-w-0">
+        <h1 className="text-20 font-semibold tracking-tight text-primary">{props.title}</h1>
+        {props.description ? <p className="mt-0.5 max-w-3xl text-13 text-tertiary">{props.description}</p> : null}
+      </div>
+      {props.actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{props.actions}</div> : null}
+    </header>
+  );
+}
+
+export function SummonScreen(props: {
   title: string;
   description: string;
   actions?: ReactNode;
   children: ReactNode;
   rail?: ReactNode;
 }) {
-  const { sidebarCollapsed } = useAppTheme();
-
   return (
     <>
       <PageHead title={`${props.title} · Summon Core`} />
-      <section className="relative mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 overflow-hidden p-4 lg:p-5">
-        <div className="relative flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {sidebarCollapsed && <AppSidebarToggleButton />}
-            <div>
-              <h1 className="text-2xl font-semibold text-primary">{props.title}</h1>
-              <p className="mt-1 max-w-3xl text-13 text-tertiary">{props.description}</p>
-            </div>
-          </div>
-          {props.actions ? <div className="flex flex-wrap items-center gap-2">{props.actions}</div> : null}
-        </div>
+      <section className={summonPageClassName}>
+        <SummonPageHeader title={props.title} description={props.description} actions={props.actions} />
         {props.rail ? (
           <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="min-w-0">{props.children}</div>
@@ -45,7 +48,7 @@ export const SummonScreen = observer(function SummonScreen(props: {
       </section>
     </>
   );
-});
+}
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
   return (
@@ -55,20 +58,36 @@ export function SummonCard(props: { children: ReactNode; className?: string }) {
   );
 }
 
-export function SummonMetric(props: { label: string; value: ReactNode; detail?: string }) {
+/** One row of real numbers. Cells divide with hairlines; two columns on a phone. */
+export function SummonMetricStrip(props: { children: ReactNode; className?: string }) {
   return (
-    <SummonCard className="min-w-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-12 font-medium text-tertiary">{props.label}</p>
-          <p className="mt-1.5 text-2xl font-semibold text-primary tabular-nums">{props.value}</p>
-          {props.detail ? <p className="mt-1 truncate text-12 text-tertiary">{props.detail}</p> : null}
-        </div>
-        <span className="grid size-7 flex-shrink-0 place-items-center rounded-lg border border-subtle bg-surface-1 text-tertiary shadow-tactile">
-          <ArrowUpRight className="size-4" />
-        </span>
-      </div>
-    </SummonCard>
+    <div
+      className={`grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-subtle bg-(--border-color-subtle) shadow-xs sm:auto-cols-fr sm:grid-flow-col sm:grid-cols-none [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1 ${props.className ?? ""}`}
+    >
+      {props.children}
+    </div>
+  );
+}
+
+/** A metric cell for `SummonMetricStrip`. With `href` the whole cell navigates. */
+export function SummonMetric(props: { label: string; value: ReactNode; detail?: string; href?: string }) {
+  const body = (
+    <>
+      <p className="flex items-center justify-between gap-2 text-12 font-medium text-tertiary">
+        <span className="truncate">{props.label}</span>
+        {props.href ? <ChevronRight aria-hidden className="size-3.5 flex-none text-placeholder" /> : null}
+      </p>
+      <p className="mt-1 text-20 font-semibold tracking-tight text-primary tabular-nums">{props.value}</p>
+      {props.detail ? <p className="mt-0.5 truncate text-12 text-tertiary">{props.detail}</p> : null}
+    </>
+  );
+  const cell = "min-w-0 bg-surface-1 px-4 py-3";
+  return props.href ? (
+    <Link href={props.href} className={`${cell} transition-colors hover:bg-layer-1`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cell}>{body}</div>
   );
 }
 
@@ -141,9 +160,9 @@ export function summonLLMErrorMessage(error: unknown) {
     case "transcript_required":
       return "Supply an accessible text transcript before generating a summary.";
     case "project_required":
-      return "Select an authorized Plane Project before generating or publishing a Page.";
+      return "Select a project you can access before generating or publishing a page.";
     case "project_access_revoked":
-      return "Project access changed. Reopen the record and select an authorized Plane Project.";
+      return "Project access changed. Reopen the record and select a project you can access.";
     case "unsupported_document_type":
       return "This legacy preview cannot create files. Generate a new preview with one of the current document templates.";
     default:
