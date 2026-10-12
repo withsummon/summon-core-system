@@ -46,10 +46,20 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
-// Unset properties stay quiet until the row or card is hovered or focused. Touch devices keep them visible.
-const EMPTY_PROPERTY_SLOT_CLASSNAME =
-  "transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover/list-block:opacity-100 pointer-fine:group-hover/kanban-block:opacity-100 pointer-fine:focus-within:opacity-100 pointer-fine:has-[[aria-expanded=true]]:opacity-100";
-const propertySlotClassName = (isEmpty: boolean) => cn("h-5", isEmpty && EMPTY_PROPERTY_SLOT_CLASSNAME);
+// Unset properties stay quiet until the row is hovered or focused; touch devices keep them visible.
+// List rows fade them in place so property columns line up. Board cards show only set properties, as Linear
+// does; hovering would reflow the card, so unset slots return only for keyboard focus or an open dropdown.
+const EMPTY_LIST_SLOT_CLASSNAME =
+  "transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover/list-block:opacity-100 pointer-fine:focus-within:opacity-100 pointer-fine:has-[[aria-expanded=true]]:opacity-100";
+const EMPTY_CARD_SLOT_CLASSNAME = {
+  block:
+    "order-last pointer-fine:hidden pointer-fine:group-focus-within/kanban-block:block pointer-fine:has-[[aria-expanded=true]]:block",
+  flex: "order-last pointer-fine:hidden pointer-fine:group-focus-within/kanban-block:flex pointer-fine:has-[[aria-expanded=true]]:flex",
+};
+const emptySlotClassName = (layout: string, display: "block" | "flex") =>
+  layout === "Kanban" ? EMPTY_CARD_SLOT_CLASSNAME[display] : EMPTY_LIST_SLOT_CLASSNAME;
+const propertySlotClassName = (layout: string, isEmpty: boolean) =>
+  cn("h-5", isEmpty && emptySlotClassName(layout, "block"));
 
 export interface IIssueProperties {
   issue: TIssue;
@@ -62,7 +72,7 @@ export interface IIssueProperties {
 }
 
 export const IssueProperties = observer(function IssueProperties(props: IIssueProperties) {
-  const { issue, updateIssue, displayProperties, isReadOnly, className, isEpic = false } = props;
+  const { issue, updateIssue, displayProperties, activeLayout, isReadOnly, className, isEpic = false } = props;
   // i18n
   const { t } = useTranslation();
   // store hooks
@@ -223,7 +233,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={propertySlotClassName(!issue?.priority || issue.priority === "none")}
+          className={propertySlotClassName(activeLayout, !issue?.priority || issue.priority === "none")}
           onFocus={handleEventPropagation}
           onClick={handleEventPropagation}
         >
@@ -248,7 +258,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={propertySlotClassName(!issue.start_date && !issue.target_date)}
+          className={propertySlotClassName(activeLayout, !issue.start_date && !issue.target_date)}
           onFocus={handleEventPropagation}
           onClick={handleEventPropagation}
         >
@@ -288,7 +298,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={propertySlotClassName(!issue.start_date)}
+          className={propertySlotClassName(activeLayout, !issue.start_date)}
           onFocus={handleEventPropagation}
           onClick={handleEventPropagation}
         >
@@ -316,7 +326,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       >
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={propertySlotClassName(!issue.target_date)}
+          className={propertySlotClassName(activeLayout, !issue.target_date)}
           onFocus={handleEventPropagation}
           onClick={handleEventPropagation}
         >
@@ -344,7 +354,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="assignee">
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={propertySlotClassName(!issue.assignee_ids?.length)}
+          className={propertySlotClassName(activeLayout, !issue.assignee_ids?.length)}
           onFocus={handleEventPropagation}
           onClick={handleEventPropagation}
         >
@@ -515,7 +525,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
       {/* label */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="labels">
-        <div className={cn("flex", !issue?.label_ids?.length && EMPTY_PROPERTY_SLOT_CLASSNAME)}>
+        <div className={cn("flex", !issue?.label_ids?.length && emptySlotClassName(activeLayout, "flex"))}>
           <IssuePropertyLabels
             projectId={issue?.project_id || null}
             value={issue?.label_ids || []}
