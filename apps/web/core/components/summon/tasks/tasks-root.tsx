@@ -277,7 +277,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 return (
                   <Collapsible.CollapsibleRoot key={value} defaultOpen className="mb-2">
                     <h2>
-                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 bg-layer-1 px-4 text-left text-13 font-medium text-primary hover:bg-layer-2 focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
+                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 bg-layer-1 px-4 text-left text-13 font-medium text-primary hover:bg-layer-1-hover focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
                         <ChevronDown
                           aria-hidden="true"
                           className="size-3.5 -rotate-90 group-data-[panel-open]:rotate-0"
@@ -301,7 +301,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                           return (
                             <li
                               key={task.id}
-                              className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 hover:bg-layer-1 has-[a:focus-visible]:bg-layer-1 sm:flex-nowrap sm:px-6"
+                              className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover sm:flex-nowrap sm:px-6"
                             >
                               <PriorityIcon
                                 aria-label={`Priority: ${task.priority ?? "none"}`}
