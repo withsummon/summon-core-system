@@ -137,7 +137,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
         loading={isLoading}
         error={error}
         empty={!isLoading && filteredPages.length === 0}
-        emptyIcon={FileText}
+        emptyAsset={pages.length ? "search" : "page"}
         emptyTitle={pages.length ? "No matching documents" : "No documents yet"}
         emptyMessage={
           pages.length ? "Try another search or project." : "Pages you create in your projects show up here."

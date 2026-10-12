@@ -149,30 +149,28 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
         })}
       </ul>
       {!projects.length && (
-        <div className="px-6 py-16 text-center">
-          <FolderGit2 aria-hidden="true" className="mx-auto mb-3 size-6 text-secondary" />
-          <h2 className="text-sm font-medium text-primary">
-            {allProjects.length ? "No matching projects" : "No projects yet"}
-          </h2>
-          <p className="mt-1 text-sm text-secondary">
-            {allProjects.length
-              ? "Try another name or health status."
-              : "Create a project to start planning your work."}
-          </p>
-          {allProjects.length > 0 && (
-            <Button
-              variant="secondary"
-              size="base"
-              className="mt-4"
-              onClick={() => {
-                setSearchQuery("");
-                setHealthFilter("all");
-              }}
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
+        <SummonRequestState
+          empty
+          emptyAsset={allProjects.length ? "search" : "project"}
+          emptyTitle={allProjects.length ? "No matching projects" : "No projects yet"}
+          emptyMessage={
+            allProjects.length ? "Try another name or health status." : "Create a project to start planning your work."
+          }
+          emptyAction={
+            allProjects.length > 0 && (
+              <Button
+                variant="secondary"
+                size="base"
+                onClick={() => {
+                  setSearchQuery("");
+                  setHealthFilter("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            )
+          }
+        />
       )}
     </div>
   );

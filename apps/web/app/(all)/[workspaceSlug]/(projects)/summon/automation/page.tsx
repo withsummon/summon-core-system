@@ -335,6 +335,9 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
           loading={isLoading}
           error={error}
           empty={!isLoading && templates.length === 0}
+          emptyAsset="automation"
+          emptyTitle="No templates yet"
+          emptyMessage="Document templates you can generate from show up here."
           onRetry={() => void mutate()}
         />
         <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3 xl:grid-cols-4">
@@ -387,6 +390,9 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             loading={isLoading}
             error={error}
             empty={!isLoading && filteredJobs.length === 0}
+            emptyAsset="automation"
+            emptyTitle="No generated documents yet"
+            emptyMessage="Pick a template above to generate your first document."
             onRetry={() => void mutate()}
           />
           {filteredJobs.length > 0 && (
