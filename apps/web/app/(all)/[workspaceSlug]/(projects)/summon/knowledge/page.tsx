@@ -29,6 +29,8 @@ import {
   Upload,
   Users,
 } from "lucide-react";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
+import type { CompactAssetType } from "@plane/propel/empty-state";
 import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { PageHead } from "@/components/core/page-title";
 import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
@@ -307,7 +309,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                   </span>
                 </Link>
               ))}
-              {!recentPages.length && <Empty text="No accessible notes." />}
+              {!recentPages.length && <Empty asset="note" text="No accessible notes." />}
             </div>
           </SidePanel>
           <SidePanel title="Knowledge Stats">
@@ -355,6 +357,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function Empty({ text }: { text: string }) {
-  return <p className="rounded-xl border border-dashed border-subtle p-3 text-center text-12 text-tertiary">{text}</p>;
+function Empty({ text, asset }: { text: string; asset: CompactAssetType }) {
+  return <EmptyStateCompact assetKey={asset} assetClassName="size-20" title={text} rootClassName="py-4" />;
 }

@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { ISummonResourceLink } from "@plane/types";
 import { ResourceIcon } from "./resource-icon";
 
@@ -67,7 +68,12 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
             </a>
           ))
         ) : (
-          <div className="py-4 text-center text-xs text-tertiary">No recent files found</div>
+          <EmptyStateCompact
+            assetKey="note"
+            assetClassName="size-20"
+            title="No recent files yet"
+            rootClassName="py-4"
+          />
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@
 import React from "react";
 import Link from "next/link";
 import { Lock, Cloud, Key, Shield } from "lucide-react";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { ISummonCredential } from "@plane/types";
 
 interface ICredentialsSidebarCardProps {
@@ -69,7 +70,12 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
             );
           })
         ) : (
-          <div className="py-3 text-center text-xs text-tertiary">No credentials configured</div>
+          <EmptyStateCompact
+            assetKey="token"
+            assetClassName="size-20"
+            title="No credentials yet"
+            rootClassName="py-4"
+          />
         )}
       </div>
 

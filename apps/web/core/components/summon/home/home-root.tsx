@@ -28,6 +28,8 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
+import type { CompactAssetType } from "@plane/propel/empty-state";
 import { Chip } from "@plane/propel/chip";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -139,6 +141,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             href={`/${workspaceSlug}/summon/tasks/`}
             action="All tasks"
             empty="Nothing urgent right now."
+            emptyAsset="work-item"
           >
             {visiblePriority.slice(0, 3).map((issue) => (
               <Link
@@ -163,6 +166,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             href={`/${workspaceSlug}/summon/projects/`}
             action="All projects"
             empty="No active projects."
+            emptyAsset="project"
           >
             {visibleProjects.slice(0, 5).map((project) => {
               const selected = activeProjectId === project.id;
@@ -196,6 +200,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             href={`/${workspaceSlug}/summon/opportunities/`}
             action="All opportunities"
             empty="No active opportunities."
+            emptyAsset="customer"
           >
             {visibleOpportunities.slice(0, 3).map((opportunity) => (
               <Link
@@ -219,6 +224,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             href={`/${workspaceSlug}/summon/knowledge/`}
             action="All documents"
             empty="Select a project to see its documents."
+            emptyAsset="note"
           >
             {selectedProject?.pages.slice(0, 5).map((page) => (
               <Link
@@ -377,7 +383,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyLine text="No resources linked to this project." />
+                  <EmptyLine asset="link" text="No resources linked to this project." />
                 )}
               </PreviewCard>
 
@@ -397,7 +403,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyLine text="No open tasks." />
+                  <EmptyLine asset="work-item" text="No open tasks." />
                 )}
               </PreviewCard>
               <PreviewCard title="Latest documents" href={`/${workspaceSlug}/projects/${activeProjectId}/pages/`}>
@@ -411,7 +417,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyLine text="No documents yet." />
+                  <EmptyLine asset="note" text="No documents yet." />
                 )}
               </PreviewCard>
             </div>
@@ -440,6 +446,7 @@ function HomeListSection(props: {
   href: string;
   action: string;
   empty: string;
+  emptyAsset: CompactAssetType;
   children: React.ReactNode;
 }) {
   const hasChildren = Array.isArray(props.children) ? props.children.length > 0 : !!props.children;
@@ -456,7 +463,7 @@ function HomeListSection(props: {
       </div>
       <div className="flex flex-col">
         {props.children}
-        {!hasChildren && <EmptyLine text={props.empty} />}
+        {!hasChildren && <EmptyLine asset={props.emptyAsset} text={props.empty} />}
       </div>
     </section>
   );
@@ -517,6 +524,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EmptyLine({ text }: { text: string }) {
-  return <p className="rounded-lg bg-dot-grid px-3 py-5 text-center text-13 text-tertiary">{text}</p>;
+function EmptyLine({ text, asset }: { text: string; asset: CompactAssetType }) {
+  return <EmptyStateCompact assetKey={asset} assetClassName="size-20" title={text} rootClassName="py-4" />;
 }

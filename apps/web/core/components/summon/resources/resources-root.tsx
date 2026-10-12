@@ -29,6 +29,7 @@ import { ResourceBadge } from "./resource-badge";
 import { SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 import { AddResourceModal } from "./add-resource-modal";
 import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload } from "./types";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Select } from "@plane/propel/select";
 import { FIELD_CLASSNAME } from "@plane/propel/input";
 
@@ -157,6 +158,12 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
   // 4. Pagination
   const pageSize = 10;
   const totalItems = filteredResources.length;
+  const hasFilters = Boolean(searchQuery.trim()) || selectedCategory !== "all" || selectedProjectId !== "all";
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedProjectId("all");
+  };
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedResources = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -318,8 +325,25 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               </div>
             </div>
 
-            {/* List / Table View */}
-            {viewMode === "list" ? (
+            {!isResourcesLoading && totalItems === 0 ? (
+              <EmptyStateDetailed
+                align="center"
+                rootClassName="px-6 py-12"
+                assetClassName="h-auto w-32"
+                assetKey={hasFilters ? "search" : "page"}
+                title={hasFilters ? "No matching resources" : "No resources yet"}
+                description={
+                  hasFilters
+                    ? "Try another search, category or project."
+                    : "Add links to documents, repositories, designs and drives so the team finds them in one place."
+                }
+                actions={[
+                  hasFilters
+                    ? { label: "Clear filters", variant: "secondary", onClick: clearFilters }
+                    : { label: "Add resource", onClick: () => setIsAddModalOpen(true) },
+                ]}
+              />
+            ) : viewMode === "list" ? (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -434,20 +458,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                     ) : (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-xs text-tertiary">
-                          {isResourcesLoading ? (
-                            "Loading resources from database..."
-                          ) : (
-                            <div className="space-y-2">
-                              <div>No resources found matching the current filters.</div>
-                              <button
-                                type="button"
-                                onClick={() => setIsAddModalOpen(true)}
-                                className="font-semibold text-accent-primary hover:underline"
-                              >
-                                + Add the first resource link
-                              </button>
-                            </div>
-                          )}
+                          Loading resources…
                         </td>
                       </tr>
                     )}
@@ -499,7 +510,10 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
             )}
 
             {/* Pagination Footer */}
-            <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-xs text-secondary sm:flex-row">
+            <div
+              hidden={totalItems === 0}
+              className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-xs text-secondary sm:flex-row"
+            >
               <div>
                 Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
                 {Math.min(currentPage * pageSize, totalItems)} of {totalItems} resources

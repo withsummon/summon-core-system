@@ -10,6 +10,8 @@ import {
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import { ArrowUpRight, ChevronRight, Download, FileText } from "lucide-react";
+import { EmptyStateCompact } from "@plane/propel/empty-state";
+import type { CompactAssetType } from "@plane/propel/empty-state";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import type { ISummonProjectOverview } from "@plane/types";
 import { filterProjectResources } from "@/components/summon/projects/project-workspace";
@@ -66,7 +68,7 @@ export function ProjectDetailTab(props: {
             }
           />
         ))}
-        {!overview.issues.length && <Empty text="No tasks yet." />}
+        {!overview.issues.length && <Empty asset="work-item" text="No tasks yet." />}
       </TabPanel>
     );
   }
@@ -82,7 +84,7 @@ export function ProjectDetailTab(props: {
             badge={<span className="text-12 text-secondary tabular-nums">{item.completion}%</span>}
           />
         ))}
-        {!overview.milestones.length && <Empty text="No modules or cycles yet." />}
+        {!overview.milestones.length && <Empty asset="update" text="No modules or cycles yet." />}
       </TabPanel>
     );
   }
@@ -92,7 +94,7 @@ export function ProjectDetailTab(props: {
         {overview.pages.map((page) => (
           <Row key={page.id} href={page.href} title={page.name} detail="Document" />
         ))}
-        {!overview.pages.length && <Empty text="No project documents yet." />}
+        {!overview.pages.length && <Empty asset="note" text="No project documents yet." />}
       </TabPanel>
     );
   }
@@ -112,7 +114,7 @@ export function ProjectDetailTab(props: {
             detail={resource.description || resource.category}
           />
         ))}
-        {!resources.length && <Empty text={`No ${tab} linked to this project.`} />}
+        {!resources.length && <Empty asset="link" text={`No ${tab} linked to this project.`} />}
       </TabPanel>
     );
   }
@@ -122,7 +124,7 @@ export function ProjectDetailTab(props: {
         {overview.activity.map((item) => (
           <Row key={item.id} href={item.href} title={item.label} detail={formatDate(item.created_at)} />
         ))}
-        {!overview.activity.length && <Empty text="No recent project activity." />}
+        {!overview.activity.length && <Empty asset="update" text="No recent project activity." />}
       </TabPanel>
     );
   }
@@ -145,7 +147,7 @@ export function ProjectDetailTab(props: {
           <Download className="size-4 text-secondary" />
         </a>
       ))}
-      {!overview.files.length && <Empty text="No uploaded project files." />}
+      {!overview.files.length && <Empty asset="export" text="No uploaded project files." />}
     </TabPanel>
   );
 }
@@ -199,8 +201,8 @@ function ExternalRow({ href, title, detail }: { href: string; title: string; det
   );
 }
 
-function Empty({ text }: { text: string }) {
-  return <p className="p-10 text-center text-xs text-tertiary">{text}</p>;
+function Empty({ text, asset }: { text: string; asset: CompactAssetType }) {
+  return <EmptyStateCompact assetKey={asset} assetClassName="size-20" title={text} rootClassName="py-8" />;
 }
 
 const formatBytes = (size: number) => (size < 1024 ? `${size} B` : `${(size / 1024).toFixed(size < 10240 ? 1 : 0)} KB`);
