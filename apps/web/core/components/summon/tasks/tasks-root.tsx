@@ -17,17 +17,19 @@ import {
   Circle,
   CircleDashed,
   CircleDot,
-  Filter,
+  Minus,
   Plus,
   Search,
   XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useLocalStorage } from "@plane/hooks";
 import { EIssuesStoreType } from "@plane/types";
+import type { TIssuePriorities, TStateGroups } from "@plane/types";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
-import { Select } from "@plane/propel/select";
 import { SelectableIcon } from "@plane/propel/icons";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
@@ -40,13 +42,29 @@ import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { useLabel } from "@/hooks/store/use-label";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { IssueService } from "@/services/issue";
 import { listAccessiblePlaneIssues } from "@/services/summon-plane.service";
-import { filterTaskCenterItems, isTaskCompleted, type TTaskCenterDue, type TTaskCenterScope } from "./task-center";
+import {
+  DEFAULT_TASK_DISPLAY,
+  PRIORITY_ORDER,
+  STATUS_ORDER,
+  countActiveFilters,
+  filterTasks,
+  groupTasks,
+  isTaskCompleted,
+  sortTasks,
+  taskStatus,
+  type TTaskCenterScope,
+  type TTaskDisplay,
+  type TTaskFilterField,
+  type TTaskFilters,
+} from "./task-center";
+import { AppliedTaskFilters, TaskDisplayPopover, TaskFilterMenu, type TTaskFilterOptions } from "./task-view-controls";
 
 const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[] = [
   { value: "mine", label: "My tasks", icon: CheckSquareIcon },
@@ -54,24 +72,43 @@ const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[
   { value: "created", label: "Created by me", icon: PencilSimpleLineIcon },
   { value: "all", label: "All tasks", icon: ListChecksIcon },
 ];
-const dueOptions: { value: TTaskCenterDue; label: string }[] = [
-  { value: "all", label: "Any date" },
-  { value: "today", label: "Today" },
+const STATUS_META: Record<TStateGroups, { label: string; Icon: LucideIcon; tone: string }> = {
+  started: { label: "In progress", Icon: CircleDot, tone: "text-accent-primary" },
+  unstarted: { label: "To do", Icon: Circle, tone: "text-secondary" },
+  backlog: { label: "Backlog", Icon: CircleDashed, tone: "text-secondary" },
+  completed: { label: "Done", Icon: CheckCircle2, tone: "text-success-primary" },
+  cancelled: { label: "Cancelled", Icon: XCircle, tone: "text-secondary" },
+};
+const PRIORITY_META: Record<TIssuePriorities, { label: string; Icon: LucideIcon; tone: string }> = {
+  urgent: { label: "Urgent", Icon: ArrowUp, tone: "text-danger-primary" },
+  high: { label: "High", Icon: ArrowUp, tone: "text-secondary" },
+  medium: { label: "Medium", Icon: Minus, tone: "text-secondary" },
+  low: { label: "Low", Icon: ArrowDown, tone: "text-secondary" },
+  none: { label: "No priority", Icon: Circle, tone: "text-tertiary" },
+};
+const DUE_OPTIONS = [
   { value: "overdue", label: "Overdue" },
-  { value: "week", label: "This week" },
-  { value: "next7", label: "Next 7 days" },
-  { value: "completed", label: "Completed" },
+  { value: "today", label: "Due today" },
+  { value: "week", label: "Due this week" },
+  { value: "next7", label: "Due in the next 7 days" },
+  { value: "none", label: "No due date" },
 ];
-const groups = [
-  { value: "started", label: "In progress", Icon: CircleDot, tone: "text-accent-primary" },
-  { value: "unstarted", label: "To do", Icon: Circle, tone: "text-secondary" },
-  { value: "backlog", label: "Backlog", Icon: CircleDashed, tone: "text-secondary" },
-  { value: "completed", label: "Done", Icon: CheckCircle2, tone: "text-success-primary" },
-  { value: "cancelled", label: "Cancelled", Icon: XCircle, tone: "text-secondary" },
+const PAST_OPTIONS = [
+  { value: "day", label: "Past day" },
+  { value: "week", label: "Past week" },
+  { value: "month", label: "Past month" },
 ];
+type TTaskView = { filters: TTaskFilters; display: TTaskDisplay };
+const DEFAULT_VIEW: TTaskView = { filters: {}, display: DEFAULT_TASK_DISPLAY };
+
 const issueService = new IssueService();
 const dateLabel = (date: string) =>
-  new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(`${date}T00:00:00`));
+  new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
+    new Date(date.length === 10 ? `${date}T00:00:00` : date)
+  );
+const metaIcon = ({ Icon, tone }: { Icon: LucideIcon; tone: string }) => (
+  <Icon aria-hidden="true" className={`size-4 flex-none ${tone}`} />
+);
 
 export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { workspaceSlug: string }) {
   const { data: currentUser } = useUser();
@@ -79,6 +116,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   const { allowPermissions } = useUserPermissions();
   const { getUserDetails, workspace: workspaceMembers } = useMember();
   const projectStates = useProjectState();
+  const labels = useLabel();
   const { toggleCreateIssueModal } = useCommandPalette();
   const {
     data: records = [],
@@ -88,11 +126,14 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   } = useSWR(["summon-plane-issues", workspaceSlug], () => listAccessiblePlaneIssues(workspaceSlug));
   const [today, setToday] = useState("");
   const [scope, setScope] = useHashTab(scopes.map((item) => item.value));
-  const [due, setDue] = useState<TTaskCenterDue>("all");
   const [query, setQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [projectFilter, setProjectFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  // The view persists per workspace and viewer, like a Linear view's filters and display options.
+  const { storedValue, setValue: setView } = useLocalStorage<TTaskView>(
+    `summon-tasks-view:${workspaceSlug}`,
+    DEFAULT_VIEW
+  );
+  const filters = storedValue?.filters ?? {};
+  const display = { ...DEFAULT_TASK_DISPLAY, ...storedValue?.display };
   const canCreate =
     joinedProjectIds.length > 0 &&
     allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.WORKSPACE);
@@ -105,37 +146,136 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   useEffect(() => {
     if (!workspaceMembers.workspaceMemberMap[workspaceSlug]) void workspaceMembers.fetchWorkspaceMembers(workspaceSlug);
     if (!projectStates.fetchedMap[workspaceSlug]) void projectStates.fetchWorkspaceStates(workspaceSlug);
-  }, [projectStates, workspaceMembers, workspaceSlug]);
+    if (!labels.fetchedMap[workspaceSlug]) void labels.fetchWorkspaceLabels(workspaceSlug);
+  }, [labels, projectStates, workspaceMembers, workspaceSlug]);
 
   const tasks = records.map(({ issue, project }) => {
     const state = projectStates.getStateById(issue.state_id);
     return {
       ...issue,
+      label_ids: issue.label_ids ?? [],
       project,
       stateGroup: state?.group ?? issue.state__group,
       stateName: state?.name,
       assignees: issue.assignee_ids.map((id) => getUserDetails(id)).filter(Boolean),
     };
   });
-  const filtered = filterTaskCenterItems(tasks, { scope, due, currentUserId: currentUser?.id, today }).filter(
-    (task) =>
-      `${task.name} ${task.project.name} ${task.project.identifier}-${task.sequence_id}`
-        .toLowerCase()
-        .includes(query.trim().toLowerCase()) &&
-      (projectFilter === "all" || task.project.id === projectFilter) &&
-      (priorityFilter === "all" || (task.priority ?? "none") === priorityFilter)
+  const searched = filterTasks(tasks, {
+    scope,
+    filters,
+    display,
+    currentUserId: currentUser?.id,
+    today,
+    now: Date.now(),
+  }).filter((task) =>
+    `${task.name} ${task.project.name} ${task.project.identifier}-${task.sequence_id}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase())
   );
   const projects = Array.from(new Map(records.map(({ project }) => [project.id, project])).values());
-  const filterCount = Number(due !== "all") + Number(projectFilter !== "all") + Number(priorityFilter !== "all");
-  const reassign = async (projectId: string, issueId: string, assigneeIds: string[]) => {
+  const memberIds = (ids: string[]) => {
+    const unique = [...new Set(ids)];
+    unique.sort((a, b) =>
+      a === currentUser?.id
+        ? -1
+        : b === currentUser?.id
+          ? 1
+          : (getUserDetails(a)?.display_name ?? "").localeCompare(getUserDetails(b)?.display_name ?? "")
+    );
+    return unique;
+  };
+  const memberOption = (id: string) => {
+    const person = getUserDetails(id);
+    return {
+      value: id,
+      label: person?.display_name ?? "Unknown member",
+      icon: <Avatar size={16} name={person?.display_name} src={getFileURL(person?.avatar_url ?? "")} />,
+    };
+  };
+  const assigneeIds = memberIds(tasks.flatMap((task) => task.assignee_ids));
+  const labelIds = [...new Set(tasks.flatMap((task) => task.label_ids))].filter((id) => labels.getLabelById(id));
+  const filterOptions: TTaskFilterOptions = {
+    status: STATUS_ORDER.map((value) => ({
+      value,
+      label: STATUS_META[value].label,
+      icon: metaIcon(STATUS_META[value]),
+    })),
+    assignee: [
+      {
+        value: "none",
+        label: "No assignee",
+        icon: <span className="size-4 rounded-full border border-dashed border-strong" />,
+      },
+      ...assigneeIds.map(memberOption),
+    ],
+    creator: memberIds(tasks.map((task) => task.created_by)).map(memberOption),
+    priority: PRIORITY_ORDER.map((value) => ({
+      value,
+      label: PRIORITY_META[value].label,
+      icon: metaIcon(PRIORITY_META[value]),
+    })),
+    label: labelIds.length
+      ? [
+          { value: "none", label: "No labels" },
+          ...labelIds.map((id) => {
+            const label = labels.getLabelById(id);
+            return {
+              value: id,
+              label: label?.name ?? id,
+              icon: <span className="size-2.5 flex-none rounded-full" style={{ backgroundColor: label?.color }} />,
+            };
+          }),
+        ]
+      : [],
+    project: projects.map((project) => ({ value: project.id, label: project.name })),
+    due: DUE_OPTIONS,
+    created: PAST_OPTIONS,
+    updated: PAST_OPTIONS,
+  };
+  const groups = groupTasks(sortTasks(searched, display), display, {
+    assignee: assigneeIds,
+    project: projects.map((project) => project.id),
+  });
+  const shows = (property: TTaskDisplay["properties"][number]) => display.properties.includes(property);
+  const groupHeading = (key: string) => {
+    switch (display.grouping) {
+      case "status":
+        return { label: STATUS_META[key as TStateGroups].label, icon: metaIcon(STATUS_META[key as TStateGroups]) };
+      case "priority":
+        return {
+          label: PRIORITY_META[key as TIssuePriorities].label,
+          icon: metaIcon(PRIORITY_META[key as TIssuePriorities]),
+        };
+      case "assignee":
+        return key === "none"
+          ? { label: "No assignee", icon: <span className="size-4 rounded-full border border-dashed border-strong" /> }
+          : memberOption(key);
+      case "project":
+        return { label: projects.find((project) => project.id === key)?.name ?? "No project", icon: null };
+      case "none":
+        return { label: "All tasks", icon: null };
+    }
+  };
+
+  const updateView = (next: Partial<TTaskView>) => setView({ filters, display, ...next });
+  const toggleFilter = (field: TTaskFilterField, value: string) => {
+    const current: string[] = filters[field] ?? [];
+    const values = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+    updateView({ filters: { ...filters, [field]: values } });
+  };
+  const clearFilters = () => {
+    setQuery("");
+    updateView({ filters: {} });
+  };
+  const reassign = async (projectId: string, issueId: string, nextAssigneeIds: string[]) => {
     const withAssignees = (items: typeof records = []) =>
       items.map((record) =>
-        record.issue.id === issueId ? { ...record, issue: { ...record.issue, assignee_ids: assigneeIds } } : record
+        record.issue.id === issueId ? { ...record, issue: { ...record.issue, assignee_ids: nextAssigneeIds } } : record
       );
     try {
       await mutate(
         async (current) => {
-          await issueService.patchIssue(workspaceSlug, projectId, issueId, { assignee_ids: assigneeIds });
+          await issueService.patchIssue(workspaceSlug, projectId, issueId, { assignee_ids: nextAssigneeIds });
           return withAssignees(current);
         },
         { optimisticData: withAssignees, rollbackOnError: true, revalidate: false }
@@ -143,12 +283,6 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: "Assignees not updated", message: "Try again in a moment." });
     }
-  };
-  const clearFilters = () => {
-    setQuery("");
-    setDue("all");
-    setProjectFilter("all");
-    setPriorityFilter("all");
   };
 
   return (
@@ -159,7 +293,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
           title="Tasks"
           description={
             <span className="tabular-nums" role="status">
-              {isLoading || error ? "\u00a0" : `${filtered.length} ${filtered.length === 1 ? "task" : "tasks"}`}
+              {isLoading || error ? "\u00a0" : `${searched.length} ${searched.length === 1 ? "task" : "tasks"}`}
             </span>
           }
           actions={
@@ -207,180 +341,180 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 className="h-8 w-full pl-8 text-base sm:text-13"
               />
             </label>
-            <Button
-              variant="secondary"
-              size="base"
-              prependIcon={<Filter aria-hidden="true" />}
-              aria-expanded={filtersOpen}
-              aria-controls="task-filters"
-              onClick={() => setFiltersOpen(!filtersOpen)}
-            >
-              Filters{filterCount > 0 ? ` · ${filterCount}` : ""}
-            </Button>
+            <TaskFilterMenu filters={filters} options={filterOptions} onToggle={toggleFilter} />
+            <TaskDisplayPopover display={display} onChange={(next) => updateView({ display: next })} />
           </div>
         </div>
-        {filtersOpen && (
-          <div
-            id="task-filters"
-            className="flex flex-wrap items-end gap-3 border-b border-subtle bg-layer-1 px-4 py-3 sm:px-6"
-          >
-            <label htmlFor="task-project" className="min-w-40 flex-1 text-13 text-secondary">
-              Project
-              <Select
-                id="task-project"
-                value={projectFilter}
-                onValueChange={setProjectFilter}
-                options={[
-                  { value: "all", label: "All projects" },
-                  ...projects.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-              />
-            </label>
-            <label htmlFor="task-due" className="min-w-36 flex-1 text-13 text-secondary">
-              Due date
-              <Select
-                id="task-due"
-                value={due}
-                onValueChange={(value) => {
-                  const next = dueOptions.find((item) => item.value === value);
-                  if (next) setDue(next.value);
-                }}
-                options={dueOptions}
-              />
-            </label>
-            <label htmlFor="task-priority" className="min-w-36 flex-1 text-13 text-secondary">
-              Priority
-              <Select
-                id="task-priority"
-                value={priorityFilter}
-                onValueChange={setPriorityFilter}
-                options={["all", "urgent", "high", "medium", "low", "none"].map((value) => ({
-                  value,
-                  label: value === "all" ? "All priorities" : value.charAt(0).toUpperCase() + value.slice(1),
-                }))}
-              />
-            </label>
-            <Button variant="ghost" size="base" onClick={clearFilters}>
-              Clear filters
-            </Button>
-          </div>
-        )}
+        <AppliedTaskFilters
+          filters={filters}
+          options={filterOptions}
+          onClearField={(field) => updateView({ filters: { ...filters, [field]: [] } })}
+          onClearAll={() => updateView({ filters: {} })}
+        />
         <Tabs.Content value={scope} className="min-w-0 flex-1">
           <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
           {!isLoading && !error && (
             <div className="py-2">
-              {groups.map(({ value, label, Icon, tone }) => {
-                const items = filtered.filter(
-                  (task) => (task.stateGroup ?? (task.completed_at ? "completed" : "unstarted")) === value
+              {groups.map(({ key, items }) => {
+                const rows = (
+                  <ul>
+                    {items.map((task) => {
+                      const overdue = today && task.target_date && task.target_date < today && !isTaskCompleted(task);
+                      const status = STATUS_META[taskStatus(task)];
+                      const priority = PRIORITY_META[task.priority ?? "none"];
+                      return (
+                        <li
+                          key={task.id}
+                          className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover sm:flex-nowrap sm:px-6"
+                        >
+                          {shows("priority") && (
+                            <priority.Icon
+                              aria-label={`Priority: ${priority.label}`}
+                              className={`size-4 shrink-0 ${priority.tone}`}
+                            />
+                          )}
+                          {shows("id") && (
+                            <span
+                              className="w-20 shrink-0 truncate text-secondary"
+                              title={`${task.project.identifier}-${task.sequence_id}`}
+                            >
+                              {task.project.identifier}-{task.sequence_id}
+                            </span>
+                          )}
+                          {shows("status") && (
+                            <status.Icon
+                              aria-label={`Status: ${task.stateName ?? status.label}`}
+                              className={`size-4 shrink-0 ${status.tone}`}
+                            />
+                          )}
+                          {/* The title link stretches over the row; the project and assignee controls sit above it. */}
+                          <Link
+                            href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
+                            className="min-w-0 flex-[1_1_50%] font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong sm:flex-1"
+                          >
+                            {task.name}
+                          </Link>
+                          <span className="relative ml-7 flex min-w-0 flex-wrap items-center gap-3 text-secondary sm:ml-0 sm:flex-nowrap sm:justify-end">
+                            {shows("labels") &&
+                              task.label_ids.map((id) => {
+                                const label = labels.getLabelById(id);
+                                return label ? (
+                                  <span
+                                    key={id}
+                                    className="flex max-w-32 items-center gap-1.5 rounded-full border border-subtle px-2 py-0.5 text-12"
+                                  >
+                                    <span
+                                      className="size-2 flex-none rounded-full"
+                                      style={{ backgroundColor: label.color }}
+                                    />
+                                    <span className="truncate">{label.name}</span>
+                                  </span>
+                                ) : null;
+                              })}
+                            {shows("project") && (
+                              <Link
+                                href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
+                                className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                title={task.project.name}
+                              >
+                                {task.project.name}
+                              </Link>
+                            )}
+                            {shows("assignee") && (
+                              <MemberDropdown
+                                projectId={task.project.id}
+                                value={task.assignee_ids}
+                                onChange={(ids) => void reassign(task.project.id, task.id, ids)}
+                                multiple
+                                buttonVariant="transparent-without-text"
+                                placeholder="Assignees"
+                                placement="bottom-end"
+                                buttonContainerClassName="rounded-full focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                button={
+                                  <span className="flex -space-x-1 rounded-full">
+                                    {task.assignees
+                                      .slice(0, 3)
+                                      .map(
+                                        (person) =>
+                                          person && (
+                                            <Avatar
+                                              key={person.id}
+                                              size={22}
+                                              name={person.display_name}
+                                              src={getFileURL(person.avatar_url ?? "")}
+                                            />
+                                          )
+                                      )}
+                                    {!task.assignees.length && (
+                                      <span className="size-5 rounded-full border border-dashed border-strong" />
+                                    )}
+                                  </span>
+                                }
+                              />
+                            )}
+                            {shows("due") && (
+                              <span
+                                className={`w-16 shrink-0 text-right tabular-nums ${overdue ? "text-danger-primary" : "text-secondary"}`}
+                                title={task.target_date ? `Due ${task.target_date}` : "No due date"}
+                              >
+                                {task.target_date ? `${overdue ? "! " : ""}${dateLabel(task.target_date)}` : "—"}
+                              </span>
+                            )}
+                            {shows("created") && (
+                              <span
+                                className="shrink-0 text-tertiary tabular-nums sm:w-16 sm:text-right"
+                                title={`Created ${task.created_at}`}
+                              >
+                                {dateLabel(task.created_at)}
+                              </span>
+                            )}
+                            {shows("updated") && (
+                              <span
+                                className="shrink-0 text-tertiary tabular-nums sm:w-16 sm:text-right"
+                                title={`Updated ${task.updated_at}`}
+                              >
+                                {dateLabel(task.updated_at)}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 );
-                if (!items.length) return null;
+                if (display.grouping === "none") return <div key={key}>{rows}</div>;
+                const heading = groupHeading(key);
                 return (
-                  <Collapsible.CollapsibleRoot key={value} defaultOpen className="mb-2">
+                  <Collapsible.CollapsibleRoot key={key} defaultOpen className="mb-2">
                     <h2>
                       <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 border-b border-subtle px-4 text-left text-13 font-medium text-primary transition-colors hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
                         <ChevronDown
                           aria-hidden="true"
                           className="size-3.5 -rotate-90 group-data-[panel-open]:rotate-0"
                         />
-                        <Icon aria-hidden="true" className={`size-4 ${tone}`} />
-                        {label}
+                        {heading.icon}
+                        {heading.label}
                         <span className="ml-1 text-secondary tabular-nums">{items.length}</span>
                       </Collapsible.CollapsibleTrigger>
                     </h2>
-                    <Collapsible.CollapsibleContent>
-                      <ul>
-                        {items.map((task) => {
-                          const PriorityIcon =
-                            task.priority === "urgent" || task.priority === "high"
-                              ? ArrowUp
-                              : task.priority === "low"
-                                ? ArrowDown
-                                : Circle;
-                          const overdue =
-                            today && task.target_date && task.target_date < today && !isTaskCompleted(task);
-                          return (
-                            <li
-                              key={task.id}
-                              className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover sm:flex-nowrap sm:px-6"
-                            >
-                              <PriorityIcon
-                                aria-label={`Priority: ${task.priority ?? "none"}`}
-                                className={`size-4 shrink-0 ${task.priority === "urgent" ? "text-danger-primary" : "text-secondary"}`}
-                              />
-                              <span
-                                className="w-20 shrink-0 truncate text-secondary"
-                                title={`${task.project.identifier}-${task.sequence_id}`}
-                              >
-                                {task.project.identifier}-{task.sequence_id}
-                              </span>
-                              {/* The title link stretches over the row; the project and assignee controls sit above it. */}
-                              <Link
-                                href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
-                                className="min-w-0 flex-[1_1_50%] font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong sm:flex-1"
-                              >
-                                {task.name}
-                              </Link>
-                              <span className="relative ml-7 flex min-w-0 items-center gap-3 text-secondary sm:ml-0 sm:justify-end">
-                                <Link
-                                  href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
-                                  className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
-                                  title={task.project.name}
-                                >
-                                  {task.project.name}
-                                </Link>
-                                <MemberDropdown
-                                  projectId={task.project.id}
-                                  value={task.assignee_ids}
-                                  onChange={(assigneeIds) => void reassign(task.project.id, task.id, assigneeIds)}
-                                  multiple
-                                  buttonVariant="transparent-without-text"
-                                  placeholder="Assignees"
-                                  placement="bottom-end"
-                                  buttonContainerClassName="rounded-full focus-visible:outline-2 focus-visible:outline-accent-strong"
-                                  button={
-                                    <span className="flex -space-x-1 rounded-full">
-                                      {task.assignees
-                                        .slice(0, 3)
-                                        .map(
-                                          (person) =>
-                                            person && (
-                                              <Avatar
-                                                key={person.id}
-                                                size={22}
-                                                name={person.display_name}
-                                                src={getFileURL(person.avatar_url ?? "")}
-                                              />
-                                            )
-                                        )}
-                                      {!task.assignees.length && (
-                                        <span className="size-5 rounded-full border border-dashed border-strong" />
-                                      )}
-                                    </span>
-                                  }
-                                />
-                                <span
-                                  className={`w-16 shrink-0 text-right tabular-nums ${overdue ? "text-danger-primary" : "text-secondary"}`}
-                                  title={task.target_date ?? "No due date"}
-                                >
-                                  {task.target_date ? `${overdue ? "! " : ""}${dateLabel(task.target_date)}` : "—"}
-                                </span>
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </Collapsible.CollapsibleContent>
+                    <Collapsible.CollapsibleContent>{rows}</Collapsible.CollapsibleContent>
                   </Collapsible.CollapsibleRoot>
                 );
               })}
-              {!filtered.length && (
+              {!searched.length && (
                 <div className="flex min-h-64 flex-col items-center justify-center gap-3 px-6 text-center">
                   <CheckCircle2 aria-hidden="true" className="size-8 text-secondary" />
                   <h2 className="text-sm font-medium text-primary">No tasks in this view</h2>
-                  <p className="text-13 text-secondary">Choose another scope or clear your filters.</p>
-                  <Button variant="secondary" size="base" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
+                  <p className="text-13 text-secondary">
+                    {countActiveFilters(filters) || query
+                      ? "Clear your filters or search to see more."
+                      : "Choose another scope or change the display options."}
+                  </p>
+                  {(countActiveFilters(filters) > 0 || query) && (
+                    <Button variant="secondary" size="base" onClick={clearFilters}>
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

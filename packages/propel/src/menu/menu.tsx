@@ -12,9 +12,10 @@ import { cn } from "../utils/classname";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
 import type { TMenuProps, TSubMenuProps, TMenuItemProps } from "./types";
 
-const popupClassName =
+/** Surface and item styles, exported for menus composed from `MenuPrimitive` parts (filter inputs, checkbox items). */
+export const MENU_POPUP_CLASSNAME =
   "min-w-48 overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-overlay-100 outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 motion-reduce:transition-none";
-const itemClassName =
+export const MENU_ITEM_CLASSNAME =
   "flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none select-none data-[highlighted]:bg-layer-1 data-[disabled]:text-placeholder data-[disabled]:opacity-50";
 const SelectionContext = React.createContext<boolean | undefined>(undefined);
 
@@ -24,7 +25,7 @@ function MenuItem({ children, disabled, onClick, className }: TMenuItemProps) {
     <BaseMenu.Item
       disabled={disabled}
       closeOnClick={closeOnSelect}
-      className={cn(itemClassName, className)}
+      className={cn(MENU_ITEM_CLASSNAME, className)}
       nativeButton
       render={<button type="button" onClick={onClick} />}
     >
@@ -44,13 +45,13 @@ function SubMenu({
   const { side, align } = convertPlacementToSideAndAlign(placement);
   return (
     <BaseMenu.SubmenuRoot disabled={disabled}>
-      <BaseMenu.SubmenuTrigger className={cn(itemClassName, className)}>
+      <BaseMenu.SubmenuTrigger className={cn(MENU_ITEM_CLASSNAME, className)}>
         <span className="min-w-0 flex-1">{trigger}</span>
         <ChevronRightIcon className="size-3.5" />
       </BaseMenu.SubmenuTrigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner side={side} align={align} sideOffset={4} className="z-[130]">
-          <BaseMenu.Popup className={cn(popupClassName, contentClassName)}>{children}</BaseMenu.Popup>
+          <BaseMenu.Popup className={cn(MENU_POPUP_CLASSNAME, contentClassName)}>{children}</BaseMenu.Popup>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
     </BaseMenu.SubmenuRoot>
@@ -137,7 +138,7 @@ function Menu({
             tabIndex={tabIndex}
             onClick={(event) => event.stopPropagation()}
             className={cn(
-              popupClassName,
+              MENU_POPUP_CLASSNAME,
               {
                 "max-h-28": maxHeight === "sm",
                 "max-h-36": maxHeight === "rg",
