@@ -128,7 +128,7 @@ export const CycleDropdown = observer(function CycleDropdown(props: Props) {
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      {isOpen && projectId && (
+      {projectId && (
         <CycleOptions projectId={projectId} canRemoveCycle={canRemoveCycle} currentCycleId={currentCycleId} />
       )}
     </ComboDropDown>

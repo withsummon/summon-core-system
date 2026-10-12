@@ -195,70 +195,68 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      {isOpen && (
-        <div className="z-10">
-          <div className="my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none">
-            <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
-              <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
-              <Combobox.Input
-                className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("common.search.placeholder")}
-              />
-            </div>
-            <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
-              {currentActiveEstimateId === undefined ? (
-                <div
-                  className={`flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`}
-                >
-                  {/* NOTE: This condition renders when estimates are not enabled for the project */}
-                  <div className="flex flex-grow items-center gap-2">
-                    <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
-                    <span className="flex-grow truncate">{t("project_settings.estimates.no_estimate")}</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {filteredOptions ? (
-                    filteredOptions.length > 0 ? (
-                      filteredOptions.map((option) => (
-                        <Combobox.Item
-                          key={option.value}
-                          value={option.value}
-                          render={(itemProps, { highlighted: active, selected }) => (
-                            <div {...itemProps}>
-                              {
-                                <div
-                                  className={cn(
-                                    "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
-                                    {
-                                      "bg-layer-transparent-hover": active,
-                                      "text-primary": selected,
-                                      "text-secondary": !selected,
-                                    }
-                                  )}
-                                >
-                                  <span className="flex-grow truncate">{option.content}</span>
-                                  {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                                </div>
-                              }
-                            </div>
-                          )}
-                        ></Combobox.Item>
-                      ))
-                    ) : (
-                      <p className="px-1.5 py-1 text-placeholder italic">{t("common.search.no_matching_results")}</p>
-                    )
-                  ) : (
-                    <p className="px-1.5 py-1 text-placeholder italic">{t("common.loading")}</p>
-                  )}
-                </>
-              )}
-            </Combobox.List>
+      <div className="z-10">
+        <div className="my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none">
+          <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
+            <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
+            <Combobox.Input
+              className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("common.search.placeholder")}
+            />
           </div>
+          <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
+            {currentActiveEstimateId === undefined ? (
+              <div
+                className={`flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`}
+              >
+                {/* NOTE: This condition renders when estimates are not enabled for the project */}
+                <div className="flex flex-grow items-center gap-2">
+                  <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
+                  <span className="flex-grow truncate">{t("project_settings.estimates.no_estimate")}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {filteredOptions ? (
+                  filteredOptions.length > 0 ? (
+                    filteredOptions.map((option) => (
+                      <Combobox.Item
+                        key={option.value}
+                        value={option.value}
+                        render={(itemProps, { highlighted: active, selected }) => (
+                          <div {...itemProps}>
+                            {
+                              <div
+                                className={cn(
+                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
+                                  {
+                                    "bg-layer-transparent-hover": active,
+                                    "text-primary": selected,
+                                    "text-secondary": !selected,
+                                  }
+                                )}
+                              >
+                                <span className="flex-grow truncate">{option.content}</span>
+                                {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+                              </div>
+                            }
+                          </div>
+                        )}
+                      ></Combobox.Item>
+                    ))
+                  ) : (
+                    <p className="px-1.5 py-1 text-placeholder italic">{t("common.search.no_matching_results")}</p>
+                  )
+                ) : (
+                  <p className="px-1.5 py-1 text-placeholder italic">{t("common.loading")}</p>
+                )}
+              </>
+            )}
+          </Combobox.List>
         </div>
-      )}
+      </div>
     </ComboDropDown>
   );
 });

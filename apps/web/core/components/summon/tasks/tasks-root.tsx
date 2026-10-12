@@ -31,17 +31,20 @@ import { Select } from "@plane/propel/select";
 import { SelectableIcon } from "@plane/propel/icons";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Collapsible } from "@plane/propel/collapsible";
 import { getFileURL } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
+import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { IssueService } from "@/services/issue";
 import { listAccessiblePlaneIssues } from "@/services/summon-plane.service";
 import { filterTaskCenterItems, isTaskCompleted, type TTaskCenterDue, type TTaskCenterScope } from "./task-center";
 
@@ -66,6 +69,7 @@ const groups = [
   { value: "completed", label: "Done", Icon: CheckCircle2, tone: "text-success-primary" },
   { value: "cancelled", label: "Cancelled", Icon: XCircle, tone: "text-secondary" },
 ];
+const issueService = new IssueService();
 const dateLabel = (date: string) =>
   new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(`${date}T00:00:00`));
 
@@ -123,6 +127,23 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
   );
   const projects = Array.from(new Map(records.map(({ project }) => [project.id, project])).values());
   const filterCount = Number(due !== "all") + Number(projectFilter !== "all") + Number(priorityFilter !== "all");
+  const reassign = async (projectId: string, issueId: string, assigneeIds: string[]) => {
+    const withAssignees = (items: typeof records = []) =>
+      items.map((record) =>
+        record.issue.id === issueId ? { ...record, issue: { ...record.issue, assignee_ids: assigneeIds } } : record
+      );
+    try {
+      await mutate(
+        async (current) => {
+          await issueService.patchIssue(workspaceSlug, projectId, issueId, { assignee_ids: assigneeIds });
+          return withAssignees(current);
+        },
+        { optimisticData: withAssignees, rollbackOnError: true, revalidate: false }
+      );
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Assignees not updated", message: "Try again in a moment." });
+    }
+  };
   const clearFilters = () => {
     setQuery("");
     setDue("all");
@@ -278,64 +299,72 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                           const overdue =
                             today && task.target_date && task.target_date < today && !isTaskCompleted(task);
                           return (
-                            <li key={task.id}>
+                            <li
+                              key={task.id}
+                              className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 hover:bg-layer-1 has-[a:focus-visible]:bg-layer-1 sm:flex-nowrap sm:px-6"
+                            >
+                              <PriorityIcon
+                                aria-label={`Priority: ${task.priority ?? "none"}`}
+                                className={`size-4 shrink-0 ${task.priority === "urgent" ? "text-danger-primary" : "text-secondary"}`}
+                              />
+                              <span
+                                className="w-20 shrink-0 truncate text-secondary"
+                                title={`${task.project.identifier}-${task.sequence_id}`}
+                              >
+                                {task.project.identifier}-{task.sequence_id}
+                              </span>
+                              {/* The title link stretches over the row; the project and assignee controls sit above it. */}
                               <Link
                                 href={`/${workspaceSlug}/projects/${task.project.id}/issues/${task.id}/`}
-                                className="group flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-13 hover:bg-layer-1 focus-visible:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong sm:flex-nowrap sm:px-6"
+                                className="min-w-0 flex-[1_1_50%] font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong sm:flex-1"
                               >
-                                <PriorityIcon
-                                  aria-label={`Priority: ${task.priority ?? "none"}`}
-                                  className={`size-4 shrink-0 ${task.priority === "urgent" ? "text-danger-primary" : "text-secondary"}`}
+                                {task.name}
+                              </Link>
+                              <span className="relative ml-7 flex min-w-0 items-center gap-3 text-secondary sm:ml-0 sm:justify-end">
+                                <Link
+                                  href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
+                                  className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                  title={task.project.name}
+                                >
+                                  {task.project.name}
+                                </Link>
+                                <MemberDropdown
+                                  projectId={task.project.id}
+                                  value={task.assignee_ids}
+                                  onChange={(assigneeIds) => void reassign(task.project.id, task.id, assigneeIds)}
+                                  multiple
+                                  buttonVariant="transparent-without-text"
+                                  placeholder="Assignees"
+                                  placement="bottom-end"
+                                  buttonContainerClassName="rounded-full focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                  button={
+                                    <span className="flex -space-x-1 rounded-full">
+                                      {task.assignees
+                                        .slice(0, 3)
+                                        .map(
+                                          (person) =>
+                                            person && (
+                                              <Avatar
+                                                key={person.id}
+                                                size={22}
+                                                name={person.display_name}
+                                                src={getFileURL(person.avatar_url ?? "")}
+                                              />
+                                            )
+                                        )}
+                                      {!task.assignees.length && (
+                                        <span className="size-5 rounded-full border border-dashed border-strong" />
+                                      )}
+                                    </span>
+                                  }
                                 />
                                 <span
-                                  className="w-20 shrink-0 truncate text-secondary"
-                                  title={`${task.project.identifier}-${task.sequence_id}`}
+                                  className={`w-16 shrink-0 text-right tabular-nums ${overdue ? "text-danger-primary" : "text-secondary"}`}
+                                  title={task.target_date ?? "No due date"}
                                 >
-                                  {task.project.identifier}-{task.sequence_id}
+                                  {task.target_date ? `${overdue ? "! " : ""}${dateLabel(task.target_date)}` : "—"}
                                 </span>
-                                <span className="min-w-0 flex-[1_1_50%] font-medium break-words text-primary sm:flex-1">
-                                  {task.name}
-                                </span>
-                                <span className="ml-7 flex min-w-0 items-center gap-3 text-secondary sm:ml-0 sm:justify-end">
-                                  <span
-                                    className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12"
-                                    title={task.project.name}
-                                  >
-                                    {task.project.name}
-                                  </span>
-                                  <span
-                                    className="flex -space-x-1"
-                                    aria-label={
-                                      task.assignees.length
-                                        ? `Assigned to ${task.assignees.map((person) => person?.display_name).join(", ")}`
-                                        : "Unassigned"
-                                    }
-                                  >
-                                    {task.assignees
-                                      .slice(0, 3)
-                                      .map(
-                                        (person) =>
-                                          person && (
-                                            <Avatar
-                                              key={person.id}
-                                              size={22}
-                                              name={person.display_name}
-                                              src={getFileURL(person.avatar_url ?? "")}
-                                            />
-                                          )
-                                      )}
-                                    {!task.assignees.length && (
-                                      <span className="size-5 rounded-full border border-dashed border-strong" />
-                                    )}
-                                  </span>
-                                  <span
-                                    className={`w-16 shrink-0 text-right tabular-nums ${overdue ? "text-danger-primary" : "text-secondary"}`}
-                                    title={task.target_date ?? "No due date"}
-                                  >
-                                    {task.target_date ? `${overdue ? "! " : ""}${dateLabel(task.target_date)}` : "—"}
-                                  </span>
-                                </span>
-                              </Link>
+                              </span>
                             </li>
                           );
                         })}

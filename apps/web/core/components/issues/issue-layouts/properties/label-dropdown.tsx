@@ -187,82 +187,80 @@ export function LabelDropdown(props: ILabelDropdownProps) {
         placement={placement}
         onOpenChange={handleOpenChange}
       >
-        {isOpen && (
-          <div className="z-10">
-            <div
-              className={`z-10 my-1 h-auto w-48 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-caption-sm-regular whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
-            >
-              <div className="flex w-full items-center justify-start rounded-sm border border-subtle bg-surface-2 px-2">
-                <SearchIcon className="h-3.5 w-3.5 text-tertiary" />
-                <Combobox.Input
-                  className="w-full bg-transparent px-2 py-1 text-caption-sm-regular text-secondary placeholder:text-placeholder focus:outline-none"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t("common.search.label")}
-                  onKeyDown={searchInputKeyDown}
-                />
-              </div>
-              <Combobox.List className={`mt-2 max-h-48 space-y-1 overflow-y-scroll`}>
-                {isLoading ? (
-                  <p className="text-center text-secondary">{t("common.loading")}</p>
-                ) : filteredOptions && filteredOptions.length > 0 ? (
-                  filteredOptions.map((option) => (
-                    <Combobox.Item
-                      key={option.value}
-                      value={option.value}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
-                      className={({ highlighted: active, selected }) =>
-                        `flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none hover:bg-layer-1 ${
-                          active ? "bg-layer-1" : ""
-                        } ${selected ? "text-primary" : "text-secondary"}`
-                      }
-                      render={(itemProps, { selected }) => (
-                        <div {...itemProps}>
-                          {
-                            <>
-                              {option.content}
-                              {selected && (
-                                <div className="flex-shrink-0">
-                                  <CheckIcon className={`h-3.5 w-3.5`} />
-                                </div>
-                              )}
-                            </>
-                          }
-                        </div>
-                      )}
-                    ></Combobox.Item>
-                  ))
-                ) : submitting ? (
-                  <Loader className="h-3.5 w-3.5 animate-spin" />
-                ) : canCreateLabel ? (
-                  <p
-                    onClick={() => {
-                      if (!query.length) return;
-                      handleAddLabel(query);
-                    }}
-                    className={`text-left text-secondary ${query.length ? "cursor-pointer" : "cursor-default"}`}
-                  >
-                    {/* TODO: translate here */}
-                    {query.length ? (
-                      <>
-                        + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
-                      </>
-                    ) : (
-                      t("label.create.type")
-                    )}
-                  </p>
-                ) : (
-                  <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
-                )}
-              </Combobox.List>
+        <div className="z-10">
+          <div
+            className={`z-10 my-1 h-auto w-48 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-caption-sm-regular whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
+          >
+            <div className="flex w-full items-center justify-start rounded-sm border border-subtle bg-surface-2 px-2">
+              <SearchIcon className="h-3.5 w-3.5 text-tertiary" />
+              <Combobox.Input
+                className="w-full bg-transparent px-2 py-1 text-caption-sm-regular text-secondary placeholder:text-placeholder focus:outline-none"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("common.search.label")}
+                onKeyDown={searchInputKeyDown}
+              />
             </div>
+            <Combobox.List className={`mt-2 max-h-48 space-y-1 overflow-y-scroll`}>
+              {isLoading ? (
+                <p className="text-center text-secondary">{t("common.loading")}</p>
+              ) : filteredOptions && filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <Combobox.Item
+                    key={option.value}
+                    value={option.value}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    className={({ highlighted: active, selected }) =>
+                      `flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none hover:bg-layer-1 ${
+                        active ? "bg-layer-1" : ""
+                      } ${selected ? "text-primary" : "text-secondary"}`
+                    }
+                    render={(itemProps, { selected }) => (
+                      <div {...itemProps}>
+                        {
+                          <>
+                            {option.content}
+                            {selected && (
+                              <div className="flex-shrink-0">
+                                <CheckIcon className={`h-3.5 w-3.5`} />
+                              </div>
+                            )}
+                          </>
+                        }
+                      </div>
+                    )}
+                  ></Combobox.Item>
+                ))
+              ) : submitting ? (
+                <Loader className="h-3.5 w-3.5 animate-spin" />
+              ) : canCreateLabel ? (
+                <p
+                  onClick={() => {
+                    if (!query.length) return;
+                    handleAddLabel(query);
+                  }}
+                  className={`text-left text-secondary ${query.length ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  {/* TODO: translate here */}
+                  {query.length ? (
+                    <>
+                      + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
+                    </>
+                  ) : (
+                    t("label.create.type")
+                  )}
+                </p>
+              ) : (
+                <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
+              )}
+            </Combobox.List>
           </div>
-        )}
+        </div>
       </ComboDropDown>
     </div>
   );

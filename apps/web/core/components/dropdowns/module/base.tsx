@@ -159,7 +159,7 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      {isOpen && projectId && (
+      {projectId && (
         <ModuleOptions multiple={multiple} getModuleById={getModuleById} moduleIds={moduleIds} value={value} />
       )}
     </ComboDropDown>

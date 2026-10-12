@@ -165,14 +165,12 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      {isOpen && (
-        <MemberOptions
-          getUserDetails={getUserDetails}
-          memberIds={memberIds}
-          optionsClassName={optionsClassName}
-          value={value}
-        />
-      )}
+      <MemberOptions
+        getUserDetails={getUserDetails}
+        memberIds={memberIds}
+        optionsClassName={optionsClassName}
+        value={value}
+      />
     </ComboDropDown>
   );
 });

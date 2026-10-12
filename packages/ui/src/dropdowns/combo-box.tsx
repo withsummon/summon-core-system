@@ -25,7 +25,11 @@ type Props = {
   children: ReactNode;
 };
 
-/** Features own values and open state; Base UI owns anchoring, dismissal, focus, and list navigation. */
+/**
+ * Features own values and open state; Base UI owns anchoring, dismissal, focus, list navigation, and the
+ * enter/exit transition. Base UI mounts the popup only while it is open or animating out, so callers render
+ * their options unconditionally; gating them on `open` would empty the popup during its exit.
+ */
 const ComboDropDown = forwardRef<HTMLDivElement, Props>(function ComboDropDown(
   { button, open, onOpenChange, placement = "bottom-start", children, value, onChange, disabled, multiple, ...rest },
   ref
@@ -33,7 +37,12 @@ const ComboDropDown = forwardRef<HTMLDivElement, Props>(function ComboDropDown(
   const { side, align } = convertPlacementToSideAndAlign(placement);
   const popup = (
     <ComboboxPrimitive.Positioner side={side} align={align} sideOffset={4} className="z-[120]">
-      <ComboboxPrimitive.Popup data-prevent-outside-click>{children}</ComboboxPrimitive.Popup>
+      <ComboboxPrimitive.Popup
+        data-prevent-outside-click
+        className="origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none"
+      >
+        {children}
+      </ComboboxPrimitive.Popup>
     </ComboboxPrimitive.Positioner>
   );
 
