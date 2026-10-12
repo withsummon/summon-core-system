@@ -8,9 +8,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
+  BriefcaseIcon,
   CheckSquareIcon,
   ClockCounterClockwiseIcon,
   FileTextIcon,
+  HandshakeIcon,
   NoteIcon,
   SquaresFourIcon,
   UsersThreeIcon,
@@ -26,10 +28,9 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
-import { Select } from "@plane/propel/select";
+import { Chip } from "@plane/propel/chip";
+import type { TSelectableIcon } from "@plane/propel/icons";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonPageHeader } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { useUser } from "@/hooks/store/user";
@@ -41,12 +42,12 @@ interface IHomeRootProps {
 
 type THomeFilter = "all" | "projects" | "tasks" | "opportunities" | "documents";
 
-const filters: Array<{ value: THomeFilter; label: string }> = [
-  { value: "all", label: "Everything" },
-  { value: "projects", label: "Projects" },
-  { value: "tasks", label: "Tasks" },
-  { value: "opportunities", label: "Opportunities" },
-  { value: "documents", label: "Documents" },
+const filters: Array<{ id: THomeFilter; label: string; icon: TSelectableIcon }> = [
+  { id: "all", label: "All", icon: SquaresFourIcon },
+  { id: "projects", label: "Projects", icon: BriefcaseIcon },
+  { id: "tasks", label: "Tasks", icon: CheckSquareIcon },
+  { id: "opportunities", label: "Opportunities", icon: HandshakeIcon },
+  { id: "documents", label: "Documents", icon: FileTextIcon },
 ];
 
 /** The project preview panel only exists beside the feed (xl); narrower screens open the project itself. */
@@ -106,26 +107,30 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
   return (
     <div className="grid min-h-full bg-surface-1 xl:grid-cols-[minmax(20rem,0.72fr)_minmax(34rem,1.28fr)]">
       <section className="flex min-w-0 flex-col border-r border-subtle bg-surface-1 p-4 lg:p-6">
-        <SummonPageHeader title="Here's what's happening" description={`Good to see you, ${firstName}`} />
+        <header>
+          <p className="text-13 text-tertiary">Good to see you, {firstName}</p>
+          <h1 className="mt-0.5 text-2xl font-semibold text-primary">Here&apos;s what&apos;s happening</h1>
+        </header>
 
-        <div className="mt-5 flex gap-2">
-          <label className="relative block min-w-0 flex-1">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-placeholder" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search"
-              aria-label="Search home"
-              className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
-            />
-          </label>
-          <Select
-            aria-label="Show"
-            value={filter}
-            onValueChange={(value) => setFilter(value as THomeFilter)}
-            options={filters}
-            className="w-36 flex-none"
+        <label className="relative mt-5 block">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-placeholder" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search projects, tasks, opportunities"
+            className="h-9 w-full rounded-lg border border-subtle bg-surface-1 pr-12 pl-9 text-13 text-primary shadow-raised-100 transition-[border-color,box-shadow] duration-150 outline-none placeholder:text-placeholder focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle"
           />
+          <kbd className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-subtle bg-layer-1 px-1.5 py-0.5 font-body text-11 font-medium text-tertiary">
+            ⌘K
+          </kbd>
+        </label>
+
+        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter home">
+          {filters.map((item) => (
+            <Chip key={item.id} icon={item.icon} selected={filter === item.id} onClick={() => setFilter(item.id)}>
+              {item.label}
+            </Chip>
+          ))}
         </div>
 
         {(filter === "all" || filter === "tasks") && (
