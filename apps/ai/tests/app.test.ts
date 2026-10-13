@@ -239,6 +239,16 @@ describe("MCP", () => {
     expect(await response.json()).toMatchObject({ error_code: "api_key_rejected" });
   });
 
+  it("passes Django's rate limit through instead of reporting Summon down", async () => {
+    app = makeApp({
+      django: (request) =>
+        request.path.endsWith("/access/me/") ? { status: 429, body: { detail: "Request was throttled." } } : undefined,
+    });
+    const response = await rpc(app, initialize);
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({ error_code: "rate_limited" });
+  });
+
   /** Initializes a session and returns the headers later requests need. */
   const session = async (current: TestApp) => {
     const response = await rpc(current, initialize);

@@ -137,6 +137,8 @@ const RequireApiKey = HttpRouter.middleware(
                 { status: 401 }
               )
             ),
+          RateLimited: () =>
+            Effect.succeed(HttpServerResponse.jsonUnsafe({ error_code: "rate_limited" }, { status: 429 })),
           DjangoUnavailable: () =>
             Effect.succeed(HttpServerResponse.jsonUnsafe({ error_code: "summon_unavailable" }, { status: 502 })),
         })

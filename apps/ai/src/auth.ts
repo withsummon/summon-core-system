@@ -12,6 +12,9 @@ export class Unauthenticated extends Schema.TaggedError<Unauthenticated>()("Unau
   reason: Schema.Literals(["missing_credentials", "rejected"]),
 }) {}
 
+/** Django throttled the API key; the client should back off rather than treat Summon as down. */
+export class RateLimited extends Schema.TaggedError<RateLimited>()("RateLimited", {}) {}
+
 /** A cookie-authenticated request from another origin: refused so the session can't be used cross-site. */
 export class ForbiddenOrigin extends Schema.TaggedError<ForbiddenOrigin>()("ForbiddenOrigin", {}) {}
 
@@ -28,7 +31,7 @@ export interface AuthShape {
   ) => Effect.Effect<SessionCaller, Unauthenticated | ForbiddenOrigin | DjangoUnavailable>;
   readonly apiKey: (
     request: HttpServerRequest.HttpServerRequest
-  ) => Effect.Effect<ApiKeyCaller, Unauthenticated | DjangoUnavailable>;
+  ) => Effect.Effect<ApiKeyCaller, Unauthenticated | RateLimited | DjangoUnavailable>;
 }
 
 /** `X-Api-Key`, or `Authorization: Bearer` as MCP clients usually send it. */
@@ -54,21 +57,22 @@ export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
         timeToLive: ttl,
       });
       // Key + workspace → whether Django accepts the key for that workspace (`SummonAPIKeyAuthentication`).
+      // Plain-object keys compare structurally.
       const keys = yield* Cache.makeWith(
-        (entry: string) => {
-          const [workspaceSlug, apiKey] = splitKeyEntry(entry);
-          return django
+        ({ workspaceSlug, apiKey }: { readonly workspaceSlug: string; readonly apiKey: string }) =>
+          django
             .client({ _tag: "ApiKey", apiKey: Redacted.make(apiKey), workspaceSlug })
             .accessMe(workspaceSlug, undefined)
             .pipe(
               Effect.as<true | undefined>(true),
-              Effect.catch((error) =>
-                error._tag === "HttpClientError" && REJECTED.has(error.response?.status ?? 0)
+              Effect.catch((error): Effect.Effect<true | undefined, RateLimited | DjangoUnavailable> => {
+                const status = error._tag === "HttpClientError" ? error.response?.status : undefined;
+                if (status === 429) return Effect.fail(new RateLimited());
+                return status !== undefined && REJECTED.has(status)
                   ? Effect.succeed(undefined)
-                  : Effect.fail(new DjangoUnavailable({ cause: error }))
-              )
-            );
-        },
+                  : Effect.fail(new DjangoUnavailable({ cause: error }));
+              })
+            ),
         { capacity: 10_000, timeToLive: ttl }
       );
 
@@ -88,7 +92,7 @@ export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
         const key = readApiKey(request.headers);
         const workspaceSlug = request.headers["x-workspace-slug"];
         if (!key || !workspaceSlug) return yield* new Unauthenticated({ reason: "missing_credentials" });
-        const accepted = yield* Cache.get(keys, keyEntry(workspaceSlug, key));
+        const accepted = yield* Cache.get(keys, { workspaceSlug, apiKey: key });
         if (!accepted) return yield* new Unauthenticated({ reason: "rejected" });
         return { _tag: "ApiKey", apiKey: Redacted.make(key), workspaceSlug } as const;
       });
@@ -97,9 +101,3 @@ export class Auth extends Context.Service<Auth, AuthShape>()("@plane/ai/Auth") {
     })
   );
 }
-
-const keyEntry = (workspaceSlug: string, apiKey: string) => `${workspaceSlug}\u0000${apiKey}`;
-const splitKeyEntry = (entry: string): [string, string] => {
-  const index = entry.indexOf("\u0000");
-  return [entry.slice(0, index), entry.slice(index + 1)];
-};
