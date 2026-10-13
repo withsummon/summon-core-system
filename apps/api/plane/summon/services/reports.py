@@ -6,6 +6,7 @@ import csv
 import io
 from datetime import timedelta
 from decimal import Decimal
+from itertools import chain
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
@@ -151,14 +152,17 @@ def _report(workspace, user, filters):
     ]
     today = timezone.now().date()
     active_issues = issues.exclude(state__group__in=["completed", "cancelled"])
+    due_counts = active_issues.aggregate(
+        overdue=Count("id", filter=Q(target_date__lt=today)),
+        soon=Count("id", filter=Q(target_date__range=(today, today + timedelta(days=7)))),
+        later=Count("id", filter=Q(target_date__gt=today + timedelta(days=7))),
+        undated=Count("id", filter=Q(target_date__isnull=True)),
+    )
     due_date_buckets = [
-        {"label": "Overdue", "count": active_issues.filter(target_date__lt=today).count()},
-        {
-            "label": "Due in 7 days",
-            "count": active_issues.filter(target_date__range=(today, today + timedelta(days=7))).count(),
-        },
-        {"label": "Later", "count": active_issues.filter(target_date__gt=today + timedelta(days=7)).count()},
-        {"label": "No due date", "count": active_issues.filter(target_date__isnull=True).count()},
+        {"label": "Overdue", "count": due_counts["overdue"]},
+        {"label": "Due in 7 days", "count": due_counts["soon"]},
+        {"label": "Later", "count": due_counts["later"]},
+        {"label": "No due date", "count": due_counts["undated"]},
     ]
     completion_trend = _count_series(
         issues.filter(state__group="completed", completed_at__isnull=False),
@@ -209,23 +213,26 @@ def _report(workspace, user, filters):
         "automation_usage": _count_series(jobs, "created_at"),
         "recent_activity": recent_activity,
     }
-    csv_rows = [
-        ("Portfolio", "Projects", summary["projects"]),
-        ("Delivery", "Issues", issue_counts["total"]),
-        ("Delivery", "Completed", issue_counts["completed"]),
-        ("Delivery", "Overdue", issue_counts["overdue"]),
-        ("Commercial", "Clients", summary["commercial"]["clients"]),
-        ("Commercial", "Opportunities", summary["commercial"]["opportunities"]),
-        ("Commercial", "Pipeline value", summary["commercial"]["pipeline_value"]),
-        ("Knowledge", "Pages", summary["knowledge"]["pages"]),
-        ("Knowledge", "Files", summary["knowledge"]["files"]),
-        ("Meetings", "Total", summary["meetings"]),
-        ("Automation", "Jobs", summary["automation"]["jobs"]),
-    ]
-    csv_rows.extend(("Project health", item["name"], item["health"]) for item in project_health)
-    csv_rows.extend(("Client", client.name, client.status) for client in clients.order_by("name"))
-    csv_rows.extend(("Opportunity stage", item["stage"], item["value"]) for item in opportunity_stages)
-    csv_rows.extend(("Recent activity", item["label"], item["created_at"]) for item in recent_activity)
+    # Lazy so report_summary, which discards the rows, never runs the client query.
+    csv_rows = chain(
+        [
+            ("Portfolio", "Projects", summary["projects"]),
+            ("Delivery", "Issues", issue_counts["total"]),
+            ("Delivery", "Completed", issue_counts["completed"]),
+            ("Delivery", "Overdue", issue_counts["overdue"]),
+            ("Commercial", "Clients", summary["commercial"]["clients"]),
+            ("Commercial", "Opportunities", summary["commercial"]["opportunities"]),
+            ("Commercial", "Pipeline value", summary["commercial"]["pipeline_value"]),
+            ("Knowledge", "Pages", summary["knowledge"]["pages"]),
+            ("Knowledge", "Files", summary["knowledge"]["files"]),
+            ("Meetings", "Total", summary["meetings"]),
+            ("Automation", "Jobs", summary["automation"]["jobs"]),
+        ],
+        (("Project health", item["name"], item["health"]) for item in project_health),
+        (("Client", client.name, client.status) for client in clients.order_by("name")),
+        (("Opportunity stage", item["stage"], item["value"]) for item in opportunity_stages),
+        (("Recent activity", item["label"], item["created_at"]) for item in recent_activity),
+    )
     return summary, csv_rows
 
 

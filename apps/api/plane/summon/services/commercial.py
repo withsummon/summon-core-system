@@ -109,11 +109,8 @@ def detail_meetings(record, user, profile_field):
     projects = visible_linked_projects(record, user, profile_field)
     project_ids = projects.values_list("id", flat=True)
     pages = accessible_pages(record.workspace, user, visible_project_ids(record.workspace, user))
-    return (
-        Meeting.objects.filter(workspace=record.workspace, project_id__in=project_ids)
-        .filter(Q(summary_page__isnull=True) | Q(summary_page__in=pages))
-        .select_related("project", "recording_asset", "transcript_asset", "summary_page")
-        .prefetch_related("participants__member", "work_items__issue__state", "work_items__issue__project")
+    return Meeting.objects.filter(workspace=record.workspace, project_id__in=project_ids).filter(
+        Q(summary_page__isnull=True) | Q(summary_page__in=pages)
     )
 
 

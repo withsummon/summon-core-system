@@ -38,7 +38,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const { workspaceSlug, projectId, profile, onClose, onSaved } = props;
   const { allowPermissions } = useUserPermissions();
   const { getProjectById, updateProject } = useProject();
-  const { data: clients = [] } = useSWR(["summon-project-profile-clients", workspaceSlug], () =>
+  const { data: clients = [] } = useSWR(["summon-clients", workspaceSlug], () =>
     summonService.listClients(workspaceSlug)
   );
   const currency = useWorkspaceCurrency(workspaceSlug);

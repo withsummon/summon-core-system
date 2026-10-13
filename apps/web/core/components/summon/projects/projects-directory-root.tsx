@@ -27,7 +27,7 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
 }) {
   const { toggleCreateProjectModal } = useCommandPalette();
   const { joinedProjectIds, getProjectById } = useProject();
-  const { data, error, isLoading, mutate } = useSWR(["summon-projects", workspaceSlug], () =>
+  const { data, error, isLoading, mutate } = useSWR(["summon-home", workspaceSlug], () =>
     summonService.getHomeSummary(workspaceSlug)
   );
   const [searchQuery, setSearchQuery] = useState("");

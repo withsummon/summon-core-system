@@ -42,13 +42,13 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
   const { getUserDetails } = useMember();
   const { toggleCreateIssueModal, toggleCreateModuleModal, toggleCreatePageModal } = useCommandPalette();
   const { data: client } = useSWR(
-    overview.profile?.client ? ["summon-project-client", workspaceSlug, overview.profile.client] : null,
-    () => summonService.getClient(workspaceSlug, overview.profile?.client || "")
+    overview.profile?.client ? ["summon-client", workspaceSlug, overview.profile.client] : null,
+    () => summonService.getClientDetail(workspaceSlug, overview.profile?.client || "")
   );
   const sourceOpportunityId = overview.profile?.source_opportunity;
   const { data: sourceOpportunity } = useSWR(
-    sourceOpportunityId ? ["summon-project-opportunity", workspaceSlug, sourceOpportunityId] : null,
-    () => summonService.getOpportunity(workspaceSlug, sourceOpportunityId || "")
+    sourceOpportunityId ? ["summon-opportunity", workspaceSlug, sourceOpportunityId] : null,
+    () => summonService.getOpportunityDetail(workspaceSlug, sourceOpportunityId || "")
   );
   const project = getProjectById(projectId);
   const lead = project?.project_lead;

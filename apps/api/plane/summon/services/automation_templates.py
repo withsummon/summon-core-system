@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db.models import Q
+
 from plane.summon.models import AutomationTemplate
 
 SYSTEM_TEMPLATE_SOURCE = "summon_system"
@@ -130,28 +132,27 @@ def is_adoptable_default_template(template, template_type, name, variables, cont
 
 
 def _deactivate_retired_templates(workspace):
+    retired = Q()
     for template_type in RETIRED_TEMPLATE_TYPES:
         name, variables, content = LEGACY_TEMPLATES[template_type]
-        AutomationTemplate.objects.filter(
-            workspace=workspace,
+        retired |= Q(
             name=name,
             type=template_type,
             description=f"Deterministic {name} template",
             content_template=content,
             variables=variables,
-            external_source__isnull=True,
-        ).update(is_active=False)
+        )
+    retired_active = AutomationTemplate.objects.filter(
+        retired, workspace=workspace, external_source__isnull=True, is_active=True
+    )
+    retired_active.update(is_active=False)
 
 
-def _create_or_adopt_template(workspace, template_type, name, variables, content):
+def _create_or_adopt_template(workspace, template_type, name, variables, content, system_templates, named_templates):
     external_id = f"template:{template_type}"
-    if AutomationTemplate.objects.filter(
-        workspace=workspace,
-        external_source=SYSTEM_TEMPLATE_SOURCE,
-        external_id=external_id,
-    ).exists():
+    if external_id in system_templates:
         return
-    existing = AutomationTemplate.objects.filter(workspace=workspace, name=name).first()
+    existing = named_templates.get(name)
     if existing:
         if is_adoptable_default_template(existing, template_type, name, variables, content):
             existing.description = f"LLM-assisted {name}"
@@ -171,8 +172,9 @@ def _create_or_adopt_template(workspace, template_type, name, variables, content
                     "updated_at",
                 ]
             )
+            system_templates[external_id] = existing
         return
-    AutomationTemplate.objects.create(
+    system_templates[external_id] = AutomationTemplate.objects.create(
         workspace=workspace,
         name=name,
         type=template_type,
@@ -186,21 +188,30 @@ def _create_or_adopt_template(workspace, template_type, name, variables, content
 
 
 def ensure_default_templates(workspace):
-    """Create or adopt missing defaults without overwriting managed records."""
+    """Create or adopt missing defaults without overwriting managed records.
+
+    Returns the workspace's system-managed templates keyed by external_id.
+    """
     _deactivate_retired_templates(workspace)
+    templates = AutomationTemplate.objects.filter(workspace=workspace).filter(
+        Q(external_source=SYSTEM_TEMPLATE_SOURCE) | Q(name__in=[name for name, _, _ in DEFAULT_TEMPLATES.values()])
+    )
+    system_templates = {}
+    named_templates = {}
+    for template in templates:
+        named_templates.setdefault(template.name, template)
+        if template.external_source == SYSTEM_TEMPLATE_SOURCE:
+            system_templates.setdefault(template.external_id, template)
     for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
-        _create_or_adopt_template(workspace, template_type, name, variables, content)
+        _create_or_adopt_template(workspace, template_type, name, variables, content, system_templates, named_templates)
+    return system_templates
 
 
 def refresh_default_templates(workspace):
     """Converge system-managed templates to the current canonical definitions."""
-    ensure_default_templates(workspace)
+    system_templates = ensure_default_templates(workspace)
     for template_type, (name, variables, content) in DEFAULT_TEMPLATES.items():
-        template = AutomationTemplate.objects.filter(
-            workspace=workspace,
-            external_source=SYSTEM_TEMPLATE_SOURCE,
-            external_id=f"template:{template_type}",
-        ).first()
+        template = system_templates.get(f"template:{template_type}")
         if not template:
             continue
         expected = {

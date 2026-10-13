@@ -14,6 +14,8 @@ from plane.db.models import Issue, Page, ProjectMember
 from plane.summon.models import Meeting, MeetingWorkItem, ResourceLink, SummonPageContext
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers.collaboration import (
+    MEETING_READ_PREFETCH,
+    MEETING_READ_RELATED,
     MeetingSerializer,
     MeetingWorkItemSerializer,
     ResourceLinkSerializer,
@@ -59,13 +61,8 @@ class MeetingViewSet(WorkspaceContextMixin, BaseViewSet):
                 workspace__deleted_at__isnull=True,
             )
             .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
-            .select_related(
-                "project",
-                "recording_asset",
-                "transcript_asset",
-                "summary_page",
-            )
-            .prefetch_related("participants__member")
+            .select_related(*MEETING_READ_RELATED)
+            .prefetch_related(*MEETING_READ_PREFETCH)
         )
 
 
