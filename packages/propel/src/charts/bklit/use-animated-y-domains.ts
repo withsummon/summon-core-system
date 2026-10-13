@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChartPhase } from "./chart-phase";
 import { LINE_LOADING_PULSE_EASE } from "./line-loading-timing";
 import {
@@ -125,17 +125,19 @@ export function useAnimatedYDomains({
   const reducedMotion = useReducedMotion();
   const destinationByAxis = resolveAnimatedYDestinationDomains(chartPhase, skeletonByAxis, targetByAxis);
   const destinationRef = useRef(destinationByAxis);
-  destinationRef.current = destinationByAxis;
   const skeletonRef = useRef(skeletonByAxis);
-  skeletonRef.current = skeletonByAxis;
   const targetRef = useRef(targetByAxis);
-  targetRef.current = targetByAxis;
 
   const [animatedByAxis, setAnimatedByAxis] = useState(destinationByAxis);
   const animatedRef = useRef(animatedByAxis);
   const prevPhaseRef = useRef(chartPhase);
   const onSettledRef = useRef(onSettled);
-  onSettledRef.current = onSettled;
+  useLayoutEffect(() => {
+    destinationRef.current = destinationByAxis;
+    skeletonRef.current = skeletonByAxis;
+    targetRef.current = targetByAxis;
+    onSettledRef.current = onSettled;
+  });
 
   useEffect(() => {
     animatedRef.current = animatedByAxis;

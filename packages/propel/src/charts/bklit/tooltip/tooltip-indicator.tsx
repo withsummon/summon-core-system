@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useSpring } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { type SpringConfig, useChartConfig } from "../chart-config-context";
 import { chartCssVars } from "../chart-context";
 import { type IndicatorFadeEdges, indicatorFadeGradientStops, resolveVerticalFadeSides } from "../indicator-fade";
@@ -103,10 +103,12 @@ function TooltipIndicatorInner({
   const animatedX = useSpring(rectX, effectiveSpring);
   const animatedLineX = useSpring(lineX, effectiveSpring);
 
-  if (animate) {
-    animatedX.set(rectX);
-    animatedLineX.set(lineX);
-  }
+  useLayoutEffect(() => {
+    if (animate) {
+      animatedX.set(rectX);
+      animatedLineX.set(lineX);
+    }
+  }, [animate, animatedLineX, animatedX, lineX, rectX]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we need to jump the animatedX when the visible prop changes
   useEffect(() => {

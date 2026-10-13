@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Input } from "@plane/propel/input";
 import type { InputProps } from "@plane/propel/input";
@@ -26,15 +26,16 @@ type Props = Omit<InputProps, "value" | "defaultValue" | "onChange" | "type" | "
 export function MoneyInput({ value, defaultValue, onValueChange, currency, name, className, ...rest }: Props) {
   const prefix = currencyPrefix(currency).trim();
   const [text, setText] = useState(() => toMoneyText(value ?? defaultValue));
+  const [syncedValue, setSyncedValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
   // How many digits and commas sat left of the caret, so regrouping does not throw the caret to the end.
   const caretMarks = useRef<number | null>(null);
 
   // Follow outside changes (a reset or a refetch), but not the echo of what was just typed.
-  useEffect(() => {
-    if (value === undefined) return;
-    setText((current) => (moneyTextToDecimal(current) === (value ?? "") ? current : toMoneyText(value)));
-  }, [value]);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    if (value !== undefined && moneyTextToDecimal(text) !== (value ?? "")) setText(toMoneyText(value));
+  }
 
   useLayoutEffect(() => {
     const input = inputRef.current;

@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, type Transition, useMotionValue } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { DEFAULT_CHART_ENTER_TRANSITION } from "./animation";
 
 /** Drives 0→1 enter progress using the studio motion transition (spring or tween). */
@@ -12,7 +12,9 @@ export function useMountProgress(
 ) {
   const progress = useMotionValue(0);
   const transitionRef = useRef(enterTransition);
-  transitionRef.current = enterTransition;
+  useLayoutEffect(() => {
+    transitionRef.current = enterTransition;
+  });
 
   // replayKey intentionally retriggers enter when motion settings change
   // biome-ignore lint/correctness/useExhaustiveDependencies: replayKey

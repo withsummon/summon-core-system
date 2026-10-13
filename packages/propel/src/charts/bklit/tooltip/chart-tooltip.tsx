@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useSpring } from "framer-motion";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { resolveTooltipBoxMotion, type SpringConfig, useChartConfig } from "../chart-config-context";
 import { chartCssVars, type LineConfig, useChart, useChartStable } from "../chart-context";
@@ -360,9 +360,11 @@ function DatePillTrackerInner({
   const effectiveSpring = springConfig ?? tooltipSpring;
   const animatedX = useSpring(xWithMargin, effectiveSpring);
 
-  if (!discreteInteraction) {
-    animatedX.set(xWithMargin);
-  }
+  useLayoutEffect(() => {
+    if (!discreteInteraction) {
+      animatedX.set(xWithMargin);
+    }
+  }, [animatedX, discreteInteraction, xWithMargin]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we need to jump the animatedX when the visible prop changes
   useEffect(() => {

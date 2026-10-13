@@ -213,9 +213,11 @@ function SquareColumn({
 
     return (
       <motion.rect
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ attrY: y, height: squareSize, opacity: squareOpacity }}
         fill={effectiveFill}
         height={squareSize}
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         initial={{ attrY: bottomY, height: 0, opacity: 1 }}
         key={key}
         rx={rx}
@@ -529,9 +531,11 @@ function TrackColumn({
   if (animate) {
     return (
       <motion.rect
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ height: animatedHeight, y: 0 }}
         fill={fill}
         height={animatedHeight}
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         initial={{ height: baselineY, y: 0 }}
         key={`track-${index}-${seriesIndex}-${revealEpoch}`}
         opacity={effectiveOpacity}

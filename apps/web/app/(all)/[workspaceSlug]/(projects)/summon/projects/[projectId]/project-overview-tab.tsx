@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
-import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { capitalizeFirstLetter, renderFormattedDate, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 
-const formatDate = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
-    : "No date";
+const formatDate = (value?: string | null) => renderFormattedDate(value) ?? "No date";
 
 export function ProjectOverviewTab({
   overview,

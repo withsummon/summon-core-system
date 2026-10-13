@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useSpring, useTransform } from "framer-motion";
+import { useLayoutEffect } from "react";
 import { type SpringConfig, useChartConfig } from "../chart-config-context";
 import { chartCssVars } from "../chart-context";
 
@@ -59,8 +60,10 @@ function AnimatedRingDot({
   const rectX = useTransform(animatedX, (value) => value - halfExtent);
   const rectY = useTransform(animatedY, (value) => value - halfExtent);
 
-  animatedX.set(x);
-  animatedY.set(y);
+  useLayoutEffect(() => {
+    animatedX.set(x);
+    animatedY.set(y);
+  }, [animatedX, animatedY, x, y]);
 
   return (
     <motion.rect
@@ -100,10 +103,12 @@ export function TooltipDot({
   const stroke = isRing ? color : strokeColor;
   const effectiveStrokeWidth = isRing ? (strokeWidth ?? 1.5) : strokeWidth;
 
-  if (animate && !isRing) {
-    animatedX.set(x);
-    animatedY.set(y);
-  }
+  useLayoutEffect(() => {
+    if (animate && !isRing) {
+      animatedX.set(x);
+      animatedY.set(y);
+    }
+  }, [animate, animatedX, animatedY, isRing, x, y]);
 
   if (!visible) {
     return null;

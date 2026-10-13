@@ -58,8 +58,10 @@ export function ChartRevealClip({
     return (
       <clipPath id={clipPathId}>
         <motion.rect
+          // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
           animate={{ width: 0, x: rightEdge }}
           height={paddedHeight}
+          // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
           initial={{ width: paddedWidth, x: -padding }}
           key={`conceal-${revealEpoch}`}
           onAnimationComplete={() => onComplete?.()}
@@ -73,8 +75,10 @@ export function ChartRevealClip({
   return (
     <clipPath id={clipPathId}>
       <motion.rect
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ width: paddedWidth }}
         height={paddedHeight}
+        // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         initial={{ width: 0 }}
         key={`reveal-${revealEpoch}`}
         transition={transition}
