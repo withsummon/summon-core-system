@@ -4,11 +4,12 @@
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ProjectAdminPermission, ProjectEntityPermission
-from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.summon.views.base import SummonAPIView, SummonViewSet
 from plane.db.models import Project, Workspace
 from plane.summon.access import require_capability
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
@@ -41,7 +42,7 @@ class WorkspaceContextMixin:
         }
 
 
-class ClientViewSet(WorkspaceContextMixin, BaseViewSet):
+class ClientViewSet(WorkspaceContextMixin, SummonViewSet):
     model = Client
     serializer_class = ClientSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -58,7 +59,7 @@ class ClientViewSet(WorkspaceContextMixin, BaseViewSet):
         return ClientDetailSerializer if self.action == "retrieve" else ClientSerializer
 
 
-class ClientContactViewSet(WorkspaceContextMixin, BaseViewSet):
+class ClientContactViewSet(WorkspaceContextMixin, SummonViewSet):
     model = ClientContact
     serializer_class = ClientContactSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -86,7 +87,7 @@ class ClientContactViewSet(WorkspaceContextMixin, BaseViewSet):
         serializer.save(workspace=self.get_workspace(), client=self.get_client())
 
 
-class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
+class OpportunityViewSet(WorkspaceContextMixin, SummonViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
     permission_classes = [CommercialPermission]
@@ -108,9 +109,14 @@ class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
         return OpportunityDetailSerializer if self.action == "retrieve" else OpportunitySerializer
 
 
-class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
+class OpportunityTransitionView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [CommercialPermission]
 
+    @extend_schema(
+        description="Move an opportunity to another pipeline stage, optionally updating its win probability.",
+        request=OpportunityTransitionSerializer,
+        responses={200: OpportunityDetailSerializer},
+    )
     def post(self, request, slug, pk):
         opportunity = get_object_or_404(
             Opportunity,
@@ -127,9 +133,14 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
         )
 
 
-class OpportunityDeliveryView(WorkspaceContextMixin, BaseAPIView):
+class OpportunityDeliveryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [CommercialPermission]
 
+    @extend_schema(
+        description="Start delivery for an opportunity on a Plane project, creating the project's Summon profile.",
+        request=OpportunityDeliverySerializer,
+        responses={200: SummonProjectProfileSerializer, 201: SummonProjectProfileSerializer},
+    )
     def post(self, request, slug, pk):
         opportunity = get_object_or_404(Opportunity, id=pk, workspace__slug=slug, workspace__deleted_at__isnull=True)
         serializer = OpportunityDeliverySerializer(data=request.data)
@@ -147,7 +158,7 @@ class OpportunityDeliveryView(WorkspaceContextMixin, BaseAPIView):
         )
 
 
-class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
+class SummonProjectProfileView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission, ProjectEntityPermission]
 
     def get_permissions(self):
@@ -172,10 +183,19 @@ class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
             workspace__deleted_at__isnull=True,
         )
 
+    @extend_schema(
+        description="Summon profile of one project: client, opportunity, commercial and budget fields.",
+        responses={200: SummonProjectProfileSerializer},
+    )
     def get(self, request, slug, project_id):
         profile = self.get_profile()
         return Response(SummonProjectProfileSerializer(profile, context=self.get_serializer_context()).data)
 
+    @extend_schema(
+        description="Create the Summon profile for a project (project admins).",
+        request=SummonProjectProfileSerializer,
+        responses={201: SummonProjectProfileSerializer},
+    )
     def post(self, request, slug, project_id):
         project = self.get_project()
         serializer = SummonProjectProfileSerializer(data=request.data, context=self.get_serializer_context())
@@ -183,6 +203,11 @@ class SummonProjectProfileView(WorkspaceContextMixin, BaseAPIView):
         serializer.save(workspace=self.get_workspace(), project=project)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        description="Update a project's Summon profile (project admins).",
+        request=SummonProjectProfileSerializer,
+        responses={200: SummonProjectProfileSerializer},
+    )
     def patch(self, request, slug, project_id):
         profile = self.get_profile()
         serializer = SummonProjectProfileSerializer(

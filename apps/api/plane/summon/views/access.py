@@ -20,10 +20,11 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from plane.app.views.base import BaseAPIView
+from plane.summon.views.base import SummonAPIView
 from plane.db.models import (
     Project,
     ProjectMember,
@@ -42,22 +43,137 @@ from plane.summon.access import (
     require_capability,
 )
 from plane.summon.models import SummonAccessEvent
+from plane.summon.serializers.shapes import ErrorCodeSerializer, ProjectRefSerializer
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 Kind = SummonAccessEvent.Kind
 
 
-class AccessMeView(BaseAPIView):
+ROLE_CHOICES = sorted(ROLE_LABELS.items())
+
+
+class AccessMeSerializer(serializers.Serializer):
+    role = serializers.IntegerField()
+    role_label = serializers.CharField()
+    capabilities = serializers.ListField(child=serializers.CharField())
+
+
+class WorkspaceMemberRowSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    user_id = serializers.UUIDField()
+    email = serializers.EmailField()
+    name = serializers.CharField()
+    avatar_url = serializers.CharField(allow_null=True)
+    role = serializers.IntegerField()
+    is_active = serializers.BooleanField()
+    is_owner = serializers.BooleanField()
+    is_you = serializers.BooleanField()
+    joined_at = serializers.DateTimeField()
+    last_signed_in = serializers.DateTimeField(allow_null=True)
+    projects = ProjectRefSerializer(many=True)
+
+
+class WorkspaceInviteRowSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    email = serializers.EmailField()
+    role = serializers.IntegerField()
+    invited_at = serializers.DateTimeField()
+    projects = ProjectRefSerializer(many=True)
+
+
+class WorkspaceUsersSerializer(serializers.Serializer):
+    members = WorkspaceMemberRowSerializer(many=True)
+    invites = WorkspaceInviteRowSerializer(many=True)
+
+
+class ProjectMemberRowSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    avatar_url = serializers.CharField(allow_null=True)
+    role = serializers.IntegerField()
+
+
+class ProjectInviteRowSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    email = serializers.EmailField()
+    role = serializers.IntegerField()
+    invited_at = serializers.DateTimeField()
+
+
+class ProjectPeopleSerializer(serializers.Serializer):
+    members = ProjectMemberRowSerializer(many=True)
+    invites = ProjectInviteRowSerializer(many=True)
+
+
+class AccessActorSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    email = serializers.EmailField()
+
+
+class AccessEventSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    kind = serializers.CharField()
+    actor = AccessActorSerializer(allow_null=True)
+    target_email = serializers.CharField()
+    from_role = serializers.IntegerField(allow_null=True)
+    to_role = serializers.IntegerField(allow_null=True)
+    created_at = serializers.DateTimeField()
+
+
+class InviteSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=ROLE_CHOICES)
+    project_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class ProjectPersonSerializer(serializers.Serializer):
+    """Exactly one of: a workspace member to add, or an email to invite as a guest."""
+
+    member_id = serializers.UUIDField(required=False)
+    email = serializers.EmailField(required=False)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate(self, attrs):
+        if len(attrs) != 1:
+            raise serializers.ValidationError("Send member_id or email.")
+        return attrs
+
+
+class MemberUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=False)
+    is_active = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Send role or is_active.")
+        return attrs
+
+
+class AccessMeView(SummonAPIView):
     permission_classes = [require_capability("workspace.view")]
 
+    @extend_schema(
+        description="Your role in this workspace and what Summon lets you do.", responses={200: AccessMeSerializer}
+    )
     def get(self, request, slug):
         role = active_membership(request.user, slug).role
         return Response({"role": role, "role_label": ROLE_LABELS[role], "capabilities": capabilities_for(role)})
 
 
-class WorkspaceUsersView(WorkspaceContextMixin, BaseAPIView):
+class WorkspaceUsersView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = {"POST": "none"}  # access changes stay with people, never AI tools
     permission_classes = [require_capability("users.view", "users.manage")]
 
+    @extend_schema(
+        description="Workspace members with their roles and projects, plus pending invites.",
+        responses={200: WorkspaceUsersSerializer},
+    )
     def get(self, request, slug):
         workspace = self.get_workspace()
         members = (
@@ -76,6 +192,16 @@ class WorkspaceUsersView(WorkspaceContextMixin, BaseAPIView):
             }
         )
 
+    @extend_schema(
+        description="Invite people to the workspace by email, optionally onto projects.",
+        request=InviteSerializer,
+        responses={
+            201: PolymorphicProxySerializer(
+                "WorkspaceInviteResult", [WorkspaceMemberRowSerializer, WorkspaceInviteRowSerializer], None
+            ),
+            409: ErrorCodeSerializer,
+        },
+    )
     def post(self, request, slug):
         data = _validated(InviteSerializer, request.data)
         email, role = data["email"], data["role"]
@@ -105,9 +231,15 @@ class WorkspaceUsersView(WorkspaceContextMixin, BaseAPIView):
         return Response(_invite_data(invite, _project_refs(projects)), status=status.HTTP_201_CREATED)
 
 
-class WorkspaceUserDetailView(WorkspaceContextMixin, BaseAPIView):
+class WorkspaceUserDetailView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # access changes stay with people, never AI tools
     permission_classes = [require_capability("users.manage")]
 
+    @extend_schema(
+        description="Change a member's workspace role or project access.",
+        request=MemberUpdateSerializer,
+        responses={200: WorkspaceMemberRowSerializer, 404: ErrorCodeSerializer, 409: ErrorCodeSerializer},
+    )
     def patch(self, request, slug, pk):
         data = _validated(MemberUpdateSerializer, request.data)
         workspace = self.get_workspace()
@@ -150,9 +282,11 @@ class WorkspaceUserDetailView(WorkspaceContextMixin, BaseAPIView):
         return Response(_member_data(target, workspace, request.user, projects))
 
 
-class WorkspaceInviteDetailView(WorkspaceContextMixin, BaseAPIView):
+class WorkspaceInviteDetailView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # access changes stay with people, never AI tools
     permission_classes = [require_capability("users.manage")]
 
+    @extend_schema(description="Cancel a pending workspace invite.", responses={204: None, 404: ErrorCodeSerializer})
     def delete(self, request, slug, pk):
         workspace = self.get_workspace()
         invite = WorkspaceMemberInvite.objects.filter(workspace=workspace, pk=pk).first()
@@ -176,21 +310,36 @@ class ProjectContextMixin:
         )
 
 
-class ProjectPeopleView(ProjectContextMixin, BaseAPIView):
+class ProjectPeopleView(ProjectContextMixin, SummonAPIView):
     """Who is on one project and who is waiting to join it; adds a workspace member or invites a guest.
 
     Project admins add people already in the workspace. Bringing in someone new also grants
     workspace access, so that takes `users.manage`.
     """
 
+    summon_tool = {"POST": "none"}  # access changes stay with people, never AI tools
     permission_classes = [require_capability("workspace.view", "workspace.edit")]
 
+    @extend_schema(
+        description="Members of one project and the people invited to it.",
+        responses={200: ProjectPeopleSerializer, 404: ErrorCodeSerializer},
+    )
     def get(self, request, slug, project_id):
         project = self.get_project(project_id)
         if not (_is_project_member(request.user, project) or has_capability(request.user, slug, "users.view")):
             return Response({"error_code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(_project_people(project))
 
+    @extend_schema(
+        description="Add a workspace member to a project, or invite a guest to it by email.",
+        request=ProjectPersonSerializer,
+        responses={
+            201: ProjectPeopleSerializer,
+            400: ErrorCodeSerializer,
+            403: ErrorCodeSerializer,
+            409: ErrorCodeSerializer,
+        },
+    )
     def post(self, request, slug, project_id):
         data = _validated(ProjectPersonSerializer, request.data)
         project = self.get_project(project_id)
@@ -229,9 +378,11 @@ class ProjectPeopleView(ProjectContextMixin, BaseAPIView):
         return Response(_project_people(project), status=status.HTTP_201_CREATED)
 
 
-class ProjectInviteDetailView(ProjectContextMixin, BaseAPIView):
+class ProjectInviteDetailView(ProjectContextMixin, SummonAPIView):
+    summon_tool = "none"  # access changes stay with people, never AI tools
     permission_classes = [require_capability("workspace.view", "workspace.edit")]
 
+    @extend_schema(description="Cancel a pending project invite.", responses={204: None, 403: ErrorCodeSerializer})
     def delete(self, request, slug, project_id, pk):
         project = self.get_project(project_id)
         if not _manages_project(request.user, slug, project):
@@ -240,9 +391,13 @@ class ProjectInviteDetailView(ProjectContextMixin, BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class WorkspaceAccessHistoryView(WorkspaceContextMixin, BaseAPIView):
+class WorkspaceAccessHistoryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [require_capability("users.view")]
 
+    @extend_schema(
+        description="Recent access changes in this workspace: invites, role changes and removals.",
+        responses={200: AccessEventSerializer(many=True)},
+    )
     def get(self, request, slug):
         events = SummonAccessEvent.objects.filter(workspace=self.get_workspace()).select_related("actor")[:100]
         return Response(
@@ -259,43 +414,6 @@ class WorkspaceAccessHistoryView(WorkspaceContextMixin, BaseAPIView):
                 for e in events
             ]
         )
-
-
-ROLE_CHOICES = sorted(ROLE_LABELS)
-
-
-class InviteSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    role = serializers.ChoiceField(choices=ROLE_CHOICES)
-    project_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
-
-    def validate_email(self, value):
-        return value.strip().lower()
-
-
-class ProjectPersonSerializer(serializers.Serializer):
-    """Exactly one of: a workspace member to add, or an email to invite as a guest."""
-
-    member_id = serializers.UUIDField(required=False)
-    email = serializers.EmailField(required=False)
-
-    def validate_email(self, value):
-        return value.strip().lower()
-
-    def validate(self, attrs):
-        if len(attrs) != 1:
-            raise serializers.ValidationError("Send member_id or email.")
-        return attrs
-
-
-class MemberUpdateSerializer(serializers.Serializer):
-    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=False)
-    is_active = serializers.BooleanField(required=False)
-
-    def validate(self, attrs):
-        if not attrs:
-            raise serializers.ValidationError("Send role or is_active.")
-        return attrs
 
 
 def _validated(serializer_class, data):

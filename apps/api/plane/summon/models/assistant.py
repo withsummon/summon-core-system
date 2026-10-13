@@ -35,6 +35,8 @@ class AssistantMessage(BaseModel):
         ASSISTANT = "assistant", "Assistant"
 
     class Status(models.TextChoices):
+        # The AI service is still streaming this reply; it completes or fails the turn when done.
+        STREAMING = "streaming", "Streaming"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
@@ -63,6 +65,11 @@ class AssistantMessage(BaseModel):
         related_name="assistant_messages",
     )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.COMPLETED)
+    # AI SDK UI message parts (text, reasoning, tool calls) so a reload shows what the model did.
+    parts = models.JSONField(default=list, blank=True)
+    # Provider usage for the turn, including exact cost when the provider reports it.
+    usage = models.JSONField(default=dict, blank=True)
+    error_code = models.CharField(max_length=64, blank=True)
 
     class Meta:
         ordering = ("created_at",)

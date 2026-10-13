@@ -8,9 +8,20 @@ from urllib.parse import urlparse
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from plane.api.serializers.base import BaseSerializer
+from plane.summon.serializers.shapes import (
+    AssetRefSerializer,
+    MeetingParticipantRefSerializer,
+    MeetingSummaryPageSerializer,
+    MeetingWorkItemReadSerializer,
+    PageRefSerializer,
+    ProjectRefSerializer,
+    UserRefSerializer,
+)
 from plane.db.models import Page, ProjectMember, WorkspaceMember
 from plane.summon.models import (
     Meeting,
@@ -268,6 +279,7 @@ class MeetingSerializer(CollaborationSerializer):
     def _replace_transcript(self, meeting, transcript):
         write_meeting_transcript(meeting, self.user, transcript)
 
+    @extend_schema_field(MeetingParticipantRefSerializer(many=True))
     def get_participants(self, instance):
         return [
             {
@@ -291,6 +303,7 @@ class MeetingSerializer(CollaborationSerializer):
             ).values_list("project_id", flat=True)
         )
 
+    @extend_schema_field(MeetingWorkItemReadSerializer(many=True))
     def get_work_items(self, instance):
         # Reads MEETING_READ_PREFETCH when the queryset applied it, so a list costs no query per meeting.
         items = [
@@ -300,6 +313,7 @@ class MeetingSerializer(CollaborationSerializer):
         ]
         return MeetingWorkItemSerializer(items, many=True).data
 
+    @extend_schema_field(ProjectRefSerializer(allow_null=True))
     def get_project_detail(self, instance):
         if not instance.project:
             return None
@@ -314,9 +328,11 @@ class MeetingSerializer(CollaborationSerializer):
             return None
         return {"id": str(asset.id), "name": asset.attributes.get("name", ""), "url": asset.asset_url}
 
+    @extend_schema_field(AssetRefSerializer(allow_null=True))
     def get_recording_asset_detail(self, instance):
         return self._asset_detail(instance.recording_asset)
 
+    @extend_schema_field(AssetRefSerializer(allow_null=True))
     def get_transcript_asset_detail(self, instance):
         return self._asset_detail(instance.transcript_asset)
 
@@ -329,6 +345,7 @@ class MeetingSerializer(CollaborationSerializer):
             props.get("summon_summary_meeting_id"),
         }
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_transcript_text(self, instance):
         page = instance.summary_page
         if not self._is_canonical_meeting_page(instance) or not self.is_accessible_page(page):
@@ -341,6 +358,7 @@ class MeetingSerializer(CollaborationSerializer):
             return page.description_stripped or ""
         return ""
 
+    @extend_schema_field(MeetingSummaryPageSerializer(allow_null=True))
     def get_summary_page_detail(self, instance):
         if not self._is_canonical_meeting_page(instance) or not self.is_accessible_page(instance.summary_page):
             return None
@@ -398,6 +416,7 @@ class SummonPageContextSerializer(CollaborationSerializer):
             raise serializers.ValidationError(errors)
         return attrs
 
+    @extend_schema_field(PageRefSerializer)
     def get_page_detail(self, instance):
         return {"id": str(instance.page_id), "name": instance.page.name}
 
@@ -429,6 +448,7 @@ class ResourceLinkSerializer(CollaborationSerializer):
         ]
         read_only_fields = ["created_at", "updated_at", "created_by", "updated_by"]
 
+    @extend_schema_field(ProjectRefSerializer(allow_null=True))
     def get_project_detail(self, instance):
         if not instance.project:
             return None
@@ -438,6 +458,7 @@ class ResourceLinkSerializer(CollaborationSerializer):
             "name": instance.project.name,
         }
 
+    @extend_schema_field(UserRefSerializer(allow_null=True))
     def get_created_by_detail(self, instance):
         user = instance.created_by
         if not user:
@@ -448,6 +469,7 @@ class ResourceLinkSerializer(CollaborationSerializer):
             "avatar_url": getattr(user, "avatar_url", None),
         }
 
+    @extend_schema_field(UserRefSerializer(allow_null=True))
     def get_updated_by_detail(self, instance):
         user = instance.updated_by or instance.created_by
         if not user:

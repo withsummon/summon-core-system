@@ -4,6 +4,8 @@
 
 from django.urls import path
 
+from plane.summon.views.assistant import AssistantTurnCompleteView, AssistantTurnView, PlaneToolView
+from plane.summon.views.internal import AIConfigView
 from plane.summon.views import (
     AccessMeView,
     ProjectInviteDetailView,
@@ -126,6 +128,22 @@ urlpatterns = [
         {"operation": "cancel"},
         name="summon-assistant-action-cancel",
     ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/turns/",
+        AssistantTurnView.as_view(),
+        name="summon-assistant-turn-start",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/turns/<uuid:message_id>/complete/",
+        AssistantTurnCompleteView.as_view(),
+        name="summon-assistant-turn-complete",
+    ),
+    path(
+        "workspaces/<str:slug>/assistant/conversations/<uuid:conversation_id>/plane-tools/",
+        PlaneToolView.as_view(),
+        name="summon-assistant-plane-tool-call",
+    ),
+    path("internal/ai-config/", AIConfigView.as_view(), name="summon-internal-ai-config"),
     path("workspaces/<str:slug>/home/summary/", HomeSummaryView.as_view(), name="summon-home-summary"),
     path(
         "workspaces/<str:slug>/settings/ai-status/",

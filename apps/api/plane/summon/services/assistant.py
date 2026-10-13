@@ -133,7 +133,8 @@ def _save_assistant_message(conversation, content, citations, **metadata):
     return message
 
 
-def send_message(conversation, user, content, selection, intent="", attachment_ids=()):
+def create_user_message(conversation, user, content, attachment_ids=()):
+    """Save the user's message and bind its ready, unbound attachments to it."""
     with transaction.atomic():
         attachments = list(
             AssistantAttachment.objects.select_for_update().filter(
@@ -154,17 +155,31 @@ def send_message(conversation, user, content, selection, intent="", attachment_i
         )
         if attachments:
             AssistantAttachment.objects.filter(id__in=[item.id for item in attachments]).update(message=user_message)
-    context = build_context(
+    return user_message
+
+
+def turn_context(conversation, user, content, selection):
+    """Permission-scoped context for one turn, from the selection, the query, and the attachments."""
+    return build_context(
         conversation.workspace,
         user,
         selection,
         query=content,
         source_entries=attachment_context_entries(conversation, user),
     )
-    history = [
+
+
+def turn_history(conversation):
+    return [
         {"role": message.role, "content": message.content}
         for message in conversation.messages.filter(status=AssistantMessage.Status.COMPLETED)
     ]
+
+
+def send_message(conversation, user, content, selection, intent="", attachment_ids=()):
+    user_message = create_user_message(conversation, user, content, attachment_ids)
+    context = turn_context(conversation, user, content, selection)
+    history = turn_history(conversation)
     disclosure = " The retrieved context was truncated to 30,000 characters." if context.truncated else ""
     request = LLMRequest(
         system=(

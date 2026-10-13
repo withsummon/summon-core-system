@@ -39,6 +39,8 @@ ERROR_MESSAGES: dict[LLMErrorCode, str] = {
 
 logger = logging.getLogger("plane.llm")
 
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 
 class LLMConfig(TypedDict):
     api_key: str
@@ -107,6 +109,8 @@ def get_llm_config() -> LLMConfig:
             raise LLMError("llm_not_configured")
     elif provider == "openai_compatible":
         base_url = _text(base_url).rstrip("/")
+    elif provider == "openrouter":
+        base_url = OPENROUTER_BASE_URL
     else:
         base_url = ""
     return {
@@ -203,7 +207,7 @@ class OpenAICompatibleProvider(_Provider):
     def generate(self, request: LLMRequest) -> LLMResponse:
         client = OpenAI(
             api_key=self.config["api_key"],
-            base_url=self.config["base_url"] if self.config["provider"] == "openai_compatible" else None,
+            base_url=self.config["base_url"] or None,
             timeout=self.config["timeout"],
         )
         payload = {
@@ -312,6 +316,7 @@ def get_llm_provider(config: LLMConfig):
     providers = {
         "openai": OpenAICompatibleProvider,
         "openai_compatible": OpenAICompatibleProvider,
+        "openrouter": OpenAICompatibleProvider,
         "codex": CodexProvider,
         "anthropic": AnthropicProvider,
         "gemini": GeminiProvider,

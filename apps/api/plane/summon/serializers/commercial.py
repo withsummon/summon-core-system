@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from plane.api.serializers.base import BaseSerializer
@@ -15,6 +16,7 @@ from plane.summon.serializers.collaboration import (
     MeetingWorkItemSerializer,
     SummonPageContextSerializer,
 )
+from plane.summon.serializers.shapes import ActivityRefSerializer, MeetingWorkItemReadSerializer, ProjectRefSerializer
 from plane.summon.services.commercial import (
     detail_activity,
     detail_meetings,
@@ -35,6 +37,12 @@ class WorkspaceScopedSerializer(BaseSerializer):
 
     def get_fields(self):
         fields = super().get_fields()
+        if "workspace" not in self.context:
+            # Schema generation: document every field, and mark the gated ones optional because
+            # roles without `commercial.view` never receive them.
+            for name in self.commercial_fields:
+                fields[name].required = False
+            return fields
         if self.commercial_fields and not has_capability(
             self.context["request"].user, self.workspace.slug, "commercial.view"
         ):
@@ -114,22 +122,26 @@ class ClientDetailSerializer(ClientSerializer):
     class Meta(ClientSerializer.Meta):
         fields = "__all__"
 
+    @extend_schema_field(ClientContactSerializer(many=True))
     def get_contacts(self, instance):
         return ClientContactSerializer(
             instance.contacts.filter(workspace=self.workspace), many=True, context=self.context
         ).data
 
+    @extend_schema_field(OpportunitySerializer(many=True))
     def get_opportunities(self, instance):
         return OpportunitySerializer(
             instance.opportunities.filter(workspace=self.workspace), many=True, context=self.context
         ).data
 
+    @extend_schema_field(ProjectRefSerializer(many=True))
     def get_projects(self, instance):
         return [
             {"id": str(project.id), "identifier": project.identifier, "name": project.name}
             for project in visible_linked_projects(instance, self.context["request"].user, "client")
         ]
 
+    @extend_schema_field(MeetingSerializer(many=True))
     def get_meetings(self, instance):
         return MeetingSerializer(
             detail_meetings(instance, self.context["request"].user, "client")
@@ -139,76 +151,15 @@ class ClientDetailSerializer(ClientSerializer):
             context=self.context,
         ).data
 
+    @extend_schema_field(SummonPageContextSerializer(many=True))
     def get_page_contexts(self, instance):
         return SummonPageContextSerializer(
             detail_page_contexts(instance, self.context["request"].user, "client"), many=True, context=self.context
         ).data
 
+    @extend_schema_field(ActivityRefSerializer(many=True))
     def get_recent_activity(self, instance):
         return detail_activity(instance, self.context["request"].user, "client")
-
-
-class OpportunityDetailSerializer(OpportunitySerializer):
-    client_detail = serializers.SerializerMethodField()
-    contacts = serializers.SerializerMethodField()
-    project_profile = serializers.SerializerMethodField()
-    delivery_project = serializers.SerializerMethodField()
-    meetings = serializers.SerializerMethodField()
-    page_contexts = serializers.SerializerMethodField()
-    work_items = serializers.SerializerMethodField()
-    recent_activity = serializers.SerializerMethodField()
-
-    class Meta(OpportunitySerializer.Meta):
-        fields = "__all__"
-
-    def get_client_detail(self, instance):
-        return ClientSerializer(instance.client, context=self.context).data if instance.client else None
-
-    def get_contacts(self, instance):
-        if not instance.client:
-            return []
-        return ClientContactSerializer(
-            instance.client.contacts.filter(workspace=self.workspace), many=True, context=self.context
-        ).data
-
-    def get_project_profile(self, instance):
-        profile = detail_project_profile(instance, self.context["request"].user)
-        return SummonProjectProfileSerializer(profile, context=self.context).data if profile else None
-
-    def get_delivery_project(self, instance):
-        profile = detail_project_profile(instance, self.context["request"].user)
-        if not profile:
-            return None
-        return {"id": str(profile.project.id), "identifier": profile.project.identifier, "name": profile.project.name}
-
-    def get_meetings(self, instance):
-        return MeetingSerializer(
-            detail_meetings(instance, self.context["request"].user, "source_opportunity")
-            .select_related(*MEETING_READ_RELATED)
-            .prefetch_related(*MEETING_READ_PREFETCH),
-            many=True,
-            context=self.context,
-        ).data
-
-    def get_page_contexts(self, instance):
-        return SummonPageContextSerializer(
-            detail_page_contexts(instance, self.context["request"].user, "opportunity"), many=True, context=self.context
-        ).data
-
-    def get_work_items(self, instance):
-        return MeetingWorkItemSerializer(detail_work_items(instance, self.context["request"].user), many=True).data
-
-    def get_recent_activity(self, instance):
-        return detail_activity(instance, self.context["request"].user, "source_opportunity")
-
-
-class OpportunityDeliverySerializer(serializers.Serializer):
-    project = serializers.UUIDField()
-
-
-class OpportunityTransitionSerializer(serializers.Serializer):
-    stage = serializers.ChoiceField(choices=Opportunity.Stage.choices)
-    probability = serializers.IntegerField(min_value=0, max_value=100, required=False)
 
 
 class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
@@ -235,3 +186,74 @@ class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+
+class OpportunityDetailSerializer(OpportunitySerializer):
+    client_detail = serializers.SerializerMethodField()
+    contacts = serializers.SerializerMethodField()
+    project_profile = serializers.SerializerMethodField()
+    delivery_project = serializers.SerializerMethodField()
+    meetings = serializers.SerializerMethodField()
+    page_contexts = serializers.SerializerMethodField()
+    work_items = serializers.SerializerMethodField()
+    recent_activity = serializers.SerializerMethodField()
+
+    class Meta(OpportunitySerializer.Meta):
+        fields = "__all__"
+
+    @extend_schema_field(ClientSerializer(allow_null=True))
+    def get_client_detail(self, instance):
+        return ClientSerializer(instance.client, context=self.context).data if instance.client else None
+
+    @extend_schema_field(ClientContactSerializer(many=True))
+    def get_contacts(self, instance):
+        if not instance.client:
+            return []
+        return ClientContactSerializer(
+            instance.client.contacts.filter(workspace=self.workspace), many=True, context=self.context
+        ).data
+
+    @extend_schema_field(SummonProjectProfileSerializer(allow_null=True))
+    def get_project_profile(self, instance):
+        profile = detail_project_profile(instance, self.context["request"].user)
+        return SummonProjectProfileSerializer(profile, context=self.context).data if profile else None
+
+    @extend_schema_field(ProjectRefSerializer(allow_null=True))
+    def get_delivery_project(self, instance):
+        profile = detail_project_profile(instance, self.context["request"].user)
+        if not profile:
+            return None
+        return {"id": str(profile.project.id), "identifier": profile.project.identifier, "name": profile.project.name}
+
+    @extend_schema_field(MeetingSerializer(many=True))
+    def get_meetings(self, instance):
+        return MeetingSerializer(
+            detail_meetings(instance, self.context["request"].user, "source_opportunity")
+            .select_related(*MEETING_READ_RELATED)
+            .prefetch_related(*MEETING_READ_PREFETCH),
+            many=True,
+            context=self.context,
+        ).data
+
+    @extend_schema_field(SummonPageContextSerializer(many=True))
+    def get_page_contexts(self, instance):
+        return SummonPageContextSerializer(
+            detail_page_contexts(instance, self.context["request"].user, "opportunity"), many=True, context=self.context
+        ).data
+
+    @extend_schema_field(MeetingWorkItemReadSerializer(many=True))
+    def get_work_items(self, instance):
+        return MeetingWorkItemSerializer(detail_work_items(instance, self.context["request"].user), many=True).data
+
+    @extend_schema_field(ActivityRefSerializer(many=True))
+    def get_recent_activity(self, instance):
+        return detail_activity(instance, self.context["request"].user, "source_opportunity")
+
+
+class OpportunityDeliverySerializer(serializers.Serializer):
+    project = serializers.UUIDField()
+
+
+class OpportunityTransitionSerializer(serializers.Serializer):
+    stage = serializers.ChoiceField(choices=Opportunity.Stage.choices)
+    probability = serializers.IntegerField(min_value=0, max_value=100, required=False)

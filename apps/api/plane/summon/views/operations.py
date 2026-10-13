@@ -5,10 +5,13 @@
 from django.db.models import Q
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.summon.views.base import SummonAPIView, SummonViewSet
 from plane.license.utils.instance_value import get_llm_configuration_status
 from plane.summon.models import (
     AutomationJob,
@@ -24,6 +27,7 @@ from plane.summon.serializers.operations import (
     AutomationTemplateSerializer,
     ReportFilterSerializer,
 )
+from plane.summon.serializers.shapes import ErrorCodeSerializer
 from plane.summon.services.assistant import answer_query
 from plane.summon.services.automation import (
     authorize_artifact_download,
@@ -37,7 +41,34 @@ from plane.summon.services.reports import report_csv, report_summary, visible_pr
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
-class AutomationTemplateViewSet(WorkspaceContextMixin, BaseViewSet):
+class AutomationJobFailureSerializer(AutomationJobSerializer):
+    """Schema only: the failed job, plus its error code."""
+
+    error_code = serializers.CharField()
+
+    class Meta(AutomationJobSerializer.Meta):
+        fields = [*AutomationJobSerializer.Meta.fields, "error_code"]
+
+
+class ContextDocumentSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    text = serializers.CharField(allow_blank=True)
+    truncated = serializers.BooleanField()
+
+
+class LLMStatusSerializer(serializers.Serializer):
+    configured = serializers.BooleanField()
+    provider = serializers.CharField(allow_null=True)
+    model = serializers.CharField(allow_null=True)
+
+
+class AssistantQueryResultSerializer(serializers.Serializer):
+    intent = serializers.CharField()
+    answer = serializers.CharField()
+    data = serializers.JSONField(help_text="Rows or a record, depending on the intent.")
+
+
+class AutomationTemplateViewSet(WorkspaceContextMixin, SummonViewSet):
     model = AutomationTemplate
     serializer_class = AutomationTemplateSerializer
     permission_classes = [SummonWorkspacePermission]
@@ -50,13 +81,21 @@ class AutomationTemplateViewSet(WorkspaceContextMixin, BaseViewSet):
         serializer.save(workspace=self.get_workspace())
 
 
-class AutomationJobView(WorkspaceContextMixin, BaseAPIView):
+class AutomationJobView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description="List document automation jobs you can see.", responses={200: AutomationJobSerializer(many=True)}
+    )
     def get(self, request, slug):
         jobs = visible_automation_jobs(self.get_workspace(), request.user)
         return Response(AutomationJobSerializer(jobs, many=True).data)
 
+    @extend_schema(
+        description="Generate a document preview from an automation template for a project. Slow: runs the AI model.",
+        request=AutomationRunSerializer,
+        responses={201: AutomationJobSerializer, 400: ErrorCodeSerializer, 503: AutomationJobFailureSerializer},
+    )
     def post(self, request, slug):
         if not request.data.get("project"):
             return Response(
@@ -95,17 +134,27 @@ def visible_automation_jobs(workspace, user):
     )
 
 
-class AutomationJobDetailView(WorkspaceContextMixin, BaseAPIView):
+class AutomationJobDetailView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description="Get one document automation job and its generated artifacts.",
+        responses={200: AutomationJobSerializer},
+    )
     def get(self, request, slug, job_id):
         job = get_object_or_404(visible_automation_jobs(self.get_workspace(), request.user), id=job_id)
         return Response(AutomationJobSerializer(job).data)
 
 
-class AutomationContextExtractView(WorkspaceContextMixin, BaseAPIView):
+class AutomationContextExtractView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # binary upload
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description="Extract text from an uploaded document to use as automation context.",
+        request={"multipart/form-data": inline_serializer("ContextDocumentUpload", {"file": serializers.FileField()})},
+        responses={200: ContextDocumentSerializer},
+    )
     def post(self, request, slug):
         upload = request.FILES.get("file")
         if not upload:
@@ -113,9 +162,14 @@ class AutomationContextExtractView(WorkspaceContextMixin, BaseAPIView):
         return Response(extract_context_document(upload))
 
 
-class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):
+class AutomationPublishView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description="Publish a generated preview you requested as a Plane page or file.",
+        request=None,
+        responses={200: AutomationJobSerializer},
+    )
     def post(self, request, slug, job_id):
         job = get_object_or_404(
             AutomationJob,
@@ -130,7 +184,7 @@ class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):
         return Response(AutomationJobSerializer(job).data)
 
 
-class AutomationRenderView(WorkspaceContextMixin, BaseAPIView):
+class AutomationRenderView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def post(self, request, slug, job_id):
@@ -147,7 +201,7 @@ class AutomationRenderView(WorkspaceContextMixin, BaseAPIView):
         return Response(AutomationJobSerializer(job).data)
 
 
-class GeneratedArtifactDownloadView(WorkspaceContextMixin, BaseAPIView):
+class GeneratedArtifactDownloadView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [SummonWorkspacePermission]
 
     def get(self, request, slug, artifact_id):
@@ -166,18 +220,31 @@ class GeneratedArtifactDownloadView(WorkspaceContextMixin, BaseAPIView):
         )
 
 
-class ReportSummaryView(WorkspaceContextMixin, BaseAPIView):
+class ReportSummaryView(WorkspaceContextMixin, SummonAPIView):
     permission_classes = [require_capability("reports.view")]
 
+    @extend_schema(
+        description="Delivery and commercial report for the workspace, filterable by project, client and date range.",
+        parameters=[ReportFilterSerializer],
+        responses={
+            200: OpenApiResponse(OpenApiTypes.OBJECT, description="Portfolio, pipeline and due-date aggregates.")
+        },
+    )
     def get(self, request, slug):
         serializer = ReportFilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         return Response(report_summary(self.get_workspace(), request.user, serializer.validated_data))
 
 
-class ReportExportView(WorkspaceContextMixin, BaseAPIView):
+class ReportExportView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = "none"  # CSV download; ReportSummaryView serves the same data as JSON
     permission_classes = [require_capability("reports.view")]
 
+    @extend_schema(
+        description="The report as CSV.",
+        parameters=[ReportFilterSerializer],
+        responses={(200, "text/csv"): OpenApiTypes.STR},
+    )
     def get(self, request, slug):
         serializer = ReportFilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -190,16 +257,29 @@ class ReportExportView(WorkspaceContextMixin, BaseAPIView):
         return response
 
 
-class LLMStatusView(BaseAPIView):
+class LLMStatusView(SummonAPIView):
     permission_classes = [require_capability("settings.view")]
 
+    @extend_schema(
+        description="Whether the workspace AI provider is configured, and which provider and model it uses.",
+        responses={200: LLMStatusSerializer},
+    )
     def get(self, request, slug):
         return Response(get_llm_configuration_status())
 
 
-class AssistantQueryView(WorkspaceContextMixin, BaseAPIView):
+class AssistantQueryView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = {"POST": "read"}  # deterministic read-only intents
     permission_classes = [SummonWorkspacePermission]
 
+    @extend_schema(
+        description=(
+            "Answer a structured question from Summon data without the AI model; "
+            "see `intent` for the supported questions."
+        ),
+        request=AssistantQuerySerializer,
+        responses={200: AssistantQueryResultSerializer},
+    )
     def post(self, request, slug):
         serializer = AssistantQuerySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

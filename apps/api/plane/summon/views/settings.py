@@ -4,20 +4,31 @@
 
 import requests
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from plane.app.views.base import BaseAPIView
+from plane.summon.views.base import SummonAPIView
 from plane.summon.access import require_capability
 from plane.summon.serializers.settings import SummonWorkspaceSettingsSerializer
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
-class SummonWorkspaceSettingsView(WorkspaceContextMixin, BaseAPIView):
+class SummonWorkspaceSettingsView(WorkspaceContextMixin, SummonAPIView):
+    summon_tool = {"PATCH": "none"}  # workspace settings stay with admins in the app
     permission_classes = [require_capability("workspace.view", "settings.edit")]
 
+    @extend_schema(
+        description="Summon settings for this workspace.", responses={200: SummonWorkspaceSettingsSerializer}
+    )
     def get(self, request, slug):
         return Response(SummonWorkspaceSettingsSerializer(self.get_workspace()).data)
 
+    @extend_schema(
+        description="Change Summon settings for this workspace (workspace admins).",
+        request=SummonWorkspaceSettingsSerializer,
+        responses={200: SummonWorkspaceSettingsSerializer},
+    )
     def patch(self, request, slug):
         serializer = SummonWorkspaceSettingsSerializer(
             self.get_workspace(),
@@ -29,9 +40,20 @@ class SummonWorkspaceSettingsView(WorkspaceContextMixin, BaseAPIView):
         return Response(serializer.data)
 
 
-class MCPStatusView(BaseAPIView):
+class MCPStatusSerializer(serializers.Serializer):
+    reachable = serializers.BooleanField()
+    endpoint = serializers.CharField()
+    transport = serializers.CharField()
+    authentication = serializers.CharField()
+
+
+class MCPStatusView(SummonAPIView):
     permission_classes = [require_capability("settings.view")]
 
+    @extend_schema(
+        description="Whether the Plane MCP server is configured for this instance.",
+        responses={200: MCPStatusSerializer},
+    )
     def get(self, request, slug):
         try:
             requests.get(settings.SUMMON_MCP_URL, timeout=3)
