@@ -233,16 +233,16 @@ export function ReportView(props: TReportViewProps) {
                     total={data.commercial.opportunities}
                   />
                 </div>
-                <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
-                  <div className="pr-3">
+                <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] divide-x divide-subtle rounded-lg bg-layer-1 p-3">
+                  <div className="min-w-0 pr-3">
                     <p className="text-12 text-secondary">Total Pipeline Value</p>
-                    <p className="mt-1 text-lg font-semibold text-primary tabular-nums">
+                    <p className="mt-1 text-lg font-semibold [overflow-wrap:anywhere] text-primary tabular-nums">
                       {money(data.commercial.pipeline_value)}
                     </p>
                   </div>
                   <div className="pl-3">
                     <p className="text-12 text-secondary">Win Rate</p>
-                    <p className="mt-1 text-lg font-semibold text-primary">
+                    <p className="mt-1 text-lg font-semibold text-primary tabular-nums">
                       {percentage(wonOpportunities, data.commercial.opportunities)}%
                     </p>
                   </div>
