@@ -8,8 +8,8 @@ import type { TSummonRole } from "@plane/types";
 
 /** Plane's stored workspace roles, highest first, with what each can do in Summon. */
 export const ROLE_OPTIONS: { value: TSummonRole; label: string; description: string }[] = [
-  { value: 20, label: "Admin", description: "Manages settings, people, and roles." },
-  { value: 15, label: "Member", description: "Works across projects, clients, and credentials." },
+  { value: 20, label: "Admin", description: "Manages settings and people; sees deals, budgets, and reports." },
+  { value: 15, label: "Member", description: "Works across projects, clients, and credentials. No deal values." },
   { value: 5, label: "Guest", description: "Sees only the projects they're added to." },
 ];
 

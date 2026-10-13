@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
 import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 
 const formatDate = (value?: string | null) =>
   value
@@ -19,6 +20,7 @@ export function ProjectOverviewTab({
   projectId: string;
   members: { id: string; name: string }[];
 }) {
+  const showBudget = useSummonAccess(workspaceSlug).can("commercial.view");
   const health = overview.profile?.health || "not_assessed";
   const healthy = health === "on_track" || health === "good";
   const atRisk = ["at_risk", "off_track", "delayed"].includes(health);
@@ -130,7 +132,7 @@ export function ProjectOverviewTab({
             </Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
-            <Property label="Budget">{overview.profile?.budget || "Not set"}</Property>
+            {showBudget ? <Property label="Budget">{overview.profile?.budget || "Not set"}</Property> : null}
           </dl>
         </section>
         <section className="border-t border-subtle pt-5" aria-labelledby="project-members">

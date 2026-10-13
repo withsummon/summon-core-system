@@ -9,11 +9,20 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
+import { SummonAccessGate } from "@/components/summon/access-gate";
 import type { Route } from "./+types/page";
 import { ReportView } from "./report-view";
 import { readReportFilters, reportRequestKey, updateReportFilter, type TReportFilterParam } from "./report-view-model";
 
-export default function SummonReportsPage({ params }: Route.ComponentProps) {
+export default function SummonReportsPage(props: Route.ComponentProps) {
+  return (
+    <SummonAccessGate workspaceSlug={props.params.workspaceSlug} capability="reports.view" title="Reports">
+      <SummonReportsPageContent {...props} />
+    </SummonAccessGate>
+  );
+}
+
+function SummonReportsPageContent({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const router = useRouter();
   const pathname = usePathname();

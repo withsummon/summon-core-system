@@ -71,7 +71,8 @@ export interface ISummonOpportunity {
 
 export interface ISummonClientDetail extends ISummonClient {
   contacts: ISummonClientContact[];
-  opportunities: ISummonOpportunity[];
+  /** Admins only (`commercial.view`); absent for everyone else. */
+  opportunities?: ISummonOpportunity[];
   projects: Array<{ id: string; identifier: string; name: string }>;
   meetings: ISummonMeeting[];
   page_contexts: ISummonPageContext[];
@@ -93,13 +94,14 @@ export interface ISummonProjectProfile {
   id: string;
   project: string;
   client: string | null;
-  source_opportunity: string | null;
+  /** Admins only (`commercial.view`), like `budget`. */
+  source_opportunity?: string | null;
   delivery_status: string;
   phase: string;
   health: string;
   start_date: string | null;
   target_date: string | null;
-  budget: string | null;
+  budget?: string | null;
 }
 
 export interface ISummonIssueSnapshot {
@@ -124,7 +126,7 @@ export interface ISummonProjectFile {
 export interface ISummonHomeSummary {
   priority: ISummonIssueSnapshot[];
   projects: Array<{ id: string; identifier: string; name: string; health: string; completion: number }>;
-  counts: { projects: number; issues: number; clients: number; opportunities: number };
+  counts: { projects: number; issues: number; clients: number; opportunities?: number };
   recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
   upcoming_meetings: ISummonMeeting[];
   resources: ISummonResourceLink[];
@@ -429,6 +431,8 @@ export type TSummonCapability =
   | "workspace.view"
   | "workspace.edit"
   | "credentials.view"
+  | "commercial.view"
+  | "reports.view"
   | "settings.view"
   | "settings.edit"
   | "users.view"

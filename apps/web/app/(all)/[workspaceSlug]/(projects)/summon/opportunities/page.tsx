@@ -38,6 +38,7 @@ import { SummonPageHeader, summonErrorMessage, summonPageClassName, ViewPanel } 
 import { useMember } from "@/hooks/store/use-member";
 import { summonService } from "@/services/summon.service";
 import { filterOpportunityRecords } from "../reference-view-model";
+import { SummonAccessGate } from "@/components/summon/access-gate";
 import type { Route } from "./+types/page";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
@@ -45,7 +46,15 @@ import { DatePicker } from "@plane/propel/date-picker";
 const formatShortDate = (value?: string | null) =>
   value ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(new Date(value)) : null;
 
-export default function SummonOpportunitiesPage({ params }: Route.ComponentProps) {
+export default function SummonOpportunitiesPage(props: Route.ComponentProps) {
+  return (
+    <SummonAccessGate workspaceSlug={props.params.workspaceSlug} capability="commercial.view" title="Opportunities">
+      <SummonOpportunitiesPageContent {...props} />
+    </SummonAccessGate>
+  );
+}
+
+function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const router = useRouter();
   const searchParams = useSearchParams();

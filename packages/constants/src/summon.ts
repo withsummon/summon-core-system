@@ -35,17 +35,18 @@ export const SUMMON_ASSISTANT_NAVIGATION_ITEM: IWorkspaceSidebarNavigationItem =
 const allWorkspaceRoles = [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST];
 const memberWorkspaceRoles = [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER];
 const adminWorkspaceRoles = [EUserWorkspaceRoles.ADMIN];
+// Mirrors the API's admin-only capabilities: settings, and anything showing deals or money.
+const ADMIN_MODULES = new Set<string>(["summon_settings", "summon_opportunities", "summon_reports"]);
 
 export const SUMMON_WORKSPACE_NAVIGATION_ITEMS: IWorkspaceSidebarNavigationItem[] = SUMMON_MODULES.map((module) => ({
   key: module.key,
   labelTranslationKey: `summon.${module.path || "overview"}`,
   href: `/summon${module.path ? `/${module.path}` : ""}`,
-  access:
-    module.key === "summon_settings"
-      ? adminWorkspaceRoles
-      : module.key === "summon_credentials"
-        ? memberWorkspaceRoles
-        : allWorkspaceRoles,
+  access: ADMIN_MODULES.has(module.key)
+    ? adminWorkspaceRoles
+    : module.key === "summon_credentials"
+      ? memberWorkspaceRoles
+      : allWorkspaceRoles,
   highlight: (pathname, url) =>
     module.path ? pathname === url || pathname.startsWith(`${url}/`) : pathname === url || pathname === `${url}/`,
 }));
