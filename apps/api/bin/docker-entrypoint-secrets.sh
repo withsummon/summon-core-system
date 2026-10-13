@@ -20,7 +20,7 @@ export AWS_SECRET_ACCESS_KEY="$minio_password"
 export DATABASE_URL="postgresql://${POSTGRES_USER}:${db_password}@plane-db:5432/${POSTGRES_DB}"
 export AMQP_URL="amqp://${RABBITMQ_USER}:${rabbitmq_password}@plane-mq:5672/${RABBITMQ_VHOST}"
 export LIVE_SERVER_SECRET_KEY="$live_server_secret_key"
-# Optional until the AI service is deployed.
+# Set only where the AI service (apps/ai) runs.
 if test -n "${SUMMON_AI_INTERNAL_TOKEN_FILE:-}"; then
   export SUMMON_AI_INTERNAL_TOKEN="$(read_secret SUMMON_AI_INTERNAL_TOKEN_FILE)"
 fi

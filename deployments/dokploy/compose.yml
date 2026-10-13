@@ -31,6 +31,7 @@ x-app-environment: &app-environment
   WEBHOOK_ALLOWED_IPS: ${WEBHOOK_ALLOWED_IPS:-}
   WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
   SUMMON_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
+  SUMMON_AI_INTERNAL_TOKEN_FILE: /run/secrets/summon_ai_internal_token
 
 x-api-service: &api-service
   image: withsummon-summon-core-system-api:${SUMMON_IMAGE_TAG:-latest}
@@ -47,6 +48,7 @@ x-api-service: &api-service
     - rabbitmq_password
     - minio_password
     - live_server_secret_key
+    - summon_ai_internal_token
   depends_on:
     plane-db:
       condition: service_healthy
@@ -240,6 +242,36 @@ services:
       plane-redis:
         condition: service_healthy
 
+  ai:
+    build:
+      context: ../..
+      dockerfile: apps/ai/Dockerfile
+    image: withsummon-summon-core-system-ai:${SUMMON_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export SUMMON_AI_INTERNAL_TOKEN="$$(cat /run/secrets/summon_ai_internal_token)"
+        exec bun dist/main.js
+    environment:
+      DJANGO_URL: http://api:8000
+      WEB_URL: ${WEB_URL:-https://summon-core.withsummon.com}
+      PLANE_MCP_URL: http://mcp:8211/mcp/http/api-key/mcp
+      APP_VERSION: ${SUMMON_IMAGE_TAG:-latest}
+    secrets:
+      - summon_ai_internal_token
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3300/ai/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      api:
+        condition: service_started
+      mcp:
+        condition: service_started
+
   codex-bridge:
     build:
       context: ../../apps/codex-bridge
@@ -289,6 +321,7 @@ services:
       LIVE_HOST: summon-core-live
       MINIO_HOST: summon-core-minio
       MCP_HOST: mcp
+      AI_HOST: ai
     volumes:
       - ../../apps/proxy/Caddyfile.ce:/etc/caddy/Caddyfile:ro
     depends_on:
@@ -303,6 +336,8 @@ services:
       live:
         condition: service_started
       mcp:
+        condition: service_started
+      ai:
         condition: service_started
 
 volumes:
@@ -329,3 +364,5 @@ secrets:
     file: /etc/dokploy-secrets/summon-core-plane/minio_password
   live_server_secret_key:
     file: /etc/dokploy-secrets/summon-core-plane/live_server_secret_key
+  summon_ai_internal_token:
+    file: /etc/dokploy-secrets/summon-core-plane/summon_ai_internal_token
