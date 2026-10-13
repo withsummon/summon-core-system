@@ -6,6 +6,7 @@
 
 import React, { useState, useMemo } from "react";
 import { observer } from "mobx-react";
+import { EnvelopeSimpleIcon, TrayIcon } from "@phosphor-icons/react";
 import useSWR from "swr";
 import Link from "next/link";
 import { Inbox, Clock, ExternalLink, MessageSquare } from "lucide-react";
@@ -13,6 +14,7 @@ import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { getButtonStyling } from "@plane/propel/button";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SectionTabs } from "@/components/summon/section-tabs";
 import { SummonMetric, SummonMetricStrip, SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
 
 interface INotificationsRootProps {
@@ -62,31 +64,15 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
         <SummonMetric label="Unread" value={unreadCount} />
       </SummonMetricStrip>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-subtle pb-3">
-        <button
-          type="button"
-          onClick={() => setFilterTab("all")}
-          className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-            filterTab === "all"
-              ? "bg-accent-primary text-white shadow-xs"
-              : "border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-          }`}
-        >
-          All ({rawRecords.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterTab("unread")}
-          className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-            filterTab === "unread"
-              ? "bg-accent-primary text-white shadow-xs"
-              : "border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-          }`}
-        >
-          Unread ({unreadCount})
-        </button>
-      </div>
+      <SectionTabs
+        items={[
+          { value: "all", label: `All (${rawRecords.length})`, icon: TrayIcon },
+          { value: "unread", label: `Unread (${unreadCount})`, icon: EnvelopeSimpleIcon },
+        ]}
+        value={filterTab}
+        onValueChange={setFilterTab}
+        label="Notification filter"
+      />
 
       <SummonRequestState
         loading={isLoading || !!loader}
@@ -107,7 +93,7 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
             <Link
               key={notification.id}
               href={`/${workspaceSlug}/notifications/`}
-              className={`group hover:border-accent-primary/40 flex items-start justify-between gap-4 rounded-2xl border p-4 transition-all hover:shadow-sm ${
+              className={`group hover:border-accent-primary/40 flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors ${
                 isUnread
                   ? "border-accent-primary/40 ring-accent-primary/20 bg-surface-1 shadow-xs ring-1"
                   : "border-subtle bg-surface-1"
@@ -123,11 +109,11 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="truncate text-xs font-bold text-primary group-hover:text-accent-primary">
+                    <h3 className="truncate text-xs font-semibold text-primary group-hover:text-accent-primary">
                       {notification.title || notification.entity_name || "Workspace Update"}
                     </h3>
                     {isUnread && (
-                      <span className="rounded-full bg-accent-primary px-2 py-0.5 text-12 font-bold text-white">
+                      <span className="rounded-full bg-accent-primary px-2 py-0.5 text-12 font-medium text-white">
                         New
                       </span>
                     )}

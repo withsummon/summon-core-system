@@ -4,4 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export * from "./root";
+export { PieChart, type PieChartProps } from "../bklit/pie-chart";
+export { PieSlice, type PieSliceProps } from "../bklit/pie-slice";
+export { PieCenter, type PieCenterProps } from "../bklit/pie-center";
+export type { PieData } from "../bklit/pie-context";

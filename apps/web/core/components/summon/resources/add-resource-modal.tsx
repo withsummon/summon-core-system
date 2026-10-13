@@ -7,9 +7,10 @@
 import React, { useState } from "react";
 import { X, Plus, Link2 } from "lucide-react";
 import type { ICreateResourcePayload } from "./types";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { Input, TextArea } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
+import { Button } from "@plane/propel/button";
 
 interface IAddResourceModalProps {
   isOpen: boolean;
@@ -54,10 +55,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Panel
-        width={EDialogWidth.LG}
-        className="flex max-h-[90vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl"
-      >
+      <Dialog.Panel width={EDialogWidth.LG} className="flex max-h-[90vh] w-[calc(100vw-2rem)] flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-subtle px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -65,7 +63,7 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
               <Link2 className="size-5" />
             </div>
             <div>
-              <Dialog.Title className="text-16 font-bold text-primary">Add New Resource Link</Dialog.Title>
+              <Dialog.Title className="text-16 font-semibold text-primary">Add New Resource Link</Dialog.Title>
               <p className="text-xs text-secondary">Save an external link, document, or repository reference</p>
             </div>
           </div>
@@ -91,14 +89,14 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             <label htmlFor="resource-title" className="block text-xs font-semibold text-primary">
               Resource Title *
             </label>
-            <input
+            <Input
               id="resource-title"
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Technical Proposal - BSB v1.2.pdf"
-              className={`${FIELD_CLASSNAME} mt-1 h-9 w-full px-3`}
+              className="mt-1 w-full"
             />
           </div>
 
@@ -106,14 +104,14 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             <label htmlFor="resource-url" className="block text-xs font-semibold text-primary">
               External URL *
             </label>
-            <input
+            <Input
               id="resource-url"
               type="url"
               required
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className={`${FIELD_CLASSNAME} mt-1 h-9 w-full px-3`}
+              className="mt-1 w-full"
             />
           </div>
 
@@ -160,32 +158,23 @@ export function AddResourceModal({ isOpen, onClose, onSave, projects }: IAddReso
             <label htmlFor="resource-description" className="block text-xs font-semibold text-primary">
               Description (Optional)
             </label>
-            <textarea
+            <TextArea
               id="resource-description"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Context or notes about this resource..."
-              className={`${FIELD_CLASSNAME} mt-1 w-full px-3 py-2`}
+              className="mt-1"
             />
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2 border-t border-subtle pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-subtle bg-surface-1 px-4 py-2 text-xs font-semibold text-secondary hover:bg-layer-1 hover:text-primary"
-            >
+            <Button type="button" variant="secondary" size="lg" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-lg bg-accent-primary px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-accent-primary/90 disabled:opacity-50"
-            >
-              <Plus className="size-3.5" />
-              {isSubmitting ? "Saving..." : "Save Resource"}
-            </button>
+            </Button>
+            <Button type="submit" size="lg" prependIcon={<Plus />} loading={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save Resource"}
+            </Button>
           </div>
         </form>
       </Dialog.Panel>

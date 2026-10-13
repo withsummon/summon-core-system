@@ -7,13 +7,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { CheckCircle2, Copy, PlugZap } from "lucide-react";
-import { Button } from "@plane/propel/button";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { CheckCircle2, Copy } from "lucide-react";
+import { Button, getButtonStyling } from "@plane/propel/button";
+import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonCard, summonErrorMessage } from "@/components/summon/screen";
+import { SummonPanel, summonErrorMessage } from "@/components/summon/screen";
 import { SummonSettingsFrame } from "@/components/summon/settings/settings-frame";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -70,9 +70,8 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
         <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
       ) : (
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-          <SummonCard>
-            <h2 className="text-sm font-semibold text-primary">Company profile</h2>
-            <form key={`${data.slug}-${data.name}`} onSubmit={save} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <SummonPanel title="Company profile">
+            <form key={`${data.slug}-${data.name}`} onSubmit={save} className="grid gap-4 sm:grid-cols-2">
               <SummonField label="Workspace name">
                 <Input name="name" defaultValue={data.name} required />
               </SummonField>
@@ -93,12 +92,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
               </SummonField>
               <div className="sm:col-span-2">
                 <SummonField label="Description">
-                  <textarea
-                    name="description"
-                    rows={4}
-                    defaultValue={data.description}
-                    className={`${FIELD_CLASSNAME} w-full px-3 py-2`}
-                  />
+                  <TextArea name="description" rows={4} defaultValue={data.description} />
                 </SummonField>
               </div>
               <fieldset className="sm:col-span-2">
@@ -127,22 +121,20 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                 {formError ? <p className="text-xs text-danger-primary">{formError}</p> : null}
               </div>
             </form>
-          </SummonCard>
+          </SummonPanel>
 
           <div className="space-y-4">
-            <SummonCard>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <PlugZap className="size-4 text-accent-primary" />
-                  <h2 className="text-sm font-semibold text-primary">Plane MCP</h2>
-                </div>
+            <SummonPanel
+              title="Plane MCP"
+              action={
                 <span
                   className={`rounded-full px-2 py-1 text-12 font-medium ${mcpStatus?.reachable ? "bg-success-subtle text-success-primary" : "bg-warning-subtle text-warning-primary"}`}
                 >
                   {mcpStatus?.reachable ? "Service reachable" : "Unavailable"}
                 </span>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-secondary">
+              }
+            >
+              <p className="text-xs leading-relaxed text-secondary">
                 Connect external MCP clients with a Plane personal access token. Tokens are shown only once by Plane and
                 must not be pasted into logs.
               </p>
@@ -167,20 +159,16 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
                 </div>
               </dl>
               <div className="mt-4 flex gap-2">
-                <Link
-                  href={`/${workspaceSlug}/settings/api-tokens`}
-                  className="rounded-md bg-accent-primary px-3 py-2 text-xs font-medium text-white"
-                >
+                <Link href={`/${workspaceSlug}/settings/api-tokens`} className={getButtonStyling("primary", "lg")}>
                   Manage API tokens
                 </Link>
                 <Button size="lg" variant="secondary" onClick={() => void reloadMCP()}>
                   Check status
                 </Button>
               </div>
-            </SummonCard>
-            <SummonCard>
-              <h2 className="text-sm font-semibold text-primary">Assistant identity</h2>
-              <p className="mt-2 text-xs leading-relaxed text-secondary">
+            </SummonPanel>
+            <SummonPanel title="Assistant identity">
+              <p className="text-xs leading-relaxed text-secondary">
                 Store a Plane PAT as provider <strong>Plane MCP PAT</strong> in Credential Vault, then select it in a
                 Summon Assistant conversation. Decryption and tool calls remain server-side.
               </p>
@@ -193,7 +181,7 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
               >
                 Open Credential Vault →
               </Link>
-            </SummonCard>
+            </SummonPanel>
           </div>
         </div>
       )}

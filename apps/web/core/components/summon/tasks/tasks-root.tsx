@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { CheckSquareIcon, ListChecksIcon, PencilSimpleLineIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import useSWR from "swr";
-import { CheckCircle2, ChevronDown, Circle, CircleDashed, CircleDot, Plus, Search, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, CircleDashed, CircleDot, Plus, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel, ISSUE_PRIORITIES } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
@@ -17,7 +17,6 @@ import { EIssuesStoreType } from "@plane/types";
 import type { TStateGroups } from "@plane/types";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
-import { Input } from "@plane/propel/input";
 import { PriorityIcon, SelectableIcon } from "@plane/propel/icons";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
@@ -58,6 +57,7 @@ import {
   TaskFilterMenu,
   type TTaskFilterOptions,
 } from "./task-view-controls";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 const scopes: { value: TTaskCenterScope; label: string; icon: TSelectableIcon }[] = [
   { value: "mine", label: "My tasks", icon: CheckSquareIcon },
@@ -290,21 +290,15 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
             ))}
           </Tabs.List>
           <div className="flex min-w-0 grow basis-full items-center justify-end gap-2 py-1.5 sm:ml-auto sm:grow-0 sm:basis-auto">
-            <label htmlFor="task-search" className="relative min-w-0 flex-1 sm:w-56">
-              <span className="sr-only">Search tasks</span>
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-secondary"
-              />
-              <Input
-                id="task-search"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search tasks…"
-                className="h-8 w-full pl-8 text-base sm:text-13"
-              />
-            </label>
+            <SummonSearchField
+              id="task-search"
+              label="Search tasks"
+              placeholder="Search tasks…"
+              value={query}
+              onValueChange={setQuery}
+              size="base"
+              className="flex-1 sm:w-56 sm:flex-none"
+            />
             <TaskFilterMenu filters={filters} options={filterOptions} onToggle={toggleFilter} />
             <TaskDisplayPopover display={display} onChange={(next) => updateView({ display: next })} />
           </div>

@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { CopyIcon, UserPlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { Input } from "@plane/propel/input";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TSummonRole } from "@plane/types";
 import { cn } from "@plane/utils";
@@ -89,9 +89,10 @@ export const InviteDialog = observer(function InviteDialog(props: {
           </header>
 
           <div className="grid gap-4 px-5 py-4">
-            <label className="grid gap-1.5">
+            <label htmlFor="invite-email" className="grid gap-1.5">
               <span className="text-12 font-medium text-secondary">Work email</span>
-              <input
+              <Input
+                id="invite-email"
                 type="email"
                 required
                 ref={emailRef}
@@ -101,7 +102,7 @@ export const InviteDialog = observer(function InviteDialog(props: {
                 placeholder="name@company.com"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "invite-error" : undefined}
-                className={`${FIELD_CLASSNAME} h-9 w-full px-3`}
+                className="w-full"
               />
             </label>
 

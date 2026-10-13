@@ -6,6 +6,7 @@
 
 import type { ISummonMeeting } from "@plane/types";
 import { Avatar } from "@plane/ui";
+import { SummonPanel } from "@/components/summon/screen";
 
 type Props = {
   data: ISummonMeeting;
@@ -13,21 +14,10 @@ type Props = {
   createdAt: string;
 };
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-subtle bg-surface-1 shadow-sm">
-      <div className="border-b border-subtle px-4 py-3.5">
-        <h2 className="text-sm font-semibold text-primary">{title}</h2>
-      </div>
-      <div className="p-4">{children}</div>
-    </section>
-  );
-}
-
 export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-      <Panel title="Meeting Details">
+      <SummonPanel title="Meeting Details">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-12 sm:grid-cols-3">
           <Detail label="Status" value={data.status} />
           <Detail label="Organizer" value={organizer || "Not available"} />
@@ -38,8 +28,8 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
           <Detail label="Recording" value={data.recording_asset_detail ? "Yes" : "No"} />
           <Detail label="Visibility" value="Not supplied" />
         </dl>
-      </Panel>
-      <Panel title={`Participants (${data.participants.length})`}>
+      </SummonPanel>
+      <SummonPanel title="Participants" count={data.participants.length}>
         <div className="space-y-3">
           {data.participants.slice(0, 5).map((participant) => (
             <div key={participant.id} className="flex items-center gap-2.5">
@@ -55,7 +45,7 @@ export function MeetingDetailMeta({ data, organizer, createdAt }: Props) {
             <p className="text-12 font-medium text-secondary">+{data.participants.length - 5} more participants</p>
           ) : null}
         </div>
-      </Panel>
+      </SummonPanel>
     </div>
   );
 }

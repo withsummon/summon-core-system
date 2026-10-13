@@ -12,7 +12,6 @@ import {
   ClockIcon,
   EnvelopeSimpleIcon,
   LockSimpleIcon,
-  MagnifyingGlassIcon,
   ProhibitIcon,
   UserCircleIcon,
   UserMinusIcon,
@@ -24,7 +23,7 @@ import { Avatar } from "@plane/propel/avatar";
 import { Badge } from "@plane/propel/badge";
 import type { TBadgeVariant } from "@plane/propel/badge";
 import { Chip } from "@plane/propel/chip";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { SummonSearchField } from "@/components/summon/search-field";
 import { Menu } from "@plane/propel/menu";
 import { Select } from "@plane/propel/select";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -117,17 +116,13 @@ export function SummonUsersRoot(props: { workspaceSlug: string }) {
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <label className="relative w-full sm:w-72">
-          <span className="sr-only">Search people</span>
-          <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name or email"
-            className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
-          />
-        </label>
+        <SummonSearchField
+          label="Search people"
+          placeholder="Search name or email"
+          value={query}
+          onValueChange={setQuery}
+          className="w-full sm:w-72"
+        />
         <div
           className="flex gap-1.5 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:overflow-x-auto max-sm:px-4 sm:flex-wrap"
           role="group"

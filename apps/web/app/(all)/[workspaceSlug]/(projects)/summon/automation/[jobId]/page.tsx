@@ -11,7 +11,7 @@ import { ArrowLeft, Check, CircleAlert } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import type { ISummonGeneratedArtifact } from "@plane/types";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonCard, SummonScreen, summonLLMErrorMessage } from "@/components/summon/screen";
+import { SummonCard, SummonPanel, SummonScreen, summonLLMErrorMessage } from "@/components/summon/screen";
 import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
@@ -120,9 +120,8 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
         </SummonCard>
 
         <aside className="space-y-4">
-          <SummonCard>
-            <h2 className="text-xs font-semibold text-primary">Document actions</h2>
-            <div className="mt-3 grid gap-2">
+          <SummonPanel title="Document actions">
+            <div className="grid gap-2">
               <Button
                 size="xl"
                 variant="secondary"
@@ -146,11 +145,10 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
                 {actionError}
               </p>
             ) : null}
-          </SummonCard>
+          </SummonPanel>
 
-          <SummonCard>
-            <h2 className="text-xs font-semibold text-primary">Files and links</h2>
-            <div className="mt-3 grid gap-2">
+          <SummonPanel title="Files and links">
+            <div className="grid gap-2">
               {fileArtifacts.map((artifact) =>
                 artifact.file_detail ? (
                   <a
@@ -172,11 +170,10 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
                 <p className="text-12 text-tertiary">No files or published page yet.</p>
               ) : null}
             </div>
-          </SummonCard>
+          </SummonPanel>
 
-          <SummonCard>
-            <h2 className="text-xs font-semibold text-primary">Sources</h2>
-            <div className="mt-3 grid gap-2">
+          <SummonPanel title="Sources">
+            <div className="grid gap-2">
               {data.citations.map((citation) => (
                 <Link key={citation.id} href={citation.href} className="text-12 font-medium text-accent-primary">
                   {citation.label}
@@ -184,7 +181,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
               ))}
               {!data.citations.length ? <p className="text-12 text-tertiary">No linked sources.</p> : null}
             </div>
-          </SummonCard>
+          </SummonPanel>
         </aside>
       </div>
     </SummonScreen>

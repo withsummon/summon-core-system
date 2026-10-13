@@ -11,7 +11,7 @@ const modelUrl = `data:text/javascript;base64,${Buffer.from(
 ).toString("base64")}`;
 // SAFETY: The loaded module is a direct TypeScript transpilation of report-view-model.ts above.
 const model = (await import(modelUrl)) as typeof import("./report-view-model");
-const { percentage, readReportFilters, reportRequestKey, trendPolylinePoints, updateReportFilter } = model;
+const { percentage, readReportFilters, reportRequestKey, updateReportFilter } = model;
 
 test("report percentages handle empty and populated totals", () => {
   assert.equal(percentage(0, 0), 0);
@@ -41,17 +41,12 @@ test("report filters round-trip through the URL and request key", () => {
   assert.equal(updateReportFilter(updated, "project_id", "").toString(), "client_id=client-1&date_from=2026-08-01");
 });
 
-test("trend points stay finite for empty and zero-only series", () => {
-  assert.equal(trendPolylinePoints([]), "");
-  assert.equal(trendPolylinePoints([0]), "0,80");
-  assert.equal(trendPolylinePoints([0, 0]), "0,80 320,80");
-});
-
 test("report and CSV use the same filters without client-side money conversion or chart packages", () => {
   const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
   const view = readFileSync(new URL("./report-view.tsx", import.meta.url), "utf8");
   const visuals = readFileSync(new URL("./report-visuals.tsx", import.meta.url), "utf8");
-  const implementation = `${page}\n${view}\n${visuals}`;
+  const charts = readFileSync(new URL("./report-charts.tsx", import.meta.url), "utf8");
+  const implementation = `${page}\n${view}\n${visuals}\n${charts}`;
 
   assert.match(page, /getReport\(workspaceSlug, filters\)/);
   assert.match(page, /getReportExportUrl\(workspaceSlug, filters\)/);
@@ -60,6 +55,9 @@ test("report and CSV use the same filters without client-side money conversion o
   // Date-range filters use the Base UI date picker from @plane/propel.
   assert.match(visuals, /<DatePicker[\s\S]*id="report-date-from"/);
   assert.match(visuals, /<DatePicker[\s\S]*id="report-date-to"/);
-  assert.match(visuals, /<svg/);
+  // Charts render through the Bklit components in @plane/propel/charts, colored by chart tokens.
+  assert.match(charts, /@plane\/propel\/charts\/(ring|pie|bar)-chart/);
+  assert.match(charts, /var\(--chart-/);
+  assert.doesNotMatch(`${view}\n${charts}`, /#[0-9a-f]{6}\b/i);
   assert.doesNotMatch(implementation, /parseFloat|parseInt|Number\(|recharts|chart\.js|echarts/i);
 });

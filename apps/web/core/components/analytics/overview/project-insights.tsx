@@ -20,10 +20,8 @@ import { AnalyticsService } from "@/services/analytics.service";
 import AnalyticsSectionWrapper from "../analytics-section-wrapper";
 import { ProjectInsightsLoader } from "../loaders";
 
-const RadarChart = lazy(function RadarChart() {
-  return import("@plane/propel/charts/radar-chart").then((mod) => ({
-    default: mod.RadarChart,
-  }));
+const ProjectInsightsRadar = lazy(function ProjectInsightsRadar() {
+  return import("./project-insights-radar");
 });
 
 const analyticsService = new AnalyticsService();
@@ -70,29 +68,7 @@ const ProjectInsights = observer(function ProjectInsights() {
         <div className="gap-8 lg:flex">
           {projectInsightsData && (
             <Suspense fallback={<ProjectInsightsLoader />}>
-              <RadarChart
-                className="h-[350px] w-full text-accent-primary lg:w-3/5"
-                data={projectInsightsData}
-                dataKey="key"
-                radars={[
-                  {
-                    key: "count",
-                    name: "Count",
-                    fill: "var(--text-color-accent-primary)",
-                    stroke: "var(--text-color-accent-primary)",
-                    fillOpacity: 0.6,
-                    dot: {
-                      r: 4,
-                      fillOpacity: 1,
-                    },
-                  },
-                ]}
-                margin={{ top: 0, right: 40, bottom: 10, left: 40 }}
-                showTooltip
-                angleAxis={{
-                  key: "name",
-                }}
-              />
+              <ProjectInsightsRadar data={projectInsightsData} label={t("common.work_items")} />
             </Suspense>
           )}
           <div className="w-full lg:w-2/5">

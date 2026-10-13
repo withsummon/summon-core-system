@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { Check, Circle, FileAudio, FileText, ListTodo, RefreshCw, Sparkles } from "lucide-react";
 import type { ISummonMeeting } from "@plane/types";
+import { SummonPanel } from "@/components/summon/screen";
 
 type Props = {
   data: ISummonMeeting;
@@ -18,18 +19,6 @@ type Props = {
 
 const timestamp = (value: string) =>
   new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-
-function Panel(props: { id?: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section id={props.id} className="scroll-mt-24 rounded-xl border border-subtle bg-surface-1 shadow-sm">
-      <div className="flex items-center justify-between gap-3 px-4 pt-4">
-        <h2 className="text-sm font-semibold text-primary">{props.title}</h2>
-        {props.action}
-      </div>
-      <div className="p-4 pt-3">{props.children}</div>
-    </section>
-  );
-}
 
 export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryError, onRegenerate }: Props) {
   const summary = data.summary_page_detail;
@@ -61,7 +50,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
 
   return (
     <aside className="space-y-3.5">
-      <Panel
+      <SummonPanel
         id="ai-summary"
         title="AI Summary"
         action={
@@ -112,9 +101,9 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
                   : data.summary_error)}
           </p>
         ) : null}
-      </Panel>
+      </SummonPanel>
 
-      <Panel
+      <SummonPanel
         id="tasks"
         title="Action Items"
         action={
@@ -167,9 +156,9 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
             View all tasks →
           </Link>
         ) : null}
-      </Panel>
+      </SummonPanel>
 
-      <Panel id="documents" title="Related Documents">
+      <SummonPanel id="documents" title="Related Documents">
         <div className="space-y-2.5">
           {documents.map(({ id, name, detail, href, icon: Icon }) => {
             const content = (
@@ -193,9 +182,9 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
           })}
           {!documents.length ? <p className="py-2 text-xs text-tertiary">No related documents available.</p> : null}
         </div>
-      </Panel>
+      </SummonPanel>
 
-      <Panel id="activity" title="Meeting Activity">
+      <SummonPanel id="activity" title="Meeting Activity">
         <div className="space-y-3">
           <Activity icon={ListTodo} label="Meeting created" detail={`${timestamp(data.created_at)} · Summon Core`} />
           {data.work_items.map((item) => (
@@ -214,7 +203,7 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
             />
           ) : null}
         </div>
-      </Panel>
+      </SummonPanel>
     </aside>
   );
 }

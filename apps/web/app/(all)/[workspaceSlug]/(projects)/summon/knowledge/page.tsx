@@ -15,7 +15,6 @@ import {
 } from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
-  ArrowRight,
   BookOpen,
   BriefcaseBusiness,
   Building2,
@@ -23,7 +22,6 @@ import {
   FileText,
   FolderKanban,
   Link2,
-  Search,
   Send,
   Sparkles,
   Upload,
@@ -31,9 +29,16 @@ import {
 } from "lucide-react";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { CompactAssetType } from "@plane/propel/empty-state";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { PageHead } from "@/components/core/page-title";
-import { SummonPageHeader, summonPageClassName, ViewPanel } from "@/components/summon/screen";
+import {
+  SummonCard,
+  SummonPageHeader,
+  SummonPanel,
+  SummonSectionHeader,
+  SummonTableShell,
+  summonPageClassName,
+  ViewPanel,
+} from "@/components/summon/screen";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
@@ -42,6 +47,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 const KNOWLEDGE_TABS: TSectionTab<string>[] = [
   { value: "all", label: "All", icon: SquaresFourIcon },
@@ -139,18 +145,15 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <main className="min-w-0 space-y-5">
-          <label className="relative block max-w-3xl">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search knowledge, notes, topics, or ask anything..."
-              aria-label="Search knowledge"
-              className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
-            />
-          </label>
+          <SummonSearchField
+            label="Search knowledge"
+            placeholder="Search knowledge, notes, topics, or ask anything…"
+            value={query}
+            onValueChange={setQuery}
+            className="max-w-3xl"
+          />
 
-          <section className="border-accent-primary/20 rounded-2xl border bg-accent-subtle/50 p-5">
+          <section className="border-accent-primary/20 rounded-xl border bg-accent-subtle/50 p-4">
             <div className="flex items-center gap-3">
               <span className="grid size-12 place-items-center rounded-xl bg-accent-primary text-white">
                 <Sparkles className="size-6" />
@@ -183,40 +186,32 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
           </section>
 
           <section>
-            <div className="mb-3">
-              <h2 className="text-sm font-semibold text-primary">Browse by Context</h2>
-              <p className="mt-1 text-12 text-secondary">Knowledge organized by its real workspace context</p>
-            </div>
+            <SummonSectionHeader title="Browse by Context" className="mb-3" />
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               {contextCards.map(({ label, count, icon: Icon, detail }) => (
-                <article key={label} className="rounded-2xl border border-subtle bg-surface-1 p-4 shadow-xs">
+                <SummonCard key={label}>
                   <div className="flex items-center justify-between">
                     <span className="grid size-8 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                       <Icon className="size-4" />
                     </span>
                     <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">{count}</span>
                   </div>
-                  <h3 className="mt-4 text-xs font-semibold text-primary">{label}</h3>
+                  <h3 className="mt-4 text-13 font-medium text-primary">{label}</h3>
                   <p className="mt-1 text-12 leading-relaxed text-secondary">{detail}</p>
-                </article>
+                </SummonCard>
               ))}
             </div>
           </section>
 
           <section>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-primary">Recent Knowledge</h2>
-                <SectionTabs
-                  items={KNOWLEDGE_TABS}
-                  value={tab}
-                  onValueChange={setTab}
-                  label="Knowledge categories"
-                  className="mt-2"
-                />
-              </div>
-              <span className="text-12 text-secondary">{filteredPages.length} accessible items</span>
-            </div>
+            <SummonSectionHeader title="Recent Knowledge" count={filteredPages.length} />
+            <SectionTabs
+              items={KNOWLEDGE_TABS}
+              value={tab}
+              onValueChange={setTab}
+              label="Knowledge categories"
+              className="mt-2"
+            />
             <ViewPanel value={tab}>
               <SummonRequestState
                 loading={isLoading}
@@ -228,53 +223,55 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
                 onRetry={() => void mutate()}
               />
               {!!filteredPages.length && (
-                <div className="mt-3 overflow-x-auto rounded-2xl border border-subtle bg-surface-1">
-                  <table className="w-full min-w-[46rem] text-left text-xs">
-                    <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Title</th>
-                        <th className="px-4 py-3 font-medium">Context</th>
-                        <th className="px-4 py-3 font-medium">Type</th>
-                        <th className="px-4 py-3 font-medium">Updated</th>
-                        <th className="px-4 py-3 font-medium">Updated by</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-subtle">
-                      {filteredPages.slice(0, 8).map(({ page, project }) => {
-                        const context = page.id ? contextByPage.get(page.id) : undefined;
-                        const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
-                        return (
-                          <tr key={page.id} className="hover:bg-layer-1">
-                            <td className="px-4 py-3">
-                              <Link
-                                href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-                                className="flex items-center gap-2 font-medium text-primary"
-                              >
-                                <FileText className="size-4 shrink-0 text-accent-primary" />
-                                <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
-                              </Link>
-                            </td>
-                            <td className="px-4 py-3 text-secondary">{project.name}</td>
-                            <td className="px-4 py-3">
-                              <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
-                                {context?.category || "Page"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
-                            <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <SummonTableShell className="mt-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[46rem] text-left text-xs">
+                      <thead className="border-b border-subtle bg-layer-1 text-12 text-tertiary">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">Title</th>
+                          <th className="px-4 py-3 font-medium">Context</th>
+                          <th className="px-4 py-3 font-medium">Type</th>
+                          <th className="px-4 py-3 font-medium">Updated</th>
+                          <th className="px-4 py-3 font-medium">Updated by</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-subtle">
+                        {filteredPages.slice(0, 8).map(({ page, project }) => {
+                          const context = page.id ? contextByPage.get(page.id) : undefined;
+                          const actor = page.updated_by ? getUserDetails(page.updated_by) : undefined;
+                          return (
+                            <tr key={page.id} className="hover:bg-layer-1">
+                              <td className="px-4 py-3">
+                                <Link
+                                  href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
+                                  className="flex items-center gap-2 font-medium text-primary"
+                                >
+                                  <FileText className="size-4 shrink-0 text-accent-primary" />
+                                  <span className="max-w-64 truncate">{page.name || "Untitled Page"}</span>
+                                </Link>
+                              </td>
+                              <td className="px-4 py-3 text-secondary">{project.name}</td>
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-accent-subtle px-2 py-1 text-12 text-accent-primary">
+                                  {context?.category || "Page"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-secondary">{formatDate(page.updated_at)}</td>
+                              <td className="px-4 py-3 text-secondary">{actor?.display_name || "Unknown"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </SummonTableShell>
               )}
             </ViewPanel>
           </section>
         </main>
 
         <aside className="space-y-4">
-          <SidePanel title="Quick Actions">
+          <SummonPanel title="Quick Actions">
             <div className="space-y-1">
               <QuickAction
                 icon={FileText}
@@ -293,8 +290,8 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               />
               <QuickAction icon={Sparkles} label="Ask Summon Assistant" href={`/${workspaceSlug}/summon/assistant/`} />
             </div>
-          </SidePanel>
-          <SidePanel title="Recent Notes" href={`/${workspaceSlug}/summon/documents/`}>
+          </SummonPanel>
+          <SummonPanel title="Recent Notes" link={{ href: `/${workspaceSlug}/summon/documents/`, label: "View all" }}>
             <div className="space-y-3">
               {recentPages.slice(0, 5).map(({ page, project }) => (
                 <Link
@@ -313,35 +310,20 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               ))}
               {!recentPages.length && <Empty asset="note" text="No accessible notes." />}
             </div>
-          </SidePanel>
-          <SidePanel title="Knowledge Stats">
+          </SummonPanel>
+          <SummonPanel title="Knowledge Stats">
             <div className="grid grid-cols-2 gap-2">
               <Stat label="Total Pages" value={String(pages.length)} />
               <Stat label="Projects" value={String(new Set(pages.map(({ project }) => project.id)).size)} />
               <Stat label="Contributors" value={String(uniqueContributors.size)} />
             </div>
-          </SidePanel>
+          </SummonPanel>
         </aside>
       </div>
     </div>
   );
 }
 
-function SidePanel({ title, href, children }: { title: string; href?: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-subtle bg-surface-1 p-4 shadow-xs">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-primary">{title}</h2>
-        {href && (
-          <Link href={href} className="inline-flex items-center gap-1 text-12 text-accent-primary">
-            View all <ArrowRight className="size-3" />
-          </Link>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
 function QuickAction({ icon: Icon, label, href }: { icon: typeof FileText; label: string; href: string }) {
   return (
     <Link href={href} className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-12 text-primary hover:bg-layer-1">

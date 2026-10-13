@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
-import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { capitalizeFirstLetter, renderFormattedDate, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { ProjectPeopleSection } from "@/components/summon/projects/project-people";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 
-const formatDate = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
-    : "No date";
+const formatDate = (value?: string | null) => renderFormattedDate(value) ?? "No date";
 
 export function ProjectOverviewTab({
   overview,
@@ -19,6 +17,7 @@ export function ProjectOverviewTab({
   workspaceSlug: string;
   projectId: string;
 }) {
+  const money = useWorkspaceMoney(workspaceSlug);
   const showBudget = useSummonAccess(workspaceSlug).can("commercial.view");
   const health = overview.profile?.health || "not_assessed";
   const healthy = health === "on_track" || health === "good";
@@ -131,7 +130,7 @@ export function ProjectOverviewTab({
             </Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
-            {showBudget ? <Property label="Budget">{overview.profile?.budget || "Not set"}</Property> : null}
+            {showBudget ? <Property label="Budget">{money(overview.profile?.budget) || "Not set"}</Property> : null}
           </dl>
         </section>
         <ProjectPeopleSection workspaceSlug={workspaceSlug} projectId={projectId} />

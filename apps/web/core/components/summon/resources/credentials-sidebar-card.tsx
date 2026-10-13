@@ -9,6 +9,9 @@ import Link from "next/link";
 import { Lock, Cloud, Key, Shield } from "lucide-react";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { ISummonCredential } from "@plane/types";
+import { getButtonStyling } from "@plane/propel/button";
+import { cn } from "@plane/utils";
+import { SummonCard } from "@/components/summon/screen";
 
 interface ICredentialsSidebarCardProps {
   credentials: ISummonCredential[];
@@ -20,10 +23,10 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
   const displayCredentials = credentials.slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
+    <SummonCard>
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-primary">Credentials</h3>
-        <Link href={credentialsHref} className="text-xs font-semibold text-accent-primary hover:underline">
+        <Link href={credentialsHref} className="text-12 font-medium text-accent-primary hover:underline">
           View all
         </Link>
       </div>
@@ -37,7 +40,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
             return (
               <div
                 key={cred.id}
-                className="flex items-center justify-between rounded-xl border border-subtle bg-layer-1 p-2.5 text-xs transition-colors hover:bg-layer-2"
+                className="flex items-center justify-between rounded-lg border border-subtle bg-layer-1 p-2.5 text-13"
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <div
@@ -58,7 +61,7 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
                     )}
                   </div>
                   <div className="min-w-0 truncate">
-                    <div className="truncate font-semibold text-primary">{cred.name}</div>
+                    <div className="truncate font-medium text-primary">{cred.name}</div>
                     <div className="truncate text-12 text-tertiary">
                       {cred.account_identifier || cred.provider || "Authorized"}
                     </div>
@@ -79,13 +82,10 @@ export function CredentialsSidebarCard({ credentials, workspaceSlug }: ICredenti
         )}
       </div>
 
-      <Link
-        href={credentialsHref}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary/10 py-2.5 text-xs font-bold text-accent-primary transition-all hover:bg-accent-primary hover:text-white"
-      >
+      <Link href={credentialsHref} className={cn(getButtonStyling("secondary", "base"), "mt-4 w-full")}>
         <Lock className="size-3.5" />
-        Open Credential Manager
+        Open credential manager
       </Link>
-    </div>
+    </SummonCard>
   );
 }

@@ -6,8 +6,10 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISummonProjectOverview } from "@plane/types";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { projectProfileDateError, projectProfileForm } from "@/components/summon/projects/project-workspace";
+import { MoneyInput } from "@/components/summon/money-input";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useSummonAccess } from "@/components/summon/use-summon-access";
+import { useWorkspaceCurrency } from "@/components/summon/use-workspace-money";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { summonService } from "@/services/summon.service";
@@ -39,6 +41,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const { data: clients = [] } = useSWR(["summon-project-profile-clients", workspaceSlug], () =>
     summonService.listClients(workspaceSlug)
   );
+  const currency = useWorkspaceCurrency(workspaceSlug);
   const [form, setForm] = useState<TProfileForm>(() => projectProfileForm(profile));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -172,14 +175,12 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
         </Field>
         {showBudget ? (
           <Field label="Budget">
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
+            <MoneyInput
               value={form.budget}
-              onChange={(event) => updateField("budget", event.target.value)}
-              className="w-full text-base sm:text-sm"
-              placeholder="0.00"
+              onValueChange={(value) => updateField("budget", value)}
+              currency={currency}
+              className="text-base sm:text-sm"
+              placeholder="0"
             />
           </Field>
         ) : null}

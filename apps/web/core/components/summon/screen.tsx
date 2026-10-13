@@ -6,8 +6,12 @@
 
 import type { HTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { IconButton } from "@plane/propel/icon-button";
 import { PageHead } from "@/components/core/page-title";
+
+/** The one card surface: every Summon card, panel and table draws this border, radius and shadow. */
+const summonSurfaceClassName = "rounded-xl border border-subtle bg-surface-1 shadow-xs";
 
 /** The one gutter and width every Summon page uses. */
 export const summonPageClassName = "mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 lg:p-5";
@@ -40,7 +44,7 @@ export function SummonScreen(props: {
         {props.rail ? (
           <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="min-w-0">{props.children}</div>
-            <aside className="min-w-0 rounded-xl border border-subtle bg-surface-1 p-3.5 shadow-xs">{props.rail}</aside>
+            <aside className={`min-w-0 p-3.5 ${summonSurfaceClassName}`}>{props.rail}</aside>
           </div>
         ) : (
           props.children
@@ -51,10 +55,64 @@ export function SummonScreen(props: {
 }
 
 export function SummonCard(props: { children: ReactNode; className?: string }) {
+  return <div className={`p-4 ${summonSurfaceClassName} ${props.className ?? ""}`}>{props.children}</div>;
+}
+
+/**
+ * The one section heading inside a page: 14px title, an optional count, and on the right either a
+ * "view all" style `link` or any `action` control.
+ */
+type SectionHeading = {
+  title: ReactNode;
+  count?: number;
+  link?: { href: string; label: string };
+  action?: ReactNode;
+  /** `h3` when the section sits under another heading, such as inside a drawer. */
+  as?: "h2" | "h3";
+};
+
+export function SummonSectionHeader(props: SectionHeading & { className?: string }) {
+  const Heading = props.as ?? "h2";
   return (
-    <div className={`rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs ${props.className ?? ""}`}>
-      {props.children}
-    </div>
+    <header className={`flex min-h-6 items-center justify-between gap-3 ${props.className ?? ""}`}>
+      <Heading className="flex min-w-0 items-center gap-2 text-sm font-semibold text-primary">
+        <span className="truncate">{props.title}</span>
+        {props.count !== undefined ? (
+          <span className="rounded-sm bg-layer-1 px-1.5 text-12 font-medium text-tertiary tabular-nums">
+            {props.count}
+          </span>
+        ) : null}
+      </Heading>
+      {props.link ? (
+        <Link
+          href={props.link.href}
+          className="relative inline-flex flex-none items-center gap-1 text-12 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong"
+        >
+          {props.link.label} <ArrowRight aria-hidden className="size-3" />
+        </Link>
+      ) : (
+        props.action
+      )}
+    </header>
+  );
+}
+
+/**
+ * A titled card. The body is padded and grows to fill the card's height; `flush` hands the area under the
+ * header to the children, for tables and edge-to-edge lists.
+ */
+export function SummonPanel(
+  props: SectionHeading & { id?: string; flush?: boolean; className?: string; children: ReactNode }
+) {
+  const { id, flush, className, children, ...header } = props;
+  return (
+    <section
+      id={id}
+      className={`flex min-w-0 scroll-mt-24 flex-col overflow-hidden ${summonSurfaceClassName} ${className ?? ""}`}
+    >
+      <SummonSectionHeader {...header} className="px-4 pt-4 pb-3" />
+      {flush ? children : <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">{children}</div>}
+    </section>
   );
 }
 
@@ -94,13 +152,54 @@ export function SummonMetric(props: { label: string; value: ReactNode; detail?: 
 export function SummonTableShell(props: HTMLAttributes<HTMLDivElement> & { children: ReactNode; filters?: ReactNode }) {
   const { children, className, filters, ...attributes } = props;
   return (
-    <section
-      className={`overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-xs ${className ?? ""}`}
-      {...attributes}
-    >
+    <section className={`overflow-hidden ${summonSurfaceClassName} ${className ?? ""}`} {...attributes}>
       {filters ? <div className="border-b border-subtle px-3.5 py-2.5">{filters}</div> : null}
       {children}
     </section>
+  );
+}
+
+/** Footer for a paged `SummonTableShell`: the visible range and previous/next. Hidden while the list is empty. */
+export function SummonPagination(props: {
+  page: number;
+  pageSize: number;
+  total: number;
+  /** Plural noun for the range text, e.g. "resources". */
+  noun: string;
+  onPageChange: (page: number) => void;
+}) {
+  const { page, pageSize, total, noun, onPageChange } = props;
+  if (!total) return null;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-3.5 py-2.5">
+      <p className="text-12 text-tertiary tabular-nums">
+        Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total} {noun}
+      </p>
+      {pageCount > 1 ? (
+        <div className="flex items-center gap-1.5">
+          <IconButton
+            variant="secondary"
+            size="sm"
+            icon={ChevronLeft}
+            aria-label="Previous page"
+            disabled={page === 1}
+            onClick={() => onPageChange(page - 1)}
+          />
+          <span className="px-1 text-12 text-secondary tabular-nums">
+            {page} / {pageCount}
+          </span>
+          <IconButton
+            variant="secondary"
+            size="sm"
+            icon={ChevronRight}
+            aria-label="Next page"
+            disabled={page === pageCount}
+            onClick={() => onPageChange(page + 1)}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

@@ -87,10 +87,8 @@ export const parseChartData = (
       }
     }
 
-    return {
-      ...datum,
-      ...missingValues,
-    };
+    // widgetData is a structured clone, so filling missing keys in place is safe.
+    return Object.assign(datum, missingValues);
   });
 
   // capitalize first letter if groupByProperty is in TO_CAPITALIZE_PROPERTIES
@@ -131,6 +129,8 @@ export const generateExtendedColors = (baseColorSet: string[], targetCount: numb
   const avgLight = baseHSL.reduce((sum, hsl) => sum + hsl.l, 0) / baseHSL.length;
 
   // Sort base colors by hue for better distribution
+  // toSorted needs lib es2023, which web does not target; sorting a copy is equivalent.
+  // oxlint-disable-next-line unicorn/no-array-sort
   const sortedBaseHSL = [...baseHSL].sort((a, b) => a.h - b.h);
 
   // Generate additional colors for each base color
@@ -176,3 +176,20 @@ export const generateExtendedColors = (baseColorSet: string[], targetCount: numb
 
   return colors.slice(0, targetCount);
 };
+
+/**
+ * Bklit bars take one fill per series, so per-category colors become one stacked series per category
+ * that carries a value only on its own row.
+ */
+export function toCategorySeries<T extends object>(
+  rows: T[],
+  options: { valueOf: (row: T) => number; colorOf: (row: T) => string }
+) {
+  const series = rows.map((row, index) => ({ key: `category_${index}`, color: options.colorOf(row) }));
+  const data = rows.map((row, rowIndex) => ({
+    ...row,
+    color: series[rowIndex].color,
+    ...Object.fromEntries(series.map((entry, index) => [entry.key, index === rowIndex ? options.valueOf(row) : 0])),
+  }));
+  return { data, series };
+}

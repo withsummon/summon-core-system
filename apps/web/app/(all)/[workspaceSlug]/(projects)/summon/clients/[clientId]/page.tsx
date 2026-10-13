@@ -18,7 +18,6 @@ import {
 } from "@phosphor-icons/react";
 import useSWR from "swr";
 import {
-  ArrowRight,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -42,9 +41,10 @@ import { opportunityCreateHref } from "@/components/summon/opportunities/deliver
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { summonErrorMessage, ViewPanel } from "@/components/summon/screen";
+import { summonErrorMessage, SummonPanel, ViewPanel } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
@@ -88,6 +88,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
   const { data, error, isLoading, mutate } = useSWR(["summon-client", workspaceSlug, clientId], () =>
     summonService.getClientDetail(workspaceSlug, clientId)
   );
+  const money = useWorkspaceMoney(workspaceSlug);
 
   if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
 
@@ -97,6 +98,9 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
   const owner = data.owner ? getUserDetails(data.owner) : undefined;
   const lastInteraction = data.recent_activity[0];
   const showTab = (tab: TClientTab) => activeTab === "overview" || activeTab === tab;
+  /** On the overview, a section links to its own tab. */
+  const viewAll = (tab: TClientTab, label: string) =>
+    activeTab === "overview" ? { href: `#${tab}`, label } : undefined;
   const visiblePageContexts = data.page_contexts.filter((context) =>
     activeTab === "documents" ? context.category === "document" : context.category !== "document"
   );
@@ -238,11 +242,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             ) : null}
 
             {deals && showTab("opportunities") ? (
-              <DataSection
-                title="Opportunities"
-                action="View all opportunities"
-                href={`/${workspaceSlug}/summon/opportunities/`}
-              >
+              <SummonPanel flush title="Opportunities" link={viewAll("opportunities", "View all opportunities")}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[720px] text-left text-12">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
@@ -274,7 +274,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                             <td className="px-4 py-3 text-primary">
                               {opportunityOwner?.display_name || "Not assigned"}
                             </td>
-                            <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
+                            <td className="px-4 py-3 text-primary tabular-nums">{money(opportunity.value) || "—"}</td>
                             <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
@@ -300,15 +300,11 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </tbody>
                   </table>
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
 
             {showTab("projects") ? (
-              <DataSection
-                title="Recent Projects"
-                action="View all projects"
-                href={`/${workspaceSlug}/summon/projects/`}
-              >
+              <SummonPanel flush title="Recent Projects" link={viewAll("projects", "View all projects")}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px] text-left text-12">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
@@ -355,11 +351,11 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </tbody>
                   </table>
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
 
             {showTab("contacts") ? (
-              <DataSection title="Key Contacts" action="View all contacts">
+              <SummonPanel flush title="Key Contacts" link={viewAll("contacts", "View all contacts")}>
                 <div className="grid gap-3 p-4 md:grid-cols-2 2xl:grid-cols-3">
                   {data.contacts.slice(0, 3).map((contact) => (
                     <article key={contact.id} className="flex min-w-0 gap-3 rounded-xl border border-subtle p-3">
@@ -399,11 +395,11 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </p>
                   ) : null}
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
 
             {showTab("activity") ? (
-              <DataSection title="Recent Activity" action="View all activity">
+              <SummonPanel flush title="Recent Activity" link={viewAll("activity", "View all activity")}>
                 <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
                   {data.recent_activity.slice(0, 5).map((activity) => (
                     <Link key={activity.id} href={activity.href} className="flex min-w-0 items-start gap-3">
@@ -420,13 +416,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   ))}
                   {!data.recent_activity.length ? <p className="text-12 text-tertiary">No recent activity.</p> : null}
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
 
             {activeTab === "documents" || activeTab === "notes" ? (
-              <DataSection
+              <SummonPanel
+                flush
                 title={activeTab === "documents" ? "Documents" : "Notes"}
-                action={`${visiblePageContexts.length} linked pages`}
+                count={visiblePageContexts.length}
               >
                 <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
                   {visiblePageContexts.map((context) => (
@@ -451,11 +448,11 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </p>
                   ) : null}
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
 
             {activeTab === "settings" ? (
-              <DataSection title="Client Settings" action="Manage client record">
+              <SummonPanel flush title="Client Settings">
                 <div className="grid gap-4 p-4 sm:grid-cols-2">
                   <Detail label="Legal Name" value={data.company_name || "Not set"} />
                   <Detail label="Industry" value={data.industry || "Not set"} />
@@ -467,13 +464,13 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                     </Button>
                   </div>
                 </div>
-              </DataSection>
+              </SummonPanel>
             ) : null}
           </main>
 
           {activeTab === "overview" ? (
             <aside className="min-w-0 space-y-4">
-              <SideCard title="Relationship Health">
+              <SummonPanel title="Relationship Health">
                 <span className="inline-flex rounded-full bg-layer-2 px-2 py-1 text-12 font-medium text-secondary">
                   Not scored
                 </span>
@@ -485,9 +482,9 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   <HealthRow label="Projects tracked" detail={`${data.projects.length} visible projects`} />
                   <HealthRow label="Client contacts" detail={`${data.contacts.length} contacts recorded`} />
                 </div>
-              </SideCard>
+              </SummonPanel>
 
-              <SideCard title="Client Information">
+              <SummonPanel title="Client Information">
                 <dl className="space-y-4">
                   <Detail label="Legal Name" value={data.company_name || "Not set"} />
                   <Detail label="Industry" value={data.industry || "Not set"} />
@@ -513,9 +510,9 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   <Detail label="Client Since" value={formatDate(data.relationship_started_at)} />
                   <Detail label="Account Manager" value={owner?.display_name || "Not assigned"} />
                 </dl>
-              </SideCard>
+              </SummonPanel>
 
-              <SideCard title="Notes" action="View all notes">
+              <SummonPanel title="Notes" link={viewAll("notes", "View all notes")}>
                 <div className="space-y-2">
                   {data.page_contexts.slice(0, 3).map((context) => (
                     <div key={context.id} className="flex min-w-0 gap-3 rounded-lg border border-subtle p-3">
@@ -532,7 +529,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                   ))}
                   {!data.page_contexts.length ? <p className="py-4 text-12 text-tertiary">No linked notes.</p> : null}
                 </div>
-              </SideCard>
+              </SummonPanel>
             </aside>
           ) : null}
         </div>
@@ -541,7 +538,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
       <Dialog open={editing} onOpenChange={setEditing}>
         <Dialog.Panel
           width={EDialogWidth.XL}
-          className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-5"
+          className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-5"
         >
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -624,38 +621,6 @@ function ClientMetric(props: { icon: React.ReactNode; label: string; value: Reac
         <p className="mt-2 truncate text-12 font-medium text-accent-primary">{props.detail} →</p>
       </div>
     </div>
-  );
-}
-
-function DataSection(props: { title: string; action: string; href?: string; children: React.ReactNode }) {
-  return (
-    <section className="overflow-hidden rounded-xl border border-subtle bg-surface-1">
-      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-        <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
-        {props.href ? (
-          <Link href={props.href} className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
-            {props.action} <ArrowRight className="size-3" />
-          </Link>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
-            {props.action} <ArrowRight className="size-3" />
-          </span>
-        )}
-      </div>
-      {props.children}
-    </section>
-  );
-}
-
-function SideCard(props: { title: string; action?: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-subtle bg-surface-1 p-4">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
-        {props.action ? <span className="text-12 font-medium text-accent-primary">{props.action} →</span> : null}
-      </div>
-      {props.children}
-    </section>
   );
 }
 

@@ -15,7 +15,13 @@ import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { StatusBadge } from "@/components/summon/status-badge";
-import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonScreen,
+  SummonTableShell,
+  summonErrorMessage,
+} from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -134,39 +140,41 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
           onRetry={() => void mutate()}
         />
         {data.length ? (
-          <ul className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
-            {data.map((item) => (
-              <li
-                key={item.id}
-                className="relative flex items-start gap-3 px-4 py-3 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover"
-              >
-                <div className="min-w-0 flex-1">
-                  {/* The title link stretches over the row. */}
-                  <Link
-                    href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
-                    className="block text-13 font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong"
-                  >
-                    {item.title}
-                  </Link>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-secondary">
-                    <time dateTime={item.starts_at} className="whitespace-nowrap tabular-nums">
-                      {meetingTime(item.starts_at)}
-                    </time>
-                    {item.project_detail ? (
-                      <span className="max-w-48 truncate" title={item.project_detail.name}>
-                        {item.project_detail.name}
+          <SummonTableShell>
+            <ul className="divide-y divide-subtle">
+              {data.map((item) => (
+                <li
+                  key={item.id}
+                  className="relative flex items-start gap-3 px-4 py-3 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover"
+                >
+                  <div className="min-w-0 flex-1">
+                    {/* The title link stretches over the row. */}
+                    <Link
+                      href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
+                      className="block text-13 font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong"
+                    >
+                      {item.title}
+                    </Link>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-secondary">
+                      <time dateTime={item.starts_at} className="whitespace-nowrap tabular-nums">
+                        {meetingTime(item.starts_at)}
+                      </time>
+                      {item.project_detail ? (
+                        <span className="max-w-48 truncate" title={item.project_detail.name}>
+                          {item.project_detail.name}
+                        </span>
+                      ) : null}
+                      <span className={`flex items-center gap-1 ${item.work_items.length ? "" : "text-tertiary"}`}>
+                        <ListChecks aria-hidden="true" className="size-3.5" />
+                        {actionItemsLabel(item.work_items.length)}
                       </span>
-                    ) : null}
-                    <span className={`flex items-center gap-1 ${item.work_items.length ? "" : "text-tertiary"}`}>
-                      <ListChecks aria-hidden="true" className="size-3.5" />
-                      {actionItemsLabel(item.work_items.length)}
-                    </span>
-                  </p>
-                </div>
-                <StatusBadge status={item.status} />
-              </li>
-            ))}
-          </ul>
+                    </p>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </li>
+              ))}
+            </ul>
+          </SummonTableShell>
         ) : null}
       </div>
 

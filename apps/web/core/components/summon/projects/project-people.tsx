@@ -7,12 +7,12 @@
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { EnvelopeSimpleIcon, MagnifyingGlassIcon, UserPlusIcon, XIcon } from "@phosphor-icons/react";
+import { SummonSearchField } from "@/components/summon/search-field";
+import { EnvelopeSimpleIcon, UserPlusIcon, XIcon } from "@phosphor-icons/react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISummonProjectPeople } from "@plane/types";
 import { getFileURL } from "@plane/utils";
@@ -220,19 +220,13 @@ const AddPeopleDialog = observer(function AddPeopleDialog(props: {
         </header>
 
         <div className="grid gap-3 px-5 py-4">
-          <label className="relative block">
-            <span className="sr-only">Name or email</span>
-            <MagnifyingGlassIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-placeholder" />
-            <input
-              ref={searchRef}
-              type="search"
-              autoComplete="off"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={canInvite ? "Name or email" : "Search workspace members"}
-              className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
-            />
-          </label>
+          <SummonSearchField
+            ref={searchRef}
+            label="Name or email"
+            placeholder={canInvite ? "Name or email" : "Search workspace members"}
+            value={query}
+            onValueChange={setQuery}
+          />
 
           <ul className="vertical-scrollbar grid scrollbar-sm max-h-72 gap-0.5 overflow-y-auto" aria-label="People">
             {newEmail && canInvite ? (

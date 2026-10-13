@@ -8,20 +8,18 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { TextArea } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
 import { Input } from "@plane/ui";
 import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { opportunityCreateIntent } from "@/components/summon/opportunities/delivery-handoff";
-import {
-  OpportunityInspector,
-  initials,
-  useOpportunityMoney,
-} from "@/components/summon/opportunities/opportunity-inspector";
+import { OpportunityInspector, initials } from "@/components/summon/opportunities/opportunity-inspector";
+import { MoneyInput } from "@/components/summon/money-input";
+import { useWorkspaceCurrency, useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import {
   OPPORTUNITY_STAGES,
   OPPORTUNITY_STAGE_LABEL,
@@ -42,6 +40,7 @@ import { SummonAccessGate } from "@/components/summon/access-gate";
 import type { Route } from "./+types/page";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 const formatShortDate = (value?: string | null) =>
   value ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(new Date(value)) : null;
@@ -124,17 +123,13 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
         }
         actions={
           <>
-            <div role="search" className="relative w-full min-w-0 sm:w-80">
-              <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-              <Input
-                type="search"
-                aria-label="Search opportunities"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search title, client, product"
-                className="w-full pl-9"
-              />
-            </div>
+            <SummonSearchField
+              label="Search opportunities"
+              placeholder="Search title, client, product"
+              value={query}
+              onValueChange={setQuery}
+              className="w-full sm:w-80"
+            />
             <Button size="lg" onClick={() => setCreateOpen(true)}>
               <Plus />
               New opportunity
@@ -151,7 +146,7 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
       />
 
       <div className="@container">
-        <div className="grid overflow-hidden rounded-2xl bg-surface-1 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_-12px_rgba(15,23,42,0.12)] ring-1 ring-subtle @3xl:h-[calc(100dvh-15.5rem)] @3xl:min-h-[34rem] @3xl:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] @5xl:grid-cols-[23rem_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-xs @3xl:h-[calc(100dvh-15.5rem)] @3xl:min-h-[34rem] @3xl:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] @5xl:grid-cols-[23rem_minmax(0,1fr)]">
           <div
             className={`min-h-0 flex-col border-subtle @3xl:flex @3xl:border-r ${explicit ? "hidden" : "flex"}`}
             aria-label="Opportunity results"
@@ -332,7 +327,7 @@ function OpportunityRow(props: {
 }) {
   const { opportunity } = props;
   const { getUserDetails } = useMember();
-  const money = useOpportunityMoney(props.workspaceSlug);
+  const money = useWorkspaceMoney(props.workspaceSlug);
   const owner = opportunity.owner ? getUserDetails(opportunity.owner)?.display_name : undefined;
   const closeDate = formatShortDate(opportunity.expected_close_date);
   return (
@@ -395,6 +390,7 @@ function CreateOpportunityDialog(props: {
   onClose: () => void;
   onCreated: (created: ISummonOpportunity) => Promise<void>;
 }) {
+  const currency = useWorkspaceCurrency(props.workspaceSlug);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -439,7 +435,7 @@ function CreateOpportunityDialog(props: {
     <Dialog open={props.isOpen} onOpenChange={(open) => !open && close()}>
       <Dialog.Panel
         width={EDialogWidth.XXL}
-        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl"
+        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto"
       >
         <form onSubmit={submit} noValidate className="grid gap-4 p-5">
           <div className="flex items-start justify-between gap-3">
@@ -475,7 +471,7 @@ function CreateOpportunityDialog(props: {
               />
             </SummonField>
             <SummonField label="Value">
-              <Input name="value" type="number" min="0" step="0.01" inputMode="decimal" className="h-10" />
+              <MoneyInput name="value" currency={currency} placeholder="0" className="h-10" />
             </SummonField>
             <SummonField label="Probability (%)">
               <Input name="probability" type="number" min="0" max="100" step="1" defaultValue="0" className="h-10" />
@@ -491,7 +487,7 @@ function CreateOpportunityDialog(props: {
             </SummonField>
             <div className="sm:col-span-2">
               <SummonField label="Description">
-                <textarea name="description" rows={3} className={`${FIELD_CLASSNAME} w-full px-3 py-2`} />
+                <TextArea name="description" rows={3} />
               </SummonField>
             </div>
           </div>
