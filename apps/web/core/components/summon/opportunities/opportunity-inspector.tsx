@@ -18,7 +18,7 @@ import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
-import { summonErrorMessage } from "@/components/summon/screen";
+import { summonErrorMessage, SummonPanel } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
@@ -134,7 +134,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
         <DeliveryHandoffCard workspaceSlug={workspaceSlug} opportunity={detail} onChanged={onChanged} />
 
         <div className="grid gap-4 @2xl:grid-cols-2">
-          <Section title="About">
+          <SummonPanel as="h3" title="About">
             <p className="text-12 leading-5 text-pretty text-secondary">
               {detail.description || "No description yet."}
             </p>
@@ -144,16 +144,15 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               <Row label="Primary contact" value={primaryContact?.name || "Not set"} />
               <Row label="Created" value={formatDate(detail.created_at)} />
             </dl>
-          </Section>
+          </SummonPanel>
 
-          <Section
+          <SummonPanel
+            as="h3"
             title="Contacts"
-            action={
-              detail.client_detail ? (
-                <InlineLink href={`/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`}>
-                  Open client
-                </InlineLink>
-              ) : undefined
+            link={
+              detail.client_detail
+                ? { href: `/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`, label: "Open client" }
+                : undefined
             }
           >
             <ul className="grid gap-1">
@@ -182,9 +181,9 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               ))}
             </ul>
             {!detail.contacts.length ? <Empty>No client contacts.</Empty> : null}
-          </Section>
+          </SummonPanel>
 
-          <Section title="Meeting action items">
+          <SummonPanel as="h3" title="Meeting action items">
             <ul className="grid gap-1">
               {detail.work_items.slice(0, 5).map((item) => (
                 <li key={item.id}>
@@ -205,9 +204,9 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               ))}
             </ul>
             {!detail.work_items.length ? <Empty>No action items from delivery meetings.</Empty> : null}
-          </Section>
+          </SummonPanel>
 
-          <Section title="Pages and meetings">
+          <SummonPanel as="h3" title="Pages and meetings">
             <ul className="grid gap-1">
               {detail.page_contexts.slice(0, 4).map((context) => {
                 const content = (
@@ -250,9 +249,9 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
             {!detail.page_contexts.length && !detail.meetings.length ? (
               <Empty>No linked pages or meetings.</Empty>
             ) : null}
-          </Section>
+          </SummonPanel>
 
-          <Section title="Recent delivery activity" className="@2xl:col-span-2">
+          <SummonPanel as="h3" title="Recent delivery activity" className="@2xl:col-span-2">
             <ul className="grid gap-1">
               {detail.recent_activity.slice(0, 5).map((activity) => (
                 <li key={activity.id}>
@@ -268,11 +267,11 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               ))}
             </ul>
             {!detail.recent_activity.length ? <Empty>No delivery activity yet.</Empty> : null}
-          </Section>
+          </SummonPanel>
         </div>
 
         <section aria-labelledby={`create-from-${detail.id}`} className="grid gap-2">
-          <h3 id={`create-from-${detail.id}`} className="text-12 font-semibold text-primary">
+          <h3 id={`create-from-${detail.id}`} className="text-sm font-semibold text-primary">
             Create from this opportunity
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -433,18 +432,6 @@ function Fact(props: { label: string; value: string; children?: React.ReactNode 
   );
 }
 
-function Section(props: { title: string; action?: React.ReactNode; className?: string; children: React.ReactNode }) {
-  return (
-    <section className={`min-w-0 rounded-xl p-3.5 ring-1 ring-subtle ${props.className ?? ""}`}>
-      <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-        <h3 className="text-12 font-semibold text-primary">{props.title}</h3>
-        {props.action}
-      </header>
-      {props.children}
-    </section>
-  );
-}
-
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 text-12">
@@ -456,17 +443,6 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-1 text-12 text-tertiary">{children}</p>;
-}
-
-function InlineLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="relative text-12 font-medium text-accent-primary after:absolute after:-inset-x-2 after:-inset-y-3 hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong"
-    >
-      {children} →
-    </Link>
-  );
 }
 
 function ActionLink(props: { href: string; icon: typeof FileText; children: React.ReactNode }) {

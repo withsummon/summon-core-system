@@ -5,8 +5,3 @@
  */
 
 export * from "./home-root";
-export * from "./home-kpi-row";
-export * from "./priority-work-card";
-export * from "./active-projects-matrix";
-export * from "./upcoming-meetings-card";
-export * from "./recent-activity-card";

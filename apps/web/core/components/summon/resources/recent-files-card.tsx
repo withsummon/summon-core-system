@@ -8,6 +8,7 @@ import React from "react";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { ISummonResourceLink } from "@plane/types";
 import { ResourceIcon } from "./resource-icon";
+import { SummonCard } from "@/components/summon/screen";
 
 interface IRecentFilesCardProps {
   resources: ISummonResourceLink[];
@@ -36,13 +37,13 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
   const recentFiles = resources.slice(0, 5);
 
   return (
-    <div className="rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm">
+    <SummonCard>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-primary">Recent Files</h3>
+        <h3 className="text-sm font-semibold text-primary">Recent files</h3>
         <button
           type="button"
-          onClick={() => onSelectCategory?.("document")}
-          className="text-xs font-semibold text-accent-primary hover:underline"
+          onClick={() => onSelectCategory?.("all")}
+          className="text-12 font-medium text-accent-primary hover:underline"
         >
           View all
         </button>
@@ -56,11 +57,11 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
               href={file.url}
               target="_blank"
               rel="noreferrer"
-              className="group flex items-start gap-3 rounded-xl p-1.5 transition-colors hover:bg-layer-1"
+              className="group flex items-start gap-3 rounded-lg p-1.5 transition-colors hover:bg-layer-1"
             >
               <ResourceIcon category={file.category} title={file.title} url={file.url} className="size-4" />
               <div className="min-w-0 flex-1">
-                <h4 className="truncate text-xs font-semibold text-primary group-hover:text-accent-primary">
+                <h4 className="truncate text-13 font-medium text-primary group-hover:text-accent-primary">
                   {file.title}
                 </h4>
                 <p className="mt-0.5 text-12 text-tertiary">{formatRelativeTime(file.updated_at)}</p>
@@ -76,6 +77,6 @@ export function RecentFilesCard({ resources, onSelectCategory }: IRecentFilesCar
           />
         )}
       </div>
-    </div>
+    </SummonCard>
   );
 }

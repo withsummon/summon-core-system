@@ -8,9 +8,8 @@ import { useEffect, useState, useMemo } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Search, FolderGit2, Circle, CheckCircle2, AlertCircle, Plus } from "lucide-react";
+import { FolderGit2, Circle, CheckCircle2, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { Input } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
 import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 import { summonService } from "@/services/summon.service";
@@ -19,6 +18,7 @@ import { SummonPageHeader } from "@/components/summon/screen";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { mergeProjectSummaries } from "./project-workspace";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
   workspaceSlug,
@@ -73,20 +73,13 @@ export const ProjectsDirectoryRoot = observer(function ProjectsDirectoryRoot({
         />
       </div>
       <div className="flex flex-wrap items-center gap-3 border-b border-subtle px-4 py-3 sm:px-6">
-        <div className="relative w-full sm:w-64">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-secondary"
-          />
-          <Input
-            aria-label="Search projects"
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search projects…"
-            className="w-full pl-8 text-base sm:text-sm"
-          />
-        </div>
+        <SummonSearchField
+          label="Search projects"
+          placeholder="Search projects…"
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className="w-full sm:w-64"
+        />
         <Select
           aria-label="Filter projects by health"
           value={healthFilter}

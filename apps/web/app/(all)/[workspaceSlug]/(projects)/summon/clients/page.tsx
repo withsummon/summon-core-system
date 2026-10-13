@@ -7,9 +7,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Building2, Plus, Search } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonField } from "@/components/summon/forms";
@@ -18,6 +18,7 @@ import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } fro
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { DatePicker } from "@plane/propel/date-picker";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 export default function SummonClientsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
@@ -68,15 +69,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
       description="Commercial accounts backed by the current workspace."
       actions={
         <>
-          <div className="relative block w-full min-w-0 sm:w-72">
-            <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-tertiary" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search clients"
-              className="pl-8"
-            />
-          </div>
+          <SummonSearchField label="Search clients" value={query} onValueChange={setQuery} className="w-full sm:w-72" />
           <Button size="lg" onClick={() => setCreateOpen(true)}>
             <Plus />
             Add client
@@ -105,7 +98,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
               <Link
                 key={client.id}
                 href={`/${workspaceSlug}/summon/clients/${client.id}`}
-                className="hover:border-accent-primary/50 rounded-2xl border border-subtle bg-surface-1 p-4 transition-colors"
+                className="hover:border-accent-primary/50 rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary">
@@ -154,7 +147,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
             <DatePicker id="relationship_started_at" name="relationship_started_at" />
           </SummonField>
           <SummonField label="Notes">
-            <textarea name="notes" rows={3} className={`${FIELD_CLASSNAME} w-full px-3 py-2`} />
+            <TextArea name="notes" rows={3} />
           </SummonField>
           {formError ? <p className="text-12 text-danger-primary">{formError}</p> : null}
           <Button size="lg" type="submit" loading={creating} className="mt-1">

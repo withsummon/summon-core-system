@@ -13,8 +13,6 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  ChevronLeft,
-  ChevronRight,
   CircleAlert,
   Eye,
   FileCheck2,
@@ -22,7 +20,6 @@ import {
   FileText,
   MoreHorizontal,
   Presentation,
-  Search,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -36,7 +33,15 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSelectableIcon } from "@plane/propel/icons";
-import { SummonPageHeader, summonLLMErrorMessage, summonPageClassName, ViewPanel } from "@/components/summon/screen";
+import {
+  SummonPageHeader,
+  SummonPagination,
+  summonLLMErrorMessage,
+  summonPageClassName,
+  ViewPanel,
+  SummonPanel,
+  SummonSectionHeader,
+} from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useProject } from "@/hooks/store/use-project";
 import { FileService } from "@/services/file.service";
@@ -54,6 +59,7 @@ import {
   templateVariableNames,
 } from "./automation-form";
 import { MultiSelect, Select } from "@plane/propel/select";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 const fileService = new FileService();
 
@@ -300,16 +306,13 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
         description="Generate documents and automate routine work"
         actions={
           <>
-            <div role="search" className="relative w-full min-w-0 sm:w-80">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search"
-                aria-label="Search templates and documents"
-                className="w-full pl-9"
-              />
-            </div>
+            <SummonSearchField
+              label="Search templates and documents"
+              placeholder="Search"
+              value={query}
+              onValueChange={setQuery}
+              className="w-full sm:w-80"
+            />
             <Link href={`/${workspaceSlug}/summon/knowledge/`} className={getButtonStyling("secondary", "lg")}>
               <BookOpen />
               Knowledge
@@ -327,10 +330,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       />
 
       <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-primary">Templates</h2>
-          <span className="text-12 text-tertiary">{templates.length} available</span>
-        </div>
+        <SummonSectionHeader title="Templates" count={templates.length} className="mb-3" />
         <SummonRequestState
           loading={isLoading}
           error={error}
@@ -372,10 +372,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
       </section>
 
       <div className="mt-4">
-        <section className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-[0_8px_30px_rgba(36,55,99,0.035)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3.5">
-            <h2 className="text-sm font-semibold text-primary">Generated documents</h2>
-          </div>
+        <SummonPanel flush title="Generated documents" count={filteredJobs.length}>
           <SectionTabs
             items={typeTabs}
             value={activeType}
@@ -481,40 +478,17 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                     </tbody>
                   </table>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle px-4 py-3">
-                  <p className="text-12 text-secondary">
-                    Showing {filteredJobs.length ? (currentPage - 1) * 8 + 1 : 0} to{" "}
-                    {Math.min(currentPage * 8, filteredJobs.length)} of {filteredJobs.length} documents
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      aria-label="Previous page"
-                      disabled={currentPage === 1}
-                      onClick={() => setPage((value) => Math.max(1, value - 1))}
-                      className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-                    >
-                      <ChevronLeft className="size-3.5" />
-                    </button>
-                    <span className="grid size-8 place-items-center rounded-lg bg-accent-primary text-12 font-semibold text-white">
-                      {currentPage}
-                    </span>
-                    <span className="px-1 text-12 text-tertiary">/ {pageCount}</span>
-                    <button
-                      type="button"
-                      aria-label="Next page"
-                      disabled={currentPage === pageCount}
-                      onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                      className="grid size-8 place-items-center rounded-lg border border-subtle text-secondary disabled:opacity-40"
-                    >
-                      <ChevronRight className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
+                <SummonPagination
+                  page={currentPage}
+                  pageSize={8}
+                  total={filteredJobs.length}
+                  noun="documents"
+                  onPageChange={setPage}
+                />
               </>
             )}
           </ViewPanel>
-        </section>
+        </SummonPanel>
       </div>
 
       <SummonDrawer

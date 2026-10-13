@@ -7,14 +7,21 @@
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Search, FileText, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
+import { FileText, ExternalLink, Sparkles, Plus, LayoutGrid, List } from "lucide-react";
 import { listAccessiblePlanePages } from "@/services/summon-plane.service";
 import { useProject } from "@/hooks/store/use-project";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { getButtonStyling } from "@plane/propel/button";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Select } from "@plane/propel/select";
-import { SummonMetric, SummonMetricStrip, SummonPageHeader, summonPageClassName } from "@/components/summon/screen";
+import { Tabs } from "@plane/propel/tabs";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonPageHeader,
+  summonPageClassName,
+  SummonTableShell,
+} from "@/components/summon/screen";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 interface IDocumentsRootProps {
   workspaceSlug: string;
@@ -85,17 +92,13 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search documents by name or project..."
-            aria-label="Search documents"
-            className={`${FIELD_CLASSNAME} h-9 w-full pr-3 pl-9`}
-          />
-        </div>
+        <SummonSearchField
+          label="Search documents"
+          placeholder="Search documents by name or project…"
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className="max-w-md flex-1"
+        />
 
         <div className="flex items-center gap-2.5">
           <Select
@@ -108,28 +111,16 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             ]}
           />
 
-          <div className="flex items-center rounded-xl border border-subtle bg-surface-1 p-0.5 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={`flex size-8 items-center justify-center rounded-lg transition-all ${
-                viewMode === "grid" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
-              }`}
-              title="Grid View"
-            >
-              <LayoutGrid className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={`flex size-8 items-center justify-center rounded-lg transition-all ${
-                viewMode === "list" ? "bg-layer-2 font-bold text-accent-primary" : "text-tertiary hover:text-primary"
-              }`}
-              title="List View"
-            >
-              <List className="size-4" />
-            </button>
-          </div>
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "grid" | "list")}>
+            <Tabs.List aria-label="Document view">
+              <Tabs.Trigger value="grid" size="sm" aria-label="Grid view">
+                <LayoutGrid aria-hidden="true" className="size-4" />
+              </Tabs.Trigger>
+              <Tabs.Trigger value="list" size="sm" aria-label="List view">
+                <List aria-hidden="true" className="size-4" />
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Tabs>
         </div>
       </div>
 
@@ -152,19 +143,19 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             <Link
               key={page.id}
               href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-2xl border border-subtle bg-surface-1 p-5 shadow-sm transition-all hover:shadow-md"
+              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="bg-blue-500/10 text-blue-600 flex size-9 items-center justify-center rounded-xl">
                     <FileText className="size-4.5" />
                   </div>
-                  <span className="rounded-md bg-layer-2 px-2 py-0.5 text-12 font-bold text-secondary">
+                  <span className="rounded-md bg-layer-2 px-2 py-0.5 text-12 font-medium text-secondary">
                     {project.identifier}
                   </span>
                 </div>
 
-                <h3 className="mt-3.5 line-clamp-2 text-sm font-bold text-primary group-hover:text-accent-primary">
+                <h3 className="mt-3.5 line-clamp-2 text-sm font-semibold text-primary group-hover:text-accent-primary">
                   {page.name || "Untitled Document"}
                 </h3>
                 <p className="mt-1 truncate text-xs text-tertiary">{project.name}</p>
@@ -178,7 +169,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-sm">
+        <SummonTableShell>
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-subtle bg-layer-1 text-12 font-medium text-tertiary">
@@ -211,7 +202,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </SummonTableShell>
       )}
     </div>
   );

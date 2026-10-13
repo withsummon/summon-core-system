@@ -14,6 +14,7 @@ import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { CompactAssetType } from "@plane/propel/empty-state";
 import type { TSelectableIcon } from "@plane/propel/icons";
 import type { ISummonProjectOverview } from "@plane/types";
+import { SummonSectionHeader } from "@/components/summon/screen";
 import { filterProjectResources } from "@/components/summon/projects/project-workspace";
 import { StatusBadge } from "@/components/summon/status-badge";
 
@@ -155,14 +156,11 @@ export function ProjectDetailTab(props: {
 function TabPanel({ title, manageHref, children }: { title: string; manageHref?: string; children: React.ReactNode }) {
   return (
     <section className="min-w-0">
-      <header className="flex items-center justify-between border-b border-subtle py-3">
-        <h2 className="text-sm font-semibold text-primary">{title}</h2>
-        {manageHref && (
-          <Link href={manageHref} className="text-xs text-accent-primary">
-            Manage all
-          </Link>
-        )}
-      </header>
+      <SummonSectionHeader
+        title={title}
+        link={manageHref ? { href: manageHref, label: "Manage all" } : undefined}
+        className="border-b border-subtle py-3"
+      />
       <div>{children}</div>
     </section>
   );

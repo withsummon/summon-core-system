@@ -88,7 +88,7 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
   return (
     <section
       aria-labelledby={`delivery-${opportunity.id}`}
-      className={`rounded-2xl border border-subtle bg-surface-1 p-4 ${props.className ?? ""}`}
+      className={`rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs ${props.className ?? ""}`}
     >
       <div className="flex items-center gap-2">
         <FolderKanban className="size-4 text-accent-primary" />

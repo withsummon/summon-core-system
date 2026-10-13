@@ -14,7 +14,13 @@ import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
-import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
+import {
+  SummonMetric,
+  SummonMetricStrip,
+  SummonScreen,
+  SummonTableShell,
+  summonErrorMessage,
+} from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
@@ -116,7 +122,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
           onRetry={() => void mutate()}
         />
         {data.length ? (
-          <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+          <SummonTableShell className="divide-y divide-subtle">
             {data.map((item) => (
               <Link
                 key={item.id}
@@ -129,7 +135,7 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
                 </p>
               </Link>
             ))}
-          </div>
+          </SummonTableShell>
         ) : null}
       </div>
 

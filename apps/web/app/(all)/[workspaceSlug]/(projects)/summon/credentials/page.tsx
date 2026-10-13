@@ -13,22 +13,9 @@ import {
   SquaresFourIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
-import {
-  Check,
-  Clock3,
-  Copy,
-  Eye,
-  Pencil,
-  Plus,
-  Search,
-  Server,
-  ShieldCheck,
-  Trash2,
-  UserRoundPlus,
-  X,
-} from "lucide-react";
+import { Check, Clock3, Copy, Eye, Pencil, Plus, Server, ShieldCheck, Trash2, UserRoundPlus, X } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import type { ISummonCredential } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
@@ -45,6 +32,7 @@ import {
   summonErrorMessage,
   summonPageClassName,
   ViewPanel,
+  SummonTableShell,
 } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
@@ -55,6 +43,7 @@ import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 const projectService = new ProjectService();
 const tabs = ["Overview", "Access", "Activity Log", "Attachments", "Notes"] as const;
@@ -201,16 +190,13 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
         description="Accounts, API keys and access credentials for your projects"
         actions={
           <>
-            <search className="relative w-full min-w-0 sm:w-80">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search credentials, projects, accounts"
-                aria-label="Search credentials"
-                className="w-full pl-9"
-              />
-            </search>
+            <SummonSearchField
+              label="Search credentials"
+              placeholder="Search credentials, projects, accounts"
+              value={query}
+              onValueChange={setQuery}
+              className="w-full sm:w-80"
+            />
             <Button size="lg" onClick={openCreate}>
               <Plus />
               Add credential
@@ -227,7 +213,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
         <SummonMetric label="High risk" value={metrics.risky} detail="Marked high or critical" />
       </SummonMetricStrip>
 
-      <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+      <SummonTableShell>
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <Select
@@ -315,7 +301,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             </div>
           )}
         </div>
-      </div>
+      </SummonTableShell>
 
       <SummonDrawer
         open={detailOpen && Boolean(selected)}
@@ -603,7 +589,7 @@ function CredentialForm(props: {
     <Dialog open onOpenChange={(open) => !open && props.onClose()}>
       <Dialog.Panel
         width={EDialogWidth.XXL}
-        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-5"
+        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-5"
       >
         <div className="flex items-center justify-between">
           <Dialog.Title className="text-18 font-semibold text-primary">
@@ -686,12 +672,12 @@ function CredentialForm(props: {
               ]}
             />
           </SummonField>
-          <textarea
+          <TextArea
             name="description"
             rows={3}
             defaultValue={typeof metadata.description === "string" ? metadata.description : ""}
             placeholder="Description"
-            className={`${FIELD_CLASSNAME} w-full px-3 py-2 sm:col-span-2`}
+            className="sm:col-span-2"
           />
           <p className="text-12 text-tertiary sm:col-span-2">
             Secrets are encrypted server-side and are never returned in list responses.

@@ -24,7 +24,6 @@ import {
   Circle,
   FileText,
   FolderKanban,
-  Search,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -39,6 +38,7 @@ import { StatusBadge } from "@/components/summon/status-badge";
 import { useUser } from "@/hooks/store/user";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 interface IHomeRootProps {
   workspaceSlug: string;
@@ -117,18 +117,17 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
           <h1 className="mt-0.5 text-2xl font-semibold text-primary">Here&apos;s what&apos;s happening</h1>
         </header>
 
-        <label className="relative mt-5 block">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-placeholder" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search projects, tasks, opportunities"
-            className="h-9 w-full rounded-lg border border-subtle bg-surface-1 pr-12 pl-9 text-13 text-primary shadow-raised-100 transition-[border-color,box-shadow] duration-150 outline-none placeholder:text-placeholder focus-visible:border-accent-strong focus-visible:ring-[3px] focus-visible:ring-accent-subtle"
-          />
-          <kbd className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-subtle bg-layer-1 px-1.5 py-0.5 font-body text-11 font-medium text-tertiary">
-            ⌘K
-          </kbd>
-        </label>
+        <SummonSearchField
+          label="Search projects, tasks, opportunities"
+          value={query}
+          onValueChange={setQuery}
+          className="mt-5"
+          trailing={
+            <kbd className="rounded-sm border border-subtle bg-layer-1 px-1.5 py-0.5 font-body text-11 font-medium text-tertiary">
+              ⌘K
+            </kbd>
+          }
+        />
 
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter home">
           {filters.map((item) => (

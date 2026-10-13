@@ -126,17 +126,16 @@ export function CategoryCardsRow({
             <button
               key={cat.id}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onSelectCategory(isSelected ? "all" : cat.id)}
-              className={`group flex flex-col justify-between rounded-2xl border p-4 text-left transition-all ${
-                isSelected
-                  ? `border-accent-primary ring-accent-primary bg-surface-1 shadow-sm ring-1`
-                  : "hover:border-accent-primary/40 border-subtle bg-surface-1 hover:shadow-sm"
+              className={`group flex press flex-col justify-between rounded-xl border p-3.5 text-left shadow-xs transition-colors ${
+                isSelected ? "border-accent-strong bg-accent-subtle" : "border-subtle bg-surface-1 hover:border-strong"
               }`}
             >
-              <div className={`flex size-10 items-center justify-center rounded-xl ${cat.bg}`}>{cat.icon}</div>
+              <div className={`flex size-10 items-center justify-center rounded-lg ${cat.bg}`}>{cat.icon}</div>
 
               <div className="mt-3.5">
-                <div className="text-xs font-bold text-primary group-hover:text-accent-primary">{cat.label}</div>
+                <div className="text-13 font-medium text-primary group-hover:text-accent-primary">{cat.label}</div>
                 <div className="mt-0.5 text-12 font-medium text-tertiary">
                   {cat.count} {cat.count === 1 ? "item" : "items"}
                 </div>

@@ -23,15 +23,15 @@ import {
   Ellipsis,
   FolderKanban,
   MapPin,
-  Search,
   Share2,
   Upload,
   UserPlus,
   Users,
 } from "lucide-react";
 import type { ISummonMeeting } from "@plane/types";
-import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Avatar } from "@plane/ui";
+import { getButtonStyling } from "@plane/propel/button";
+import { SummonPanel } from "@/components/summon/screen";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyUrlToClipboard } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
@@ -39,6 +39,7 @@ import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
 import { MeetingDetailMeta } from "./meeting-detail-meta";
 import { MeetingDetailRail } from "./meeting-detail-rail";
+import { SummonSearchField } from "@/components/summon/search-field";
 
 type Props = {
   data: ISummonMeeting;
@@ -61,18 +62,6 @@ const tabs: TSectionTab<string>[] = [
 
 const date = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
 const time = (value: string) => new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(value));
-
-function Card(props: { id?: string; title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section id={props.id} className="scroll-mt-24 rounded-xl border border-subtle bg-surface-1 shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3.5">
-        <h2 className="text-sm font-semibold text-primary">{props.title}</h2>
-        {props.action}
-      </div>
-      <div className="p-4">{props.children}</div>
-    </section>
-  );
-}
 
 export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   data,
@@ -199,9 +188,9 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
           />
         </header>
 
-        <div className="grid items-start gap-4 p-4 lg:p-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(23rem,0.95fr)]">
+        <div className="grid grid-cols-1 items-start gap-4 p-4 lg:p-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(23rem,0.95fr)]">
           <div className="space-y-4">
-            <Card
+            <SummonPanel
               title="Recording"
               action={
                 <div className="flex items-center gap-2">
@@ -209,12 +198,12 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                     <a
                       href={data.recording_asset_detail.url}
                       download
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-12 font-semibold text-primary"
+                      className={getButtonStyling("secondary", "base")}
                     >
                       <Download className="size-3.5" /> Download
                     </a>
                   ) : null}
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-subtle px-3 py-1.5 text-12 font-semibold text-primary">
+                  <label className={`${getButtonStyling("secondary", "base")} cursor-pointer`}>
                     <Upload className="size-3.5" /> {uploadingRecording ? "Uploading…" : "Upload audio"}
                     <input
                       type="file"
@@ -240,24 +229,21 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   {data.summary_error === "transcribing" ? "Transcribing audio…" : "No recording attached."}
                 </p>
               )}
-            </Card>
+            </SummonPanel>
 
-            <Card
+            <SummonPanel
               id="transcript"
               title="Transcript"
               action={
                 <div className="flex items-center gap-2">
-                  <label className="relative hidden sm:block">
-                    <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-placeholder" />
-                    <input
-                      type="search"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Search in transcript..."
-                      aria-label="Search transcript"
-                      className={`${FIELD_CLASSNAME} h-8 w-56 pr-3 pl-8`}
-                    />
-                  </label>
+                  <SummonSearchField
+                    label="Search transcript"
+                    placeholder="Search in transcript…"
+                    value={search}
+                    onValueChange={setSearch}
+                    size="base"
+                    className="hidden w-56 sm:block"
+                  />
                   <button
                     type="button"
                     disabled
@@ -296,7 +282,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                   {showAllTranscript ? "Show Less" : "Show More"} <ChevronDown className="size-3" />
                 </button>
               ) : null}
-            </Card>
+            </SummonPanel>
 
             <MeetingDetailMeta
               data={data}

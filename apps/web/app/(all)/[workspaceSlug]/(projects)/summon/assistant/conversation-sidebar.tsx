@@ -16,7 +16,7 @@ interface AssistantConversationSidebarProps {
 
 export function AssistantConversationSidebar(props: AssistantConversationSidebarProps) {
   return (
-    <aside className="flex max-h-64 min-h-0 flex-col rounded-2xl border border-subtle bg-surface-1 p-3 lg:h-[calc(100dvh-10.5rem)] lg:max-h-none">
+    <aside className="flex max-h-64 min-h-0 flex-col rounded-xl border border-subtle bg-surface-1 p-3 shadow-xs lg:h-[calc(100dvh-10.5rem)] lg:max-h-none">
       <div className="flex items-center justify-between gap-2 border-b border-subtle pb-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-primary">Chats</h2>
