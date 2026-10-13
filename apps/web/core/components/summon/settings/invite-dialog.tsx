@@ -170,7 +170,8 @@ const ProjectPicker = observer(function ProjectPicker(props: {
     workspaceProjectIds.flatMap((id) => getProjectById(id) ?? []),
     "name"
   );
-  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((item) => item !== id) : [...value, id]);
+  const selectedIds = new Set(value);
+  const toggle = (id: string) => onChange(selectedIds.has(id) ? value.filter((item) => item !== id) : [...value, id]);
 
   return (
     <fieldset className="grid gap-1.5">
@@ -189,7 +190,7 @@ const ProjectPicker = observer(function ProjectPicker(props: {
             >
               <input
                 type="checkbox"
-                checked={value.includes(project.id)}
+                checked={selectedIds.has(project.id)}
                 onChange={() => toggle(project.id)}
                 className="accent-[var(--color-accent-primary)]"
               />

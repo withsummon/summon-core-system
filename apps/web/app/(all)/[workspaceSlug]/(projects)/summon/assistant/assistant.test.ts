@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+// The page is split into focused modules; assert against the page plus its extracted parts.
+const page = ["./page.tsx", "./assistant-request.ts", "./conversation-header.tsx", "./use-assistant-context-options.ts"]
+  .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
+  .join("\n");
 const messageList = readFileSync(new URL("./message-list.tsx", import.meta.url), "utf8");
 const composer = readFileSync(new URL("./assistant-composer.tsx", import.meta.url), "utf8");
 const actionCard = readFileSync(new URL("./assistant-action-card.tsx", import.meta.url), "utf8");

@@ -14,10 +14,11 @@ import { CopyIcon, ChevronLeftIcon, ChevronRightIcon } from "@plane/propel/icons
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TDescriptionVersion } from "@plane/types";
-import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@plane/ui";
+import { Avatar, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
 // components
 import { RichTextEditor } from "@/components/editor/rich-text";
+import { DescriptionLoader } from "@/components/ui/loader/description-loader";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspace } from "@/hooks/store/use-workspace";
@@ -145,20 +146,7 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
               workspaceSlug={workspaceSlug}
             />
           ) : (
-            <div className="space-y-1">
-              <Loader.Item width="300px" height="15px" />
-              <Loader.Item width="400px" height="15px" />
-              <div className="flex items-center gap-2">
-                <Loader.Item width="20px" height="15px" />
-                <Loader.Item width="500px" height="15px" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Loader.Item width="20px" height="15px" />
-                <Loader.Item width="200px" height="15px" />
-              </div>
-              <Loader.Item width="300px" height="15px" />
-              <Loader.Item width="200px" height="15px" />
-            </div>
+            <DescriptionLoader />
           )}
         </div>
         {/* End version description */}

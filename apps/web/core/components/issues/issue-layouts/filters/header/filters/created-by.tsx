@@ -48,6 +48,8 @@ export const FilterCreatedBy = observer(function FilterCreatedBy(props: Props) {
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
+  const appliedFilterSet = new Set(appliedFilters);
+
   const handleViewToggle = () => {
     if (!sortedOptions) return;
 
@@ -74,7 +76,7 @@ export const FilterCreatedBy = observer(function FilterCreatedBy(props: Props) {
                   return (
                     <FilterOption
                       key={`created-by-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
+                      isChecked={appliedFilterSet.has(member.id)}
                       onClick={() => handleUpdate(member.id)}
                       icon={<Avatar name={member.display_name} src={getFileURL(member.avatar_url)} size="md" />}
                       title={currentUser?.id === member.id ? "You" : member?.display_name}

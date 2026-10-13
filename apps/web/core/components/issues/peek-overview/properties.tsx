@@ -21,6 +21,7 @@ import {
   EstimatePropertyIcon,
   ParentPropertyIcon,
 } from "@plane/propel/icons";
+import type { IUserLite, TIssue, TStateGroups } from "@plane/types";
 import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
@@ -50,6 +51,81 @@ interface IPeekOverviewProperties {
   issueOperations: TIssueOperations;
 }
 
+type TPeekOverviewCreatedByProps = {
+  createdBy: IUserLite;
+};
+
+function PeekOverviewCreatedBy(props: TPeekOverviewCreatedByProps) {
+  const { createdBy } = props;
+  const { t } = useTranslation();
+  // intake work items are created by a bot user and shown as created by Plane
+  const isIntakeBot = createdBy.display_name?.includes("-intake");
+
+  return (
+    <SidebarPropertyListItem icon={UserCirclePropertyIcon} label={t("common.created_by")} childrenClassName="px-2">
+      <ButtonAvatars showTooltip userIds={isIntakeBot ? null : createdBy.id} />
+      <span className="grow truncate text-body-xs-medium leading-5 text-secondary">
+        {isIntakeBot ? "Plane" : createdBy.display_name}
+      </span>
+    </SidebarPropertyListItem>
+  );
+}
+
+type TPeekOverviewDatePropertiesProps = {
+  issue: TIssue;
+  stateGroup: TStateGroups | undefined;
+  disabled: boolean;
+  onUpdate: (data: Partial<TIssue>) => void;
+};
+
+function PeekOverviewDateProperties(props: TPeekOverviewDatePropertiesProps) {
+  const { issue, stateGroup, disabled, onUpdate } = props;
+  const { t } = useTranslation();
+  const minDate = getDate(issue.start_date);
+  const maxDate = getDate(issue.target_date);
+
+  return (
+    <>
+      <SidebarPropertyListItem icon={StartDatePropertyIcon} label={t("common.order_by.start_date")}>
+        <DateDropdown
+          value={issue.start_date}
+          onChange={(val) => onUpdate({ start_date: val ? renderFormattedPayloadDate(val) : null })}
+          placeholder={t("issue.add.start_date")}
+          buttonVariant="transparent-with-text"
+          maxDate={maxDate}
+          disabled={disabled}
+          className="group w-full grow"
+          buttonContainerClassName="w-full text-left h-7.5"
+          buttonClassName={cn("text-body-xs-medium", { "text-placeholder": !issue.start_date })}
+          hideIcon
+          clearIconClassName="h-3 w-3 hidden group-hover:inline"
+        />
+      </SidebarPropertyListItem>
+
+      <SidebarPropertyListItem icon={DueDatePropertyIcon} label={t("common.order_by.due_date")}>
+        <div className="flex w-full items-center gap-2">
+          <DateDropdown
+            value={issue.target_date}
+            onChange={(val) => onUpdate({ target_date: val ? renderFormattedPayloadDate(val) : null })}
+            placeholder={t("issue.add.due_date")}
+            buttonVariant="transparent-with-text"
+            minDate={minDate}
+            disabled={disabled}
+            className="group w-full grow"
+            buttonContainerClassName="w-full text-left h-7.5"
+            buttonClassName={cn("text-body-xs-medium", {
+              "text-placeholder": !issue.target_date,
+              "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateGroup),
+            })}
+            hideIcon
+            clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
+          />
+        </div>
+      </SidebarPropertyListItem>
+    </>
+  );
+}
+
 export const PeekOverviewProperties = observer(function PeekOverviewProperties(props: IPeekOverviewProperties) {
   const { workspaceSlug, projectId, issueId, issueOperations, disabled } = props;
   const { t } = useTranslation();
@@ -63,31 +139,28 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
   // derived values
   const issue = getIssueById(issueId);
   if (!issue) return <></>;
-  const createdByDetails = getUserDetails(issue?.created_by);
+  const createdByDetails = getUserDetails(issue.created_by);
   const projectDetails = getProjectById(issue.project_id);
   const isEstimateEnabled = projectDetails?.estimate;
   const stateDetails = getStateById(issue.state_id);
 
-  const minDate = getDate(issue.start_date);
-  minDate?.setDate(minDate.getDate());
-
-  const maxDate = getDate(issue.target_date);
-  maxDate?.setDate(maxDate.getDate());
+  const assigneeCount = issue.assignee_ids?.length ?? 0;
+  const hasPriority = Boolean(issue.priority) && issue.priority !== "none";
 
   return (
     <div>
       <h6 className="text-body-xs-medium">{t("common.properties")}</h6>
-      <div className={`mt-3 w-full space-y-3 ${disabled ? "opacity-60" : ""}`}>
+      <div className={cn("mt-3 w-full space-y-3", { "opacity-60": disabled })}>
         <SidebarPropertyListItem icon={StatePropertyIcon} label={t("common.state")}>
           <StateDropdown
-            value={issue?.state_id}
+            value={issue.state_id}
             onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { state_id: val })}
             projectId={projectId}
             disabled={disabled}
             buttonVariant="transparent-with-text"
             className="group w-full grow"
             buttonContainerClassName="w-full text-left h-7.5"
-            buttonClassName={`text-body-xs-medium ${issue?.state_id ? "" : "text-placeholder"}`}
+            buttonClassName={cn("text-body-xs-medium", { "text-placeholder": !issue.state_id })}
             dropdownArrow
             dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
           />
@@ -95,17 +168,17 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
 
         <SidebarPropertyListItem icon={MembersPropertyIcon} label={t("common.assignees")}>
           <MemberDropdown
-            value={issue?.assignee_ids ?? undefined}
+            value={issue.assignee_ids}
             onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { assignee_ids: val })}
             disabled={disabled}
             projectId={projectId}
             placeholder={t("issue.add.assignee")}
             multiple
-            buttonVariant={issue?.assignee_ids?.length > 1 ? "transparent-without-text" : "transparent-with-text"}
+            buttonVariant={assigneeCount > 1 ? "transparent-without-text" : "transparent-with-text"}
             className="group w-full grow"
             buttonContainerClassName="w-full text-left h-7.5"
-            buttonClassName={`text-body-xs-medium justify-between ${issue?.assignee_ids?.length > 0 ? "" : "text-placeholder"}`}
-            hideIcon={issue.assignee_ids?.length === 0}
+            buttonClassName={cn("justify-between text-body-xs-medium", { "text-placeholder": assigneeCount === 0 })}
+            hideIcon={assigneeCount === 0}
             dropdownArrow
             dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
           />
@@ -113,76 +186,26 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
 
         <SidebarPropertyListItem icon={PriorityPropertyIcon} label={t("common.priority")}>
           <PriorityDropdown
-            value={issue?.priority}
+            value={issue.priority}
             onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { priority: val })}
             disabled={disabled}
             buttonVariant="transparent-with-text"
             className="h-7.5 w-full grow rounded-sm"
             buttonContainerClassName="w-full text-left h-7.5"
-            buttonClassName={`text-body-xs-medium whitespace-nowrap [&_svg]:size-3.5 ${!issue?.priority || issue?.priority === "none" ? "text-placeholder" : ""}`}
+            buttonClassName={cn("text-body-xs-medium whitespace-nowrap [&_svg]:size-3.5", {
+              "text-placeholder": !hasPriority,
+            })}
           />
         </SidebarPropertyListItem>
 
-        {createdByDetails && (
-          <SidebarPropertyListItem
-            icon={UserCirclePropertyIcon}
-            label={t("common.created_by")}
-            childrenClassName="px-2"
-          >
-            <ButtonAvatars
-              showTooltip
-              userIds={createdByDetails?.display_name?.includes("-intake") ? null : createdByDetails?.id}
-            />
-            <span className="grow truncate text-body-xs-medium leading-5 text-secondary">
-              {createdByDetails?.display_name?.includes("-intake") ? "Plane" : createdByDetails?.display_name}
-            </span>
-          </SidebarPropertyListItem>
-        )}
+        {createdByDetails && <PeekOverviewCreatedBy createdBy={createdByDetails} />}
 
-        <SidebarPropertyListItem icon={StartDatePropertyIcon} label={t("common.order_by.start_date")}>
-          <DateDropdown
-            value={issue.start_date}
-            onChange={(val) =>
-              issueOperations.update(workspaceSlug, projectId, issueId, {
-                start_date: val ? renderFormattedPayloadDate(val) : null,
-              })
-            }
-            placeholder={t("issue.add.start_date")}
-            buttonVariant="transparent-with-text"
-            maxDate={maxDate ?? undefined}
-            disabled={disabled}
-            className="group w-full grow"
-            buttonContainerClassName="w-full text-left h-7.5"
-            buttonClassName={`text-body-xs-medium ${issue?.start_date ? "" : "text-placeholder"}`}
-            hideIcon
-            clearIconClassName="h-3 w-3 hidden group-hover:inline"
-          />
-        </SidebarPropertyListItem>
-
-        <SidebarPropertyListItem icon={DueDatePropertyIcon} label={t("common.order_by.due_date")}>
-          <div className="flex w-full items-center gap-2">
-            <DateDropdown
-              value={issue.target_date}
-              onChange={(val) =>
-                issueOperations.update(workspaceSlug, projectId, issueId, {
-                  target_date: val ? renderFormattedPayloadDate(val) : null,
-                })
-              }
-              placeholder={t("issue.add.due_date")}
-              buttonVariant="transparent-with-text"
-              minDate={minDate ?? undefined}
-              disabled={disabled}
-              className="group w-full grow"
-              buttonContainerClassName="w-full text-left h-7.5"
-              buttonClassName={cn("text-body-xs-medium", {
-                "text-placeholder": !issue.target_date,
-                "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
-              })}
-              hideIcon
-              clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
-            />
-          </div>
-        </SidebarPropertyListItem>
+        <PeekOverviewDateProperties
+          issue={issue}
+          stateGroup={stateDetails?.group}
+          disabled={disabled}
+          onUpdate={(data) => issueOperations.update(workspaceSlug, projectId, issueId, data)}
+        />
 
         {isEstimateEnabled && (
           <SidebarPropertyListItem icon={EstimatePropertyIcon} label={t("common.estimate")}>
@@ -194,7 +217,7 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
               buttonVariant="transparent-with-text"
               className="group w-full grow"
               buttonContainerClassName="w-full text-left h-7.5"
-              buttonClassName={`text-body-xs-medium ${issue?.estimate_point !== undefined ? "" : "text-placeholder"}`}
+              buttonClassName={cn("text-body-xs-medium", { "text-placeholder": issue.estimate_point === undefined })}
               placeholder="None"
               hideIcon
               dropdownArrow

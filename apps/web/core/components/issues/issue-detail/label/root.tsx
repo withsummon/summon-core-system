@@ -94,7 +94,7 @@ export const IssueLabel = observer(function IssueLabel(props: TIssueLabel) {
         }
       },
     }),
-    [updateIssue, createLabel, onLabelUpdate]
+    [updateIssue, createLabel, onLabelUpdate, isInboxIssue, t]
   );
 
   return (

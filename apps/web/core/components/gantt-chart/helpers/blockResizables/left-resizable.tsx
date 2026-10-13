@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
 import { observer } from "mobx-react";
 // plane utils
 import { cn, renderFormattedDate } from "@plane/utils";
@@ -24,7 +23,6 @@ type LeftResizableProps = {
 };
 export const LeftResizable = observer(function LeftResizable(props: LeftResizableProps) {
   const { enableBlockLeftResize, isMoving, handleBlockDrag, position } = props;
-  const [isHovering, setIsHovering] = useState(false);
 
   const { getDateFromPositionOnGantt } = useTimeLineChartStore();
 
@@ -37,23 +35,22 @@ export const LeftResizable = observer(function LeftResizable(props: LeftResizabl
 
   return (
     <>
-      {(isHovering || isLeftResizing) && dateString && (
-        <div className="absolute -left-36 flex h-full w-32 items-center justify-end text-11 font-regular text-tertiary">
+      {/* pointer-only drag handle; `peer` lets hovering it reveal the date label below */}
+      <div
+        role="presentation"
+        onMouseDown={(e) => handleBlockDrag(e, "left")}
+        className="peer absolute top-1/2 -left-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"
+      />
+      {dateString && (
+        <div
+          className={cn(
+            "absolute -left-36 h-full w-32 items-center justify-end text-11 font-regular text-tertiary",
+            isLeftResizing ? "flex" : "hidden peer-hover:flex"
+          )}
+        >
           <div className="rounded-sm bg-accent-subtle px-2 py-1">{dateString}</div>
         </div>
       )}
-      <div
-        onMouseDown={(e) => {
-          handleBlockDrag(e, "left");
-        }}
-        onMouseOver={() => {
-          setIsHovering(true);
-        }}
-        onMouseOut={() => {
-          setIsHovering(false);
-        }}
-        className="absolute top-1/2 -left-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"
-      />
       <div
         className={cn(
           "absolute top-1/2 left-1 z-[5] h-7 w-1 -translate-y-1/2 rounded-xs bg-surface-1 opacity-0 transition-[left,opacity] duration-300 group-hover:opacity-100",

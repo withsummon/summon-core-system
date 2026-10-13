@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { TwitterPicker } from "react-color";
 import { Button } from "@plane/propel/button";
 import type { IState } from "@plane/types";
@@ -32,15 +32,13 @@ function PopoverButton({ color }: { color?: string }) {
 export function StateForm(props: TStateForm) {
   const { data, onSubmit, onCancel, buttonDisabled, buttonTitle } = props;
   // states
-  const [formData, setFromData] = useState<Partial<IState> | undefined>(undefined);
+  const [draftData, setDraftData] = useState<Partial<IState> | undefined>(undefined);
   const [errors, setErrors] = useState<Partial<Record<keyof IState, string>> | undefined>(undefined);
-
-  useEffect(() => {
-    if (data && !formData) setFromData(data);
-  }, [data, formData]);
+  // the form starts from `data` until the user edits a field
+  const formData = draftData ?? data;
 
   const handleFormData = <T extends keyof IState>(key: T, value: IState[T]) => {
-    setFromData((prev) => ({ ...prev, [key]: value }));
+    setDraftData((prev) => ({ ...(prev ?? data), [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 

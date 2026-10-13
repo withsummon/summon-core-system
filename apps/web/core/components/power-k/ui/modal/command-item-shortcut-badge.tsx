@@ -67,6 +67,16 @@ export const formatShortcutForDisplay = (shortcut: string | undefined): string |
   return parts.join("");
 };
 
+// Keys may repeat (e.g. "gg"), so key each one by its character and occurrence count
+const toKeyedChars = (chars: string[]) => {
+  const seen = new Map<string, number>();
+  return chars.map((char) => {
+    const occurrence = (seen.get(char) ?? 0) + 1;
+    seen.set(char, occurrence);
+    return { char, key: `${char}-${occurrence}` };
+  });
+};
+
 export function ShortcutBadge({ shortcut }: { shortcut: string | undefined }) {
   if (!shortcut) return null;
 
@@ -74,8 +84,8 @@ export function ShortcutBadge({ shortcut }: { shortcut: string | undefined }) {
 
   return (
     <div className="pointer-events-none inline-flex shrink-0 items-center gap-1 font-medium select-none">
-      {formatted?.split("").map((char, index) => (
-        <React.Fragment key={index}>
+      {toKeyedChars(formatted?.split("") ?? []).map(({ char, key }) => (
+        <React.Fragment key={key}>
           <kbd className="inline-flex h-5 items-center justify-center rounded-sm border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
             {char.toUpperCase()}
           </kbd>
@@ -102,8 +112,8 @@ export function KeySequenceBadge({ sequence }: { sequence: string | undefined })
 
   return (
     <div className="pointer-events-none inline-flex shrink-0 items-center gap-1 font-medium select-none">
-      {chars.map((char, index) => (
-        <React.Fragment key={index}>
+      {toKeyedChars(chars).map(({ char, key }, index) => (
+        <React.Fragment key={key}>
           <kbd className="inline-flex h-5 items-center justify-center rounded-sm border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
             {char.toUpperCase()}
           </kbd>

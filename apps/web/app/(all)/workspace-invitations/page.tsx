@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Boxes, Share2, Star, User2 } from "lucide-react";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
+import type { IWorkspaceMemberInvitation } from "@plane/types";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EmptySpace, EmptySpaceItem } from "@/components/ui/empty-space";
@@ -26,6 +27,72 @@ import { WorkspaceService } from "@/services/workspace.service";
 
 // service initialization
 const workspaceService = new WorkspaceService();
+
+const WORKSPACE_DESCRIPTION =
+  "Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account.";
+
+type TWorkspaceInvitationStateProps = {
+  invitationDetail: IWorkspaceMemberInvitation | undefined;
+  hasError: boolean;
+  isSignedIn: boolean;
+  onAccept: () => void;
+  onReject: () => void;
+};
+
+function WorkspaceInvitationState(props: TWorkspaceInvitationStateProps) {
+  const { invitationDetail, hasError, isSignedIn, onAccept, onReject } = props;
+
+  if (invitationDetail && !invitationDetail.responded_at) {
+    if (hasError)
+      return (
+        <div className="flex w-full flex-col space-y-4 rounded-sm border border-subtle bg-surface-1 px-4 py-8 text-center shadow-2xl md:w-1/3">
+          <h2 className="text-18 uppercase">INVITATION NOT FOUND</h2>
+        </div>
+      );
+    return (
+      <EmptySpace
+        title={`You have been invited to ${invitationDetail.workspace.name}`}
+        description={WORKSPACE_DESCRIPTION}
+      >
+        <EmptySpaceItem Icon={CheckIcon} title="Accept" action={onAccept} />
+        <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={onReject} />
+      </EmptySpace>
+    );
+  }
+
+  if (hasError || invitationDetail?.responded_at) {
+    if (invitationDetail?.accepted)
+      return (
+        <EmptySpace
+          title={`You are already a member of ${invitationDetail.workspace.name}`}
+          description={WORKSPACE_DESCRIPTION}
+        >
+          <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
+        </EmptySpace>
+      );
+    return (
+      <EmptySpace
+        title="This invitation link is not active anymore."
+        description={WORKSPACE_DESCRIPTION}
+        link={{ text: "Or start from an empty project", href: "/" }}
+      >
+        {!isSignedIn ? (
+          <EmptySpaceItem Icon={User2} title="Sign in to continue" href="/" />
+        ) : (
+          <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
+        )}
+        <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
+        <EmptySpaceItem Icon={Share2} title="Join our community of active creators" href="https://forum.plane.so" />
+      </EmptySpace>
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <LogoSpinner />
+    </div>
+  );
+}
 
 function WorkspaceInvitationPage() {
   // router
@@ -78,52 +145,13 @@ function WorkspaceInvitationPage() {
   return (
     <AuthenticationWrapper pageType={EPageTypes.PUBLIC}>
       <div className="flex h-full w-full flex-col items-center justify-center px-3">
-        {invitationDetail && !invitationDetail.responded_at ? (
-          error ? (
-            <div className="flex w-full flex-col space-y-4 rounded-sm border border-subtle bg-surface-1 px-4 py-8 text-center shadow-2xl md:w-1/3">
-              <h2 className="text-18 uppercase">INVITATION NOT FOUND</h2>
-            </div>
-          ) : (
-            <EmptySpace
-              title={`You have been invited to ${invitationDetail.workspace.name}`}
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-            >
-              <EmptySpaceItem Icon={CheckIcon} title="Accept" action={handleAccept} />
-              <EmptySpaceItem Icon={CloseIcon} title="Ignore" action={handleReject} />
-            </EmptySpace>
-          )
-        ) : error || invitationDetail?.responded_at ? (
-          invitationDetail?.accepted ? (
-            <EmptySpace
-              title={`You are already a member of ${invitationDetail.workspace.name}`}
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-            >
-              <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
-            </EmptySpace>
-          ) : (
-            <EmptySpace
-              title="This invitation link is not active anymore."
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
-              link={{ text: "Or start from an empty project", href: "/" }}
-            >
-              {!currentUser ? (
-                <EmptySpaceItem Icon={User2} title="Sign in to continue" href="/" />
-              ) : (
-                <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
-              )}
-              <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
-              <EmptySpaceItem
-                Icon={Share2}
-                title="Join our community of active creators"
-                href="https://forum.plane.so"
-              />
-            </EmptySpace>
-          )
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <LogoSpinner />
-          </div>
-        )}
+        <WorkspaceInvitationState
+          invitationDetail={invitationDetail}
+          hasError={!!error}
+          isSignedIn={!!currentUser}
+          onAccept={handleAccept}
+          onReject={handleReject}
+        />
       </div>
     </AuthenticationWrapper>
   );

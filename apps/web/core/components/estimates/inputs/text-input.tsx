@@ -22,6 +22,7 @@ export function EstimateTextInput(props: TEstimateTextInputProps) {
       onChange={(e) => handleEstimateInputValue(e.target.value)}
       className="w-full border-0 border-none bg-transparent px-3 py-2 text-13 ring-0 outline-none"
       placeholder={t("project_settings.estimates.create.enter_estimate_point")}
+      // react-doctor-disable-next-line no-autofocus -- rendered only after the user clicks add/edit on an estimate point, so focus follows their action
       autoFocus
       type="text"
     />

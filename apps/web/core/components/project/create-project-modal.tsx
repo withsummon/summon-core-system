@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
 // plane ui
@@ -50,12 +50,15 @@ export function CreateProjectModal(props: Props) {
   const [currentStep, setCurrentStep] = useState<EProjectCreationSteps>(EProjectCreationSteps.CREATE_PROJECT);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Start from the first step every time the modal opens.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setCurrentStep(EProjectCreationSteps.CREATE_PROJECT);
       setCreatedProjectId(null);
     }
-  }, [isOpen]);
+  }
 
   const handleNextStep = (projectId: string) => {
     if (!projectId) return;

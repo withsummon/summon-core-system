@@ -32,7 +32,7 @@ export const BulkDeleteIssuesModalItem = observer(function BulkDeleteIssuesModal
       }
     >
       <div className="flex items-center gap-2">
-        <input type="checkbox" checked={canDeleteIssueIds} readOnly />
+        <input type="checkbox" checked={canDeleteIssueIds} readOnly aria-hidden="true" tabIndex={-1} />
         <span
           className="block h-1.5 w-1.5 flex-shrink-0 rounded-full"
           style={{

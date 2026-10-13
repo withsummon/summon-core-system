@@ -64,22 +64,12 @@ interface IssueDetailsBlockProps {
 
 const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
   const { cardRef, issue, updateIssue, quickActions, isReadOnly, displayProperties, isEpic = false } = props;
-  // refs
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
-  // states
-  const [isMenuActive, setIsMenuActive] = useState(false);
   // hooks
   const { isMobile } = usePlatformOS();
 
+  // the menu trigger wrapping this button marks itself data-popup-open while its menu is open
   const customActionButton = (
-    // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-    <div
-      ref={menuActionRef}
-      className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
-        isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
-      }`}
-      onClick={() => setIsMenuActive(!isMenuActive)}
-    >
+    <div className="flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder text-secondary hover:bg-layer-1 in-data-popup-open:bg-layer-1 in-data-popup-open:text-primary">
       <MoreHorizontal className="h-3.5 w-3.5" />
     </div>
   );
@@ -89,8 +79,6 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
     e.stopPropagation();
     e.preventDefault();
   };
-
-  useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
   return (
     <>
@@ -106,10 +94,13 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
         )}
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div
-          className={cn("absolute -top-1 right-0", {
-            "hidden group-hover/kanban-block:block": !isMobile,
-            "!block": isMenuActive,
-          })}
+          className={cn(
+            "absolute -top-1 right-0",
+            {
+              "hidden group-hover/kanban-block:block": !isMobile,
+            },
+            "has-data-popup-open:!block"
+          )}
           onClick={handleEventPropagation}
         >
           {quickActions({

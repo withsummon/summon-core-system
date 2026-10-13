@@ -18,7 +18,7 @@ import { SearchIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, IUser } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { Loader, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // assets
 import darkIssuesAsset from "@/app/assets/empty-state/search/issues-dark.webp?url";
 import lightIssuesAsset from "@/app/assets/empty-state/search/issues-light.webp?url";
@@ -31,6 +31,7 @@ import { useIssues } from "@/hooks/store/use-issues";
 import useDebounce from "@/hooks/use-debounce";
 // services
 import { ProjectService } from "@/services/project";
+import { IssueSearchResultsList } from "./issue-search-results-list";
 // local components
 import { BulkDeleteIssuesModalItem } from "./bulk-delete-issues-modal-item";
 
@@ -128,6 +129,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
     }
   };
 
+  const deleteIssueIds = new Set(watch("delete_issue_ids"));
   const issueList =
     issues.length > 0 ? (
       <li className="p-2">
@@ -136,11 +138,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
         )}
         <ul className="text-13 text-secondary">
           {issues.map((issue) => (
-            <BulkDeleteIssuesModalItem
-              issue={issue}
-              canDeleteIssueIds={watch("delete_issue_ids").includes(issue.id)}
-              key={issue.id}
-            />
+            <BulkDeleteIssuesModalItem issue={issue} canDeleteIssueIds={deleteIssueIds.has(issue.id)} key={issue.id} />
           ))}
         </ul>
       </li>
@@ -188,18 +186,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
             />
           </div>
 
-          <Combobox.List className="max-h-80 scroll-py-2 divide-y divide-subtle-1 overflow-y-auto">
-            {isSearching ? (
-              <Loader className="space-y-3 p-3">
-                <Loader.Item height="40px" />
-                <Loader.Item height="40px" />
-                <Loader.Item height="40px" />
-                <Loader.Item height="40px" />
-              </Loader>
-            ) : (
-              <>{issueList}</>
-            )}
-          </Combobox.List>
+          <IssueSearchResultsList isSearching={isSearching}>{issueList}</IssueSearchResultsList>
         </Combobox.Root>
 
         {issues.length > 0 && (

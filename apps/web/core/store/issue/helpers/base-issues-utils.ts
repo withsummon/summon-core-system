@@ -152,14 +152,16 @@ export const getDifference = (
   const DELETE = [];
 
   // For all the current issues values that are not in the previous array, Add them to the ADD array
+  const previousSet = new Set(previous);
+  const currentSet = new Set(current);
   for (const currentValue of current) {
-    if (previous.includes(currentValue)) continue;
+    if (previousSet.has(currentValue)) continue;
     ADD.push(currentValue);
   }
 
   // For all the previous issues values that are not in the current array, Add them to the ADD array
   for (const previousValue of previous) {
-    if (current.includes(previousValue)) continue;
+    if (currentSet.has(previousValue)) continue;
     DELETE.push(previousValue);
   }
 
@@ -263,7 +265,8 @@ export const getFilteredWorkItems = (workItems: TIssue[], filters: IIssueFilterO
       const issueValue = workItem[issueKey];
       // Handle array-based properties vs single value properties
       if (Array.isArray(issueValue)) {
-        return filterValues!.some((filterValue: any) => issueValue.includes(filterValue));
+        const issueValueSet = new Set<unknown>(issueValue);
+        return filterValues!.some((filterValue: any) => issueValueSet.has(filterValue));
       } else {
         return filterValues!.includes(issueValue as string);
       }

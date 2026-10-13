@@ -61,6 +61,8 @@ export function Invitations(props: Props) {
     }
   };
 
+  const selectedInvitationIds = new Set(invitationsRespond);
+
   return invitations && invitations.length > 0 ? (
     <div className="space-y-4">
       <div className="mx-auto space-y-1 py-4 text-center">
@@ -71,13 +73,21 @@ export function Invitations(props: Props) {
         {invitations &&
           invitations.length > 0 &&
           invitations.map((invitation) => {
-            const isSelected = invitationsRespond.includes(invitation.id);
+            const isSelected = selectedInvitationIds.has(invitation.id);
             const invitedWorkspace = invitation.workspace;
             return (
               <div
                 key={invitation.id}
                 className={`flex cursor-pointer items-center gap-2 rounded-sm border border-subtle p-3.5 hover:bg-surface-2`}
+                role="checkbox"
+                aria-checked={isSelected}
+                tabIndex={0}
                 onClick={() => handleInvitation(invitation, isSelected ? "withdraw" : "accepted")}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  handleInvitation(invitation, isSelected ? "withdraw" : "accepted");
+                }}
               >
                 <div className="flex-shrink-0">
                   <WorkspaceLogo
@@ -91,7 +101,7 @@ export function Invitations(props: Props) {
                   <p className="text-11 text-secondary">{ROLE[invitation.role]}</p>
                 </div>
                 <span className={`flex-shrink-0`}>
-                  <Checkbox checked={isSelected} />
+                  <Checkbox checked={isSelected} tabIndex={-1} aria-hidden="true" />
                 </span>
               </div>
             );

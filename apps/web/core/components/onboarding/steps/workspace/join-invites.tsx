@@ -65,6 +65,8 @@ export function WorkspaceJoinInvitesStep(props: Props) {
     }
   };
 
+  const selectedInvitationIds = new Set(invitationsRespond);
+
   return invitations && invitations.length > 0 ? (
     <div className="flex flex-col gap-10">
       <CommonOnboardingHeader title="Join invites or create a workspace" description="All your work — unified." />
@@ -72,13 +74,21 @@ export function WorkspaceJoinInvitesStep(props: Props) {
         {invitations &&
           invitations.length > 0 &&
           invitations.map((invitation) => {
-            const isSelected = invitationsRespond.includes(invitation.id);
+            const isSelected = selectedInvitationIds.has(invitation.id);
             const invitedWorkspace = invitation.workspace;
             return (
               <div
                 key={invitation.id}
                 className={`flex cursor-pointer items-center gap-2 rounded-lg border border-subtle px-3 py-2 hover:bg-surface-2`}
+                role="checkbox"
+                aria-checked={isSelected}
+                tabIndex={0}
                 onClick={() => handleInvitation(invitation, isSelected ? "withdraw" : "accepted")}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  handleInvitation(invitation, isSelected ? "withdraw" : "accepted");
+                }}
               >
                 <div className="flex-shrink-0">
                   <WorkspaceLogo
@@ -92,7 +102,7 @@ export function WorkspaceJoinInvitesStep(props: Props) {
                   <p className="text-11 text-secondary">{ROLE[invitation.role]}</p>
                 </div>
                 <span className={`flex-shrink-0`}>
-                  <Checkbox checked={isSelected} />
+                  <Checkbox checked={isSelected} tabIndex={-1} aria-hidden="true" />
                 </span>
               </div>
             );

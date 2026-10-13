@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
-import { Sparkles, ChevronDown, FileText, FileSpreadsheet, Presentation, Check, Loader2 } from "lucide-react";
-import { cn } from "@plane/utils";
+import React, { useId, useState } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
+import { FormatPicker, MenuSelect, SelectChevron, StepHeader } from "./ai-generator-form-fields";
 import { AVAILABLE_CONTEXTS, TOP_TEMPLATES } from "./mock-data";
 import { TypeIcon } from "./type-icon";
 import type { TDetailLevel, TDocumentFormat, TDocumentTone, TDocumentType, IGeneratedDocument } from "./types";
@@ -17,26 +17,30 @@ interface IAIGeneratorFormProps {
   onDocumentGenerated: (doc: IGeneratedDocument) => void;
 }
 
+const TONES: TDocumentTone[] = ["Professional", "Formal", "Technical", "Executive", "Casual"];
+const DETAIL_LEVELS: TDetailLevel[] = ["Concise", "Standard", "Comprehensive", "In-depth"];
+const TEMPLATE_NAMES = TOP_TEMPLATES.map((tpl) => tpl.name);
+const TEMPLATE_BY_NAME = new Map(TOP_TEMPLATES.map((tpl) => [tpl.name, tpl]));
+
+type TOpenMenu = "template" | "context" | "tone" | "detail" | null;
+
 export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
   selectedTemplate,
   onTemplateChange,
   onDocumentGenerated,
 }) => {
+  const fieldId = useId();
   const [context, setContext] = useState<string>(AVAILABLE_CONTEXTS[0]);
   const [additionalContext, setAdditionalContext] = useState<string>("");
   const [format, setFormat] = useState<TDocumentFormat>("DOCX");
   const [tone, setTone] = useState<TDocumentTone>("Professional");
   const [detailLevel, setDetailLevel] = useState<TDetailLevel>("Comprehensive");
-
-  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
-  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-  const [isToneMenuOpen, setIsToneMenuOpen] = useState(false);
-  const [isDetailMenuOpen, setIsDetailMenuOpen] = useState(false);
+  // only one option menu is open at a time
+  const [openMenu, setOpenMenu] = useState<TOpenMenu>(null);
 
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const tones: TDocumentTone[] = ["Professional", "Formal", "Technical", "Executive", "Casual"];
-  const detailLevels: TDetailLevel[] = ["Concise", "Standard", "Comprehensive", "In-depth"];
+  const toggleMenu = (menu: Exclude<TOpenMenu, null>) => setOpenMenu((current) => (current === menu ? null : menu));
 
   const handleGenerate = () => {
     if (isGenerating) return;
@@ -77,118 +81,79 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
       <div className="space-y-4">
         {/* STEP 1: Select Template */}
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
-              1
-            </span>
-            <label className="text-xs font-semibold text-primary">Select Template</label>
-          </div>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setIsTemplateMenuOpen(!isTemplateMenuOpen);
-                setIsContextMenuOpen(false);
-                setIsToneMenuOpen(false);
-                setIsDetailMenuOpen(false);
-              }}
-              className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs font-medium text-primary transition-colors hover:border-strong"
-            >
+          <StepHeader step={1} title="Select Template" htmlFor={`${fieldId}-template`} />
+          <MenuSelect
+            id={`${fieldId}-template`}
+            isOpen={openMenu === "template"}
+            onToggle={() => toggleMenu("template")}
+            value={selectedTemplate}
+            options={TEMPLATE_NAMES}
+            onSelect={(name) => {
+              onTemplateChange(name);
+              const defaultFormat = TEMPLATE_BY_NAME.get(name)?.defaultFormat;
+              if (defaultFormat) setFormat(defaultFormat);
+              setOpenMenu(null);
+            }}
+            buttonClassName="py-2 font-medium"
+            buttonContent={
+              <>
+                <div className="flex items-center gap-2">
+                  <TypeIcon type={selectedTemplate} size={15} />
+                  <span>{selectedTemplate}</span>
+                </div>
+                <SelectChevron size={14} />
+              </>
+            }
+            optionClassName="py-2"
+            checkSize={13}
+            renderOption={(name) => (
               <div className="flex items-center gap-2">
-                <TypeIcon type={selectedTemplate} size={15} />
-                <span>{selectedTemplate}</span>
-              </div>
-              <ChevronDown size={14} className="text-placeholder" />
-            </button>
-
-            {isTemplateMenuOpen && (
-              <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
-                {TOP_TEMPLATES.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    onClick={() => {
-                      onTemplateChange(tpl.name);
-                      if (tpl.defaultFormat) setFormat(tpl.defaultFormat);
-                      setIsTemplateMenuOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-surface-2",
-                      selectedTemplate === tpl.name && "bg-accent-subtle font-medium text-accent-primary"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <TypeIcon type={tpl.name} size={14} />
-                      <span>{tpl.title}</span>
-                    </div>
-                    {selectedTemplate === tpl.name && <Check size={13} className="text-accent-primary" />}
-                  </button>
-                ))}
+                <TypeIcon type={name} size={14} />
+                <span>{TEMPLATE_BY_NAME.get(name)?.title}</span>
               </div>
             )}
-          </div>
+          />
         </div>
 
         {/* STEP 2: Select Context */}
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
-              2
-            </span>
-            <label className="text-xs font-semibold text-primary">Select Context</label>
-          </div>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setIsContextMenuOpen(!isContextMenuOpen);
-                setIsTemplateMenuOpen(false);
-                setIsToneMenuOpen(false);
-                setIsDetailMenuOpen(false);
-              }}
-              className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs font-medium text-primary transition-colors hover:border-strong"
-            >
-              <div className="flex items-center gap-2 truncate">
-                <span className="truncate">{context}</span>
-                <span className="font-normal rounded bg-layer-2 px-1.5 py-0.5 text-[10px] text-secondary">Project</span>
-              </div>
-              <ChevronDown size={14} className="ml-2 shrink-0 text-placeholder" />
-            </button>
-
-            {isContextMenuOpen && (
-              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
-                {AVAILABLE_CONTEXTS.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setContext(item);
-                      setIsContextMenuOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-surface-2",
-                      context === item && "bg-accent-subtle font-medium text-accent-primary"
-                    )}
-                  >
-                    <span className="truncate">{item}</span>
-                    {context === item && <Check size={13} className="ml-2 shrink-0 text-accent-primary" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <StepHeader step={2} title="Select Context" htmlFor={`${fieldId}-context`} />
+          <MenuSelect
+            id={`${fieldId}-context`}
+            isOpen={openMenu === "context"}
+            onToggle={() => toggleMenu("context")}
+            value={context}
+            options={AVAILABLE_CONTEXTS}
+            onSelect={(item) => {
+              setContext(item);
+              setOpenMenu(null);
+            }}
+            buttonClassName="py-2 font-medium"
+            buttonContent={
+              <>
+                <div className="flex items-center gap-2 truncate">
+                  <span className="truncate">{context}</span>
+                  <span className="font-normal rounded bg-layer-2 px-1.5 py-0.5 text-[10px] text-secondary">
+                    Project
+                  </span>
+                </div>
+                <SelectChevron size={14} className="ml-2 shrink-0" />
+              </>
+            }
+            menuClassName="max-h-48 overflow-y-auto"
+            optionClassName="py-2"
+            checkSize={13}
+            checkClassName="ml-2 shrink-0"
+            renderOption={(item) => <span className="truncate">{item}</span>}
+          />
         </div>
 
         {/* STEP 3: Additional Context (Optional) */}
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
-              3
-            </span>
-            <label className="text-xs font-semibold text-primary">Additional Context (Optional)</label>
-          </div>
+          <StepHeader step={3} title="Additional Context (Optional)" htmlFor={`${fieldId}-additional`} />
           <div className="relative">
             <textarea
+              id={`${fieldId}-additional`}
               rows={3}
               maxLength={1000}
               value={additionalContext}
@@ -204,154 +169,53 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
 
         {/* STEP 4: Output Preferences */}
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
-              4
-            </span>
-            <label className="text-xs font-semibold text-primary">Output Preferences</label>
-          </div>
+          <StepHeader step={4} title="Output Preferences" className="mb-2" />
 
           <div className="space-y-3 pl-6">
-            {/* Format buttons */}
-            <div>
-              <span className="mb-1.5 block text-[11px] font-medium text-secondary">Document Format</span>
-              <div className="grid grid-cols-3 gap-2">
-                {/* DOCX */}
-                <button
-                  type="button"
-                  onClick={() => setFormat("DOCX")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
-                    format === "DOCX"
-                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
-                      : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
-                  )}
-                >
-                  <FileText
-                    size={14}
-                    className={format === "DOCX" ? "text-label-indigo-text" : "text-label-indigo-icon"}
-                  />
-                  <span>DOCX</span>
-                </button>
-
-                {/* PDF */}
-                <button
-                  type="button"
-                  onClick={() => setFormat("PDF")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
-                    format === "PDF"
-                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
-                      : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
-                  )}
-                >
-                  <FileSpreadsheet
-                    size={14}
-                    className={format === "PDF" ? "text-label-crimson-text" : "text-label-crimson-icon"}
-                  />
-                  <span>PDF</span>
-                </button>
-
-                {/* PPTX */}
-                <button
-                  type="button"
-                  onClick={() => setFormat("PPTX")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
-                    format === "PPTX"
-                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
-                      : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
-                  )}
-                >
-                  <Presentation
-                    size={14}
-                    className={format === "PPTX" ? "text-label-orange-text" : "text-label-orange-icon"}
-                  />
-                  <span>PPTX</span>
-                </button>
-              </div>
-            </div>
+            <FormatPicker value={format} onChange={setFormat} />
 
             {/* Tone Selector */}
             <div>
               <span className="mb-1 block text-[11px] font-medium text-secondary">Tone</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsToneMenuOpen(!isToneMenuOpen);
-                    setIsDetailMenuOpen(false);
-                    setIsTemplateMenuOpen(false);
-                    setIsContextMenuOpen(false);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:border-strong"
-                >
-                  <span>{tone}</span>
-                  <ChevronDown size={13} className="text-placeholder" />
-                </button>
-                {isToneMenuOpen && (
-                  <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
-                    {tones.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          setTone(t);
-                          setIsToneMenuOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2",
-                          tone === t && "bg-accent-subtle font-medium text-accent-primary"
-                        )}
-                      >
-                        <span>{t}</span>
-                        {tone === t && <Check size={12} className="text-accent-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <MenuSelect
+                isOpen={openMenu === "tone"}
+                onToggle={() => toggleMenu("tone")}
+                value={tone}
+                options={TONES}
+                onSelect={(value) => {
+                  setTone(value);
+                  setOpenMenu(null);
+                }}
+                buttonClassName="py-1.5"
+                buttonContent={
+                  <>
+                    <span>{tone}</span>
+                    <SelectChevron />
+                  </>
+                }
+              />
             </div>
 
             {/* Detail Level */}
             <div>
               <span className="mb-1 block text-[11px] font-medium text-secondary">Detail Level</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDetailMenuOpen(!isDetailMenuOpen);
-                    setIsToneMenuOpen(false);
-                    setIsTemplateMenuOpen(false);
-                    setIsContextMenuOpen(false);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg border border-subtle bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:border-strong"
-                >
-                  <span>{detailLevel}</span>
-                  <ChevronDown size={13} className="text-placeholder" />
-                </button>
-                {isDetailMenuOpen && (
-                  <div className="absolute z-30 mt-1 w-full rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
-                    {detailLevels.map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => {
-                          setDetailLevel(lvl);
-                          setIsDetailMenuOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2",
-                          detailLevel === lvl && "bg-accent-subtle font-medium text-accent-primary"
-                        )}
-                      >
-                        <span>{lvl}</span>
-                        {detailLevel === lvl && <Check size={12} className="text-accent-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <MenuSelect
+                isOpen={openMenu === "detail"}
+                onToggle={() => toggleMenu("detail")}
+                value={detailLevel}
+                options={DETAIL_LEVELS}
+                onSelect={(value) => {
+                  setDetailLevel(value);
+                  setOpenMenu(null);
+                }}
+                buttonClassName="py-1.5"
+                buttonContent={
+                  <>
+                    <span>{detailLevel}</span>
+                    <SelectChevron />
+                  </>
+                }
+              />
             </div>
           </div>
         </div>

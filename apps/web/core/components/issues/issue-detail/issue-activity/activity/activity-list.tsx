@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // helpers
 import { getValidKeysFromObject } from "@plane/utils";
@@ -37,13 +38,37 @@ type TIssueActivityItem = {
   ends: "top" | "bottom" | undefined;
 };
 
+type TActivityRenderer = (props: TIssueActivityItem) => ReactNode;
+
+// field -> activity block; fields not listed here fall back to relations, then render nothing
+const ACTIVITY_RENDERERS: Record<string, TActivityRenderer> = {
+  state: (props) => <IssueStateActivity {...props} showIssue={false} />,
+  name: (props) => <IssueNameActivity {...props} />,
+  description: (props) => <IssueDescriptionActivity {...props} showIssue={false} />,
+  assignees: (props) => <IssueAssigneeActivity {...props} showIssue={false} />,
+  priority: (props) => <IssuePriorityActivity {...props} showIssue={false} />,
+  estimate_points: (props) => <IssueEstimateActivity {...props} showIssue={false} />,
+  estimate_categories: (props) => <IssueEstimateActivity {...props} showIssue={false} />,
+  // older recorded estimate activities; the field changed from "estimate_point" to `estimate_${estimate_type}`
+  estimate_point: (props) => <IssueEstimateActivity {...props} showIssue={false} />,
+  parent: (props) => <IssueParentActivity {...props} showIssue={false} />,
+  start_date: (props) => <IssueStartDateActivity {...props} showIssue={false} />,
+  target_date: (props) => <IssueTargetDateActivity {...props} showIssue={false} />,
+  cycles: (props) => <IssueCycleActivity {...props} />,
+  modules: (props) => <IssueModuleActivity {...props} />,
+  labels: (props) => <IssueLabelActivity {...props} showIssue={false} />,
+  link: (props) => <IssueLinkActivity {...props} showIssue={false} />,
+  attachment: (props) => <IssueAttachmentActivity {...props} showIssue={false} />,
+  archived_at: (props) => <IssueArchivedAtActivity {...props} />,
+  intake: (props) => <IssueInboxActivity {...props} />,
+  inbox: (props) => <IssueInboxActivity {...props} />,
+};
+
 export const IssueActivityItem = observer(function IssueActivityItem(props: TIssueActivityItem) {
   const { activityId, ends } = props;
   // hooks
   const {
     activity: { getActivityById },
-    // oxlint-disable-next-line no-empty-pattern
-    comment: {},
   } = useIssueDetail();
   const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
   const activityRelations = getValidKeysFromObject(ISSUE_RELATION_OPTIONS);
@@ -51,47 +76,15 @@ export const IssueActivityItem = observer(function IssueActivityItem(props: TIss
   const componentDefaultProps = { activityId, ends };
 
   const activityField = getActivityById(activityId)?.field;
-  switch (activityField) {
-    case null: // default issue creation
-      return <IssueDefaultActivity {...componentDefaultProps} />;
-    case "state":
-      return <IssueStateActivity {...componentDefaultProps} showIssue={false} />;
-    case "name":
-      return <IssueNameActivity {...componentDefaultProps} />;
-    case "description":
-      return <IssueDescriptionActivity {...componentDefaultProps} showIssue={false} />;
-    case "assignees":
-      return <IssueAssigneeActivity {...componentDefaultProps} showIssue={false} />;
-    case "priority":
-      return <IssuePriorityActivity {...componentDefaultProps} showIssue={false} />;
-    case "estimate_points":
-    case "estimate_categories":
-    case "estimate_point" /* This case is to handle all the older recorded activities for estimates. Field changed from  "estimate_point" -> `estimate_${estimate_type}`*/:
-      return <IssueEstimateActivity {...componentDefaultProps} showIssue={false} />;
-    case "parent":
-      return <IssueParentActivity {...componentDefaultProps} showIssue={false} />;
-    case activityRelations.find((field) => field === activityField):
-      return <IssueRelationActivity {...componentDefaultProps} />;
-    case "start_date":
-      return <IssueStartDateActivity {...componentDefaultProps} showIssue={false} />;
-    case "target_date":
-      return <IssueTargetDateActivity {...componentDefaultProps} showIssue={false} />;
-    case "cycles":
-      return <IssueCycleActivity {...componentDefaultProps} />;
-    case "modules":
-      return <IssueModuleActivity {...componentDefaultProps} />;
-    case "labels":
-      return <IssueLabelActivity {...componentDefaultProps} showIssue={false} />;
-    case "link":
-      return <IssueLinkActivity {...componentDefaultProps} showIssue={false} />;
-    case "attachment":
-      return <IssueAttachmentActivity {...componentDefaultProps} showIssue={false} />;
-    case "archived_at":
-      return <IssueArchivedAtActivity {...componentDefaultProps} />;
-    case "intake":
-    case "inbox":
-      return <IssueInboxActivity {...componentDefaultProps} />;
-    default:
-      return null;
-  }
+  // default issue creation
+  if (activityField === null) return <IssueDefaultActivity {...componentDefaultProps} />;
+
+  const renderActivity = activityField === undefined ? undefined : ACTIVITY_RENDERERS[activityField];
+  if (renderActivity) return renderActivity(componentDefaultProps);
+
+  // a missing activity also lands here, as it did when relations were matched with `find`
+  if (activityField === undefined || activityRelations.includes(activityField))
+    return <IssueRelationActivity {...componentDefaultProps} />;
+
+  return null;
 });

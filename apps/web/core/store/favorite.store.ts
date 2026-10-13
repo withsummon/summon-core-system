@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { orderBy, uniqBy, set } from "lodash-es";
+import { cloneDeep, orderBy, uniqBy, set } from "lodash-es";
 import { action, observable, makeObservable, runInAction, computed } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import type { IFavorite } from "@plane/types";
@@ -109,7 +109,7 @@ export class FavoriteStore implements IFavoriteStore {
   }
 
   get groupedFavorites() {
-    const data: { [favoriteId: string]: IFavorite } = JSON.parse(JSON.stringify(this.currentWorkspaceFavorites));
+    const data: { [favoriteId: string]: IFavorite } = cloneDeep(this.currentWorkspaceFavorites);
 
     Object.values(data).forEach((fav) => {
       if (fav.parent && data[fav.parent]) {

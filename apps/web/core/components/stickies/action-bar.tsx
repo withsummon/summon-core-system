@@ -24,6 +24,72 @@ import { STICKY_COLORS_LIST } from "../editor/sticky-editor/color-palette";
 import { AllStickiesModal } from "./modal";
 import { StickyNote } from "./sticky";
 
+type TRecentStickyButtonProps = {
+  workspaceSlug: string;
+  recentStickyId: string;
+  previewStickyId: string | undefined;
+  isDisabled: boolean;
+  onOpen: () => void;
+};
+
+const RecentStickyButton = observer(function RecentStickyButton(props: TRecentStickyButtonProps) {
+  const { workspaceSlug, recentStickyId, previewStickyId, isDisabled, onOpen } = props;
+  // store hooks
+  const { stickies } = useSticky();
+  // derived values
+  const recentStickyBackgroundColor = STICKY_COLORS_LIST.find(
+    (c) => c.key === stickies[recentStickyId].background_color
+  )?.backgroundColor;
+
+  return (
+    <Tooltip
+      className="-mr-30 translate-x-10 scale-75"
+      tooltipContent={
+        <div className="-m-2 max-h-[150px]">
+          <StickyNote className={"w-[290px]"} workspaceSlug={workspaceSlug} stickyId={previewStickyId} />
+          <div
+            className="pointer-events-none absolute top-0 right-0 h-full w-full"
+            style={{
+              background: `linear-gradient(to top, ${recentStickyBackgroundColor}, transparent)`,
+            }}
+          />
+        </div>
+      }
+      isMobile={false}
+      position="left"
+      disabled={isDisabled}
+    >
+      <button
+        type="button"
+        aria-label="Open recent sticky"
+        className="btn btn--icon flex h-10 w-10 items-center justify-center rounded-full bg-surface-1 shadow-sm"
+        onClick={onOpen}
+        style={{ color: recentStickyBackgroundColor }}
+      >
+        <StickyNoteIcon className={cn("size-5 rotate-90")} color={recentStickyBackgroundColor} />
+      </button>
+    </Tooltip>
+  );
+});
+
+function StickiesMenuToggle({ isExpanded, onToggle }: { isExpanded: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={isExpanded ? "Close stickies menu" : "Open stickies menu"}
+      aria-expanded={isExpanded}
+      className={`btn btn--icon flex h-10 w-10 items-center justify-center rounded-full bg-surface-1 shadow-sm transition-[rotate] duration-300 ${isExpanded ? "rotate-180" : ""}`}
+      onClick={onToggle}
+    >
+      {isExpanded ? (
+        <CloseIcon className="size-5 text-tertiary" />
+      ) : (
+        <StickyIcon className="size-5 rotate-90 text-tertiary" />
+      )}
+    </button>
+  );
+}
+
 export const StickyActionBar = observer(function StickyActionBar() {
   // states
   const [isExpanded, setIsExpanded] = useState(false);
@@ -34,14 +100,8 @@ export const StickyActionBar = observer(function StickyActionBar() {
   // refs
   const ref = useRef(null);
   // store hooks
-  const { stickies, activeStickyId, recentStickyId, updateActiveStickyId, fetchRecentSticky, toggleShowNewSticky } =
-    useSticky();
+  const { activeStickyId, recentStickyId, updateActiveStickyId, fetchRecentSticky, toggleShowNewSticky } = useSticky();
   const { toggleAllStickiesModal, allStickiesModal } = useCommandPalette();
-  // derived values
-  const recentStickyBackgroundColor = recentStickyId
-    ? STICKY_COLORS_LIST.find((c) => c.key === stickies[recentStickyId].background_color)?.backgroundColor
-    : STICKY_COLORS_LIST[0].backgroundColor;
-
   useSWR(
     workspaceSlug ? `WORKSPACE_STICKIES_RECENT_${workspaceSlug}` : null,
     workspaceSlug ? () => fetchRecentSticky(workspaceSlug.toString()) : null
@@ -72,37 +132,13 @@ export const StickyActionBar = observer(function StickyActionBar() {
           </button>
         </Tooltip>
         {recentStickyId && (
-          <Tooltip
-            className="-mr-30 translate-x-10 scale-75"
-            tooltipContent={
-              <div className="-m-2 max-h-[150px]">
-                <StickyNote
-                  className={"w-[290px]"}
-                  workspaceSlug={workspaceSlug.toString()}
-                  stickyId={newSticky ? activeStickyId : recentStickyId || ""}
-                />
-                <div
-                  className="pointer-events-none absolute top-0 right-0 h-full w-full"
-                  style={{
-                    background: `linear-gradient(to top, ${recentStickyBackgroundColor}, transparent)`,
-                  }}
-                />
-              </div>
-            }
-            isMobile={false}
-            position="left"
-            disabled={showRecentSticky}
-          >
-            <button
-              type="button"
-              aria-label="Open recent sticky"
-              className="btn btn--icon flex h-10 w-10 items-center justify-center rounded-full bg-surface-1 shadow-sm"
-              onClick={() => setShowRecentSticky(true)}
-              style={{ color: recentStickyBackgroundColor }}
-            >
-              <StickyNoteIcon className={cn("size-5 rotate-90")} color={recentStickyBackgroundColor} />
-            </button>
-          </Tooltip>
+          <RecentStickyButton
+            workspaceSlug={workspaceSlug.toString()}
+            recentStickyId={recentStickyId}
+            previewStickyId={newSticky ? activeStickyId : recentStickyId || ""}
+            isDisabled={showRecentSticky}
+            onOpen={() => setShowRecentSticky(true)}
+          />
         )}
         <Tooltip tooltipContent="Add sticky" isMobile={false} position="left">
           <button
@@ -120,19 +156,7 @@ export const StickyActionBar = observer(function StickyActionBar() {
         </Tooltip>
       </div>
 
-      <button
-        type="button"
-        aria-label={isExpanded ? "Close stickies menu" : "Open stickies menu"}
-        aria-expanded={isExpanded}
-        className={`btn btn--icon flex h-10 w-10 items-center justify-center rounded-full bg-surface-1 shadow-sm transition-[rotate] duration-300 ${isExpanded ? "rotate-180" : ""}`}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        {isExpanded ? (
-          <CloseIcon className="size-5 text-tertiary" />
-        ) : (
-          <StickyIcon className="size-5 rotate-90 text-tertiary" />
-        )}
-      </button>
+      <StickiesMenuToggle isExpanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)} />
 
       <div
         className={cn(

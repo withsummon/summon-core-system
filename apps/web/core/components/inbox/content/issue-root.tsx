@@ -5,7 +5,7 @@
  */
 
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -49,6 +49,8 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
   const { workspaceSlug, projectId, inboxIssue, isEditable, isSubmitting, setIsSubmitting } = props;
   // refs
   const editorRef = useRef<EditorRefApi>(null);
+  // stands in for a missing `created_at`; captured once so it stays stable across renders
+  const [fallbackCreatedAt] = useState(() => new Date());
   // store hooks
   const { data: currentUser } = useUser();
   const { getUserDetails } = useMember();
@@ -176,7 +178,7 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
             <DescriptionVersionsRoot
               className="flex-shrink-0"
               entityInformation={{
-                createdAt: issue.created_at ? new Date(issue.created_at) : new Date(),
+                createdAt: issue.created_at ? new Date(issue.created_at) : fallbackCreatedAt,
                 createdByDisplayName:
                   inboxIssue.source === EInboxIssueSource.FORMS
                     ? "Intake Form user"

@@ -1,16 +1,19 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useUser, useUserProfile } from "@/hooks/store/user";
+
+// The resolved theme is only known on the client, so render the server snapshot as not mounted.
+const subscribeToNothing = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 /** Switches the theme; a signed-in user's choice is also saved to their profile. */
 export function SummonThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const user = useUser();
   const { updateUserTheme } = useUserProfile();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(subscribeToNothing, getClientSnapshot, getServerSnapshot);
 
   const dark = mounted && resolvedTheme === "dark";
   const nextTheme = dark ? "light" : "dark";

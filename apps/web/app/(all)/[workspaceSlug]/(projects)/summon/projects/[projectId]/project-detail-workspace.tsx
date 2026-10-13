@@ -21,11 +21,9 @@ import { PROJECT_TABS, ProjectDetailTab } from "./project-detail-tabs";
 import type { TProjectTab } from "./project-detail-tabs";
 import { ProjectOverviewTab } from "./project-overview-tab";
 import { ProjectProfileEditor } from "./project-profile-editor";
+import { renderFormattedDate } from "@plane/utils";
 
-const formatDate = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
-    : "Not set";
+const formatDate = (value?: string | null) => (value ? renderFormattedDate(new Date(value)) : undefined) ?? "Not set";
 
 export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(props: {
   overview: ISummonProjectOverview;

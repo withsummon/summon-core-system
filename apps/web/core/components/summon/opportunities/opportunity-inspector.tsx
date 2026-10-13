@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import {
@@ -26,10 +26,8 @@ import { DeliveryHandoffCard } from "./delivery-handoff-card";
 import { OPPORTUNITY_STAGES, OPPORTUNITY_STAGE_LABEL, OPPORTUNITY_STAGE_TONE } from "./opportunity-pipeline";
 import { Select } from "@plane/propel/select";
 
-const formatDate = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
-    : "Not set";
+const DATE_FORMATTER = new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" });
+const formatDate = (value?: string | null) => (value ? DATE_FORMATTER.format(new Date(value)) : "Not set");
 
 export const initials = (value: string) =>
   value
@@ -62,12 +60,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
   const { getUserDetails } = useMember();
   const money = useWorkspaceMoney(workspaceSlug);
   const owner = detail.owner ? getUserDetails(detail.owner)?.display_name : undefined;
-  const automationQuery = new URLSearchParams({
-    opportunity: detail.id,
-    client: detail.client ?? "",
-    context: detail.title,
-  }).toString();
-  const primaryContact = detail.contacts.find((contact) => contact.is_primary) ?? detail.contacts[0];
+  const expectedCloseDate = useMemo(() => formatDate(detail.expected_close_date), [detail.expected_close_date]);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -80,38 +73,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
         </Link>
       ) : null}
       <article className="@container flex min-w-0 flex-col gap-4" aria-labelledby={`opportunity-${detail.id}`}>
-        <header className="flex flex-wrap items-start gap-3">
-          <span
-            aria-hidden
-            className="grid size-11 flex-none place-items-center rounded-xl bg-accent-subtle text-13 font-semibold text-accent-primary"
-          >
-            {initials(detail.title)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2
-              id={`opportunity-${detail.id}`}
-              className="text-18 leading-snug font-semibold text-balance text-primary"
-            >
-              {detail.title}
-            </h2>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-12 text-secondary">
-              {detail.client_detail ? (
-                <Link
-                  href={`/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`}
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:text-accent-primary hover:underline"
-                >
-                  <Building2 className="size-3.5" />
-                  {detail.client_detail.company_name || detail.client_detail.name}
-                </Link>
-              ) : (
-                <span>No client</span>
-              )}
-              <span aria-hidden>·</span>
-              <span>Updated {formatDate(detail.updated_at)}</span>
-            </p>
-          </div>
-          <StageChip stage={detail.stage} />
-        </header>
+        <OpportunityHeader workspaceSlug={workspaceSlug} detail={detail} />
 
         <StageTrack stage={detail.stage} />
 
@@ -125,7 +87,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
               />
             </span>
           </Fact>
-          <Fact label="Expected close" value={formatDate(detail.expected_close_date)} />
+          <Fact label="Expected close" value={expectedCloseDate} />
           <Fact label="Owner" value={owner || "Not assigned"} />
         </dl>
 
@@ -134,180 +96,254 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
         <DeliveryHandoffCard workspaceSlug={workspaceSlug} opportunity={detail} onChanged={onChanged} />
 
         <div className="grid gap-4 @2xl:grid-cols-2">
-          <SummonPanel as="h3" title="About">
-            <p className="text-12 leading-5 text-pretty text-secondary">
-              {detail.description || "No description yet."}
-            </p>
-            <dl className="mt-3 grid gap-2">
-              <Row label="Product" value={detail.product || "Not set"} />
-              <Row label="Source" value={detail.source || "Not set"} />
-              <Row label="Primary contact" value={primaryContact?.name || "Not set"} />
-              <Row label="Created" value={formatDate(detail.created_at)} />
-            </dl>
-          </SummonPanel>
-
-          <SummonPanel
-            as="h3"
-            title="Contacts"
-            link={
-              detail.client_detail
-                ? { href: `/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`, label: "Open client" }
-                : undefined
-            }
-          >
-            <ul className="grid gap-1">
-              {detail.contacts.slice(0, 5).map((contact) => (
-                <li key={contact.id} className="flex items-center gap-3 py-1">
-                  <span
-                    aria-hidden
-                    className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-12 font-semibold text-secondary"
-                  >
-                    {initials(contact.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-12 font-medium text-primary" title={contact.name}>
-                      {contact.name}
-                    </span>
-                    <span className="block truncate text-12 text-secondary">{contact.title || "Contact"}</span>
-                  </span>
-                  {contact.email ? (
-                    <a
-                      href={`mailto:${contact.email}`}
-                      aria-label={`Email ${contact.name}`}
-                      className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
-                    >
-                      <Mail className="size-4" />
-                    </a>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-            {!detail.contacts.length ? <Empty>No client contacts.</Empty> : null}
-          </SummonPanel>
-
-          <SummonPanel as="h3" title="Meeting action items">
-            <ul className="grid gap-1">
-              {detail.work_items.slice(0, 5).map((item) => (
-                <li key={item.id}>
-                  <Link
-                    href={`/${workspaceSlug}/projects/${item.issue.project.id}/issues/${item.issue.id}/`}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <span
-                      aria-hidden
-                      className={`size-3.5 flex-none rounded-full border-2 ${item.issue.completed ? "border-success-strong bg-success-primary" : "border-strong"}`}
-                    />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={item.issue.name}>
-                      {item.issue.name}
-                    </span>
-                    <span className="text-12 text-secondary">
-                      {item.issue.project.identifier}-{item.issue.sequence_id}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.work_items.length ? <Empty>No action items from delivery meetings.</Empty> : null}
-          </SummonPanel>
-
-          <SummonPanel as="h3" title="Pages and meetings">
-            <ul className="grid gap-1">
-              {detail.page_contexts.slice(0, 4).map((context) => {
-                const content = (
-                  <>
-                    <FileText className="size-4 flex-none text-accent-primary" />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
-                      {context.page_detail.name || "Untitled page"}
-                    </span>
-                    <span className="text-12 text-secondary">{context.category}</span>
-                  </>
-                );
-                return (
-                  <li key={context.id}>
-                    {context.project ? (
-                      <Link
-                        href={`/${workspaceSlug}/projects/${context.project}/pages/${context.page}/`}
-                        className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      <span className="flex min-h-10 items-center gap-3 px-2">{content}</span>
-                    )}
-                  </li>
-                );
-              })}
-              {detail.meetings.slice(0, 4).map((meeting) => (
-                <li key={meeting.id}>
-                  <Link
-                    href={`/${workspaceSlug}/summon/meetings/${meeting.id}/`}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <Video className="size-4 flex-none text-accent-primary" />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={meeting.title}>
-                      {meeting.title}
-                    </span>
-                    <span className="text-12 text-secondary">{formatDate(meeting.starts_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.page_contexts.length && !detail.meetings.length ? (
-              <Empty>No linked pages or meetings.</Empty>
-            ) : null}
-          </SummonPanel>
-
-          <SummonPanel as="h3" title="Recent delivery activity" className="@2xl:col-span-2">
-            <ul className="grid gap-1">
-              {detail.recent_activity.slice(0, 5).map((activity) => (
-                <li key={activity.id}>
-                  <Link
-                    href={activity.href}
-                    className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
-                  >
-                    <MessageSquare className="size-4 flex-none text-tertiary" />
-                    <span className="min-w-0 flex-1 truncate text-12 text-primary">{activity.label}</span>
-                    <span className="text-12 text-secondary">{formatDate(activity.created_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {!detail.recent_activity.length ? <Empty>No delivery activity yet.</Empty> : null}
-          </SummonPanel>
+          <AboutPanel detail={detail} />
+          <ContactsPanel workspaceSlug={workspaceSlug} detail={detail} />
+          <ActionItemsPanel workspaceSlug={workspaceSlug} detail={detail} />
+          <PagesAndMeetingsPanel workspaceSlug={workspaceSlug} detail={detail} />
+          <RecentActivityPanel detail={detail} />
         </div>
 
-        <section aria-labelledby={`create-from-${detail.id}`} className="grid gap-2">
-          <h3 id={`create-from-${detail.id}`} className="text-sm font-semibold text-primary">
-            Create from this opportunity
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=proposal`} icon={FileText}>
-              Proposal
-            </ActionLink>
-            <ActionLink
-              href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=quotation`}
-              icon={ReceiptText}
-            >
-              Quotation
-            </ActionLink>
-            <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=mom`} icon={NotebookPen}>
-              Meeting notes
-            </ActionLink>
-            <ActionLink
-              href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=presentation`}
-              icon={Presentation}
-            >
-              Presentation
-            </ActionLink>
-            <ActionLink href={`/${workspaceSlug}/summon/assistant/`} icon={Sparkles}>
-              Open Assistant
-            </ActionLink>
-          </div>
-        </section>
+        <CreateFromOpportunity workspaceSlug={workspaceSlug} detail={detail} />
       </article>
     </div>
   );
 });
+
+function OpportunityHeader({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
+  const updatedAt = useMemo(() => formatDate(detail.updated_at), [detail.updated_at]);
+  return (
+    <header className="flex flex-wrap items-start gap-3">
+      <span
+        aria-hidden
+        className="grid size-11 flex-none place-items-center rounded-xl bg-accent-subtle text-13 font-semibold text-accent-primary"
+      >
+        {initials(detail.title)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 id={`opportunity-${detail.id}`} className="text-18 leading-snug font-semibold text-balance text-primary">
+          {detail.title}
+        </h2>
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-12 text-secondary">
+          {detail.client_detail ? (
+            <Link
+              href={`/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`}
+              className="inline-flex items-center gap-1 font-medium text-primary hover:text-accent-primary hover:underline"
+            >
+              <Building2 className="size-3.5" />
+              {detail.client_detail.company_name || detail.client_detail.name}
+            </Link>
+          ) : (
+            <span>No client</span>
+          )}
+          <span aria-hidden>·</span>
+          <span>Updated {updatedAt}</span>
+        </p>
+      </div>
+      <StageChip stage={detail.stage} />
+    </header>
+  );
+}
+
+function AboutPanel({ detail }: { detail: ISummonOpportunityDetail }) {
+  const primaryContact = detail.contacts.find((contact) => contact.is_primary) ?? detail.contacts[0];
+  const createdAt = useMemo(() => formatDate(detail.created_at), [detail.created_at]);
+  return (
+    <SummonPanel as="h3" title="About">
+      <p className="text-12 leading-5 text-pretty text-secondary">{detail.description || "No description yet."}</p>
+      <dl className="mt-3 grid gap-2">
+        <Row label="Product" value={detail.product || "Not set"} />
+        <Row label="Source" value={detail.source || "Not set"} />
+        <Row label="Primary contact" value={primaryContact?.name || "Not set"} />
+        <Row label="Created" value={createdAt} />
+      </dl>
+    </SummonPanel>
+  );
+}
+
+function ContactsPanel({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
+  return (
+    <SummonPanel
+      as="h3"
+      title="Contacts"
+      link={
+        detail.client_detail
+          ? { href: `/${workspaceSlug}/summon/clients/${detail.client_detail.id}/`, label: "Open client" }
+          : undefined
+      }
+    >
+      <ul className="grid gap-1">
+        {detail.contacts.slice(0, 5).map((contact) => (
+          <li key={contact.id} className="flex items-center gap-3 py-1">
+            <span
+              aria-hidden
+              className="grid size-8 flex-none place-items-center rounded-full bg-layer-2 text-12 font-semibold text-secondary"
+            >
+              {initials(contact.name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-12 font-medium text-primary" title={contact.name}>
+                {contact.name}
+              </span>
+              <span className="block truncate text-12 text-secondary">{contact.title || "Contact"}</span>
+            </span>
+            {contact.email ? (
+              <a
+                href={`mailto:${contact.email}`}
+                aria-label={`Email ${contact.name}`}
+                className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+              >
+                <Mail className="size-4" />
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {!detail.contacts.length ? <Empty>No client contacts.</Empty> : null}
+    </SummonPanel>
+  );
+}
+
+function ActionItemsPanel({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
+  return (
+    <SummonPanel as="h3" title="Meeting action items">
+      <ul className="grid gap-1">
+        {detail.work_items.slice(0, 5).map((item) => (
+          <li key={item.id}>
+            <Link
+              href={`/${workspaceSlug}/projects/${item.issue.project.id}/issues/${item.issue.id}/`}
+              className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+            >
+              <span
+                aria-hidden
+                className={`size-3.5 flex-none rounded-full border-2 ${item.issue.completed ? "border-success-strong bg-success-primary" : "border-strong"}`}
+              />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={item.issue.name}>
+                {item.issue.name}
+              </span>
+              <span className="text-12 text-secondary">
+                {item.issue.project.identifier}-{item.issue.sequence_id}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {!detail.work_items.length ? <Empty>No action items from delivery meetings.</Empty> : null}
+    </SummonPanel>
+  );
+}
+
+function PagesAndMeetingsPanel({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
+  const meetings = detail.meetings.slice(0, 4);
+  const meetingDates = useMemo(
+    () => new Map(detail.meetings.map((meeting) => [meeting.id, formatDate(meeting.starts_at)])),
+    [detail.meetings]
+  );
+  return (
+    <SummonPanel as="h3" title="Pages and meetings">
+      <ul className="grid gap-1">
+        {detail.page_contexts.slice(0, 4).map((context) => {
+          const content = (
+            <>
+              <FileText className="size-4 flex-none text-accent-primary" />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">
+                {context.page_detail.name || "Untitled page"}
+              </span>
+              <span className="text-12 text-secondary">{context.category}</span>
+            </>
+          );
+          return (
+            <li key={context.id}>
+              {context.project ? (
+                <Link
+                  href={`/${workspaceSlug}/projects/${context.project}/pages/${context.page}/`}
+                  className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <span className="flex min-h-10 items-center gap-3 px-2">{content}</span>
+              )}
+            </li>
+          );
+        })}
+        {meetings.map((meeting) => (
+          <li key={meeting.id}>
+            <Link
+              href={`/${workspaceSlug}/summon/meetings/${meeting.id}/`}
+              className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
+            >
+              <Video className="size-4 flex-none text-accent-primary" />
+              <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={meeting.title}>
+                {meeting.title}
+              </span>
+              <span className="text-12 text-secondary">{meetingDates.get(meeting.id)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {!detail.page_contexts.length && !detail.meetings.length ? <Empty>No linked pages or meetings.</Empty> : null}
+    </SummonPanel>
+  );
+}
+
+function RecentActivityPanel({ detail }: { detail: ISummonOpportunityDetail }) {
+  const activities = detail.recent_activity.slice(0, 5);
+  const activityDates = useMemo(
+    () => new Map(detail.recent_activity.map((activity) => [activity.id, formatDate(activity.created_at)])),
+    [detail.recent_activity]
+  );
+  return (
+    <SummonPanel as="h3" title="Recent delivery activity" className="@2xl:col-span-2">
+      <ul className="grid gap-1">
+        {activities.map((activity) => (
+          <li key={activity.id}>
+            <Link href={activity.href} className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1">
+              <MessageSquare className="size-4 flex-none text-tertiary" />
+              <span className="min-w-0 flex-1 truncate text-12 text-primary">{activity.label}</span>
+              <span className="text-12 text-secondary">{activityDates.get(activity.id)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {!detail.recent_activity.length ? <Empty>No delivery activity yet.</Empty> : null}
+    </SummonPanel>
+  );
+}
+
+function CreateFromOpportunity({ workspaceSlug, detail }: { workspaceSlug: string; detail: ISummonOpportunityDetail }) {
+  const automationQuery = new URLSearchParams({
+    opportunity: detail.id,
+    client: detail.client ?? "",
+    context: detail.title,
+  }).toString();
+  return (
+    <section aria-labelledby={`create-from-${detail.id}`} className="grid gap-2">
+      <h3 id={`create-from-${detail.id}`} className="text-sm font-semibold text-primary">
+        Create from this opportunity
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=proposal`} icon={FileText}>
+          Proposal
+        </ActionLink>
+        <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=quotation`} icon={ReceiptText}>
+          Quotation
+        </ActionLink>
+        <ActionLink href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=mom`} icon={NotebookPen}>
+          Meeting notes
+        </ActionLink>
+        <ActionLink
+          href={`/${workspaceSlug}/summon/automation?${automationQuery}&intent=presentation`}
+          icon={Presentation}
+        >
+          Presentation
+        </ActionLink>
+        <ActionLink href={`/${workspaceSlug}/summon/assistant/`} icon={Sparkles}>
+          Open Assistant
+        </ActionLink>
+      </div>
+    </section>
+  );
+}
 
 /** Pipeline position at a glance; a lost deal ends the track rather than completing it. */
 function StageTrack({ stage }: { stage: TSummonOpportunityStage }) {

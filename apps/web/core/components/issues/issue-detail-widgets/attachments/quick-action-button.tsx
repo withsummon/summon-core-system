@@ -101,8 +101,8 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
         e.stopPropagation();
       }}
     >
+      <input {...getInputProps()} />
       <button {...getRootProps()} type="button" disabled={disabled}>
-        <input {...getInputProps()} />
         {customButton ? customButton : <PlusIcon className="h-4 w-4" />}
       </button>
     </div>

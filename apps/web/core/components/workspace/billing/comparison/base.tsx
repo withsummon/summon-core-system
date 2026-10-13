@@ -66,8 +66,8 @@ export const PlansComparisonBase = observer(function PlansComparisonBase(props: 
                   shouldRenderPlanDetail(planKey as TPlanePlans) && (
                     <div key={planKey} className="col-span-1 p-3">
                       <ul className="list-disc space-y-1 text-body-xs-regular">
-                        {highlights.map((highlight, index) => (
-                          <li key={index}>{highlight}</li>
+                        {highlights.map((highlight) => (
+                          <li key={highlight}>{highlight}</li>
                         ))}
                       </ul>
                     </div>

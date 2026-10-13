@@ -8,14 +8,16 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
+import { RESTRICTED_URLS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 // ui
-import { CustomSelect, Input } from "@plane/ui";
+import { Input } from "@plane/ui";
 import { validateWorkspaceName, validateSlug } from "@plane/utils";
+// components
+import { OrganizationSizeField } from "@/components/workspace/organization-size-field";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -54,6 +56,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
   // states
   const [slugError, setSlugError] = useState(false);
   const [invalidSlug, setInvalidSlug] = useState(false);
+  const [host] = useState(() => (typeof window !== "undefined" ? window.location.host : ""));
   // router
   const router = useAppRouter();
   // store hooks
@@ -161,7 +164,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
             <span className="ml-0.5 text-danger-primary">*</span>
           </label>
           <div className="flex w-full items-center rounded-md border border-subtle bg-layer-2 px-3">
-            <span className="text-12 whitespace-nowrap text-secondary">{window && window.location.host}/</span>
+            <span className="text-12 whitespace-nowrap text-secondary">{host}/</span>
             <Controller
               control={control}
               name="slug"
@@ -206,36 +209,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
             {t("workspace_creation.form.organization_size.label")}
             <span className="ml-0.5 text-danger-primary">*</span>
           </span>
-          <div className="w-full">
-            <Controller
-              name="organization_size"
-              control={control}
-              rules={{ required: t("common.errors.required") }}
-              render={({ field: { value, onChange } }) => (
-                <CustomSelect
-                  value={value}
-                  onChange={onChange}
-                  label={
-                    ORGANIZATION_SIZE.find((c) => c === value) ?? (
-                      <span className="text-placeholder">
-                        {t("workspace_creation.form.organization_size.placeholder")}
-                      </span>
-                    )
-                  }
-                  input
-                >
-                  {ORGANIZATION_SIZE.map((item) => (
-                    <CustomSelect.Option key={item} value={item}>
-                      {item}
-                    </CustomSelect.Option>
-                  ))}
-                </CustomSelect>
-              )}
-            />
-            {errors.organization_size && (
-              <span className="text-13 text-danger-primary">{errors.organization_size.message}</span>
-            )}
-          </div>
+          <OrganizationSizeField control={control} error={errors.organization_size} />
         </div>
       </div>
       <div className="flex items-center gap-4">

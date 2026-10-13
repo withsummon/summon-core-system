@@ -29,6 +29,7 @@ export const FilterState = observer(function FilterState(props: Props) {
   const { inboxFilters, handleInboxIssueFilters } = useProjectInbox();
 
   const filterValue = inboxFilters?.state || [];
+  const selectedValues = new Set(filterValue);
 
   const appliedFiltersCount = filterValue?.length ?? 0;
 
@@ -59,7 +60,7 @@ export const FilterState = observer(function FilterState(props: Props) {
                 {filteredOptions.slice(0, itemsToRender).map((state) => (
                   <FilterOption
                     key={state?.id}
-                    isChecked={filterValue?.includes(state?.id) ? true : false}
+                    isChecked={selectedValues.has(state?.id)}
                     onClick={() => handleInboxIssueFilters("state", handleFilterValue(state.id))}
                     icon={
                       <StateGroupIcon

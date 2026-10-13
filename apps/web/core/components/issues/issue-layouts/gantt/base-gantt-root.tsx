@@ -60,7 +60,8 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
   // derived values
-  const targetDate = new Date();
+  const startDate = new Date();
+  const targetDate = new Date(startDate);
   targetDate.setDate(targetDate.getDate() + 1);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   useEffect(() => {
     initGantt();
-  }, []);
+  }, [initGantt]);
 
   const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
@@ -105,7 +106,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
           message: "Error while updating work item dates, Please try again Later",
         });
       }),
-    [issues, projectId, workspaceSlug]
+    [issues, projectId, workspaceSlug, t]
   );
 
   const quickAdd =
@@ -115,7 +116,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
         QuickAddButton={GanttQuickAddIssueButton}
         containerClassName="sticky bottom-0 z-[1]"
         prePopulatedData={{
-          start_date: renderFormattedPayloadDate(new Date()),
+          start_date: renderFormattedPayloadDate(startDate),
           target_date: renderFormattedPayloadDate(targetDate),
         }}
         quickAddCallback={quickAddIssue}

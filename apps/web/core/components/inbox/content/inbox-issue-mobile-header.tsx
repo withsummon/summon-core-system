@@ -55,6 +55,143 @@ type Props = {
   handleActionWithPermission: (isAdmin: boolean, action: () => void, errorMessage: string) => void;
 };
 
+type TMobileActionsMenuProps = Pick<
+  Props,
+  | "canMarkAsAccepted"
+  | "canMarkAsDeclined"
+  | "canMarkAsDuplicate"
+  | "canDelete"
+  | "isAcceptedOrDeclined"
+  | "setAcceptIssueModal"
+  | "setDeclineIssueModal"
+  | "setDeleteIssueModal"
+  | "handleIssueSnoozeAction"
+  | "setSelectDuplicateIssue"
+  | "handleCopyIssueLink"
+  | "isProjectAdmin"
+  | "handleActionWithPermission"
+> & {
+  isSnoozed: boolean;
+  onOpen: () => void;
+};
+
+function InboxIssueMobileActionsMenu(props: TMobileActionsMenuProps) {
+  const {
+    canMarkAsAccepted,
+    canMarkAsDeclined,
+    canMarkAsDuplicate,
+    canDelete,
+    isAcceptedOrDeclined,
+    setAcceptIssueModal,
+    setDeclineIssueModal,
+    setDeleteIssueModal,
+    handleIssueSnoozeAction,
+    setSelectDuplicateIssue,
+    handleCopyIssueLink,
+    isProjectAdmin,
+    handleActionWithPermission,
+    isSnoozed,
+    onOpen,
+  } = props;
+
+  return (
+    <CustomMenu
+      customButton={<MoreHorizontal className="size-4" />}
+      customButtonClassName={getIconButtonStyling("secondary", "lg")}
+      placement="bottom-start"
+    >
+      {isAcceptedOrDeclined && (
+        <CustomMenu.MenuItem onClick={handleCopyIssueLink}>
+          <div className="flex items-center gap-2">
+            <LinkIcon width={14} height={14} strokeWidth={2} />
+            Copy work item link
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {isAcceptedOrDeclined && (
+        <CustomMenu.MenuItem onClick={onOpen}>
+          <div className="flex items-center gap-2">
+            <NewTabIcon width={14} height={14} strokeWidth={2} />
+            Open work item
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {canMarkAsAccepted && !isAcceptedOrDeclined && (
+        <CustomMenu.MenuItem
+          onClick={() =>
+            handleActionWithPermission(
+              isProjectAdmin,
+              handleIssueSnoozeAction,
+              "Only project admins can snooze/Un-snooze work items"
+            )
+          }
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={14} strokeWidth={2} />
+            {isSnoozed ? "Un-snooze" : "Snooze"}
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {canMarkAsDuplicate && !isAcceptedOrDeclined && (
+        <CustomMenu.MenuItem
+          onClick={() =>
+            handleActionWithPermission(
+              isProjectAdmin,
+              () => setSelectDuplicateIssue(true),
+              "Only project admins can mark work items as duplicate"
+            )
+          }
+        >
+          <div className="flex items-center gap-2">
+            <FileStack size={14} strokeWidth={2} />
+            Mark as duplicate
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {canMarkAsAccepted && (
+        <CustomMenu.MenuItem
+          onClick={() =>
+            handleActionWithPermission(
+              isProjectAdmin,
+              () => setAcceptIssueModal(true),
+              "Only project admins can accept work items"
+            )
+          }
+        >
+          <div className="flex items-center gap-2 text-success-secondary">
+            <CheckCircleFilledIcon width={14} height={14} />
+            Accept
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {canMarkAsDeclined && (
+        <CustomMenu.MenuItem
+          onClick={() =>
+            handleActionWithPermission(
+              isProjectAdmin,
+              () => setDeclineIssueModal(true),
+              "Only project admins can deny work items"
+            )
+          }
+        >
+          <div className="flex items-center gap-2 text-danger-secondary">
+            <CloseCircleFilledIcon width={14} height={14} />
+            Decline
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {canDelete && !isAcceptedOrDeclined && (
+        <CustomMenu.MenuItem onClick={() => setDeleteIssueModal(true)}>
+          <div className="flex items-center gap-2 text-danger-primary">
+            <TrashIcon height={14} width={14} strokeWidth={2} />
+            Delete
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+    </CustomMenu>
+  );
+}
+
 export const InboxIssueActionsMobileHeader = observer(function InboxIssueActionsMobileHeader(props: Props) {
   const {
     inboxIssue,
@@ -134,100 +271,11 @@ export const InboxIssueActionsMobileHeader = observer(function InboxIssueActions
           </div>
         </div>
         <div className="ml-auto">
-          <CustomMenu
-            customButton={<MoreHorizontal className="size-4" />}
-            customButtonClassName={getIconButtonStyling("secondary", "lg")}
-            placement="bottom-start"
-          >
-            {isAcceptedOrDeclined && (
-              <CustomMenu.MenuItem onClick={handleCopyIssueLink}>
-                <div className="flex items-center gap-2">
-                  <LinkIcon width={14} height={14} strokeWidth={2} />
-                  Copy work item link
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {isAcceptedOrDeclined && (
-              <CustomMenu.MenuItem onClick={() => router.push(workItemLink)}>
-                <div className="flex items-center gap-2">
-                  <NewTabIcon width={14} height={14} strokeWidth={2} />
-                  Open work item
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {canMarkAsAccepted && !isAcceptedOrDeclined && (
-              <CustomMenu.MenuItem
-                onClick={() =>
-                  handleActionWithPermission(
-                    isProjectAdmin,
-                    handleIssueSnoozeAction,
-                    "Only project admins can snooze/Un-snooze work items"
-                  )
-                }
-              >
-                <div className="flex items-center gap-2">
-                  <Clock size={14} strokeWidth={2} />
-                  {inboxIssue?.snoozed_till && numberOfDaysLeft && numberOfDaysLeft > 0 ? "Un-snooze" : "Snooze"}
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {canMarkAsDuplicate && !isAcceptedOrDeclined && (
-              <CustomMenu.MenuItem
-                onClick={() =>
-                  handleActionWithPermission(
-                    isProjectAdmin,
-                    () => setSelectDuplicateIssue(true),
-                    "Only project admins can mark work items as duplicate"
-                  )
-                }
-              >
-                <div className="flex items-center gap-2">
-                  <FileStack size={14} strokeWidth={2} />
-                  Mark as duplicate
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {canMarkAsAccepted && (
-              <CustomMenu.MenuItem
-                onClick={() =>
-                  handleActionWithPermission(
-                    isProjectAdmin,
-                    () => setAcceptIssueModal(true),
-                    "Only project admins can accept work items"
-                  )
-                }
-              >
-                <div className="flex items-center gap-2 text-success-secondary">
-                  <CheckCircleFilledIcon width={14} height={14} />
-                  Accept
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {canMarkAsDeclined && (
-              <CustomMenu.MenuItem
-                onClick={() =>
-                  handleActionWithPermission(
-                    isProjectAdmin,
-                    () => setDeclineIssueModal(true),
-                    "Only project admins can deny work items"
-                  )
-                }
-              >
-                <div className="flex items-center gap-2 text-danger-secondary">
-                  <CloseCircleFilledIcon width={14} height={14} />
-                  Decline
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-            {canDelete && !isAcceptedOrDeclined && (
-              <CustomMenu.MenuItem onClick={() => setDeleteIssueModal(true)}>
-                <div className="flex items-center gap-2 text-danger-primary">
-                  <TrashIcon height={14} width={14} strokeWidth={2} />
-                  Delete
-                </div>
-              </CustomMenu.MenuItem>
-            )}
-          </CustomMenu>
+          <InboxIssueMobileActionsMenu
+            {...props}
+            isSnoozed={!!inboxIssue.snoozed_till && !!numberOfDaysLeft && numberOfDaysLeft > 0}
+            onOpen={() => router.push(workItemLink)}
+          />
         </div>
       </div>
     </Header>

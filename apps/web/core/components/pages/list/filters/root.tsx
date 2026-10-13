@@ -34,20 +34,18 @@ export const PageFiltersSelection = observer(function PageFiltersSelection(props
   }, [isMobile]);
 
   const handleFilters = (key: keyof TPageFilterProps, value: boolean | string | string[]) => {
-    const newValues = filters.filters?.[key] ?? [];
+    const currentValues = filters.filters?.[key] ?? [];
 
-    if (typeof newValues === "boolean" && typeof value === "boolean") return;
+    if (typeof currentValues === "boolean" && typeof value === "boolean") return;
 
-    if (Array.isArray(newValues)) {
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else if (typeof value === "string") {
-        if (newValues?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
+    let newValues = currentValues;
+    if (Array.isArray(currentValues) && typeof value !== "boolean") {
+      const selected = new Set(currentValues);
+      for (const val of Array.isArray(value) ? value : [value]) {
+        if (selected.has(val)) selected.delete(val);
+        else selected.add(val);
       }
+      newValues = Array.from(selected);
     }
 
     handleFiltersUpdate("filters", {
@@ -65,6 +63,7 @@ export const PageFiltersSelection = observer(function PageFiltersSelection(props
             ref={inputRef}
             type="text"
             className="w-full outline-none placeholder:text-placeholder"
+            aria-label="Search page filters"
             placeholder="Search"
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
@@ -30,8 +30,8 @@ export const SelectChannel = observer(function SelectChannel({ integration }: Pr
   // store hooks
   const { config } = useInstance();
   // states
-  const [slackChannelAvailabilityToggle, setSlackChannelAvailabilityToggle] = useState<boolean>(false);
-  const [slackChannel, setSlackChannel] = useState<ISlackIntegration | null>(null);
+  // id of the channel the user just removed, hidden until a new one is connected
+  const [removedChannelId, setRemovedChannelId] = useState<string | undefined>(undefined);
 
   const { workspaceSlug, projectId } = useParams();
 
@@ -51,17 +51,12 @@ export const SelectChannel = observer(function SelectChannel({ integration }: Pr
         : null
   );
 
-  useEffect(() => {
-    if (projectId && projectIntegration && projectIntegration.length > 0) {
-      const projectSlackIntegrationCheck: ISlackIntegration | undefined = projectIntegration.find(
-        (_slack: ISlackIntegration) => _slack.project === projectId
-      );
-      if (projectSlackIntegrationCheck) {
-        setSlackChannel(() => projectSlackIntegrationCheck);
-        setSlackChannelAvailabilityToggle(true);
-      }
-    }
-  }, [projectIntegration, projectId]);
+  const projectSlackChannel: ISlackIntegration | undefined =
+    projectId && Array.isArray(projectIntegration)
+      ? projectIntegration.find((_slack: ISlackIntegration) => _slack.project === projectId)
+      : undefined;
+  const slackChannel = projectSlackChannel && projectSlackChannel.id !== removedChannelId ? projectSlackChannel : null;
+  const slackChannelAvailabilityToggle = !!slackChannel;
 
   const handleDelete = async () => {
     if (!workspaceSlug || !projectId) return;
@@ -70,8 +65,7 @@ export const SelectChannel = observer(function SelectChannel({ integration }: Pr
       if (!prevData) return;
       return prevData.id !== integration.id;
     }).then(() => {
-      setSlackChannelAvailabilityToggle(false);
-      setSlackChannel(null);
+      setRemovedChannelId(slackChannel?.id);
     });
     appInstallationService
       .removeSlackChannel(workspaceSlug, projectId, integration.id, slackChannel?.id)

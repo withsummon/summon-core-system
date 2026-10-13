@@ -191,6 +191,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     // The collaboration URL is derived from window.location, so it can only be
     // built on the client. There is no socket to connect to during SSR anyway —
     // the config is recomputed on hydration.
+    // react-doctor-disable-next-line no-hydration-branch-on-browser-global -- web builds with `ssr: false` (react-router.config.ts), so there is no hydration pass for this branch to diverge in
     if (typeof window === "undefined") return undefined;
 
     // Construct the WebSocket Collaboration URL
@@ -249,16 +250,15 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           <div className="page-summary-container absolute top-[64px] right-0 z-[5] h-full">
             <div className="sticky top-[72px]">
               <div className="group/page-toc relative px-page-x">
-                {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events */}
-                <div
-                  className="max-h-[50vh] !cursor-pointer overflow-hidden"
-                  // oxlint-disable-next-line jsx_a11y/prefer-tag-over-role
-                  role="button"
+                {/* the outline variant renders only decorative bars, so it can live inside the button */}
+                <button
+                  type="button"
+                  className="block max-h-[50vh] w-full !cursor-pointer overflow-hidden"
                   aria-label={t("page_navigation_pane.outline_floating_button")}
                   onClick={handleOpenNavigationPane}
                 >
                   <PageContentBrowser className="overflow-y-auto" editorRef={editorRef} showOutline />
-                </div>
+                </button>
                 <div className="vertical-scrollbar pointer-events-none absolute top-0 right-0 scrollbar-sm max-h-[70vh] w-52 translate-x-1/2 overflow-y-scroll rounded-sm bg-surface-2 p-4 whitespace-nowrap opacity-0 transition-[translate,opacity] duration-300 group-hover/page-toc:pointer-events-auto group-hover/page-toc:-translate-x-1/4 group-hover/page-toc:opacity-100">
                   <PageContentBrowser className="overflow-y-auto" editorRef={editorRef} />
                 </div>

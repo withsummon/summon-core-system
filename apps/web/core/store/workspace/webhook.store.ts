@@ -96,12 +96,13 @@ export class WebhookStore implements IWebhookStore {
    */
   fetchWebhooks = async (workspaceSlug: string) =>
     await this.webhookService.fetchWebhooksList(workspaceSlug).then((response) => {
-      const webHookObject: { [webhookId: string]: IWebhook } = response.reduce((accumulator, currentWebhook) => {
-        if (currentWebhook && currentWebhook.id) {
-          return { ...accumulator, [currentWebhook.id]: currentWebhook };
-        }
-        return accumulator;
-      }, {});
+      const webHookObject: { [webhookId: string]: IWebhook } = response.reduce(
+        (accumulator, currentWebhook) => {
+          if (currentWebhook && currentWebhook.id) accumulator[currentWebhook.id] = currentWebhook;
+          return accumulator;
+        },
+        {} as Record<string, (typeof response)[number]>
+      );
       runInAction(() => {
         this.webhooks = webHookObject;
       });

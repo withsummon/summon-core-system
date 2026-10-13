@@ -92,7 +92,10 @@ test("Power-K keeps native creation and adds Summon form actions", () => {
 });
 
 test("Credential and settings screens expose only safe configuration fields", () => {
-  const credentialPage = read("apps/web/app/(all)/[workspaceSlug]/(projects)/summon/credentials/page.tsx");
+  // The credentials route composes its form and panels from sibling files.
+  const credentialPage = ["page.tsx", "credential-form.tsx", "credential-detail-drawer.tsx", "credential-table.tsx"]
+    .map((file) => read(`apps/web/app/(all)/[workspaceSlug]/(projects)/summon/credentials/${file}`))
+    .join("\n");
   const credentialDrawer = read("apps/web/core/components/summon/credential-drawer.tsx");
   const settingsPage = read("apps/web/app/(all)/[workspaceSlug]/(projects)/summon/settings/page.tsx");
 

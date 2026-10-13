@@ -41,9 +41,10 @@ import type { Route } from "./+types/page";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
 import { DatePicker } from "@plane/propel/date-picker";
 import { SummonSearchField } from "@/components/summon/search-field";
+import { renderFormattedDate } from "@plane/utils";
 
 const formatShortDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(new Date(value)) : null;
+  (value ? renderFormattedDate(new Date(value), "MMM d") : undefined) ?? null;
 
 export default function SummonOpportunitiesPage(props: Route.ComponentProps) {
   return (
@@ -152,84 +153,37 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
             aria-label="Opportunity results"
             role="region"
           >
-            {!data ? (
-              <div className="p-4">
-                <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
-              </div>
-            ) : !visible.length ? (
-              <div className="grid gap-3 p-6 text-center">
-                <p className="text-13 font-medium text-primary">No opportunities match</p>
-                <p className="text-12 text-secondary">
-                  {query ? `Nothing matches “${query}”` : "This stage is empty"}
-                  {stage !== "all" ? ` in ${OPPORTUNITY_STAGE_LABEL[stage]}.` : "."}
-                </p>
-                <div className="flex justify-center gap-2">
-                  {query ? (
-                    <Button size="xl" variant="secondary" onClick={() => setQuery("")}>
-                      Clear search
-                    </Button>
-                  ) : null}
-                  {stage !== "all" ? (
-                    <Button size="xl" variant="secondary" onClick={() => router.replace(hrefFor({ stage: "all" }))}>
-                      Show all stages
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="vertical-scrollbar min-h-0 flex-1 overflow-y-auto">
-                <ViewPanel value={stage}>
-                  {groups.map((group) => (
-                    <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
-                      <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-12 font-semibold text-secondary backdrop-blur">
-                        <span
-                          aria-hidden
-                          className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`}
-                        />
-                        {OPPORTUNITY_STAGE_LABEL[group.stage]}
-                        <span className="font-normal text-tertiary tabular-nums">{group.items.length}</span>
-                      </h2>
-                      <ul>
-                        {group.items.map((opportunity) => (
-                          <OpportunityRow
-                            key={opportunity.id}
-                            opportunity={opportunity}
-                            clientName={opportunity.client ? clientNames.get(opportunity.client) : undefined}
-                            href={hrefFor({ opportunity: opportunity.id })}
-                            selected={selected?.id === opportunity.id}
-                            workspaceSlug={workspaceSlug}
-                          />
-                        ))}
-                      </ul>
-                    </section>
-                  ))}
-                </ViewPanel>
-              </div>
-            )}
+            <OpportunityResults
+              data={data}
+              isLoading={isLoading}
+              error={error}
+              onRetry={() => void mutate()}
+              groups={groups}
+              hasVisible={visible.length > 0}
+              query={query}
+              stage={stage}
+              clientNames={clientNames}
+              selectedId={selected?.id}
+              workspaceSlug={workspaceSlug}
+              hrefFor={hrefFor}
+              onClearQuery={() => setQuery("")}
+              onShowAllStages={() => router.replace(hrefFor({ stage: "all" }))}
+            />
           </div>
 
           <div
             className={`vertical-scrollbar min-h-0 overflow-y-auto bg-layer-1/25 p-4 lg:p-5 @3xl:block ${explicit ? "block" : "hidden"}`}
           >
-            {inspected ? (
-              <OpportunityInspector
-                workspaceSlug={workspaceSlug}
-                detail={inspected}
-                onChanged={() => Promise.all([mutate(), mutateDetail()])}
-                backHref={hrefFor({ opportunity: null })}
-                backClassName="@3xl:hidden"
-              />
-            ) : (
-              <SummonRequestState
-                loading={Boolean(selected) && (detailLoading || !detailError)}
-                error={detailError}
-                empty={!selected}
-                emptyAsset="opportunity"
-                emptyTitle="No opportunities here"
-                emptyMessage="Change the stage or search to see opportunities."
-                onRetry={() => void mutateDetail()}
-              />
-            )}
+            <OpportunityInspectorPane
+              workspaceSlug={workspaceSlug}
+              selectedId={selected?.id}
+              inspected={inspected}
+              detailLoading={detailLoading}
+              detailError={detailError}
+              backHref={hrefFor({ opportunity: null })}
+              onChanged={() => Promise.all([mutate(), mutateDetail()])}
+              onRetry={() => void mutateDetail()}
+            />
           </div>
         </div>
       </div>
@@ -244,6 +198,125 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
         onCreated={onCreated}
       />
     </section>
+  );
+}
+
+type TOpportunityGroups = Array<{ stage: TSummonOpportunityStage; items: ISummonOpportunity[] }>;
+
+function OpportunityResults(props: {
+  data: ISummonOpportunity[] | undefined;
+  isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
+  groups: TOpportunityGroups;
+  hasVisible: boolean;
+  query: string;
+  stage: TStageFilter;
+  clientNames: Map<string, string>;
+  selectedId: string | undefined;
+  workspaceSlug: string;
+  hrefFor: (next: { stage?: TStageFilter; opportunity?: string | null }) => string;
+  onClearQuery: () => void;
+  onShowAllStages: () => void;
+}) {
+  const {
+    data,
+    isLoading,
+    error,
+    onRetry,
+    groups,
+    hasVisible,
+    query,
+    stage,
+    clientNames,
+    selectedId,
+    workspaceSlug,
+    hrefFor,
+    onClearQuery,
+    onShowAllStages,
+  } = props;
+  return !data ? (
+    <div className="p-4">
+      <SummonRequestState loading={isLoading} error={error} onRetry={onRetry} />
+    </div>
+  ) : !hasVisible ? (
+    <div className="grid gap-3 p-6 text-center">
+      <p className="text-13 font-medium text-primary">No opportunities match</p>
+      <p className="text-12 text-secondary">
+        {query ? `Nothing matches “${query}”` : "This stage is empty"}
+        {stage !== "all" ? ` in ${OPPORTUNITY_STAGE_LABEL[stage]}.` : "."}
+      </p>
+      <div className="flex justify-center gap-2">
+        {query ? (
+          <Button size="xl" variant="secondary" onClick={onClearQuery}>
+            Clear search
+          </Button>
+        ) : null}
+        {stage !== "all" ? (
+          <Button size="xl" variant="secondary" onClick={onShowAllStages}>
+            Show all stages
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  ) : (
+    <div className="vertical-scrollbar min-h-0 flex-1 overflow-y-auto">
+      <ViewPanel value={stage}>
+        {groups.map((group) => (
+          <section key={group.stage} aria-label={OPPORTUNITY_STAGE_LABEL[group.stage]}>
+            <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-subtle bg-layer-1/95 px-4 text-12 font-semibold text-secondary backdrop-blur">
+              <span aria-hidden className={`size-2 rounded-full ${OPPORTUNITY_STAGE_TONE[group.stage].dot}`} />
+              {OPPORTUNITY_STAGE_LABEL[group.stage]}
+              <span className="font-normal text-tertiary tabular-nums">{group.items.length}</span>
+            </h2>
+            <ul>
+              {group.items.map((opportunity) => (
+                <OpportunityRow
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  clientName={opportunity.client ? clientNames.get(opportunity.client) : undefined}
+                  href={hrefFor({ opportunity: opportunity.id })}
+                  selected={selectedId === opportunity.id}
+                  workspaceSlug={workspaceSlug}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </ViewPanel>
+    </div>
+  );
+}
+
+function OpportunityInspectorPane(props: {
+  workspaceSlug: string;
+  selectedId: string | undefined;
+  inspected: Parameters<typeof OpportunityInspector>[0]["detail"] | undefined;
+  detailLoading: boolean;
+  detailError: unknown;
+  backHref: string;
+  onChanged: () => Promise<unknown>;
+  onRetry: () => void;
+}) {
+  const { workspaceSlug, selectedId, inspected, detailLoading, detailError, backHref, onChanged, onRetry } = props;
+  return inspected ? (
+    <OpportunityInspector
+      workspaceSlug={workspaceSlug}
+      detail={inspected}
+      onChanged={onChanged}
+      backHref={backHref}
+      backClassName="@3xl:hidden"
+    />
+  ) : (
+    <SummonRequestState
+      loading={Boolean(selectedId) && (detailLoading || !detailError)}
+      error={detailError}
+      empty={!selectedId}
+      emptyAsset="opportunity"
+      emptyTitle="No opportunities here"
+      emptyMessage="Change the stage or search to see opportunities."
+      onRetry={onRetry}
+    />
   );
 }
 

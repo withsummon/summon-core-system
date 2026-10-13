@@ -145,31 +145,26 @@ export function GptAssistantPopover(props: Props) {
     responseRef.current?.setEditorValue(`<p>${response}</p>`);
   }, [response, responseRef]);
 
+  // Keep the window listener stable while it always calls the latest submit/close handlers.
+  const handleKeyDownRef = useRef<(event: KeyboardEvent) => void>(() => {});
   useEffect(() => {
-    const handleEnterKeyPress = (event: KeyboardEvent) => {
+    handleKeyDownRef.current = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         handleSubmit(handleAIResponse)();
       }
-    };
-
-    const handleEscapeKeyPress = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
       }
     };
+  });
 
-    if (isOpen) {
-      window.addEventListener("keydown", handleEnterKeyPress);
-      window.addEventListener("keydown", handleEscapeKeyPress);
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleEnterKeyPress);
-      window.removeEventListener("keydown", handleEscapeKeyPress);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, handleSubmit, onClose]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => handleKeyDownRef.current(event);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   const responseActionButton = response !== "" && (
     <Button

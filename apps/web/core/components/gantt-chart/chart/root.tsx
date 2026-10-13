@@ -81,6 +81,8 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
   // states
   const [itemsContainerWidth, setItemsContainerWidth] = useState(0);
   const [fullScreenMode, setFullScreenMode] = useState(false);
+  // resolved when full screen is toggled, so render never touches `document`
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   // hooks
   const {
     currentView,
@@ -117,14 +119,13 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
       if (side === "left") {
         updateCurrentView(selectedCurrentView);
         updateRenderView(mergeRenderPayloads(currentRender.payload, renderView));
-        updateItemsContainerWidth(currentRender.scrollWidth);
         if (!targetDate) updateCurrentLeftScrollPosition(currentRender.scrollWidth);
         updateAllBlocksOnChartChangeWhileDragging(currentRender.scrollWidth);
-        setItemsContainerWidth(itemsContainerWidth + currentRender.scrollWidth);
+        setItemsContainerWidth((width) => width + currentRender.scrollWidth);
       } else if (side === "right") {
         updateCurrentView(view);
         updateRenderView(mergeRenderPayloads(renderView, currentRender.payload));
-        setItemsContainerWidth(itemsContainerWidth + currentRender.scrollWidth);
+        setItemsContainerWidth((width) => width + currentRender.scrollWidth);
       } else {
         updateCurrentView(view);
         updateRenderView(currentRender.payload);
@@ -145,12 +146,6 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     handleToday();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const updateItemsContainerWidth = (width: number) => {
-    const scrollContainer = document.querySelector("#gantt-container") as HTMLDivElement;
-    if (!scrollContainer) return;
-    setItemsContainerWidth(width + scrollContainer?.scrollLeft);
-  };
 
   const updateCurrentLeftScrollPosition = (width: number) => {
     const scrollContainer = document.querySelector("#gantt-container") as HTMLDivElement;
@@ -176,8 +171,6 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     scrollContainer.scrollLeft = scrollWidth;
   };
 
-  const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
-
   const content = (
     <div
       className={cn("shadow relative flex h-full flex-col rounded-xs bg-surface-1 select-none", {
@@ -188,7 +181,10 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
       <GanttChartHeader
         blockIds={blockIds}
         fullScreenMode={fullScreenMode}
-        toggleFullScreenMode={() => setFullScreenMode((prevData) => !prevData)}
+        toggleFullScreenMode={() => {
+          setPortalContainer(document.getElementById("full-screen-portal"));
+          setFullScreenMode((prevData) => !prevData);
+        }}
         handleChartView={(key) => updateCurrentViewRenderPayload(null, key)}
         handleToday={handleToday}
         loaderTitle={loaderTitle}

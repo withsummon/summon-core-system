@@ -100,7 +100,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
       });
       return;
     },
-    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities]
+    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities, t]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

@@ -85,6 +85,7 @@ type LabelSummaryProps = {
 
 function LabelSummary({ isMobile, fullWidth, noLabelBorder, disabled, projectLabels, value }: LabelSummaryProps) {
   const { t } = useTranslation();
+  const selectedLabelIds = new Set(value);
   return (
     <div
       className={cn(
@@ -99,7 +100,7 @@ function LabelSummary({ isMobile, fullWidth, noLabelBorder, disabled, projectLab
         position="top"
         tooltipHeading={t("common.labels")}
         tooltipContent={projectLabels
-          ?.filter((l) => value.includes(l?.id))
+          ?.filter((l) => selectedLabelIds.has(l?.id))
           .map((l) => l?.name)
           .join(", ")}
         renderByDefault={false}
@@ -206,13 +207,14 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
 
   let projectLabels: IIssueLabel[] = defaultOptions as IIssueLabel[];
   if (storeLabels && storeLabels.length > 0) projectLabels = storeLabels;
+  const selectedLabelIds = new Set(value);
 
   return (
     <>
       {value.length > 0 ? (
         value.length <= maxRender ? (
           projectLabels
-            ?.filter((l) => value.includes(l?.id))
+            ?.filter((l) => selectedLabelIds.has(l?.id))
             .map((label) => (
               <LabelDropdown
                 key={label.id}

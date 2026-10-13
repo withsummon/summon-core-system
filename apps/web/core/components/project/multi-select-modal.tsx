@@ -52,6 +52,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
     [projectIds, getProjectById]
   );
   const areSelectedProjectsChanged = xor(selectedProjectIds, selectedProjectIdsProp).length > 0;
+  const selectedProjectIdSet = new Set(selectedProjectIds);
   const filteredProjectIds = projectIds.filter((id) => {
     const project = projectDetailsMap.get(id);
     const projectQuery = `${project?.identifier} ${project?.name}`.toLowerCase();
@@ -73,8 +74,11 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    await onSubmit(selectedProjectIds);
-    setIsSubmitting(false);
+    try {
+      await onSubmit(selectedProjectIds);
+    } finally {
+      setIsSubmitting(false);
+    }
     handleClose();
   };
 
@@ -141,7 +145,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
               {filteredProjectIds.map((projectId) => {
                 const projectDetails = projectDetailsMap.get(projectId);
                 if (!projectDetails) return null;
-                const isProjectSelected = selectedProjectIds.includes(projectDetails.id);
+                const isProjectSelected = selectedProjectIdSet.has(projectDetails.id);
                 return (
                   <Combobox.Item
                     key={projectDetails.id}

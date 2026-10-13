@@ -28,9 +28,11 @@ export function LayoutSwitcher(props: Props) {
     }
   };
 
+  const allowedLayouts = layouts ? new Set(layouts) : undefined;
+
   return (
     <div className="flex items-center gap-1 rounded-md bg-layer-3 p-1">
-      {BASE_LAYOUTS.filter((l) => (layouts ? layouts.includes(l.key) : true)).map((layout) => {
+      {BASE_LAYOUTS.filter((l) => (allowedLayouts ? allowedLayouts.has(l.key) : true)).map((layout) => {
         const Icon = layout.icon;
         return (
           <Tooltip key={layout.key} tooltipContent={t(layout.label)} isMobile={isMobile}>

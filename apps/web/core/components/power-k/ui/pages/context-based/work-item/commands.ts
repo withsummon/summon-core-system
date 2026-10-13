@@ -35,7 +35,7 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
 
-export const usePowerKWorkItemContextBasedCommands = (): TPowerKCommandConfig[] => {
+const usePowerKWorkItemEntity = () => {
   // params
   const { workspaceSlug, workItem: entityIdentifier } = useParams();
   // store
@@ -43,12 +43,58 @@ export const usePowerKWorkItemContextBasedCommands = (): TPowerKCommandConfig[] 
     data: currentUser,
     permission: { allowPermissions },
   } = useUser();
-  const { toggleDeleteIssueModal } = useCommandPalette();
   const { getProjectById } = useProject();
   const { areEstimateEnabledByProjectId } = useProjectEstimates();
   const {
-    issue: { getIssueById, getIssueIdByIdentifier, addCycleToIssue, removeIssueFromCycle, changeModulesInIssue },
-    subscription: { getSubscriptionByIssueId, createSubscription, removeSubscription },
+    issue: { getIssueById, getIssueIdByIdentifier },
+    subscription: { getSubscriptionByIssueId },
+  } = useIssueDetail(EIssueServiceType.ISSUES);
+  // derived values
+  const entityId = entityIdentifier ? getIssueIdByIdentifier(entityIdentifier.toString()) : null;
+  const entityDetails = entityId ? getIssueById(entityId) : null;
+  const projectDetails = entityDetails?.project_id ? getProjectById(entityDetails?.project_id) : undefined;
+  const isEstimateEnabled = entityDetails?.project_id
+    ? areEstimateEnabledByProjectId(entityDetails?.project_id)
+    : false;
+  // permission
+  const isEditingAllowed =
+    allowPermissions(
+      [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+      EUserPermissionsLevel.PROJECT,
+      workspaceSlug?.toString(),
+      entityDetails?.project_id ?? undefined
+    ) && !entityDetails?.archived_at;
+
+  return {
+    workspaceSlug,
+    currentUser,
+    entityDetails,
+    isEpic: !!entityDetails?.is_epic,
+    projectDetails,
+    isCurrentUserAssigned: !!entityDetails?.assignee_ids?.includes(currentUser?.id ?? ""),
+    isEstimateEnabled,
+    isSubscribed: Boolean(entityId ? getSubscriptionByIssueId(entityId) : false),
+    isEditingAllowed,
+  };
+};
+
+export const usePowerKWorkItemContextBasedCommands = (): TPowerKCommandConfig[] => {
+  const {
+    workspaceSlug,
+    currentUser,
+    entityDetails,
+    isEpic,
+    projectDetails,
+    isCurrentUserAssigned,
+    isEstimateEnabled,
+    isSubscribed,
+    isEditingAllowed,
+  } = usePowerKWorkItemEntity();
+  // store
+  const { toggleDeleteIssueModal } = useCommandPalette();
+  const {
+    issue: { addCycleToIssue, removeIssueFromCycle, changeModulesInIssue },
+    subscription: { createSubscription, removeSubscription },
     updateIssue,
   } = useIssueDetail(EIssueServiceType.ISSUES);
   const {
@@ -60,30 +106,12 @@ export const usePowerKWorkItemContextBasedCommands = (): TPowerKCommandConfig[] 
     subscription: { createSubscription: createEpicSubscription, removeSubscription: removeEpicSubscription },
     updateIssue: updateEpic,
   } = useIssueDetail(EIssueServiceType.EPICS);
-  // derived values
-  const entityId = entityIdentifier ? getIssueIdByIdentifier(entityIdentifier.toString()) : null;
-  const entityDetails = entityId ? getIssueById(entityId) : null;
-  const isEpic = !!entityDetails?.is_epic;
-  const projectDetails = entityDetails?.project_id ? getProjectById(entityDetails?.project_id) : undefined;
-  const isCurrentUserAssigned = !!entityDetails?.assignee_ids?.includes(currentUser?.id ?? "");
-  const isEstimateEnabled = entityDetails?.project_id
-    ? areEstimateEnabledByProjectId(entityDetails?.project_id)
-    : false;
-  const isSubscribed = Boolean(entityId ? getSubscriptionByIssueId(entityId) : false);
   // translation
   const { t } = useTranslation();
   // handlers
   const updateEntity = isEpic ? updateEpic : updateIssue;
   const createEntitySubscription = isEpic ? createEpicSubscription : createSubscription;
   const removeEntitySubscription = isEpic ? removeEpicSubscription : removeSubscription;
-  // permission
-  const isEditingAllowed =
-    allowPermissions(
-      [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-      EUserPermissionsLevel.PROJECT,
-      workspaceSlug?.toString(),
-      entityDetails?.project_id ?? undefined
-    ) && !entityDetails?.archived_at;
 
   const handleUpdateEntity = useCallback(
     async (formData: Partial<TIssue>) => {

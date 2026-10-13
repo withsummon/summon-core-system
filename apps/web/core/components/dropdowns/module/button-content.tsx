@@ -26,11 +26,58 @@ type ModuleButtonContentProps = {
   className?: string;
 };
 
-export function ModuleButtonContent(props: ModuleButtonContentProps) {
+function getModuleCountLabel(moduleIds: string[], firstModuleName: string | undefined, placeholder?: string) {
+  if (moduleIds.length === 0) return placeholder;
+  if (moduleIds.length === 1) return `${firstModuleName || "module"}`;
+  return `${moduleIds.length} Modules`;
+}
+
+type TModuleChipProps = {
+  moduleName: string | undefined;
+  className?: string;
+  hideIcon: boolean;
+  hideText: boolean;
+  showTooltip: boolean;
+  isMobile: boolean;
+  /** Omitted when the dropdown is disabled. */
+  onRemove?: () => void;
+};
+
+function ModuleChip(props: TModuleChipProps) {
+  const { moduleName, className, hideIcon, hideText, showTooltip, isMobile, onRemove } = props;
+  return (
+    <div className={cn("flex max-w-full items-center gap-1 rounded-sm bg-layer-1 py-1 text-secondary", className)}>
+      {!hideIcon && <ModuleIcon className="h-2.5 w-2.5 flex-shrink-0" />}
+      {!hideText && (
+        <Tooltip
+          tooltipHeading="Title"
+          tooltipContent={moduleName}
+          disabled={!showTooltip}
+          isMobile={isMobile}
+          renderByDefault={false}
+        >
+          <span className="max-w-40 truncate text-11 font-medium">{moduleName}</span>
+        </Tooltip>
+      )}
+      {onRemove && (
+        <Tooltip tooltipContent="Remove" disabled={!showTooltip} isMobile={isMobile} renderByDefault={false}>
+          <button
+            type="button"
+            className="flex-shrink-0"
+            aria-label={`Remove ${moduleName ?? "module"}`}
+            onClick={onRemove}
+          >
+            <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
+
+function MultiModuleValue(props: ModuleButtonContentProps & { value: string[] }) {
   const {
     disabled,
-    dropdownArrow,
-    dropdownArrowClassName,
     hideIcon,
     hideText,
     onChange,
@@ -44,91 +91,72 @@ export function ModuleButtonContent(props: ModuleButtonContentProps) {
   const { getModuleById } = useModule();
   const { isMobile } = usePlatformOS();
 
-  if (Array.isArray(value))
+  if (showCount)
     return (
-      <>
-        {showCount ? (
-          <div className="relative flex max-w-full items-center gap-1">
-            {!hideIcon && <ModuleIcon className="h-3 w-3 flex-shrink-0" />}
-            {(value.length > 0 || !!placeholder) && (
-              <div className="max-w-40 truncate">
-                {value.length > 0
-                  ? value.length === 1
-                    ? `${getModuleById(value[0])?.name || "module"}`
-                    : `${value.length} Module${value.length === 1 ? "" : "s"}`
-                  : placeholder}
-              </div>
-            )}
+      <div className="relative flex max-w-full items-center gap-1">
+        {!hideIcon && <ModuleIcon className="h-3 w-3 flex-shrink-0" />}
+        {(value.length > 0 || !!placeholder) && (
+          <div className="max-w-40 truncate">
+            {getModuleCountLabel(value, getModuleById(value[0])?.name, placeholder)}
           </div>
-        ) : value.length > 0 ? (
-          <div className="flex max-w-full flex-grow flex-wrap items-center gap-2 truncate py-0.5">
-            {value.map((moduleId) => {
-              const moduleDetails = getModuleById(moduleId);
-              return (
-                <div
-                  key={moduleId}
-                  className={cn(
-                    "flex max-w-full items-center gap-1 rounded-sm bg-layer-1 py-1 text-secondary",
-                    className
-                  )}
-                >
-                  {!hideIcon && <ModuleIcon className="h-2.5 w-2.5 flex-shrink-0" />}
-                  {!hideText && (
-                    <Tooltip
-                      tooltipHeading="Title"
-                      tooltipContent={moduleDetails?.name}
-                      disabled={!showTooltip}
-                      isMobile={isMobile}
-                      renderByDefault={false}
-                    >
-                      <span className="max-w-40 truncate text-11 font-medium">{moduleDetails?.name}</span>
-                    </Tooltip>
-                  )}
-                  {!disabled && (
-                    <Tooltip
-                      tooltipContent="Remove"
-                      disabled={!showTooltip}
-                      isMobile={isMobile}
-                      renderByDefault={false}
-                    >
-                      <button
-                        type="button"
-                        className="flex-shrink-0"
-                        aria-label={`Remove ${moduleDetails?.name ?? "module"}`}
-                        onClick={() => {
-                          const newModuleIds = value.filter((m) => m !== moduleId);
-                          onChange(newModuleIds);
-                        }}
-                      >
-                        <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-                      </button>
-                    </Tooltip>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <>
-            {!hideIcon && <ModuleIcon className="h-3 w-3 flex-shrink-0" />}
-            <span className="flex-grow truncate text-left">{placeholder}</span>
-          </>
         )}
-        {dropdownArrow && (
-          <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
-        )}
-      </>
+      </div>
     );
-  else
+
+  if (value.length === 0)
     return (
       <>
         {!hideIcon && <ModuleIcon className="h-3 w-3 flex-shrink-0" />}
-        {!hideText && (
-          <span className="flex-grow truncate text-left">{value ? getModuleById(value)?.name : placeholder}</span>
-        )}
-        {dropdownArrow && (
-          <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
-        )}
+        <span className="flex-grow truncate text-left">{placeholder}</span>
       </>
     );
+
+  return (
+    <div className="flex max-w-full flex-grow flex-wrap items-center gap-2 truncate py-0.5">
+      {value.map((moduleId) => (
+        <ModuleChip
+          key={moduleId}
+          moduleName={getModuleById(moduleId)?.name}
+          className={className}
+          hideIcon={hideIcon}
+          hideText={hideText}
+          showTooltip={showTooltip}
+          isMobile={isMobile}
+          onRemove={disabled ? undefined : () => onChange(value.filter((m) => m !== moduleId))}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SingleModuleValue(props: ModuleButtonContentProps & { value: string | null }) {
+  const { hideIcon, hideText, placeholder, value } = props;
+  // store hooks
+  const { getModuleById } = useModule();
+
+  return (
+    <>
+      {!hideIcon && <ModuleIcon className="h-3 w-3 flex-shrink-0" />}
+      {!hideText && (
+        <span className="flex-grow truncate text-left">{value ? getModuleById(value)?.name : placeholder}</span>
+      )}
+    </>
+  );
+}
+
+export function ModuleButtonContent(props: ModuleButtonContentProps) {
+  const { dropdownArrow, dropdownArrowClassName, value } = props;
+
+  return (
+    <>
+      {Array.isArray(value) ? (
+        <MultiModuleValue {...props} value={value} />
+      ) : (
+        <SingleModuleValue {...props} value={value} />
+      )}
+      {dropdownArrow && (
+        <ChevronDownIcon className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)} aria-hidden="true" />
+      )}
+    </>
+  );
 }

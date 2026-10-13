@@ -7,15 +7,13 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 
-import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 import type { TViewFilterProps, TViewFilters } from "@plane/types";
 import { EViewAccess } from "@plane/types";
 // components
 import { FilterCreatedDate } from "@/components/common/filters/created-at";
 import { FilterCreatedBy } from "@/components/common/filters/created-by";
+import { FiltersSearch } from "@/components/common/filters/filters-search";
 import { FilterOption } from "@/components/issues/issue-layouts/filters";
-// hooks
-import { usePlatformOS } from "@/hooks/use-platform-os";
 
 type Props = {
   filters: TViewFilters;
@@ -27,25 +25,21 @@ export const ViewFiltersSelection = observer(function ViewFiltersSelection(props
   const { filters, handleFiltersUpdate, memberIds } = props;
   // states
   const [filtersSearchQuery, setFiltersSearchQuery] = useState("");
-  // store
-  const { isMobile } = usePlatformOS();
 
   // handles filter update
   const handleFilters = (key: keyof TViewFilterProps, value: boolean | string | EViewAccess | string[]) => {
-    const currValues = (filters.filters?.[key] ?? []) as (string | EViewAccess)[];
+    let currValues = (filters.filters?.[key] ?? []) as (string | EViewAccess)[];
 
     if (typeof currValues === "boolean" && typeof value === "boolean") return;
 
-    if (Array.isArray(currValues)) {
-      if (Array.isArray(value)) {
-        value.forEach((val) => {
-          if (!currValues.includes(val)) currValues.push(val);
-          else currValues.splice(currValues.indexOf(val), 1);
-        });
-      } else if (typeof value !== "boolean") {
-        if (currValues?.includes(value)) currValues.splice(currValues.indexOf(value), 1);
-        else currValues.push(value);
+    if (Array.isArray(currValues) && typeof value !== "boolean") {
+      // toggle each value: remove when already applied, otherwise append
+      const nextValues = new Set(currValues);
+      for (const val of Array.isArray(value) ? value : [value]) {
+        if (nextValues.has(val)) nextValues.delete(val);
+        else nextValues.add(val);
       }
+      currValues = Array.from(nextValues);
     }
 
     handleFiltersUpdate("filters", {
@@ -56,30 +50,7 @@ export const ViewFiltersSelection = observer(function ViewFiltersSelection(props
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
-      <div className="bg-surface-1 p-2.5 pb-0">
-        <div className="flex items-center gap-1.5 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-1.5 py-1 text-11 focus-within:border-accent-strong">
-          <SearchIcon className="text-placeholder" width={12} height={12} strokeWidth={2} />
-          <input
-            type="text"
-            className="w-full bg-surface-2 outline-none placeholder:text-placeholder"
-            placeholder="Search"
-            value={filtersSearchQuery}
-            onChange={(e) => setFiltersSearchQuery(e.target.value)}
-            // oxlint-disable-next-line jsx_a11y/no-autofocus
-            autoFocus={!isMobile}
-          />
-          {filtersSearchQuery !== "" && (
-            <button
-              aria-label="Clear search"
-              type="button"
-              className="grid place-items-center"
-              onClick={() => setFiltersSearchQuery("")}
-            >
-              <CloseIcon className="text-tertiary" height={12} width={12} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </div>
+      <FiltersSearch value={filtersSearchQuery} onChange={setFiltersSearchQuery} />
       <div className="vertical-scrollbar scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-y-auto px-2.5">
         <div className="py-2">
           <FilterOption

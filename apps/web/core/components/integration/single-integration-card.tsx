@@ -49,26 +49,12 @@ const integrationDetails: { [key: string]: any } = {
 // services
 const integrationService = new IntegrationService();
 
-export const SingleIntegrationCard = observer(function SingleIntegrationCard({ integration }: Props) {
-  // states
+const useRemoveIntegration = (
+  integration: IAppIntegration,
+  workspaceSlug: string | undefined,
+  workspaceIntegrations: IWorkspaceIntegration[] | null | undefined
+) => {
   const [deletingIntegration, setDeletingIntegration] = useState(false);
-  // router
-  const { workspaceSlug } = useParams();
-  // store hooks
-  const { config } = useInstance();
-  const { allowPermissions } = useUserPermissions();
-
-  const isUserAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  const { isMobile } = usePlatformOS();
-  const { startAuth, isConnecting: isInstalling } = useIntegrationPopup({
-    provider: integration.provider,
-    github_app_name: config?.github_app_name || "",
-    slack_client_id: config?.slack_client_id || "",
-  });
-
-  const { data: workspaceIntegrations } = useSWR(workspaceSlug ? WORKSPACE_INTEGRATIONS(workspaceSlug) : null, () =>
-    workspaceSlug ? integrationService.getWorkspaceIntegrationsList(workspaceSlug) : null
-  );
 
   const handleRemoveIntegration = async () => {
     if (!workspaceSlug || !integration || !workspaceIntegrations) return;
@@ -106,9 +92,107 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
       });
   };
 
+  return { deletingIntegration, handleRemoveIntegration };
+};
+
+type TIntegrationActionProps = {
+  isUserAdmin: boolean;
+  isMobile: boolean;
+  variant: "error-fill" | "primary";
+  loading: boolean;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+function IntegrationActionButton(props: TIntegrationActionProps) {
+  const { isUserAdmin, isMobile, variant, loading, label, onClick, disabled } = props;
+  return (
+    <Tooltip
+      isMobile={isMobile}
+      disabled={isUserAdmin}
+      tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
+    >
+      <Button
+        className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
+        variant={variant}
+        onClick={() => {
+          if (!isUserAdmin) return;
+          onClick();
+        }}
+        disabled={disabled}
+        loading={loading}
+      >
+        {label}
+      </Button>
+    </Tooltip>
+  );
+}
+
+const getDescription = (provider: string, isLoaded: boolean, isInstalled: boolean) => {
+  if (!isLoaded) return "Loading…";
+  return isInstalled ? integrationDetails[provider].installed : integrationDetails[provider].notInstalled;
+};
+
+export const SingleIntegrationCard = observer(function SingleIntegrationCard({ integration }: Props) {
+  // router
+  const { workspaceSlug } = useParams();
+  // store hooks
+  const { config } = useInstance();
+  const { allowPermissions } = useUserPermissions();
+
+  const isUserAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const { isMobile } = usePlatformOS();
+  const { startAuth, isConnecting: isInstalling } = useIntegrationPopup({
+    provider: integration.provider,
+    github_app_name: config?.github_app_name || "",
+    slack_client_id: config?.slack_client_id || "",
+  });
+
+  const { data: workspaceIntegrations } = useSWR(workspaceSlug ? WORKSPACE_INTEGRATIONS(workspaceSlug) : null, () =>
+    workspaceSlug ? integrationService.getWorkspaceIntegrationsList(workspaceSlug) : null
+  );
+
+  const { deletingIntegration, handleRemoveIntegration } = useRemoveIntegration(
+    integration,
+    workspaceSlug,
+    workspaceIntegrations
+  );
+
   const isInstalled = Array.isArray(workspaceIntegrations)
     ? workspaceIntegrations.find((i: IWorkspaceIntegration) => i.integration_detail.id === integration.id)
     : undefined;
+
+  const renderAction = () => {
+    if (!workspaceIntegrations)
+      return (
+        <Loader>
+          <Loader.Item height="32px" width="64px" />
+        </Loader>
+      );
+    if (isInstalled)
+      return (
+        <IntegrationActionButton
+          isUserAdmin={isUserAdmin}
+          isMobile={isMobile}
+          variant="error-fill"
+          onClick={() => void handleRemoveIntegration()}
+          disabled={!isUserAdmin}
+          loading={deletingIntegration}
+          label={deletingIntegration ? "Uninstalling…" : "Uninstall"}
+        />
+      );
+    return (
+      <IntegrationActionButton
+        isUserAdmin={isUserAdmin}
+        isMobile={isMobile}
+        variant="primary"
+        onClick={startAuth}
+        loading={isInstalling}
+        label={isInstalling ? "Installing…" : "Install"}
+      />
+    );
+  };
 
   return (
     <div className="flex items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-6">
@@ -123,64 +207,17 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
         <div>
           <h3 className="flex items-center gap-2 text-body-xs-medium">
             {integration.title}
-            {workspaceIntegrations
-              ? isInstalled && <CheckCircle className="h-3.5 w-3.5 fill-transparent text-success-primary" />
-              : null}
+            {workspaceIntegrations && isInstalled ? (
+              <CheckCircle className="h-3.5 w-3.5 fill-transparent text-success-primary" />
+            ) : null}
           </h3>
           <p className="text-body-xs-regular text-secondary">
-            {workspaceIntegrations
-              ? isInstalled
-                ? integrationDetails[integration.provider].installed
-                : integrationDetails[integration.provider].notInstalled
-              : "Loading…"}
+            {getDescription(integration.provider, Boolean(workspaceIntegrations), Boolean(isInstalled))}
           </p>
         </div>
       </div>
 
-      {workspaceIntegrations ? (
-        isInstalled ? (
-          <Tooltip
-            isMobile={isMobile}
-            disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
-          >
-            <Button
-              className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
-              variant="error-fill"
-              onClick={() => {
-                if (!isUserAdmin) return;
-                handleRemoveIntegration();
-              }}
-              disabled={!isUserAdmin}
-              loading={deletingIntegration}
-            >
-              {deletingIntegration ? "Uninstalling…" : "Uninstall"}
-            </Button>
-          </Tooltip>
-        ) : (
-          <Tooltip
-            isMobile={isMobile}
-            disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
-          >
-            <Button
-              className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
-              variant="primary"
-              onClick={() => {
-                if (!isUserAdmin) return;
-                startAuth();
-              }}
-              loading={isInstalling}
-            >
-              {isInstalling ? "Installing…" : "Install"}
-            </Button>
-          </Tooltip>
-        )
-      ) : (
-        <Loader>
-          <Loader.Item height="32px" width="64px" />
-        </Loader>
-      )}
+      {renderAction()}
     </div>
   );
 });

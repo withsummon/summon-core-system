@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { WORKSPACE_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
@@ -39,10 +39,21 @@ const initialWebhookPayload: Partial<IWebhook> = {
   url: "",
 };
 
+const getWebhookEventType = (data: Partial<IWebhook> | undefined): TWebhookEventTypes => {
+  if (!data) return "all";
+  return data.project && data.cycle && data.module && data.issue && data.issue_comment ? "all" : "individual";
+};
+
 export const WebhookForm = observer(function WebhookForm(props: Props) {
   const { data, onSubmit, handleClose } = props;
   // states
-  const [webhookEventType, setWebhookEventType] = useState<TWebhookEventTypes>("all");
+  const [webhookEventType, setWebhookEventType] = useState<TWebhookEventTypes>(() => getWebhookEventType(data));
+  // re-derive the event type when a different webhook is loaded (adjusted during render, not in an effect)
+  const [prevData, setPrevData] = useState(data);
+  if (data !== prevData) {
+    setPrevData(data);
+    if (data) setWebhookEventType(getWebhookEventType(data));
+  }
   // store hooks
   const { webhookSecretKey } = useWebhook();
   const { t } = useTranslation();
@@ -58,13 +69,6 @@ export const WebhookForm = observer(function WebhookForm(props: Props) {
   const handleFormSubmit = async (formData: IWebhook) => {
     await onSubmit(formData, webhookEventType);
   };
-
-  useEffect(() => {
-    if (!data) return;
-
-    if (data.project && data.cycle && data.module && data.issue && data.issue_comment) setWebhookEventType("all");
-    else setWebhookEventType("individual");
-  }, [data]);
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)}>

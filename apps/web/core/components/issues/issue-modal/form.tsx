@@ -12,22 +12,18 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 // editor
-import { ETabIndices, DEFAULT_WORK_ITEM_FORM_VALUES } from "@plane/constants";
+import { DEFAULT_WORK_ITEM_FORM_VALUES } from "@plane/constants";
 import type { EditorRefApi } from "@plane/editor";
 // i18n
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
 import { Dialog } from "@plane/propel/dialog";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
-// hooks
-import { ToggleSwitch } from "@plane/ui";
 import {
   convertWorkItemDataToSearchResponse,
   getUpdateFormDataForReset,
   cn,
   getChangedIssuefields,
-  getTabIndex,
 } from "@plane/utils";
 // components
 import {
@@ -44,8 +40,8 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useWorkspaceDraftIssues } from "@/hooks/store/workspace-draft";
-import { usePlatformOS } from "@/hooks/use-platform-os";
 import { useProjectIssueProperties } from "@/hooks/use-project-issue-properties";
+import { IssueFormActionButtons } from "./form-action-buttons";
 
 export interface IssueFormProps {
   data?: Partial<TIssue>;
@@ -72,6 +68,10 @@ export interface IssueFormProps {
   showActionButtons?: boolean;
   dataResetProperties?: any[];
 }
+
+// the form counts as changed only once it has a title or a non-empty description
+const hasFormContent = (name: string | undefined, descriptionHtml: string | undefined) =>
+  (name && name !== "") || (descriptionHtml && descriptionHtml !== "<p></p>");
 
 export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormProps) {
   const { t } = useTranslation();
@@ -124,7 +124,6 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     handleCreateUpdatePropertyValues,
     handleTemplateChange,
   } = useIssueModal();
-  const { isMobile } = usePlatformOS();
   const { moveIssue } = useWorkspaceDraftIssues();
 
   const {
@@ -158,17 +157,17 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   const isDisabled = isSubmitting || isApplyingTemplate;
 
-  const { getIndex } = getTabIndex(ETabIndices.ISSUE_FORM, isMobile);
-
   //reset few fields on projectId change
   useEffect(() => {
     if (isDirty) {
       if (workItemTemplateId) {
         // reset work item template id
         setWorkItemTemplateId(null);
+        // react-doctor-disable-next-line no-pass-data-to-parent -- react-hook-form reset/setValue update this form's own state, not a parent
         reset({ ...DEFAULT_WORK_ITEM_FORM_VALUES, project_id: projectId });
         editorRef.current?.clearEditor();
       } else {
+        // react-doctor-disable-next-line no-pass-data-to-parent -- react-hook-form reset/setValue update this form's own state, not a parent
         reset(getUpdateFormDataForReset(projectId, getValues()));
       }
     }
@@ -180,6 +179,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   // Reset form when data prop changes
   useEffect(() => {
     if (data) {
+      // react-doctor-disable-next-line no-pass-data-to-parent -- react-hook-form reset/setValue update this form's own state, not a parent
       reset({ ...DEFAULT_WORK_ITEM_FORM_VALUES, project_id: projectId, ...data });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,6 +194,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
     // get issue type id on project change
     const issueTypeIdOnProjectChange = getIssueTypeIdOnProjectChange(projectId);
+    // react-doctor-disable-next-line no-pass-data-to-parent -- react-hook-form reset/setValue update this form's own state, not a parent
     if (issueTypeIdOnProjectChange) setValue("type_id", issueTypeIdOnProjectChange, { shouldValidate: true });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -296,8 +297,19 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     }
   };
 
-  const condition =
-    (watch("name") && watch("name") !== "") || (watch("description_html") && watch("description_html") !== "<p></p>");
+  const condition = hasFormContent(watch("name"), watch("description_html"));
+
+  const handleDiscard = () => {
+    if (editorRef.current?.isEditorReadyToDiscard()) {
+      onClose();
+    } else {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Editor is still processing changes. Please wait before proceeding.",
+      });
+    }
+  };
 
   const handleFormChange = () => {
     if (!onChange) return;
@@ -330,6 +342,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   useEffect(() => {
     if (!onChange) return;
 
+    // react-doctor-disable-next-line no-pass-data-to-parent -- isDirty settles after the field handlers run, so the parent can only be told here
     if (isDirty && condition) onChange(watch());
     else onChange(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -442,65 +455,20 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                 />
               </div>
               {showActionButtons && (
-                <div className="flex items-center justify-end gap-4 border-t-[0.5px] border-subtle pt-6 pb-3">
-                  {!data?.id && (
-                    <label className="inline-flex cursor-pointer items-center gap-1.5">
-                      <ToggleSwitch
-                        value={isCreateMoreToggleEnabled}
-                        onChange={onCreateMoreToggleChange}
-                        label={t("create_more")}
-                        size="sm"
-                      />
-                      <span className="text-caption-sm-regular">{t("create_more")}</span>
-                    </label>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <div tabIndex={getIndex("discard_button")}>
-                      <Button
-                        variant="secondary"
-                        size="lg"
-                        onClick={() => {
-                          if (editorRef.current?.isEditorReadyToDiscard()) {
-                            onClose();
-                          } else {
-                            setToast({
-                              type: TOAST_TYPE.ERROR,
-                              title: "Error!",
-                              message: "Editor is still processing changes. Please wait before proceeding.",
-                            });
-                          }
-                        }}
-                      >
-                        {t("discard")}
-                      </Button>
-                    </div>
-                    <div tabIndex={isDraft ? getIndex("submit_button") : getIndex("draft_button")}>
-                      <Button
-                        variant={moveToIssue ? "secondary" : "primary"}
-                        size="lg"
-                        type="submit"
-                        ref={submitBtnRef}
-                        loading={isSubmitting}
-                        disabled={isDisabled}
-                      >
-                        {isSubmitting ? primaryButtonText.loading : primaryButtonText.default}
-                      </Button>
-                    </div>
-
-                    {moveToIssue && (
-                      <Button
-                        variant="primary"
-                        type="button"
-                        loading={isMoving}
-                        onClick={handleMoveToProjects}
-                        disabled={isMoving}
-                        size="lg"
-                      >
-                        {t("add_to_project")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <IssueFormActionButtons
+                  isEditing={!!data?.id}
+                  isDraft={isDraft}
+                  moveToIssue={moveToIssue}
+                  isCreateMoreToggleEnabled={isCreateMoreToggleEnabled}
+                  onCreateMoreToggleChange={onCreateMoreToggleChange}
+                  onDiscard={handleDiscard}
+                  submitBtnRef={submitBtnRef}
+                  isSubmitting={isSubmitting}
+                  isDisabled={isDisabled}
+                  primaryButtonText={primaryButtonText}
+                  isMoving={isMoving}
+                  onMoveToProjects={handleMoveToProjects}
+                />
               )}
             </div>
           </form>

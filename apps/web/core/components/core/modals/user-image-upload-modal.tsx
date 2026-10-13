@@ -6,17 +6,16 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { useDropzone } from "react-dropzone";
 // plane imports
-import { ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@plane/constants";
 import { Button } from "@plane/propel/button";
-import { UserCirclePropertyIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EFileAssetType } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { getAssetIdFromUrl, getFileURL, checkURLValidity } from "@plane/utils";
+import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
 // services
 import { FileService } from "@/services/file.service";
+// local
+import { ImageUploadDropzone } from "./image-upload-dropzone";
 const fileService = new FileService();
 
 type Props = {
@@ -33,15 +32,6 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
   const [image, setImage] = useState<File | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isImageUploading, setIsImageUploading] = useState(false);
-
-  const onDrop = (acceptedFiles: File[]) => setImage(acceptedFiles[0]);
-
-  const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
-    onDrop,
-    accept: ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE,
-    maxSize: MAX_FILE_SIZE,
-    multiple: false,
-  });
 
   const handleClose = () => {
     setImage(null);
@@ -97,50 +87,7 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XL}>
       <div className="space-y-5 px-5 py-8 sm:p-6">
         <h3 className="text-16 leading-6 font-medium text-primary">Upload Image</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <div
-              {...getRootProps()}
-              className={`relative grid h-80 w-80 cursor-pointer place-items-center rounded-lg p-12 text-center focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:ring-offset-2 focus-visible:outline-none ${
-                (image === null && isDragActive) || !value
-                  ? "border-2 border-dashed border-subtle hover:bg-surface-2"
-                  : ""
-              }`}
-            >
-              {image !== null || (value && value !== "") ? (
-                <>
-                  <button
-                    type="button"
-                    className="absolute top-0 right-0 z-40 translate-x-1/2 -translate-y-1/2 rounded-sm bg-surface-2 px-2 py-0.5 text-11 font-medium text-secondary"
-                  >
-                    Edit
-                  </button>
-                  <img
-                    src={image ? URL.createObjectURL(image) : value ? getFileURL(value) : ""}
-                    alt="image"
-                    className="absolute top-0 left-0 h-full w-full rounded-md object-cover"
-                  />
-                </>
-              ) : (
-                <div>
-                  <UserCirclePropertyIcon className="mx-auto h-16 w-16 text-secondary" />
-                  <span className="mt-2 block text-13 font-medium text-secondary">
-                    {isDragActive ? "Drop image here to upload" : "Drag & drop image here"}
-                  </span>
-                </div>
-              )}
-
-              <input {...getInputProps()} />
-            </div>
-          </div>
-          {fileRejections.length > 0 && (
-            <p className="text-13 text-danger-primary">
-              {fileRejections[0].errors[0].code === "file-too-large"
-                ? "The image size cannot exceed 5 MB."
-                : "Please upload a file in a valid format."}
-            </p>
-          )}
-        </div>
+        <ImageUploadDropzone image={image} onImageChange={setImage} value={value} previewAlt="Avatar preview" />
         <p className="my-4 text-13 text-secondary">File formats supported- .jpeg, .jpg, .png, .webp</p>
         <div className="flex items-center justify-between">
           <Button variant="error-fill" size="lg" onClick={handleImageRemove} disabled={!value}>

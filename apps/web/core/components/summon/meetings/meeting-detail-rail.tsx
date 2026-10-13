@@ -17,13 +17,148 @@ type Props = {
   onRegenerate: () => void;
 };
 
-const timestamp = (value: string) =>
-  new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+const timestamp = (value: string) => TIMESTAMP_FORMATTER.format(new Date(value));
 
-export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryError, onRegenerate }: Props) {
+const SUMMARY_ERROR_MESSAGES: Record<string, string> = {
+  transcribing: "Transcribing audio. Generate minutes becomes available when it finishes.",
+  transcription_failed: "Audio transcription failed. Upload the audio again.",
+};
+
+const getSummaryErrorMessage = (summaryError: ISummonMeeting["summary_error"]) =>
+  (summaryError && SUMMARY_ERROR_MESSAGES[summaryError]) || summaryError;
+
+const getRegenerateLabel = (summarizing: boolean, hasSummary: boolean) => {
+  if (summarizing) return "Generating minutes…";
+  return hasSummary ? "Regenerate minutes" : "Generate minutes";
+};
+
+type TSummaryPanelProps = Omit<Props, "workspaceSlug">;
+
+function SummaryPanel({ data, summarizing, summaryError, onRegenerate }: TSummaryPanelProps) {
   const summary = data.summary_page_detail;
   const canRegenerate = Boolean(data.project && (data.transcript_text || data.transcript_asset_detail));
+
+  return (
+    <SummonPanel
+      id="ai-summary"
+      title="AI Summary"
+      action={
+        <button
+          type="button"
+          onClick={onRegenerate}
+          disabled={!canRegenerate || summarizing}
+          className="inline-flex items-center gap-1.5 text-12 font-semibold text-accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <RefreshCw className={`size-3.5 ${summarizing ? "animate-spin" : ""}`} />
+          {getRegenerateLabel(summarizing, !!summary)}
+        </button>
+      }
+    >
+      {summary?.summary ? (
+        <div className="space-y-4 text-xs leading-5 text-secondary">
+          <div>
+            <p className="mb-1 font-semibold text-primary">Key Discussion</p>
+            <p className="whitespace-pre-wrap">{summary.summary}</p>
+          </div>
+          <div>
+            <p className="mb-2 font-semibold text-primary">Key Decisions</p>
+            <ul className="space-y-1.5">
+              {summary.decisions.map((decision) => (
+                <li key={decision} className="flex gap-2">
+                  <span className="mt-0.5 grid size-3.5 flex-shrink-0 place-items-center rounded-full bg-accent-primary text-white">
+                    <Check className="size-2.5" />
+                  </span>
+                  <span>{decision}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 rounded-lg bg-layer-1 p-3 text-xs text-tertiary">
+          <Sparkles className="size-4 flex-shrink-0 text-accent-primary" />
+          No generated summary is available for this meeting.
+        </div>
+      )}
+      {summaryError || data.summary_error ? (
+        <p
+          className="mt-3 text-xs text-danger-primary"
+          role={!summaryError && data.summary_error === "transcribing" ? "status" : "alert"}
+        >
+          {summaryError || getSummaryErrorMessage(data.summary_error)}
+        </p>
+      ) : null}
+    </SummonPanel>
+  );
+}
+
+function ActionItemsPanel({ data, workspaceSlug }: Pick<Props, "data" | "workspaceSlug">) {
+  const summary = data.summary_page_detail;
   const projectIssuesHref = data.project ? `/${workspaceSlug}/projects/${data.project}/issues/` : "";
+
+  return (
+    <SummonPanel
+      id="tasks"
+      title="Action Items"
+      action={
+        data.project ? (
+          <Link href={projectIssuesHref} className="text-12 font-semibold text-accent-primary">
+            + Add Action Item
+          </Link>
+        ) : null
+      }
+    >
+      <div className="divide-y divide-subtle">
+        {data.work_items.map((workItem) => (
+          <Link
+            key={workItem.id}
+            href={`/${workspaceSlug}/projects/${workItem.issue.project.id}/issues/${workItem.issue.id}/`}
+            className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
+          >
+            {workItem.issue.completed ? (
+              <span className="grid size-4 place-items-center rounded-full bg-accent-primary text-white">
+                <Check className="size-3" />
+              </span>
+            ) : (
+              <Circle className="size-4 text-placeholder" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-xs font-medium text-primary" title={workItem.issue.name}>
+              {workItem.issue.name}
+            </span>
+            <span className="text-12 font-medium text-tertiary">{workItem.issue.state?.name ?? "No state"}</span>
+          </Link>
+        ))}
+        {!data.work_items.length ? <p className="py-3 text-xs text-tertiary">No action items linked yet.</p> : null}
+      </div>
+      {summary?.action_suggestions.length && data.project ? (
+        <div className="mt-3 border-t border-subtle pt-3">
+          <p className="mb-2 text-12 font-medium text-tertiary">AI suggestions</p>
+          {summary.action_suggestions.map((suggestion) => (
+            <Link
+              key={`${suggestion.title}-${suggestion.details}`}
+              href={projectIssuesHref}
+              onClick={(event) => {
+                if (!window.confirm(`Open tasks to create or link “${suggestion.title}”?`)) event.preventDefault();
+              }}
+              className="block py-1.5 text-xs font-medium text-primary hover:text-accent-primary"
+            >
+              + {suggestion.title}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+      {data.project ? (
+        <Link href={projectIssuesHref} className="mt-3 block text-right text-12 font-semibold text-accent-primary">
+          View all tasks →
+        </Link>
+      ) : null}
+    </SummonPanel>
+  );
+}
+
+function DocumentsPanel({ data }: Pick<Props, "data">) {
+  const summary = data.summary_page_detail;
   const documents = [
     summary
       ? { id: summary.id, name: summary.name, detail: "AI meeting summary", href: summary.href, icon: FileText }
@@ -49,168 +184,68 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
   ].filter((item) => item !== null);
 
   return (
-    <aside className="space-y-3.5">
-      <SummonPanel
-        id="ai-summary"
-        title="AI Summary"
-        action={
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={!canRegenerate || summarizing}
-            className="inline-flex items-center gap-1.5 text-12 font-semibold text-accent-primary disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <RefreshCw className={`size-3.5 ${summarizing ? "animate-spin" : ""}`} />
-            {summarizing ? "Generating minutes…" : summary ? "Regenerate minutes" : "Generate minutes"}
-          </button>
-        }
-      >
-        {summary?.summary ? (
-          <div className="space-y-4 text-xs leading-5 text-secondary">
-            <div>
-              <p className="mb-1 font-semibold text-primary">Key Discussion</p>
-              <p className="whitespace-pre-wrap">{summary.summary}</p>
-            </div>
-            <div>
-              <p className="mb-2 font-semibold text-primary">Key Decisions</p>
-              <ul className="space-y-1.5">
-                {summary.decisions.map((decision) => (
-                  <li key={decision} className="flex gap-2">
-                    <span className="mt-0.5 grid size-3.5 flex-shrink-0 place-items-center rounded-full bg-accent-primary text-white">
-                      <Check className="size-2.5" />
-                    </span>
-                    <span>{decision}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-2 rounded-lg bg-layer-1 p-3 text-xs text-tertiary">
-            <Sparkles className="size-4 flex-shrink-0 text-accent-primary" />
-            No generated summary is available for this meeting.
-          </div>
-        )}
-        {summaryError || data.summary_error ? (
-          <p
-            className="mt-3 text-xs text-danger-primary"
-            role={!summaryError && data.summary_error === "transcribing" ? "status" : "alert"}
-          >
-            {summaryError ||
-              (data.summary_error === "transcribing"
-                ? "Transcribing audio. Generate minutes becomes available when it finishes."
-                : data.summary_error === "transcription_failed"
-                  ? "Audio transcription failed. Upload the audio again."
-                  : data.summary_error)}
-          </p>
-        ) : null}
-      </SummonPanel>
-
-      <SummonPanel
-        id="tasks"
-        title="Action Items"
-        action={
-          data.project ? (
-            <Link href={projectIssuesHref} className="text-12 font-semibold text-accent-primary">
-              + Add Action Item
-            </Link>
-          ) : null
-        }
-      >
-        <div className="divide-y divide-subtle">
-          {data.work_items.map((workItem) => (
-            <Link
-              key={workItem.id}
-              href={`/${workspaceSlug}/projects/${workItem.issue.project.id}/issues/${workItem.issue.id}/`}
-              className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
-            >
-              {workItem.issue.completed ? (
-                <span className="grid size-4 place-items-center rounded-full bg-accent-primary text-white">
-                  <Check className="size-3" />
-                </span>
-              ) : (
-                <Circle className="size-4 text-placeholder" />
-              )}
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-primary" title={workItem.issue.name}>
-                {workItem.issue.name}
+    <SummonPanel id="documents" title="Related Documents">
+      <div className="space-y-2.5">
+        {documents.map(({ id, name, detail, href, icon: Icon }) => {
+          const content = (
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-7 place-items-center rounded-md bg-accent-subtle text-accent-primary">
+                <Icon className="size-3.5" />
               </span>
-              <span className="text-12 font-medium text-tertiary">{workItem.issue.state?.name ?? "No state"}</span>
-            </Link>
-          ))}
-          {!data.work_items.length ? <p className="py-3 text-xs text-tertiary">No action items linked yet.</p> : null}
-        </div>
-        {summary?.action_suggestions.length && data.project ? (
-          <div className="mt-3 border-t border-subtle pt-3">
-            <p className="mb-2 text-12 font-medium text-tertiary">AI suggestions</p>
-            {summary.action_suggestions.map((suggestion) => (
-              <Link
-                key={`${suggestion.title}-${suggestion.details}`}
-                href={projectIssuesHref}
-                onClick={(event) => {
-                  if (!window.confirm(`Open tasks to create or link “${suggestion.title}”?`)) event.preventDefault();
-                }}
-                className="block py-1.5 text-xs font-medium text-primary hover:text-accent-primary"
-              >
-                + {suggestion.title}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-        {data.project ? (
-          <Link href={projectIssuesHref} className="mt-3 block text-right text-12 font-semibold text-accent-primary">
-            View all tasks →
-          </Link>
-        ) : null}
-      </SummonPanel>
-
-      <SummonPanel id="documents" title="Related Documents">
-        <div className="space-y-2.5">
-          {documents.map(({ id, name, detail, href, icon: Icon }) => {
-            const content = (
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-md bg-accent-subtle text-accent-primary">
-                  <Icon className="size-3.5" />
+              <span className="min-w-0">
+                <span className="block truncate text-xs font-semibold text-primary" title={name}>
+                  {name}
                 </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-xs font-semibold text-primary" title={name}>
-                    {name}
-                  </span>
-                  <span className="block text-12 text-tertiary">{detail}</span>
-                </span>
-              </div>
-            );
-            return href ? (
-              <a key={id} href={href} className="block">
-                {content}
-              </a>
-            ) : (
-              <div key={id}>{content}</div>
-            );
-          })}
-          {!documents.length ? <p className="py-2 text-xs text-tertiary">No related documents available.</p> : null}
-        </div>
-      </SummonPanel>
+                <span className="block text-12 text-tertiary">{detail}</span>
+              </span>
+            </div>
+          );
+          return href ? (
+            <a key={id} href={href} className="block">
+              {content}
+            </a>
+          ) : (
+            <div key={id}>{content}</div>
+          );
+        })}
+        {!documents.length ? <p className="py-2 text-xs text-tertiary">No related documents available.</p> : null}
+      </div>
+    </SummonPanel>
+  );
+}
 
-      <SummonPanel id="activity" title="Meeting Activity">
-        <div className="space-y-3">
-          <Activity icon={ListTodo} label="Meeting created" detail={`${timestamp(data.created_at)} · Summon Core`} />
-          {data.work_items.map((item) => (
-            <Activity
-              key={item.id}
-              icon={Check}
-              label={`Action item linked · ${item.issue.name}`}
-              detail={timestamp(item.created_at)}
-            />
-          ))}
-          {data.summary_provider ? (
-            <Activity
-              icon={Sparkles}
-              label="AI Summary generated"
-              detail={`${timestamp(data.updated_at)} · Summon Assistant`}
-            />
-          ) : null}
-        </div>
-      </SummonPanel>
+function ActivityPanel({ data }: Pick<Props, "data">) {
+  return (
+    <SummonPanel id="activity" title="Meeting Activity">
+      <div className="space-y-3">
+        <Activity icon={ListTodo} label="Meeting created" detail={`${timestamp(data.created_at)} · Summon Core`} />
+        {data.work_items.map((item) => (
+          <Activity
+            key={item.id}
+            icon={Check}
+            label={`Action item linked · ${item.issue.name}`}
+            detail={timestamp(item.created_at)}
+          />
+        ))}
+        {data.summary_provider ? (
+          <Activity
+            icon={Sparkles}
+            label="AI Summary generated"
+            detail={`${timestamp(data.updated_at)} · Summon Assistant`}
+          />
+        ) : null}
+      </div>
+    </SummonPanel>
+  );
+}
+
+export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryError, onRegenerate }: Props) {
+  return (
+    <aside className="space-y-3.5">
+      <SummaryPanel data={data} summarizing={summarizing} summaryError={summaryError} onRegenerate={onRegenerate} />
+      <ActionItemsPanel data={data} workspaceSlug={workspaceSlug} />
+      <DocumentsPanel data={data} />
+      <ActivityPanel data={data} />
     </aside>
   );
 }

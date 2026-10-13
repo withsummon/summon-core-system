@@ -56,8 +56,7 @@ export function RadioInput({
       <div className={cn(`${wrapperClass}`, inputWrapperClassName)}>
         {options.map(({ value, label, disabled }, index) => (
           <div
-            key={index}
-            onClick={() => !disabled && setSelected(value)}
+            key={value}
             className={cn(
               "flex items-center gap-2 text-14",
               disabled ? `cursor-not-allowed border-subtle bg-layer-1` : ``,
@@ -77,6 +76,7 @@ export function RadioInput({
               value={value}
               disabled={disabled}
               checked={selected === value}
+              onChange={() => setSelected(value)}
             />
             <label htmlFor={`${name}_${index}`} className="w-full cursor-pointer">
               {label}

@@ -11,7 +11,6 @@ import { useParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
 // plane helpers
-import { useOutsideClickDetector } from "@plane/hooks";
 import { ChevronRightIcon } from "@plane/propel/icons";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
@@ -187,11 +186,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
     selectionHelpers,
     isEpic = false,
   } = props;
-  // states
-  const [isMenuActive, setIsMenuActive] = useState(false);
   // refs
   const cellRef = useRef(null);
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
   // router
   const { workspaceSlug, projectId } = useParams();
   // hooks
@@ -210,16 +206,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
   const subIssueIndentation = `${spacingLeft}px`;
 
-  useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
-
   const customActionButton = (
-    <div
-      ref={menuActionRef}
-      className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
-        isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
-      }`}
-      onClick={() => setIsMenuActive(!isMenuActive)}
-    >
+    // the menu trigger wrapping this button marks itself data-popup-open while its menu is open
+    <div className="flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder text-secondary hover:bg-layer-1 in-data-popup-open:bg-layer-1 in-data-popup-open:text-primary">
       <MoreHorizontal className="h-3.5 w-3.5" />
     </div>
   );
@@ -371,7 +360,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   </div>
                 </div>
                 <div
-                  className={`opacity-0 transition-opacity group-hover:opacity-100 ${isMenuActive ? "!opacity-100" : ""}`}
+                  className="opacity-0 transition-opacity group-hover:opacity-100 has-data-popup-open:!opacity-100"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {quickActions({

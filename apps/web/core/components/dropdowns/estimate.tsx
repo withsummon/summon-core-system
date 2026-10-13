@@ -14,6 +14,7 @@ import { useTranslation } from "@plane/i18n";
 import { CheckIcon, SearchIcon, EstimatePropertyIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { POPUP_OPTION_CLASSNAME, POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
 import { EEstimateSystem } from "@plane/types";
+import type { IEstimatePoint } from "@plane/types";
 import { ComboDropDown } from "@plane/ui";
 import { convertMinutesToHoursMinutesString, cn } from "@plane/utils";
 // hooks
@@ -44,6 +45,105 @@ type DropdownOptions =
       content: React.ReactNode;
     }[]
   | undefined;
+
+function formatEstimateValue(value: string | number | undefined, estimateType: string | undefined) {
+  return estimateType === EEstimateSystem.TIME ? convertMinutesToHoursMinutesString(Number(value)) : value;
+}
+
+function EstimateOptionContent({ label }: { label: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
+      <span className="flex-grow truncate">{label}</span>
+    </div>
+  );
+}
+
+/** "No estimate" first, then every resolvable estimate point of the active estimate. */
+function getEstimateOptions(
+  estimatePointIds: string[],
+  estimatePointById: (id: string) => IEstimatePoint | undefined,
+  estimateType: string | undefined,
+  noEstimateLabel: string
+): NonNullable<DropdownOptions> {
+  const pointOptions: NonNullable<DropdownOptions> = [];
+  for (const estimatePointId of estimatePointIds) {
+    const estimatePoint = estimatePointById(estimatePointId);
+    if (!estimatePoint?.id) continue;
+    pointOptions.push({
+      value: estimatePoint.id,
+      query: `${estimatePoint.value}`,
+      content: <EstimateOptionContent label={formatEstimateValue(estimatePoint.value, estimateType)} />,
+    });
+  }
+  return [
+    { value: null, query: noEstimateLabel, content: <EstimateOptionContent label={noEstimateLabel} /> },
+    ...pointOptions,
+  ];
+}
+
+type TEstimateOptionsPanelProps = {
+  query: string;
+  onQueryChange: (query: string) => void;
+  isEstimateEnabled: boolean;
+  options: DropdownOptions;
+};
+
+function EstimateOptionsPanel({ query, onQueryChange, isEstimateEnabled, options }: TEstimateOptionsPanelProps) {
+  const { t } = useTranslation();
+  const filteredOptions =
+    query === "" ? options : options?.filter((o) => o.query.toLowerCase().includes(query.toLowerCase()));
+  return (
+    <div className="z-10">
+      <div className="w-56 max-w-[calc(100vw-2rem)]">
+        <div className={POPUP_SEARCH_CLASSNAME}>
+          <SearchIcon className="size-3.5 flex-none" />
+          <Combobox.Input
+            className={POPUP_SEARCH_INPUT_CLASSNAME}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder={t("common.search.placeholder")}
+          />
+        </div>
+        <Combobox.List className="max-h-60 overflow-y-auto">
+          {!isEstimateEnabled ? (
+            <div className={POPUP_OPTION_CLASSNAME}>
+              {/* NOTE: This condition renders when estimates are not enabled for the project */}
+              <div className="flex flex-grow items-center gap-2">
+                <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
+                <span className="flex-grow truncate">{t("project_settings.estimates.no_estimate")}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              {filteredOptions ? (
+                filteredOptions.length > 0 ? (
+                  filteredOptions.map((option) => (
+                    <Combobox.Item
+                      key={option.value}
+                      value={option.value}
+                      className={POPUP_OPTION_CLASSNAME}
+                      render={(itemProps, { selected }) => (
+                        <div {...itemProps}>
+                          <span className="flex-grow truncate">{option.content}</span>
+                          {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+                        </div>
+                      )}
+                    ></Combobox.Item>
+                  ))
+                ) : (
+                  <p className="px-2 py-1.5 text-placeholder">{t("common.search.no_matching_results")}</p>
+                )
+              ) : (
+                <p className="px-2 py-1.5 text-placeholder">{t("common.loading")}</p>
+              )}
+            </>
+          )}
+        </Combobox.List>
+      </div>
+    </div>
+  );
+}
 
 export const EstimateDropdown = observer(function EstimateDropdown(props: Props) {
   const {
@@ -85,40 +185,12 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
 
   const currentActiveEstimate = currentActiveEstimateId ? getEstimateById(currentActiveEstimateId) : undefined;
 
-  const options: DropdownOptions = (estimatePointIds ?? [])
-    ?.map((estimatePoint) => {
-      const currentEstimatePoint = estimatePointById(estimatePoint);
-      if (currentEstimatePoint)
-        return {
-          value: currentEstimatePoint.id,
-          query: `${currentEstimatePoint?.value}`,
-          content: (
-            <div className="flex items-center gap-2">
-              <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
-              <span className="flex-grow truncate">
-                {currentActiveEstimate?.type === EEstimateSystem.TIME
-                  ? convertMinutesToHoursMinutesString(Number(currentEstimatePoint.value))
-                  : currentEstimatePoint.value}
-              </span>
-            </div>
-          ),
-        };
-      return undefined;
-    })
-    .filter((estimatePointDropdownOption) => estimatePointDropdownOption != undefined) as DropdownOptions;
-  options?.unshift({
-    value: null,
-    query: t("project_settings.estimates.no_estimate"),
-    content: (
-      <div className="flex items-center gap-2">
-        <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
-        <span className="flex-grow truncate">{t("project_settings.estimates.no_estimate")}</span>
-      </div>
-    ),
-  });
-
-  const filteredOptions =
-    query === "" ? options : options?.filter((o) => o.query.toLowerCase().includes(query.toLowerCase()));
+  const options = getEstimateOptions(
+    estimatePointIds ?? [],
+    estimatePointById,
+    currentActiveEstimate?.type,
+    t("project_settings.estimates.no_estimate")
+  );
 
   const selectedEstimate = value && estimatePointById ? estimatePointById(value) : undefined;
 
@@ -170,11 +242,7 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
         {(selectedEstimate || placeholder) && BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
           <span className="truncate">
             {selectedEstimate ? (
-              currentActiveEstimate?.type === EEstimateSystem.TIME ? (
-                convertMinutesToHoursMinutesString(Number(selectedEstimate.value))
-              ) : (
-                selectedEstimate.value
-              )
+              formatEstimateValue(selectedEstimate.value, currentActiveEstimate?.type)
             ) : (
               <span className="text-placeholder">{placeholder}</span>
             )}
@@ -199,54 +267,12 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
       placement={placement}
       onOpenChange={handleOpenChange}
     >
-      <div className="z-10">
-        <div className="w-56 max-w-[calc(100vw-2rem)]">
-          <div className={POPUP_SEARCH_CLASSNAME}>
-            <SearchIcon className="size-3.5 flex-none" />
-            <Combobox.Input
-              className={POPUP_SEARCH_INPUT_CLASSNAME}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("common.search.placeholder")}
-            />
-          </div>
-          <Combobox.List className="max-h-60 overflow-y-auto">
-            {currentActiveEstimateId === undefined ? (
-              <div className={POPUP_OPTION_CLASSNAME}>
-                {/* NOTE: This condition renders when estimates are not enabled for the project */}
-                <div className="flex flex-grow items-center gap-2">
-                  <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
-                  <span className="flex-grow truncate">{t("project_settings.estimates.no_estimate")}</span>
-                </div>
-              </div>
-            ) : (
-              <>
-                {filteredOptions ? (
-                  filteredOptions.length > 0 ? (
-                    filteredOptions.map((option) => (
-                      <Combobox.Item
-                        key={option.value}
-                        value={option.value}
-                        className={POPUP_OPTION_CLASSNAME}
-                        render={(itemProps, { selected }) => (
-                          <div {...itemProps}>
-                            <span className="flex-grow truncate">{option.content}</span>
-                            {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                          </div>
-                        )}
-                      ></Combobox.Item>
-                    ))
-                  ) : (
-                    <p className="px-2 py-1.5 text-placeholder">{t("common.search.no_matching_results")}</p>
-                  )
-                ) : (
-                  <p className="px-2 py-1.5 text-placeholder">{t("common.loading")}</p>
-                )}
-              </>
-            )}
-          </Combobox.List>
-        </div>
-      </div>
+      <EstimateOptionsPanel
+        query={query}
+        onQueryChange={setQuery}
+        isEstimateEnabled={currentActiveEstimateId !== undefined}
+        options={options}
+      />
     </ComboDropDown>
   );
 });

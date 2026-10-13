@@ -100,10 +100,13 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
 
   const handleAddLabel = async (labelName: string) => {
     setSubmitting(true);
-    const created = await onAddLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
-    onSelect([...values, created.id]);
-    setQuery("");
-    setSubmitting(false);
+    try {
+      const created = await onAddLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
+      onSelect([...values, created.id]);
+      setQuery("");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!issueId || !values) return <></>;
@@ -142,55 +145,14 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
                     />
                   </div>
                   <Combobox.List className="vertical-scrollbar scrollbar-sm max-h-60 overflow-y-auto">
-                    {isLoading ? (
-                      <p className="text-center text-secondary">{t("common.loading")}</p>
-                    ) : filteredOptions.length > 0 ? (
-                      filteredOptions.map((option) => (
-                        <Combobox.Item
-                          key={option.value}
-                          value={option.value}
-                          className={cn(POPUP_OPTION_CLASSNAME, "justify-between")}
-                          render={(itemProps, { selected }) => (
-                            <div {...itemProps}>
-                              {
-                                <>
-                                  {option.content}
-                                  {selected && (
-                                    <div className="flex-shrink-0">
-                                      <CheckIcon className={`h-3.5 w-3.5`} />
-                                    </div>
-                                  )}
-                                </>
-                              }
-                            </div>
-                          )}
-                        ></Combobox.Item>
-                      ))
-                    ) : submitting ? (
-                      <Loader className="spin h-3.5 w-3.5" />
-                    ) : canCreateLabel ? (
-                      <Combobox.Item
-                        value={query}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (!query.length) return;
-                          handleAddLabel(query);
-                        }}
-                        className={POPUP_OPTION_CLASSNAME}
-                      >
-                        {query.length ? (
-                          <>
-                            {/* TODO: Translate here */}+ Add <span className="text-primary">&quot;{query}&quot;</span>{" "}
-                            to labels
-                          </>
-                        ) : (
-                          t("label.create.type")
-                        )}
-                      </Combobox.Item>
-                    ) : (
-                      <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
-                    )}
+                    <LabelSelectOptions
+                      isLoading={isLoading}
+                      filteredOptions={filteredOptions}
+                      submitting={submitting}
+                      canCreateLabel={!!canCreateLabel}
+                      query={query}
+                      onAddLabel={handleAddLabel}
+                    />
                   </Combobox.List>
                 </div>
               </Combobox.Popup>
@@ -201,3 +163,70 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
     </>
   );
 });
+
+type TLabelOption = { value: string; query: string; content: React.ReactNode };
+
+type TLabelSelectOptionsProps = {
+  isLoading: boolean;
+  filteredOptions: TLabelOption[];
+  submitting: boolean;
+  canCreateLabel: boolean;
+  query: string;
+  onAddLabel: (labelName: string) => void;
+};
+
+function LabelSelectOptions(props: TLabelSelectOptionsProps) {
+  const { isLoading, filteredOptions, submitting, canCreateLabel, query, onAddLabel } = props;
+  const { t } = useTranslation();
+
+  if (isLoading) return <p className="text-center text-secondary">{t("common.loading")}</p>;
+
+  if (filteredOptions.length > 0)
+    return (
+      <>
+        {filteredOptions.map((option) => (
+          <Combobox.Item
+            key={option.value}
+            value={option.value}
+            className={cn(POPUP_OPTION_CLASSNAME, "justify-between")}
+            render={(itemProps, { selected }) => (
+              <div {...itemProps}>
+                {option.content}
+                {selected && (
+                  <div className="flex-shrink-0">
+                    <CheckIcon className={`h-3.5 w-3.5`} />
+                  </div>
+                )}
+              </div>
+            )}
+          ></Combobox.Item>
+        ))}
+      </>
+    );
+
+  if (submitting) return <Loader className="spin h-3.5 w-3.5" />;
+
+  if (canCreateLabel)
+    return (
+      <Combobox.Item
+        value={query}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!query.length) return;
+          onAddLabel(query);
+        }}
+        className={POPUP_OPTION_CLASSNAME}
+      >
+        {query.length ? (
+          <>
+            {/* TODO: Translate here */}+ Add <span className="text-primary">&quot;{query}&quot;</span> to labels
+          </>
+        ) : (
+          t("label.create.type")
+        )}
+      </Combobox.Item>
+    );
+
+  return <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>;
+}

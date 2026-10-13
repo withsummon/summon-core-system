@@ -40,44 +40,10 @@ export type TCommentCardDisplayProps = {
   renderQuickActions?: () => ReactNode;
 };
 
-export const CommentCardDisplay = observer(function CommentCardDisplay(props: TCommentCardDisplayProps) {
-  const {
-    activityOperations,
-    comment,
-    disabled,
-    projectId,
-    readOnlyEditorRef,
-    showAccessSpecifier,
-    workspaceId,
-    workspaceSlug,
-    isEditing = false,
-    setIsEditing,
-    renderFooter,
-    renderQuickActions,
-  } = props;
-  // states
+const useCommentHighlight = (commentBlockId: string) => {
   const [highlightClassName, setHighlightClassName] = useState("");
-  // state
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  // store hooks
-  const { getUserDetails } = useMember();
-  // derived values
-  const userDetails = getUserDetails(comment?.actor);
-  const displayName = comment?.actor_detail?.is_bot
-    ? comment?.actor_detail?.first_name + `Bot`
-    : (userDetails?.display_name ?? comment?.actor_detail?.display_name);
-  const avatarUrl = userDetails?.avatar_url ?? comment?.actor_detail?.avatar_url;
-
-  const userReactions = activityOperations.userReactions(comment.id);
-
   // navigation
   const pathname = usePathname();
-  // derived values
-  const commentBlockId = `comment-${comment?.id}`;
-  // Check if there are any reactions to determine if we should render the footer
-  const reactionIds = activityOperations.reactionIds(comment.id);
-  const hasReactions = reactionIds && Object.keys(reactionIds).some((key) => reactionIds[key]?.length > 0);
-
   // scroll to comment
   const { isHashMatch } = useHashScroll({
     elementId: commentBlockId,
@@ -94,6 +60,91 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     return () => clearTimeout(timeout);
   }, [isHashMatch]);
 
+  return highlightClassName;
+};
+
+const CommentAuthor = observer(function CommentAuthor({ comment }: { comment: TIssueComment }) {
+  // store hooks
+  const { getUserDetails } = useMember();
+  // derived values
+  const userDetails = getUserDetails(comment?.actor);
+  const displayName = comment?.actor_detail?.is_bot
+    ? comment?.actor_detail?.first_name + `Bot`
+    : (userDetails?.display_name ?? comment?.actor_detail?.display_name);
+  const avatarUrl = userDetails?.avatar_url ?? comment?.actor_detail?.avatar_url;
+
+  return (
+    <>
+      <Avatar size="sm" name={displayName} src={getFileURL(avatarUrl)} className="shrink-0" />
+      <div className="flex flex-1 flex-wrap items-center gap-1">
+        <div className="text-caption-sm-medium">{displayName}</div>
+        <div className="text-caption-sm-regular text-tertiary">
+          commented{" "}
+          <Tooltip
+            tooltipContent={`${renderFormattedDate(comment.created_at)} at ${renderFormattedTime(comment.created_at)}`}
+            position="bottom"
+          >
+            <span className="text-tertiary">
+              {calculateTimeAgo(comment.created_at)}
+              {comment.edited_at && " (edited)"}
+            </span>
+          </Tooltip>
+        </div>
+      </div>
+    </>
+  );
+});
+
+function CommentAccessSpecifier({ access }: { access: TIssueComment["access"] }) {
+  return (
+    <div className="absolute top-2.5 right-2.5 z-[1] text-tertiary">
+      {access === EIssueCommentAccessSpecifier.INTERNAL ? (
+        <LockIcon className="size-3" />
+      ) : (
+        <GlobeIcon className="size-3" />
+      )}
+    </div>
+  );
+}
+
+type TCommentReactionsFooterProps = Pick<
+  TCommentCardDisplayProps,
+  "activityOperations" | "comment" | "disabled" | "renderFooter"
+>;
+
+const CommentReactionsFooter = observer(function CommentReactionsFooter(props: TCommentReactionsFooterProps) {
+  const { activityOperations, comment, disabled, renderFooter } = props;
+  // Check if there are any reactions to determine if we should render the footer
+  const reactionIds = activityOperations.reactionIds(comment.id);
+  const hasReactions = reactionIds && Object.keys(reactionIds).some((key) => reactionIds[key]?.length > 0);
+  if (!hasReactions || disabled) return null;
+
+  const reactions = <CommentReactions comment={comment} disabled={disabled} activityOperations={activityOperations} />;
+  return <>{renderFooter ? renderFooter(reactions) : reactions}</>;
+});
+
+export const CommentCardDisplay = observer(function CommentCardDisplay(props: TCommentCardDisplayProps) {
+  const {
+    activityOperations,
+    comment,
+    disabled,
+    projectId,
+    readOnlyEditorRef,
+    showAccessSpecifier,
+    workspaceId,
+    workspaceSlug,
+    isEditing = false,
+    setIsEditing,
+    renderFooter,
+    renderQuickActions,
+  } = props;
+  // state
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  // derived values
+  const userReactions = activityOperations.userReactions(comment.id);
+  const commentBlockId = `comment-${comment?.id}`;
+  const highlightClassName = useCommentHighlight(commentBlockId);
+
   const handleEmojiSelect = useCallback(
     (emoji: string) => {
       if (!userReactions) return;
@@ -103,36 +154,11 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     [activityOperations, comment.id, userReactions]
   );
 
-  const shouldRenderReactions = hasReactions && !disabled;
-
   return (
     <div id={commentBlockId} className="relative flex flex-col gap-2">
-      {showAccessSpecifier && (
-        <div className="absolute top-2.5 right-2.5 z-[1] text-tertiary">
-          {comment.access === EIssueCommentAccessSpecifier.INTERNAL ? (
-            <LockIcon className="size-3" />
-          ) : (
-            <GlobeIcon className="size-3" />
-          )}
-        </div>
-      )}
+      {showAccessSpecifier && <CommentAccessSpecifier access={comment.access} />}
       <div className="relative mb-3 flex w-full items-center gap-2">
-        <Avatar size="sm" name={displayName} src={getFileURL(avatarUrl)} className="shrink-0" />
-        <div className="flex flex-1 flex-wrap items-center gap-1">
-          <div className="text-caption-sm-medium">{displayName}</div>
-          <div className="text-caption-sm-regular text-tertiary">
-            commented{" "}
-            <Tooltip
-              tooltipContent={`${renderFormattedDate(comment.created_at)} at ${renderFormattedTime(comment.created_at)}`}
-              position="bottom"
-            >
-              <span className="text-tertiary">
-                {calculateTimeAgo(comment.created_at)}
-                {comment.edited_at && " (edited)"}
-              </span>
-            </Tooltip>
-          </div>
-        </div>
+        <CommentAuthor comment={comment} />
         {!disabled && (
           <div className="flex shrink-0 items-center gap-1">
             <EmojiReactionPicker
@@ -143,7 +169,7 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
               label={<EmojiReactionButton onAddReaction={() => setIsPickerOpen(true)} />}
               placement="bottom-start"
             />
-            {renderQuickActions ? renderQuickActions() : null}
+            {renderQuickActions?.()}
           </div>
         )}
       </div>
@@ -174,14 +200,12 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
             }}
             parentClassName="border-none"
           />
-          {shouldRenderReactions &&
-            (renderFooter ? (
-              renderFooter(
-                <CommentReactions comment={comment} disabled={disabled} activityOperations={activityOperations} />
-              )
-            ) : (
-              <CommentReactions comment={comment} disabled={disabled} activityOperations={activityOperations} />
-            ))}
+          <CommentReactionsFooter
+            activityOperations={activityOperations}
+            comment={comment}
+            disabled={disabled}
+            renderFooter={renderFooter}
+          />
         </>
       )}
     </div>

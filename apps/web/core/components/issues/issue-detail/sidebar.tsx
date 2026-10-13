@@ -21,6 +21,7 @@ import {
   EstimatePropertyIcon,
   ParentPropertyIcon,
 } from "@plane/propel/icons";
+import type { TIssue, TStateGroups } from "@plane/types";
 import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
@@ -51,6 +52,61 @@ type Props = {
   isEditable: boolean;
 };
 
+type TIssueSidebarDatePropertiesProps = {
+  issue: TIssue;
+  stateGroup: TStateGroups | undefined;
+  isEditable: boolean;
+  onUpdate: (data: Partial<TIssue>) => void;
+};
+
+function IssueSidebarDateProperties(props: TIssueSidebarDatePropertiesProps) {
+  const { issue, stateGroup, isEditable, onUpdate } = props;
+  const { t } = useTranslation();
+  const minDate = issue.start_date ? getDate(issue.start_date) : undefined;
+  const maxDate = issue.target_date ? getDate(issue.target_date) : undefined;
+
+  return (
+    <>
+      <SidebarPropertyListItem icon={StartDatePropertyIcon} label={t("common.order_by.start_date")}>
+        <DateDropdown
+          placeholder={t("issue.add.start_date")}
+          value={issue.start_date}
+          onChange={(val) => onUpdate({ start_date: val ? renderFormattedPayloadDate(val) : null })}
+          maxDate={maxDate}
+          disabled={!isEditable}
+          buttonVariant="transparent-with-text"
+          className="group w-full grow"
+          buttonContainerClassName="w-full text-left h-7.5"
+          buttonClassName={cn("text-body-xs-regular", { "text-placeholder": !issue.start_date })}
+          hideIcon
+          clearIconClassName="h-3 w-3 hidden group-hover:inline"
+        />
+      </SidebarPropertyListItem>
+
+      <SidebarPropertyListItem icon={DueDatePropertyIcon} label={t("common.order_by.due_date")}>
+        <div className="flex w-full items-center gap-2">
+          <DateDropdown
+            placeholder={t("issue.add.due_date")}
+            value={issue.target_date}
+            onChange={(val) => onUpdate({ target_date: val ? renderFormattedPayloadDate(val) : null })}
+            minDate={minDate}
+            disabled={!isEditable}
+            buttonVariant="transparent-with-text"
+            className="group w-full grow"
+            buttonContainerClassName="w-full text-left h-7.5"
+            buttonClassName={cn("text-body-xs-regular", {
+              "text-placeholder": !issue.target_date,
+              "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateGroup),
+            })}
+            hideIcon
+            clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
+          />
+        </div>
+      </SidebarPropertyListItem>
+    </>
+  );
+}
+
 export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: Props) {
   const { t } = useTranslation();
   const { workspaceSlug, projectId, issueId, issueOperations, isEditable } = props;
@@ -71,11 +127,8 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
   const projectDetails = getProjectById(issue.project_id);
   const stateDetails = getStateById(issue.state_id);
 
-  const minDate = issue.start_date ? getDate(issue.start_date) : null;
-  minDate?.setDate(minDate.getDate());
-
-  const maxDate = issue.target_date ? getDate(issue.target_date) : null;
-  maxDate?.setDate(maxDate.getDate());
+  const assigneeCount = issue.assignee_ids?.length ?? 0;
+  const isEstimateEnabled = Boolean(projectId) && areEstimateEnabledByProjectId(projectId);
 
   return (
     <>
@@ -85,9 +138,9 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
           <div className={`mt-4 mb-2 space-y-2.5 truncate ${!isEditable ? "opacity-60" : ""}`}>
             <SidebarPropertyListItem icon={StatePropertyIcon} label={t("common.state")}>
               <StateDropdown
-                value={issue?.state_id}
+                value={issue.state_id}
                 onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { state_id: val })}
-                projectId={projectId?.toString() ?? ""}
+                projectId={projectId}
                 disabled={!isEditable}
                 buttonVariant="transparent-with-text"
                 className="group w-full grow"
@@ -100,17 +153,19 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
             <SidebarPropertyListItem icon={MembersPropertyIcon} label={t("common.assignees")}>
               <MemberDropdown
-                value={issue?.assignee_ids ?? undefined}
+                value={issue.assignee_ids}
                 onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { assignee_ids: val })}
                 disabled={!isEditable}
-                projectId={projectId?.toString() ?? ""}
+                projectId={projectId}
                 placeholder={t("issue.add.assignee")}
                 multiple
-                buttonVariant={issue?.assignee_ids?.length > 1 ? "transparent-without-text" : "transparent-with-text"}
+                buttonVariant={assigneeCount > 1 ? "transparent-without-text" : "transparent-with-text"}
                 className="group w-full grow"
                 buttonContainerClassName="w-full text-left h-7.5"
-                buttonClassName={`text-body-xs-regular justify-between ${issue?.assignee_ids?.length > 0 ? "" : "text-placeholder"}`}
-                hideIcon={issue.assignee_ids?.length === 0}
+                buttonClassName={cn("justify-between text-body-xs-regular", {
+                  "text-placeholder": assigneeCount === 0,
+                })}
+                hideIcon={assigneeCount === 0}
                 dropdownArrow
                 dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
               />
@@ -118,7 +173,7 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
             <SidebarPropertyListItem icon={PriorityPropertyIcon} label={t("common.priority")}>
               <PriorityDropdown
-                value={issue?.priority}
+                value={issue.priority}
                 onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { priority: val })}
                 disabled={!isEditable}
                 buttonVariant="transparent-with-text"
@@ -132,60 +187,22 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
               <SidebarPropertyListItem icon={UserCirclePropertyIcon} label={t("common.created_by")}>
                 <div className="flex gap-2 px-2">
                   <ButtonAvatars showTooltip userIds={createdByDetails.id} />
-                  <span className="grow truncate text-body-xs-regular leading-5">{createdByDetails?.display_name}</span>
+                  <span className="grow truncate text-body-xs-regular leading-5">{createdByDetails.display_name}</span>
                 </div>
               </SidebarPropertyListItem>
             )}
 
-            <SidebarPropertyListItem icon={StartDatePropertyIcon} label={t("common.order_by.start_date")}>
-              <DateDropdown
-                placeholder={t("issue.add.start_date")}
-                value={issue.start_date}
-                onChange={(val) =>
-                  issueOperations.update(workspaceSlug, projectId, issueId, {
-                    start_date: val ? renderFormattedPayloadDate(val) : null,
-                  })
-                }
-                maxDate={maxDate ?? undefined}
-                disabled={!isEditable}
-                buttonVariant="transparent-with-text"
-                className="group w-full grow"
-                buttonContainerClassName="w-full text-left h-7.5"
-                buttonClassName={`text-body-xs-regular ${issue?.start_date ? "" : "text-placeholder"}`}
-                hideIcon
-                clearIconClassName="h-3 w-3 hidden group-hover:inline"
-              />
-            </SidebarPropertyListItem>
+            <IssueSidebarDateProperties
+              issue={issue}
+              stateGroup={stateDetails?.group}
+              isEditable={isEditable}
+              onUpdate={(data) => issueOperations.update(workspaceSlug, projectId, issueId, data)}
+            />
 
-            <SidebarPropertyListItem icon={DueDatePropertyIcon} label={t("common.order_by.due_date")}>
-              <div className="flex w-full items-center gap-2">
-                <DateDropdown
-                  placeholder={t("issue.add.due_date")}
-                  value={issue.target_date}
-                  onChange={(val) =>
-                    issueOperations.update(workspaceSlug, projectId, issueId, {
-                      target_date: val ? renderFormattedPayloadDate(val) : null,
-                    })
-                  }
-                  minDate={minDate ?? undefined}
-                  disabled={!isEditable}
-                  buttonVariant="transparent-with-text"
-                  className="group w-full grow"
-                  buttonContainerClassName="w-full text-left h-7.5"
-                  buttonClassName={cn("text-body-xs-regular", {
-                    "text-placeholder": !issue.target_date,
-                    "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
-                  })}
-                  hideIcon
-                  clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
-                />
-              </div>
-            </SidebarPropertyListItem>
-
-            {projectId && areEstimateEnabledByProjectId(projectId) && (
+            {isEstimateEnabled && (
               <SidebarPropertyListItem icon={EstimatePropertyIcon} label={t("common.estimate")}>
                 <EstimateDropdown
-                  value={issue?.estimate_point ?? undefined}
+                  value={issue.estimate_point ?? undefined}
                   onChange={(val: string | undefined) =>
                     issueOperations.update(workspaceSlug, projectId, issueId, { estimate_point: val })
                   }
@@ -194,7 +211,7 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                   buttonVariant="transparent-with-text"
                   className="group w-full grow"
                   buttonContainerClassName="w-full text-left h-7.5"
-                  buttonClassName={`text-body-xs-regular ${issue?.estimate_point !== null ? "" : "text-placeholder"}`}
+                  buttonClassName={cn("text-body-xs-regular", { "text-placeholder": issue.estimate_point === null })}
                   placeholder={t("common.none")}
                   hideIcon
                   dropdownArrow

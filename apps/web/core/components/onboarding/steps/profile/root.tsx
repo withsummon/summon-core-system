@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { ImageIcon } from "lucide-react";
@@ -53,6 +53,10 @@ const defaultValues: Partial<TProfileSetupFormValues> = {
   has_marketing_email_consent: true,
 };
 
+/** An empty password is valid (it is optional); otherwise it must be strong and confirmed. */
+const isOptionalPasswordValid = (password: string | undefined, confirmPassword: string | undefined) =>
+  !password || (password === confirmPassword && getPasswordStrength(password) === E_PASSWORD_STRENGTH.STRENGTH_VALID);
+
 export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepChange }: Props) {
   // states
   const [isImageUploadModalOpen, setIsImageUploadModalOpen] = useState(false);
@@ -67,6 +71,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
     control,
     watch,
     setValue,
+    setFocus,
     formState: { errors, isSubmitting, isValid },
   } = useForm<TProfileSetupFormValues>({
     defaultValues: {
@@ -79,6 +84,10 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   });
   // derived values
   const userAvatar = watch("avatar_url");
+
+  useEffect(() => {
+    setFocus("first_name");
+  }, [setFocus]);
 
   const handleSetPassword = async (password: string) => {
     const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
@@ -124,25 +133,14 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
-  const isValidPassword = useMemo(() => {
-    if (currentPassword) {
-      if (
-        currentPassword === currentConfirmPassword &&
-        getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return true;
-    }
-  }, [currentPassword, currentConfirmPassword]);
+  const isValidPassword = useMemo(
+    () => isOptionalPasswordValid(currentPassword, currentConfirmPassword),
+    [currentPassword, currentConfirmPassword]
+  );
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.
-  const isButtonDisabled =
-    !isSubmitting && isValid ? (isPasswordAlreadySetup ? false : isValidPassword ? false : true) : true;
+  const isButtonDisabled = isSubmitting || !isValid || (!isPasswordAlreadySetup && !isValidPassword);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-10">
@@ -175,7 +173,6 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
           {userAvatar ? (
             <img
               src={getFileURL(userAvatar ?? "")}
-              onClick={() => setIsImageUploadModalOpen(true)}
               alt={user?.display_name}
               className="h-full w-full rounded-full object-cover"
             />
@@ -183,7 +180,6 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
             <>{watch("first_name")[0] ?? "R"}</>
           )}
         </button>
-        <input type="file" className="hidden" id="profile-image-input" />
         <button
           className="flex items-center gap-1.5 px-2 py-1 text-13 text-tertiary hover:text-secondary"
           type="button"
@@ -222,7 +218,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                autoFocus
+                aria-label="Name"
                 className={cn(
                   "w-full rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-[border-color,box-shadow] duration-200 placeholder:text-placeholder focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none",
                   {

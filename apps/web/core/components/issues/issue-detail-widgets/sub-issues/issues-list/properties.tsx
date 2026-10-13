@@ -39,94 +39,34 @@ type Props = {
   issue: TIssue;
 };
 
-export const SubIssuesListItemProperties = observer(function SubIssuesListItemProperties(props: Props) {
-  const { workspaceSlug, parentIssueId, issueId, canEdit, updateSubIssue, displayProperties, issue } = props;
+type TSubIssueDatePropertiesProps = {
+  issue: TIssue;
+  displayProperties: IIssueDisplayProperties;
+  canEdit: boolean;
+  shouldHighlight: boolean;
+  onStartDateChange: (date: Date | null) => void;
+  onTargetDateChange: (date: Date | null) => void;
+};
+
+function SubIssueDateProperties(props: TSubIssueDatePropertiesProps) {
+  const { issue, displayProperties, canEdit, shouldHighlight, onStartDateChange, onTargetDateChange } = props;
   const { t } = useTranslation();
-  const { getStateById } = useProjectState();
 
   const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
     e.stopPropagation();
     e.preventDefault();
   };
 
-  const handleStartDate = (date: Date | null) => {
-    if (issue.project_id) {
-      updateSubIssue(workspaceSlug, issue.project_id, parentIssueId, issueId, {
-        start_date: date ? renderFormattedPayloadDate(date) : null,
-      });
-    }
-  };
-
-  const handleTargetDate = (date: Date | null) => {
-    if (issue.project_id) {
-      updateSubIssue(workspaceSlug, issue.project_id, parentIssueId, issueId, {
-        target_date: date ? renderFormattedPayloadDate(date) : null,
-      });
-    }
-  };
-
-  //derived values
-  const stateDetails = useMemo(() => getStateById(issue.state_id), [getStateById, issue.state_id]);
-  const shouldHighlight = useMemo(
-    () => shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
-    [issue.target_date, stateDetails?.group]
-  );
   // date range is enabled only when both dates are available and both dates are enabled
-  const isDateRangeEnabled: boolean = Boolean(
-    issue.start_date && issue.target_date && displayProperties?.start_date && displayProperties?.due_date
+  const isDateRangeEnabled = Boolean(
+    issue.start_date && issue.target_date && displayProperties.start_date && displayProperties.due_date
   );
-
-  if (!displayProperties) return <></>;
-
-  const maxDate = getDate(issue.target_date);
-  const minDate = getDate(issue.start_date);
+  const startDate = getDate(issue.start_date);
+  const targetDate = getDate(issue.target_date);
+  const highlightClassName = shouldHighlight ? "text-danger-primary" : "";
 
   return (
-    <div className="relative flex items-center gap-2">
-      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="state">
-        <div className="h-5 flex-shrink-0">
-          <StateDropdown
-            value={issue.state_id}
-            projectId={issue.project_id ?? undefined}
-            onChange={(val) =>
-              issue.project_id &&
-              updateSubIssue(
-                workspaceSlug,
-                issue.project_id,
-                parentIssueId,
-                issueId,
-                {
-                  state_id: val,
-                },
-                { ...issue }
-              )
-            }
-            disabled={!canEdit}
-            buttonVariant="transparent-without-text"
-            buttonClassName="hover:bg-transparent px-0"
-            iconSize="size-5"
-            showTooltip
-          />
-        </div>
-      </WithDisplayPropertiesHOC>
-
-      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
-        <div className="h-5 flex-shrink-0">
-          <PriorityDropdown
-            value={issue.priority}
-            onChange={(val) =>
-              issue.project_id &&
-              updateSubIssue(workspaceSlug, issue.project_id, parentIssueId, issueId, {
-                priority: val,
-              })
-            }
-            disabled={!canEdit}
-            buttonVariant="border-without-text"
-            showTooltip
-          />
-        </div>
-      </WithDisplayPropertiesHOC>
-
+    <>
       {/* merged dates */}
       <WithDisplayPropertiesHOC
         displayProperties={displayProperties}
@@ -136,13 +76,13 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateRangeDropdown
             value={{
-              from: getDate(issue.start_date) || undefined,
-              to: getDate(issue.target_date) || undefined,
+              from: startDate || undefined,
+              to: targetDate || undefined,
             }}
             placement="top-end"
             onSelect={(range) => {
-              handleStartDate(range?.from ?? null);
-              handleTargetDate(range?.to ?? null);
+              onStartDateChange(range?.from ?? null);
+              onTargetDateChange(range?.to ?? null);
             }}
             hideIcon={{
               from: false,
@@ -150,7 +90,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             isClearable
             mergeDates
             buttonVariant={issue.start_date || issue.target_date ? "border-with-text" : "border-without-text"}
-            buttonClassName={shouldHighlight ? "text-danger-primary" : ""}
+            buttonClassName={highlightClassName}
             disabled={!canEdit}
             showTooltip
             customTooltipHeading="Date Range"
@@ -169,8 +109,8 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
         <div className="h-5">
           <DateDropdown
             value={issue.start_date ?? null}
-            onChange={handleStartDate}
-            maxDate={maxDate}
+            onChange={onStartDateChange}
+            maxDate={targetDate}
             placeholder={t("common.order_by.start_date")}
             icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
             buttonVariant={issue.start_date ? "border-with-text" : "border-without-text"}
@@ -189,13 +129,13 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
       >
         <div className="h-5">
           <DateDropdown
-            value={issue?.target_date ?? null}
-            onChange={handleTargetDate}
-            minDate={minDate}
+            value={issue.target_date ?? null}
+            onChange={onTargetDateChange}
+            minDate={startDate}
             placeholder={t("common.order_by.due_date")}
             icon={<DueDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
             buttonVariant={issue.target_date ? "border-with-text" : "border-without-text"}
-            buttonClassName={shouldHighlight ? "text-danger-primary" : ""}
+            buttonClassName={highlightClassName}
             clearIconClassName="text-primary"
             optionsClassName="z-30"
             disabled={!canEdit}
@@ -203,22 +143,85 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
           />
         </div>
       </WithDisplayPropertiesHOC>
+    </>
+  );
+}
+
+export const SubIssuesListItemProperties = observer(function SubIssuesListItemProperties(props: Props) {
+  const { workspaceSlug, parentIssueId, issueId, canEdit, updateSubIssue, displayProperties, issue } = props;
+  const { getStateById } = useProjectState();
+
+  const updateIssue = (issueData: Partial<TIssue>, oldIssue?: Partial<TIssue>) => {
+    if (!issue.project_id) return;
+    return updateSubIssue(workspaceSlug, issue.project_id, parentIssueId, issueId, issueData, oldIssue);
+  };
+
+  const handleStartDate = (date: Date | null) => {
+    void updateIssue({ start_date: date ? renderFormattedPayloadDate(date) : null });
+  };
+
+  const handleTargetDate = (date: Date | null) => {
+    void updateIssue({ target_date: date ? renderFormattedPayloadDate(date) : null });
+  };
+
+  const hasAssignees = (issue.assignee_ids?.length ?? 0) > 0;
+
+  //derived values
+  const stateDetails = useMemo(() => getStateById(issue.state_id), [getStateById, issue.state_id]);
+  const shouldHighlight = useMemo(
+    () => shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
+    [issue.target_date, stateDetails?.group]
+  );
+  if (!displayProperties) return <></>;
+
+  return (
+    <div className="relative flex items-center gap-2">
+      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="state">
+        <div className="h-5 flex-shrink-0">
+          <StateDropdown
+            value={issue.state_id}
+            projectId={issue.project_id ?? undefined}
+            onChange={(val) => updateIssue({ state_id: val }, { ...issue })}
+            disabled={!canEdit}
+            buttonVariant="transparent-without-text"
+            buttonClassName="hover:bg-transparent px-0"
+            iconSize="size-5"
+            showTooltip
+          />
+        </div>
+      </WithDisplayPropertiesHOC>
+
+      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
+        <div className="h-5 flex-shrink-0">
+          <PriorityDropdown
+            value={issue.priority}
+            onChange={(val) => updateIssue({ priority: val })}
+            disabled={!canEdit}
+            buttonVariant="border-without-text"
+            showTooltip
+          />
+        </div>
+      </WithDisplayPropertiesHOC>
+
+      <SubIssueDateProperties
+        issue={issue}
+        displayProperties={displayProperties}
+        canEdit={canEdit}
+        shouldHighlight={shouldHighlight}
+        onStartDateChange={handleStartDate}
+        onTargetDateChange={handleTargetDate}
+      />
 
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="assignee">
         <div className="h-5 flex-shrink-0">
           <MemberDropdown
             value={issue.assignee_ids}
             projectId={issue.project_id ?? undefined}
-            onChange={(val) =>
-              issue.project_id &&
-              updateSubIssue(workspaceSlug, issue.project_id, parentIssueId, issueId, {
-                assignee_ids: val,
-              })
-            }
+            onChange={(val) => updateIssue({ assignee_ids: val })}
             disabled={!canEdit}
             multiple
-            buttonVariant={(issue?.assignee_ids || []).length > 0 ? "transparent-without-text" : "border-without-text"}
-            buttonClassName={(issue?.assignee_ids || []).length > 0 ? "hover:bg-transparent px-0" : ""}
+            buttonVariant={hasAssignees ? "transparent-without-text" : "border-without-text"}
+            buttonClassName={hasAssignees ? "hover:bg-transparent px-0" : ""}
           />
         </div>
       </WithDisplayPropertiesHOC>

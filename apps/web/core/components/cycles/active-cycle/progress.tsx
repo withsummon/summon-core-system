@@ -66,10 +66,10 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
 
       {cycle.total_issues > 0 ? (
         <div className="flex flex-col gap-5">
-          {Object.keys(groupedIssues).map((group, index) => (
-            <>
-              {groupedIssues[group] > 0 && (
-                <div key={index}>
+          {Object.keys(groupedIssues).map(
+            (group, index) =>
+              groupedIssues[group] > 0 && (
+                <div key={group}>
                   <button
                     type="button"
                     className="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-13"
@@ -91,9 +91,8 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
                     }`}</span>
                   </button>
                 </div>
-              )}
-            </>
-          ))}
+              )
+          )}
           {cycle.cancelled_issues > 0 && (
             <span className="flex items-center gap-2 text-13 text-tertiary">
               <span>

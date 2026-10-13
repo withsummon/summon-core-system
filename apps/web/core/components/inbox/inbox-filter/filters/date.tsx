@@ -36,6 +36,7 @@ export const FilterDate = observer(function FilterDate(props: Props) {
   const [isDateFilterModalOpen, setIsDateFilterModalOpen] = useState(false);
   // derived values
   const filterValue: string[] = inboxFilters?.[filterKey] || [];
+  const selectedValues = new Set(filterValue);
   const appliedFiltersCount = filterValue?.length ?? 0;
   const filteredOptions = PAST_DURATION_FILTER_OPTIONS.filter((d) =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -79,7 +80,7 @@ export const FilterDate = observer(function FilterDate(props: Props) {
               {filteredOptions.map((option) => (
                 <FilterOption
                   key={option.value}
-                  isChecked={filterValue?.includes(option.value) ? true : false}
+                  isChecked={selectedValues.has(option.value)}
                   onClick={() => handleInboxIssueFilters(filterKey, handleFilterValue(option.value))}
                   title={option.name}
                   multiple={false}

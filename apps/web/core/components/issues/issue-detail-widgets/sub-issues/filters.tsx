@@ -30,6 +30,89 @@ type TSubIssueFiltersProps = {
   availableFilters: (keyof IIssueFilterOptions)[];
 };
 
+type TFilterSectionProps = Pick<TSubIssueFiltersProps, "filters" | "memberIds" | "states" | "handleFiltersUpdate"> & {
+  searchQuery: string;
+};
+
+// rendered in this order, each only when its key is in `availableFilters`
+const FILTER_SECTIONS: {
+  key: keyof IIssueFilterOptions;
+  render: (props: TFilterSectionProps) => React.ReactNode;
+}[] = [
+  {
+    key: "priority",
+    render: ({ filters, handleFiltersUpdate, searchQuery }) => (
+      <FilterPriority
+        appliedFilters={filters.priority ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("priority", val)}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+  {
+    key: "state_group",
+    render: ({ filters, handleFiltersUpdate, searchQuery }) => (
+      <FilterStateGroup
+        appliedFilters={filters.state_group ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("state_group", val)}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+  {
+    key: "state",
+    render: ({ filters, handleFiltersUpdate, searchQuery, states }) => (
+      <FilterState
+        appliedFilters={filters.state ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("state", val)}
+        searchQuery={searchQuery}
+        states={states}
+      />
+    ),
+  },
+  {
+    key: "project",
+    render: ({ filters, handleFiltersUpdate, searchQuery }) => (
+      <FilterProjects
+        appliedFilters={filters.project ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("project", val)}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+  {
+    key: "assignees",
+    render: ({ filters, handleFiltersUpdate, searchQuery, memberIds }) => (
+      <FilterAssignees
+        appliedFilters={filters.assignees ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("assignees", val)}
+        memberIds={memberIds}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+  {
+    key: "start_date",
+    render: ({ filters, handleFiltersUpdate, searchQuery }) => (
+      <FilterStartDate
+        appliedFilters={filters.start_date ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("start_date", val)}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+  {
+    key: "target_date",
+    render: ({ filters, handleFiltersUpdate, searchQuery }) => (
+      <FilterDueDate
+        appliedFilters={filters.target_date ?? null}
+        handleUpdate={(val) => handleFiltersUpdate("target_date", val)}
+        searchQuery={searchQuery}
+      />
+    ),
+  },
+];
+
 export const SubIssueFilters = observer(function SubIssueFilters(props: TSubIssueFiltersProps) {
   const { handleFiltersUpdate, filters, memberIds, states, availableFilters } = props;
   // plane hooks
@@ -37,7 +120,7 @@ export const SubIssueFilters = observer(function SubIssueFilters(props: TSubIssu
   // states
   const [filtersSearchQuery, setFiltersSearchQuery] = useState("");
 
-  const isFilterEnabled = (filter: keyof IIssueFilterOptions) => !!availableFilters.includes(filter);
+  const enabledFilters = new Set(availableFilters);
 
   const isFilterApplied = useMemo(() => isFiltersApplied(filters), [filters]);
 
@@ -81,84 +164,17 @@ export const SubIssueFilters = observer(function SubIssueFilters(props: TSubIssu
             </div>
           </div>
           <div className="vertical-scrollbar scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-y-auto px-2.5 text-left">
-            {/* Priority */}
-            {isFilterEnabled("priority") && (
-              <div className="py-2">
-                <FilterPriority
-                  appliedFilters={filters.priority ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("priority", val)}
-                  searchQuery={filtersSearchQuery}
-                />
+            {FILTER_SECTIONS.filter((section) => enabledFilters.has(section.key)).map((section) => (
+              <div key={section.key} className="py-2">
+                {section.render({
+                  filters,
+                  memberIds,
+                  states,
+                  searchQuery: filtersSearchQuery,
+                  handleFiltersUpdate,
+                })}
               </div>
-            )}
-
-            {/* state group */}
-            {isFilterEnabled("state_group") && (
-              <div className="py-2">
-                <FilterStateGroup
-                  appliedFilters={filters.state_group ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("state_group", val)}
-                  searchQuery={filtersSearchQuery}
-                />
-              </div>
-            )}
-
-            {/* State */}
-            {isFilterEnabled("state") && (
-              <div className="py-2">
-                <FilterState
-                  appliedFilters={filters.state ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("state", val)}
-                  searchQuery={filtersSearchQuery}
-                  states={states}
-                />
-              </div>
-            )}
-
-            {/* Projects */}
-            {isFilterEnabled("project") && (
-              <div className="py-2">
-                <FilterProjects
-                  appliedFilters={filters.project ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("project", val)}
-                  searchQuery={filtersSearchQuery}
-                />
-              </div>
-            )}
-
-            {/* Assignees */}
-            {isFilterEnabled("assignees") && (
-              <div className="py-2">
-                <FilterAssignees
-                  appliedFilters={filters.assignees ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("assignees", val)}
-                  memberIds={memberIds}
-                  searchQuery={filtersSearchQuery}
-                />
-              </div>
-            )}
-
-            {/* Start Date */}
-            {isFilterEnabled("start_date") && (
-              <div className="py-2">
-                <FilterStartDate
-                  appliedFilters={filters.start_date ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("start_date", val)}
-                  searchQuery={filtersSearchQuery}
-                />
-              </div>
-            )}
-
-            {/* Target Date */}
-            {isFilterEnabled("target_date") && (
-              <div className="py-2">
-                <FilterDueDate
-                  appliedFilters={filters.target_date ?? null}
-                  handleUpdate={(val) => handleFiltersUpdate("target_date", val)}
-                  searchQuery={filtersSearchQuery}
-                />
-              </div>
-            )}
+            ))}
           </div>
         </div>
       </FiltersDropdown>

@@ -91,10 +91,10 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
         workspaceLevelToggle
       />
 
-      <button
-        type="button"
+      {/* The trigger is stretched behind the row so the links and remove controls are not nested inside it */}
+      <div
         className={cn(
-          "group flex items-center gap-2 rounded-sm px-2 py-0.5 outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+          "group relative flex items-center gap-2 rounded-sm px-2 py-0.5",
           {
             "cursor-not-allowed": disabled,
             "hover:bg-layer-1": !disabled,
@@ -102,9 +102,14 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
           },
           className
         )}
-        onClick={() => toggleRelationModal(issueId, relationKey)}
-        disabled={disabled}
       >
+        <button
+          type="button"
+          aria-label={currRelationOption?.placeholder}
+          className="absolute inset-0 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid disabled:cursor-not-allowed"
+          onClick={() => toggleRelationModal(issueId, relationKey)}
+          disabled={disabled}
+        />
         <div className="flex w-full items-start justify-between">
           {relationIssueIds.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2 py-0.5">
@@ -117,7 +122,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                 return (
                   <div
                     key={relationIssueId}
-                    className={`group flex items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
+                    className={`group relative z-[1] flex items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
                   >
                     <Tooltip tooltipHeading="Title" tooltipContent={currentIssue.name} isMobile={isMobile}>
                       <Link
@@ -138,8 +143,9 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                     </Tooltip>
                     {!disabled && (
                       <Tooltip tooltipContent="Remove" position="bottom" isMobile={isMobile}>
-                        {/* eslint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-                        <span
+                        <button
+                          type="button"
+                          aria-label="Remove"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -147,7 +153,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                           }}
                         >
                           <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-                        </span>
+                        </button>
                       </Tooltip>
                     )}
                   </div>
@@ -167,7 +173,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
             </span>
           )}
         </div>
-      </button>
+      </div>
     </>
   );
 });

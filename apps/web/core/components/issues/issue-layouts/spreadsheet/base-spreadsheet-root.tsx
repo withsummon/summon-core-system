@@ -108,7 +108,16 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
         placements={placement}
       />
     ),
-    [isCompletedCycle, canEditProperties, removeIssue, updateIssue, removeIssueFromView, archiveIssue, restoreIssue]
+    [
+      QuickActions,
+      isCompletedCycle,
+      canEditProperties,
+      removeIssue,
+      updateIssue,
+      removeIssueFromView,
+      archiveIssue,
+      restoreIssue,
+    ]
   );
 
   if (!Array.isArray(issueIds)) return null;

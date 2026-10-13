@@ -4,34 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
-import { observer } from "mobx-react";
-import type {
-  Control,
-  FieldArrayWithId,
-  UseFieldArrayRemove,
-  UseFormGetValues,
-  UseFormSetValue,
-  UseFormWatch,
-} from "react-hook-form";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
-// icons
-import { XCircle } from "lucide-react";
-import { CustomSelect } from "@plane/ui";
+import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
 // plane imports
-import type { EUserPermissions } from "@plane/constants";
-import { ROLE, ROLE_DETAILS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-// types
 import { Button } from "@plane/propel/button";
-import { PlusIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser, IWorkspace } from "@plane/types";
-// ui
-import { Input, Spinner } from "@plane/ui";
+import { Spinner } from "@plane/ui";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // components
+import type { TInviteMembersFormValues } from "./invite-member-fields";
+import { InviteMemberFields } from "./invite-member-fields";
 import { SwitchAccountDropdown } from "./switch-account-dropdown";
 
 type Props = {
@@ -41,170 +25,8 @@ type Props = {
   workspace: IWorkspace | undefined;
 };
 
-type EmailRole = {
-  email: string;
-  role: EUserPermissions;
-  role_active: boolean;
-};
-
-type FormValues = {
-  emails: EmailRole[];
-};
-
-type InviteMemberFormProps = {
-  index: number;
-  remove: UseFieldArrayRemove;
-  control: Control<FormValues, any>;
-  setValue: UseFormSetValue<FormValues>;
-  getValues: UseFormGetValues<FormValues>;
-  watch: UseFormWatch<FormValues>;
-  field: FieldArrayWithId<FormValues, "emails", "id">;
-  fields: FieldArrayWithId<FormValues, "emails", "id">[];
-  errors: any;
-  isInvitationDisabled: boolean;
-  setIsInvitationDisabled: (value: boolean) => void;
-};
-
 // services
 const workspaceService = new WorkspaceService();
-const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-
-const placeholderEmails = [
-  "charlie.taylor@frstflt.com",
-  "octave.chanute@frstflt.com",
-  "george.spratt@frstflt.com",
-  "frank.coffyn@frstflt.com",
-  "amos.root@frstflt.com",
-  "edward.deeds@frstflt.com",
-  "charles.m.manly@frstflt.com",
-  "glenn.curtiss@frstflt.com",
-  "thomas.selfridge@frstflt.com",
-  "albert.zahm@frstflt.com",
-];
-const InviteMemberInput = observer(function InviteMemberInput(props: InviteMemberFormProps) {
-  const {
-    control,
-    index,
-    fields,
-    remove,
-    errors,
-    isInvitationDisabled,
-    setIsInvitationDisabled,
-    setValue,
-    getValues,
-    watch,
-  } = props;
-
-  const { t } = useTranslation();
-
-  const email = watch(`emails.${index}.email`);
-
-  const emailOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.value === "") {
-      const validEmail = fields.map((_, i) => emailRegex.test(getValues(`emails.${i}.email`))).includes(true);
-      if (validEmail) {
-        setIsInvitationDisabled(false);
-      } else {
-        setIsInvitationDisabled(true);
-      }
-
-      if (getValues(`emails.${index}.role_active`)) {
-        setValue(`emails.${index}.role_active`, false);
-      }
-    } else {
-      if (!getValues(`emails.${index}.role_active`)) {
-        setValue(`emails.${index}.role_active`, true);
-      }
-      if (isInvitationDisabled && emailRegex.test(event.target.value)) {
-        setIsInvitationDisabled(false);
-      } else if (!isInvitationDisabled && !emailRegex.test(event.target.value)) {
-        setIsInvitationDisabled(true);
-      }
-    }
-  };
-
-  return (
-    <div>
-      <div className="group relative grid grid-cols-10 gap-4">
-        <div className="col-span-6 ml-8">
-          <Controller
-            control={control}
-            name={`emails.${index}.email`}
-            rules={{
-              pattern: {
-                value: emailRegex,
-                message: "Invalid Email ID",
-              },
-            }}
-            render={({ field: { value, onChange, ref } }) => (
-              <Input
-                id={`emails.${index}.email`}
-                name={`emails.${index}.email`}
-                type="text"
-                value={value}
-                onChange={(event) => {
-                  emailOnChange(event);
-                  onChange(event);
-                }}
-                ref={ref}
-                hasError={Boolean(errors.emails?.[index]?.email)}
-                placeholder={placeholderEmails[index % placeholderEmails.length]}
-                className="w-full border-strong text-11 placeholder:text-placeholder sm:text-13"
-                autoComplete="off"
-              />
-            )}
-          />
-        </div>
-        <div className="col-span-4 mr-8">
-          <Controller
-            control={control}
-            name={`emails.${index}.role`}
-            rules={{ required: true }}
-            render={({ field: { value, onChange } }) => (
-              <CustomSelect
-                value={value}
-                label={ROLE[value]}
-                input
-                className="w-full"
-                placement="bottom-end"
-                buttonClassName={!getValues(`emails.${index}.role_active`) ? "text-placeholder" : "text-primary"}
-                onChange={(val: EUserPermissions) => {
-                  onChange(val);
-                  setValue(`emails.${index}.role_active`, true);
-                }}
-              >
-                {Object.entries(ROLE_DETAILS).map(([key, role]) => (
-                  <CustomSelect.Option key={key} value={parseInt(key)}>
-                    <div className="flex flex-col gap-1 p-1 text-wrap">
-                      <span className="text-13 font-medium">{t(role.i18n_title)}</span>
-                      <span className="text-11 text-tertiary">{t(role.i18n_description)}</span>
-                    </div>
-                  </CustomSelect.Option>
-                ))}
-              </CustomSelect>
-            )}
-          />
-        </div>
-        {fields.length > 1 && (
-          <button
-            type="button"
-            aria-label="Remove"
-            className="absolute right-0 hidden place-items-center self-center rounded-sm group-hover:grid"
-            onClick={() => remove(index)}
-          >
-            <XCircle className="h-5 w-5 pl-0.5 text-placeholder" />
-          </button>
-        )}
-      </div>
-      {email && !emailRegex.test(email) && (
-        <div className="mx-8 my-1">
-          <span className="text-13">🤥</span>{" "}
-          <span className="mt-1 text-11 text-danger-primary">That doesn{"'"}t look like an email address.</span>
-        </div>
-      )}
-    </div>
-  );
-});
 
 export function InviteMembers(props: Props) {
   const { finishOnboarding, workspace } = props;
@@ -218,7 +40,7 @@ export function InviteMembers(props: Props) {
     setValue,
     handleSubmit,
     formState: { isSubmitting, errors, isValid },
-  } = useForm<FormValues>();
+  } = useForm<TInviteMembersFormValues>();
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -229,7 +51,7 @@ export function InviteMembers(props: Props) {
     await finishOnboarding();
   };
 
-  const onSubmit = async (formData: FormValues) => {
+  const onSubmit = async (formData: TInviteMembersFormValues) => {
     if (!workspace) return;
 
     let payload = { ...formData };
@@ -295,38 +117,19 @@ export function InviteMembers(props: Props) {
               if (e.code === "Enter") e.preventDefault();
             }}
           >
-            <div className="w-full py-4 text-13">
-              <div className="group relative mx-8 grid grid-cols-10 gap-4 py-2">
-                <div className="col-span-6 px-1 text-13 font-medium text-secondary">Email</div>
-                <div className="col-span-4 px-1 text-13 font-medium text-secondary">Role</div>
-              </div>
-              <div className="mb-3 space-y-3 sm:space-y-4">
-                {fields.map((field, index) => (
-                  <InviteMemberInput
-                    watch={watch}
-                    getValues={getValues}
-                    setValue={setValue}
-                    isInvitationDisabled={isInvitationDisabled}
-                    setIsInvitationDisabled={(value: boolean) => setIsInvitationDisabled(value)}
-                    control={control}
-                    errors={errors}
-                    field={field}
-                    fields={fields}
-                    index={index}
-                    remove={remove}
-                    key={field.id}
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                className="mx-8 flex items-center gap-1.5 bg-transparent text-13 font-medium text-accent-primary outline-accent-strong"
-                onClick={appendField}
-              >
-                <PlusIcon className="h-4 w-4" strokeWidth={2} />
-                Add another
-              </button>
-            </div>
+            <InviteMemberFields
+              control={control}
+              watch={watch}
+              getValues={getValues}
+              setValue={setValue}
+              fields={fields}
+              remove={remove}
+              errors={errors}
+              isInvitationDisabled={isInvitationDisabled}
+              setIsInvitationDisabled={setIsInvitationDisabled}
+              onAddField={appendField}
+              emailColumnClassName="ml-8"
+            />
             <div className="mx-auto flex w-full max-w-96 flex-col items-center justify-center gap-4 px-8 sm:px-2">
               <Button
                 variant="primary"

@@ -2,9 +2,19 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+const readSources = (...paths: string[]) =>
+  paths.map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
+// The screens are split into focused modules; assert against the page plus its extracted parts.
+const source = readSources(
+  "./page.tsx",
+  "./automation-display.ts",
+  "./automation-generator-form.tsx",
+  "./automation-jobs-table.tsx",
+  "./automation-template-grid.tsx",
+  "./use-automation-generator.ts"
+);
 const detailPage = new URL("./[jobId]/page.tsx", import.meta.url);
-const detailSource = readFileSync(detailPage, "utf8");
+const detailSource = readSources("./[jobId]/page.tsx", "./[jobId]/job-detail-panels.tsx", "./automation-display.ts");
 const routes = readFileSync(new URL("../../../../../routes/extended.ts", import.meta.url), "utf8");
 const service = readFileSync(new URL("../../../../../../core/services/summon.service.ts", import.meta.url), "utf8");
 const markdownRenderer = readFileSync(

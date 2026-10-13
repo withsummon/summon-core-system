@@ -13,7 +13,6 @@ import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from
 import type { TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { ContextMenu, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
@@ -26,6 +25,7 @@ import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import type { IQuickActionProps } from "../list/list-view-types";
 import type { MenuItemFactoryProps } from "./helper";
 import { useCycleIssueMenuItems } from "./helper";
+import { QuickActionMenuItems } from "./menu-items";
 
 export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(props: IQuickActionProps) {
   const {
@@ -147,104 +147,7 @@ export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(p
         useCaptureForOutsideClick
         closeOnSelect
       >
-        {MENU_ITEMS.map((item) => {
-          if (item.shouldRender === false) return null;
-
-          // Render submenu if nestedMenuItems exist
-          if (item.nestedMenuItems && item.nestedMenuItems.length > 0) {
-            return (
-              <CustomMenu.SubMenu
-                key={item.key}
-                trigger={
-                  <div className="flex items-center gap-2">
-                    {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
-                    <h5>{item.title}</h5>
-                    {item.description && (
-                      <p
-                        className={cn("whitespace-pre-line text-tertiary", {
-                          "text-placeholder": item.disabled,
-                        })}
-                      >
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-                }
-                disabled={item.disabled}
-                className={cn(
-                  "flex items-center gap-2",
-                  {
-                    "text-placeholder": item.disabled,
-                  },
-                  item.className
-                )}
-              >
-                {item.nestedMenuItems.map((nestedItem) => (
-                  <CustomMenu.MenuItem
-                    key={nestedItem.key}
-                    onClick={() => {
-                      nestedItem.action();
-                    }}
-                    className={cn(
-                      "flex items-center gap-2",
-                      {
-                        "text-placeholder": nestedItem.disabled,
-                      },
-                      nestedItem.className
-                    )}
-                    disabled={nestedItem.disabled}
-                  >
-                    {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
-                    <div>
-                      <h5>{nestedItem.title}</h5>
-                      {nestedItem.description && (
-                        <p
-                          className={cn("whitespace-pre-line text-tertiary", {
-                            "text-placeholder": nestedItem.disabled,
-                          })}
-                        >
-                          {nestedItem.description}
-                        </p>
-                      )}
-                    </div>
-                  </CustomMenu.MenuItem>
-                ))}
-              </CustomMenu.SubMenu>
-            );
-          }
-
-          // Render regular menu item
-          return (
-            <CustomMenu.MenuItem
-              key={item.key}
-              onClick={() => {
-                item.action();
-              }}
-              className={cn(
-                "flex items-center gap-2",
-                {
-                  "text-placeholder": item.disabled,
-                },
-                item.className
-              )}
-              disabled={item.disabled}
-            >
-              {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
-              <div>
-                <h5>{item.title}</h5>
-                {item.description && (
-                  <p
-                    className={cn("whitespace-pre-line text-tertiary", {
-                      "text-placeholder": item.disabled,
-                    })}
-                  >
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            </CustomMenu.MenuItem>
-          );
-        })}
+        <QuickActionMenuItems items={MENU_ITEMS} />
       </CustomMenu>
     </>
   );

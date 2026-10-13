@@ -28,6 +28,8 @@ export const FilterPriority = observer(function FilterPriority(props: Props) {
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
+  const appliedFilterSet = new Set(appliedFilters);
+
   const filteredOptions = ISSUE_PRIORITIES.filter((p) => p.key.includes(searchQuery.toLowerCase()));
   return (
     <>
@@ -42,7 +44,7 @@ export const FilterPriority = observer(function FilterPriority(props: Props) {
             filteredOptions.map((priority) => (
               <FilterOption
                 key={priority.key}
-                isChecked={appliedFilters?.includes(priority.key) ? true : false}
+                isChecked={appliedFilterSet.has(priority.key)}
                 onClick={() => handleUpdate(priority.key)}
                 icon={<PriorityIcon priority={priority.key} className="h-3.5 w-3.5" />}
                 title={priority.title}

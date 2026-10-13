@@ -84,21 +84,14 @@ export function NameColumn(props: NameProps) {
             popoverClassName="justify-end"
             buttonClassName="outline-none	origin-center rotate-90 size-8 aspect-square flex-shrink-0 grid place-items-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-accent-strong transition-opacity"
             render={() => (
-              <div
-                role="button"
-                tabIndex={0}
-                className="flex cursor-pointer items-center gap-x-3"
+              <button
+                type="button"
+                className="flex w-full cursor-pointer items-center gap-x-3 text-left"
                 onClick={() => setRemoveMemberModal(rowData)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setRemoveMemberModal(rowData);
-                  }
-                }}
                 data-ph-element={MEMBER_TRACKER_ELEMENTS.WORKSPACE_MEMBER_TABLE_CONTEXT_MENU}
               >
                 <TrashIcon className="size-3.5 align-middle" /> {id === currentUser?.id ? "Leave " : "Remove "}
-              </div>
+              </button>
             )}
           />
         )}

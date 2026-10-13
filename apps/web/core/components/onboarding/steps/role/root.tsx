@@ -110,6 +110,7 @@ export const RoleSetupStep = observer(function RoleSetupStep({ handleStepChange 
 
                 return (
                   <button
+                    type="button"
                     key={role.id}
                     onClick={(e) => {
                       e.stopPropagation();

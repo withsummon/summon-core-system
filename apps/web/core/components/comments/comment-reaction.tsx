@@ -31,6 +31,7 @@ export const CommentReactions = observer(function CommentReactions(props: TProps
   // Transform reactions data to Propel EmojiReactionType format
   const reactions: EmojiReactionType[] = useMemo(() => {
     if (!reactionIds) return [];
+    const userReactionSet = new Set(userReactions);
 
     return Object.keys(reactionIds)
       .filter((reaction) => reactionIds[reaction]?.length > 0)
@@ -43,7 +44,7 @@ export const CommentReactions = observer(function CommentReactions(props: TProps
         return {
           emoji: stringToEmoji(reaction),
           count: reactionIds[reaction].length,
-          reacted: userReactions?.includes(reaction) || false,
+          reacted: userReactionSet.has(reaction),
           users: users,
         };
       });

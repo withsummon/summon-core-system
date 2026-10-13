@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
@@ -122,16 +122,13 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     swrDescription,
     workspaceSlug,
   } = props;
-  // states
-  const [localDescription, setLocalDescription] = useState<TFormData>({
-    id: entityId,
-    description_html: initialValue?.trim() ?? "",
-    isMigrationUpdate: false,
-  });
+  // derived values
+  const normalizedInitialValue = initialValue?.trim() === "" ? "<p></p>" : (initialValue ?? "<p></p>");
+  const editorInitialValue = entityId ? normalizedInitialValue : (initialValue?.trim() ?? "");
   // ref to track if there are unsaved changes
   const hasUnsavedChanges = useRef(false);
   // ref to track last saved content (to skip onChange when content hasn't actually changed)
-  const lastSavedContent = useRef(initialValue?.trim() === "" ? "<p></p>" : (initialValue ?? "<p></p>"));
+  const lastSavedContent = useRef(normalizedInitialValue);
   // store hooks
   const { getWorkspaceBySlug } = useWorkspace();
   const { uploadEditorAsset, duplicateEditorAsset } = useEditorAsset();
@@ -167,35 +164,33 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
   // reset form values
   useEffect(() => {
     if (!entityId) return;
-    const normalizedValue = initialValue?.trim() === "" ? "<p></p>" : (initialValue ?? "<p></p>");
     // Update last saved content when entity/initialValue changes
-    lastSavedContent.current = normalizedValue;
+    lastSavedContent.current = normalizedInitialValue;
     reset({
       id: entityId,
-      description_html: normalizedValue,
-      isMigrationUpdate: false,
-    });
-    setLocalDescription({
-      id: entityId,
-      description_html: normalizedValue,
+      description_html: normalizedInitialValue,
       isMigrationUpdate: false,
     });
     // Reset unsaved changes flag when form is reset
     hasUnsavedChanges.current = false;
-  }, [entityId, initialValue, reset]);
+  }, [entityId, normalizedInitialValue, reset]);
 
-  // ADDING handleDescriptionFormSubmit TO DEPENDENCY ARRAY PRODUCES ADVERSE EFFECTS
-  // TODO: Verify the exhaustive-deps warning
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedFormSave = useCallback(
-    debounce(async () => {
-      handleSubmit(handleDescriptionFormSubmit)()
-        .catch((error) => console.error(`Failed to save description for ${entityId}:`, error))
-        .finally(() => {
-          setIsSubmitting("submitted");
-          hasUnsavedChanges.current = false;
-        });
-    }, 1500),
+  // latest callbacks for the debounced save, so re-renders don't restart the debounce timer
+  const latestCallbacks = useRef({ handleDescriptionFormSubmit, setIsSubmitting });
+  useEffect(() => {
+    latestCallbacks.current = { handleDescriptionFormSubmit, setIsSubmitting };
+  });
+
+  const debouncedFormSave = useMemo(
+    () =>
+      debounce(async () => {
+        handleSubmit((formData) => latestCallbacks.current.handleDescriptionFormSubmit(formData))()
+          .catch((error) => console.error(`Failed to save description for ${entityId}:`, error))
+          .finally(() => {
+            latestCallbacks.current.setIsSubmitting("submitted");
+            hasUnsavedChanges.current = false;
+          });
+      }, 1500),
     [entityId, handleSubmit]
   );
 
@@ -222,7 +217,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
 
   if (!workspaceDetails) return null;
 
-  if (!localDescription.description_html) return <DescriptionInputLoader />;
+  if (!editorInitialValue) return <DescriptionInputLoader />;
 
   return (
     <Controller
@@ -236,7 +231,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
           id={entityId}
           issueSequenceId={issueSequenceId}
           disabledExtensions={disabledExtensions}
-          initialValue={localDescription.description_html ?? "<p></p>"}
+          initialValue={editorInitialValue}
           value={swrDescription ?? null}
           workspaceSlug={workspaceSlug}
           workspaceId={workspaceDetails.id}

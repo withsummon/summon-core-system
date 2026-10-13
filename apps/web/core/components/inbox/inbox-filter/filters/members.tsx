@@ -38,6 +38,7 @@ export const FilterMember = observer(function FilterMember(props: Props) {
   const [previewEnabled, setPreviewEnabled] = useState(true);
   // derived values
   const filterValue = inboxFilters?.[filterKey] || [];
+  const selectedValues = new Set(filterValue);
   const appliedFiltersCount = filterValue?.length ?? 0;
 
   const sortedOptions = useMemo(() => {
@@ -82,7 +83,7 @@ export const FilterMember = observer(function FilterMember(props: Props) {
                   return (
                     <FilterOption
                       key={`members-${member.id}`}
-                      isChecked={filterValue?.includes(member.id) ? true : false}
+                      isChecked={selectedValues.has(member.id)}
                       onClick={() => handleInboxIssueFilters(filterKey, handleFilterValue(member.id))}
                       icon={
                         <Avatar

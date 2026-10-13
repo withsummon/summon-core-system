@@ -51,17 +51,12 @@ export const ArchivedModulesHeader = observer(function ArchivedModulesHeader() {
   const handleFilters = useCallback(
     (key: keyof TModuleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = currentProjectArchivedFilters?.[key] ?? [];
-
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (currentProjectArchivedFilters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
+      const selected = new Set<string>(currentProjectArchivedFilters?.[key] ?? []);
+      for (const val of Array.isArray(value) ? value : [value]) {
+        if (selected.has(val)) selected.delete(val);
+        else selected.add(val);
       }
+      const newValues = Array.from(selected);
 
       updateFilters(projectId.toString(), { [key]: newValues }, "archived");
     },
@@ -112,6 +107,7 @@ export const ArchivedModulesHeader = observer(function ArchivedModulesHeader() {
           <input
             ref={inputRef}
             className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
+            aria-label="Search archived modules"
             placeholder="Search"
             value={archivedModulesSearchQuery}
             onChange={(e) => updateArchivedModulesSearchQuery(e.target.value)}

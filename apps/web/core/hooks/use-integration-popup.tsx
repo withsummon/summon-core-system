@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 const useIntegrationPopup = ({
@@ -31,11 +31,16 @@ const useIntegrationPopup = ({
   };
 
   const popup = useRef<any>();
+  const popupCheckInterval = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  // stop polling the popup when the consumer unmounts
+  useEffect(() => () => clearInterval(popupCheckInterval.current), []);
 
   const checkPopup = () => {
-    const check = setInterval(() => {
+    clearInterval(popupCheckInterval.current);
+    popupCheckInterval.current = setInterval(() => {
       if (!popup || popup.current.closed || popup.current.closed === undefined) {
-        clearInterval(check);
+        clearInterval(popupCheckInterval.current);
         setAuthLoader(false);
       }
     }, 1000);

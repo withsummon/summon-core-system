@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -45,11 +45,9 @@ export const StickySearch = observer(function StickySearch() {
     await fetchWorkspaceStickies(workspaceSlug.toString());
   };
 
-  const debouncedSearch = useCallback(
-    debounce(async () => {
-      await fetchStickies();
-    }, 500),
-    [fetchWorkspaceStickies]
+  const debouncedSearch = useMemo(
+    () => debounce(() => fetchWorkspaceStickies(workspaceSlug.toString()), 500),
+    [fetchWorkspaceStickies, workspaceSlug]
   );
 
   return (

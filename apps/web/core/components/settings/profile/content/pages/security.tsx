@@ -44,6 +44,29 @@ const defaultShowPassword = {
   confirmPassword: false,
 };
 
+const getIsChangePasswordDisabled = ({
+  oldPassword,
+  password,
+  confirmPassword,
+  oldPasswordRequired,
+}: {
+  oldPassword: string;
+  password: string;
+  confirmPassword: string;
+  oldPasswordRequired: boolean;
+}) =>
+  getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID ||
+  (oldPasswordRequired && oldPassword.trim() === "") ||
+  password.trim() === "" ||
+  confirmPassword.trim() === "" ||
+  password !== confirmPassword ||
+  password === oldPassword;
+
+function PasswordVisibilityIcon({ isVisible, onToggle }: { isVisible: boolean; onToggle: () => void }) {
+  const Icon = isVisible ? EyeOff : Eye;
+  return <Icon className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer" onClick={onToggle} />;
+}
+
 export const SecurityProfileSettings = observer(function SecurityProfileSettings() {
   // store
   const { data: currentUser, changePassword } = useUser();
@@ -115,13 +138,12 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
     }
   };
 
-  const isButtonDisabled =
-    getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID ||
-    (oldPasswordRequired && oldPassword.trim() === "") ||
-    password.trim() === "" ||
-    confirmPassword.trim() === "" ||
-    password !== confirmPassword ||
-    password === oldPassword;
+  const isButtonDisabled = getIsChangePasswordDisabled({
+    oldPassword,
+    password,
+    confirmPassword,
+    oldPasswordRequired,
+  });
 
   const passwordSupport = password.length > 0 &&
     getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
@@ -158,17 +180,10 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
                     />
                   )}
                 />
-                {showPassword?.oldPassword ? (
-                  <EyeOff
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("oldPassword")}
-                  />
-                ) : (
-                  <Eye
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("oldPassword")}
-                  />
-                )}
+                <PasswordVisibilityIcon
+                  isVisible={showPassword?.oldPassword}
+                  onToggle={() => handleShowPassword("oldPassword")}
+                />
               </div>
               {errors.old_password && (
                 <span className="text-11 text-danger-primary">{errors.old_password.message}</span>
@@ -200,17 +215,10 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
                     />
                   )}
                 />
-                {showPassword?.password ? (
-                  <EyeOff
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("password")}
-                  />
-                ) : (
-                  <Eye
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("password")}
-                  />
-                )}
+                <PasswordVisibilityIcon
+                  isVisible={showPassword?.password}
+                  onToggle={() => handleShowPassword("password")}
+                />
               </div>
               {passwordSupport}
               {errors.new_password && (
@@ -246,17 +254,10 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
                     />
                   )}
                 />
-                {showPassword?.confirmPassword ? (
-                  <EyeOff
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("confirmPassword")}
-                  />
-                ) : (
-                  <Eye
-                    className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                    onClick={() => handleShowPassword("confirmPassword")}
-                  />
-                )}
+                <PasswordVisibilityIcon
+                  isVisible={showPassword?.confirmPassword}
+                  onToggle={() => handleShowPassword("confirmPassword")}
+                />
               </div>
               {!!confirmPassword && password !== confirmPassword && renderPasswordMatchError && (
                 <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>

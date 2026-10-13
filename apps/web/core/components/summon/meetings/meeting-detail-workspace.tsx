@@ -60,8 +60,10 @@ const tabs: TSectionTab<string>[] = [
   { value: "activity", label: "Activity", icon: ClockCounterClockwiseIcon, href: "#activity" },
 ];
 
-const date = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
-const time = (value: string) => new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(value));
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, { timeStyle: "short" });
+const date = (value: string) => DATE_FORMATTER.format(new Date(value));
+const time = (value: string) => TIME_FORMATTER.format(new Date(value));
 
 export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
   data,
@@ -89,6 +91,15 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
         return { id: `${line}-${occurrence}`, line };
       });
   }, [data.transcript_text, search]);
+  const formattedTimes = useMemo(
+    () => ({
+      startDate: date(data.starts_at),
+      startTime: time(data.starts_at),
+      endTime: data.ends_at ? time(data.ends_at) : null,
+      createdAt: `${date(data.created_at)}, ${time(data.created_at)}`,
+    }),
+    [data.starts_at, data.ends_at, data.created_at]
+  );
   const visibleTranscript = showAllTranscript ? transcript : transcript.slice(0, 6);
   const share = async () => {
     try {
@@ -133,10 +144,10 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                 )}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-12 text-secondary">
-                <Meta icon={CalendarDays}>{date(data.starts_at)}</Meta>
+                <Meta icon={CalendarDays}>{formattedTimes.startDate}</Meta>
                 <Meta icon={Clock3}>
-                  {time(data.starts_at)}
-                  {data.ends_at ? ` – ${time(data.ends_at)}` : ""}
+                  {formattedTimes.startTime}
+                  {formattedTimes.endTime ? ` – ${formattedTimes.endTime}` : ""}
                 </Meta>
                 <Meta icon={MapPin}>{data.location || "Location not supplied"}</Meta>
                 <Meta icon={Users}>{data.participants.length} Participants</Meta>
@@ -150,8 +161,11 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
                 <UserPlus className="size-3.5" /> Invite People
               </Link>
               <details className="relative">
-                <summary className="grid size-9 cursor-pointer list-none place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary shadow-xs hover:bg-layer-1">
-                  <Ellipsis className="size-4" />
+                <summary
+                  aria-label="More meeting actions"
+                  className="grid size-9 cursor-pointer list-none place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary shadow-xs hover:bg-layer-1"
+                >
+                  <Ellipsis className="size-4" aria-hidden="true" />
                 </summary>
                 <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-subtle bg-surface-1 p-1 shadow-lg">
                   {data.meeting_url ? (
@@ -284,11 +298,7 @@ export const MeetingDetailWorkspace = observer(function MeetingDetailWorkspace({
               ) : null}
             </SummonPanel>
 
-            <MeetingDetailMeta
-              data={data}
-              organizer={organizer}
-              createdAt={`${date(data.created_at)}, ${time(data.created_at)}`}
-            />
+            <MeetingDetailMeta data={data} organizer={organizer} createdAt={formattedTimes.createdAt} />
           </div>
           <MeetingDetailRail
             data={data}

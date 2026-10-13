@@ -22,8 +22,10 @@ type TAuthRoot = {
   authMode: EAuthModes;
 };
 
+type TBlockedInfo = { icon: Icon; title: string; body: string };
+
 /** Errors that end the sign-in attempt: the card swaps to a recovery state instead of the sign-in options. */
-const BLOCKED: Partial<Record<EAuthenticationErrorCodes, { icon: Icon; title: string; body: string }>> = {
+const BLOCKED: Partial<Record<EAuthenticationErrorCodes, TBlockedInfo>> = {
   [EAuthenticationErrorCodes.SIGNUP_DISABLED]: {
     icon: UserCircleMinusIcon,
     title: "You're not on this workspace yet",
@@ -48,18 +50,9 @@ const PASSWORD_STEP_CODES = new Set([
   EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP,
 ]);
 
-/**
- * Google-first sign-in. Access is invite-only, so the card has no sign-up path: an admin adds the
- * email on Settings → Users and the first Google sign-in joins it. Email and password stay available
- * as a "test account" path only where the instance enables them (local and staging).
- */
-export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
-  const { authMode: currentAuthMode } = props;
+/** Reads the error once, then drops it (and the email it carries) from the address bar and history. */
+const useAuthArrival = () => {
   const searchParams = useSearchParams();
-  const { config } = useInstance();
-  const { oAuthOptions } = useOAuthConfig("Continue");
-
-  // Read the error once, then drop it (and the email it carries) from the address bar and history.
   const [arrival] = useState(() => ({
     code: (searchParams.get("error_code") ?? undefined) as EAuthenticationErrorCodes | undefined,
     email: searchParams.get("email") ?? "",
@@ -70,63 +63,48 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
     ["error_code", "error_message", "email"].forEach((key) => url.searchParams.delete(key));
     window.history.replaceState(window.history.state, "", url);
   }, [arrival.code]);
+  return arrival;
+};
+
+const getInitialErrorInfo = (code: EAuthenticationErrorCodes | undefined, email: string) =>
+  code && !BLOCKED[code] && !INLINE[code] ? authErrorHandler(code, email || undefined) : undefined;
+
+const getInlineError = (code: EAuthenticationErrorCodes | undefined, hasGoogle: boolean) =>
+  (code && INLINE[code]) ||
+  (!hasGoogle ? "Google sign-in isn't set up on this server yet. An instance admin can turn it on." : undefined);
+
+/**
+ * Google-first sign-in. Access is invite-only, so the card has no sign-up path: an admin adds the
+ * email on Settings → Users and the first Google sign-in joins it. Email and password stay available
+ * as a "test account" path only where the instance enables them (local and staging).
+ */
+export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
+  const { authMode: currentAuthMode } = props;
+  const { config } = useInstance();
+  const { oAuthOptions } = useOAuthConfig("Continue");
+  const arrival = useAuthArrival();
 
   const opensPasswordForm = arrival.code !== undefined && PASSWORD_STEP_CODES.has(arrival.code);
   const [blocked, setBlocked] = useState(arrival.code ? BLOCKED[arrival.code] : undefined);
-  const [showTestAccount, setShowTestAccount] = useState(opensPasswordForm);
-  const [authMode, setAuthMode] = useState(currentAuthMode);
-  const [authStep, setAuthStep] = useState(opensPasswordForm ? EAuthSteps.PASSWORD : EAuthSteps.EMAIL);
-  const [email, setEmail] = useState(arrival.email);
   const [errorInfo, setErrorInfo] = useState<TAuthErrorInfo | undefined>(() =>
-    arrival.code && !BLOCKED[arrival.code] && !INLINE[arrival.code]
-      ? authErrorHandler(arrival.code, arrival.email || undefined)
-      : undefined
+    getInitialErrorInfo(arrival.code, arrival.email)
   );
 
   const providers = oAuthOptions.filter((option) => option.enabled);
   const google = providers.find((option) => option.id === "google");
   const isTestAccountEnabled = Boolean(config?.is_email_password_enabled || config?.is_magic_login_enabled);
-  const inlineError =
-    (arrival.code && INLINE[arrival.code]) ||
-    (!google ? "Google sign-in isn't set up on this server yet. An instance admin can turn it on." : undefined);
+  const inlineError = getInlineError(arrival.code, Boolean(google));
 
   if (blocked) {
-    const { icon: BlockedIcon, title, body } = blocked;
     return (
-      <AuthCard title={title} icon={<BlockedIcon className="size-5" weight="duotone" />}>
-        <p className="text-13 text-secondary">{body}</p>
-        {arrival.email ? (
-          <p className="rounded-lg border border-subtle bg-layer-1 px-3 py-2.5 text-13 text-secondary">
-            You signed in to Google as <span className="font-medium break-all text-primary">{arrival.email}</span>
-          </p>
-        ) : null}
-        <div className="grid gap-2">
-          {google ? <ProviderButton option={google} label="Use another account" /> : null}
-          <button
-            type="button"
-            onClick={() => setBlocked(undefined)}
-            className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-13 font-medium text-secondary hover:bg-layer-1 hover:text-primary"
-          >
-            <ArrowLeftIcon className="size-4" />
-            Back to sign in
-          </button>
-        </div>
-      </AuthCard>
+      <BlockedAuthCard blocked={blocked} email={arrival.email} google={google} onBack={() => setBlocked(undefined)} />
     );
   }
 
   return (
     <>
       <AuthCard title={`Sign in to ${SITE_TITLE}`} description="Use the Google account your workspace invited.">
-        {inlineError || errorInfo ? (
-          <p
-            role="alert"
-            className="flex items-start gap-2 rounded-lg border border-danger-subtle bg-danger-subtle px-3 py-2.5 text-13 text-danger-primary"
-          >
-            <WarningCircleIcon className="mt-0.5 size-4 flex-none" weight="fill" />
-            <span>{inlineError ?? errorInfo?.message}</span>
-          </p>
-        ) : null}
+        {inlineError || errorInfo ? <AuthAlert message={inlineError ?? errorInfo?.message} /> : null}
 
         {providers.length > 0 ? (
           <div className="grid gap-2">
@@ -137,29 +115,12 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
         ) : null}
 
         {isTestAccountEnabled ? (
-          showTestAccount ? (
-            <div className="grid gap-4 border-t border-subtle pt-5">
-              <p className="text-12 font-medium text-tertiary">Test account</p>
-              <AuthFormRoot
-                authStep={authStep}
-                authMode={authMode}
-                email={email}
-                setEmail={setEmail}
-                setAuthMode={setAuthMode}
-                setAuthStep={setAuthStep}
-                setErrorInfo={setErrorInfo}
-                currentAuthMode={currentAuthMode}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowTestAccount(true)}
-              className="mx-auto h-9 rounded-lg px-3 text-13 font-medium text-tertiary hover:bg-layer-1 hover:text-primary"
-            >
-              Use a test account
-            </button>
-          )
+          <TestAccountSection
+            currentAuthMode={currentAuthMode}
+            initialEmail={arrival.email}
+            opensPasswordForm={opensPasswordForm}
+            setErrorInfo={setErrorInfo}
+          />
         ) : null}
       </AuthCard>
       <p className="text-center text-12 text-tertiary">
@@ -168,6 +129,91 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
     </>
   );
 });
+
+function BlockedAuthCard(props: {
+  blocked: TBlockedInfo;
+  email: string;
+  google: TOAuthOption | undefined;
+  onBack: () => void;
+}) {
+  const { blocked, email, google, onBack } = props;
+  const { icon: BlockedIcon, title, body } = blocked;
+  return (
+    <AuthCard title={title} icon={<BlockedIcon className="size-5" weight="duotone" />}>
+      <p className="text-13 text-secondary">{body}</p>
+      {email ? (
+        <p className="rounded-lg border border-subtle bg-layer-1 px-3 py-2.5 text-13 text-secondary">
+          You signed in to Google as <span className="font-medium break-all text-primary">{email}</span>
+        </p>
+      ) : null}
+      <div className="grid gap-2">
+        {google ? <ProviderButton option={google} label="Use another account" /> : null}
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-13 font-medium text-secondary hover:bg-layer-1 hover:text-primary"
+        >
+          <ArrowLeftIcon className="size-4" />
+          Back to sign in
+        </button>
+      </div>
+    </AuthCard>
+  );
+}
+
+function AuthAlert({ message }: { message: React.ReactNode }) {
+  return (
+    <p
+      role="alert"
+      className="flex items-start gap-2 rounded-lg border border-danger-subtle bg-danger-subtle px-3 py-2.5 text-13 text-danger-primary"
+    >
+      <WarningCircleIcon className="mt-0.5 size-4 flex-none" weight="fill" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
+/** Email/password sign-in, collapsed behind a button until the person asks for it. */
+function TestAccountSection(props: {
+  currentAuthMode: EAuthModes;
+  initialEmail: string;
+  opensPasswordForm: boolean;
+  setErrorInfo: (errorInfo: TAuthErrorInfo | undefined) => void;
+}) {
+  const { currentAuthMode, initialEmail, opensPasswordForm, setErrorInfo } = props;
+  const [showTestAccount, setShowTestAccount] = useState(opensPasswordForm);
+  const [authMode, setAuthMode] = useState(currentAuthMode);
+  const [authStep, setAuthStep] = useState(opensPasswordForm ? EAuthSteps.PASSWORD : EAuthSteps.EMAIL);
+  const [email, setEmail] = useState(initialEmail);
+
+  if (!showTestAccount) {
+    return (
+      <button
+        type="button"
+        onClick={() => setShowTestAccount(true)}
+        className="mx-auto h-9 rounded-lg px-3 text-13 font-medium text-tertiary hover:bg-layer-1 hover:text-primary"
+      >
+        Use a test account
+      </button>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 border-t border-subtle pt-5">
+      <p className="text-12 font-medium text-tertiary">Test account</p>
+      <AuthFormRoot
+        authStep={authStep}
+        authMode={authMode}
+        email={email}
+        setEmail={setEmail}
+        setAuthMode={setAuthMode}
+        setAuthStep={setAuthStep}
+        setErrorInfo={setErrorInfo}
+        currentAuthMode={currentAuthMode}
+      />
+    </div>
+  );
+}
 
 /** The sign-in column's heading block; a tone icon marks states that ended the attempt. */
 function AuthCard(props: { title: string; description?: string; icon?: React.ReactNode; children: React.ReactNode }) {

@@ -50,22 +50,21 @@ const HeaderFilters = observer(function HeaderFilters({
   const handleFilters = useCallback(
     (key: keyof TProjectFilters, value: string | string[]) => {
       if (!workspaceSlug) return;
-      let newValues = filters?.[key] ?? [];
+      const currentValues = filters?.[key] ?? [];
+      const selectedValues = new Set(currentValues);
       if (Array.isArray(value)) {
-        if (key === "created_at" && newValues.find((v) => v.includes("custom"))) newValues = [];
+        if (key === "created_at" && currentValues.some((v) => v.includes("custom"))) selectedValues.clear();
         value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
+          if (selectedValues.has(val)) selectedValues.delete(val);
+          else selectedValues.add(val);
         });
-      } else {
-        if (filters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else {
-          if (key === "created_at") newValues = [value];
-          else newValues.push(value);
-        }
+      } else if (selectedValues.has(value)) selectedValues.delete(value);
+      else {
+        if (key === "created_at") selectedValues.clear();
+        selectedValues.add(value);
       }
 
-      updateFilters(workspaceSlug.toString(), { [key]: newValues });
+      updateFilters(workspaceSlug.toString(), { [key]: Array.from(selectedValues) });
     },
     [filters, updateFilters, workspaceSlug]
   );

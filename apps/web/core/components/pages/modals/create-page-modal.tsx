@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // constants
 import type { EPageAccess } from "@plane/constants";
 import type { TPage } from "@plane/types";
@@ -51,13 +51,11 @@ export function CreatePageModal(props: Props) {
   const handlePageFormData = <T extends keyof TPage>(key: T, value: TPage[T]) =>
     setPageFormData((prev) => ({ ...prev, [key]: value }));
 
-  // update page access in form data when page access from the store changes
-  useEffect(() => {
-    setPageFormData((prev) => ({ ...prev, access: pageAccess }));
-  }, [pageAccess]);
+  // access follows the store's page access until the user picks one in the form
+  const formData: Partial<TPage> = { ...pageFormData, access: pageFormData.access ?? pageAccess };
 
   const handleStateClear = () => {
-    setPageFormData({ id: undefined, name: "", access: pageAccess });
+    setPageFormData({ id: undefined, name: "", logo_props: undefined });
     handleModalClose();
   };
 
@@ -65,7 +63,7 @@ export function CreatePageModal(props: Props) {
     if (!workspaceSlug || !projectId) return;
 
     try {
-      const pageData = await createPage(pageFormData);
+      const pageData = await createPage(formData);
       if (pageData) {
         handleStateClear();
         if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${pageData.id}`);
@@ -83,7 +81,7 @@ export function CreatePageModal(props: Props) {
       width={EModalWidth.XXL}
     >
       <PageForm
-        formData={pageFormData}
+        formData={formData}
         handleFormData={handlePageFormData}
         handleModalClose={handleStateClear}
         handleFormSubmit={handleFormSubmit}

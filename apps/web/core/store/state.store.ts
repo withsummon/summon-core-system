@@ -125,11 +125,10 @@ export class StateStore implements IStateStore {
 
     // Ensure all STATE_GROUPS are present
     const allGroups = Object.keys(STATE_GROUPS).reduce(
-      (acc, group) => ({
-        // oxlint-disable-next-line oxc/no-accumulating-spread
-        ...acc,
-        [group]: groupedStates[group] || [],
-      }),
+      (acc, group) => {
+        acc[group] = groupedStates[group] || [];
+        return acc;
+      },
       {} as Record<string, IState[]>
     );
 

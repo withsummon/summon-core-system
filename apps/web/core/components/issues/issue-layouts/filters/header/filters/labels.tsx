@@ -34,6 +34,8 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
+  const appliedFilterSet = new Set(appliedFilters);
+
   const sortedOptions = useMemo(() => {
     const filteredOptions = (labels || []).filter((label) =>
       label.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -68,7 +70,7 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((label) => (
                   <FilterOption
                     key={label?.id}
-                    isChecked={appliedFilters?.includes(label?.id) ? true : false}
+                    isChecked={appliedFilterSet.has(label?.id)}
                     onClick={() => handleUpdate(label?.id)}
                     icon={<LabelIcons color={label.color} />}
                     title={label.name}

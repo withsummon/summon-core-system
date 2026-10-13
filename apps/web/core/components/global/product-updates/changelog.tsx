@@ -78,9 +78,11 @@ export const ProductUpdatesChangelog = observer(function ProductUpdatesChangelog
           <Loader.Item height="95%" width="95%" />
         </Loader>
       )}
-      {/* eslint-disable-next-line react/iframe-missing-sandbox oxlint-disable-next-line jsx_a11y/iframe-has-title */}
+      {/* react-doctor-disable-next-line iframe-missing-sandbox -- the changelog is a cross-origin page that needs its own scripts and storage; scripts + same-origin can only escape the sandbox when the frame shares our origin */}
       <iframe
         src={changeLogUrl}
+        title="Product changelog"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         className={`h-full w-full ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-200`}
         onLoad={handleIframeLoad}
         onError={handleIframeError}

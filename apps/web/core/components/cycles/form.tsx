@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
 import { ETabIndices } from "@plane/constants";
@@ -39,6 +39,8 @@ const defaultValues: Partial<ICycle> = {
 
 export function CycleForm(props: Props) {
   const { handleFormSubmit, handleClose, status, projectId, data, isMobile = false } = props;
+  // captured once so the date picker's lower bound stays stable across renders
+  const [today] = useState(() => new Date());
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -156,7 +158,7 @@ export function CycleForm(props: Props) {
                     <DateRangeDropdown
                       buttonVariant="border-with-text"
                       className="h-7"
-                      minDate={new Date()}
+                      minDate={today}
                       value={{
                         from: getDate(startDateValue),
                         to: getDate(endDateValue),

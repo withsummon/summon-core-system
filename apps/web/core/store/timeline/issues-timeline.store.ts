@@ -5,6 +5,7 @@
  */
 
 import { autorun } from "mobx";
+import type { IReactionDisposer } from "mobx";
 import type { RootStore } from "@/store/root.store";
 import type { IBaseTimelineStore } from "@/store/timeline/base-timeline.store";
 import { BaseTimeLineStore } from "@/store/timeline/base-timeline.store";
@@ -14,10 +15,13 @@ export interface IIssuesTimeLineStore extends IBaseTimelineStore {
 }
 
 export class IssuesTimeLineStore extends BaseTimeLineStore implements IIssuesTimeLineStore {
+  /** Stops syncing timeline blocks from the store; call when the owner is torn down. */
+  disposeBlocksSync: IReactionDisposer;
+
   constructor(_rootStore: RootStore) {
     super(_rootStore);
 
-    autorun(() => {
+    this.disposeBlocksSync = autorun(() => {
       const getIssueById = this.rootStore.issue.issues.getIssueById;
       this.updateBlocks(getIssueById);
     });

@@ -27,6 +27,7 @@ export const FilterOrderBy = observer(function FilterOrderBy(props: Props) {
   const [previewEnabled, setPreviewEnabled] = useState(true);
 
   const activeOrderBy = selectedOrderBy ?? "-created_at";
+  const orderByOptionSet = new Set(orderByOptions);
 
   return (
     <>
@@ -37,7 +38,7 @@ export const FilterOrderBy = observer(function FilterOrderBy(props: Props) {
       />
       {previewEnabled && (
         <div>
-          {ISSUE_ORDER_BY_OPTIONS.filter((option) => orderByOptions.includes(option.key)).map((orderBy) => (
+          {ISSUE_ORDER_BY_OPTIONS.filter((option) => orderByOptionSet.has(option.key)).map((orderBy) => (
             <FilterOption
               key={orderBy?.key}
               isChecked={activeOrderBy === orderBy?.key ? true : false}

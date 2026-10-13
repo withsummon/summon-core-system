@@ -72,6 +72,8 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
                   key={color.key}
                   type="button"
                   className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
+                  aria-label={`${color.label} text color`}
+                  title={color.label}
                   style={{
                     backgroundColor: color.textColor,
                   }}
@@ -81,6 +83,7 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
               <button
                 type="button"
                 className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                aria-label="Remove text color"
                 onClick={() => handleColorSelect("text-color", undefined)}
               >
                 <Ban className="size-4" />
@@ -95,6 +98,8 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
                   key={color.key}
                   type="button"
                   className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
+                  aria-label={`${color.label} background color`}
+                  title={color.label}
                   style={{
                     backgroundColor: color.backgroundColor,
                   }}
@@ -104,6 +109,7 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
               <button
                 type="button"
                 className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                aria-label="Remove background color"
                 onClick={() => handleColorSelect("background-color", undefined)}
               >
                 <Ban className="size-4" />

@@ -93,6 +93,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
           <input
             className="text-13 outline-none"
             placeholder="Search for a cycle…"
+            aria-label="Search for a cycle"
             onChange={(e) => setQuery(e.target.value)}
             value={query}
           />

@@ -11,7 +11,6 @@ import { useParams } from "next/navigation";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { EIssuesStoreType } from "@plane/types";
 import { ContextMenu, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -20,6 +19,7 @@ import { DeleteIssueModal } from "../../delete-issue-modal";
 import type { IQuickActionProps } from "../list/list-view-types";
 import type { MenuItemFactoryProps } from "./helper";
 import { useArchivedIssueMenuItems } from "./helper";
+import { QuickActionMenuItems } from "./menu-items";
 
 export const ArchivedIssueQuickActions = observer(function ArchivedIssueQuickActions(props: IQuickActionProps) {
   const {
@@ -95,39 +95,7 @@ export const ArchivedIssueQuickActions = observer(function ArchivedIssueQuickAct
         useCaptureForOutsideClick
         closeOnSelect
       >
-        {MENU_ITEMS.map((item) => {
-          if (item.shouldRender === false) return null;
-          return (
-            <CustomMenu.MenuItem
-              key={item.key}
-              onClick={() => {
-                item.action();
-              }}
-              className={cn(
-                "flex items-center gap-2",
-                {
-                  "text-placeholder": item.disabled,
-                },
-                item.className
-              )}
-              disabled={item.disabled}
-            >
-              {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
-              <div>
-                <h5>{item.title}</h5>
-                {item.description && (
-                  <p
-                    className={cn("whitespace-pre-line text-tertiary", {
-                      "text-placeholder": item.disabled,
-                    })}
-                  >
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            </CustomMenu.MenuItem>
-          );
-        })}
+        <QuickActionMenuItems items={MENU_ITEMS} />
       </CustomMenu>
     </>
   );
