@@ -65,7 +65,7 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
         isCollapsed={sidebarCollapsed}
         toggleCollapsed={toggleSidebar}
         togglePeek={toggleSidebarPeek}
-        extendedSidebar={isAnyExtendedSidebarOpen ? <ExtendedAppSidebar /> : undefined}
+        extendedSidebar={<ExtendedAppSidebar />}
         isAnyExtendedSidebarExpanded={isAnyExtendedSidebarOpen}
         isAnySidebarDropdownOpen={isAnySidebarDropdownOpen}
       >

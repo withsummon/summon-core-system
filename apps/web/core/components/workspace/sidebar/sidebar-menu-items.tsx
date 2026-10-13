@@ -46,10 +46,10 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
               onClick={() => toggleExtendedSidebar()}
               className="flex flex-grow items-center gap-1.5 py-px text-13 font-medium text-tertiary"
               id="extended-sidebar-toggle"
-              aria-label={`${isExtendedSidebarOpened ? "Close" : "Open"} Advanced Plane`}
+              aria-label={`${isExtendedSidebarOpened ? "Close" : "Open"} Advanced`}
             >
               <Ellipsis className="size-4 flex-shrink-0" />
-              <span>Advanced Plane</span>
+              <span>Advanced</span>
             </button>
           </SidebarNavItem>
         )}
