@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db import IntegrityError
+from rest_framework import status
+from rest_framework.response import Response
+
 from plane.api.rate_limit import ApiKeyRateThrottle
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.authentication.session import BaseSessionAuthentication
@@ -11,6 +15,7 @@ from plane.summon.openapi.schema import SummonAutoSchema
 # Browser session first; Plane API keys (X-Api-Key) for MCP clients and other API callers.
 SUMMON_AUTHENTICATION = [BaseSessionAuthentication, SummonAPIKeyAuthentication]
 SESSION_ONLY_AUTHENTICATION = [BaseSessionAuthentication]
+UNIQUE_PREFIX = "summon_unique_"
 
 
 class SummonAuthMixin:
@@ -24,6 +29,18 @@ class SummonAuthMixin:
         if self.request.headers.get(SummonAPIKeyAuthentication.auth_header_name):
             throttles = [*throttles, ApiKeyRateThrottle()]
         return throttles
+
+    def handle_exception(self, exc):
+        # Plane's base view answers every IntegrityError with a vague 400. A clash with one of Summon's
+        # unique constraints is a conflict the caller can act on, so name it.
+        constraint = getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None) or ""
+        if isinstance(exc, IntegrityError) and constraint.startswith(UNIQUE_PREFIX):
+            what = constraint.removeprefix(UNIQUE_PREFIX).replace("_", " ")
+            return Response(
+                {"error_code": "already_exists", "detail": f"Already exists ({what}). Update the existing one."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().handle_exception(exc)
 
 
 class SummonAPIView(SummonAuthMixin, BaseAPIView):

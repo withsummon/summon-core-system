@@ -285,6 +285,44 @@ describe("MCP", () => {
     expect(call?.headers.cookie).toBeUndefined();
   });
 
+  it("reports a delete's empty 204 as ok", async () => {
+    app = makeApp({
+      django: (request) =>
+        request.method === "DELETE" && request.path === `/api/summon/workspaces/${SLUG}/clients/c1/`
+          ? { status: 204 }
+          : defaultDjango(request),
+    });
+    const headers = await session(app);
+    const called = await rpcResult(
+      await rpc(
+        app,
+        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "client_delete", arguments: { pk: "c1" } } },
+        headers
+      )
+    );
+
+    expect(called).toMatchObject({ isError: false, content: [{ type: "text", text: '{"ok":true}' }] });
+  });
+
+  it("refuses a call missing a path id instead of asking Django for a broken URL", async () => {
+    app = makeApp();
+    const headers = await session(app);
+    const called = await rpcResult(
+      await rpc(
+        app,
+        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "client_get", arguments: {} } },
+        headers
+      )
+    );
+
+    expect(called.isError).toBe(true);
+    expect(JSON.parse((called.content as Array<{ text: string }>)[0]!.text)).toMatchObject({
+      status: 400,
+      error: { pk: ["This field is required."] },
+    });
+    expect(app.seen.filter((request) => request.path.includes("/clients/"))).toEqual([]);
+  });
+
   it("proxies Plane MCP tools with the caller's key", async () => {
     const planeResult = { content: [{ type: "text", text: "[]" }], isError: false };
     app = makeApp({

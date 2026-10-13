@@ -54,11 +54,19 @@ const authHeaders = (caller: Caller): Record<string, string> =>
   caller._tag === "Session" ? { cookie: caller.cookie } : { "x-api-key": Redacted.value(caller.apiKey) };
 
 /** Fills `{name}` segments of an OpenAPI path template. */
-export const fillPath = (template: string, values: Readonly<Record<string, unknown>>): string =>
-  template.replace(/\{(\w+)\}/g, (_, name: string) => encodeURIComponent(String(values[name] ?? "")));
+const fillPath = (template: string, values: Readonly<Record<string, unknown>>): string =>
+  template.replace(/\{(\w+)\}/g, (_, name: string) => encodeURIComponent(String(values[name])));
+
+/** Path parameters the input leaves out, as a DRF-shaped 400 body; Django can't route the call without them. */
+const missingPathParams = (operation: SummonOperation, input: Readonly<Record<string, unknown>>) => {
+  const missing = operation.pathParams.filter(
+    (name) => name !== "slug" && (input[name] === undefined || input[name] === null || input[name] === "")
+  );
+  return missing.length ? Object.fromEntries(missing.map((name) => [name, ["This field is required."]])) : undefined;
+};
 
 /** Splits tool input into path, query and body the way the manifest describes the operation. */
-export const operationRequest = (
+const operationRequest = (
   operation: SummonOperation,
   workspaceSlug: string,
   input: Readonly<Record<string, unknown>>
@@ -101,8 +109,10 @@ export class Django extends Context.Service<Django, DjangoShape>()("@plane/ai/Dj
           })
         );
 
-      const call: DjangoShape["call"] = (caller, workspaceSlug, operation, input) =>
-        withHeaders(authHeaders(caller))
+      const call: DjangoShape["call"] = (caller, workspaceSlug, operation, input) => {
+        const missing = missingPathParams(operation, input);
+        if (missing) return Effect.succeed({ status: 400, body: missing });
+        return withHeaders(authHeaders(caller))
           .execute(operationRequest(operation, workspaceSlug, input))
           .pipe(
             Effect.flatMap((response) =>
@@ -113,6 +123,7 @@ export class Django extends Context.Service<Django, DjangoShape>()("@plane/ai/Dj
             Effect.mapError((cause) => new DjangoUnavailable({ cause })),
             Effect.withSpan("Django.call", { attributes: { operation: operation.path, method: operation.method } })
           );
+      };
 
       const currentUser: DjangoShape["currentUser"] = (cookie) =>
         withHeaders({ cookie })

@@ -76,7 +76,9 @@ const SummonTools = Layer.effectDiscard(
                 Effect.mapError(() => new McpSchema.InternalError({ message: "Summon is unavailable. Try again." }))
               );
             const output = toToolOutput(result);
-            return jsonResult(output.ok ? ("data" in output ? output.data : output) : output, !output.ok);
+            if (!output.ok || !("data" in output)) return jsonResult(output, !output.ok);
+            // A 204 (delete) has no body; say it worked instead of returning `null`.
+            return jsonResult(output.data ?? { ok: true }, false);
           }),
       });
     }
