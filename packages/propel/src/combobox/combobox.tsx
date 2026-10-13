@@ -7,6 +7,12 @@
 import * as React from "react";
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { SearchIcon } from "../icons";
+import {
+  POPUP_CLASSNAME,
+  POPUP_OPTION_CLASSNAME,
+  POPUP_SEARCH_CLASSNAME,
+  POPUP_SEARCH_INPUT_CLASSNAME,
+} from "../popover/surface";
 import { cn } from "../utils/classname";
 
 // Type definitions
@@ -174,23 +180,20 @@ function ComboboxOptions({
     <BaseCombobox.Portal>
       <BaseCombobox.Positioner sideOffset={8} className={positionerClassName}>
         <BaseCombobox.Popup
-          className={cn("rounded-xl border border-subtle bg-surface-1 p-1 shadow-overlay-100", className)}
+          className={cn(POPUP_CLASSNAME, className)}
           data-prevent-outside-click={dataPreventOutsideClick}
         >
           <div className="flex flex-col gap-1">
             {showSearch && (
-              <div className="relative">
-                <SearchIcon className="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-placeholder" />
+              <div className={cn(POPUP_SEARCH_CLASSNAME, "mb-0")}>
+                <SearchIcon className="size-3.5 flex-none" />
                 <input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={onSearchQueryKeyDown}
-                  className={cn(
-                    "w-full rounded-md border border-subtle bg-surface-2 py-1.5 pr-2 pl-8 text-13 outline-none placeholder:text-placeholder",
-                    inputClassName
-                  )}
+                  className={cn(POPUP_SEARCH_INPUT_CLASSNAME, inputClassName)}
                 />
               </div>
             )}
@@ -216,11 +219,7 @@ function ComboboxOptions({
 // Individual option component
 function ComboboxOption({ value, children, disabled, className }: ComboboxOptionProps) {
   return (
-    <BaseCombobox.Item
-      value={value}
-      disabled={disabled}
-      className={cn("cursor-pointer rounded-md px-2 py-1.5 text-13 transition-colors outline-none", className)}
-    >
+    <BaseCombobox.Item value={value} disabled={disabled} className={cn(POPUP_OPTION_CLASSNAME, className)}>
       {children}
     </BaseCombobox.Item>
   );

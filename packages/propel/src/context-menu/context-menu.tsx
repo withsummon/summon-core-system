@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
+import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "../popover/surface";
 import { cn } from "../utils";
 
 export interface ContextMenuProps extends React.ComponentProps<typeof ContextMenuPrimitive.Root> {
@@ -63,16 +64,7 @@ const ContextMenuContent = React.forwardRef(function ContextMenuContent(
       {...props}
       className={positionerClassName}
     >
-      <ContextMenuPrimitive.Popup
-        className={cn(
-          "z-50 min-w-32 overflow-hidden rounded-xl border border-subtle bg-surface-1 p-1 shadow-overlay-100",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-          "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-          className
-        )}
-      >
+      <ContextMenuPrimitive.Popup className={cn("z-50 min-w-32 overflow-hidden", POPUP_CLASSNAME, className)}>
         {children}
       </ContextMenuPrimitive.Popup>
     </ContextMenuPrimitive.Positioner>
@@ -86,12 +78,7 @@ const ContextMenuItem = React.forwardRef(function ContextMenuItem(
   return (
     <ContextMenuPrimitive.Item
       ref={ref}
-      className={cn(
-        "relative flex cursor-default items-center rounded-md px-2 py-1.5 text-13 outline-none select-none",
-        "focus:bg-layer-1 focus:text-primary",
-        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        className
-      )}
+      className={cn(POPUP_OPTION_CLASSNAME, "relative text-primary", className)}
       disabled={disabled}
       {...props}
     >
