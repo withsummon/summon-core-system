@@ -4,7 +4,7 @@
  * and Summon. Calls carry the caller's own API key; Plane enforces its permissions.
  */
 import { Context, Effect, Layer, Redacted, Schema } from "effect";
-import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 import type { ApiKeyCaller } from "./auth";
 import { AppConfig } from "./config";
 import snapshot from "./plane-mcp-tools.json" with { type: "json" };
@@ -44,10 +44,11 @@ export const parseRpcBody = (text: string): unknown => {
 };
 
 export interface PlaneMcpShape {
-  readonly request: (
+  /** Calls one Plane MCP tool as the caller; Plane's `CallToolResult` comes back undecoded. */
+  readonly callTool: (
     caller: ApiKeyCaller,
-    method: "tools/call" | "tools/list",
-    params: Record<string, unknown>
+    name: string,
+    args: Readonly<Record<string, unknown>>
   ) => Effect.Effect<Schema.Json, PlaneMcpUnavailable>;
 }
 
@@ -58,54 +59,34 @@ export class PlaneMcp extends Context.Service<PlaneMcp, PlaneMcpShape>()("@plane
       const config = yield* AppConfig;
       const http = yield* HttpClient.HttpClient;
 
-      const post = (headers: Record<string, string>, body: unknown) =>
+      // The API-key route is stateless: one POST per call, with no initialize handshake or session.
+      const callTool: PlaneMcpShape["callTool"] = (caller, name, args) =>
         HttpClientRequest.post(config.planeMcpUrl).pipe(
           HttpClientRequest.setHeaders({
-            ...headers,
+            authorization: `Bearer ${Redacted.value(caller.apiKey)}`,
+            "x-workspace-slug": caller.workspaceSlug,
             accept: "application/json, text/event-stream",
             "mcp-protocol-version": PROTOCOL_VERSION,
           }),
-          HttpClientRequest.bodyJsonUnsafe(body),
-          http.execute,
-          Effect.flatMap((response) => (response.status >= 400 ? Effect.fail(response) : Effect.succeed(response)))
-        );
-
-      const decode = (response: HttpClientResponse.HttpClientResponse) =>
-        response.text.pipe(
-          Effect.flatMap((text) => Effect.try(() => parseRpcBody(text))),
-          Effect.flatMap(Schema.decodeUnknownEffect(JsonRpcResponse))
-        );
-
-      // One short-lived MCP session per call, like Django's `services/mcp.py`.
-      const request: PlaneMcpShape["request"] = (caller, method, params) =>
-        Effect.gen(function* () {
-          const headers = {
-            authorization: `Bearer ${Redacted.value(caller.apiKey)}`,
-            "x-workspace-slug": caller.workspaceSlug,
-          };
-          const initialized = yield* post(headers, {
+          HttpClientRequest.bodyJsonUnsafe({
             jsonrpc: "2.0",
             id: 1,
-            method: "initialize",
-            params: {
-              protocolVersion: PROTOCOL_VERSION,
-              capabilities: {},
-              clientInfo: { name: "summon-ai", version: "1" },
-            },
-          });
-          yield* decode(initialized);
-          const sessionId = initialized.headers["mcp-session-id"];
-          const session = sessionId ? { ...headers, "mcp-session-id": sessionId } : headers;
-          yield* post(session, { jsonrpc: "2.0", method: "notifications/initialized" });
-          const response = yield* decode(yield* post(session, { jsonrpc: "2.0", id: 2, method, params }));
-          if (response.error) return yield* Effect.fail(response.error);
-          return response.result ?? null;
-        }).pipe(
+            method: "tools/call",
+            params: { name, arguments: args },
+          }),
+          http.execute,
+          Effect.flatMap(HttpClientResponse.filterStatusOk),
+          Effect.flatMap((response) => response.text),
+          Effect.flatMap((text) => Effect.try(() => parseRpcBody(text))),
+          Effect.flatMap(Schema.decodeUnknownEffect(JsonRpcResponse)),
+          Effect.flatMap((response) =>
+            response.error ? Effect.fail(response.error) : Effect.succeed(response.result ?? null)
+          ),
           Effect.mapError((cause) => new PlaneMcpUnavailable({ cause })),
-          Effect.withSpan("PlaneMcp.request", { attributes: { method } })
+          Effect.withSpan("PlaneMcp.callTool", { attributes: { tool: name } })
         );
 
-      return PlaneMcp.of({ request });
+      return PlaneMcp.of({ callTool });
     })
   );
 }

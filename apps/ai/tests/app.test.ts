@@ -329,9 +329,8 @@ describe("MCP", () => {
       django: (request) => {
         if (request.path !== "/mcp") return defaultDjango(request);
         const method = (request.body as { method?: string } | undefined)?.method;
-        if (method === "tools/call") return { status: 200, body: { jsonrpc: "2.0", id: 2, result: planeResult } };
-        if (method === "notifications/initialized") return { status: 202 };
-        return { status: 200, body: { jsonrpc: "2.0", id: 1, result: {} } };
+        if (method === "tools/call") return { status: 200, body: { jsonrpc: "2.0", id: 1, result: planeResult } };
+        return { status: 400, body: { jsonrpc: "2.0", id: 1, error: { code: -32600, message: "unexpected" } } };
       },
     });
     const headers = await session(app);
@@ -352,15 +351,15 @@ describe("MCP", () => {
     );
 
     expect(called).toEqual(planeResult);
+    // One stateless POST per call: no initialize handshake.
     const forwarded = app.seen.filter((request) => request.path === "/mcp");
-    expect(forwarded.map((request) => (request.body as { method: string }).method)).toEqual([
-      "initialize",
-      "notifications/initialized",
-      "tools/call",
-    ]);
-    expect(forwarded.at(-1)?.headers.authorization).toBe("Bearer plane_api_good");
-    expect(forwarded.at(-1)?.headers["x-workspace-slug"]).toBe(SLUG);
-    expect(forwarded.at(-1)?.body).toMatchObject({ params: { name: "project", arguments: { action: "list" } } });
+    expect(forwarded).toHaveLength(1);
+    expect(forwarded[0]?.headers.authorization).toBe("Bearer plane_api_good");
+    expect(forwarded[0]?.headers["x-workspace-slug"]).toBe(SLUG);
+    expect(forwarded[0]?.body).toMatchObject({
+      method: "tools/call",
+      params: { name: "project", arguments: { action: "list" } },
+    });
   });
 
   it("accepts a Bearer key, as MCP clients send it", async () => {

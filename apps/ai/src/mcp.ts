@@ -102,7 +102,7 @@ const PlaneTools = Layer.effectDiscard(
           Effect.gen(function* () {
             const caller = yield* currentCaller(auth);
             const result = yield* plane
-              .request(caller, "tools/call", { name: tool.name, arguments: input ?? {} })
+              .callTool(caller, tool.name, input ?? {})
               .pipe(
                 Effect.mapError(() => new McpSchema.InternalError({ message: "Plane is unavailable. Try again." }))
               );
