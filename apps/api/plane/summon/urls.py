@@ -6,6 +6,8 @@ from django.urls import path
 
 from plane.summon.views import (
     AccessMeView,
+    ProjectInviteDetailView,
+    ProjectPeopleView,
     WorkspaceAccessHistoryView,
     WorkspaceInviteDetailView,
     WorkspaceUserDetailView,
@@ -141,6 +143,16 @@ urlpatterns = [
         name="summon-mcp-status",
     ),
     path("workspaces/<str:slug>/access/me/", AccessMeView.as_view(), name="summon-access-me"),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/people/",
+        ProjectPeopleView.as_view(),
+        name="summon-project-people",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/people/invites/<uuid:pk>/",
+        ProjectInviteDetailView.as_view(),
+        name="summon-project-people-invite",
+    ),
     path("workspaces/<str:slug>/settings/users/", WorkspaceUsersView.as_view(), name="summon-users"),
     path(
         "workspaces/<str:slug>/settings/users/history/",

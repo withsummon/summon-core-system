@@ -4,6 +4,8 @@
 
 from .access import (
     AccessMeView,
+    ProjectInviteDetailView,
+    ProjectPeopleView,
     WorkspaceAccessHistoryView,
     WorkspaceInviteDetailView,
     WorkspaceUserDetailView,
@@ -60,6 +62,8 @@ __all__ = [
     "WorkspaceInviteDetailView",
     "WorkspaceUserDetailView",
     "WorkspaceUsersView",
+    "ProjectInviteDetailView",
+    "ProjectPeopleView",
     "AssistantActionView",
     "AssistantAttachmentDetailView",
     "AssistantAttachmentView",

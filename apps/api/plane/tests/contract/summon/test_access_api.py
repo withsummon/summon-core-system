@@ -7,7 +7,16 @@ from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.db.models import Project, ProjectMember, User, WorkspaceMember, WorkspaceMemberInvite
+from plane.authentication.utils.workspace_project_join import process_workspace_project_invitations
+from plane.db.models import (
+    Project,
+    ProjectMember,
+    ProjectMemberInvite,
+    User,
+    Workspace,
+    WorkspaceMember,
+    WorkspaceMemberInvite,
+)
 from plane.summon.access import ADMIN, GUEST, MEMBER
 from plane.summon.models import Client, Opportunity, SummonAccessEvent, SummonProjectProfile
 
@@ -201,3 +210,111 @@ def test_only_admins_see_deals_reports_and_money(session_client, workspace, crea
 
     admin_profile = session_client.get(f"{base}/projects/{project.id}/overview/").data["profile"]
     assert admin_profile["budget"] == "5000.00"
+
+
+def people_url(workspace, project, suffix=""):
+    return f"/api/summon/workspaces/{workspace.slug}/projects/{project.id}/people/{suffix}"
+
+
+@pytest.mark.django_db
+def test_invite_with_projects_waits_for_first_sign_in(session_client, workspace):
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+
+    response = session_client.post(
+        users_url(workspace),
+        {"email": "client@acme.test", "role": GUEST, "project_ids": [str(project.id)]},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert [p["name"] for p in response.data["projects"]] == ["Portal"]
+    pending = ProjectMemberInvite.objects.get(project=project, email="client@acme.test")
+    assert (pending.role, pending.accepted) == (GUEST, True)
+
+    user = User.objects.create(email="client@acme.test", username="client")
+    process_workspace_project_invitations(user)
+    assert ProjectMember.objects.get(project=project, member=user).role == GUEST
+    assert WorkspaceMember.objects.get(workspace=workspace, member=user).role == GUEST
+
+
+@pytest.mark.django_db
+def test_invite_existing_account_joins_projects_now_and_lists_them(session_client, workspace):
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+    user = User.objects.create(email="known@summon.test", username="known")
+
+    session_client.post(
+        users_url(workspace), {"email": user.email, "role": MEMBER, "project_ids": [str(project.id)]}, format="json"
+    )
+
+    assert ProjectMember.objects.get(project=project, member=user).role == MEMBER
+    listed = next(m for m in session_client.get(users_url(workspace)).data["members"] if m["email"] == user.email)
+    assert [p["identifier"] for p in listed["projects"]] == ["PRT"]
+
+
+@pytest.mark.django_db
+def test_invite_rejects_projects_from_another_workspace(session_client, workspace, create_user):
+    other = Workspace.objects.create(name="Other", slug="other-ws", owner=create_user)
+    foreign = Project.objects.create(workspace=other, name="Foreign", identifier="FRN")
+
+    response = session_client.post(
+        users_url(workspace), {"email": "x@summon.test", "role": GUEST, "project_ids": [str(foreign.id)]}, format="json"
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert not WorkspaceMemberInvite.objects.filter(email="x@summon.test").exists()
+
+
+@pytest.mark.django_db
+def test_revoking_an_invite_drops_its_pending_projects(session_client, workspace):
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+    invite = session_client.post(
+        users_url(workspace), {"email": "c@acme.test", "role": GUEST, "project_ids": [str(project.id)]}, format="json"
+    ).data
+
+    session_client.delete(users_url(workspace, f"invites/{invite['id']}/"))
+
+    assert not ProjectMemberInvite.objects.filter(email="c@acme.test").exists()
+
+
+@pytest.mark.django_db
+def test_project_admin_adds_workspace_member_but_cannot_invite_new_people(workspace):
+    lead = add_member(workspace, "lead@summon.test", MEMBER).member
+    teammate = add_member(workspace, "mate@summon.test", MEMBER).member
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+    ProjectMember.objects.create(workspace=workspace, project=project, member=lead, role=ADMIN)
+    client = client_for(lead)
+
+    added = client.post(people_url(workspace, project), {"member_id": str(teammate.id)}, format="json")
+    invited = client.post(people_url(workspace, project), {"email": "new@acme.test"}, format="json")
+
+    assert added.status_code == status.HTTP_201_CREATED
+    assert {m["email"]: m["role"] for m in added.data["members"]}["mate@summon.test"] == MEMBER
+    assert invited.status_code == status.HTTP_403_FORBIDDEN
+    assert not WorkspaceMemberInvite.objects.filter(email="new@acme.test").exists()
+
+
+@pytest.mark.django_db
+def test_admin_invites_new_email_to_one_project_as_guest(session_client, workspace):
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+    outsider = User.objects.create(email="outsider@acme.test", username="outsider")
+
+    new = session_client.post(people_url(workspace, project), {"email": "New@Acme.test"}, format="json")
+    existing = session_client.post(people_url(workspace, project), {"email": outsider.email}, format="json")
+
+    assert new.status_code == status.HTTP_201_CREATED
+    assert WorkspaceMemberInvite.objects.get(workspace=workspace, email="new@acme.test").role == GUEST
+    assert [i["email"] for i in existing.data["invites"]] == ["new@acme.test"]
+    assert WorkspaceMember.objects.get(workspace=workspace, member=outsider).role == GUEST
+    assert {m["email"]: m["role"] for m in existing.data["members"]}["outsider@acme.test"] == GUEST
+
+    pending = existing.data["invites"][0]["id"]
+    assert session_client.delete(people_url(workspace, project, f"invites/{pending}/")).status_code == 204
+    assert not ProjectMemberInvite.objects.filter(project=project).exists()
+
+
+@pytest.mark.django_db
+def test_project_people_hidden_from_non_members(workspace):
+    project = Project.objects.create(workspace=workspace, name="Portal", identifier="PRT")
+    stranger = add_member(workspace, "stranger@summon.test", MEMBER).member
+
+    assert client_for(stranger).get(people_url(workspace, project)).status_code == status.HTTP_404_NOT_FOUND
