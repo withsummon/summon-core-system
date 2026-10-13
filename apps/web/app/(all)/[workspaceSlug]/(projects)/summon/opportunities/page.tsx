@@ -89,7 +89,7 @@ function SummonOpportunitiesPageContent({ params }: Route.ComponentProps) {
     error: detailError,
     isLoading: detailLoading,
     mutate: mutateDetail,
-  } = useSWR(selected ? ["summon-opportunity-master-detail", workspaceSlug, selected.id] : null, () =>
+  } = useSWR(selected ? ["summon-opportunity", workspaceSlug, selected.id] : null, () =>
     summonService.getOpportunityDetail(workspaceSlug, selected!.id)
   );
   const inspected = detail && detail.id === selected?.id ? detail : undefined;

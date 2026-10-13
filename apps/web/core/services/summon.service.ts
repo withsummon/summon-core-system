@@ -85,10 +85,6 @@ export class SummonService extends APIService {
     return this.data<ISummonClient>(this.post(`${this.root(workspaceSlug)}/clients/`, payload));
   }
 
-  getClient(workspaceSlug: string, clientId: string) {
-    return this.data<ISummonClient>(this.get(`${this.root(workspaceSlug)}/clients/${clientId}/`));
-  }
-
   getClientDetail(workspaceSlug: string, clientId: string) {
     return this.data<ISummonClientDetail>(this.get(`${this.root(workspaceSlug)}/clients/${clientId}/`));
   }
@@ -133,10 +129,6 @@ export class SummonService extends APIService {
 
   createOpportunity(workspaceSlug: string, payload: TPayload) {
     return this.data<ISummonOpportunity>(this.post(`${this.root(workspaceSlug)}/opportunities/`, payload));
-  }
-
-  getOpportunity(workspaceSlug: string, opportunityId: string) {
-    return this.data<ISummonOpportunity>(this.get(`${this.root(workspaceSlug)}/opportunities/${opportunityId}/`));
   }
 
   getOpportunityDetail(workspaceSlug: string, opportunityId: string) {

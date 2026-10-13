@@ -7,6 +7,8 @@ from uuid import uuid4
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -28,6 +30,7 @@ from plane.summon.models import (
     Client,
     Credential,
     Meeting,
+    MeetingParticipant,
     MeetingWorkItem,
     Opportunity,
     ResourceLink,
@@ -358,3 +361,45 @@ def test_resources_accept_external_http_urls_only_and_never_files(workspace):
     assert upload.status_code == status.HTTP_400_BAD_REQUEST
     assert "file" in upload.data
     assert ResourceLink.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_meeting_list_query_count_does_not_grow_with_meetings(workspace):
+    actor, api = authenticated_user(workspace)
+    project = project_with_member(workspace, actor)
+    hidden_project = Project.objects.create(workspace=workspace, name="Hidden", identifier="HID")
+    todo, _ = issue_states(project)
+    hidden_todo, _ = issue_states(hidden_project)
+    url = f"/api/summon/workspaces/{workspace.slug}/meetings/"
+
+    def add_meeting(title):
+        meeting = Meeting.objects.create(
+            workspace=workspace, project=project, organizer=actor, title=title, starts_at=timezone.now()
+        )
+        MeetingParticipant.objects.create(workspace=workspace, meeting=meeting, member=actor)
+        visible = Issue.objects.create(workspace=workspace, project=project, state=todo, name=f"{title} visible")
+        deleted = Issue.objects.create(workspace=workspace, project=project, state=todo, name=f"{title} deleted")
+        hidden = Issue.objects.create(
+            workspace=workspace, project=hidden_project, state=hidden_todo, name=f"{title} hidden"
+        )
+        for issue in (visible, deleted, hidden):
+            MeetingWorkItem.objects.create(workspace=workspace, meeting=meeting, issue=issue)
+        deleted.delete()
+
+    def list_meetings():
+        with CaptureQueriesContext(connection) as queries:
+            response = api.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        return response, len(queries)
+
+    add_meeting("First")
+    _, single = list_meetings()
+    for index in range(3):
+        add_meeting(f"Extra {index}")
+    response, many = list_meetings()
+
+    assert many == single
+    assert len(response.data) == 4
+    for meeting in response.data:
+        assert [participant["member"]["id"] for participant in meeting["participants"]] == [str(actor.id)]
+        assert [item["issue"]["name"] for item in meeting["work_items"]] == [f"{meeting['title']} visible"]

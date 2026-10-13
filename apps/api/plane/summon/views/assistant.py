@@ -56,6 +56,7 @@ class AssistantConversationViewSet(WorkspaceContextMixin, BaseViewSet):
                 queryset=AssistantMessage.objects.select_related("automation_job")
                 .prefetch_related(
                     "attachments",
+                    "automation_job__artifacts__workspace",
                     "automation_job__artifacts__page",
                     "automation_job__artifacts__file_asset",
                 )
@@ -89,6 +90,7 @@ class AssistantMessageView(WorkspaceContextMixin, BaseAPIView):
             .select_related("automation_job")
             .prefetch_related(
                 "attachments",
+                "automation_job__artifacts__workspace",
                 "automation_job__artifacts__page",
                 "automation_job__artifacts__file_asset",
             )

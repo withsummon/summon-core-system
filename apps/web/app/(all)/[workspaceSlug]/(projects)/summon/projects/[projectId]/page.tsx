@@ -30,7 +30,7 @@ export default function SummonProjectOverviewPage({ params }: Route.ComponentPro
   }
 
   const refresh = async () => {
-    await Promise.all([mutate(), mutateCache(["summon-projects", workspaceSlug])]);
+    await Promise.all([mutate(), mutateCache(["summon-home", workspaceSlug])]);
   };
 
   return (

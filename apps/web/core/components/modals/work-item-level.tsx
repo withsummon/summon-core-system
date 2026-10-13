@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { lazy, Suspense, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -12,13 +13,17 @@ import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 // components
 import { BulkDeleteIssuesModal } from "@/components/core/modals/bulk-delete-issues-modal";
 import { DeleteIssueModal } from "@/components/issues/delete-issue-modal";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
+
+// Loaded on first open: the modal pulls in the rich-text editor bundle, which no page needs up front.
+const CreateUpdateIssueModal = lazy(() =>
+  import("@/components/issues/issue-modal/modal").then((module) => ({ default: module.CreateUpdateIssueModal }))
+);
 
 export type TWorkItemLevelModalsProps = {
   workItemIdentifier: string | undefined;
@@ -50,6 +55,9 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
     toggleBulkDeleteIssueModal,
     createWorkItemAllowedProjectIds,
   } = useCommandPalette();
+  // Stays mounted after the first open so later closes keep their exit transition.
+  const [hasOpenedCreateIssueModal, setHasOpenedCreateIssueModal] = useState(isCreateIssueModalOpen);
+  if (isCreateIssueModalOpen && !hasOpenedCreateIssueModal) setHasOpenedCreateIssueModal(true);
   // derived values
   const { fetchSubIssues: fetchSubWorkItems } = useIssueDetail();
   const { fetchSubIssues: fetchEpicSubWorkItems } = useIssueDetail(EIssueServiceType.EPICS);
@@ -83,13 +91,17 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
 
   return (
     <>
-      <CreateUpdateIssueModal
-        isOpen={isCreateIssueModalOpen}
-        onClose={() => toggleCreateIssueModal(false)}
-        data={getCreateIssueModalData()}
-        onSubmit={handleCreateIssueSubmit}
-        allowedProjectIds={createWorkItemAllowedProjectIds}
-      />
+      {hasOpenedCreateIssueModal && (
+        <Suspense fallback={null}>
+          <CreateUpdateIssueModal
+            isOpen={isCreateIssueModalOpen}
+            onClose={() => toggleCreateIssueModal(false)}
+            data={getCreateIssueModalData()}
+            onSubmit={handleCreateIssueSubmit}
+            allowedProjectIds={createWorkItemAllowedProjectIds}
+          />
+        </Suspense>
+      )}
       {workspaceSlug && workItemId && workItemDetails && workItemDetails.project_id && (
         <DeleteIssueModal
           handleClose={() => toggleDeleteIssueModal(false)}

@@ -42,9 +42,8 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
       setUnlinkedProjectId(window.sessionStorage.getItem(pendingKey));
     }
   }, [pendingKey, state.kind]);
-  const { data: clients = [] } = useSWR(
-    state.kind === "needs_client" ? ["summon-delivery-clients", workspaceSlug] : null,
-    () => summonService.listClients(workspaceSlug)
+  const { data: clients = [] } = useSWR(state.kind === "needs_client" ? ["summon-clients", workspaceSlug] : null, () =>
+    summonService.listClients(workspaceSlug)
   );
   const linkable = linkableDeliveryProjects(joinedProjectIds.map((projectId) => getProjectById(projectId)));
   const unlinkedProject = unlinkedProjectId ? getProjectById(unlinkedProjectId) : undefined;

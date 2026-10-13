@@ -130,6 +130,17 @@ def create_project(workspace, member, identifier):
 
 
 @pytest.mark.django_db
+def test_listing_automation_templates_loads_them_in_bulk(session_client, workspace, django_assert_max_num_queries):
+    url = f"/api/summon/workspaces/{workspace.slug}/automation/templates/"
+    assert session_client.get(url).status_code == status.HTTP_200_OK
+
+    with django_assert_max_num_queries(12):
+        response = session_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
 def test_default_automation_templates_are_available(session_client, workspace):
     response = session_client.get(f"/api/summon/workspaces/{workspace.slug}/automation/templates/")
 

@@ -73,21 +73,19 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
     summonService.getHomeSummary(workspaceSlug)
   );
   const showDeals = useSummonAccess(workspaceSlug).can("commercial.view");
-  const { data: opportunities = [] } = useSWR(showDeals ? ["summon-home-opportunities", workspaceSlug] : null, () =>
+  const { data: opportunities = [] } = useSWR(showDeals ? ["summon-opportunities", workspaceSlug] : null, () =>
     summonService.listOpportunities(workspaceSlug)
   );
   const money = useWorkspaceMoney(workspaceSlug);
 
   const activeProjectId = selectedProjectId || data?.projects[0]?.id || "";
   const { data: selectedProject, isLoading: projectLoading } = useSWR(
-    activeProjectId ? ["summon-project-preview", workspaceSlug, activeProjectId] : null,
+    activeProjectId ? ["summon-project-overview", workspaceSlug, activeProjectId] : null,
     () => summonService.getProjectOverview(workspaceSlug, activeProjectId)
   );
   const { data: selectedClient } = useSWR(
-    selectedProject?.profile?.client
-      ? ["summon-home-project-client", workspaceSlug, selectedProject.profile.client]
-      : null,
-    () => summonService.getClient(workspaceSlug, selectedProject?.profile?.client || "")
+    selectedProject?.profile?.client ? ["summon-client", workspaceSlug, selectedProject.profile.client] : null,
+    () => summonService.getClientDetail(workspaceSlug, selectedProject?.profile?.client || "")
   );
 
   const normalizedQuery = query.trim().toLowerCase();
