@@ -98,7 +98,7 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
               <Link
                 key={client.id}
                 href={`/${workspaceSlug}/summon/clients/${client.id}`}
-                className="hover:border-accent-primary/50 rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors"
+                className="rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors hover:border-accent-strong"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary">

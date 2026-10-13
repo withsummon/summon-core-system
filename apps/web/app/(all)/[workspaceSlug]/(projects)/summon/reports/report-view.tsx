@@ -320,7 +320,7 @@ export function ReportView(props: TReportViewProps) {
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <a
                 href={exportUrl}
-                className="hover:border-accent-primary/50 flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3"
+                className="flex min-w-0 items-center gap-3 rounded-lg border border-subtle p-3 hover:border-accent-strong"
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent-primary">
                   <FileSpreadsheet className="size-4" />

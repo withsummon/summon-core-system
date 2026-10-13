@@ -153,7 +153,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             className="max-w-3xl"
           />
 
-          <section className="border-accent-primary/20 rounded-xl border bg-accent-subtle/50 p-4">
+          <section className="rounded-xl border border-accent-subtle bg-accent-subtle/50 p-4">
             <div className="flex items-center gap-3">
               <span className="grid size-12 place-items-center rounded-xl bg-accent-primary text-white">
                 <Sparkles className="size-6" />

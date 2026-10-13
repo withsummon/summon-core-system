@@ -80,7 +80,7 @@ export function NewEmptyState({ title, description, image, primaryButton, disabl
                   } pb-5`}
                 >
                   <div className="relative mt-5 h-0 w-0 border-t-[11px] border-r-[11px] border-b-[11px] border-subtle border-y-transparent">
-                    <div className="border-surface-1 absolute top-[-10px] right-[-12px] h-0 w-0 border-t-[10px] border-r-[10px] border-b-[10px] border-y-transparent" />
+                    <div className="absolute top-[-10px] right-[-12px] h-0 w-0 border-t-[10px] border-r-[10px] border-b-[10px] border-(--background-color-surface-1) border-y-transparent" />
                   </div>
                   <div className="rounded-md border border-subtle bg-surface-1">
                     <h1 className="p-5">
@@ -92,7 +92,7 @@ export function NewEmptyState({ title, description, image, primaryButton, disabl
               ) : (
                 <div className="absolute top-0 right-1/2 mr-[90px] flex max-w-sm flex-row-reverse pb-5">
                   <div className="relative mt-5 h-0 w-0 border-t-[11px] border-b-[11px] border-l-[11px] border-subtle border-y-transparent">
-                    <div className="border-surface-1 absolute top-[-10px] left-[-12px] h-0 w-0 border-t-[10px] border-b-[10px] border-l-[10px] border-y-transparent" />
+                    <div className="absolute top-[-10px] left-[-12px] h-0 w-0 border-t-[10px] border-b-[10px] border-l-[10px] border-(--background-color-surface-1) border-y-transparent" />
                   </div>
                   <div className="rounded-md border border-subtle bg-surface-1">
                     <h1 className="p-5">

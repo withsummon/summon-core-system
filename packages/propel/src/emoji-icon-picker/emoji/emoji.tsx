@@ -74,7 +74,7 @@ export function EmojiRoot(props: EmojiRootProps) {
                 type="button"
                 aria-label={emoji?.label ?? emoji?.emoji}
                 data-slot="emoji-picker-list-emoji"
-                className="data-active:bg-accent flex size-8 items-center justify-center rounded-md text-16"
+                className="flex size-8 items-center justify-center rounded-md text-16 data-active:bg-layer-1-hover"
                 {...props}
               >
                 {emoji.emoji}

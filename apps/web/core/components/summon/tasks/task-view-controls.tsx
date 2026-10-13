@@ -142,7 +142,7 @@ export function TaskFilterMenu(props: {
               <Menu.Input aria-label="Add filter" placeholder="Add filter…" className={INPUT_CLASSNAME} />
               <Menu.List>
                 {available(MENU_SECTIONS[0]).map(fieldMenu)}
-                <Menu.Separator className="bg-subtle my-1 h-px" />
+                <Menu.Separator className="my-1 h-px bg-(--border-color-subtle)" />
                 <Menu.SubmenuRoot>
                   <Menu.SubmenuTrigger label="Dates" className={MENU_ITEM_CLASSNAME}>
                     <Calendar aria-hidden="true" className="size-4 text-secondary" />

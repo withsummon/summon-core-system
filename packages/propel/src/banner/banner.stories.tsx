@@ -134,7 +134,7 @@ function CloseButton({ onClick }: { onClick?: () => void }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-text-secondary"
+        className="text-secondary"
       >
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />

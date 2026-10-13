@@ -262,7 +262,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                           onClick={() => onPreviewDocument(doc)}
                           title="Preview document"
                           aria-label="Preview document"
-                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
+                          className="rounded-md p-1.5 text-placeholder transition-colors hover:bg-layer-1-hover hover:text-primary"
                         >
                           <Eye size={14} />
                         </button>
@@ -272,7 +272,7 @@ export const GeneratedDocumentsTable: React.FC<IGeneratedDocumentsTableProps> = 
                           onClick={() => setActionMenuDocId(isMenuOpen ? null : doc.id)}
                           title="More options"
                           aria-label="More options"
-                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
+                          className="rounded-md p-1.5 text-placeholder transition-colors hover:bg-layer-1-hover hover:text-primary"
                         >
                           <MoreHorizontal size={14} />
                         </button>

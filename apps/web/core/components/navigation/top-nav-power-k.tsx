@@ -236,7 +236,7 @@ export const TopNavPowerK = observer(() => {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search commands…"
-            className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
+            className="min-w-0 flex-1 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
           />
           {searchTerm && (
             <button type="button" aria-label="Clear search" onClick={handleClear} className="ml-2 shrink-0">

@@ -58,7 +58,9 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
           return (
             <div key={act.id} className="relative flex items-start gap-3 pl-1">
               {/* Connecting Line */}
-              {!isLast && <div className="bg-subtle absolute top-[14px] left-[7px] h-[calc(100%+8px)] w-[1.5px]" />}
+              {!isLast && (
+                <div className="absolute top-[14px] left-[7px] h-[calc(100%+8px)] w-[1.5px] bg-(--border-color-subtle)" />
+              )}
 
               {/* Dot */}
               <div

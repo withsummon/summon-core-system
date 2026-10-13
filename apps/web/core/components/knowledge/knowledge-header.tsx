@@ -99,7 +99,7 @@ export const KnowledgeHeader = observer(function KnowledgeHeader({
           <button
             type="button"
             onClick={onOpenQuickFind}
-            className="hover:bg-surface-3 ml-2 hidden items-center gap-1 rounded-md border border-subtle bg-surface-2/80 px-2 py-0.5 text-[10px] font-medium text-secondary transition-colors sm:flex"
+            className="ml-2 hidden items-center gap-1 rounded-md border border-subtle bg-surface-2/80 px-2 py-0.5 text-[10px] font-medium text-secondary transition-colors hover:bg-layer-1-hover sm:flex"
           >
             <span>⌘</span>
             <span>K</span>

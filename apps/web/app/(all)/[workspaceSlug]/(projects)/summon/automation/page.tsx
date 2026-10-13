@@ -349,7 +349,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                 key={item.id}
                 onClick={() => openGenerator(item.id)}
                 className={`group flex items-center gap-3 rounded-xl border bg-surface-1 p-3 text-left transition-colors hover:border-accent-strong sm:p-4 ${
-                  template === item.id ? "ring-accent-primary/20 border-accent-strong ring-1" : "border-subtle"
+                  template === item.id ? "border-accent-strong ring-1 ring-accent-subtle" : "border-subtle"
                 }`}
               >
                 <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${iconTone}`}>

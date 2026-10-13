@@ -230,7 +230,7 @@ export const RecentKnowledgeTable: React.FC<IRecentKnowledgeTableProps> = ({
                           type="button"
                           aria-label="More actions"
                           onClick={() => setMenuOpenId(isMenuOpen ? null : item.id)}
-                          className="hover:bg-surface-3 rounded-md p-1.5 text-placeholder transition-colors hover:text-primary"
+                          className="rounded-md p-1.5 text-placeholder transition-colors hover:bg-layer-1-hover hover:text-primary"
                         >
                           <MoreHorizontal size={14} />
                         </button>

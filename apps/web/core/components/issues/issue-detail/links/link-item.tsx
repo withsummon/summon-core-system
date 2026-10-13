@@ -79,7 +79,7 @@ export const IssueLinkItem = observer(function IssueLinkItem(props: TIssueLinkIt
           </Tooltip>
         </div>
         <div className="flex flex-shrink-0 items-center gap-1">
-          <p className="group-hover-text-secondary p-1 align-bottom text-caption-sm-regular leading-5 text-placeholder">
+          <p className="p-1 align-bottom text-caption-sm-regular leading-5 text-placeholder group-hover:text-secondary">
             {calculateTimeAgo(linkDetail.created_at)}
           </p>
           <button

@@ -143,7 +143,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             <Link
               key={page.id}
               href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors"
+              className="group flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors hover:border-accent-strong"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
