@@ -1,18 +1,14 @@
 "use client";
 
+import { domAnimation, LazyMotion } from "framer-motion";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
 import { scaleLinear } from "@visx/scale";
 import type { Transition } from "framer-motion";
 import { type ReactNode, useCallback, useState } from "react";
 import { cn } from "../../utils/classname";
-import {
-  defaultRadarColors,
-  type RadarContextValue,
-  type RadarData,
-  type RadarMetric,
-  RadarProvider,
-} from "./radar-context";
+import { type RadarContextValue, type RadarData, type RadarMetric, RadarProvider } from "./radar-context";
+import { defaultRadarColors } from "./chart-theme";
 
 export interface RadarChartProps {
   /** Data array - each item represents a data series (polygon) */
@@ -226,29 +222,31 @@ export function RadarChart({
 
   // Otherwise use ParentSize for responsive sizing
   return (
-    <div className={cn("relative aspect-square w-full", className)}>
-      <ParentSize debounceTime={10}>
-        {({ width, height }) => (
-          <RadarChartInner
-            animate={animate}
-            data={data}
-            enterDurationMs={enterDurationMs}
-            enterTransition={enterTransition}
-            height={height}
-            hoveredIndexProp={hoveredIndex}
-            levels={levels}
-            margin={margin}
-            metrics={metrics}
-            motionReplayKey={motionReplayKey}
-            onHoverChange={onHoverChange}
-            staggerScale={staggerScale}
-            width={width}
-          >
-            {children}
-          </RadarChartInner>
-        )}
-      </ParentSize>
-    </div>
+    <LazyMotion features={domAnimation}>
+      <div className={cn("relative aspect-square w-full", className)}>
+        <ParentSize debounceTime={10}>
+          {({ width, height }) => (
+            <RadarChartInner
+              animate={animate}
+              data={data}
+              enterDurationMs={enterDurationMs}
+              enterTransition={enterTransition}
+              height={height}
+              hoveredIndexProp={hoveredIndex}
+              levels={levels}
+              margin={margin}
+              metrics={metrics}
+              motionReplayKey={motionReplayKey}
+              onHoverChange={onHoverChange}
+              staggerScale={staggerScale}
+              width={width}
+            >
+              {children}
+            </RadarChartInner>
+          )}
+        </ParentSize>
+      </div>
+    </LazyMotion>
   );
 }
 

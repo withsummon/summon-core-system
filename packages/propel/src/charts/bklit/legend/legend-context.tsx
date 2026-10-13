@@ -2,15 +2,6 @@
 
 import { createContext, useContext } from "react";
 
-// CSS variable references for legend theming
-export const legendCssVars = {
-  background: "var(--legend)",
-  foreground: "var(--legend-foreground)",
-  muted: "var(--legend-muted)",
-  mutedForeground: "var(--legend-muted-foreground)",
-  track: "var(--legend-track)",
-};
-
 export interface LegendItemData {
   /** Display label */
   label: string;

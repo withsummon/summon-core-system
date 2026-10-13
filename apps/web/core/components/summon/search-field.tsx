@@ -33,7 +33,7 @@ export const SummonSearchField = forwardRef<HTMLInputElement, Props>(function Su
   ref
 ) {
   return (
-    <div role="search" className={cn("relative min-w-0", className)}>
+    <search className={cn("relative block min-w-0", className)}>
       <Search
         aria-hidden
         className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary"
@@ -50,6 +50,6 @@ export const SummonSearchField = forwardRef<HTMLInputElement, Props>(function Su
         className={cn("w-full pl-9 text-base sm:text-13", size === "base" ? "h-8" : "h-9", trailing ? "pr-12" : "pr-3")}
       />
       {trailing ? <span className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</span> : null}
-    </div>
+    </search>
   );
 });

@@ -3,19 +3,7 @@
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { bisector, extent } from "d3-array";
 import type { Transition } from "framer-motion";
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-  type ReactElement,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-} from "react";
+import { Children, isValidElement, memo, type ReactElement, type ReactNode, useCallback, useId, useMemo } from "react";
 import { DEFAULT_ANIMATION_EASING, DEFAULT_CHART_ENTER_TRANSITION } from "./animation";
 import {
   isClipExcludedComponent,
@@ -23,6 +11,7 @@ import {
   isUnderlayComponent,
   resolveChartChildElement,
 } from "./chart-child-passthrough";
+import { ChartLoadingLabel } from "./chart-loading-label";
 import { ChartProvider, type LineConfig, type Margin } from "./chart-context";
 import { isGradientDefComponent, isPatternDefComponent } from "./chart-defs";
 import { shortDateFmt } from "./chart-formatters";
@@ -38,13 +27,13 @@ import { decimateTimeSeries, maxRenderPointsForWidth } from "./decimate-time-ser
 import { filterDataByXDomain } from "./filter-data-by-x-domain";
 import { generateChartSkeletonData, generateChartSkeletonFromTarget } from "./generate-chart-skeleton-data";
 import { extractProjectionLineConfigs, mergeProjectionXDomainMax, mergeProjectionYDomain } from "./projection-config";
-import { extractReferenceAreaConfigs, type ReferenceAreaConfig } from "./reference-area-config";
 import { ReferenceAreaRegistrationContext } from "./reference-area-registration-context";
 import { computeSeriesBarRevealClipPadding, computeSeriesBarWidth } from "./series-bar-layout";
 import { useStaticChartPreview } from "./static-chart-preview-context";
 import { useAnimatedYDomains } from "./use-animated-y-domains";
 import { useChartInteraction } from "./use-chart-interaction";
 import { useChartPhaseOrchestrator } from "./use-chart-phase-orchestrator";
+import { useReferenceAreas } from "./use-reference-areas";
 import { buildYScalesFromDomains, DEFAULT_Y_AXIS_ID, getPrimaryYScale, groupLinesByYAxisId } from "./y-axis-scales";
 import { computeYDomainsByAxis } from "./y-domain-utils";
 
@@ -93,13 +82,6 @@ function resolveTimeSeriesYDomain(
   return [minValue - padding, maxValue + padding];
 }
 
-function ensureChildKey(child: ReactElement, index: number): ReactElement {
-  if (child.key != null) {
-    return child;
-  }
-  return cloneElement(child, { key: `chart-child-${index}` });
-}
-
 export interface TimeSeriesChartInnerProps {
   width: number;
   height: number;
@@ -142,7 +124,6 @@ export interface TimeSeriesChartInnerProps {
   xDomainSlotCount?: number;
   /** Tween y-domain when the visible x-range changes during the ready phase. */
   tweenYDomainOnXDomainChange?: boolean;
-  onPhaseChange?: (phase: ChartPhase) => void;
 }
 
 export function TimeSeriesChartInner(props: TimeSeriesChartInnerProps) {
@@ -182,7 +163,6 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange = false,
-  onPhaseChange,
 }: TimeSeriesChartInnerProps) {
   // Unique per instance — shared clipPath ids crop later charts (#226).
   const uniqueClipPathId = `${clipPathId}-${useId().replace(/:/g, "")}`;
@@ -227,10 +207,6 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
     yDomainTweenDuration,
   });
 
-  useEffect(() => {
-    onPhaseChange?.(chartPhase);
-  }, [chartPhase, onPhaseChange]);
-
   const xAccessor = useCallback(
     (d: Record<string, unknown>): Date => {
       const value = d[xDataKey];
@@ -250,20 +226,11 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
 
   const projectionConfigs = useMemo(() => extractProjectionLineConfigs(children), [children]);
 
-  const xScale = useMemo(() => {
-    const minTime = xDomain ? xDomain[0].getTime() : (extent(plotData, (d) => xAccessor(d).getTime())[0] ?? 0);
-    let maxTime = xDomain ? xDomain[1].getTime() : (extent(plotData, (d) => xAccessor(d).getTime())[1] ?? minTime);
-    // Brush defines the viewport — projection horizon is included via brush
-    // track extent, not by extending past the selection on the main chart.
-    if (!xDomain) {
-      maxTime = mergeProjectionXDomainMax(maxTime, projectionConfigs);
-    }
-
-    return scaleTime({
-      range: [0, innerWidth],
-      domain: [minTime, maxTime],
-    });
-  }, [innerWidth, plotData, projectionConfigs, xAccessor, xDomain]);
+  const xScale = useMemo(
+    () =>
+      scaleTime({ range: [0, innerWidth], domain: resolveTimeDomain(plotData, xAccessor, xDomain, projectionConfigs) }),
+    [innerWidth, plotData, projectionConfigs, xAccessor, xDomain]
+  );
 
   // When brushing, keep the full series for path rendering so edge fades stay
   // anchored to the viewport while the line pans through them. Y-domain and
@@ -297,19 +264,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
       lines,
       resolveDomain: (dataKeys) => resolveYDomain(xDomain ? visiblePlotData : data, dataKeys),
     });
-    if (projectionConfigs.length === 0) {
-      return base;
-    }
-    const merged: Record<string, [number, number]> = { ...base };
-    for (const axisId of Object.keys(base)) {
-      merged[axisId] = mergeProjectionYDomain(base[axisId] ?? [0, 100], projectionConfigs, axisId);
-    }
-    for (const config of projectionConfigs) {
-      if (!merged[config.yAxisId]) {
-        merged[config.yAxisId] = mergeProjectionYDomain([0, 100], projectionConfigs, config.yAxisId);
-      }
-    }
-    return merged;
+    return mergeProjectionYDomains(base, projectionConfigs);
   }, [data, lines, projectionConfigs, resolveYDomain, visiblePlotData, xDomain]);
 
   const animatedYDomainsByAxis = useAnimatedYDomains({
@@ -322,16 +277,14 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
     tweenOnTargetChange: yDomainTween || (tweenYDomainOnXDomainChange && xDomain != null),
   });
 
-  const yDomainsForScales = animatedYDomainsByAxis;
-
   const yScales = useMemo(
     () =>
       buildYScalesFromDomains({
-        domainsByAxis: yDomainsForScales,
+        domainsByAxis: animatedYDomainsByAxis,
         innerHeight,
         lines,
       }),
-    [yDomainsForScales, innerHeight, lines]
+    [animatedYDomainsByAxis, innerHeight, lines]
   );
 
   const yScale = getPrimaryYScale(yScales, scaleLinear({ range: [innerHeight, 0], domain: [0, 100], nice: true }));
@@ -356,215 +309,81 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
       yScales,
     });
 
-  const defsChildren: ReactElement[] = [];
-  const clipExcludedChildren: ReactElement[] = [];
-  const underlayChildren: ReactElement[] = [];
-  const preOverlayChildren: ReactElement[] = [];
-  const postOverlayChildren: ReactElement[] = [];
+  const { defsChildren, clipExcludedChildren, underlayChildren, preOverlayChildren, postOverlayChildren } =
+    partitionChartChildren(children);
 
-  Children.forEach(children, (child, index) => {
-    if (!isValidElement(child)) {
-      return;
-    }
+  const { referenceAreas, registration: referenceAreaRegistration } = useReferenceAreas(children);
 
-    const keyedChild = ensureChildKey(child, index);
-    const resolvedChild = resolveChartChildElement(keyedChild);
-
-    if (isGradientDefComponent(resolvedChild)) {
-      defsChildren.push(resolvedChild);
-    } else if (isPatternDefComponent(resolvedChild)) {
-      preOverlayChildren.push(resolvedChild);
-    } else if (isPostOverlayComponent(resolvedChild)) {
-      postOverlayChildren.push(resolvedChild);
-    } else if (isClipExcludedComponent(resolvedChild)) {
-      clipExcludedChildren.push(resolvedChild);
-    } else if (isUnderlayComponent(resolvedChild)) {
-      underlayChildren.push(resolvedChild);
-    } else {
-      preOverlayChildren.push(resolvedChild);
-    }
-  });
-
-  const [registeredReferenceAreas, setRegisteredReferenceAreas] = useState(
-    () => new Map<string, ReferenceAreaConfig>()
-  );
-
-  const registerReferenceArea = useCallback((id: string, config: ReferenceAreaConfig) => {
-    setRegisteredReferenceAreas((prev) => {
-      const existing = prev.get(id);
-      if (
-        existing &&
-        existing.yAxisId === config.yAxisId &&
-        existing.y1 === config.y1 &&
-        existing.y2 === config.y2 &&
-        existing.axisLabelColor === config.axisLabelColor
-      ) {
-        return prev;
-      }
-      const next = new Map(prev);
-      next.set(id, config);
-      return next;
-    });
-  }, []);
-
-  const unregisterReferenceArea = useCallback((id: string) => {
-    setRegisteredReferenceAreas((prev) => {
-      if (!prev.has(id)) {
-        return prev;
-      }
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
-  }, []);
-
-  const referenceAreaRegistration = useMemo(
-    () => ({ registerReferenceArea, unregisterReferenceArea }),
-    [registerReferenceArea, unregisterReferenceArea]
-  );
-
-  const referenceAreas = useMemo(() => {
-    const extracted = extractReferenceAreaConfigs(children);
-    const registered = [...registeredReferenceAreas.values()];
-    if (registered.length === 0) {
-      return extracted;
-    }
-    if (extracted.length === 0) {
-      return registered;
-    }
-    return [...extracted, ...registered];
-  }, [children, registeredReferenceAreas]);
-
-  const contextValue = useMemo(
-    () => ({
-      data: visiblePlotData,
-      renderData,
-      xScale,
-      yScale,
-      yScales,
-      width,
-      height,
-      innerWidth,
-      innerHeight,
-      margin,
-      columnWidth,
-      tooltipData,
-      setTooltipData,
-      containerRef,
-      lines,
-      referenceAreas,
-      chartPhase,
-      chartStatus,
-      loadingLabel,
-      yDomainTweenDuration,
-      yDomainSkeletonByAxis,
-      yDomainTargetByAxis,
-      isLoaded,
-      animationDuration,
-      animationEasing,
-      enterTransition,
-      revealEpoch,
-      notifyLoadingPulseComplete,
-      xAccessor,
-      dateLabels,
-      xDomain,
-      xDomainSlotCount,
-      selection,
-      clearSelection,
-      composedBarDataKeys,
-      composedBarSize,
-      composedMaxBarSize,
-      composedBarGap,
-      composedStacked,
-      composedStackOffsets,
-      composedStackGap,
-    }),
-    [
-      visiblePlotData,
-      renderData,
-      xScale,
-      yScale,
-      yScales,
-      width,
-      height,
-      innerWidth,
-      innerHeight,
-      margin,
-      columnWidth,
-      tooltipData,
-      setTooltipData,
-      containerRef,
-      lines,
-      referenceAreas,
-      chartPhase,
-      chartStatus,
-      loadingLabel,
-      yDomainTweenDuration,
-      yDomainSkeletonByAxis,
-      yDomainTargetByAxis,
-      isLoaded,
-      animationDuration,
-      animationEasing,
-      enterTransition,
-      revealEpoch,
-      notifyLoadingPulseComplete,
-      xAccessor,
-      dateLabels,
-      xDomain,
-      xDomainSlotCount,
-      selection,
-      clearSelection,
-      composedBarDataKeys,
-      composedBarSize,
-      composedMaxBarSize,
-      composedBarGap,
-      composedStacked,
-      composedStackOffsets,
-      composedStackGap,
-    ]
-  );
-
-  const useClipReveal = !staticPreview && renderData.length > 1 && innerWidth > 0 && animationDuration > 0;
-  const isRevealAnimating = chartPhase === "revealing";
-  const isRevealConcealing = chartPhase === "exitingReady" && animationDuration > 0;
-
-  const effectiveEnterTransition: Transition =
-    enterTransition ??
-    ({
-      ...DEFAULT_CHART_ENTER_TRANSITION,
-      duration: animationDuration / 1000,
-    } satisfies Transition);
-
-  const revealClipPadding = useMemo(() => {
-    if (!composedBarDataKeys?.length) {
-      return 0;
-    }
-    const barWidth = computeSeriesBarWidth({
-      columnWidth,
-      composedBarGap,
-      composedBarSize,
-      composedMaxBarSize,
-      dataLength: plotData.length,
-      innerWidth,
-      seriesCount: composedBarDataKeys.length,
-      stacked: composedStacked,
-    });
-    return computeSeriesBarRevealClipPadding({
-      barWidth,
-      gap: composedBarGap,
-      seriesCount: composedBarDataKeys.length,
-      stacked: composedStacked,
-    });
-  }, [
+  // ChartProvider memoizes each field, so a fresh object here does not re-render consumers.
+  const contextValue = {
+    data: visiblePlotData,
+    renderData,
+    xScale,
+    yScale,
+    yScales,
+    width,
+    height,
+    innerWidth,
+    innerHeight,
+    margin,
     columnWidth,
+    tooltipData,
+    setTooltipData,
+    containerRef,
+    lines,
+    referenceAreas,
+    chartPhase,
+    chartStatus,
+    loadingLabel,
+    yDomainTweenDuration,
+    yDomainSkeletonByAxis,
+    yDomainTargetByAxis,
+    isLoaded,
+    animationDuration,
+    animationEasing,
+    enterTransition,
+    revealEpoch,
+    notifyLoadingPulseComplete,
+    xAccessor,
+    dateLabels,
+    xDomain,
+    xDomainSlotCount,
+    selection,
+    clearSelection,
     composedBarDataKeys,
-    composedBarGap,
     composedBarSize,
     composedMaxBarSize,
+    composedBarGap,
     composedStacked,
-    innerWidth,
-    plotData.length,
-  ]);
+    composedStackOffsets,
+    composedStackGap,
+  };
+
+  const useClipReveal = !staticPreview && renderData.length > 1 && innerWidth > 0 && animationDuration > 0;
+
+  const revealClipPadding = useMemo(
+    () =>
+      computeComposedBarClipPadding({
+        columnWidth,
+        composedBarDataKeys,
+        composedBarGap,
+        composedBarSize,
+        composedMaxBarSize,
+        composedStacked,
+        dataLength: plotData.length,
+        innerWidth,
+      }),
+    [
+      columnWidth,
+      composedBarDataKeys,
+      composedBarGap,
+      composedBarSize,
+      composedMaxBarSize,
+      composedStacked,
+      innerWidth,
+      plotData.length,
+    ]
+  );
 
   return (
     <ReferenceAreaRegistrationContext.Provider value={referenceAreaRegistration}>
@@ -573,15 +392,16 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
           <defs>
             {defsChildren}
             {useClipReveal ? (
-              <ChartRevealClip
-                animating={isRevealAnimating || isRevealConcealing}
+              <ShellRevealClip
+                animationDuration={animationDuration}
+                chartPhase={chartPhase}
                 clipPathId={uniqueClipPathId}
-                enterTransition={effectiveEnterTransition}
+                concealEpoch={concealEpoch}
+                enterTransition={enterTransition}
                 height={innerHeight + 20}
-                mode={isRevealConcealing ? "conceal" : "reveal"}
-                onComplete={isRevealConcealing ? notifyRevealConcealComplete : undefined}
+                onConcealComplete={notifyRevealConcealComplete}
                 padding={revealClipPadding}
-                revealEpoch={isRevealConcealing ? concealEpoch : revealEpoch}
+                revealEpoch={revealEpoch}
                 targetWidth={innerWidth}
               />
             ) : null}
@@ -598,7 +418,154 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
             {postOverlayChildren}
           </g>
         </svg>
+        {showLoadingLabel(chartPhase, loadingLabel) ? (
+          <ChartLoadingLabel exiting={chartPhase !== "loading"} text={loadingLabel} />
+        ) : null}
       </ChartProvider>
     </ReferenceAreaRegistrationContext.Provider>
   );
 });
+
+/** Loading label stays up through the pulse exit and grid tween, then fades as the series reveals. */
+function showLoadingLabel(chartPhase: ChartPhase, loadingLabel: string | undefined): boolean {
+  if (!loadingLabel?.trim()) {
+    return false;
+  }
+  return (
+    chartPhase === "loading" ||
+    chartPhase === "exiting" ||
+    chartPhase === "gridTweenReady" ||
+    chartPhase === "revealingLoading"
+  );
+}
+
+/** Sorts chart children into SVG layers: defs, clip-excluded chrome, underlays, series, and overlays. */
+function partitionChartChildren(children: ReactNode) {
+  const defsChildren: ReactElement[] = [];
+  const clipExcludedChildren: ReactElement[] = [];
+  const underlayChildren: ReactElement[] = [];
+  const preOverlayChildren: ReactElement[] = [];
+  const postOverlayChildren: ReactElement[] = [];
+
+  // `toArray` gives every child a stable key derived from its own key or position.
+  for (const child of Children.toArray(children)) {
+    if (!isValidElement(child)) {
+      continue;
+    }
+    const resolvedChild = resolveChartChildElement(child);
+    if (isGradientDefComponent(resolvedChild)) {
+      defsChildren.push(resolvedChild);
+    } else if (isPatternDefComponent(resolvedChild)) {
+      preOverlayChildren.push(resolvedChild);
+    } else if (isPostOverlayComponent(resolvedChild)) {
+      postOverlayChildren.push(resolvedChild);
+    } else if (isClipExcludedComponent(resolvedChild)) {
+      clipExcludedChildren.push(resolvedChild);
+    } else if (isUnderlayComponent(resolvedChild)) {
+      underlayChildren.push(resolvedChild);
+    } else {
+      preOverlayChildren.push(resolvedChild);
+    }
+  }
+
+  return { defsChildren, clipExcludedChildren, underlayChildren, preOverlayChildren, postOverlayChildren };
+}
+
+/** Widens each axis domain to fit projection lines, adding axes that only projections use. */
+function mergeProjectionYDomains(
+  base: Record<string, [number, number]>,
+  projectionConfigs: ReturnType<typeof extractProjectionLineConfigs>
+): Record<string, [number, number]> {
+  if (projectionConfigs.length === 0) {
+    return base;
+  }
+  const merged: Record<string, [number, number]> = { ...base };
+  for (const axisId of Object.keys(base)) {
+    merged[axisId] = mergeProjectionYDomain(base[axisId] ?? [0, 100], projectionConfigs, axisId);
+  }
+  for (const config of projectionConfigs) {
+    if (!merged[config.yAxisId]) {
+      merged[config.yAxisId] = mergeProjectionYDomain([0, 100], projectionConfigs, config.yAxisId);
+    }
+  }
+  return merged;
+}
+
+/**
+ * Time extent of the data, or the brushed `xDomain`. Without a brush the domain stretches to the
+ * projection horizon; with one, the brush track already includes it.
+ */
+function resolveTimeDomain(
+  plotData: Record<string, unknown>[],
+  xAccessor: (d: Record<string, unknown>) => Date,
+  xDomain: [Date, Date] | undefined,
+  projectionConfigs: ReturnType<typeof extractProjectionLineConfigs>
+): [number, number] {
+  if (xDomain) {
+    return [xDomain[0].getTime(), xDomain[1].getTime()];
+  }
+  const [min, max] = extent(plotData, (d) => xAccessor(d).getTime());
+  const minTime = min ?? 0;
+  return [minTime, mergeProjectionXDomainMax(max ?? minTime, projectionConfigs)];
+}
+
+/** Extra clip width so composed bars at the edges are not cut off mid-bar during the reveal. */
+function computeComposedBarClipPadding({
+  composedBarDataKeys,
+  composedBarGap,
+  composedStacked,
+  ...layout
+}: {
+  columnWidth: number;
+  composedBarDataKeys?: string[];
+  composedBarGap?: number;
+  composedBarSize?: number;
+  composedMaxBarSize?: number;
+  composedStacked?: boolean;
+  dataLength: number;
+  innerWidth: number;
+}): number {
+  if (!composedBarDataKeys?.length) {
+    return 0;
+  }
+  const seriesCount = composedBarDataKeys.length;
+  const barWidth = computeSeriesBarWidth({ ...layout, composedBarGap, seriesCount, stacked: composedStacked });
+  return computeSeriesBarRevealClipPadding({ barWidth, gap: composedBarGap, seriesCount, stacked: composedStacked });
+}
+
+/** Shared clip that grows the series in on reveal and wipes them out on conceal (ready → loading). */
+function ShellRevealClip({
+  animationDuration,
+  chartPhase,
+  concealEpoch,
+  enterTransition,
+  onConcealComplete,
+  revealEpoch,
+  ...clipProps
+}: {
+  animationDuration: number;
+  chartPhase: ChartPhase;
+  clipPathId: string;
+  concealEpoch: number;
+  enterTransition?: Transition;
+  height: number;
+  onConcealComplete: () => void;
+  padding: number;
+  revealEpoch: number;
+  targetWidth: number;
+}) {
+  const concealing = chartPhase === "exitingReady" && animationDuration > 0;
+  return (
+    <ChartRevealClip
+      {...clipProps}
+      animating={chartPhase === "revealing" || concealing}
+      enterTransition={
+        enterTransition ??
+        ({ ...DEFAULT_CHART_ENTER_TRANSITION, duration: animationDuration / 1000 } satisfies Transition)
+      }
+      mode={concealing ? "conceal" : "reveal"}
+      onComplete={concealing ? onConcealComplete : undefined}
+      revealEpoch={concealing ? concealEpoch : revealEpoch}
+    />
+  );
+}

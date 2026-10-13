@@ -1,12 +1,13 @@
 "use client";
 
-import { motion, useSpring } from "framer-motion";
+import { m, useSpring } from "framer-motion";
 import type { RefObject } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../../utils/classname";
-import { type SpringConfig, useChartConfig } from "../chart-config-context";
-import { chartCssVars } from "../chart-context";
+import type { SpringConfig } from "../chart-config";
+import { useChartConfig } from "../chart-config-context";
+import { chartCssVars } from "../chart-theme";
 
 export interface TooltipBoxProps {
   /** X position in pixels (relative to container) */
@@ -51,14 +52,8 @@ export interface TooltipBoxProps {
 // Inner-only-on-visible so `useSpring` initializes at the cursor's actual x/y
 // instead of (0, 0) on first hover.
 export function TooltipBox(props: TooltipBoxProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const container = props.containerRef.current;
-  if (!(mounted && container)) {
+  if (!container) {
     return null;
   }
   if (!props.visible) {
@@ -189,7 +184,7 @@ function TooltipBoxInner({
   }
 
   return createPortal(
-    <motion.div
+    <m.div
       animate={{ opacity: 1 }}
       className={cn("pointer-events-none absolute z-50", className)}
       exit={{ opacity: 0 }}
@@ -198,7 +193,7 @@ function TooltipBoxInner({
       style={{ left: finalLeft, top: finalTop }}
       transition={{ duration: 0.1 }}
     >
-      <motion.div
+      <m.div
         animate={{ scale: 1, opacity: 1, x: 0 }}
         className={panelClassName}
         initial={{ scale: 0.85, opacity: 0, x: isFlipped ? 20 : -20 }}
@@ -207,8 +202,8 @@ function TooltipBoxInner({
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
         {children}
-      </motion.div>
-    </motion.div>,
+      </m.div>
+    </m.div>,
     container
   );
 }

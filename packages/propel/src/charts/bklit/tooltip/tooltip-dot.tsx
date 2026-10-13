@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useSpring, useTransform } from "framer-motion";
+import { m, useSpring, useTransform } from "framer-motion";
 import { useLayoutEffect } from "react";
-import { type SpringConfig, useChartConfig } from "../chart-config-context";
-import { chartCssVars } from "../chart-context";
+import type { SpringConfig } from "../chart-config";
+import { useChartConfig } from "../chart-config-context";
+import { chartCssVars } from "../chart-theme";
 
 export interface TooltipDotProps {
   x: number;
@@ -66,7 +67,7 @@ function AnimatedRingDot({
   }, [animatedX, animatedY, x, y]);
 
   return (
-    <motion.rect
+    <m.rect
       fill={fill}
       height={side}
       rx={rx}
@@ -153,14 +154,7 @@ export function TooltipDot({
   }
 
   return (
-    <motion.circle
-      cx={animatedX}
-      cy={animatedY}
-      fill={fill}
-      r={size}
-      stroke={stroke}
-      strokeWidth={effectiveStrokeWidth}
-    />
+    <m.circle cx={animatedX} cy={animatedY} fill={fill} r={size} stroke={stroke} strokeWidth={effectiveStrokeWidth} />
   );
 }
 

@@ -1,28 +1,13 @@
 "use client";
 
+import { domAnimation, LazyMotion } from "framer-motion";
 import { ParentSize } from "@visx/responsive";
 import type { Transition } from "framer-motion";
-import {
-  Children,
-  type CSSProperties,
-  isValidElement,
-  type ReactNode,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Children, type CSSProperties, isValidElement, type ReactNode, useMemo, useRef } from "react";
 import { cn } from "../../utils/classname";
 import { Area, type AreaProps } from "./area";
 import type { LineConfig, Margin } from "./chart-context";
-import { ChartLoadingLabel } from "./chart-loading-label";
-import {
-  type ChartPhase,
-  type ChartStatus,
-  DEFAULT_CHART_STATUS,
-  DEFAULT_Y_DOMAIN_TWEEN_MS,
-  resolveRestingChartPhase,
-} from "./chart-phase";
+import { type ChartStatus, DEFAULT_CHART_STATUS, DEFAULT_Y_DOMAIN_TWEEN_MS } from "./chart-phase";
 import { PatternArea } from "./pattern-area";
 import { TimeSeriesChartInner } from "./time-series-chart-shell";
 
@@ -61,8 +46,6 @@ export interface AreaChartProps {
   tweenYDomainOnXDomainChange?: boolean;
   /** Inline container styles (e.g. fixed height for brush strip). */
   style?: CSSProperties;
-  /** Fires when the internal chart phase changes (e.g. OG capture readiness). */
-  onPhaseChange?: (phase: ChartPhase) => void;
   /** Child components (Area, Grid, ChartTooltip, etc.) */
   children: ReactNode;
 }
@@ -122,7 +105,6 @@ interface ChartInnerProps {
   tweenYDomainOnXDomainChange?: boolean;
   children: ReactNode;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  onPhaseChange: (phase: ChartPhase) => void;
 }
 
 function ChartInner({
@@ -144,7 +126,6 @@ function ChartInner({
   tweenYDomainOnXDomainChange,
   children,
   containerRef,
-  onPhaseChange,
 }: ChartInnerProps) {
   const lines = useMemo(() => extractAreaConfigs(children), [children]);
 
@@ -161,7 +142,6 @@ function ChartInner({
       lines={lines}
       loadingLabel={loadingLabel}
       margin={margin}
-      onPhaseChange={onPhaseChange}
       revealSignature={revealSignature}
       tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
       width={width}
@@ -194,62 +174,44 @@ export function AreaChart({
   xDomainSlotCount,
   tweenYDomainOnXDomainChange = false,
   style,
-  onPhaseChange,
   children,
 }: AreaChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const margin = { ...DEFAULT_MARGIN, ...marginProp };
-  const [chartPhase, setChartPhase] = useState<ChartPhase>(() => resolveRestingChartPhase(status));
-  const handlePhaseChange = useCallback(
-    (phase: ChartPhase) => {
-      setChartPhase(phase);
-      onPhaseChange?.(phase);
-    },
-    [onPhaseChange]
-  );
-
-  const showLoadingLabel = Boolean(
-    loadingLabel?.trim() &&
-    (chartPhase === "loading" ||
-      chartPhase === "exiting" ||
-      chartPhase === "gridTweenReady" ||
-      chartPhase === "revealingLoading")
-  );
-
   return (
-    <div
-      className={cn("relative w-full", className)}
-      ref={containerRef}
-      style={{ aspectRatio, touchAction: "none", ...style }}
-    >
-      <ParentSize debounceTime={10}>
-        {({ width, height }) => (
-          <ChartInner
-            animationDuration={animationDuration}
-            animationEasing={animationEasing}
-            chartStatus={status}
-            containerRef={containerRef}
-            data={data}
-            enterTransition={enterTransition}
-            height={height}
-            loadingLabel={loadingLabel}
-            margin={margin}
-            onPhaseChange={handlePhaseChange}
-            revealSignature={revealSignature}
-            tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
-            width={width}
-            xDataKey={xDataKey}
-            xDomain={xDomain}
-            xDomainSlotCount={xDomainSlotCount}
-            yDomainTween={yDomainTween}
-            yDomainTweenDuration={yDomainTweenDuration}
-          >
-            {children}
-          </ChartInner>
-        )}
-      </ParentSize>
-      {showLoadingLabel ? <ChartLoadingLabel exiting={chartPhase !== "loading"} text={loadingLabel} /> : null}
-    </div>
+    <LazyMotion features={domAnimation}>
+      <div
+        className={cn("relative w-full", className)}
+        ref={containerRef}
+        style={{ aspectRatio, touchAction: "none", ...style }}
+      >
+        <ParentSize debounceTime={10}>
+          {({ width, height }) => (
+            <ChartInner
+              animationDuration={animationDuration}
+              animationEasing={animationEasing}
+              chartStatus={status}
+              containerRef={containerRef}
+              data={data}
+              enterTransition={enterTransition}
+              height={height}
+              loadingLabel={loadingLabel}
+              margin={margin}
+              revealSignature={revealSignature}
+              tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
+              width={width}
+              xDataKey={xDataKey}
+              xDomain={xDomain}
+              xDomainSlotCount={xDomainSlotCount}
+              yDomainTween={yDomainTween}
+              yDomainTweenDuration={yDomainTweenDuration}
+            >
+              {children}
+            </ChartInner>
+          )}
+        </ParentSize>
+      </div>
+    </LazyMotion>
   );
 }
 

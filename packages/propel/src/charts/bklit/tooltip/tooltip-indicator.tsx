@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useSpring } from "framer-motion";
+import { m, useSpring } from "framer-motion";
 import { useEffect, useLayoutEffect } from "react";
-import { type SpringConfig, useChartConfig } from "../chart-config-context";
-import { chartCssVars } from "../chart-context";
+import type { SpringConfig } from "../chart-config";
+import { useChartConfig } from "../chart-config-context";
+import { chartCssVars } from "../chart-theme";
 import { type IndicatorFadeEdges, indicatorFadeGradientStops, resolveVerticalFadeSides } from "../indicator-fade";
 
 export type IndicatorWidth =
@@ -123,7 +124,7 @@ function TooltipIndicatorInner({
   if (dashed) {
     const strokeWidth = Math.max(1, pixelWidth);
     return animate ? (
-      <motion.line
+      <m.line
         stroke={indicatorFill}
         strokeDasharray={strokeDasharray}
         strokeWidth={strokeWidth}
@@ -147,7 +148,7 @@ function TooltipIndicatorInner({
 
   if (!fadeSides.any) {
     return animate ? (
-      <motion.rect fill={indicatorFill} height={height} width={pixelWidth} x={animatedX} y={0} />
+      <m.rect fill={indicatorFill} height={height} width={pixelWidth} x={animatedX} y={0} />
     ) : (
       <rect fill={indicatorFill} height={height} width={pixelWidth} x={rectX} y={0} />
     );
@@ -169,7 +170,7 @@ function TooltipIndicatorInner({
         </linearGradient>
       </defs>
       {animate ? (
-        <motion.rect fill={`url(#${gradientId})`} height={height} width={pixelWidth} x={animatedX} y={0} />
+        <m.rect fill={`url(#${gradientId})`} height={height} width={pixelWidth} x={animatedX} y={0} />
       ) : (
         <rect fill={`url(#${gradientId})`} height={height} width={pixelWidth} x={rectX} y={0} />
       )}

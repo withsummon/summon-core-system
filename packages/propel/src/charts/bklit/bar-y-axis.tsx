@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { memo, useEffect, useMemo, useState } from "react";
+import { m } from "framer-motion";
+import { memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../utils/classname";
 import { useChart, useChartStable } from "./chart-context";
@@ -29,7 +29,7 @@ function BarYAxisLabel({ label, y, bandHeight, isHovered }: BarYAxisLabelProps) 
         height: bandHeight,
       }}
     >
-      <motion.span
+      <m.span
         animate={{
           opacity: isHovered ? 1 : 0.7,
           color: isHovered ? "var(--txt-primary)" : "var(--chart-label, var(--txt-tertiary))",
@@ -43,21 +43,15 @@ function BarYAxisLabel({ label, y, bandHeight, isHovered }: BarYAxisLabelProps) 
         transition={{ duration: 0.15 }}
       >
         {label}
-      </motion.span>
+      </m.span>
     </div>
   );
 }
 
 export function BarYAxis(props: BarYAxisProps) {
   const { containerRef, barScale } = useChartStable();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!container) {
     return null;
   }
 

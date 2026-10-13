@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useSpring } from "framer-motion";
+import { m, useSpring } from "framer-motion";
 import { memo, useLayoutEffect, useMemo, useRef } from "react";
 
 const TICKER_ITEM_HEIGHT = 24;
@@ -92,24 +92,24 @@ const DateTickerInner = memo(function DateTickerInner({ currentIndex, labels }: 
         <div className="flex items-center justify-center gap-1">
           {/* Month stack */}
           <div className="relative h-6 overflow-hidden">
-            <motion.div className="flex flex-col" style={{ y: monthY }}>
+            <m.div className="flex flex-col" style={{ y: monthY }}>
               {monthSegments.map((segment) => (
                 <div className="flex h-6 shrink-0 items-center justify-center" key={segment.key}>
                   <span className="text-sm font-medium whitespace-nowrap">{segment.month}</span>
                 </div>
               ))}
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Day stack */}
           <div className="relative h-6 overflow-hidden">
-            <motion.div className="flex flex-col" style={{ y: dayY }}>
+            <m.div className="flex flex-col" style={{ y: dayY }}>
               {parsedLabels.map((label) => (
                 <div className="flex h-6 shrink-0 items-center justify-center" key={label.key}>
                   <span className="text-sm font-medium whitespace-nowrap">{label.day}</span>
                 </div>
               ))}
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </div>

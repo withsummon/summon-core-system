@@ -2,7 +2,7 @@
 
 import { localPoint } from "@visx/event";
 import type { scaleLinear, scaleTime } from "@visx/scale";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { LineConfig, Margin, TooltipData } from "./chart-context";
 import { useScheduledTooltip } from "./use-scheduled-tooltip";
 import { normalizeYAxisId } from "./y-axis-scales";
@@ -64,7 +64,6 @@ export function useChartInteraction({
 
   const isDraggingRef = useRef(false);
   const dragStartXRef = useRef<number>(0);
-  const lastHoveredXRef = useRef<number | null>(null);
 
   const resolveTooltipFromX = useCallback(
     (pixelX: number): TooltipData | null => {
@@ -174,7 +173,6 @@ export function useChartInteraction({
         return;
       }
 
-      lastHoveredXRef.current = chartX;
       const tooltip = resolveTooltipFromX(chartX);
       if (tooltip) {
         scheduleTooltip(tooltip);
@@ -184,7 +182,6 @@ export function useChartInteraction({
   );
 
   const handleMouseLeave = useCallback(() => {
-    lastHoveredXRef.current = null;
     clearTooltip();
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
@@ -221,7 +218,6 @@ export function useChartInteraction({
         if (chartX === null) {
           return;
         }
-        lastHoveredXRef.current = chartX;
         const tooltip = resolveTooltipFromX(chartX);
         if (tooltip) {
           scheduleTooltip(tooltip);
@@ -257,7 +253,6 @@ export function useChartInteraction({
         if (chartX === null) {
           return;
         }
-        lastHoveredXRef.current = chartX;
         const tooltip = resolveTooltipFromX(chartX);
         if (tooltip) {
           scheduleTooltip(tooltip);
@@ -292,18 +287,16 @@ export function useChartInteraction({
     setSelection(null);
   }, []);
 
-  // Re-anchor tooltip/crosshair when x-scale or visible data changes (e.g. brush zoom commit).
-  useEffect(() => {
-    if (!canInteract || lastHoveredXRef.current === null) {
-      return;
+  // Re-anchor the tooltip while rendering when the scales or visible data change (e.g. brush zoom
+  // commit), so the crosshair never paints against the old scale.
+  const [anchorResolver, setAnchorResolver] = useState(() => resolveTooltipFromX);
+  if (anchorResolver !== resolveTooltipFromX) {
+    setAnchorResolver(() => resolveTooltipFromX);
+    if (canInteract && tooltipData) {
+      resetTooltipDedupe();
+      setTooltipData(resolveTooltipFromX(tooltipData.x));
     }
-    const tooltip = resolveTooltipFromX(lastHoveredXRef.current);
-    if (tooltip) {
-      scheduleTooltip(tooltip, `${tooltip.index}:${Math.round(tooltip.x)}`);
-      return;
-    }
-    clearTooltip();
-  }, [canInteract, clearTooltip, resolveTooltipFromX, scheduleTooltip]);
+  }
 
   const interactionHandlers = canInteract
     ? {

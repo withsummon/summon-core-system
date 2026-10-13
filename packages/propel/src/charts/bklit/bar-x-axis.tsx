@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { memo, useEffect, useMemo, useState } from "react";
+import { m } from "framer-motion";
+import { memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../utils/classname";
 import { useChart, useChartStable } from "./chart-context";
@@ -49,28 +49,22 @@ function BarXAxisLabel({ label, x, crosshairX, isHovering, tickerHalfWidth }: Ba
         justifyContent: "center",
       }}
     >
-      <motion.span
+      <m.span
         animate={{ opacity }}
         className={cn("text-xs whitespace-nowrap text-chart-label")}
         initial={{ opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeInOut" }}
       >
         {label}
-      </motion.span>
+      </m.span>
     </div>
   );
 }
 
 export function BarXAxis(props: BarXAxisProps) {
   const { containerRef, barScale } = useChartStable();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!container) {
     return null;
   }
 

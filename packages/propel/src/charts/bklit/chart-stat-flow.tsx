@@ -1,6 +1,7 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
+import { defaultChartStatFlowFormat } from "./chart-formatters";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../utils/classname";
 
@@ -19,11 +20,6 @@ export interface ChartStatFlowFormat {
   unit?: string;
   unitDisplay?: "short" | "long" | "narrow";
 }
-
-export const defaultChartStatFlowFormat: ChartStatFlowFormat = {
-  notation: "standard",
-  maximumFractionDigits: 0,
-};
 
 function formatStatValue(value: number, formatOptions: ChartStatFlowFormat, prefix?: string, suffix?: string): string {
   const formatted = new Intl.NumberFormat(undefined, formatOptions).format(value);

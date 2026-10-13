@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { radarCssVars, useRadarStable } from "./radar-context";
+import { m } from "framer-motion";
+import { useRadarStable } from "./radar-context";
+import { radarCssVars } from "./chart-theme";
 
 export interface RadarAxisProps {
   /** Axis line stroke color. Default: var(--border-subtle) */
@@ -26,7 +27,7 @@ export function RadarAxis({ stroke = radarCssVars.border, strokeOpacity = 0.6, c
         const targetY = radius * Math.sin(angle);
 
         return (
-          <motion.line
+          <m.line
             animate={{ x2: targetX, y2: targetY }}
             initial={animate ? { x2: 0, y2: 0 } : { x2: targetX, y2: targetY }}
             key={`axis-${metric.key}`}

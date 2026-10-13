@@ -9,12 +9,15 @@ export function isChartClipPassthrough(type: unknown): boolean {
   );
 }
 
-/** Unwrap visibility wrappers so `Grid` / axes stay outside the series clip. */
+/**
+ * Unwrap visibility wrappers so `Grid` / axes stay outside the series clip. The unwrapped
+ * element keeps the wrapper's key, since it renders in the wrapper's place in a layer list.
+ */
 export function resolveChartChildElement(child: ReactElement): ReactElement {
   if (isChartClipPassthrough(child.type)) {
     const inner = (child.props as { children?: unknown }).children;
     if (isValidElement(inner)) {
-      return resolveChartChildElement(inner);
+      return resolveChartChildElement(inner.key == null ? cloneElement(inner, { key: child.key }) : inner);
     }
   }
   return child;
@@ -23,20 +26,21 @@ export function resolveChartChildElement(child: ReactElement): ReactElement {
 /** Walk chart children, flattening React fragments (studio often groups layers in `<>...</>`). */
 export function forEachChartChild(children: ReactNode, callback: (child: ReactElement, index: number) => void) {
   let index = 0;
-  const visit = (nodes: ReactNode) => {
-    Children.forEach(nodes, (child) => {
+  // `toArray` keys each child; a fragment's key prefixes its children's so flattened keys stay unique.
+  const visit = (nodes: ReactNode, keyPrefix: string) => {
+    for (const child of Children.toArray(nodes)) {
       if (!isValidElement(child)) {
-        return;
+        continue;
       }
       if (child.type === Fragment) {
-        visit((child.props as { children?: ReactNode }).children);
-        return;
+        visit((child.props as { children?: ReactNode }).children, `${keyPrefix}${child.key}/`);
+        continue;
       }
-      callback(child, index);
+      callback(keyPrefix ? cloneElement(child, { key: `${keyPrefix}${child.key}` }) : child, index);
       index += 1;
-    });
+    }
   };
-  visit(children);
+  visit(children, "");
 }
 
 const CLIP_EXCLUDED_COMPONENT_NAMES = new Set([
@@ -82,9 +86,4 @@ export function isClipExcludedComponent(child: ReactElement): boolean {
   const childType = child.type as { displayName?: string; name?: string };
   const componentName = typeof child.type === "function" ? childType.displayName || childType.name || "" : "";
   return CLIP_EXCLUDED_COMPONENT_NAMES.has(componentName);
-}
-
-/** SVG layer lists from chart shells need stable keys when rendered as arrays. */
-export function renderKeyedChartLayers(children: ReactElement[]) {
-  return children.map((child, index) => cloneElement(child, { key: child.key ?? `chart-layer-${index}` }));
 }

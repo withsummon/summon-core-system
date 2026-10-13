@@ -1,7 +1,7 @@
 "use client";
 
 import type { Variants } from "framer-motion";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { memo } from "react";
 import { DEFAULT_CHART_ENTER_TRANSITION } from "./animation";
 
@@ -152,7 +152,7 @@ export function SeriesPointMarker({
 
   return (
     <g transform={`translate(${cx}, ${cy})`}>
-      <motion.g animate="visible" initial="hidden" key={`${dataKey}-${index}-${revealEpoch}`} variants={variants}>
+      <m.g animate="visible" initial="hidden" key={`${dataKey}-${index}-${revealEpoch}`} variants={variants}>
         <MarkerCircles
           fill={fill}
           outlineColor={outlineColor}
@@ -162,21 +162,7 @@ export function SeriesPointMarker({
           stroke={stroke}
           strokeWidth={strokeWidth}
         />
-      </motion.g>
+      </m.g>
     </g>
   );
-}
-
-export function getSeriesMarkerVisualExtent(
-  style: Pick<SeriesPointMarkerStyle, "radius" | "strokeWidth" | "ringGap" | "outlineWidth" | "showActiveHighlight">
-): number {
-  const radius = style.radius ?? 5;
-  const strokeWidth = style.strokeWidth ?? 2;
-  const ringGap = style.ringGap ?? 2;
-  const outlineWidth = style.outlineWidth ?? 0;
-  const showActiveHighlight = style.showActiveHighlight ?? true;
-  const ring = strokeWidth > 0 ? ringGap + strokeWidth : 0;
-  const outline = outlineWidth > 0 ? outlineWidth : 0;
-  const highlightPad = showActiveHighlight ? radius * 0.35 : 0;
-  return radius + ring + outline + highlightPad + 2;
 }

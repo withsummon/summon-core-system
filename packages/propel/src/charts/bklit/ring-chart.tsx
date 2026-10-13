@@ -1,5 +1,6 @@
 "use client";
 
+import { domAnimation, LazyMotion } from "framer-motion";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
 import { arc as arcGenerator } from "@visx/shape";
@@ -16,7 +17,8 @@ import {
   useState,
 } from "react";
 import { cn } from "../../utils/classname";
-import { defaultRingColors, type RingContextValue, type RingData, RingProvider, ringCssVars } from "./ring-context";
+import { type RingContextValue, type RingData, RingProvider } from "./ring-context";
+import { defaultRingColors, ringCssVars } from "./chart-theme";
 
 function generateRingArcPath(
   innerRadius: number,
@@ -410,30 +412,32 @@ export function RingChart({
 
   // Otherwise use ParentSize for responsive sizing
   return (
-    <div className={cn("relative aspect-square w-full", className)} ref={containerRef}>
-      <ParentSize debounceTime={10}>
-        {({ width, height }) => (
-          <RingChartInner
-            baseInnerRadius={baseInnerRadius}
-            containerRef={containerRef}
-            data={data}
-            endAngle={endAngle}
-            enterStaggerScale={enterStaggerScale}
-            enterTransition={enterTransition}
-            geometryScrubbing={geometryScrubbing}
-            height={height}
-            hoveredIndexProp={hoveredIndex}
-            onHoverChange={onHoverChange}
-            ringGap={ringGap}
-            startAngle={startAngle}
-            strokeWidth={strokeWidth}
-            width={width}
-          >
-            {children}
-          </RingChartInner>
-        )}
-      </ParentSize>
-    </div>
+    <LazyMotion features={domAnimation}>
+      <div className={cn("relative aspect-square w-full", className)} ref={containerRef}>
+        <ParentSize debounceTime={10}>
+          {({ width, height }) => (
+            <RingChartInner
+              baseInnerRadius={baseInnerRadius}
+              containerRef={containerRef}
+              data={data}
+              endAngle={endAngle}
+              enterStaggerScale={enterStaggerScale}
+              enterTransition={enterTransition}
+              geometryScrubbing={geometryScrubbing}
+              height={height}
+              hoveredIndexProp={hoveredIndex}
+              onHoverChange={onHoverChange}
+              ringGap={ringGap}
+              startAngle={startAngle}
+              strokeWidth={strokeWidth}
+              width={width}
+            >
+              {children}
+            </RingChartInner>
+          )}
+        </ParentSize>
+      </div>
+    </LazyMotion>
   );
 }
 

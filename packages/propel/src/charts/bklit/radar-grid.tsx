@@ -2,9 +2,10 @@
 
 import { scaleLinear } from "@visx/scale";
 import { LineRadial } from "@visx/shape";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { transitionWithDelay } from "./motion-utils";
-import { radarCssVars, useRadarStable } from "./radar-context";
+import { useRadarStable } from "./radar-context";
+import { radarCssVars } from "./chart-theme";
 
 export interface RadarGridProps {
   /** Show level value labels. Default: true */
@@ -49,7 +50,7 @@ export function RadarGrid({
       {[...new Array(levels)].map((_, i) => {
         const targetRadius = ((i + 1) * radius) / levels;
         return (
-          <motion.g
+          <m.g
             animate={{ scale: 1, opacity: 1 }}
             initial={animate ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             // biome-ignore lint/suspicious/noArrayIndexKey: Static grid levels
@@ -76,14 +77,14 @@ export function RadarGrid({
               strokeOpacity={strokeOpacity}
               strokeWidth={1}
             />
-          </motion.g>
+          </m.g>
         );
       })}
 
       {/* Grid level labels */}
       {showLabels &&
         [...new Array(levels)].map((_, i) => (
-          <motion.g
+          <m.g
             animate={{ opacity: 1 }}
             initial={animate ? { opacity: 0 } : { opacity: 1 }}
             // biome-ignore lint/suspicious/noArrayIndexKey: Static grid levels
@@ -102,7 +103,7 @@ export function RadarGrid({
             >
               {((i + 1) * 100) / levels}
             </text>
-          </motion.g>
+          </m.g>
         ))}
     </g>
   );

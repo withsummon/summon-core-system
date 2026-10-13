@@ -1,9 +1,10 @@
 "use client";
 
 import type { MotionValue } from "framer-motion";
-import { motion, useTransform } from "framer-motion";
+import { m, useTransform } from "framer-motion";
 import { memo, useMemo } from "react";
-import { radarCssVars, useRadarHover, useRadarStable } from "./radar-context";
+import { useRadarHover, useRadarStable } from "./radar-context";
+import { radarCssVars } from "./chart-theme";
 import { useEnterComplete } from "./use-enter-complete";
 import { useMountProgress } from "./use-mount-progress";
 
@@ -66,7 +67,7 @@ const RadarPoint = memo(function RadarPoint({
   }
 
   return (
-    <motion.circle
+    <m.circle
       cx={cx}
       cy={cy}
       fill={color}
@@ -81,7 +82,59 @@ const RadarPoint = memo(function RadarPoint({
   );
 });
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: radar area enter/hover branches mirror pie slice
+/** The filled polygon: animated from the center while entering, static once it lands. */
+function RadarAreaShape({
+  enterComplete,
+  staticPath,
+  pathD,
+  color,
+  isHovered,
+  showStroke,
+  showGlow,
+}: {
+  enterComplete: boolean;
+  staticPath: string;
+  pathD: MotionValue<string>;
+  color: string;
+  isHovered: boolean;
+  showStroke: boolean;
+  showGlow: boolean;
+}) {
+  const fillOpacity = isHovered ? 0.35 : 0.15;
+  const stroke = showStroke ? color : "none";
+  const strokeWidth = showStroke ? getStrokeWidth(isHovered) : 0;
+  const style = { filter: showGlow && isHovered ? `drop-shadow(0 0 12px ${color})` : "none" };
+
+  if (enterComplete) {
+    return (
+      <path
+        d={staticPath}
+        fill={color}
+        fillOpacity={fillOpacity}
+        stroke={stroke}
+        strokeLinejoin="round"
+        strokeWidth={strokeWidth}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <m.path
+      animate={{ fillOpacity, strokeWidth }}
+      d={pathD}
+      fill={color}
+      stroke={stroke}
+      strokeLinejoin="round"
+      style={style}
+      transition={{
+        fillOpacity: { duration: 0.2 },
+        strokeWidth: { duration: 0.2 },
+      }}
+    />
+  );
+}
+
 export const RadarArea = memo(function RadarArea({
   index,
   color: colorProp,
@@ -142,7 +195,7 @@ export const RadarArea = memo(function RadarArea({
   const isOtherHovered = hoveredIndex !== null && hoveredIndex !== index;
 
   return (
-    <motion.g
+    <m.g
       animate={{
         opacity: isOtherHovered ? 0.3 : 1,
         scale: isHovered ? 1.05 : 1,
@@ -157,37 +210,15 @@ export const RadarArea = memo(function RadarArea({
         scale: { type: "spring", stiffness: 400, damping: 25 },
       }}
     >
-      {enterComplete ? (
-        <path
-          d={staticPath}
-          fill={color}
-          fillOpacity={isHovered ? 0.35 : 0.15}
-          stroke={showStroke ? color : "none"}
-          strokeLinejoin="round"
-          strokeWidth={showStroke ? getStrokeWidth(isHovered) : 0}
-          style={{
-            filter: showGlow && isHovered ? `drop-shadow(0 0 12px ${color})` : "none",
-          }}
-        />
-      ) : (
-        <motion.path
-          animate={{
-            fillOpacity: isHovered ? 0.35 : 0.15,
-            strokeWidth: showStroke ? getStrokeWidth(isHovered) : 0,
-          }}
-          d={pathD}
-          fill={color}
-          stroke={showStroke ? color : "none"}
-          strokeLinejoin="round"
-          style={{
-            filter: showGlow && isHovered ? `drop-shadow(0 0 12px ${color})` : "none",
-          }}
-          transition={{
-            fillOpacity: { duration: 0.2 },
-            strokeWidth: { duration: 0.2 },
-          }}
-        />
-      )}
+      <RadarAreaShape
+        color={color}
+        enterComplete={enterComplete}
+        isHovered={isHovered}
+        pathD={pathD}
+        showGlow={showGlow}
+        showStroke={showStroke}
+        staticPath={staticPath}
+      />
 
       {showPoints &&
         metrics.map((metric, i) => {
@@ -207,7 +238,7 @@ export const RadarArea = memo(function RadarArea({
             />
           );
         })}
-    </motion.g>
+    </m.g>
   );
 });
 

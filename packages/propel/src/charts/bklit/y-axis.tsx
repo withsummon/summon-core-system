@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useChartStable, useYScale } from "./chart-context";
 import { DEFAULT_Y_DOMAIN_TWEEN_MS } from "./chart-phase";
@@ -65,14 +65,8 @@ function resolveTickLabelColor(
 
 export function YAxis(props: YAxisProps) {
   const { containerRef } = useChartStable();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!container) {
     return null;
   }
 

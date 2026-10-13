@@ -2,9 +2,10 @@
 
 import { scaleLinear } from "@visx/scale";
 import { AreaClosed, LinePath } from "@visx/shape";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { chartCssVars, useChartStable } from "./chart-context";
+import { useChartStable } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
 import { LINE_LOADING_PULSE_EASE, LOADING_LABEL_EXIT_S } from "./line-loading-timing";
 
 /**
@@ -54,7 +55,7 @@ function hashFract(n: number): number {
 }
 
 /** Deterministic heights (percentages of the available height) for a seed. */
-export function getSkeletonHeights(count: number, seed = 0, min = HEIGHT_MIN_PCT, max = HEIGHT_MAX_PCT): number[] {
+function getSkeletonHeights(count: number, seed = 0, min = HEIGHT_MIN_PCT, max = HEIGHT_MAX_PCT): number[] {
   const range = max - min;
   return Array.from({ length: count }, (_, i) => min + Math.floor(hashFract((i + 1) * 12.9898 + seed) * range));
 }
@@ -125,7 +126,7 @@ function LoadingSweepMask({
         x="0"
         y="0"
       >
-        <motion.rect
+        <m.rect
           animate={{ x: SWEEP_END_X }}
           fill={`url(#${chartId}-grad)`}
           height="1"
@@ -285,7 +286,7 @@ export function LineLoadingSweep({
   return (
     <>
       {defs}
-      <motion.g
+      <m.g
         animate={{ opacity: mode === "exit" ? 0 : 1 }}
         initial={{ opacity: mode === "exit" ? 1 : 0 }}
         mask={maskUrl}
@@ -296,7 +297,7 @@ export function LineLoadingSweep({
         }}
       >
         {silhouette}
-      </motion.g>
+      </m.g>
     </>
   );
 }

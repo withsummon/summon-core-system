@@ -3,31 +3,6 @@
 import type { Transition } from "framer-motion";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
-// CSS variable references for radar chart theming
-export const radarCssVars = {
-  background: "var(--chart-background)",
-  foreground: "var(--chart-foreground)",
-  foregroundMuted: "var(--chart-foreground-muted)",
-  label: "var(--chart-label, oklch(0.65 0.01 260))",
-  grid: "var(--chart-grid)",
-  border: "var(--border-subtle)",
-  // Default radar colors from chart palette
-  area1: "var(--chart-1)",
-  area2: "var(--chart-2)",
-  area3: "var(--chart-3)",
-  area4: "var(--chart-4)",
-  area5: "var(--chart-5)",
-};
-
-// Default radar color palette
-export const defaultRadarColors = [
-  radarCssVars.area1,
-  radarCssVars.area2,
-  radarCssVars.area3,
-  radarCssVars.area4,
-  radarCssVars.area5,
-];
-
 export interface RadarMetric {
   /** Unique key for the metric */
   key: string;
@@ -156,5 +131,3 @@ export function useRadarHover(): RadarHoverContextValue {
 export function useRadar(): RadarContextValue {
   return { ...useRadarStable(), ...useRadarHover() };
 }
-
-export default RadarStableContext;

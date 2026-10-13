@@ -1,9 +1,10 @@
 "use client";
 
 import { arc as arcGenerator } from "@visx/shape";
-import { type MotionValue, motion, useTransform } from "framer-motion";
+import { type MotionValue, m, useTransform } from "framer-motion";
 import { memo, useCallback } from "react";
-import { ringCssVars, useRingHover, useRingStable } from "./ring-context";
+import { useRingHover, useRingStable } from "./ring-context";
+import { ringCssVars } from "./chart-theme";
 import { useEnterComplete } from "./use-enter-complete";
 import { useMountProgress } from "./use-mount-progress";
 
@@ -59,7 +60,7 @@ function RingProgressPath({
     }
     return <path d={progressPath} fill={color} />;
   }
-  return <motion.path d={animatedProgressPath} fill={color} />;
+  return <m.path d={animatedProgressPath} fill={color} />;
 }
 
 export const Ring = memo(function Ring({
@@ -117,14 +118,13 @@ export const Ring = memo(function Ring({
   const cornerRadius = lineCap === "round" ? (outerRadius - innerRadius) / 2 : 0;
   const bgPath = generateArcPath(innerRadius, outerRadius, startAngle, endAngle, cornerRadius);
   const progressEndAngle = startAngle + arcRange * progress;
-  const progressPath =
-    progressEndAngle <= startAngle + 0.01
-      ? ""
-      : generateArcPath(innerRadius, outerRadius, startAngle, progressEndAngle, cornerRadius);
+  const hasProgress = progressEndAngle > startAngle + 0.01;
+  const progressPath = hasProgress
+    ? generateArcPath(innerRadius, outerRadius, startAngle, progressEndAngle, cornerRadius)
+    : "";
 
   const hoverScale = ringHoverScale(isHovered, isPushedOut);
   const layerOpacity = isFaded ? 0.35 : 1;
-  const enterDone = !animate || (expandComplete && progressComplete);
 
   const groupStyle = {
     cursor: "pointer" as const,
@@ -132,27 +132,9 @@ export const Ring = memo(function Ring({
     filter: showGlow && isHovered ? `drop-shadow(0 0 12px ${color})` : "none",
   };
 
-  if (enterDone) {
+  if (animate && !expandComplete) {
     return (
-      <motion.g
-        animate={{ scale: hoverScale, opacity: layerOpacity }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={groupStyle}
-        transition={{
-          scale: { type: "spring", stiffness: 400, damping: 25 },
-          opacity: { duration: 0.15 },
-        }}
-      >
-        <path d={bgPath} fill={ringCssVars.ringBackground} />
-        {progressPath ? <path d={progressPath} fill={color} /> : null}
-      </motion.g>
-    );
-  }
-
-  if (!expandComplete) {
-    return (
-      <motion.g
+      <m.g
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         style={{
@@ -162,12 +144,12 @@ export const Ring = memo(function Ring({
         }}
       >
         <path d={bgPath} fill={ringCssVars.ringBackground} />
-      </motion.g>
+      </m.g>
     );
   }
 
   return (
-    <motion.g
+    <m.g
       animate={{ scale: hoverScale, opacity: layerOpacity }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -181,10 +163,10 @@ export const Ring = memo(function Ring({
       <RingProgressPath
         animatedProgressPath={animatedProgressPath}
         color={color}
-        progressComplete={progressComplete}
+        progressComplete={!animate || progressComplete}
         progressPath={progressPath}
       />
-    </motion.g>
+    </m.g>
   );
 });
 

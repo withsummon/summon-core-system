@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { cn } from "../../utils/classname";
 import { ShimmeringText } from "./shimmering-text";
 import { LINE_LOADING_PULSE_EASE, LOADING_LABEL_EXIT_S, LOADING_LABEL_EXIT_Y_PX } from "./line-loading-timing";
@@ -19,7 +19,7 @@ export function ChartLoadingLabel({ text = "Loading", className, exiting = false
   }
 
   return (
-    <motion.div
+    <m.div
       animate={{
         y: exiting ? LOADING_LABEL_EXIT_Y_PX : 0,
         opacity: exiting ? 0 : 1,
@@ -38,7 +38,7 @@ export function ChartLoadingLabel({ text = "Loading", className, exiting = false
         className="text-sm font-medium tracking-wide [--color:var(--txt-tertiary)] [--shimmering-color:var(--txt-primary)]"
         text={text}
       />
-    </motion.div>
+    </m.div>
   );
 }
 

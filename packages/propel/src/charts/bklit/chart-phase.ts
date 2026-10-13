@@ -32,6 +32,11 @@ export function resolveRestingChartPhase(status: ChartStatus): ChartPhase {
   return status === "loading" ? "loading" : "ready";
 }
 
+/** Phases that draw the real series (fully or mid reveal / conceal). */
+export function isSeriesVisiblePhase(phase: ChartPhase): boolean {
+  return phase === "revealing" || phase === "ready" || phase === "exitingReady";
+}
+
 export function isChartInteractionPhase(phase: ChartPhase): boolean {
   return phase === "ready";
 }

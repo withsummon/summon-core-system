@@ -7,19 +7,20 @@ import { AreaClosed, LinePath } from "@visx/shape";
 // biome-ignore lint/suspicious/noExplicitAny: d3 curve factory type
 type CurveFactory = any;
 
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef } from "react";
 import { AreaGradientDefs } from "./area-gradient-defs";
-import { chartCssVars, useChartStable, useYScale } from "./chart-context";
-import type { ChartPhase, LoadingStyle } from "./chart-phase";
+import { useChartStable, useYScale } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
+import { type LoadingStyle, isSeriesVisiblePhase } from "./chart-phase";
 import { type FadeEdges, resolveFadeSides } from "./fade-edges";
-import { type LineLoadingPulseMode, LineLoadingPulseStroke, resolveLineLoadingPulseMode } from "./line-loading-pulse";
-import { LINE_LOADING_LOOP_PAUSE_MS } from "./line-loading-timing";
-import { LineLoadingSweep } from "./loading-sweep";
+import type { LineLoadingPulseMode } from "./line-loading-pulse";
 import { resolveDashTailBounds, usePathStrokeMetrics } from "./path-stroke-utils";
 import { SeriesDashTailOverlay } from "./series-dash-tail-overlay";
 import { SeriesHighlightLayer } from "./series-highlight-layer";
 import { SeriesHoverDim } from "./series-hover-dim";
+import { SeriesLoadingOverlays, useSeriesLoadingPulse } from "./series-loading";
 import { SeriesMarkers } from "./series-markers";
+import { resolveMarkerPaint } from "./series-marker-geometry";
 import type { SeriesPointMarkerStyle } from "./series-point-marker";
 
 export interface AreaProps {
@@ -88,38 +89,6 @@ export interface AreaProps {
   loadingStyle?: LoadingStyle;
 }
 
-function useAreaLoadingPulseState(
-  chartPhase: ChartPhase,
-  loading: boolean | undefined,
-  loadingPulseMode: LineLoadingPulseMode | undefined,
-  notifyLoadingPulseComplete?: () => void
-) {
-  const phasePulseMode = resolveLineLoadingPulseMode(chartPhase);
-  const pulseMode = loading === false ? null : (loadingPulseMode ?? (loading === true ? "loop" : phasePulseMode));
-  const showLoadingPulse = pulseMode != null;
-  const showSeriesContent = chartPhase === "revealing" || chartPhase === "ready" || chartPhase === "exitingReady";
-  const [pulseEpoch, setPulseEpoch] = useState(0);
-
-  const handleLoadingPulseComplete = useCallback(() => {
-    if (pulseMode === "loop") {
-      window.setTimeout(() => {
-        setPulseEpoch((epoch) => epoch + 1);
-      }, LINE_LOADING_LOOP_PAUSE_MS);
-      return;
-    }
-    notifyLoadingPulseComplete?.();
-  }, [notifyLoadingPulseComplete, pulseMode]);
-
-  return {
-    handleLoadingPulseComplete,
-    pulseMode,
-    pulseEpoch,
-    showLoadingPulse,
-    showSeriesContent,
-  };
-}
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mirrors Line series layout (fill, stroke, dash, markers, pulse)
 export function Area({
   dataKey,
   yAxisId,
@@ -162,8 +131,9 @@ export function Area({
     notifyLoadingPulseComplete,
   } = useChartStable();
   const yScale = useYScale(yAxisId);
-  const { handleLoadingPulseComplete, pulseMode, pulseEpoch, showLoadingPulse, showSeriesContent } =
-    useAreaLoadingPulseState(chartPhase, loading, loadingPulseMode, notifyLoadingPulseComplete);
+  const showSeriesContent = isSeriesVisiblePhase(chartPhase);
+  const pulse = useSeriesLoadingPulse({ chartPhase, loading, loadingPulseMode, notifyLoadingPulseComplete });
+  const { showLoadingPulse } = pulse;
 
   const seriesIndex = useMemo(() => {
     const index = lines.findIndex((line) => line.dataKey === dataKey);
@@ -187,12 +157,14 @@ export function Area({
   const edgeMaskId = `area-edge-mask-${dataKey}-${uniqueId}`;
   const edgeGradientId = `${edgeMaskId}-gradient`;
 
-  const isPatternFill = fill.startsWith("url(");
-  const showAreaFill = isPatternFill || fillOpacity > 0;
-  const areaFill = isPatternFill ? fill : `url(#${gradientId})`;
-
-  // Resolved stroke color (defaults to fill; pattern URLs need a real color)
-  const resolvedStroke = stroke || (isPatternFill ? chartCssVars.linePrimary : fill);
+  const { isPatternFill, areaFill, resolvedStroke, strokePaint, useViewportEdgeFade } = resolveAreaPaint({
+    fill,
+    stroke,
+    fadeEdges,
+    gradientId,
+    strokeGradientId,
+  });
+  const showAreaFill = showSeriesContent && (isPatternFill || fillOpacity > 0);
 
   const getY = useCallback(
     (d: Record<string, unknown>) => {
@@ -202,26 +174,11 @@ export function Area({
     [dataKey, yScale]
   );
 
-  const hasDashTail = resolveDashTailBounds(dashFromIndex, data.length);
-  // The stroke gradient is only emitted when at least one edge fades, so fall
-  // back to the resolved solid color otherwise — avoids an invalid url(#...).
-  const fadeSides = resolveFadeSides(fadeEdges);
-  const useViewportEdgeFade = fadeSides.any && !isPatternFill;
-  let strokePaint = resolvedStroke;
-  if (!useViewportEdgeFade && fadeSides.any) {
-    strokePaint = `url(#${strokeGradientId})`;
-  }
   const highlightEnabled = showHighlight && showLine && !showLoadingPulse && showSeriesContent;
-  const showSeriesStroke = showSeriesContent && showLine;
-  let visibleStroke = "transparent";
-  if (showSeriesStroke && !hasDashTail) {
-    visibleStroke = strokePaint;
-  }
-  const shouldMeasurePath = showLine && (showSeriesContent || showLoadingPulse);
 
   const seriesLayers = (
     <>
-      {showSeriesContent && showAreaFill ? (
+      {showAreaFill ? (
         <AreaClosed
           curve={curve}
           data={renderData}
@@ -232,42 +189,22 @@ export function Area({
         />
       ) : null}
 
-      {shouldMeasurePath ? (
-        <>
-          <LinePath
-            curve={curve}
-            data={renderData}
-            innerRef={pathRef}
-            stroke={visibleStroke}
-            strokeLinecap="round"
-            strokeWidth={strokeWidth}
-            x={(d) => xScale(xAccessor(d)) ?? 0}
-            y={getY}
-          />
-          {showSeriesStroke ? (
-            <SeriesDashTailOverlay
-              dashArray={dashArray}
-              dashFromIndex={dashFromIndex}
-              data={data}
-              innerHeight={innerHeight}
-              innerWidth={innerWidth}
-              pathD={pathD}
-              pathLength={pathLength}
-              stroke={strokePaint}
-              strokeWidth={strokeWidth}
-              xAccessor={xAccessor}
-              xScale={xScale}
-            />
-          ) : null}
-        </>
+      {showLine && (showSeriesContent || showLoadingPulse) ? (
+        <AreaStroke
+          curve={curve}
+          dashArray={dashArray}
+          dashFromIndex={dashFromIndex}
+          getY={getY}
+          pathD={pathD}
+          pathLength={pathLength}
+          pathRef={pathRef}
+          showSeriesStroke={showSeriesContent}
+          stroke={strokePaint}
+          strokeWidth={strokeWidth}
+        />
       ) : null}
     </>
   );
-
-  // Sweep style owns all loading modes (loop + the exit/enter transitions),
-  // drawing its own silhouette; the pulse covers the default style.
-  const sweepLoading = showLoadingPulse && innerWidth > 0 && loadingStyle === "sweep";
-  const pulseLoading = showLoadingPulse && innerWidth > 0 && !sweepLoading;
 
   return (
     <>
@@ -305,37 +242,115 @@ export function Area({
           animate={animate}
           dataKey={dataKey}
           {...markers}
-          fill={markers?.fill ?? resolvedStroke}
-          stroke={markers?.stroke ?? markers?.fill ?? resolvedStroke}
+          {...resolveMarkerPaint(markers, resolvedStroke)}
         />
       ) : null}
 
-      {sweepLoading ? (
-        <LineLoadingSweep
-          curve={curve}
-          key="loading-sweep"
-          mode={pulseMode ?? "loop"}
-          onTransitionComplete={handleLoadingPulseComplete}
-          stroke={loadingStroke}
-          strokeOpacity={loadingStrokeOpacity}
-          strokeWidth={strokeWidth}
-          withArea
-        />
-      ) : null}
-      {pulseLoading && pathD ? (
-        <LineLoadingPulseStroke
-          key="loading-pulse"
-          loopEpoch={pulseEpoch}
-          mode={pulseMode ?? undefined}
-          onCycleComplete={handleLoadingPulseComplete}
+      <SeriesLoadingOverlays
+        curve={curve}
+        innerWidth={innerWidth}
+        loadingStroke={loadingStroke}
+        loadingStrokeOpacity={loadingStrokeOpacity}
+        loadingStyle={loadingStyle}
+        pathD={pathD}
+        pulse={pulse}
+        strokeWidth={strokeWidth}
+        withArea
+      />
+    </>
+  );
+}
+
+/**
+ * The series line. While loading it stays transparent but mounted, so the loading pulse can measure
+ * its path; a dashed tail draws the stroke itself, so the base line hides then too.
+ */
+function AreaStroke({
+  curve,
+  getY,
+  pathRef,
+  pathD,
+  pathLength,
+  showSeriesStroke,
+  stroke,
+  strokeWidth,
+  dashArray,
+  dashFromIndex,
+}: {
+  curve: CurveFactory;
+  getY: (d: Record<string, unknown>) => number;
+  pathRef: React.RefObject<SVGPathElement>;
+  pathD: string | null;
+  pathLength: number;
+  showSeriesStroke: boolean;
+  stroke: string;
+  strokeWidth: number;
+  dashArray: string;
+  dashFromIndex?: number;
+}) {
+  const { data, renderData, xScale, xAccessor, innerHeight, innerWidth } = useChartStable();
+  const hasDashTail = resolveDashTailBounds(dashFromIndex, data.length);
+  return (
+    <>
+      <LinePath
+        curve={curve}
+        data={renderData}
+        innerRef={pathRef}
+        stroke={showSeriesStroke && !hasDashTail ? stroke : "transparent"}
+        strokeLinecap="round"
+        strokeWidth={strokeWidth}
+        x={(d) => xScale(xAccessor(d)) ?? 0}
+        y={getY}
+      />
+      {showSeriesStroke ? (
+        <SeriesDashTailOverlay
+          dashArray={dashArray}
+          dashFromIndex={dashFromIndex}
+          data={data}
+          innerHeight={innerHeight}
+          innerWidth={innerWidth}
           pathD={pathD}
-          stroke={loadingStroke}
-          strokeOpacity={loadingStrokeOpacity}
+          pathLength={pathLength}
+          stroke={stroke}
           strokeWidth={strokeWidth}
+          xAccessor={xAccessor}
+          xScale={xScale}
         />
       ) : null}
     </>
   );
+}
+
+/**
+ * Paint for the fill and stroke. Pattern fills (`url(...)`) need a real stroke color; edge fades
+ * use the viewport mask for solid fills and a stroke gradient for pattern fills.
+ */
+function resolveAreaPaint({
+  fill,
+  stroke,
+  fadeEdges,
+  gradientId,
+  strokeGradientId,
+}: {
+  fill: string;
+  stroke?: string;
+  fadeEdges: FadeEdges;
+  gradientId: string;
+  strokeGradientId: string;
+}) {
+  const isPatternFill = fill.startsWith("url(");
+  const resolvedStroke = stroke || (isPatternFill ? chartCssVars.linePrimary : fill);
+  const fadeSides = resolveFadeSides(fadeEdges);
+  const useViewportEdgeFade = fadeSides.any && !isPatternFill;
+  // The stroke gradient only exists when an edge fades, so a solid stroke avoids an invalid url(#...).
+  const strokePaint = fadeSides.any && !useViewportEdgeFade ? `url(#${strokeGradientId})` : resolvedStroke;
+  return {
+    isPatternFill,
+    areaFill: isPatternFill ? fill : `url(#${gradientId})`,
+    resolvedStroke,
+    strokePaint,
+    useViewportEdgeFade,
+  };
 }
 
 Area.displayName = "Area";

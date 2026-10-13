@@ -1,7 +1,7 @@
 "use client";
 
 import type { Transition } from "framer-motion";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { clipRevealTransition } from "./animation";
 
 export type ChartRevealClipMode = "reveal" | "conceal";
@@ -57,7 +57,7 @@ export function ChartRevealClip({
 
     return (
       <clipPath id={clipPathId}>
-        <motion.rect
+        <m.rect
           // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
           animate={{ width: 0, x: rightEdge }}
           height={paddedHeight}
@@ -74,7 +74,7 @@ export function ChartRevealClip({
 
   return (
     <clipPath id={clipPathId}>
-      <motion.rect
+      <m.rect
         // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ width: paddedWidth }}
         height={paddedHeight}

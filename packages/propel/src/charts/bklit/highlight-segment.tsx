@@ -1,6 +1,6 @@
 "use client";
 
-import { type MotionValue, motion } from "framer-motion";
+import { type MotionValue, m } from "framer-motion";
 import { type RefObject, useId } from "react";
 
 // Hover-highlight overlay: re-strokes the base path `d`, clipped to a vertical
@@ -33,10 +33,10 @@ export function HighlightSegment({ pathRef, visible, stroke, strokeWidth, height
     <>
       <defs>
         <clipPath id={clipId}>
-          <motion.rect height={height} width={width} x={x} y={0} />
+          <m.rect height={height} width={width} x={x} y={0} />
         </clipPath>
       </defs>
-      <motion.path
+      <m.path
         animate={{ opacity: 1 }}
         clipPath={`url(#${clipId})`}
         d={pathRef.current.getAttribute("d") || ""}

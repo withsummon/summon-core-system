@@ -7,18 +7,19 @@ import { LinePath } from "@visx/shape";
 // biome-ignore lint/suspicious/noExplicitAny: d3 curve factory type
 type CurveFactory = any;
 
-import { type RefObject, useCallback, useId, useMemo, useRef, useState } from "react";
-import { chartCssVars, useChartStable, useYScale } from "./chart-context";
-import type { LoadingStyle } from "./chart-phase";
+import { type RefObject, useCallback, useId, useMemo, useRef } from "react";
+import { useChartStable, useYScale } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
+import { type LoadingStyle, isSeriesVisiblePhase } from "./chart-phase";
 import { type FadeEdges, fadeGradientStops, resolveFadeSides, viewportFadeGradientAttrs } from "./fade-edges";
-import { type LineLoadingPulseMode, LineLoadingPulseStroke, resolveLineLoadingPulseMode } from "./line-loading-pulse";
-import { LINE_LOADING_LOOP_PAUSE_MS } from "./line-loading-timing";
-import { LineLoadingSweep } from "./loading-sweep";
+import type { LineLoadingPulseMode } from "./line-loading-pulse";
 import { resolveDashTailBounds, usePathStrokeMetrics } from "./path-stroke-utils";
 import { SeriesDashTailOverlay } from "./series-dash-tail-overlay";
 import { SeriesHighlightLayer } from "./series-highlight-layer";
 import { SeriesHoverDim } from "./series-hover-dim";
+import { SeriesLoadingOverlays, useSeriesLoadingPulse } from "./series-loading";
 import { SeriesMarkers } from "./series-markers";
+import { resolveMarkerPaint } from "./series-marker-geometry";
 import type { SeriesPointMarkerStyle } from "./series-point-marker";
 import { useAnimatedSeriesPath } from "./use-animated-series-path";
 
@@ -126,63 +127,6 @@ function LineSeriesStroke({
   );
 }
 
-function LineLoadingOverlays({
-  curve,
-  handleLoadingPulseComplete,
-  innerWidth,
-  loadingStroke,
-  loadingStrokeOpacity,
-  loadingStyle,
-  pathD,
-  pulseEpoch,
-  pulseMode,
-  showLoadingPulse,
-  strokeWidth,
-}: {
-  curve: CurveFactory;
-  handleLoadingPulseComplete: () => void;
-  innerWidth: number;
-  loadingStroke: string;
-  loadingStrokeOpacity: number;
-  loadingStyle: LoadingStyle;
-  pathD: string | null;
-  pulseEpoch: number;
-  pulseMode: LineLoadingPulseMode | null;
-  showLoadingPulse: boolean;
-  strokeWidth: number;
-}) {
-  const sweepLoading = showLoadingPulse && innerWidth > 0 && loadingStyle === "sweep";
-  const pulseLoading = showLoadingPulse && innerWidth > 0 && !sweepLoading;
-
-  return (
-    <>
-      {sweepLoading ? (
-        <LineLoadingSweep
-          curve={curve}
-          key="loading-sweep"
-          mode={pulseMode ?? "loop"}
-          onTransitionComplete={handleLoadingPulseComplete}
-          stroke={loadingStroke}
-          strokeOpacity={loadingStrokeOpacity}
-          strokeWidth={strokeWidth}
-        />
-      ) : null}
-      {pulseLoading && pathD ? (
-        <LineLoadingPulseStroke
-          key="loading-pulse"
-          loopEpoch={pulseEpoch}
-          mode={pulseMode ?? undefined}
-          onCycleComplete={handleLoadingPulseComplete}
-          pathD={pathD}
-          stroke={loadingStroke}
-          strokeOpacity={loadingStrokeOpacity}
-          strokeWidth={strokeWidth}
-        />
-      ) : null}
-    </>
-  );
-}
-
 export function Line({
   dataKey,
   yAxisId,
@@ -236,22 +180,14 @@ export function Line({
     yScale,
   });
 
-  const phasePulseMode = resolveLineLoadingPulseMode(chartPhase);
-  const pulseMode = loading === false ? null : (loadingPulseMode ?? (loading === true ? "loop" : phasePulseMode));
-  const showLoadingPulse = pulseMode != null;
-  const [pulseEpoch, setPulseEpoch] = useState(0);
-  const effectiveShowHighlight = showHighlight && !showLoadingPulse;
-
-  const handleLoadingPulseComplete = useCallback(() => {
-    onLoadingPulseCycleComplete?.();
-    if (pulseMode === "loop") {
-      window.setTimeout(() => {
-        setPulseEpoch((epoch) => epoch + 1);
-      }, LINE_LOADING_LOOP_PAUSE_MS);
-      return;
-    }
-    notifyLoadingPulseComplete?.();
-  }, [notifyLoadingPulseComplete, onLoadingPulseCycleComplete, pulseMode]);
+  const pulse = useSeriesLoadingPulse({
+    chartPhase,
+    loading,
+    loadingPulseMode,
+    notifyLoadingPulseComplete,
+    onCycleComplete: onLoadingPulseCycleComplete,
+  });
+  const effectiveShowHighlight = showHighlight && !pulse.showLoadingPulse;
 
   const seriesIndex = useMemo(() => {
     const index = lines.findIndex((line) => line.dataKey === dataKey);
@@ -282,7 +218,7 @@ export function Line({
   const fadeSides = resolveFadeSides(fadeEdges);
   const lineStroke = fadeSides.any ? `url(#${gradientId})` : stroke;
   const fadeStops = fadeSides.any ? fadeGradientStops(fadeSides) : null;
-  const showSeriesStroke = chartPhase === "revealing" || chartPhase === "ready" || chartPhase === "exitingReady";
+  const showSeriesStroke = isSeriesVisiblePhase(chartPhase);
   let visibleStroke = "transparent";
   if (showSeriesStroke && !hasDashTail) {
     visibleStroke = lineStroke;
@@ -330,13 +266,7 @@ export function Line({
       </SeriesHoverDim>
 
       {showMarkers ? (
-        <SeriesMarkers
-          animate={animate}
-          dataKey={dataKey}
-          {...markers}
-          fill={markers?.fill ?? stroke}
-          stroke={markers?.stroke ?? markers?.fill ?? stroke}
-        />
+        <SeriesMarkers animate={animate} dataKey={dataKey} {...markers} {...resolveMarkerPaint(markers, stroke)} />
       ) : null}
 
       <SeriesHighlightLayer
@@ -347,17 +277,14 @@ export function Line({
         strokeWidth={strokeWidth}
       />
 
-      <LineLoadingOverlays
+      <SeriesLoadingOverlays
         curve={curve}
-        handleLoadingPulseComplete={handleLoadingPulseComplete}
         innerWidth={innerWidth}
         loadingStroke={loadingStroke}
         loadingStrokeOpacity={loadingStrokeOpacity}
         loadingStyle={loadingStyle}
         pathD={pathD}
-        pulseEpoch={pulseEpoch}
-        pulseMode={pulseMode}
-        showLoadingPulse={showLoadingPulse}
+        pulse={pulse}
         strokeWidth={strokeWidth}
       />
     </>

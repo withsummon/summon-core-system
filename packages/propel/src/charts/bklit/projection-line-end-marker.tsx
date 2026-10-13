@@ -1,5 +1,6 @@
 "use client";
 
+import { isSeriesVisiblePhase } from "./chart-phase";
 import { useCallback } from "react";
 import { useChartStable, useYScale } from "./chart-context";
 import type { ProjectionPoint } from "./projection-utils";
@@ -26,7 +27,7 @@ export function ProjectionLineEndMarker({
   const getX = useCallback((point: ProjectionPoint) => xScale(point.date) ?? 0, [xScale]);
   const getY = useCallback((point: ProjectionPoint) => yScale(point.value) ?? 0, [yScale]);
 
-  const showStroke = chartPhase === "revealing" || chartPhase === "ready" || chartPhase === "exitingReady";
+  const showStroke = isSeriesVisiblePhase(chartPhase);
 
   if (!showStroke || data.length < 2) {
     return null;

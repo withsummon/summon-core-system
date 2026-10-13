@@ -7,7 +7,8 @@ import {
   chartCenterLabelClassName,
   chartCenterValueClassName,
 } from "./chart-center-typography";
-import { ChartStatFlow, type ChartStatFlowFormat, defaultChartStatFlowFormat } from "./chart-stat-flow";
+import { ChartStatFlow, type ChartStatFlowFormat } from "./chart-stat-flow";
+import { defaultChartStatFlowFormat } from "./chart-formatters";
 import { usePieHover, usePieStable } from "./pie-context";
 
 export interface PieCenterProps {

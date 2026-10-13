@@ -3,30 +3,6 @@
 import type { Transition } from "framer-motion";
 import { createContext, type ReactNode, type RefObject, useContext, useMemo } from "react";
 
-// CSS variable references for ring chart theming
-export const ringCssVars = {
-  background: "var(--chart-background)",
-  foreground: "var(--chart-foreground)",
-  foregroundMuted: "var(--chart-foreground-muted)",
-  label: "var(--chart-label)",
-  ringBackground: "var(--chart-track)",
-  // Default ring colors from chart palette
-  ring1: "var(--chart-1)",
-  ring2: "var(--chart-2)",
-  ring3: "var(--chart-3)",
-  ring4: "var(--chart-4)",
-  ring5: "var(--chart-5)",
-};
-
-// Default ring color palette
-export const defaultRingColors = [
-  ringCssVars.ring1,
-  ringCssVars.ring2,
-  ringCssVars.ring3,
-  ringCssVars.ring4,
-  ringCssVars.ring5,
-];
-
 export interface RingData {
   /** Display label for the ring */
   label: string;
@@ -168,5 +144,3 @@ export function useRingHover(): RingHoverContextValue {
 export function useRing(): RingContextValue {
   return { ...useRingStable(), ...useRingHover() };
 }
-
-export default RingStableContext;

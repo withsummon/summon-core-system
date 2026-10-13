@@ -1,8 +1,9 @@
 "use client";
 
-import { animate, motion, useMotionValue, useTransform } from "framer-motion";
+import { animate, m, useMotionValue, useTransform } from "framer-motion";
 import { useEffect, useId } from "react";
-import { chartCssVars, useChartStable } from "./chart-context";
+import { useChartStable } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
 import type { ChartPhase } from "./chart-phase";
 import { fadeGradientStops, resolveFadeSides, viewportFadeGradientAttrs } from "./fade-edges";
 import { LINE_LOADING_PULSE_CYCLE_S, LINE_LOADING_PULSE_EASE } from "./line-loading-timing";
@@ -10,19 +11,6 @@ import { LINE_LOADING_PULSE_CYCLE_S, LINE_LOADING_PULSE_EASE } from "./line-load
 const CLIP_PADDING = 10;
 
 export type LineLoadingPulseMode = "loop" | "exit" | "enter";
-
-export function resolveLineLoadingPulseMode(phase: ChartPhase): LineLoadingPulseMode | null {
-  switch (phase) {
-    case "loading":
-      return "loop";
-    case "exiting":
-      return "exit";
-    case "revealingLoading":
-      return "enter";
-    default:
-      return null;
-  }
-}
 
 export interface LineLoadingPulseStrokeProps {
   pathD: string;
@@ -161,7 +149,7 @@ export function LineLoadingPulseStroke({
     <>
       <defs>
         <clipPath id={clipPathId}>
-          <motion.rect height={clipHeight} style={{ width: clipWidth, x: clipX }} y={-CLIP_PADDING} />
+          <m.rect height={clipHeight} style={{ width: clipWidth, x: clipX }} y={-CLIP_PADDING} />
         </clipPath>
         <linearGradient id={gradientId} {...viewportFadeGradientAttrs(innerWidth)}>
           {fadeStops.map((stop) => (

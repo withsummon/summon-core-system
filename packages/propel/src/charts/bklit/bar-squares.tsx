@@ -2,10 +2,11 @@
 
 import type { scaleBand } from "@visx/scale";
 import type { Transition } from "framer-motion";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { memo, useId, useMemo } from "react";
 import { computeSquareColumn } from "./bar-squares-layout";
-import { chartCssVars, useChart, useChartStable, useYScale } from "./chart-context";
+import { useChart, useChartStable, useYScale } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
 import { useChartLegendHover } from "./chart-legend-hover";
 import { transitionWithDelay } from "./motion-utils";
 import { type PatternPresetId, renderPatternPreset } from "./pattern-preset";
@@ -212,7 +213,7 @@ function SquareColumn({
     }
 
     return (
-      <motion.rect
+      <m.rect
         // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ attrY: y, height: squareSize, opacity: squareOpacity }}
         fill={effectiveFill}
@@ -441,7 +442,7 @@ const BarColumnTrackInner = memo(function BarColumnTrackInner({
             enterTransition={enterTransition}
             fill={fill}
             index={i}
-            key={`track-${i}-${line.dataKey}`}
+            key={`track-${categoryValue}-${line.dataKey}`}
             revealEpoch={revealEpoch}
             rx={rx}
             seriesIndex={seriesIndex}
@@ -530,7 +531,7 @@ function TrackColumn({
 
   if (animate) {
     return (
-      <motion.rect
+      <m.rect
         // react-doctor-disable-next-line react-doctor/no-layout-property-animation -- SVG rect attribute, not CSS layout
         animate={{ height: animatedHeight, y: 0 }}
         fill={fill}

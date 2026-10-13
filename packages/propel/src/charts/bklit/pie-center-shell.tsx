@@ -3,7 +3,8 @@
 import { pie as d3Pie } from "d3-shape";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PieCenter, type PieCenterProps } from "./pie-center";
-import { defaultPieColors, type PieArcData, type PieContextValue, type PieData, PieProvider } from "./pie-context";
+import { type PieArcData, type PieContextValue, type PieData, PieProvider } from "./pie-context";
+import { defaultPieColors } from "./chart-theme";
 
 const SHELL_HOVER_OFFSET = 10;
 
@@ -34,32 +35,23 @@ export function PieCenterShell({
   ...pieCenterProps
 }: PieCenterShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const introStartedRef = useRef(false);
-
-  const [flowTotal, setFlowTotal] = useState(() => (animateEntrance ? 0 : centerValue));
+  // Shows 0 for the first two frames so NumberFlow plays its entrance.
+  const [introDone, setIntroDone] = useState(!animateEntrance);
+  const flowTotal = introDone ? centerValue : 0;
 
   useEffect(() => {
-    if (!animateEntrance) {
-      setFlowTotal(centerValue);
+    if (introDone) {
       return;
     }
-
-    if (!introStartedRef.current) {
-      introStartedRef.current = true;
-      setFlowTotal(0);
-      let innerRaf = 0;
-      const outerRaf = requestAnimationFrame(() => {
-        innerRaf = requestAnimationFrame(() => setFlowTotal(centerValue));
-      });
-      return () => {
-        cancelAnimationFrame(outerRaf);
-        cancelAnimationFrame(innerRaf);
-        introStartedRef.current = false;
-      };
-    }
-
-    setFlowTotal(centerValue);
-  }, [animateEntrance, centerValue]);
+    let innerRaf = 0;
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => setIntroDone(true));
+    });
+    return () => {
+      cancelAnimationFrame(outerRaf);
+      cancelAnimationFrame(innerRaf);
+    };
+  }, [introDone]);
 
   const data: PieData[] = useMemo(() => [{ label: "_pieCenterShell", value: Math.max(flowTotal, 0) }], [flowTotal]);
 

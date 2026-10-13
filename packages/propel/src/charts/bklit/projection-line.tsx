@@ -1,5 +1,6 @@
 "use client";
 
+import { isSeriesVisiblePhase } from "./chart-phase";
 import { curveLinear } from "@visx/curve";
 import { LinePath } from "@visx/shape";
 import { useCallback, useId, useMemo } from "react";
@@ -137,7 +138,7 @@ export function ProjectionLine({
     return `M ${geometry.startX},${geometry.startY} L ${geometry.visibleEndX},${geometry.endY}`;
   }, [curveKind, geometry]);
 
-  const showStroke = chartPhase === "revealing" || chartPhase === "ready" || chartPhase === "exitingReady";
+  const showStroke = isSeriesVisiblePhase(chartPhase);
 
   if (data.length < 2 || !geometry) {
     return null;

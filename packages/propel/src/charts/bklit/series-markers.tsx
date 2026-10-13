@@ -2,14 +2,11 @@
 
 import { type ReactNode, useCallback, useMemo } from "react";
 import { clipRevealTransition } from "./animation";
-import { defaultScatterColors, useChartHover, useChartStable, useYScale } from "./chart-context";
+import { useChartHover, useChartStable, useYScale } from "./chart-context";
+import { defaultScatterColors } from "./chart-theme";
 import { useChartLegendHover } from "./chart-legend-hover";
-import {
-  getSeriesMarkerVisualExtent,
-  SeriesPointMarker,
-  type SeriesPointMarkerStyle,
-  StaticSeriesPointMarker,
-} from "./series-point-marker";
+import { SeriesPointMarker, type SeriesPointMarkerStyle, StaticSeriesPointMarker } from "./series-point-marker";
+import { getSeriesMarkerVisualExtent } from "./series-marker-geometry";
 
 export interface SeriesMarkersProps extends SeriesPointMarkerStyle {
   dataKey: string;

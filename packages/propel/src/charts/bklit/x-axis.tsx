@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../utils/classname";
 import { useChart, useChartStable } from "./chart-context";
@@ -303,7 +303,7 @@ function isBetterTickLayout(
  * Picks tick indices with the most even on-screen spacing. Tries
  * `targetCount ± 1` and evaluates every gap layout when feasible.
  */
-export function selectEvenlySpacedIndices(
+function selectEvenlySpacedIndices(
   length: number,
   targetCount: number,
   options?: {
@@ -535,14 +535,8 @@ function appendProjectionTailTicks(
 
 export function XAxis(props: XAxisProps) {
   const { containerRef } = useChartStable();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!container) {
     return null;
   }
 

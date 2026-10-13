@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { radarCssVars, useRadarStable } from "./radar-context";
+import { m } from "framer-motion";
+import { useRadarStable } from "./radar-context";
+import { radarCssVars } from "./chart-theme";
 
 export interface RadarLabelsProps {
   /** Distance from the chart edge. Default: 24 */
@@ -31,7 +32,7 @@ export function RadarLabels({ offset = 24, fontSize = 11, interactive = false, c
         const y = labelRadius * Math.sin(angle);
 
         return (
-          <motion.g
+          <m.g
             animate={{ opacity: 1, x, y }}
             initial={animate ? { opacity: 0, x: 0, y: 0 } : { opacity: 1, x, y }}
             key={`label-${metric.key}`}
@@ -57,7 +58,7 @@ export function RadarLabels({ offset = 24, fontSize = 11, interactive = false, c
             >
               {metric.label}
             </text>
-          </motion.g>
+          </m.g>
         );
       })}
     </g>

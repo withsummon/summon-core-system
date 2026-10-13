@@ -1,5 +1,6 @@
 "use client";
 
+import { domAnimation, LazyMotion } from "framer-motion";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
 import { arc as arcGenerator } from "@visx/shape";
@@ -18,7 +19,8 @@ import {
   useState,
 } from "react";
 import { cn } from "../../utils/classname";
-import { defaultPieColors, type PieArcData, type PieContextValue, type PieData, PieProvider } from "./pie-context";
+import { type PieArcData, type PieContextValue, type PieData, PieProvider } from "./pie-context";
+import { defaultPieColors } from "./chart-theme";
 
 /** Default hover offset in pixels */
 export const DEFAULT_HOVER_OFFSET = 10;
@@ -457,31 +459,33 @@ export function PieChart({
 
   // Otherwise use ParentSize for responsive sizing
   return (
-    <div className={cn("relative aspect-square w-full", className)} ref={containerRef}>
-      <ParentSize debounceTime={10}>
-        {({ width, height }) => (
-          <PieChartInner
-            containerRef={containerRef}
-            cornerRadius={cornerRadius}
-            data={data}
-            endAngle={endAngle}
-            enterStaggerScale={enterStaggerScale}
-            enterTransition={enterTransition}
-            geometryScrubbing={geometryScrubbing}
-            height={height}
-            hoveredIndexProp={hoveredIndex}
-            hoverOffset={hoverOffset}
-            innerRadius={innerRadius}
-            onHoverChange={onHoverChange}
-            padAngle={padAngle}
-            startAngle={startAngle}
-            width={width}
-          >
-            {children}
-          </PieChartInner>
-        )}
-      </ParentSize>
-    </div>
+    <LazyMotion features={domAnimation}>
+      <div className={cn("relative aspect-square w-full", className)} ref={containerRef}>
+        <ParentSize debounceTime={10}>
+          {({ width, height }) => (
+            <PieChartInner
+              containerRef={containerRef}
+              cornerRadius={cornerRadius}
+              data={data}
+              endAngle={endAngle}
+              enterStaggerScale={enterStaggerScale}
+              enterTransition={enterTransition}
+              geometryScrubbing={geometryScrubbing}
+              height={height}
+              hoveredIndexProp={hoveredIndex}
+              hoverOffset={hoverOffset}
+              innerRadius={innerRadius}
+              onHoverChange={onHoverChange}
+              padAngle={padAngle}
+              startAngle={startAngle}
+              width={width}
+            >
+              {children}
+            </PieChartInner>
+          )}
+        </ParentSize>
+      </div>
+    </LazyMotion>
   );
 }
 
