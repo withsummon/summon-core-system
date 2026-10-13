@@ -52,23 +52,29 @@ export const InboxIssueAppliedFiltersDate = observer(function InboxIssueAppliedF
         if (!optionDetail) return <></>;
         return (
           <div key={value} className="relative flex items-center gap-1 rounded-sm bg-layer-1 p-1 text-11">
-            <div className="truncate text-11">{optionDetail?.name}</div>
-            <div
-              className="relative flex h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden text-tertiary transition-all hover:text-secondary"
+            <div className="truncate text-11" title={optionDetail?.name}>
+              {optionDetail?.name}
+            </div>
+            <button
+              type="button"
+              aria-label="Remove filter"
+              className="relative flex h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden text-tertiary transition-colors hover:text-secondary"
               onClick={() => handleInboxIssueFilters(filterKey, handleFilterValue(optionDetail?.value))}
             >
               <CloseIcon className={`h-3 w-3`} />
-            </div>
+            </button>
           </div>
         );
       })}
 
-      <div
-        className="relative flex h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden text-tertiary transition-all hover:text-secondary"
+      <button
+        type="button"
+        aria-label="Clear filter"
+        className="relative flex h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden text-tertiary transition-colors hover:text-secondary"
         onClick={clearFilter}
       >
         <CloseIcon className={`h-3 w-3`} />
-      </div>
+      </button>
     </Tag>
   );
 });

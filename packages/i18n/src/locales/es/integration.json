@@ -14,7 +14,7 @@
     "back_to_integrations": "Volver a integraciones",
     "select_state": "Seleccionar estado",
     "set_state": "Establecer estado",
-    "choose_project": "Elegir proyecto...",
+    "choose_project": "Elegir proyecto…",
     "skip_backward_state_movement": "Evitar que los issues vuelvan a un estado anterior debido a actualizaciones de PR"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Cerrado",
     "save": "Guardar",
     "start_sync": "Iniciar sincronización",
-    "choose_repository": "Elegir repositorio..."
+    "choose_repository": "Elegir repositorio…"
   },
   "gitlab_integration": {
     "name": "GitLab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Incidencia Cerrada",
     "save": "Guardar",
     "start_sync": "Iniciar Sincronización",
-    "choose_repository": "Elegir Repositorio..."
+    "choose_repository": "Elegir Repositorio…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Agregar nuevo mapeo de estado",
       "empty_state": "No hay mapeos de estado configurados. Crea tu primer mapeo para sincronizar los estados de incidencias de Sentry con los estados de tu proyecto.",
       "failed_loading_state_mappings": "No pudimos cargar tus mapeos de estado. Esto podría deberse a un problema de red o un problema con la integración.",
-      "loading_project_states": "Cargando estados del proyecto...",
+      "loading_project_states": "Cargando estados del proyecto…",
       "error_loading_states": "Error al cargar estados",
       "no_states_available": "No hay estados disponibles",
       "no_permission_states": "No tienes permiso para acceder a los estados de este proyecto",
@@ -205,7 +205,7 @@
     "connected": "Conectado",
     "connect": "Conectar",
     "uninstall": "Desinstalar",
-    "uninstalling": "Desinstalando...",
+    "uninstalling": "Desinstalando…",
     "install_success": "OAuth Bridge instalado correctamente.",
     "install_error": "Error al instalar OAuth Bridge.",
     "uninstall_success": "OAuth Bridge desinstalado.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Limitación de solicitudes como cantidad/período (ej. 120/minute). Dejar vacío para el límite por defecto.",
       "enable_provider": "Habilitar este proveedor",
-      "saving": "Guardando...",
+      "saving": "Guardando…",
       "update": "Actualizar"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Secret del webhook es requerido",
     "private_key_title": "Clave privada (Base64 codificado)",
     "private_key_description": "Clave privada de la app que creaste en tu organización de GitHub Enterprise.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Clave privada es requerida",
     "connect_app": "Conectar app"
   },

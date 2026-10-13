@@ -87,7 +87,12 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
       >
         {/* {isStickiesPage && <StickyItemDragHandle isDragging={false} />}{" "} */}
         {onClose && (
-          <button type="button" className="flex flex-shrink-0 justify-end p-2.5" onClick={onClose}>
+          <button
+            type="button"
+            aria-label="Minimize sticky"
+            className="flex flex-shrink-0 justify-end p-2.5"
+            onClick={onClose}
+          >
             <Minimize2 className="size-4" />
           </button>
         )}

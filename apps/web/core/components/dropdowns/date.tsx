@@ -93,7 +93,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
     <button
       type="button"
       className={cn(
-        "clickable block h-full max-w-full outline-none",
+        "clickable block h-full max-w-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "cursor-not-allowed text-secondary": disabled,
           "cursor-pointer": !disabled,

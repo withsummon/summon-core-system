@@ -74,7 +74,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
       {props.backHref ? (
         <Link
           href={props.backHref}
-          className={`inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg px-2 text-12 font-medium text-secondary hover:bg-layer-1 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong ${props.backClassName ?? ""}`}
+          className={`inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg px-2 text-12 font-medium text-secondary hover:bg-layer-1 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid ${props.backClassName ?? ""}`}
         >
           <ArrowLeft className="size-4" /> Back to results
         </Link>
@@ -165,14 +165,16 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                     {initials(contact.name)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-12 font-medium text-primary">{contact.name}</span>
+                    <span className="block truncate text-12 font-medium text-primary" title={contact.name}>
+                      {contact.name}
+                    </span>
                     <span className="block truncate text-12 text-secondary">{contact.title || "Contact"}</span>
                   </span>
                   {contact.email ? (
                     <a
                       href={`mailto:${contact.email}`}
                       aria-label={`Email ${contact.name}`}
-                      className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong"
+                      className="grid size-10 place-items-center rounded-lg text-accent-primary hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                     >
                       <Mail className="size-4" />
                     </a>
@@ -195,7 +197,9 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                       aria-hidden
                       className={`size-3.5 flex-none rounded-full border-2 ${item.issue.completed ? "border-success-strong bg-success-primary" : "border-strong"}`}
                     />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{item.issue.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={item.issue.name}>
+                      {item.issue.name}
+                    </span>
                     <span className="text-12 text-secondary">
                       {item.issue.project.identifier}-{item.issue.sequence_id}
                     </span>
@@ -240,7 +244,9 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
                     className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-layer-1"
                   >
                     <Video className="size-4 flex-none text-accent-primary" />
-                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary">{meeting.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-12 font-medium text-primary" title={meeting.title}>
+                      {meeting.title}
+                    </span>
                     <span className="text-12 text-secondary">{formatDate(meeting.starts_at)}</span>
                   </Link>
                 </li>
@@ -450,7 +456,7 @@ function ActionLink(props: { href: string; icon: typeof FileText; children: Reac
   return (
     <Link
       href={props.href}
-      className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-12 font-medium text-primary ring-1 ring-subtle transition-[background-color,scale] hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong active:scale-[0.96] motion-reduce:transition-none"
+      className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-12 font-medium text-primary ring-1 ring-subtle transition-[background-color,scale] hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid active:scale-[0.96] motion-reduce:transition-none"
     >
       <Icon className="size-4 text-accent-primary" />
       {props.children}

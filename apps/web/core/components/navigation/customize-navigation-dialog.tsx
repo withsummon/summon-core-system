@@ -213,7 +213,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                 keyExtractor={(item) => item.key}
                 id="personal-enabled-items"
                 render={(item) => (
-                  <div className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-200 hover:bg-surface-2">
+                  <div className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors duration-200 hover:bg-surface-2">
                     <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
                     <Checkbox
                       checked={!!personalPreferences.items[item.key]?.enabled}
@@ -244,7 +244,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                 render={(item) => {
                   const icon = getSidebarNavigationItemIcon(item.key);
                   return (
-                    <div className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-200 hover:bg-surface-2">
+                    <div className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors duration-200 hover:bg-surface-2">
                       <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
                       <Checkbox
                         checked={!!workspacePreferences.items[item.key]?.is_pinned}
@@ -277,7 +277,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                       value="ACCORDION"
                       checked={projectPreferences.navigationMode === "ACCORDION"}
                       onChange={() => updateNavigationMode("ACCORDION")}
-                      className="mt-1 size-4 text-accent-primary focus:ring-accent-strong"
+                      className="mt-1 size-4 text-accent-primary focus-visible:ring-accent-strong"
                     />
                     <div className="flex-1">
                       <div className="text-13 text-primary">{t("accordion_navigation_control")}</div>
@@ -295,7 +295,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                       value="TABBED"
                       checked={projectPreferences.navigationMode === "TABBED"}
                       onChange={() => updateNavigationMode("TABBED")}
-                      className="mt-1 size-4 text-accent-primary focus:ring-accent-strong"
+                      className="mt-1 size-4 text-accent-primary focus-visible:ring-accent-strong"
                     />
                     <div className="flex-1">
                       <div className="text-13 text-primary">{t("horizontal_navigation_bar")}</div>
@@ -333,8 +333,8 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                               "border bg-surface-2",
                               "text-secondary",
                               parseInt(projectCountInput) >= 1
-                                ? "border-strong focus:border-accent-strong focus:ring-1 focus:ring-accent-strong"
-                                : "border-danger-strong focus:border-danger-strong focus:ring-1 focus:ring-danger-strong"
+                                ? "border-strong focus-visible:border-accent-strong focus-visible:ring-1 focus-visible:ring-accent-strong"
+                                : "border-danger-strong focus-visible:border-danger-strong focus-visible:ring-1 focus-visible:ring-danger-strong"
                             )}
                           />
                         </div>

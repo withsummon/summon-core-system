@@ -21,33 +21,33 @@ const getContextIcon = (type: string) => {
     case "projects":
       return {
         icon: Folder,
-        iconClass: "text-blue-600 dark:text-blue-400",
-        boxClass: "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60",
+        iconClass: "text-label-indigo-icon",
+        boxClass: "bg-label-indigo-bg border-label-indigo-border",
       };
     case "clients":
       return {
         icon: Users,
-        iconClass: "text-slate-700 dark:text-slate-300",
-        boxClass: "bg-slate-100 border-slate-200 dark:bg-slate-800/60 dark:border-slate-700/60",
+        iconClass: "text-label-grey-icon",
+        boxClass: "bg-label-grey-bg border-label-grey-border",
       };
     case "opportunities":
       return {
         icon: Target,
-        iconClass: "text-purple-600 dark:text-purple-400",
-        boxClass: "bg-purple-50 border-purple-200 dark:bg-purple-950/40 dark:border-purple-900/60",
+        iconClass: "text-label-purple-icon",
+        boxClass: "bg-label-purple-bg border-label-purple-border",
       };
     case "processes":
       return {
         icon: Settings,
-        iconClass: "text-blue-600 dark:text-blue-400",
-        boxClass: "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60",
+        iconClass: "text-label-emerald-icon",
+        boxClass: "bg-label-emerald-bg border-label-emerald-border",
       };
     case "company":
     default:
       return {
         icon: Building,
-        iconClass: "text-blue-600 dark:text-blue-400",
-        boxClass: "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60",
+        iconClass: "text-label-orange-icon",
+        boxClass: "bg-label-orange-bg border-label-orange-border",
       };
   }
 };
@@ -68,7 +68,7 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
         <button
           type="button"
           onClick={onViewAllContexts}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all contexts</span>
           <ArrowRight size={13} />
@@ -82,14 +82,14 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
           const isSelected = selectedContext === card.name;
 
           return (
-            <div
+            <button
+              type="button"
               key={card.id}
               onClick={() => onSelectContext?.(card.name)}
+              aria-pressed={isSelected}
               className={cn(
-                "group hover:border-blue-400 flex cursor-pointer flex-col justify-between rounded-xl border bg-surface-1 p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                isSelected
-                  ? "border-blue-500 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 ring-2"
-                  : "border-subtle"
+                "group flex cursor-pointer flex-col justify-between rounded-xl border bg-surface-1 p-3.5 text-left shadow-2xs transition-[translate,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-strong hover:shadow-md focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+                isSelected ? "border-accent-strong bg-accent-subtle ring-2 ring-accent-subtle" : "border-subtle"
               )}
             >
               <div className="space-y-2.5">
@@ -105,13 +105,13 @@ export const BrowseContextsRow: React.FC<IBrowseContextsRowProps> = ({
                 </div>
 
                 <div>
-                  <h3 className="group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs font-semibold text-primary transition-colors">
+                  <h3 className="text-xs font-semibold text-primary transition-colors group-hover:text-accent-primary">
                     {card.title}
                   </h3>
                   <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-secondary">{card.description}</p>
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

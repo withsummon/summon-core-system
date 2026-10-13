@@ -63,7 +63,7 @@ export function AssistantComposer(props: AssistantComposerProps) {
     <form onSubmit={props.onSubmit} className="border-t border-subtle bg-surface-1 px-3 py-3 sm:px-5">
       <div className="mx-auto max-w-3xl space-y-2.5">
         <details className="group rounded-xl border border-subtle bg-layer-1/50">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium text-secondary focus-visible:outline focus-visible:outline-2">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-solid">
             <SlidersHorizontal className="size-3.5" />
             <span>Context & tools</span>
             {focusCount ? (
@@ -192,7 +192,9 @@ export function AssistantComposer(props: AssistantComposerProps) {
                   className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 text-secondary"
                 >
                   <AudioIcon className="size-3.5 flex-none" />
-                  <span className="max-w-44 truncate">{attachment.original_name}</span>
+                  <span className="max-w-44 truncate" title={attachment.original_name}>
+                    {attachment.original_name}
+                  </span>
                   <span className={attachment.status === "failed" ? "text-danger-primary" : "text-tertiary"}>
                     {attachment.status === "processing" ? "transcribing" : attachment.status}
                   </span>

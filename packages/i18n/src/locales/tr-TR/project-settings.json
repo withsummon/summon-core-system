@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Atanan kişiler ayarlanıyor...",
+            "loading": "Atanan kişiler ayarlanıyor…",
             "success": {
               "title": "Başarılı!",
               "message": "Atanan kişiler başarıyla ayarlandı."
@@ -425,7 +425,7 @@
         "toggle_description": "İş öğelerini kilometre taşı son tarihleri ile organize edin."
       },
       "toasts": {
-        "loading": "Proje özelliği güncelleniyor...",
+        "loading": "Proje özelliği güncelleniyor…",
         "success": "Proje özelliği başarıyla güncellendi.",
         "error": "Proje özelliği güncellenirken bir şeyler yanlış gitti. Lütfen tekrar deneyin."
       }

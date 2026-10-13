@@ -70,8 +70,9 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
             <>
               {groupedIssues[group] > 0 && (
                 <div key={index}>
-                  <div
-                    className="flex cursor-pointer items-center justify-between gap-2 text-13"
+                  <button
+                    type="button"
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-13"
                     onClick={() => {
                       handleFiltersUpdate([{ property: "state_group", operator: "in", value: [group] }]);
                     }}
@@ -85,10 +86,10 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
                       />
                       <span className="w-16 font-medium text-tertiary capitalize">{group}</span>
                     </div>
-                    <span className="text-tertiary">{`${groupedIssues[group]} ${
+                    <span className="text-tertiary tabular-nums">{`${groupedIssues[group]} ${
                       groupedIssues[group] > 1 ? "Work items" : "Work item"
                     }`}</span>
-                  </div>
+                  </button>
                 </div>
               )}
             </>

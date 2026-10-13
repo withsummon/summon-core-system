@@ -28,19 +28,19 @@ export function ProfileStats({ userProfile }: Props) {
       icon: CreateIcon,
       route: "created",
       i18n_title: "profile.stats.created",
-      value: userProfile?.created_issues ?? "...",
+      value: userProfile?.created_issues ?? "…",
     },
     {
       icon: UserCirclePropertyIcon,
       route: "assigned",
       i18n_title: "profile.stats.assigned",
-      value: userProfile?.assigned_issues ?? "...",
+      value: userProfile?.assigned_issues ?? "…",
     },
     {
       icon: LayerStackIcon,
       route: "subscribed",
       i18n_title: "profile.stats.subscribed",
-      value: userProfile?.subscribed_issues ?? "...",
+      value: userProfile?.subscribed_issues ?? "…",
     },
   ];
 

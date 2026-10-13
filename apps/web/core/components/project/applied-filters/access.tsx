@@ -29,6 +29,7 @@ export const AppliedAccessFilters = observer(function AppliedAccessFilters(props
             {accessDetails && t(accessDetails?.i18n_label)}
             {editable && (
               <button
+                aria-label="Remove filter"
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(status)}

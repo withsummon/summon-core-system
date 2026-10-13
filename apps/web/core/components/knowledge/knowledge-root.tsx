@@ -147,7 +147,7 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
         name: "You",
         initials: "ME",
       },
-      content: "# New Quick Note\n\nStart typing your note here...",
+      content: "# New Quick Note\n\nStart typing your note here…",
     };
     setKnowledgeItems((prev) => [newNote, ...prev]);
     setSelectedItem(newNote);
@@ -183,7 +183,7 @@ export const KnowledgeRootView: React.FC<IKnowledgeRootViewProps> = observer(fun
                 setToast({
                   type: TOAST_TYPE.INFO,
                   title: "Summon Assistant",
-                  message: `Synthesizing answer from knowledge base for "${q}"...`,
+                  message: `Synthesizing answer from knowledge base for "${q}"…`,
                 });
               }}
             />

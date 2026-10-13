@@ -79,7 +79,9 @@ const AssetItem = observer(function AssetItem(props: AssetItemProps) {
           }}
         />
         <div className="flex-1 space-y-0.5 truncate">
-          <p className="truncate text-13 font-medium">{asset.name}</p>
+          <p className="truncate text-13 font-medium" title={asset.name}>
+            {asset.name}
+          </p>
           <div className="flex items-end justify-between gap-2">
             <p className="shrink-0 text-11 text-secondary" />
             <a

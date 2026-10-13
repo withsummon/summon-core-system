@@ -27,7 +27,7 @@ export function MultipleSelectGroupAction(props: Props) {
 
   return (
     <Checkbox
-      className={cn("size-3.5 !outline-none", className)}
+      className={cn("size-3.5", className)}
       iconClassName="size-3"
       onClick={() => selectionHelpers.handleGroupClick(groupID)}
       checked={groupSelectionStatus === "complete"}

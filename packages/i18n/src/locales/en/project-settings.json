@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Setting assignees...",
+            "loading": "Setting assignees…",
             "success": {
               "title": "Success!",
               "message": "Assignees set successfully."
@@ -425,7 +425,7 @@
         "toggle_description": "Organize work items by milestone deadlines."
       },
       "toasts": {
-        "loading": "Updating project feature...",
+        "loading": "Updating project feature…",
         "success": "Project feature updated successfully.",
         "error": "Something went wrong while updating project feature. Please try again."
       }

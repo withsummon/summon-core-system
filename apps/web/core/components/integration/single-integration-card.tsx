@@ -132,7 +132,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               ? isInstalled
                 ? integrationDetails[integration.provider].installed
                 : integrationDetails[integration.provider].notInstalled
-              : "Loading..."}
+              : "Loading…"}
           </p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               disabled={!isUserAdmin}
               loading={deletingIntegration}
             >
-              {deletingIntegration ? "Uninstalling..." : "Uninstall"}
+              {deletingIntegration ? "Uninstalling…" : "Uninstall"}
             </Button>
           </Tooltip>
         ) : (
@@ -172,7 +172,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               }}
               loading={isInstalling}
             >
-              {isInstalling ? "Installing..." : "Install"}
+              {isInstalling ? "Installing…" : "Install"}
             </Button>
           </Tooltip>
         )

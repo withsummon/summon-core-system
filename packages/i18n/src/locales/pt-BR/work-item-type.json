@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Definir como padrão",
           "toast": {
-            "loading": "Definindo como padrão...",
+            "loading": "Definindo como padrão…",
             "success": {
               "title": "Sucesso!",
               "message": "Nível de hierarquia {level} definido como padrão com sucesso."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Movendo {workItemTypeName} para o nível {level}...",
+        "loading": "Movendo {workItemTypeName} para o nível {level}…",
         "success": {
           "title": "Sucesso!",
           "message": "{workItemTypeName} foi movido para o nível {level} com sucesso."

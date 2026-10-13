@@ -49,6 +49,7 @@ export const AppliedDateFilters = observer(function AppliedDateFilters(props: Pr
               type="button"
               className="grid place-items-center text-tertiary hover:text-secondary"
               onClick={() => handleRemove(date)}
+              aria-label={`Remove ${getDateLabel(date)}`}
             >
               <CloseIcon height={10} width={10} strokeWidth={2} />
             </button>

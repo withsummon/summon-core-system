@@ -8,7 +8,7 @@ import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 
 export const buttonVariants = cva(
-  "inline-flex press items-center justify-center gap-1.5 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:pointer-events-none [&>svg]:size-4 [&>svg]:shrink-0",
+  "inline-flex press items-center justify-center gap-1.5 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid disabled:pointer-events-none [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -23,8 +23,8 @@ export const buttonVariants = cva(
         tertiary:
           "bg-layer-3 text-secondary hover:bg-layer-3-hover active:bg-layer-3-active disabled:bg-layer-transparent disabled:text-disabled",
         ghost:
-          "bg-layer-transparent text-secondary hover:bg-layer-transparent-hover focus:bg-layer-transparent-active active:bg-layer-transparent-active disabled:bg-layer-transparent disabled:text-disabled",
-        link: "px-0 text-link-primary underline hover:text-link-primary-hover focus:text-link-primary-hover active:text-link-primary-hover disabled:text-disabled",
+          "bg-layer-transparent text-secondary hover:bg-layer-transparent-hover focus-visible:bg-layer-transparent-active active:bg-layer-transparent-active disabled:bg-layer-transparent disabled:text-disabled",
+        link: "px-0 text-link-primary underline hover:text-link-primary-hover focus-visible:text-link-primary-hover active:text-link-primary-hover disabled:text-disabled",
       },
       size: {
         sm: "h-7 rounded-lg px-2 text-12 leading-none font-medium",

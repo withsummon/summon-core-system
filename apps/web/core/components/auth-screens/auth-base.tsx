@@ -36,7 +36,7 @@ export function AuthBase({ authType }: AuthBaseProps) {
           style={{ background: ART_BACKGROUND }}
           aria-hidden="true"
         >
-          <SummonArtwork className="absolute inset-0 size-full" />
+          <SummonArtwork className="pointer-events-none absolute inset-0 size-full" />
         </div>
         <main className="mx-auto flex w-full max-w-[24rem] flex-1 flex-col gap-6 py-10 lg:justify-center lg:pb-24">
           <AuthRoot authMode={authType} />
@@ -48,7 +48,7 @@ export function AuthBase({ authType }: AuthBaseProps) {
         style={{ background: ART_BACKGROUND }}
         aria-label={`${SITE_TITLE} artwork`}
       >
-        <SummonArtwork className="absolute inset-0 size-full" />
+        <SummonArtwork className="pointer-events-none absolute inset-0 size-full" />
         <div className="relative max-w-md p-12 pt-16 text-white">
           <SummonLogo variant="mark" className="size-10 text-white" />
           <p className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">

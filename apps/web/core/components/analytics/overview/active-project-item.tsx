@@ -26,7 +26,7 @@ function CompletionPercentage({ percentage }: { percentage: number }) {
     percentage > 50 ? "bg-success-subtle text-success-primary" : "bg-danger-subtle text-danger-primary";
   return (
     <div className={cn("flex items-center gap-2 rounded-sm p-1 text-11", percentageColor)}>
-      <span>{percentage}%</span>
+      <span className="tabular-nums">{percentage}%</span>
     </div>
   );
 }
@@ -55,7 +55,9 @@ function ActiveProjectItem(props: Props) {
           </span>
         </div>
         <Tooltip tooltipContent={projectDetails?.name} position="top-start">
-          <p className="truncate text-13 font-medium">{projectDetails?.name}</p>
+          <p className="truncate text-13 font-medium" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </p>
         </Tooltip>
       </div>
       <CompletionPercentage

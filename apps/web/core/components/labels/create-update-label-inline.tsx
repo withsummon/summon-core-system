@@ -166,7 +166,7 @@ export const CreateUpdateLabelInline = observer(
           <div className="flex-shrink-0">
             <div className="relative z-10 flex h-full w-full items-center justify-center">
               <Popover>
-                <Popover.Button className="group inline-flex items-center text-14 font-medium text-secondary focus:outline-none data-[popup-open]:text-primary">
+                <Popover.Button className="group inline-flex items-center text-14 font-medium text-secondary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid data-[popup-open]:text-primary">
                   <span
                     className="h-4 w-4 rounded-full"
                     style={{

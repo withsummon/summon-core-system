@@ -78,7 +78,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
     );
 
     setPromiseToast(addToFavoritePromise, {
-      loading: "Adding module to favorites...",
+      loading: "Adding module to favorites…",
       success: {
         title: "Success!",
         message: () => "Module added to favorites.",
@@ -102,7 +102,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
     );
 
     setPromiseToast(removeFromFavoritePromise, {
-      loading: "Removing module from favorites...",
+      loading: "Removing module from favorites…",
       success: {
         title: "Success!",
         message: () => "Module removed from favorites.",
@@ -200,7 +200,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
                     handleModuleDetailsChange={handleModuleDetailsChange}
                   />
                 )}
-                <button onClick={openModuleOverview}>
+                <button type="button" aria-label="Module details" onClick={openModuleOverview}>
                   <Info className="h-4 w-4 text-placeholder" />
                 </button>
               </div>

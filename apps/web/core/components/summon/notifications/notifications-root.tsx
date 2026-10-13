@@ -93,9 +93,9 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
             <Link
               key={notification.id}
               href={`/${workspaceSlug}/notifications/`}
-              className={`group hover:border-accent-primary/40 flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors ${
+              className={`group flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors hover:border-accent-strong ${
                 isUnread
-                  ? "border-accent-primary/40 ring-accent-primary/20 bg-surface-1 shadow-xs ring-1"
+                  ? "border-accent-strong bg-surface-1 shadow-xs ring-1 ring-accent-subtle"
                   : "border-subtle bg-surface-1"
               }`}
             >

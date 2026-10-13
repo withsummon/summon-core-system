@@ -14,7 +14,7 @@
     "back_to_integrations": "Back to integrations",
     "select_state": "Select State",
     "set_state": "Set State",
-    "choose_project": "Choose Project...",
+    "choose_project": "Choose Project…",
     "skip_backward_state_movement": "Prevent issues from moving to an earlier state due to PR updates"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Closed",
     "save": "Save",
     "start_sync": "Start Sync",
-    "choose_repository": "Choose Repository..."
+    "choose_repository": "Choose Repository…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Issue Closed",
     "save": "Save",
     "start_sync": "Start Sync",
-    "choose_repository": "Choose Repository..."
+    "choose_repository": "Choose Repository…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Add new state mapping",
       "empty_state": "No state mappings configured. Create your first mapping to sync Sentry issue states with your project states.",
       "failed_loading_state_mappings": "We couldn't load your state mappings. This could be due to a network issue or a problem with the integration.",
-      "loading_project_states": "Loading project states...",
+      "loading_project_states": "Loading project states…",
       "error_loading_states": "Error loading states",
       "no_states_available": "No states available",
       "no_permission_states": "You don't have permission to access states for this project",
@@ -205,7 +205,7 @@
     "connected": "Connected",
     "connect": "Connect",
     "uninstall": "Uninstall",
-    "uninstalling": "Uninstalling...",
+    "uninstalling": "Uninstalling…",
     "install_success": "OAuth Bridge installed successfully.",
     "install_error": "Failed to install OAuth Bridge.",
     "uninstall_success": "OAuth Bridge uninstalled.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Request throttle as count/period (e.g. 120/minute). Leave blank for the default rate limit.",
       "enable_provider": "Enable this provider",
-      "saving": "Saving...",
+      "saving": "Saving…",
       "update": "Update"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook secret is required",
     "private_key_title": "Private Key (Base64 encoded)",
     "private_key_description": "Base64 encoded private key of the app you created in your GitHub Enterprise organization.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private key is required",
     "connect_app": "Connect App"
   },

@@ -176,7 +176,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
       <div
         className={cn(
           "relative my-1 flex w-full items-center rounded-sm border",
-          estimatePointError?.message ? `border-danger-strong` : `border-subtle`
+          estimatePointError?.message ? `border-danger-strong` : `border-subtle focus-within:border-accent-strong`
         )}
       >
         <EstimateInputRoot
@@ -207,6 +207,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
           type="submit"
           className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs text-success-primary transition-colors hover:bg-layer-1"
           disabled={loader}
+          aria-label="Save estimate"
         >
           {loader ? <Spinner className="h-4 w-4" /> : <CheckIcon width={14} height={14} />}
         </button>
@@ -216,6 +217,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
         className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs transition-colors hover:bg-layer-1"
         onClick={handleClose}
         disabled={loader}
+        aria-label="Cancel"
       >
         <CloseIcon height={14} width={14} className="text-secondary" />
       </button>

@@ -106,8 +106,11 @@ export const NotificationItemSnoozeOption = observer(function NotificationItemSn
             isMobile={isMobile}
           >
             <Popover.Button
+              aria-label={
+                data.snoozed_till ? t("notification.options.mark_unsnooze") : t("notification.options.mark_snooze")
+              }
               className={cn(
-                "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2",
+                "relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-xs bg-layer-1 outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
                 popoverOpen ? "bg-layer-1" : ""
               )}
             >
@@ -119,7 +122,7 @@ export const NotificationItemSnoozeOption = observer(function NotificationItemSn
             <div className="space-y-1 rounded-md border border-subtle bg-surface-1 p-2">
               {data.snoozed_till && (
                 <button
-                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
+                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-colors hover:bg-layer-1"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -133,7 +136,7 @@ export const NotificationItemSnoozeOption = observer(function NotificationItemSn
               {NOTIFICATION_SNOOZE_OPTIONS.map((option) => (
                 <button
                   key={option.key}
-                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-all hover:bg-layer-1"
+                  className="w-full cursor-pointer rounded-xs p-1 px-2 text-left text-body-xs-medium text-secondary transition-colors hover:bg-layer-1"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();

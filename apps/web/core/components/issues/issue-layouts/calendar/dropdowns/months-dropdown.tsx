@@ -68,7 +68,11 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
       <Popover>
         <Popover.Button
           render={
-            <button type="button" className="text-18 font-semibold outline-none" disabled={calendarLayout === "week"}>
+            <button
+              type="button"
+              className="text-18 font-semibold outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+              disabled={calendarLayout === "week"}
+            >
               {calendarLayout === "month"
                 ? `${MONTHS_LIST[activeMonthDate.getMonth() + 1].title} ${activeMonthDate.getFullYear()}`
                 : getWeekLayoutHeader()}
@@ -80,6 +84,7 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
             <div className="flex items-center justify-between gap-2 pb-3">
               <button
                 type="button"
+                aria-label="Previous year"
                 className="grid place-items-center"
                 onClick={() => {
                   const previousYear = new Date(activeMonthDate.getFullYear() - 1, activeMonthDate.getMonth(), 1);
@@ -91,6 +96,7 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
               <span className="text-11">{activeMonthDate.getFullYear()}</span>
               <button
                 type="button"
+                aria-label="Next year"
                 className="grid place-items-center"
                 onClick={() => {
                   const nextYear = new Date(activeMonthDate.getFullYear() + 1, activeMonthDate.getMonth(), 1);

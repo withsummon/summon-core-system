@@ -148,7 +148,9 @@ export const CustomButton: Story = {
     return (
       <Menu
         customButton={
-          <button className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color">Custom Button</button>
+          <button className="rounded-sm bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary-hover">
+            Custom Button
+          </button>
         }
       >
         <Menu.MenuItem onClick={() => alert("Option 1")}>Option 1</Menu.MenuItem>
@@ -210,12 +212,12 @@ export const MaxHeightLarge: Story = {
 export const ComplexMenu: Story = {
   render() {
     return (
-      <Menu label="More Actions" buttonClassName="bg-gray-100">
+      <Menu label="More Actions" buttonClassName="bg-layer-1">
         <Menu.MenuItem onClick={() => alert("Notifications")}>
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             <span>Notifications</span>
-            <span className="bg-red-500 ml-auto rounded-sm px-2 py-0.5 text-11 text-on-color">3</span>
+            <span className="ml-auto rounded-sm bg-danger-primary px-2 py-0.5 text-11 text-on-color">3</span>
           </div>
         </Menu.MenuItem>
         <Menu.MenuItem onClick={() => alert("Help")}>
@@ -232,7 +234,7 @@ export const ComplexMenu: Story = {
           <Menu.MenuItem onClick={() => alert("Privacy Settings")}>Privacy</Menu.MenuItem>
           <Menu.MenuItem onClick={() => alert("Security Settings")}>Security</Menu.MenuItem>
         </Menu.SubMenu>
-        <div className="border-gray-200 my-1 border-t" />
+        <div className="my-1 border-t border-subtle" />
         <Menu.MenuItem onClick={() => alert("Logout")}>
           <div className="flex items-center gap-2 text-danger-primary">
             <LogOut className="h-4 w-4" />
@@ -249,16 +251,16 @@ export const CustomStyles: Story = {
     return (
       <Menu
         label="Styled Menu"
-        buttonClassName="bg-purple-500 text-on-color hover:bg-purple-600"
-        optionsClassName="bg-purple-50 border-purple-300"
+        buttonClassName="bg-label-purple-bg-strong text-on-color hover:bg-label-purple-bg-strong/80"
+        optionsClassName="bg-label-purple-bg border-label-purple-border"
       >
-        <Menu.MenuItem onClick={() => alert("Item 1")} className="hover:bg-purple-200">
+        <Menu.MenuItem onClick={() => alert("Item 1")} className="hover:bg-label-purple-hover">
           Item 1
         </Menu.MenuItem>
-        <Menu.MenuItem onClick={() => alert("Item 2")} className="hover:bg-purple-200">
+        <Menu.MenuItem onClick={() => alert("Item 2")} className="hover:bg-label-purple-hover">
           Item 2
         </Menu.MenuItem>
-        <Menu.MenuItem onClick={() => alert("Item 3")} className="hover:bg-purple-200">
+        <Menu.MenuItem onClick={() => alert("Item 3")} className="hover:bg-label-purple-hover">
           Item 3
         </Menu.MenuItem>
       </Menu>

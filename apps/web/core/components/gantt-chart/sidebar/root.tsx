@@ -73,7 +73,7 @@ export const GanttChartSidebar = observer(function GanttChartSidebar(props: Prop
             <div className="absolute left-1 flex w-3.5 flex-shrink-0 items-center">
               <MultipleSelectGroupAction
                 className={cn(
-                  "pointer-events-none size-3.5 opacity-0 !outline-none group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100",
+                  "pointer-events-none size-3.5 opacity-0 group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100 focus-visible:opacity-100",
                   {
                     "pointer-events-auto opacity-100": !isGroupSelectionEmpty,
                   }

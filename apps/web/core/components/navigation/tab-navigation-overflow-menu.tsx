@@ -68,12 +68,15 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                     }}
                     className="invisible rounded-sm p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
                     title="Show"
+                    aria-label="Show"
                   >
                     <Pin className="size-3" />
                   </button>
                 )}
                 <Tooltip tooltipContent={isDefault ? "Clear default" : "Set as default"}>
                   <button
+                    type="button"
+                    aria-label={isDefault ? "Clear default" : "Set as default"}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();

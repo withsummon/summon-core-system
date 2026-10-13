@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Impostazione degli assegnatari...",
+            "loading": "Impostazione degli assegnatari…",
             "success": {
               "title": "Successo!",
               "message": "Assegnatari impostati con successo."
@@ -425,7 +425,7 @@
         "toggle_description": "Organizza gli elementi di lavoro per scadenze dei traguardi."
       },
       "toasts": {
-        "loading": "Aggiornamento funzionalità progetto...",
+        "loading": "Aggiornamento funzionalità progetto…",
         "success": "Funzionalità progetto aggiornata con successo.",
         "error": "Qualcosa è andato storto durante l'aggiornamento della funzionalità progetto. Riprova."
       }

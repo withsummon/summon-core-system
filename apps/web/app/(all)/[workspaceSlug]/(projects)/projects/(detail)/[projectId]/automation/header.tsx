@@ -34,7 +34,7 @@ export const ProjectAutomationHeader = observer(function ProjectAutomationHeader
               <BreadcrumbLink
                 label="Automation"
                 href={`/${workspaceSlug}/projects/${currentProjectDetails?.id || projectId}/automation`}
-                icon={<Sparkles className="text-blue-500 h-4 w-4" />}
+                icon={<Sparkles className="h-4 w-4 text-icon-accent-primary" />}
                 isLast
               />
             }

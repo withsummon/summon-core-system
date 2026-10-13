@@ -45,7 +45,7 @@ export const CustomStarterKitExtension = (args: TArgs) => {
     },
     dropcursor: {
       class:
-        "text-tertiary transition-all motion-reduce:transition-none motion-reduce:hover:transform-none duration-200 ease-[cubic-bezier(0.165, 0.84, 0.44, 1)]",
+        "text-tertiary transition-[top,left,width,height] motion-reduce:transition-none duration-200 ease-[cubic-bezier(0.165,0.84,0.44,1)]",
     },
     ...(enableHistory ? {} : { history: false }),
   });

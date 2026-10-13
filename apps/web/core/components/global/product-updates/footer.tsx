@@ -20,7 +20,7 @@ export function ProductUpdatesFooter() {
         <a
           href="https://go.plane.so/p-docs"
           target="_blank"
-          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline"
+          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           rel="noreferrer"
         >
           {t("docs")}
@@ -32,7 +32,7 @@ export function ProductUpdatesFooter() {
           data-ph-element={USER_TRACKER_ELEMENTS.CHANGELOG_REDIRECTED}
           href="https://go.plane.so/p-changelog"
           target="_blank"
-          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline"
+          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           rel="noreferrer"
         >
           {t("full_changelog")}
@@ -43,7 +43,7 @@ export function ProductUpdatesFooter() {
         <a
           href="mailto:support@plane.so"
           target="_blank"
-          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline"
+          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           rel="noreferrer"
         >
           {t("support")}
@@ -54,7 +54,7 @@ export function ProductUpdatesFooter() {
         <a
           href="https://forum.plane.so"
           target="_blank"
-          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline"
+          className="text-13 text-secondary underline-offset-1 outline-none hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           rel="noreferrer"
         >
           Forum
@@ -65,7 +65,7 @@ export function ProductUpdatesFooter() {
         target="_blank"
         className={cn(
           getButtonStyling("secondary", "base"),
-          "flex items-center gap-1.5 text-center font-medium underline-offset-2 outline-none hover:underline"
+          "flex items-center gap-1.5 text-center font-medium underline-offset-2 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
         )}
         rel="noreferrer"
       >

@@ -40,6 +40,7 @@ export const AppliedAccessFilters = observer(function AppliedAccessFilters(props
             <span className="normal-case">{t(label)}</span>
             {editable && (
               <button
+                aria-label="Remove filter"
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(access)}

@@ -33,6 +33,7 @@ export const WorkItemsModalHeader = observer(function WorkItemsModalHeader(props
           type="button"
           className="hidden place-items-center p-1 text-secondary hover:text-primary md:grid"
           onClick={() => setFullScreen((prevData) => !prevData)}
+          aria-label={fullScreen ? "Exit full screen" : "Enter full screen"}
         >
           {fullScreen ? <Shrink size={14} strokeWidth={2} /> : <Expand size={14} strokeWidth={2} />}
         </button>
@@ -40,6 +41,7 @@ export const WorkItemsModalHeader = observer(function WorkItemsModalHeader(props
           type="button"
           className="grid place-items-center p-1 text-secondary hover:text-primary"
           onClick={handleClose}
+          aria-label="Close"
         >
           <CloseIcon height={14} width={14} strokeWidth={2} />
         </button>

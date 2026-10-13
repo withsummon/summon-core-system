@@ -95,10 +95,10 @@ export const QuickActionsCard: React.FC<IQuickActionsCardProps> = ({
               className="group flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium text-primary transition-colors hover:bg-surface-2"
             >
               <div className="flex items-center gap-2.5">
-                <div className="text-blue-600 dark:text-blue-400 flex size-6 shrink-0 items-center justify-center rounded-md">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-md text-icon-accent-primary">
                   <IconComp size={15} />
                 </div>
-                <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs font-medium text-primary transition-colors">
+                <span className="text-xs font-medium text-primary transition-colors group-hover:text-accent-primary">
                   {action.label}
                 </span>
               </div>

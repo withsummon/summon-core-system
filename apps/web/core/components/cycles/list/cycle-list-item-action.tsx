@@ -188,12 +188,12 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
       {showIssueCount && (
         <div className="flex items-center gap-1">
           <WorkItemsIcon className="h-4 w-4 text-tertiary" />
-          <span className="text-11 text-tertiary">{cycleDetails.total_issues}</span>
+          <span className="text-11 text-tertiary tabular-nums">{cycleDetails.total_issues}</span>
         </div>
       )}
       {showTransferIssues && (
-        // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-        <div
+        <button
+          type="button"
           className="flex h-6 cursor-pointer items-center gap-1 px-2 text-accent-secondary"
           onClick={() => {
             setTransferIssuesModal(true);
@@ -201,7 +201,7 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
         >
           <TransferIcon className="w-4 fill-accent-primary" />
           <span>{t("project_cycles.transfer_work_items", { count: transferableIssuesCount })}</span>
-        </div>
+        </button>
       )}
       {isActive ? (
         <>

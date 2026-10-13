@@ -196,7 +196,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                         <CustomSearchSelect
                           value={value}
                           render={
-                            <button className="flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
+                            <button className="flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid">
                               {value && value !== "" ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar
@@ -245,7 +245,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                         <CustomSelect
                           {...field}
                           customButton={
-                            <div className="flex w-24 items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2.5 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
+                            <div className="flex w-24 items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2.5 text-left text-13 text-secondary shadow-sm duration-300 hover:bg-layer-1 hover:text-primary">
                               <span className="capitalize">{field.value ? ROLE[field.value] : "Select role"}</span>
                               <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
                             </div>
@@ -274,6 +274,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                   {fields.length > 1 && (
                     <div className="flex-item flex w-6">
                       <button
+                        aria-label="Remove"
                         type="button"
                         className="place-items-center self-center rounded-sm"
                         onClick={() => remove(index)}
@@ -302,7 +303,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
             </Button>
             <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
               {isSubmitting
-                ? `${fields && fields.length > 1 ? `${t("add_members")}...` : `${t("add_member")}...`}`
+                ? `${fields && fields.length > 1 ? `${t("add_members")}…` : `${t("add_member")}…`}`
                 : `${fields && fields.length > 1 ? t("add_members") : t("add_member")}`}
             </Button>
           </div>

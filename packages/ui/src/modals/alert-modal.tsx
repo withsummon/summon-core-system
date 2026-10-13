@@ -88,15 +88,15 @@ export function AlertModalCore(props: Props) {
           </span>
         )}
         <div className="text-center sm:text-left">
-          <h3 className="text-16 font-medium">{title}</h3>
-          <p className="mt-1 text-13 text-secondary">{content}</p>
+          <h3 className="text-16 font-medium text-balance">{title}</h3>
+          <p className="mt-1 text-13 text-pretty text-secondary">{content}</p>
         </div>
       </div>
       <div className="flex flex-col-reverse gap-2 border-t-[0.5px] border-subtle px-5 py-4 sm:flex-row sm:justify-end">
         <Button variant="secondary" onClick={handleClose}>
           {secondaryButtonText}
         </Button>
-        <Button variant={BUTTON_VARIANTS[variant]} tabIndex={1} onClick={handleSubmit} loading={isSubmitting}>
+        <Button variant={BUTTON_VARIANTS[variant]} onClick={handleSubmit} loading={isSubmitting}>
           {isSubmitting ? primaryButtonText.loading : primaryButtonText.default}
         </Button>
       </div>

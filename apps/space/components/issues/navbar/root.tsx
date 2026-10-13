@@ -36,7 +36,7 @@ export const IssuesNavbarRoot = observer(function IssuesNavbarRoot(props: Props)
           </span>
         )}
         <div className="line-clamp-1 max-w-[300px] overflow-hidden text-16 font-medium">
-          {project_details?.name || `...`}
+          {project_details?.name || `…`}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">

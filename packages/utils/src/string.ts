@@ -38,12 +38,12 @@ export const replaceUnderscoreIfSnakeCase = (str: string) => str.replace(/_/g, "
  * @param {number} length - Maximum length before truncation
  * @returns {string} Truncated string with ellipsis if needed
  * @example
- * truncateText("This is a long text", 7) // returns "This is..."
+ * truncateText("This is a long text", 7) // returns "This is…"
  */
 export const truncateText = (str: string, length: number) => {
   if (!str || str === "") return "";
 
-  return str.length > length ? `${str.substring(0, length)}...` : str;
+  return str.length > length ? `${str.substring(0, length)}…` : str;
 };
 
 /**

@@ -73,7 +73,7 @@ export function SendTestEmailModal(props: Props) {
         if (!open) handleClose();
       }}
     >
-      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 transition-all sm:max-w-xl">
+      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 sm:max-w-xl">
         <Dialog.Title className="text-16 leading-6 font-medium text-primary">
           {sendEmailStep === ESendEmailSteps.SEND_EMAIL
             ? "Send test email"

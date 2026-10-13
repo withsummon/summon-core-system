@@ -61,6 +61,7 @@ export const IssueParentTag = observer(function IssueParentTag(props: TIssuePare
             <span className="truncate font-medium">{selectedParentIssue.name.substring(0, 50)}</span>
             <button
               type="button"
+              aria-label="Remove parent"
               className="grid place-items-center"
               onClick={() => {
                 onChange(null);

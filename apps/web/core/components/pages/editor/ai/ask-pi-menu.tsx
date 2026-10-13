@@ -59,7 +59,7 @@ export function AskPiMenu(props: Props) {
             <div className="mt-3 flex items-center gap-4">
               <button
                 type="button"
-                className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
+                className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                 onClick={() => handleInsertText(false)}
               >
                 Replace selection
@@ -67,7 +67,8 @@ export function AskPiMenu(props: Props) {
               <Tooltip tooltipContent="Add to next line">
                 <button
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                  aria-label="Add to next line"
                   onClick={() => handleInsertText(true)}
                 >
                   <CornerDownRight className="size-4 text-tertiary" />
@@ -76,7 +77,8 @@ export function AskPiMenu(props: Props) {
               <Tooltip tooltipContent="Re-generate response">
                 <button
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                  aria-label="Re-generate response"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -94,11 +96,11 @@ export function AskPiMenu(props: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-13 text-secondary">AI is answering...</p>
+          <p className="text-13 text-secondary">AI is answering…</p>
         )}
       </div>
       <div className="px-4 py-3">
-        <div className="flex items-center gap-2 rounded-md border border-subtle p-2">
+        <div className="flex items-center gap-2 rounded-md border border-subtle p-2 focus-within:border-accent-strong">
           <span className="grid size-3 flex-shrink-0 place-items-center">
             <Sparkles className="size-3 text-secondary" />
           </span>
@@ -107,7 +109,7 @@ export function AskPiMenu(props: Props) {
             className="w-full border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tell AI what to do..."
+            placeholder="Tell AI what to do…"
           />
           <span className="grid size-4 flex-shrink-0 place-items-center">
             <CircleArrowUp className="size-4 text-secondary" />

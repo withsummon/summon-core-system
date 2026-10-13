@@ -20,14 +20,14 @@ export const NameDescriptionUpdateStatus = observer(function NameDescriptionUpda
   return (
     <>
       <div
-        className={`flex items-center gap-x-2 transition-all duration-300 ${
+        className={`flex items-center gap-x-2 transition-opacity duration-300 ${
           isSubmitting === "saved" ? "fade-out" : "fade-in"
         }`}
       >
         {isSubmitting !== "submitted" && isSubmitting !== "saved" && (
           <RefreshCw className="size-3.5 animate-spin stroke-tertiary" />
         )}
-        <span className="text-13 text-tertiary">{isSubmitting === "submitting" ? "Saving..." : "Saved"}</span>
+        <span className="text-13 text-tertiary">{isSubmitting === "submitting" ? "Saving…" : "Saved"}</span>
       </div>
     </>
   );

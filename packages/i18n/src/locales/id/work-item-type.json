@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Tetapkan sebagai default",
           "toast": {
-            "loading": "Menetapkan sebagai default...",
+            "loading": "Menetapkan sebagai default…",
             "success": {
               "title": "Berhasil!",
               "message": "Tingkat hierarki {level} berhasil ditetapkan sebagai default."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Memindahkan {workItemTypeName} ke tingkat {level}...",
+        "loading": "Memindahkan {workItemTypeName} ke tingkat {level}…",
         "success": {
           "title": "Berhasil!",
           "message": "{workItemTypeName} berhasil dipindahkan ke tingkat {level}."

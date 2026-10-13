@@ -70,9 +70,11 @@
   &:not(.read-only-image):not(.loading-image) {
     transition: filter 0.1s ease-in-out;
 
-    &:hover {
-      cursor: pointer;
-      filter: brightness(90%);
+    @media (hover: hover) {
+      &:hover {
+        cursor: pointer;
+        filter: brightness(90%);
+      }
     }
 
     &.ProseMirror-selectednode {
@@ -109,10 +111,17 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
   outline: none;
   border-radius: 2px;
   transform: scale(1.05);
+
+  &:focus-visible {
+    outline: 2px solid var(--border-color-accent-strong);
+    outline-offset: 2px;
+  }
 }
 
-.ProseMirror[contenteditable="true"] input[type="checkbox"]:hover {
-  background-color: color-mix(in srgb, var(--text-color-primary) 10%, transparent);
+@media (hover: hover) {
+  .ProseMirror[contenteditable="true"] input[type="checkbox"]:hover {
+    background-color: color-mix(in srgb, var(--text-color-primary) 10%, transparent);
+  }
 }
 
 .ProseMirror[contenteditable="false"] input[type="checkbox"] {
@@ -125,9 +134,11 @@ ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
   color: white !important;
 }
 
-ul[data-type="taskList"] li > label input[type="checkbox"]:checked:hover {
-  background-color: var(--background-color-accent-primary-hover) !important;
-  border-color: var(--border-color-accent-strong) !important;
+@media (hover: hover) {
+  ul[data-type="taskList"] li > label input[type="checkbox"]:checked:hover {
+    background-color: var(--background-color-accent-primary-hover) !important;
+    border-color: var(--border-color-accent-strong) !important;
+  }
 }
 
 @media screen and (max-width: 768px) {

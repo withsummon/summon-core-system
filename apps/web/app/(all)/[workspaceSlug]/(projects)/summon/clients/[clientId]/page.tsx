@@ -363,7 +363,9 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                         {contact.name.slice(0, 2).toUpperCase()}
                       </span>
                       <div className="min-w-0">
-                        <h3 className="truncate text-12 font-semibold text-primary">{contact.name}</h3>
+                        <h3 className="truncate text-12 font-semibold text-primary" title={contact.name}>
+                          {contact.name}
+                        </h3>
                         <p className="mt-0.5 truncate text-12 text-secondary">{contact.title || "Role not set"}</p>
                         {contact.email ? (
                           <a

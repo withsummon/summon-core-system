@@ -274,7 +274,9 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                             <Server className="size-4" />
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-medium text-primary">{credential.name}</span>
+                            <span className="block truncate font-medium text-primary" title={credential.name}>
+                              {credential.name}
+                            </span>
                             <span className="mt-0.5 block truncate text-12 text-secondary">
                               {credential.account_identifier || "No account identifier"}
                             </span>
@@ -317,7 +319,9 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-lg font-semibold text-primary">{selected.name}</h3>
+                  <h3 className="truncate text-lg font-semibold text-primary" title={selected.name}>
+                    {selected.name}
+                  </h3>
                   <Status value={selected.status} />
                 </div>
                 <p className="mt-1 text-xs text-secondary capitalize">
@@ -346,7 +350,12 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                           label="Password"
                           value={selected.secret}
                           action={
-                            <button type="button" onClick={() => setManageOpen(true)} className="text-accent-primary">
+                            <button
+                              aria-label="View password"
+                              type="button"
+                              onClick={() => setManageOpen(true)}
+                              className="text-accent-primary"
+                            >
                               <Eye className="size-4" />
                             </button>
                           }
@@ -481,8 +490,8 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
 function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "blue" | "green" }) {
   const tones = {
     neutral: "bg-layer-2 text-secondary",
-    blue: "bg-blue-500/10 text-blue-600",
-    green: "bg-green-500/10 text-green-600",
+    blue: "bg-label-indigo-bg text-label-indigo-text",
+    green: "bg-label-emerald-bg text-label-emerald-text",
   };
   return (
     <span className={`inline-flex rounded-md px-2 py-1 text-12 font-medium capitalize ${tones[tone]}`}>{children}</span>
@@ -492,7 +501,7 @@ function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone
 function Status({ value }: { value: ISummonCredential["status"] }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium capitalize ${value === "active" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-12 font-medium capitalize ${value === "active" ? "bg-success-subtle text-success-primary" : "bg-danger-subtle text-danger-primary"}`}
     >
       <span className="size-1.5 rounded-full bg-current" />
       {value}

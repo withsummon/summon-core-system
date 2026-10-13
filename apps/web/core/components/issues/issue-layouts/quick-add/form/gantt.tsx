@@ -20,7 +20,7 @@ export const GanttQuickAddIssueForm = observer(function GanttQuickAddIssueForm(p
         className="flex w-full items-center gap-x-3 border-[0.5px] border-subtle bg-surface-1 px-3"
       >
         <div className="flex w-full items-center gap-3">
-          <div className="text-11 font-medium text-placeholder">{projectDetail?.identifier ?? "..."}</div>
+          <div className="text-11 font-medium text-placeholder">{projectDetail?.identifier ?? "…"}</div>
           <input
             type="text"
             autoComplete="off"

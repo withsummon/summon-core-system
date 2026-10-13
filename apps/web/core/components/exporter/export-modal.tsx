@@ -58,7 +58,9 @@ export const Exporter = observer(function Exporter(props: Props) {
       content: (
         <div className="flex items-center gap-2">
           <span className="flex-shrink-0 text-10 text-secondary">{projectDetails?.identifier}</span>
-          <span className="truncate">{projectDetails?.name}</span>
+          <span className="truncate" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </span>
         </div>
       ),
     };
@@ -157,7 +159,7 @@ export const Exporter = observer(function Exporter(props: Props) {
           </Button>
           <Button variant="primary" onClick={ExportCSVToMail} disabled={exportLoading} loading={exportLoading}>
             {exportLoading
-              ? `${t("workspace_settings.settings.exports.exporting")}...`
+              ? `${t("workspace_settings.settings.exports.exporting")}…`
               : t("workspace_settings.settings.exports.title")}
           </Button>
         </div>

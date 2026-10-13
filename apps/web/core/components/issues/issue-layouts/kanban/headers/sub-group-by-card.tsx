@@ -24,12 +24,12 @@ interface IHeaderSubGroupByCard {
 export const HeaderSubGroupByCard = observer(function HeaderSubGroupByCard(props: IHeaderSubGroupByCard) {
   const { icon, title, count, column_id, collapsedGroups, handleCollapsedGroups } = props;
   return (
-    // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-    <div
-      className={`relative flex w-full flex-shrink-0 cursor-pointer flex-row items-center gap-1 rounded-xs py-1.5`}
+    <button
+      type="button"
+      className={`relative flex w-full flex-shrink-0 cursor-pointer flex-row items-center gap-1 rounded-xs py-1.5 text-left`}
       onClick={() => handleCollapsedGroups("sub_group_by", column_id)}
     >
-      <div className="flex h-[20px] w-[20px] flex-shrink-0 items-center justify-center overflow-hidden rounded-xs transition-all hover:bg-layer-1">
+      <div className="flex h-[20px] w-[20px] flex-shrink-0 items-center justify-center overflow-hidden rounded-xs transition-colors hover:bg-layer-1">
         {collapsedGroups?.sub_group_by.includes(column_id) ? (
           <ChevronDownIcon width={14} strokeWidth={2} />
         ) : (
@@ -43,8 +43,8 @@ export const HeaderSubGroupByCard = observer(function HeaderSubGroupByCard(props
 
       <div className="flex flex-shrink-0 items-center gap-1 text-13">
         <div className="line-clamp-1 text-primary">{title}</div>
-        <div className="pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
+        <div className="pl-2 text-13 font-medium text-tertiary tabular-nums">{count || 0}</div>
       </div>
-    </div>
+    </button>
   );
 });

@@ -124,8 +124,10 @@ export const CycleSidebarHeader = observer(function CycleSidebarHeader(props: Pr
       <div className="sticky top-0 z-10 flex items-center justify-between bg-surface-1 pt-2">
         <div className="flex size-5 items-center justify-center">
           <button
+            type="button"
             className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-layer-3 hover:bg-layer-3-hover"
             onClick={() => handleClose()}
+            aria-label="Close"
           >
             <ChevronRightIcon className="size-4 stroke-2 text-secondary" />
           </button>

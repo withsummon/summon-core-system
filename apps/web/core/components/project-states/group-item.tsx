@@ -56,17 +56,19 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
 
   return (
     <div
-      className={cn("space-y-1 rounded-sm border border-subtle bg-surface-2 p-2 transition-all", groupItemClassName)}
+      className={cn("space-y-1 rounded-sm border border-subtle bg-surface-2 p-2", groupItemClassName)}
       ref={dropElementRef}
     >
       <div className="flex items-center justify-between gap-2">
-        <div
-          className="flex w-full cursor-pointer items-center py-1"
+        <button
+          type="button"
+          className="flex w-full cursor-pointer items-center py-1 text-left"
+          aria-expanded={currentStateExpanded}
           onClick={() => (!currentStateExpanded ? handleExpand(groupKey) : handleGroupCollapse(groupKey))}
         >
           <div
             className={cn(
-              "flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm transition-all",
+              "flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm transition-[rotate]",
               {
                 "rotate-0": currentStateExpanded,
                 "-rotate-90": !currentStateExpanded,
@@ -79,8 +81,9 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
             <StateGroupIcon stateGroup={groupKey} size={EIconSize.XL} />
           </div>
           <div className="px-1 text-14 font-medium text-secondary capitalize">{groupKey}</div>
-        </div>
+        </button>
         <button
+          aria-label="Add state"
           type="button"
           data-ph-element={STATE_TRACKER_ELEMENTS.STATE_GROUP_ADD_BUTTON}
           className={cn(

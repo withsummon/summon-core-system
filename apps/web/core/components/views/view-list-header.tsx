@@ -72,14 +72,14 @@ export const ViewListHeader = observer(function ViewListHeader() {
           className={cn(
             "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
             {
-              "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
+              "w-64 border-subtle px-2.5 py-1.5 opacity-100 focus-within:border-accent-strong": isSearchOpen,
             }
           )}
         >
           <SearchIcon className="h-3.5 w-3.5" />
           <input
             ref={inputRef}
-            className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
+            className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
             placeholder="Search"
             value={filters?.searchQuery}
             onChange={(e) => updateFilters("searchQuery", e.target.value)}
@@ -89,6 +89,7 @@ export const ViewListHeader = observer(function ViewListHeader() {
             <button
               type="button"
               className="grid place-items-center"
+              aria-label="Clear search"
               onClick={() => {
                 updateFilters("searchQuery", "");
                 setIsSearchOpen(false);

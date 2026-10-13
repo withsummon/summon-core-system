@@ -21,7 +21,10 @@ export function ForgotPasswordPopover() {
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <Popover.Button
           render={
-            <button type="button" className="text-11 font-medium text-accent-primary outline-none">
+            <button
+              type="button"
+              className="text-11 font-medium text-accent-primary outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+            >
               {t("auth.common.forgot_password")}
             </button>
           }

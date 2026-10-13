@@ -55,7 +55,9 @@ export const ProjectSettingsSidebarHeader = observer(function ProjectSettingsSid
           <Logo logo={projectDetails?.logo_props} size={20} />
         </div>
         <div className="truncate">
-          <p className="truncate text-body-sm-medium">{projectDetails?.name}</p>
+          <p className="truncate text-body-sm-medium" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </p>
           <p className="truncate text-caption-md-regular">{t(ROLE_DETAILS[currentProjectRole].i18n_title)}</p>
         </div>
       </div>

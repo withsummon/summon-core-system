@@ -134,12 +134,12 @@ export const AllVariants: Story = {
         <div className="space-y-2">
           <h3 className="text-16 font-semibold">Primary Variants</h3>
           <div className="flex flex-wrap gap-2">
-            <IconButton variant="primary" icon={icon} />
-            <IconButton variant="error-fill" icon={icon} />
-            <IconButton variant="error-outline" icon={icon} />
-            <IconButton variant="secondary" icon={icon} />
-            <IconButton variant="tertiary" icon={icon} />
-            <IconButton variant="ghost" icon={icon} />
+            <IconButton variant="primary" icon={icon} aria-label="Add (primary)" />
+            <IconButton variant="error-fill" icon={icon} aria-label="Add (error-fill)" />
+            <IconButton variant="error-outline" icon={icon} aria-label="Add (error-outline)" />
+            <IconButton variant="secondary" icon={icon} aria-label="Add (secondary)" />
+            <IconButton variant="tertiary" icon={icon} aria-label="Add (tertiary)" />
+            <IconButton variant="ghost" icon={icon} aria-label="Add (ghost)" />
           </div>
         </div>
       </div>
@@ -152,10 +152,10 @@ export const AllSizes: Story = {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <IconButton size="sm" icon={icon} />
-          <IconButton size="base" icon={icon} />
-          <IconButton size="lg" icon={icon} />
-          <IconButton size="xl" icon={icon} />
+          <IconButton size="sm" icon={icon} aria-label="Add (sm)" />
+          <IconButton size="base" icon={icon} aria-label="Add (base)" />
+          <IconButton size="lg" icon={icon} aria-label="Add (lg)" />
+          <IconButton size="xl" icon={icon} aria-label="Add (xl)" />
         </div>
       </div>
     );
@@ -169,9 +169,9 @@ export const AllStates: Story = {
         <div className="space-y-2">
           <h3 className="text-16 font-semibold">Button States</h3>
           <div className="flex flex-wrap gap-2">
-            <IconButton icon={icon} />
-            <IconButton loading icon={icon} />
-            <IconButton disabled icon={icon} />
+            <IconButton icon={icon} aria-label="Add" />
+            <IconButton loading icon={icon} aria-label="Add (loading)" />
+            <IconButton disabled icon={icon} aria-label="Add (disabled)" />
           </div>
         </div>
       </div>

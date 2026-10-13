@@ -33,7 +33,7 @@ export const AppRailRoot = observer(() => {
 
   return (
     <div
-      className="z-[26] h-full flex-shrink-0 bg-canvas transition-all duration-300 ease-in-out"
+      className="z-[26] h-full flex-shrink-0 bg-canvas transition-[width] duration-300 ease-in-out"
       style={{
         width: railWidth,
         display: "block",

@@ -126,7 +126,8 @@ export function IssueLinkRoot(props: TIssueLinkRoot) {
           {!disabled && (
             <button
               type="button"
-              className={`grid h-7 w-7 place-items-center rounded-sm p-1 duration-300 outline-none hover:bg-surface-2 ${
+              aria-label="Add link"
+              className={`grid h-7 w-7 place-items-center rounded-sm p-1 duration-300 outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid ${
                 disabled ? "cursor-not-allowed" : "cursor-pointer"
               }`}
               onClick={() => toggleIssueLinkModal(true)}

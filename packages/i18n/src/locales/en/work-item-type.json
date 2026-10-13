@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Set as default",
           "toast": {
-            "loading": "Setting as default...",
+            "loading": "Setting as default…",
             "success": {
               "title": "Success!",
               "message": "Hierarchy level {level} set as default successfully."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Moving {workItemTypeName} to level {level}...",
+        "loading": "Moving {workItemTypeName} to level {level}…",
         "success": {
           "title": "Success!",
           "message": "{workItemTypeName} moved to level {level} successfully."

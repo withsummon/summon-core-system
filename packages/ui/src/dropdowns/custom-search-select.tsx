@@ -73,7 +73,10 @@ export function CustomSearchSelect({
           className={cn(
             "flex w-full items-center justify-between gap-2 outline-none disabled:cursor-not-allowed disabled:opacity-50",
             render || customButton
-              ? customButtonClassName
+              ? [
+                  "focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
+                  customButtonClassName,
+                ]
               : [FIELD_CLASSNAME, input ? "h-9 px-3" : "h-8 px-2.5", buttonClassName]
           )}
         >

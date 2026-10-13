@@ -25,7 +25,7 @@ function Switch({ value, onChange, label, size = "sm", disabled, className }: IT
       onCheckedChange={onChange}
       aria-label={label}
       className={cn(
-        "relative inline-flex flex-shrink-0 cursor-pointer rounded-full border transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong motion-reduce:transition-none",
+        "relative inline-flex flex-shrink-0 cursor-pointer rounded-full border transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid motion-reduce:transition-none",
         // size
         size === "sm" ? "h-4 w-6" : size === "md" ? "h-5 w-8" : "h-6 w-10",
         // state

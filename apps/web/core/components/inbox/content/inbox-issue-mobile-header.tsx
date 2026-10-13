@@ -102,7 +102,7 @@ export const InboxIssueActionsMobileHeader = observer(function InboxIssueActions
   return (
     <Header variant={EHeaderVariant.SECONDARY} className="justify-start">
       {isNotificationEmbed && (
-        <button onClick={embedRemoveCurrentNotification}>
+        <button type="button" aria-label="Close" onClick={embedRemoveCurrentNotification}>
           <MoveRight className="mr-2 h-4 w-4 text-tertiary hover:text-secondary" />
         </button>
       )}

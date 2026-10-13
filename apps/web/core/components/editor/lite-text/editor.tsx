@@ -195,7 +195,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
       {isFullVariant && editable && (
         <div
           className={cn(
-            "origin-top overflow-hidden transition-all duration-300 ease-out",
+            "origin-top overflow-hidden transition-[margin,max-height,scale,opacity,visibility] duration-300 ease-out",
             isFocused ? "mt-3 max-h-[200px] scale-y-100 opacity-100" : "invisible max-h-0 scale-y-0 opacity-0"
           )}
         >

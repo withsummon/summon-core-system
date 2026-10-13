@@ -384,8 +384,8 @@
         "done": "Hoàn tất"
       },
       "progress": {
-        "uploading": "Đang tải lên...",
-        "importing": "Đang nhập..."
+        "uploading": "Đang tải lên…",
+        "importing": "Đang nhập…"
       },
       "summary": {
         "title": {

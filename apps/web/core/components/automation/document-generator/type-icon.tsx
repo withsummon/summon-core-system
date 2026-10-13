@@ -16,72 +16,69 @@ interface ITypeIconProps {
   boxed?: boolean;
 }
 
+// Class names stay literal so Tailwind can find them.
+const LABEL_THEMES = {
+  indigo: {
+    textColor: "text-label-indigo-text",
+    bgColor: "bg-label-indigo-bg",
+    borderColor: "border-label-indigo-border",
+    badgeBg: "bg-label-indigo-bg text-label-indigo-text border border-label-indigo-border",
+  },
+  emerald: {
+    textColor: "text-label-emerald-text",
+    bgColor: "bg-label-emerald-bg",
+    borderColor: "border-label-emerald-border",
+    badgeBg: "bg-label-emerald-bg text-label-emerald-text border border-label-emerald-border",
+  },
+  purple: {
+    textColor: "text-label-purple-text",
+    bgColor: "bg-label-purple-bg",
+    borderColor: "border-label-purple-border",
+    badgeBg: "bg-label-purple-bg text-label-purple-text border border-label-purple-border",
+  },
+  orange: {
+    textColor: "text-label-orange-text",
+    bgColor: "bg-label-orange-bg",
+    borderColor: "border-label-orange-border",
+    badgeBg: "bg-label-orange-bg text-label-orange-text border border-label-orange-border",
+  },
+  yellow: {
+    textColor: "text-label-yellow-text",
+    bgColor: "bg-label-yellow-bg",
+    borderColor: "border-label-yellow-border",
+    badgeBg: "bg-label-yellow-bg text-label-yellow-text border border-label-yellow-border",
+  },
+  pink: {
+    textColor: "text-label-pink-text",
+    bgColor: "bg-label-pink-bg",
+    borderColor: "border-label-pink-border",
+    badgeBg: "bg-label-pink-bg text-label-pink-text border border-label-pink-border",
+  },
+  grey: {
+    textColor: "text-label-grey-text",
+    bgColor: "bg-label-grey-bg",
+    borderColor: "border-label-grey-border",
+    badgeBg: "bg-label-grey-bg text-label-grey-text border border-label-grey-border",
+  },
+} as const;
+
 export const getDocumentTypeTheme = (type: TDocumentType | string) => {
   switch (type) {
     case "Technical Proposal":
-      return {
-        icon: FileText,
-        textColor: "text-blue-600 dark:text-blue-400",
-        bgColor: "bg-blue-50 dark:bg-blue-950/40",
-        borderColor: "border-blue-200 dark:border-blue-800/60",
-        badgeBg:
-          "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
-      };
+      return { icon: FileText, ...LABEL_THEMES.indigo };
     case "Quotation":
-      return {
-        icon: FileSpreadsheet,
-        textColor: "text-emerald-600 dark:text-emerald-400",
-        bgColor: "bg-emerald-50 dark:bg-emerald-950/40",
-        borderColor: "border-emerald-200 dark:border-emerald-800/60",
-        badgeBg:
-          "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
-      };
+      return { icon: FileSpreadsheet, ...LABEL_THEMES.emerald };
     case "MoM":
-      return {
-        icon: BookOpen,
-        textColor: "text-purple-600 dark:text-purple-400",
-        bgColor: "bg-purple-50 dark:bg-purple-950/40",
-        borderColor: "border-purple-200 dark:border-purple-800/60",
-        badgeBg:
-          "bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
-      };
+      return { icon: BookOpen, ...LABEL_THEMES.purple };
     case "Presentation":
-      return {
-        icon: Presentation,
-        textColor: "text-orange-600 dark:text-orange-400",
-        bgColor: "bg-orange-50 dark:bg-orange-950/40",
-        borderColor: "border-orange-200 dark:border-orange-800/60",
-        badgeBg:
-          "bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/60",
-      };
+      return { icon: Presentation, ...LABEL_THEMES.orange };
     case "Cost Projection":
-      return {
-        icon: TrendingUp,
-        textColor: "text-cyan-600 dark:text-cyan-400",
-        bgColor: "bg-cyan-50 dark:bg-cyan-950/40",
-        borderColor: "border-cyan-200 dark:border-cyan-800/60",
-        badgeBg:
-          "bg-cyan-50 text-cyan-600 border border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800/60",
-      };
+      return { icon: TrendingUp, ...LABEL_THEMES.yellow };
     case "POC Brief":
     case "Architecture / POC Brief":
-      return {
-        icon: Layers,
-        textColor: "text-purple-600 dark:text-purple-400",
-        bgColor: "bg-purple-50 dark:bg-purple-950/40",
-        borderColor: "border-purple-200 dark:border-purple-800/60",
-        badgeBg:
-          "bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
-      };
+      return { icon: Layers, ...LABEL_THEMES.pink };
     default:
-      return {
-        icon: FileCode,
-        textColor: "text-blue-600 dark:text-blue-400",
-        bgColor: "bg-blue-50 dark:bg-blue-950/40",
-        borderColor: "border-blue-200 dark:border-blue-800/60",
-        badgeBg:
-          "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
-      };
+      return { icon: FileCode, ...LABEL_THEMES.grey };
   }
 };
 

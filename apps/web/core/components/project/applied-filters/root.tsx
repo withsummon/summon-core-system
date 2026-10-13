@@ -85,6 +85,7 @@ export function ProjectAppliedFiltersList(props: Props) {
               )}
               {isEditingAllowed && (
                 <button
+                  aria-label="Remove filter"
                   type="button"
                   className="grid place-items-center text-tertiary hover:text-secondary"
                   onClick={() => handleRemoveFilter(filterKey, null)}

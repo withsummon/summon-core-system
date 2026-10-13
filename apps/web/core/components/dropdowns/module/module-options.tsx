@@ -48,7 +48,9 @@ export const ModuleOptions = observer(function ModuleOptions(props: Props) {
       content: (
         <div className="flex items-center gap-2">
           <ModuleIcon className="h-3 w-3 flex-shrink-0" />
-          <span className="flex-grow truncate">{moduleDetails?.name}</span>
+          <span className="flex-grow truncate" title={moduleDetails?.name}>
+            {moduleDetails?.name}
+          </span>
         </div>
       ),
     };

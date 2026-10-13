@@ -6,6 +6,7 @@
 
 import React from "react";
 import { FileText, FileSpreadsheet, Globe, Video, Key, Folder, HardDrive, GitBranch } from "lucide-react";
+import { RESOURCE_KIND_TONE } from "./types";
 
 interface IResourceIconProps {
   category?: string;
@@ -22,7 +23,7 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 1. PDF file
   if (lowerTitle.endsWith(".pdf") || lowerCat === "pdf") {
     return (
-      <div className="bg-red-500/10 text-red-600 dark:text-red-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div className={`${RESOURCE_KIND_TONE.pdf.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}>
         <FileText className={className} />
       </div>
     );
@@ -36,7 +37,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
     lowerCat === "spreadsheet"
   ) {
     return (
-      <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.spreadsheet.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <FileSpreadsheet className={className} />
       </div>
     );
@@ -45,7 +48,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 3. Presentation / PPTX
   if (lowerTitle.endsWith(".pptx") || lowerTitle.endsWith(".ppt") || lowerCat === "presentation") {
     return (
-      <div className="bg-orange-500/10 text-orange-600 dark:text-orange-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.presentation.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <FileText className={className} />
       </div>
     );
@@ -54,7 +59,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 4. Word / DOCX
   if (lowerTitle.endsWith(".docx") || lowerTitle.endsWith(".doc")) {
     return (
-      <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.document.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <FileText className={className} />
       </div>
     );
@@ -63,7 +70,7 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 5. Figma
   if (lowerCat === "figma" || lowerUrl.includes("figma.com") || lowerTitle.includes("figma")) {
     return (
-      <div className="bg-pink-500/10 text-pink-600 dark:text-pink-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div className={`${RESOURCE_KIND_TONE.figma.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}>
         <svg className={className} viewBox="0 0 38 57" fill="currentColor">
           <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z" fill="#1ABCFE" />
           <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z" fill="#0ACF83" />
@@ -84,7 +91,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
     lowerTitle.includes("git")
   ) {
     return (
-      <div className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.repository.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <GitBranch className={className} />
       </div>
     );
@@ -93,7 +102,7 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 7. Google Drive
   if (lowerCat === "drive" || lowerCat === "google drive" || lowerUrl.includes("drive.google.com")) {
     return (
-      <div className="bg-teal-500/10 text-teal-600 dark:text-teal-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div className={`${RESOURCE_KIND_TONE.drive.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}>
         <HardDrive className={className} />
       </div>
     );
@@ -102,7 +111,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 8. Deployment / Live Web URL
   if (lowerCat === "deployment" || lowerCat === "live" || lowerUrl.includes(".com") || lowerUrl.includes(".id")) {
     return (
-      <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.deployment.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <Globe className={className} />
       </div>
     );
@@ -116,7 +127,9 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
     lowerTitle.includes("recording")
   ) {
     return (
-      <div className="bg-purple-500/10 text-purple-600 dark:text-purple-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={`${RESOURCE_KIND_TONE.recording.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}
+      >
         <Video className={className} />
       </div>
     );
@@ -125,7 +138,7 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
   // 10. Account / Credential
   if (lowerCat === "account" || lowerCat === "credential" || lowerCat === "credentials") {
     return (
-      <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+      <div className={`${RESOURCE_KIND_TONE.account.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}>
         <Key className={className} />
       </div>
     );
@@ -133,7 +146,7 @@ export function ResourceIcon({ category = "", title = "", url = "", className = 
 
   // Default fallback: Document
   return (
-    <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 flex size-7 shrink-0 items-center justify-center rounded-lg">
+    <div className={`${RESOURCE_KIND_TONE.document.tile} flex size-7 shrink-0 items-center justify-center rounded-lg`}>
       <FileText className={className} />
     </div>
   );

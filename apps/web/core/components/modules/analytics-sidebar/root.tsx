@@ -186,6 +186,8 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
         <div className={`sticky top-0 z-10 flex items-center justify-between bg-surface-1 pt-5 pb-5`}>
           <div>
             <button
+              type="button"
+              aria-label="Close"
               className="flex h-5 w-5 items-center justify-center rounded-full bg-layer-3"
               onClick={() => handleClose()}
             >
@@ -343,7 +345,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
               <span className="text-14">{t("issues")}</span>
             </div>
             <div className="flex h-7 w-3/5 items-center">
-              <span className="px-1.5 text-13 text-tertiary">{issueCount}</span>
+              <span className="px-1.5 text-13 text-tertiary tabular-nums">{issueCount}</span>
             </div>
           </div>
 
@@ -357,7 +359,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
                 <span className="text-14">{t("points")}</span>
               </div>
               <div className="flex h-7 w-3/5 items-center">
-                <span className="px-1.5 text-13 text-tertiary">{issueEstimatePointCount}</span>
+                <span className="px-1.5 text-13 text-tertiary tabular-nums">{issueEstimatePointCount}</span>
               </div>
             </div>
           )}

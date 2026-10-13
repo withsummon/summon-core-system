@@ -75,7 +75,12 @@ export function StickyEditorToolbar(props: Props) {
             </p>
           }
         >
-          <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="flex text-primary/50">
+          <button
+            type="button"
+            onClick={() => setShowColorPalette(!showColorPalette)}
+            className="flex text-primary/50"
+            aria-label="Background color"
+          >
             <Palette className="my-auto size-4" />
           </button>
         </Tooltip>
@@ -100,6 +105,7 @@ export function StickyEditorToolbar(props: Props) {
                       <button
                         type="button"
                         onClick={() => executeCommand(item)}
+                        aria-label={item.name}
                         className={cn("grid aspect-square place-items-center rounded-xs p-0.5 text-primary/50", {})}
                       >
                         <item.icon
@@ -125,7 +131,7 @@ export function StickyEditorToolbar(props: Props) {
           </p>
         }
       >
-        <button type="button" onClick={handleDelete} className="my-auto text-primary/50">
+        <button type="button" onClick={handleDelete} className="my-auto text-primary/50" aria-label="Delete">
           <TrashIcon className="size-4" />
         </button>
       </Tooltip>

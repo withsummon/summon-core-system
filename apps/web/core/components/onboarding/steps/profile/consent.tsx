@@ -16,6 +16,8 @@ export function MarketingConsent({ isChecked, handleChange }: Props) {
     <div className="flex items-center justify-center gap-1.5">
       <button
         type="button"
+        aria-pressed={isChecked}
+        aria-label="I agree to Plane marketing communications"
         onClick={() => handleChange(!isChecked)}
         className={`flex size-4 items-center justify-center rounded-sm border-2 ${
           isChecked ? "border-accent-strong bg-accent-primary" : "border-strong"

@@ -23,12 +23,12 @@ type Story = StoryObj<typeof Popover>;
 // components
 const RenderCustomPopoverComponent = (
   <div className="space-y-2">
-    <div className="text-gray-500 text-13 font-medium">Your custom component</div>
+    <div className="text-13 font-medium text-secondary">Your custom component</div>
     <div>
       {["option1", "option2", "option3"].map((option) => (
         <div
           key={option}
-          className="text-gray-600 hover:text-gray-700 hover:bg-gray-200 cursor-pointer rounded-xs px-1.5 py-0.5 text-13 capitalize transition-all"
+          className="cursor-pointer rounded-xs px-1.5 py-0.5 text-13 text-secondary capitalize transition-colors hover:bg-layer-1-hover hover:text-primary"
         >
           {option}
         </div>
@@ -41,7 +41,7 @@ const RenderCustomPopoverComponent = (
 export const Default: Story = {
   args: {
     popperPosition: "bottom-start",
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-sm bg-layer-1 p-2",
     children: RenderCustomPopoverComponent,
   },
 };
@@ -50,11 +50,11 @@ export const CustomMenuButton: Story = {
   args: {
     popperPosition: "bottom-start",
     button: (
-      <div className="bg-gray-100 hover:bg-gray-200 rounded-sm p-2 text-13 font-medium transition-all">
+      <div className="rounded-sm bg-layer-1 p-2 text-13 font-medium transition-colors hover:bg-layer-1-hover">
         Custom Menu Button
       </div>
     ),
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-sm bg-layer-1 p-2",
     children: RenderCustomPopoverComponent,
   },
 };

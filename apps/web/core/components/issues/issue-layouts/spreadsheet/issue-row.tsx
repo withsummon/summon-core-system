@@ -267,7 +267,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
         <ControlLink
           href={workItemLink}
           onClick={() => handleIssuePeekOverview(issueDetail)}
-          className="outline-none"
+          className="outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           disabled={!!issueDetail?.tempId}
         >
           <Row
@@ -342,6 +342,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 {subIssuesCount > 0 && !isEpic && (
                   <button
                     type="button"
+                    aria-label={isExpanded ? "Hide sub-work items" : "Show sub-work items"}
+                    aria-expanded={isExpanded}
                     className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
                     onClick={handleToggleExpand}
                   >
@@ -360,7 +362,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   <div className="w-full overflow-hidden">
                     <Tooltip tooltipContent={issueDetail.name} isMobile={isMobile}>
                       <div
-                        className="h-full w-full cursor-pointer truncate pr-4 text-left text-13 text-primary focus:outline-none"
+                        className="h-full w-full cursor-pointer truncate pr-4 text-left text-13 text-primary outline-none"
                         tabIndex={-1}
                       >
                         {issueDetail.name}

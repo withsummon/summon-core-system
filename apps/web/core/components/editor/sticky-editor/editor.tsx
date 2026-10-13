@@ -108,10 +108,13 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
       />
       {showToolbar && (
         <div
-          className={cn("h-[60px] origin-top px-4 transition-all duration-300 ease-out", {
-            "max-h-[60px] scale-y-100 opacity-100": isFocused,
-            "invisible max-h-0 scale-y-0 opacity-0": !isFocused,
-          })}
+          className={cn(
+            "h-[60px] origin-top px-4 transition-[max-height,scale,opacity,visibility] duration-300 ease-out",
+            {
+              "max-h-[60px] scale-y-100 opacity-100": isFocused,
+              "invisible max-h-0 scale-y-0 opacity-0": !isFocused,
+            }
+          )}
         >
           <StickyEditorToolbar
             executeCommand={(item) => {

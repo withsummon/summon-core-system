@@ -182,8 +182,8 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
             />
             <Combobox.Input
               type="text"
-              className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none focus:ring-0 sm:text-13"
-              placeholder="Search..."
+              className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none sm:text-13"
+              placeholder="Search…"
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
@@ -208,7 +208,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
               Cancel
             </Button>
             <Button variant="error-fill" size="lg" onClick={handleSubmit(handleDelete)} loading={isSubmitting}>
-              {isSubmitting ? "Deleting..." : "Delete selected work items"}
+              {isSubmitting ? "Deleting…" : "Delete selected work items"}
             </Button>
           </div>
         )}

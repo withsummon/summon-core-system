@@ -153,7 +153,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
             className="max-w-3xl"
           />
 
-          <section className="border-accent-primary/20 rounded-xl border bg-accent-subtle/50 p-4">
+          <section className="rounded-xl border border-accent-subtle bg-accent-subtle/50 p-4">
             <div className="flex items-center gap-3">
               <span className="grid size-12 place-items-center rounded-xl bg-accent-primary text-white">
                 <Sparkles className="size-6" />
@@ -169,7 +169,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               href={`/${workspaceSlug}/summon/assistant/`}
               className="mt-5 flex h-12 items-center gap-3 rounded-xl border border-subtle bg-surface-1 px-4 text-xs text-secondary shadow-xs"
             >
-              <span className="flex-1">Ask a question about projects, clients, processes, or anything...</span>
+              <span className="flex-1">Ask a question about projects, clients, processes, or anything…</span>
               <Send className="size-4" />
             </Link>
             <div className="mt-3 flex flex-wrap gap-2">

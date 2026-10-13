@@ -29,7 +29,7 @@ export const MultipleSelectEntityAction = observer(function MultipleSelectEntity
 
   return (
     <Checkbox
-      className={cn("size-3.5 !outline-none", className)}
+      className={cn("size-3.5", className)}
       iconClassName="size-3"
       onClick={(e) => {
         e.stopPropagation();

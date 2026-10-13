@@ -220,6 +220,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                       className="grid size-8 place-items-center rounded-sm bg-layer-3 hover:bg-layer-3-hover"
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="Open published page in a new tab"
                     >
                       <NewTabIcon className="size-4" />
                     </a>

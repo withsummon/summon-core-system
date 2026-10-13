@@ -71,7 +71,7 @@ export const OnboardingHeader = observer(function OnboardingHeader(props: Onboar
       <div className="h-1.5 w-full cursor-pointer overflow-hidden rounded-t-lg bg-surface-1">
         <Tooltip tooltipContent={`${currentStepNumber}/${totalSteps}`} position="bottom-end">
           <div
-            className="h-full bg-accent-primary transition-all duration-700 ease-out"
+            className="h-full bg-accent-primary transition-[width] duration-700 ease-out"
             style={{ width: `${(currentStepNumber / totalSteps) * 100}%` }}
           />
         </Tooltip>
@@ -79,7 +79,13 @@ export const OnboardingHeader = observer(function OnboardingHeader(props: Onboar
       <div className={cn("flex w-full items-center justify-between gap-6 px-6", canGoBack && "pr-6 pl-4")}>
         <div className="flex items-center gap-2.5">
           {canGoBack && (
-            <button onClick={handleStepBack} className="cursor-pointer" type="button" disabled={!canGoBack}>
+            <button
+              onClick={handleStepBack}
+              aria-label="Back"
+              className="cursor-pointer"
+              type="button"
+              disabled={!canGoBack}
+            >
               <ChevronLeftIcon className="size-6 text-placeholder" />
             </button>
           )}

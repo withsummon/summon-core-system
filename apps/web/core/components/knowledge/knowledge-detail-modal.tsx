@@ -50,7 +50,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:border-blue-800 flex size-9 shrink-0 items-center justify-center rounded-lg border">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-accent-subtle bg-accent-subtle text-accent-primary">
               <FileText size={18} />
             </div>
             <div>
@@ -63,7 +63,7 @@ export const KnowledgeDetailModal: React.FC<IKnowledgeDetailModalProps> = ({ ite
 
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleCopy}>
-              {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              {copied ? <Check size={14} className="text-success-primary" /> : <Copy size={14} />}
               <span>{copied ? "Copied" : "Copy"}</span>
             </Button>
             <Button onClick={handleDownload}>

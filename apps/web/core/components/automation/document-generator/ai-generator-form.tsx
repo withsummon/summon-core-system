@@ -46,7 +46,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
       id: `doc-${Date.now()}`,
       title: `${selectedTemplate} - ${context}`,
       description: additionalContext.trim()
-        ? additionalContext.slice(0, 50) + (additionalContext.length > 50 ? "..." : "")
+        ? additionalContext.slice(0, 50) + (additionalContext.length > 50 ? "…" : "")
         : `AI Generated ${selectedTemplate.toLowerCase()} for ${context}`,
       type: selectedTemplate,
       context,
@@ -78,7 +78,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 1: Select Template */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
+            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
               1
             </span>
             <label className="text-xs font-semibold text-primary">Select Template</label>
@@ -114,15 +114,14 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                     }}
                     className={cn(
                       "flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-surface-2",
-                      selectedTemplate === tpl.name &&
-                        "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                      selectedTemplate === tpl.name && "bg-accent-subtle font-medium text-accent-primary"
                     )}
                   >
                     <div className="flex items-center gap-2">
                       <TypeIcon type={tpl.name} size={14} />
                       <span>{tpl.title}</span>
                     </div>
-                    {selectedTemplate === tpl.name && <Check size={13} className="text-blue-600 dark:text-blue-400" />}
+                    {selectedTemplate === tpl.name && <Check size={13} className="text-accent-primary" />}
                   </button>
                 ))}
               </div>
@@ -133,7 +132,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 2: Select Context */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
+            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
               2
             </span>
             <label className="text-xs font-semibold text-primary">Select Context</label>
@@ -168,12 +167,11 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                     }}
                     className={cn(
                       "flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-surface-2",
-                      context === item &&
-                        "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                      context === item && "bg-accent-subtle font-medium text-accent-primary"
                     )}
                   >
                     <span className="truncate">{item}</span>
-                    {context === item && <Check size={13} className="text-blue-600 dark:text-blue-400 ml-2 shrink-0" />}
+                    {context === item && <Check size={13} className="ml-2 shrink-0 text-accent-primary" />}
                   </button>
                 ))}
               </div>
@@ -184,7 +182,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 3: Additional Context (Optional) */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
+            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
               3
             </span>
             <label className="text-xs font-semibold text-primary">Additional Context (Optional)</label>
@@ -195,8 +193,8 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
               maxLength={1000}
               value={additionalContext}
               onChange={(e) => setAdditionalContext(e.target.value)}
-              placeholder="Add more details about the project, scope, or enter specific requirements..."
-              className="focus:border-blue-500 w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary transition-colors placeholder:text-placeholder focus:outline-none"
+              placeholder="Add more details about the project, scope, or enter specific requirements…"
+              className="w-full resize-none rounded-lg border border-subtle bg-surface-2 p-2.5 text-xs text-primary transition-colors outline-none placeholder:text-placeholder focus-visible:border-accent-strong"
             />
             <div className="absolute right-2 bottom-2 text-[10px] text-placeholder">
               {additionalContext.length}/1000
@@ -207,7 +205,7 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
         {/* STEP 4: Output Preferences */}
         <div>
           <div className="mb-2 flex items-center gap-2">
-            <span className="bg-blue-600 flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
+            <span className="flex size-4 items-center justify-center rounded-full bg-accent-primary text-[10px] font-bold text-on-color">
               4
             </span>
             <label className="text-xs font-semibold text-primary">Output Preferences</label>
@@ -223,15 +221,15 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                   type="button"
                   onClick={() => setFormat("DOCX")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
                     format === "DOCX"
-                      ? "border-blue-500 bg-blue-50/70 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500 shadow-xs"
+                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
                   <FileText
                     size={14}
-                    className={format === "DOCX" ? "text-blue-600 dark:text-blue-400" : "text-blue-500"}
+                    className={format === "DOCX" ? "text-label-indigo-text" : "text-label-indigo-icon"}
                   />
                   <span>DOCX</span>
                 </button>
@@ -241,15 +239,15 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                   type="button"
                   onClick={() => setFormat("PDF")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
                     format === "PDF"
-                      ? "border-blue-500 bg-blue-50/70 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500 shadow-xs"
+                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
                   <FileSpreadsheet
                     size={14}
-                    className={format === "PDF" ? "text-red-600 dark:text-red-400" : "text-red-500"}
+                    className={format === "PDF" ? "text-label-crimson-text" : "text-label-crimson-icon"}
                   />
                   <span>PDF</span>
                 </button>
@@ -259,15 +257,15 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                   type="button"
                   onClick={() => setFormat("PPTX")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                    "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-[background-color,border-color,color,box-shadow]",
                     format === "PPTX"
-                      ? "border-blue-500 bg-blue-50/70 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500 shadow-xs"
+                      ? "border-accent-strong bg-accent-subtle text-accent-primary shadow-xs"
                       : "border-subtle bg-surface-2 text-secondary hover:border-strong hover:text-primary"
                   )}
                 >
                   <Presentation
                     size={14}
-                    className={format === "PPTX" ? "text-orange-600 dark:text-orange-400" : "text-orange-500"}
+                    className={format === "PPTX" ? "text-label-orange-text" : "text-label-orange-icon"}
                   />
                   <span>PPTX</span>
                 </button>
@@ -303,11 +301,11 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                         }}
                         className={cn(
                           "flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2",
-                          tone === t && "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                          tone === t && "bg-accent-subtle font-medium text-accent-primary"
                         )}
                       >
                         <span>{t}</span>
-                        {tone === t && <Check size={12} className="text-blue-600 dark:text-blue-400" />}
+                        {tone === t && <Check size={12} className="text-accent-primary" />}
                       </button>
                     ))}
                   </div>
@@ -344,12 +342,11 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
                         }}
                         className={cn(
                           "flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2",
-                          detailLevel === lvl &&
-                            "bg-blue-50/60 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
+                          detailLevel === lvl && "bg-accent-subtle font-medium text-accent-primary"
                         )}
                       >
                         <span>{lvl}</span>
-                        {detailLevel === lvl && <Check size={12} className="text-blue-600 dark:text-blue-400" />}
+                        {detailLevel === lvl && <Check size={12} className="text-accent-primary" />}
                       </button>
                     ))}
                   </div>
@@ -365,12 +362,12 @@ export const AIGeneratorForm: React.FC<IAIGeneratorFormProps> = ({
             type="button"
             disabled={isGenerating}
             onClick={handleGenerate}
-            className="bg-blue-600 hover:bg-blue-700 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-[0.99] disabled:opacity-75"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary py-2.5 text-xs font-semibold text-on-color shadow-sm transition-[background-color,scale,opacity] hover:bg-accent-primary-hover active:scale-[0.99] disabled:opacity-75"
           >
             {isGenerating ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                <span>Generating Document...</span>
+                <span>Generating Document…</span>
               </>
             ) : (
               <>

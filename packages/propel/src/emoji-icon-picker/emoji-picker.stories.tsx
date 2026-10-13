@@ -253,7 +253,7 @@ export const CustomSearchPlaceholder: Story = {
           label="Custom Search"
           defaultOpen={EmojiIconPickerTypes.EMOJI}
           closeOnSelect
-          searchPlaceholder="Type to find emojis..."
+          searchPlaceholder="Type to find emojis…"
         />
         {selectedValue && <div className="text-13">Selected: {JSON.stringify(selectedValue)}</div>}
       </div>

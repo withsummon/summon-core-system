@@ -46,6 +46,7 @@ export const AppliedDateFilters = observer(function AppliedDateFilters(props: Pr
           <span className="normal-case">{getDateLabel(date)}</span>
           {editable && (
             <button
+              aria-label="Remove filter"
               type="button"
               className="grid place-items-center text-tertiary hover:text-secondary"
               onClick={() => handleRemove(date)}

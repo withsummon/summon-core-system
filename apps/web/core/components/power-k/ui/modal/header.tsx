@@ -53,6 +53,8 @@ export function PowerKModalHeader(props: Props) {
         />
         {searchTerm && (
           <button
+            type="button"
+            aria-label="Clear search"
             onClick={() => onSearchChange("")}
             className="flex-shrink-0 rounded-sm p-1 text-placeholder hover:bg-layer-1 hover:text-secondary"
           >

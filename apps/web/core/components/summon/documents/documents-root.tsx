@@ -143,11 +143,11 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
             <Link
               key={page.id}
               href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
-              className="group hover:border-accent-primary/40 flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors"
+              className="group flex flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4 shadow-xs transition-colors hover:border-accent-strong"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <div className="bg-blue-500/10 text-blue-600 flex size-9 items-center justify-center rounded-xl">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-label-indigo-bg text-label-indigo-icon">
                     <FileText className="size-4.5" />
                   </div>
                   <span className="rounded-md bg-layer-2 px-2 py-0.5 text-12 font-medium text-secondary">
@@ -158,7 +158,9 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
                 <h3 className="mt-3.5 line-clamp-2 text-sm font-semibold text-primary group-hover:text-accent-primary">
                   {page.name || "Untitled Document"}
                 </h3>
-                <p className="mt-1 truncate text-xs text-tertiary">{project.name}</p>
+                <p className="mt-1 truncate text-xs text-tertiary" title={project.name}>
+                  {project.name}
+                </p>
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-subtle pt-3 text-12 font-semibold text-accent-primary">

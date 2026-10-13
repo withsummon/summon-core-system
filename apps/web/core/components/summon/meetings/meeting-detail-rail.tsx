@@ -92,7 +92,10 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
           </div>
         )}
         {summaryError || data.summary_error ? (
-          <p className="mt-3 text-xs text-danger-primary" role="alert">
+          <p
+            className="mt-3 text-xs text-danger-primary"
+            role={!summaryError && data.summary_error === "transcribing" ? "status" : "alert"}
+          >
             {summaryError ||
               (data.summary_error === "transcribing"
                 ? "Transcribing audio. Generate minutes becomes available when it finishes."
@@ -128,7 +131,9 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
               ) : (
                 <Circle className="size-4 text-placeholder" />
               )}
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-primary">{workItem.issue.name}</span>
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-primary" title={workItem.issue.name}>
+                {workItem.issue.name}
+              </span>
               <span className="text-12 font-medium text-tertiary">{workItem.issue.state?.name ?? "No state"}</span>
             </Link>
           ))}
@@ -167,7 +172,9 @@ export function MeetingDetailRail({ data, workspaceSlug, summarizing, summaryErr
                   <Icon className="size-3.5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-xs font-semibold text-primary">{name}</span>
+                  <span className="block truncate text-xs font-semibold text-primary" title={name}>
+                    {name}
+                  </span>
                   <span className="block text-12 text-tertiary">{detail}</span>
                 </span>
               </div>

@@ -97,7 +97,7 @@ export function AssistantMessageList(props: {
                 key={prompt}
                 type="button"
                 onClick={() => props.onSuggestion(prompt)}
-                className="rounded-xl border border-subtle bg-surface-1 px-3 py-2.5 text-left text-xs text-secondary transition-colors hover:border-strong hover:bg-layer-1 hover:text-primary focus-visible:outline focus-visible:outline-2"
+                className="rounded-xl border border-subtle bg-surface-1 px-3 py-2.5 text-left text-xs text-secondary transition-colors hover:border-strong hover:bg-layer-1 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-solid"
               >
                 {prompt}
               </button>
@@ -160,7 +160,7 @@ export function AssistantMessageList(props: {
                       onClick={(event) => {
                         if (!window.confirm(`Open ${citation.label}? No data will be changed.`)) event.preventDefault();
                       }}
-                      className="inline-flex items-center gap-1 rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-12 font-medium text-accent-primary focus-visible:outline focus-visible:outline-2"
+                      className="inline-flex items-center gap-1 rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-12 font-medium text-accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-solid"
                     >
                       {citation.label} <ArrowUpRight className="size-3" />
                     </Link>

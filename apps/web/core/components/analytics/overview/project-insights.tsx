@@ -84,7 +84,7 @@ const ProjectInsights = observer(function ProjectInsights() {
                   <div>{item.name}</div>
                   <div className="flex items-center gap-1">
                     {/* <TrendPiece key={item.key} size='xs' /> */}
-                    <div className="text-secondary">{item.count}</div>
+                    <div className="text-secondary tabular-nums">{item.count}</div>
                   </div>
                 </div>
               ))}

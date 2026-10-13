@@ -14,7 +14,7 @@
     "back_to_integrations": "返回集成",
     "select_state": "选择状态",
     "set_state": "设置状态",
-    "choose_project": "选择项目...",
+    "choose_project": "选择项目…",
     "skip_backward_state_movement": "防止因 PR 更新将问题移回较早的状态"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue 关闭",
     "save": "保存",
     "start_sync": "开始同步",
-    "choose_repository": "选择仓库..."
+    "choose_repository": "选择仓库…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "问题关闭",
     "save": "保存",
     "start_sync": "开始同步",
-    "choose_repository": "选择仓库..."
+    "choose_repository": "选择仓库…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "添加新状态映射",
       "empty_state": "未配置状态映射。创建您的第一个映射以同步Sentry事件状态与您的项目状态。",
       "failed_loading_state_mappings": "我们无法加载您的状态映射。这可能是由于网络问题或集成问题。",
-      "loading_project_states": "正在加载项目状态...",
+      "loading_project_states": "正在加载项目状态…",
       "error_loading_states": "加载状态时出错",
       "no_states_available": "没有可用状态",
       "no_permission_states": "您没有权限访问此项目的状态",
@@ -205,7 +205,7 @@
     "connected": "已连接",
     "connect": "连接",
     "uninstall": "卸载",
-    "uninstalling": "卸载中...",
+    "uninstalling": "卸载中…",
     "install_success": "OAuth Bridge 安装成功。",
     "install_error": "OAuth Bridge 安装失败。",
     "uninstall_success": "OAuth Bridge 已卸载。",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "请求限制格式为 次数/周期（例如 120/minute）。留空使用默认速率限制。",
       "enable_provider": "启用此提供者",
-      "saving": "保存中...",
+      "saving": "保存中…",
       "update": "更新"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook secret 是必需的",
     "private_key_title": "私钥 (Base64 编码)",
     "private_key_description": "您在 GitHub Enterprise 组织中创建的应用程序的 Base64 编码的私钥。",
-    "private_key_placeholder": "例如，\"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "例如，\"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private key 是必需的",
     "connect_app": "连接应用"
   },

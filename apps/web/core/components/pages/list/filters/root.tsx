@@ -59,7 +59,7 @@ export const PageFiltersSelection = observer(function PageFiltersSelection(props
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div className="bg-layer-transparent p-2.5 pb-0">
-        <div className="flex items-center gap-1.5 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-1.5 py-1 text-11">
+        <div className="flex items-center gap-1.5 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-1.5 py-1 text-11 focus-within:border-accent-strong">
           <SearchIcon className="text-placeholder" width={12} height={12} strokeWidth={2} />
           <input
             ref={inputRef}
@@ -70,7 +70,12 @@ export const PageFiltersSelection = observer(function PageFiltersSelection(props
             onChange={(e) => setFiltersSearchQuery(e.target.value)}
           />
           {filtersSearchQuery !== "" && (
-            <button type="button" className="grid place-items-center" onClick={() => setFiltersSearchQuery("")}>
+            <button
+              aria-label="Clear search"
+              type="button"
+              className="grid place-items-center"
+              onClick={() => setFiltersSearchQuery("")}
+            >
               <CloseIcon className="text-tertiary" height={12} width={12} strokeWidth={2} />
             </button>
           )}

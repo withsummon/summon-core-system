@@ -64,6 +64,7 @@ const CreateWorkspacePage = observer(function CreateWorkspacePage() {
           <Link
             className="absolute top-1/2 left-5 grid -translate-y-1/2 place-items-center px-3 sm:top-12 sm:left-1/2 sm:-translate-x-[15px] sm:translate-y-0 sm:px-0 sm:py-5 md:left-1/3"
             href="/"
+            aria-label="Go to home"
           >
             <PlaneLogo className="h-9 w-auto text-primary" />
           </Link>

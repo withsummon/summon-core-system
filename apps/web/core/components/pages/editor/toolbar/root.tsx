@@ -41,13 +41,13 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
     <>
       <div
         id="page-toolbar-container"
-        className={cn("max-h-[52px] overflow-auto transition-all duration-300 ease-linear", {
+        className={cn("max-h-[52px] overflow-auto transition-[max-height] duration-300 ease-linear", {
           "max-h-0 overflow-hidden": shouldHideToolbar,
         })}
       >
         <div
           className={cn(
-            "page-toolbar-content relative hidden min-h-[52px] items-center px-page-x transition-all duration-200 ease-in-out md:flex",
+            "page-toolbar-content relative hidden min-h-[52px] items-center px-page-x transition-[padding] duration-200 ease-in-out md:flex",
             {
               "wide-layout": isFullWidth,
             }
@@ -59,6 +59,7 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
               {!isNavigationPaneOpen && (
                 <button
                   type="button"
+                  aria-label={t("page_navigation_pane.open_button")}
                   className="grid size-6 shrink-0 place-items-center rounded-sm text-secondary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
                   onClick={handleOpenNavigationPane}
                 >

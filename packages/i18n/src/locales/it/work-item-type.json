@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Imposta come predefinito",
           "toast": {
-            "loading": "Impostazione come predefinito...",
+            "loading": "Impostazione come predefinito…",
             "success": {
               "title": "Successo!",
               "message": "Livello di gerarchia {level} impostato come predefinito con successo."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Spostamento di {workItemTypeName} al livello {level}...",
+        "loading": "Spostamento di {workItemTypeName} al livello {level}…",
         "success": {
           "title": "Successo!",
           "message": "{workItemTypeName} è stato spostato al livello {level} correttamente."

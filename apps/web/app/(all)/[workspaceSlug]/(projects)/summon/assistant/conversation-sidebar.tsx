@@ -39,14 +39,16 @@ export function AssistantConversationSidebar(props: AssistantConversationSidebar
             key={conversation.id}
             type="button"
             onClick={() => props.onSelect(conversation)}
-            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus-visible:outline focus-visible:outline-2 ${
+            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-solid ${
               conversation.id === props.activeConversationId
                 ? "bg-layer-1-selected text-primary"
                 : "text-secondary hover:bg-layer-1-hover"
             }`}
           >
             <MessageSquareText className="size-4 flex-none" />
-            <span className="truncate text-sm font-medium">{conversation.title}</span>
+            <span className="truncate text-sm font-medium" title={conversation.title}>
+              {conversation.title}
+            </span>
           </button>
         ))}
       </div>

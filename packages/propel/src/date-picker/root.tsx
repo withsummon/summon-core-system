@@ -97,7 +97,7 @@ export const DatePicker = memo(function DatePicker({
             type="button"
             aria-label="Clear date"
             onClick={() => commit("")}
-            className="absolute top-1/2 right-1 grid size-7 -translate-y-1/2 place-items-center rounded-md text-tertiary hover:bg-layer-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+            className="absolute top-1/2 right-1 grid size-7 -translate-y-1/2 place-items-center rounded-md text-tertiary hover:bg-layer-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           >
             <CloseIcon className="size-3.5" />
           </button>

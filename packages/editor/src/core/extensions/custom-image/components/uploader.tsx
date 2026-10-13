@@ -188,7 +188,7 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
     }
 
     if (isUploading) {
-      return "Uploading...";
+      return "Uploading…";
     }
 
     if (draggedInside && editor.isEditable) {
@@ -211,7 +211,7 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
   return (
     <div
       className={cn(
-        "image-upload-component flex cursor-default items-center justify-start gap-2 rounded-lg border border-dashed bg-layer-3 px-2 py-3 text-tertiary transition-all duration-200 ease-in-out",
+        "image-upload-component flex cursor-default items-center justify-start gap-2 rounded-lg border border-dashed bg-layer-3 px-2 py-3 text-tertiary transition-colors duration-200 ease-in-out",
         {
           "border-subtle": !(selected && editor.isEditable && !isErrorState),
           "cursor-pointer hover:bg-layer-3-hover hover:text-secondary": editor.isEditable && !isErrorState,
@@ -242,7 +242,7 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
           type="button"
           onClick={handleRetryClick}
           className={cn(
-            "flex items-center gap-1 rounded-md px-2 py-1 font-medium text-danger-primary transition-all duration-200 ease-in-out hover:bg-danger-subtle-hover",
+            "flex items-center gap-1 rounded-md px-2 py-1 font-medium text-danger-primary transition-colors duration-200 ease-in-out hover:bg-danger-subtle-hover",
             {
               "hover:bg-danger-subtle-hover": selected,
             }

@@ -49,14 +49,14 @@ export const DURATION_FILTER_OPTIONS: {
 
 // random background colors for project cards
 export const PROJECT_BACKGROUND_COLORS = [
-  "bg-gray-500/20",
+  "bg-label-grey-bg",
   "bg-success-subtle",
   "bg-danger-subtle",
-  "bg-orange-500/20",
-  "bg-blue-500/20",
-  "bg-yellow-500/20",
-  "bg-pink-500/20",
-  "bg-purple-500/20",
+  "bg-label-orange-bg",
+  "bg-label-indigo-bg",
+  "bg-label-yellow-bg",
+  "bg-label-pink-bg",
+  "bg-label-purple-bg",
 ];
 
 // assigned and created issues widgets tabs list

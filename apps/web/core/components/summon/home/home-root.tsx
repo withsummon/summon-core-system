@@ -156,8 +156,12 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                 >
                   <Circle className="size-4 shrink-0 text-danger-secondary" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-13 font-medium text-primary">{issue.name}</span>
-                    <span className="block truncate text-12 text-tertiary">{issue.project.name}</span>
+                    <span className="block truncate text-13 font-medium text-primary" title={issue.name}>
+                      {issue.name}
+                    </span>
+                    <span className="block truncate text-12 text-tertiary" title={issue.project.name}>
+                      {issue.project.name}
+                    </span>
                   </span>
                   <StatusBadge status={issue.state?.group ?? "unstarted"} label={issue.state?.name || "Open"} />
                 </Link>
@@ -187,7 +191,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left ${selected ? "bg-layer-1" : "hover:bg-layer-1"}`}
                   >
                     <ProjectMark identifier={project.identifier} />
-                    <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{project.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary" title={project.name}>
+                      {project.name}
+                    </span>
                     {project.health ? (
                       <StatusBadge status={project.health} />
                     ) : (
@@ -216,7 +222,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                   <IconTile>
                     <BriefcaseBusiness className="size-3.5" />
                   </IconTile>
-                  <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary">{opportunity.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-13 font-medium text-primary" title={opportunity.title}>
+                    {opportunity.title}
+                  </span>
                   <StatusBadge status={opportunity.stage} />
                 </Link>
               ))}
@@ -240,7 +248,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                   <IconTile>
                     <FileText className="size-3.5" />
                   </IconTile>
-                  <span className="truncate text-13 text-primary">{page.name}</span>
+                  <span className="truncate text-13 text-primary" title={page.name}>
+                    {page.name}
+                  </span>
                 </Link>
               ))}
             </HomeListSection>
@@ -272,7 +282,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                   <ProjectMark identifier={selectedProject.project.identifier} size="lg" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="truncate text-xl font-semibold text-primary">{selectedProject.project.name}</h2>
+                      <h2 className="truncate text-xl font-semibold text-primary" title={selectedProject.project.name}>
+                        {selectedProject.project.name}
+                      </h2>
                       <StatusBadge status={selectedProject.profile?.delivery_status || "not_assessed"} />
                     </div>
                     <p className="mt-0.5 text-13 text-tertiary">
@@ -382,7 +394,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                           <FolderKanban className="size-3.5" />
                         </IconTile>
                         <span className="min-w-0">
-                          <span className="block truncate text-13 font-medium text-primary">{resource.title}</span>
+                          <span className="block truncate text-13 font-medium text-primary" title={resource.title}>
+                            {resource.title}
+                          </span>
                           <span className="block truncate text-12 text-tertiary">{resource.category}</span>
                         </span>
                       </a>
@@ -403,7 +417,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                         className="flex items-center gap-2.5 py-2.5"
                       >
                         <Circle className="size-4 shrink-0 text-placeholder" />
-                        <span className="min-w-0 flex-1 truncate text-13 text-primary">{issue.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-13 text-primary" title={issue.name}>
+                          {issue.name}
+                        </span>
                         <StatusBadge status={issue.state?.group ?? "unstarted"} label={issue.state?.name || "Open"} />
                       </Link>
                     ))}
@@ -418,7 +434,9 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                     {selectedProject.pages.slice(0, 5).map((page) => (
                       <Link key={page.id} href={page.href} className="flex items-center gap-2.5 py-2.5">
                         <FileText className="size-4 shrink-0 text-tertiary" />
-                        <span className="min-w-0 flex-1 truncate text-13 text-primary">{page.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-13 text-primary" title={page.name}>
+                          {page.name}
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -525,7 +543,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
       <dt className="text-13 text-tertiary">{label}</dt>
-      <dd className="text-right text-13 font-medium text-primary">{value}</dd>
+      <dd className="text-right text-13 font-medium text-primary tabular-nums">{value}</dd>
     </div>
   );
 }
