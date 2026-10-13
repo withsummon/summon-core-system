@@ -5,6 +5,7 @@
  */
 
 import {
+  CalendarBlankIcon,
   CheckCircleIcon,
   CircleDashedIcon,
   CircleHalfIcon,
@@ -28,7 +29,8 @@ type TStatusPresentation = { icon: Icon; variant: TBadgeVariant };
 
 /*
  * Status vocabularies the Summon API returns: Plane state groups, opportunity stages
- * (TSummonOpportunityStage), and project health / delivery status (SummonProjectProfile).
+ * (TSummonOpportunityStage), project health / delivery status (SummonProjectProfile) and
+ * meeting status (ISummonMeeting).
  */
 const STATUS_PRESENTATION: Record<string, TStatusPresentation> = {
   backlog: { icon: CircleDashedIcon, variant: "neutral" },
@@ -49,6 +51,7 @@ const STATUS_PRESENTATION: Record<string, TStatusPresentation> = {
   planning: { icon: ClockIcon, variant: "neutral" },
   active: { icon: PlayCircleIcon, variant: "brand" },
   on_hold: { icon: PauseCircleIcon, variant: "warning" },
+  scheduled: { icon: CalendarBlankIcon, variant: "brand" },
 };
 
 /**

@@ -8,18 +8,36 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Link2, Plus } from "lucide-react";
+import { Link2, ListChecks, Plus } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonDrawer } from "@/components/summon/drawer";
+import { StatusBadge } from "@/components/summon/status-badge";
 import { SummonMetric, SummonMetricStrip, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
 import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
 import { DatePicker } from "@plane/propel/date-picker";
+import { renderFormattedDate, renderFormattedTime } from "@plane/utils";
+
+/** "Thu 15 Oct · 14:00 WIB"; the year appears only outside the current one. en-ID names Indonesian zones (WIB/WITA/WIT). */
+const meetingTime = (value: string) => {
+  const date = new Date(value);
+  const zone = new Intl.DateTimeFormat("en-ID", { timeZoneName: "short" })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+  const day = renderFormattedDate(
+    date,
+    date.getFullYear() === new Date().getFullYear() ? "EEE d MMM" : "EEE d MMM yyyy"
+  );
+  return `${day} · ${renderFormattedTime(date)}${zone ? ` ${zone}` : ""}`;
+};
+
+const actionItemsLabel = (count: number) =>
+  count ? `${count} action ${count === 1 ? "item" : "items"}` : "No action items";
 
 export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
   const searchParams = useSearchParams();
@@ -116,20 +134,39 @@ export default function SummonMeetingsPage({ params }: Route.ComponentProps) {
           onRetry={() => void mutate()}
         />
         {data.length ? (
-          <div className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+          <ul className="divide-y divide-subtle overflow-hidden rounded-2xl border border-subtle bg-surface-1">
             {data.map((item) => (
-              <Link
+              <li
                 key={item.id}
-                href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
-                className="block px-3.5 py-2.5 hover:bg-layer-1"
+                className="relative flex items-start gap-3 px-4 py-3 transition-colors hover:bg-layer-transparent-hover has-[a:focus-visible]:bg-layer-transparent-hover"
               >
-                <p className="text-sm font-medium text-primary">{item.title}</p>
-                <p className="mt-1 text-xs text-secondary">
-                  {new Date(item.starts_at).toLocaleString()} · {item.work_items.length} action items · {item.status}
-                </p>
-              </Link>
+                <div className="min-w-0 flex-1">
+                  {/* The title link stretches over the row. */}
+                  <Link
+                    href={`/${params.workspaceSlug}/summon/meetings/${item.id}/`}
+                    className="block text-13 font-medium break-words text-primary outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent-strong"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-secondary">
+                    <time dateTime={item.starts_at} className="whitespace-nowrap tabular-nums">
+                      {meetingTime(item.starts_at)}
+                    </time>
+                    {item.project_detail ? (
+                      <span className="max-w-48 truncate" title={item.project_detail.name}>
+                        {item.project_detail.name}
+                      </span>
+                    ) : null}
+                    <span className={`flex items-center gap-1 ${item.work_items.length ? "" : "text-tertiary"}`}>
+                      <ListChecks aria-hidden="true" className="size-3.5" />
+                      {actionItemsLabel(item.work_items.length)}
+                    </span>
+                  </p>
+                </div>
+                <StatusBadge status={item.status} />
+              </li>
             ))}
-          </div>
+          </ul>
         ) : null}
       </div>
 
