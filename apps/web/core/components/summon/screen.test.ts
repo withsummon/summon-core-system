@@ -4,13 +4,6 @@ import test from "node:test";
 
 const screenSource = readFileSync(new URL("./screen.tsx", import.meta.url), "utf8");
 
-test("shared Summon UI exposes progress primitives without a chart package", () => {
-  const source = readFileSync(new URL("./progress.tsx", import.meta.url), "utf8");
-  assert.match(source, /export function SummonProgressRing/);
-  assert.match(source, /conic-gradient/);
-  assert.doesNotMatch(source, /recharts|chart\.js|echarts/);
-});
-
 test("Summon pages share one header owner and leave the sidebar toggle to the top bar", () => {
   assert.match(screenSource, /export function SummonPageHeader/);
   assert.match(screenSource, /<SummonPageHeader title=\{props.title\}/);

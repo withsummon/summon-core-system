@@ -24,16 +24,7 @@ export const generateBarColor = (
   let color = baseColors[0];
   // Priority
   if (params.x_axis === ChartXAxisProperty.PRIORITY) {
-    color =
-      value === "urgent"
-        ? "#ef4444"
-        : value === "high"
-          ? "#f97316"
-          : value === "medium"
-            ? "#eab308"
-            : value === "low"
-              ? "#22c55e"
-              : "#ced4da";
+    color = ["urgent", "high", "medium", "low"].includes(value) ? `var(--priority-${value})` : "var(--priority-none)";
   }
 
   // State

@@ -6,9 +6,10 @@
 
 import React from "react";
 // plane imports
-import { AreaChart } from "@plane/propel/charts/area-chart";
-import type { TChartData, TModuleCompletionChartDistribution } from "@plane/types";
-import { renderFormattedDateWithoutYear } from "@plane/utils";
+import { Area, AreaChart, ChartTooltip, Grid, XAxis, YAxis } from "@plane/propel/charts/area-chart";
+import type { TModuleCompletionChartDistribution } from "@plane/types";
+// components
+import { ChartSeriesLegend } from "@/components/chart/series-legend";
 
 type Props = {
   distribution: TModuleCompletionChartDistribution;
@@ -17,57 +18,39 @@ type Props = {
   plotTitle?: string;
 };
 
+const CURRENT_COLOR = "var(--chart-1)";
+const IDEAL_COLOR = "var(--chart-neutral)";
+
 function ProgressChart({ distribution, totalIssues, className = "", plotTitle = "work items" }: Props) {
-  const chartData: TChartData<string, string>[] = Object.keys(distribution ?? []).map((key, index) => ({
-    name: renderFormattedDateWithoutYear(key),
+  const dates = Object.keys(distribution ?? {});
+  const chartData = dates.map((key, index) => ({
+    date: new Date(key),
     current: distribution[key] ?? 0,
-    ideal: totalIssues * (1 - index / (Object.keys(distribution ?? []).length - 1)),
+    ideal: totalIssues * (1 - index / Math.max(1, dates.length - 1)),
   }));
 
   return (
-    <div className={`flex w-full items-center justify-center ${className}`}>
-      <AreaChart
-        data={chartData}
-        areas={[
-          {
-            key: "current",
-            label: `Current ${plotTitle}`,
-            strokeColor: "#3F76FF",
-            fill: "#3F76FF33",
-            fillOpacity: 1,
-            showDot: true,
-            smoothCurves: true,
-            strokeOpacity: 1,
-            stackId: "bar-one",
-          },
-          {
-            key: "ideal",
-            label: `Ideal ${plotTitle}`,
-            strokeColor: "#A9BBD0",
-            fill: "#A9BBD0",
-            fillOpacity: 0,
-            showDot: true,
-            smoothCurves: true,
-            strokeOpacity: 1,
-            stackId: "bar-two",
-            style: {
-              strokeDasharray: "6, 3",
-              strokeWidth: 1,
-            },
-          },
+    <div className={`flex w-full flex-col gap-3 ${className}`}>
+      <AreaChart data={chartData} aspectRatio="auto" className="h-[340px] w-full" margin={{ left: 44, right: 16 }}>
+        <Grid horizontal strokeDasharray="3 4" />
+        <Area dataKey="ideal" stroke={IDEAL_COLOR} fill={IDEAL_COLOR} fillOpacity={0} dashFromIndex={0} />
+        <Area dataKey="current" stroke={CURRENT_COLOR} fill={CURRENT_COLOR} fillOpacity={0.24} showMarkers />
+        <XAxis />
+        <YAxis />
+        <ChartTooltip
+          rows={(point) => [
+            { color: CURRENT_COLOR, label: `Current ${plotTitle}`, value: Math.round(Number(point.current)) },
+            { color: IDEAL_COLOR, label: `Ideal ${plotTitle}`, value: Math.round(Number(point.ideal)) },
+          ]}
+        />
+      </AreaChart>
+      <ChartSeriesLegend
+        className="justify-center"
+        showValue={false}
+        items={[
+          { label: `Current ${plotTitle}`, value: 0, color: CURRENT_COLOR },
+          { label: `Ideal ${plotTitle}`, value: 0, color: IDEAL_COLOR },
         ]}
-        xAxis={{ key: "name", label: "Date" }}
-        yAxis={{ key: "current", label: "Completion" }}
-        margin={{ bottom: 30 }}
-        className="h-[370px] w-full"
-        legend={{
-          align: "center",
-          verticalAlign: "bottom",
-          layout: "horizontal",
-          wrapperStyles: {
-            marginTop: 20,
-          },
-        }}
       />
     </div>
   );

@@ -7,7 +7,7 @@
 // plane imports
 import { STATE_GROUPS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { PieChart } from "@plane/propel/charts/pie-chart";
+import { PieCenter, PieChart, PieSlice } from "@plane/propel/charts/pie-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { IUserProfileData, IUserStateDistribution } from "@plane/types";
 import { Card } from "@plane/ui";
@@ -28,35 +28,23 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
       <Card className="h-full">
         {userProfile.state_distribution.length > 0 ? (
           <div className="grid h-[300px] w-full grid-cols-1 gap-x-6 md:grid-cols-2">
-            <PieChart
-              className="size-full"
-              dataKey="value"
-              margin={{
-                top: 0,
-                right: -10,
-                bottom: 12,
-                left: -10,
-              }}
-              data={
-                userProfile.state_distribution.map((group) => ({
-                  id: group.state_group,
-                  key: group.state_group,
+            <div className="mx-auto aspect-square h-full max-h-[300px]">
+              <PieChart
+                data={userProfile.state_distribution.map((group) => ({
+                  label: capitalizeFirstLetter(group.state_group),
                   value: group.state_count,
-                  name: capitalizeFirstLetter(group.state_group),
                   color: STATE_GROUPS[group.state_group]?.color,
-                })) ?? []
-              }
-              cells={userProfile.state_distribution.map((group) => ({
-                key: group.state_group,
-                fill: STATE_GROUPS[group.state_group]?.color,
-              }))}
-              showTooltip
-              tooltipLabel="Count"
-              paddingAngle={5}
-              cornerRadius={4}
-              innerRadius="50%"
-              showLabel={false}
-            />
+                }))}
+                innerRadius={72}
+                padAngle={0.03}
+                cornerRadius={4}
+              >
+                {userProfile.state_distribution.map((group, index) => (
+                  <PieSlice key={group.state_group} index={index} hoverEffect="grow" hoverOffset={4} />
+                ))}
+                <PieCenter defaultLabel="Work items" />
+              </PieChart>
+            </div>
             <div className="flex items-center">
               <div className="w-full space-y-4">
                 {stateDistribution.map((group) => (

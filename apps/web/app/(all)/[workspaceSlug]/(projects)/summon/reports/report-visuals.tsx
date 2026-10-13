@@ -8,16 +8,13 @@ import type { ReactNode } from "react";
 import { CalendarDays, ChevronDown, Download, SlidersHorizontal } from "lucide-react";
 import type { ISummonClient, ISummonReportFilters } from "@plane/types";
 import { SummonField } from "@/components/summon/forms";
-import { percentage, type TReportFilterParam } from "./report-view-model";
+import type { TReportFilterParam } from "./report-view-model";
 import { Select } from "@plane/propel/select";
 import { DatePicker } from "@plane/propel/date-picker";
-import { capitalizeFirstLetter, replaceUnderscoreIfSnakeCase } from "@plane/utils";
 
 export function ReportPanel(props: { children: ReactNode; className?: string }) {
   return (
-    <section
-      className={`min-w-0 rounded-xl border border-subtle bg-surface-1 shadow-[0_8px_30px_rgba(36,55,99,0.025)] ${props.className ?? ""}`}
-    >
+    <section className={`min-w-0 rounded-xl border border-subtle bg-surface-1 shadow-xs ${props.className ?? ""}`}>
       {props.children}
     </section>
   );
@@ -35,90 +32,6 @@ export function ReportKpi(props: { icon: ReactNode; label: string; value: ReactN
         <div className="mt-1 text-12 text-tertiary">{props.detail}</div>
       </div>
     </ReportPanel>
-  );
-}
-
-export function ReportDonut(props: {
-  items: Array<{ label: string; count: number; color: string }>;
-  center: ReactNode;
-  caption: string;
-}) {
-  const total = props.items.reduce((sum, item) => sum + item.count, 0);
-  let offset = 0;
-  return (
-    <div className="grid place-items-center">
-      <div className="relative size-40">
-        <svg className="size-40 -rotate-90" viewBox="0 0 42 42" role="img" aria-label={props.caption}>
-          <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--color-layer-2)" strokeWidth="4.5" />
-          {props.items.map((item) => {
-            const share = percentage(item.count, total);
-            const segmentOffset = offset;
-            offset += share;
-            return (
-              <circle
-                key={item.label}
-                cx="21"
-                cy="21"
-                r="15.9155"
-                fill="none"
-                pathLength="100"
-                stroke={item.color}
-                strokeDasharray={`${share} ${100 - share}`}
-                strokeDashoffset={-segmentOffset}
-                strokeWidth="4.5"
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 grid place-content-center text-center">
-          <strong className="text-2xl font-semibold tracking-tight text-primary">{props.center}</strong>
-          <span className="mt-0.5 text-12 text-secondary">{props.caption}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function ReportLegend(props: {
-  items: Array<{ label: string; count: number | string; detail?: string; color: string }>;
-}) {
-  return (
-    <div className="grid min-w-0 content-center gap-3">
-      {props.items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-12">
-          <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
-          <span className="truncate font-medium text-secondary">{item.label}</span>
-          <span className="text-right font-semibold text-primary">
-            {item.count}
-            {item.detail ? <span className="font-normal ml-1 text-tertiary">{item.detail}</span> : null}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function PipelineBars(props: { items: Array<{ stage: string; count: number; value: string }>; total: number }) {
-  const max = Math.max(1, ...props.items.map((item) => item.count));
-  return (
-    <div className="space-y-3">
-      {props.items.map((item) => (
-        <div key={item.stage} className="grid grid-cols-[5rem_minmax(5rem,1fr)_auto] items-center gap-2 text-12">
-          <span className="truncate text-secondary">
-            {capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(item.stage))}
-          </span>
-          <div className="h-5 overflow-hidden rounded bg-layer-1">
-            <div
-              className={`h-full rounded ${item.stage === "won" ? "bg-success-primary/20" : item.stage === "lost" ? "bg-danger-primary/15" : "bg-accent-primary/20"}`}
-              style={{ width: `${percentage(item.count, max)}%` }}
-            />
-          </div>
-          <span className="font-medium whitespace-nowrap text-primary">
-            {item.value} <span className="text-tertiary">({percentage(item.count, props.total)}%)</span>
-          </span>
-        </div>
-      ))}
-    </div>
   );
 }
 

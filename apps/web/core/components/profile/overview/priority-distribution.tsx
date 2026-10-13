@@ -6,22 +6,24 @@
 
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { BarChart } from "@plane/propel/charts/bar-chart";
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, YAxis } from "@plane/propel/charts/bar-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { IUserProfileData } from "@plane/types";
 import { Loader, Card } from "@plane/ui";
 import { capitalizeFirstLetter } from "@plane/utils";
+// components
+import { toCategorySeries } from "@/components/chart/utils";
 
 type Props = {
   userProfile: IUserProfileData | undefined;
 };
 
 const priorityColors = {
-  urgent: "#991b1b",
-  high: "#ef4444",
-  medium: "#f59e0b",
-  low: "#16a34a",
-  none: "#e5e5e5",
+  urgent: "var(--priority-urgent)",
+  high: "var(--priority-high)",
+  medium: "var(--priority-medium)",
+  low: "var(--priority-low)",
+  none: "var(--priority-none)",
 };
 
 export function ProfilePriorityDistribution({ userProfile }: Props) {
@@ -32,35 +34,12 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
       {userProfile ? (
         <Card>
           {userProfile.priority_distribution.length > 0 ? (
-            <BarChart
-              className="h-[300px] w-full"
-              margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
-              data={userProfile.priority_distribution.map((priority) => ({
-                key: priority.priority ?? "None",
+            <PriorityBars
+              rows={userProfile.priority_distribution.map((priority) => ({
+                key: priority.priority ?? "none",
                 name: capitalizeFirstLetter(priority.priority ?? "None"),
                 count: priority.priority_count,
               }))}
-              bars={[
-                {
-                  key: "count",
-                  label: "Count",
-                  stackId: "bar-one",
-                  fill: (payload: any) => priorityColors[payload.key as keyof typeof priorityColors], // TODO: fix types
-                  textClassName: "",
-                  showPercentage: false,
-                  showTopBorderRadius: () => true,
-                  showBottomBorderRadius: () => true,
-                },
-              ]}
-              xAxis={{
-                key: "name",
-                label: t("common.priority"),
-              }}
-              yAxis={{
-                key: "count",
-                label: "",
-              }}
-              barSize={20}
             />
           ) : (
             <EmptyStateCompact
@@ -82,5 +61,26 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function PriorityBars({ rows }: { rows: Array<{ key: string; name: string; count: number }> }) {
+  const { data, series } = toCategorySeries(rows, {
+    valueOf: (row) => row.count,
+    colorOf: (row) => priorityColors[row.key as keyof typeof priorityColors] ?? priorityColors.none,
+  });
+  return (
+    <BarChart data={data} xDataKey="name" stacked barGap={0.55} className="w-full" margin={{ left: 40, right: 16 }}>
+      <Grid horizontal strokeDasharray="3 4" />
+      {series.map((entry) => (
+        <Bar key={entry.key} dataKey={entry.key} fill={entry.color} lineCap={4} />
+      ))}
+      <BarXAxis />
+      <YAxis />
+      <ChartTooltip
+        showCrosshair={false}
+        rows={(point) => [{ color: String(point.color), label: "Count", value: String(point.count) }]}
+      />
+    </BarChart>
   );
 }

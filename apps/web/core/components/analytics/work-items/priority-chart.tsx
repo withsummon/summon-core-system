@@ -16,11 +16,11 @@ import type { ChartXAxisDateGrouping } from "@plane/constants";
 import { ANALYTICS_X_AXIS_VALUES, ANALYTICS_Y_AXIS_VALUES, CHART_COLOR_PALETTES, EChartModels } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { BarChart } from "@plane/propel/charts/bar-chart";
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, YAxis } from "@plane/propel/charts/bar-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { TBarItem, TChart, TChartDatum, ChartXAxisProperty, ChartYAxisMetric } from "@plane/types";
+import type { TChart, TChartDatum, ChartXAxisProperty, ChartYAxisMetric } from "@plane/types";
 // plane web components
-import { generateExtendedColors, parseChartData } from "@/components/chart/utils";
+import { generateExtendedColors, parseChartData, toCategorySeries } from "@/components/chart/utils";
 // hooks
 import { useAnalytics } from "@/hooks/store/use-analytics";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -85,58 +85,22 @@ const PriorityChart = observer(function PriorityChart(props: Props) {
   );
   const chart_model = props.group_by ? EChartModels.STACKED : EChartModels.BASIC;
 
-  const bars: TBarItem<string>[] = useMemo(() => {
-    if (!parsedData) return [];
-    let parsedBars: TBarItem<string>[];
-    const schemaKeys = Object.keys(parsedData.schema);
-    const baseColors = CHART_COLOR_PALETTES[0]?.[resolvedTheme === "dark" ? "dark" : "light"];
-    const extendedColors = generateExtendedColors(baseColors ?? [], schemaKeys.length);
+  const chart = useMemo((): { data: TChartDatum[]; series: Array<{ key: string; color: string; label?: string }> } => {
+    if (!parsedData) return { data: [], series: [] };
+    const baseColors = CHART_COLOR_PALETTES[0]?.[resolvedTheme === "dark" ? "dark" : "light"] ?? [];
     if (chart_model === EChartModels.BASIC) {
-      parsedBars = [
-        {
-          key: "count",
-          label: "Count",
-          stackId: "bar-one",
-          fill: (payload) => generateBarColor(payload.key, { x_axis, y_axis, group_by }, baseColors, workspaceStates),
-          textClassName: "",
-          showPercentage: false,
-          showTopBorderRadius: () => true,
-          showBottomBorderRadius: () => true,
-        },
-      ];
-    } else if (chart_model === EChartModels.STACKED && parsedData.schema) {
-      const parsedExtremes: {
-        [key: string]: {
-          top: string | null;
-          bottom: string | null;
-        };
-      } = {};
-      parsedData.data.forEach((datum) => {
-        let top = null;
-        let bottom = null;
-        for (let i = 0; i < schemaKeys.length; i++) {
-          const key = schemaKeys[i];
-          if (datum[key] === 0) continue;
-          if (!bottom) bottom = key;
-          top = key;
-        }
-        parsedExtremes[datum.key] = { top, bottom };
+      const categories = toCategorySeries(parsedData.data, {
+        valueOf: (datum) => Number(datum.count ?? 0),
+        colorOf: (datum) => generateBarColor(datum.key, { x_axis, y_axis, group_by }, baseColors, workspaceStates),
       });
-
-      parsedBars = schemaKeys.map((key, index) => ({
-        key: key,
-        label: parsedData.schema[key],
-        stackId: "bar-one",
-        fill: extendedColors[index],
-        textClassName: "",
-        showPercentage: false,
-        showTopBorderRadius: (value, payload: TChartDatum) => parsedExtremes[payload.key].top === value,
-        showBottomBorderRadius: (value, payload: TChartDatum) => parsedExtremes[payload.key].bottom === value,
-      }));
-    } else {
-      parsedBars = [];
+      return categories;
     }
-    return parsedBars;
+    const schemaKeys = Object.keys(parsedData.schema);
+    const extendedColors = generateExtendedColors(baseColors, schemaKeys.length);
+    return {
+      data: parsedData.data,
+      series: schemaKeys.map((key, index) => ({ key, label: parsedData.schema[key], color: extendedColors[index] })),
+    };
   }, [chart_model, group_by, parsedData, resolvedTheme, workspaceStates, x_axis, y_axis]);
 
   const yAxisLabel = useMemo(
@@ -203,24 +167,41 @@ const PriorityChart = observer(function PriorityChart(props: Props) {
       ) : parsedData?.data && parsedData.data.length > 0 ? (
         <>
           <BarChart
+            data={chart.data}
+            xDataKey="name"
+            stacked
+            barGap={0.4}
+            aspectRatio="auto"
             className="h-[370px] w-full"
-            data={parsedData.data}
-            bars={bars}
-            margin={{
-              bottom: 30,
-            }}
-            xAxis={{
-              key: "name",
-              label: xAxisLabel.replace("_", " "),
-              dy: 30,
-            }}
-            yAxis={{
-              key: "count",
-              label: t("common.no_of", { entity: yAxisLabel.replace("_", " ") }),
-              offset: -60,
-              dx: -26,
-            }}
-          />
+            margin={{ left: 44, right: 16, bottom: 44 }}
+          >
+            <Grid horizontal strokeDasharray="3 4" />
+            {chart.series.map((entry) => (
+              <Bar key={entry.key} dataKey={entry.key} fill={entry.color} lineCap={4} />
+            ))}
+            <BarXAxis />
+            <YAxis />
+            <ChartTooltip
+              showCrosshair={false}
+              rows={(point) =>
+                chart_model === EChartModels.BASIC
+                  ? [
+                      {
+                        color: String(point.color),
+                        label: t("common.no_of", { entity: yAxisLabel.replace("_", " ") }),
+                        value: String(point.count),
+                      },
+                    ]
+                  : chart.series
+                      .filter((entry) => Number(point[entry.key]) > 0)
+                      .map((entry) => ({
+                        color: entry.color,
+                        label: entry.label ?? entry.key,
+                        value: String(point[entry.key]),
+                      }))
+              }
+            />
+          </BarChart>
           <DataTable
             data={parsedData.data}
             columns={[...defaultColumns, ...columns]}

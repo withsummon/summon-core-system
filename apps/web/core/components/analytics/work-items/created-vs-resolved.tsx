@@ -10,10 +10,11 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane package imports
 import { useTranslation } from "@plane/i18n";
-import { AreaChart } from "@plane/propel/charts/area-chart";
+import { Area, AreaChart, ChartTooltip, Grid, XAxis, YAxis } from "@plane/propel/charts/area-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IChartResponse, TChartData } from "@plane/types";
-import { renderFormattedDate } from "@plane/utils";
+import type { IChartResponse } from "@plane/types";
+// components
+import { ChartSeriesLegend } from "@/components/chart/series-legend";
 // hooks
 import { useAnalytics } from "@/hooks/store/use-analytics";
 // services
@@ -23,6 +24,12 @@ import AnalyticsSectionWrapper from "../analytics-section-wrapper";
 import { ChartLoader } from "../loaders";
 
 const analyticsService = new AnalyticsService();
+
+const SERIES = [
+  { key: "completed_issues", label: "Resolved", color: "var(--chart-success)" },
+  { key: "created_issues", label: "Created", color: "var(--chart-1)" },
+] as const;
+
 const CreatedVsResolved = observer(function CreatedVsResolved() {
   const {
     selectedDuration,
@@ -52,41 +59,23 @@ const CreatedVsResolved = observer(function CreatedVsResolved() {
         isPeekView
       )
   );
-  const parsedData: TChartData<string, string>[] = useMemo(() => {
-    if (!createdVsResolvedData?.data) return [];
-    return createdVsResolvedData.data.map((datum) => ({
-      ...datum,
-      [datum.key]: datum.count,
-      name: renderFormattedDate(datum.key) ?? datum.key,
-    }));
-  }, [createdVsResolvedData]);
-
-  const areas = useMemo(
-    () => [
-      {
-        key: "completed_issues",
-        label: "Resolved",
-        fill: "#19803833",
-        fillOpacity: 1,
-        stackId: "bar-one",
-        showDot: false,
-        smoothCurves: true,
-        strokeColor: "#198038",
-        strokeOpacity: 1,
-      },
-      {
-        key: "created_issues",
-        label: "Created",
-        fill: "#1192E833",
-        fillOpacity: 1,
-        stackId: "bar-one",
-        showDot: false,
-        smoothCurves: true,
-        strokeColor: "#1192E8",
-        strokeOpacity: 1,
-      },
-    ],
-    []
+  const parsedData = useMemo(
+    () =>
+      (createdVsResolvedData?.data ?? []).map((datum) => ({
+        date: new Date(datum.key),
+        completed_issues: Number(datum.completed_issues ?? 0),
+        created_issues: Number(datum.created_issues ?? 0),
+      })),
+    [createdVsResolvedData]
+  );
+  const totals = useMemo(
+    () =>
+      SERIES.map((series) => ({
+        label: series.label,
+        color: series.color,
+        value: parsedData.reduce((sum, datum) => sum + datum[series.key], 0),
+      })),
+    [parsedData]
   );
 
   return (
@@ -98,32 +87,26 @@ const CreatedVsResolved = observer(function CreatedVsResolved() {
       {isCreatedVsResolvedLoading ? (
         <ChartLoader />
       ) : parsedData && parsedData.length > 0 ? (
-        <AreaChart
-          className="h-[350px] w-full"
-          data={parsedData}
-          areas={areas}
-          xAxis={{
-            key: "name",
-            label: t("date"),
-          }}
-          yAxis={{
-            key: "count",
-            label: t("common.no_of", { entity: isEpic ? t("common.epics") : t("work_items") }),
-            offset: -60,
-            dx: -24,
-          }}
-          legend={{
-            align: "left",
-            verticalAlign: "bottom",
-            layout: "horizontal",
-            wrapperStyles: {
-              justifyContent: "start",
-              alignContent: "start",
-              paddingLeft: "40px",
-              paddingTop: "10px",
-            },
-          }}
-        />
+        <div className="flex flex-col gap-3">
+          <AreaChart data={parsedData} aspectRatio="auto" className="h-[320px] w-full" margin={{ left: 44, right: 16 }}>
+            <Grid horizontal strokeDasharray="3 4" />
+            {SERIES.map((series) => (
+              <Area key={series.key} dataKey={series.key} stroke={series.color} fill={series.color} fillOpacity={0.2} />
+            ))}
+            <XAxis />
+            <YAxis />
+            <ChartTooltip
+              rows={(point) =>
+                SERIES.map((series) => ({
+                  color: series.color,
+                  label: series.label,
+                  value: String(point[series.key]),
+                }))
+              }
+            />
+          </AreaChart>
+          <ChartSeriesLegend items={totals} className="pl-10" />
+        </div>
       ) : (
         <EmptyStateCompact
           assetKey="unknown"

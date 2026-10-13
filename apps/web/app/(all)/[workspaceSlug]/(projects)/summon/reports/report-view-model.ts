@@ -35,12 +35,3 @@ export const reportRequestKey = (workspaceSlug: string, filters: ISummonReportFi
     filters.dateFrom ?? "",
     filters.dateTo ?? "",
   ] as const;
-
-export function trendPolylinePoints(values: number[], width = 320, height = 80) {
-  if (values.length === 0) return "";
-  const max = Math.max(1, ...values);
-  const divisor = Math.max(1, values.length - 1);
-  return values
-    .map((value, index) => `${Math.round((index / divisor) * width)},${Math.round(height - (value / max) * height)}`)
-    .join(" ");
-}

@@ -396,6 +396,45 @@
     --bg-plans-brand-subtle: var(--brand-200);
     --bg-plans-brand-solid: var(--brand-1200);
 
+    /* ---------- Chart tokens (@plane/propel/charts, Bklit) ---------- */
+    /* Series palette: one accent, then achromatic steps. Status series pass their own tokens. */
+    --chart-1: var(--brand-default);
+    --chart-2: var(--brand-500);
+    --chart-3: var(--neutral-1000);
+    --chart-4: var(--neutral-800);
+    --chart-5: var(--neutral-600);
+    --chart-success: var(--bg-success-primary);
+    --chart-warning: var(--bg-warning-primary);
+    --chart-danger: var(--bg-danger-primary);
+    --chart-neutral: var(--neutral-700);
+    --chart-background: var(--bg-surface-1);
+    --chart-foreground: var(--txt-primary);
+    --chart-foreground-muted: var(--txt-tertiary);
+    --chart-label: var(--txt-tertiary);
+    --chart-line-primary: var(--chart-1);
+    --chart-line-secondary: var(--chart-3);
+    --chart-crosshair: var(--border-strong);
+    --chart-grid: var(--border-subtle);
+    --chart-brush-border: var(--border-subtle);
+    --chart-tooltip-background: var(--bg-layer-2);
+    --chart-tooltip-foreground: var(--txt-primary);
+    --chart-tooltip-muted: var(--txt-secondary);
+    --chart-marker-background: var(--bg-layer-2);
+    --chart-marker-border: var(--border-subtle);
+    --chart-marker-foreground: var(--txt-primary);
+    --chart-marker-badge-background: var(--bg-inverse);
+    --chart-marker-badge-foreground: var(--txt-inverse);
+    --chart-indicator-color: var(--brand-default);
+    --chart-indicator-secondary-color: var(--brand-400);
+    --chart-segment-background: var(--bg-layer-1);
+    --chart-segment-line: var(--border-strong);
+    --chart-track: var(--bg-layer-3);
+    --legend: var(--bg-surface-1);
+    --legend-foreground: var(--txt-primary);
+    --legend-muted: var(--bg-layer-1);
+    --legend-muted-foreground: var(--txt-tertiary);
+    --legend-track: var(--chart-track);
+
     /* ---------- Dark mode color tokens ---------- */
     @variant dark {
       /* Neutral colors */
@@ -760,6 +799,9 @@
   --background-color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
   --background-color-scrollbar-thumb-active: var(--scrollbar-thumb-active);
   /* Background colors */
+  --background-color-chart-tooltip-background: var(--chart-tooltip-background);
+  --background-color-legend-muted: var(--legend-muted);
+  --background-color-legend-track: var(--legend-track);
   --background-color-canvas: var(--bg-canvas);
   --background-color-surface-1: var(--bg-surface-1);
   --background-color-surface-2: var(--bg-surface-2);
@@ -851,6 +893,11 @@
   --ring-color-danger-strong: var(--border-color-danger-strong);
   --ring-color-danger-subtle: var(--border-color-danger-subtle);
   /* Text colors */
+  --text-color-chart-label: var(--chart-label);
+  --text-color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --text-color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --text-color-legend-foreground: var(--legend-foreground);
+  --text-color-legend-muted-foreground: var(--legend-muted-foreground);
   --text-color-primary: var(--txt-primary);
   --text-color-secondary: var(--txt-secondary);
   --text-color-tertiary: var(--txt-tertiary);

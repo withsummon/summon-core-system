@@ -31,7 +31,8 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { ViewPanel } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import type { TSectionTab } from "@/components/summon/section-tabs";
-import { PipelineBars, ReportDonut, ReportFilters, ReportKpi, ReportLegend, ReportPanel } from "./report-visuals";
+import { PipelineChart, REPORT_CHART_COLORS, ReportDonut, ReportProgressRings } from "./report-charts";
+import { ReportFilters, ReportKpi, ReportPanel } from "./report-visuals";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { percentage, type TReportFilterParam } from "./report-view-model";
 
@@ -49,11 +50,11 @@ type TReportViewProps = {
 };
 
 const HEALTH_COLORS = {
-  not_assessed: "#94a3b8",
-  on_track: "#48b979",
-  at_risk: "#f4bd42",
-  off_track: "#ef5b5b",
-};
+  on_track: REPORT_CHART_COLORS.success,
+  at_risk: REPORT_CHART_COLORS.warning,
+  off_track: REPORT_CHART_COLORS.danger,
+  not_assessed: REPORT_CHART_COLORS.neutral,
+} as const;
 
 type TReportTab = "overview" | "company_progress" | "project_health" | "pipeline" | "investment" | "portfolio";
 
@@ -88,11 +89,22 @@ export function ReportView(props: TReportViewProps) {
   const averageHealth = data.project_health.length
     ? Math.round(data.project_health.reduce((sum, project) => sum + project.completion, 0) / data.project_health.length)
     : 0;
-  const projectHealth = ["not_assessed", "on_track", "at_risk", "off_track"].map((health) => ({
+  const projectHealth = (Object.keys(HEALTH_COLORS) as Array<keyof typeof HEALTH_COLORS>).map((health) => ({
     label: capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(health)),
-    count: data.project_health.filter((project) => project.health === health).length,
-    color: HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
+    value: data.project_health.filter((project) => project.health === health).length,
+    color: HEALTH_COLORS[health],
   }));
+  const noDueDate = data.due_date_buckets.find(({ label }) => label === "No due date")?.count ?? 0;
+  const progressRings = [
+    {
+      label: "Completed",
+      value: data.issues.completed,
+      maxValue: data.issues.total,
+      color: REPORT_CHART_COLORS.accent,
+    },
+    { label: "Overdue", value: data.issues.overdue, maxValue: data.issues.total, color: REPORT_CHART_COLORS.danger },
+    { label: "No due date", value: noDueDate, maxValue: data.issues.total, color: REPORT_CHART_COLORS.neutral },
+  ];
   const attentionProjects = data.project_health
     .filter((project) => project.health !== "on_track" && project.health !== "not_assessed")
     .slice(0, 3);
@@ -174,34 +186,11 @@ export function ReportView(props: TReportViewProps) {
             {showTab("company_progress") ? (
               <ReportPanel className="flex flex-col p-4">
                 <PanelHeader title="Company Progress" />
-                <div className="mt-4 grid flex-1 items-center gap-4 sm:grid-cols-[1fr_1fr]">
-                  <ReportDonut
-                    items={[
-                      { label: "Completed", count: data.issues.completed, color: "#376df6" },
-                      {
-                        label: "Remaining",
-                        count: Math.max(0, data.issues.total - data.issues.completed),
-                        color: "#b8c9f5",
-                      },
-                    ]}
-                    center={`${completion}%`}
-                    caption="Overall Progress"
-                  />
-                  <ReportLegend
-                    items={[
-                      { label: "Completed", count: data.issues.completed, color: "#376df6" },
-                      {
-                        label: "Remaining",
-                        count: Math.max(0, data.issues.total - data.issues.completed),
-                        color: "#48b979",
-                      },
-                      { label: "Overdue", count: data.issues.overdue, color: "#f4bd42" },
-                      {
-                        label: "No due date",
-                        count: data.due_date_buckets.find(({ label }) => label === "No due date")?.count ?? 0,
-                        color: "#b8bfd1",
-                      },
-                    ]}
+                <div className="mt-4 flex-1">
+                  <ReportProgressRings
+                    items={progressRings}
+                    centerValue={`${completion}%`}
+                    centerLabel={`of ${data.issues.total} done`}
                   />
                 </div>
                 <div className="mt-4 flex items-start gap-3 rounded-lg bg-accent-subtle px-3 py-2.5">
@@ -221,9 +210,8 @@ export function ReportView(props: TReportViewProps) {
             {showTab("project_health") ? (
               <ReportPanel className="flex flex-col p-4">
                 <PanelHeader title="Project Health" />
-                <div className="mt-4 grid items-center gap-4 sm:grid-cols-[1fr_1fr]">
-                  <ReportDonut items={projectHealth} center={data.projects} caption="Projects" />
-                  <ReportLegend items={projectHealth} />
+                <div className="mt-4">
+                  <ReportDonut items={projectHealth} centerLabel="Projects" />
                 </div>
                 <div className="mt-4 border-t border-subtle pt-3">
                   <div className="flex items-center justify-between text-12">
@@ -257,8 +245,12 @@ export function ReportView(props: TReportViewProps) {
               <ReportPanel className="flex flex-col p-4">
                 <PanelHeader title="Pipeline Overview" />
                 <div className="mt-4 flex-1">
-                  <PipelineBars
-                    items={data.opportunity_stages.map((stage) => ({ ...stage, value: stage.value }))}
+                  <PipelineChart
+                    items={data.opportunity_stages.map((stage) => ({
+                      ...stage,
+                      label: capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(stage.stage)),
+                      value: stage.value,
+                    }))}
                     total={data.commercial.opportunities}
                   />
                 </div>
@@ -391,13 +383,9 @@ function PanelHeader(props: { title: string; href?: string; label?: string }) {
       <h2 className="text-xs font-semibold text-primary">{props.title}</h2>
       {props.href ? (
         <Link href={props.href} className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
-          {props.label || "View detail"} <ArrowRight className="size-3" />
+          {props.label} <ArrowRight className="size-3" />
         </Link>
-      ) : (
-        <span className="inline-flex items-center gap-1 text-12 font-medium text-accent-primary">
-          View detail <ArrowRight className="size-3" />
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }
