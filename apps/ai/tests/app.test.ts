@@ -1,3 +1,5 @@
+import { APICallError } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { operations } from "@plane/summon-contract";
 import { INSTRUCTIONS } from "../src/chat";
@@ -64,6 +66,44 @@ describe("health", () => {
 });
 
 describe("chat", () => {
+  it("lets only the web app's origin call it with credentials", async () => {
+    app = makeApp();
+    const preflight = (origin: string) =>
+      app!.fetch(CHAT_PATH, {
+        method: "OPTIONS",
+        headers: { origin, "access-control-request-method": "POST", "access-control-request-headers": "content-type" },
+      });
+    const allowed = await preflight(WEB_ORIGIN);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe(WEB_ORIGIN);
+    expect(allowed.headers.get("access-control-allow-credentials")).toBe("true");
+    // Only the web origin is ever allowed; a browser rejects any other caller's response.
+    expect((await preflight("https://evil.test")).headers.get("access-control-allow-origin")).toBe(WEB_ORIGIN);
+  });
+
+  it("settles a provider failure as a failed reply with its code", async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        throw new APICallError({
+          message: "rate limited",
+          url: "https://openrouter.ai",
+          requestBodyValues: {},
+          statusCode: 429,
+          isRetryable: false,
+        });
+      },
+    });
+    app = makeApp({ model });
+    const chunks = await readUIStream(await chat(app));
+
+    expect(chunks.find((chunk) => chunk.type === "error")).toEqual({ type: "error", errorText: "llm_rate_limited" });
+    const complete = await completeCall(app);
+    expect(complete.body).toMatchObject({
+      status: "failed",
+      content: "llm_rate_limited",
+      error_code: "llm_rate_limited",
+    });
+  });
+
   it("refuses requests without a session", async () => {
     app = makeApp();
     const response = await chat(app, { cookie: "" });

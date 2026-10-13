@@ -203,9 +203,10 @@ export const ChatRoute = HttpRouter.add(
         void run(
           Effect.all(
             [
+              // The web app reads a failed reply's code from its content (`<error_code>: <detail>`).
               complete({
                 status: "failed",
-                content: "",
+                content: code,
                 error_code: code,
                 provider: chatModel.provider,
                 model: chatModel.modelId,
