@@ -6,7 +6,7 @@
 
 import { memo } from "react";
 import { ALargeSmall, Ban } from "lucide-react";
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 // plane editor
 import { COLORS_LIST } from "@plane/editor";
 import type { TEditorCommands } from "@plane/editor";
@@ -60,7 +60,7 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
           </span>
         </Popover.Button>
         <Popover.Panel
-          className="z-20 space-y-2 rounded-md border-[0.5px] border-strong bg-surface-1 p-2 shadow-raised-200"
+          className={cn(POPUP_CLASSNAME, "space-y-2 p-2")}
           positionerClassName="z-50"
           placement="bottom-start"
         >

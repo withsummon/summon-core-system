@@ -42,7 +42,6 @@ export const StartOfWeekPreference = observer(function StartOfWeekPreference(pro
           value={userProfile.start_of_the_week}
           label={getStartOfWeekLabel(userProfile.start_of_the_week)}
           onChange={handleStartOfWeekChange}
-          buttonClassName="border border-subtle-1"
           input
           maxHeight="lg"
           placement="bottom-end"

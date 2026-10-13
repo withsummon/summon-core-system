@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { MenuPrimitive as Menu } from "@plane/propel/menu";
+import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "@plane/propel/popover";
 // ui
 import { cn, getFileURL } from "@plane/utils";
 // helpers
@@ -54,15 +55,14 @@ export const SwitchAccountDropdown = observer(function SwitchAccountDropdown(pro
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="end" sideOffset={4} className="z-[120]">
-            <Menu.Popup className="min-w-[12rem] rounded-md border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-13 shadow-raised-200">
+            <Menu.Popup className={cn(POPUP_CLASSNAME, "min-w-48")}>
               <Menu.Item
                 nativeButton
                 render={<button type="button" />}
-                className={({ highlighted: active }) =>
-                  cn("w-full rounded-sm px-1 py-1.5 text-left whitespace-nowrap text-danger-primary", {
-                    "bg-layer-1": active,
-                  })
-                }
+                className={cn(
+                  POPUP_OPTION_CLASSNAME,
+                  "whitespace-nowrap text-danger-primary data-[highlighted]:text-danger-primary"
+                )}
                 onClick={() => setShowSwitchAccountModal(true)}
               >
                 Wrong e-mail address?

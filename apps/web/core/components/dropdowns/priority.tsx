@@ -12,6 +12,7 @@ import { ISSUE_PRIORITIES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // types
 import { CheckIcon, PriorityIcon, ChevronDownIcon, SearchIcon } from "@plane/propel/icons";
+import { POPUP_OPTION_CLASSNAME, POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssuePriorities } from "@plane/types";
 // ui
@@ -427,29 +428,23 @@ export function PriorityDropdown(props: Props) {
       onOpenChange={handleOpenChange}
     >
       <div className="z-10">
-        <div className="my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none">
-          <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
-            <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
+        <div className="w-56 max-w-[calc(100vw-2rem)]">
+          <div className={POPUP_SEARCH_CLASSNAME}>
+            <SearchIcon className="size-3.5 flex-none" />
             <Combobox.Input
-              className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
+              className={POPUP_SEARCH_INPUT_CLASSNAME}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("search")}
             />
           </div>
-          <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
+          <Combobox.List className="max-h-60 overflow-y-auto">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
                 <Combobox.Item
                   key={option.value}
                   value={option.value}
-                  className={({ highlighted: active, selected }) =>
-                    cn(
-                      `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none ${
-                        active ? "bg-layer-transparent-hover" : ""
-                      } ${selected ? "text-primary" : "text-secondary"}`
-                    )
-                  }
+                  className={POPUP_OPTION_CLASSNAME}
                   render={(itemProps, { selected }) => (
                     <div {...itemProps}>
                       {
@@ -463,7 +458,7 @@ export function PriorityDropdown(props: Props) {
                 ></Combobox.Item>
               ))
             ) : (
-              <p className="px-1.5 py-1 text-placeholder italic">{t("no_matching_results")}</p>
+              <p className="px-2 py-1.5 text-placeholder">{t("no_matching_results")}</p>
             )}
           </Combobox.List>
         </div>

@@ -12,6 +12,7 @@ import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { CheckIcon, SearchIcon, EstimatePropertyIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { POPUP_OPTION_CLASSNAME, POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
 import { EEstimateSystem } from "@plane/types";
 import { ComboDropDown } from "@plane/ui";
 import { convertMinutesToHoursMinutesString, cn } from "@plane/utils";
@@ -102,7 +103,7 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
             </div>
           ),
         };
-      else undefined;
+      return undefined;
     })
     .filter((estimatePointDropdownOption) => estimatePointDropdownOption != undefined) as DropdownOptions;
   options?.unshift({
@@ -196,21 +197,19 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
       onOpenChange={handleOpenChange}
     >
       <div className="z-10">
-        <div className="my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none">
-          <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
-            <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
+        <div className="w-56 max-w-[calc(100vw-2rem)]">
+          <div className={POPUP_SEARCH_CLASSNAME}>
+            <SearchIcon className="size-3.5 flex-none" />
             <Combobox.Input
-              className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
+              className={POPUP_SEARCH_INPUT_CLASSNAME}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("common.search.placeholder")}
             />
           </div>
-          <Combobox.List className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
+          <Combobox.List className="max-h-60 overflow-y-auto">
             {currentActiveEstimateId === undefined ? (
-              <div
-                className={`flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`}
-              >
+              <div className={POPUP_OPTION_CLASSNAME}>
                 {/* NOTE: This condition renders when estimates are not enabled for the project */}
                 <div className="flex flex-grow items-center gap-2">
                   <EstimatePropertyIcon className="h-3 w-3 flex-shrink-0" />
@@ -225,32 +224,20 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
                       <Combobox.Item
                         key={option.value}
                         value={option.value}
-                        render={(itemProps, { highlighted: active, selected }) => (
+                        className={POPUP_OPTION_CLASSNAME}
+                        render={(itemProps, { selected }) => (
                           <div {...itemProps}>
-                            {
-                              <div
-                                className={cn(
-                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
-                                  {
-                                    "bg-layer-transparent-hover": active,
-                                    "text-primary": selected,
-                                    "text-secondary": !selected,
-                                  }
-                                )}
-                              >
-                                <span className="flex-grow truncate">{option.content}</span>
-                                {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                              </div>
-                            }
+                            <span className="flex-grow truncate">{option.content}</span>
+                            {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
                           </div>
                         )}
                       ></Combobox.Item>
                     ))
                   ) : (
-                    <p className="px-1.5 py-1 text-placeholder italic">{t("common.search.no_matching_results")}</p>
+                    <p className="px-2 py-1.5 text-placeholder">{t("common.search.no_matching_results")}</p>
                   )
                 ) : (
-                  <p className="px-1.5 py-1 text-placeholder italic">{t("common.loading")}</p>
+                  <p className="px-2 py-1.5 text-placeholder">{t("common.loading")}</p>
                 )}
               </>
             )}

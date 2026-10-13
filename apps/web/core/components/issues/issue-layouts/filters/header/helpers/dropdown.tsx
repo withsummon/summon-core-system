@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import type { TPlacement as Placement } from "@plane/propel/utils";
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 import { Button } from "@plane/propel/button";
 
 type Props = {
@@ -56,7 +56,7 @@ export function FiltersDropdown(props: Props) {
       <Popover.Panel
         placement={placement?.startsWith("auto") ? "bottom-start" : placement}
         positionerClassName="z-50"
-        className="overflow-hidden rounded-md border border-subtle bg-surface-1 shadow-raised-100"
+        className={`${POPUP_CLASSNAME} overflow-hidden p-0`}
       >
         <div className="flex max-h-[min(30rem,var(--available-height))] w-[18.75rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden">
           {children}
