@@ -456,6 +456,13 @@ export interface ISummonWorkspaceUser {
   is_you: boolean;
   joined_at: string;
   last_signed_in: string | null;
+  projects: ISummonProjectRef[];
+}
+
+export interface ISummonProjectRef {
+  id: string;
+  identifier: string;
+  name: string;
 }
 
 export interface ISummonWorkspaceInvite {
@@ -463,11 +470,19 @@ export interface ISummonWorkspaceInvite {
   email: string;
   role: TSummonRole;
   invited_at: string;
+  /** Projects they join on first sign-in. */
+  projects: ISummonProjectRef[];
 }
 
 export interface ISummonWorkspaceUsers {
   members: ISummonWorkspaceUser[];
   invites: ISummonWorkspaceInvite[];
+}
+
+export interface ISummonProjectPeople {
+  members: Array<{ user_id: string; name: string; email: string; avatar_url: string | null; role: TSummonRole }>;
+  /** Emails that join this project on their first sign-in. */
+  invites: Array<{ id: string; email: string; role: TSummonRole; invited_at: string }>;
 }
 
 export interface ISummonAccessEvent {

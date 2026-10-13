@@ -28,7 +28,7 @@ import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { Menu } from "@plane/propel/menu";
 import { Select } from "@plane/propel/select";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { ISummonWorkspaceInvite, ISummonWorkspaceUser, TSummonRole } from "@plane/types";
+import type { ISummonProjectRef, ISummonWorkspaceInvite, ISummonWorkspaceUser, TSummonRole } from "@plane/types";
 import { AlertModalCore } from "@plane/ui";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
 import { SummonRequestState } from "@/components/summon/request-state";
@@ -248,6 +248,7 @@ function MemberRow(props: {
         avatar={<Avatar size={32} name={name} src={getFileURL(member.avatar_url ?? "")} />}
         name={name}
         email={member.email}
+        projects={member.projects}
         tags={
           <>
             {member.is_you ? <Badge size="sm">You</Badge> : null}
@@ -308,6 +309,7 @@ function InviteRow(props: { invite: ISummonWorkspaceInvite; onRevoke: () => void
         }
         name={invite.email}
         email={`Invited ${calculateTimeAgo(invite.invited_at)}`}
+        projects={invite.projects}
       />
       <span className="text-13 text-secondary">{roleLabel(invite.role)}</span>
       <StatusBadge status="invited" />
@@ -327,7 +329,13 @@ function InviteRow(props: { invite: ISummonWorkspaceInvite; onRevoke: () => void
 const rowClassName =
   "relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_9.5rem_8rem_8rem_2.5rem] max-md:pr-14 max-md:[&>*:first-child]:col-span-2";
 
-function Person(props: { avatar: React.ReactNode; name: string; email: string; tags?: React.ReactNode }) {
+function Person(props: {
+  avatar: React.ReactNode;
+  name: string;
+  email: string;
+  projects: ISummonProjectRef[];
+  tags?: React.ReactNode;
+}) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       {props.avatar}
@@ -337,8 +345,36 @@ function Person(props: { avatar: React.ReactNode; name: string; email: string; t
           {props.tags}
         </div>
         <p className="truncate text-12 text-tertiary">{props.email}</p>
+        <ProjectTags projects={props.projects} />
       </div>
     </div>
+  );
+}
+
+const MAX_PROJECT_TAGS = 4;
+
+/** The projects someone can open, as identifier tags; full names on hover and for screen readers. */
+function ProjectTags(props: { projects: ISummonProjectRef[] }) {
+  const { projects } = props;
+  if (!projects.length) return <p className="mt-1 text-11 text-tertiary">No projects</p>;
+  const hidden = projects.slice(MAX_PROJECT_TAGS);
+  return (
+    <ul className="mt-1 flex flex-wrap gap-1" aria-label={`Projects: ${projects.map((p) => p.name).join(", ")}`}>
+      {projects.slice(0, MAX_PROJECT_TAGS).map((project) => (
+        <li
+          key={project.id}
+          title={project.name}
+          className="rounded-sm bg-layer-1 px-1.5 py-px font-mono text-11 text-secondary ring-1 ring-subtle ring-inset"
+        >
+          {project.identifier}
+        </li>
+      ))}
+      {hidden.length ? (
+        <li title={hidden.map((p) => p.name).join(", ")} className="px-1 py-px text-11 text-tertiary">
+          +{hidden.length}
+        </li>
+      ) : null}
+    </ul>
   );
 }
 

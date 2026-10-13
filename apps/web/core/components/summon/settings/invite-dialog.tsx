@@ -5,6 +5,8 @@
  */
 
 import { useRef, useState } from "react";
+import { sortBy } from "lodash-es";
+import { observer } from "mobx-react";
 import { CopyIcon, UserPlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@plane/propel/button";
 import { Dialog, EDialogWidth } from "@plane/propel/dialog";
@@ -12,11 +14,15 @@ import { FIELD_CLASSNAME } from "@plane/propel/input";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TSummonRole } from "@plane/types";
 import { cn } from "@plane/utils";
+import { useProject } from "@/hooks/store/use-project";
 import { summonService } from "@/services/summon.service";
 import { ROLE_OPTIONS, accessErrorMessage } from "./roles";
 
-/** Adds a person by email and role. They get in by signing in with Google using that email. */
-export function InviteDialog(props: {
+/**
+ * Adds a person by email and role, optionally straight onto projects. They get in by signing
+ * in with Google using that email; projects for a new email apply on that first sign-in.
+ */
+export const InviteDialog = observer(function InviteDialog(props: {
   workspaceSlug: string;
   open: boolean;
   onClose: () => void;
@@ -25,6 +31,7 @@ export function InviteDialog(props: {
   const { workspaceSlug, open, onClose, onInvited } = props;
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TSummonRole>(15);
+  const [projectIds, setProjectIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -32,6 +39,7 @@ export function InviteDialog(props: {
   const close = () => {
     setEmail("");
     setRole(15);
+    setProjectIds([]);
     setError("");
     onClose();
   };
@@ -41,7 +49,7 @@ export function InviteDialog(props: {
     setSaving(true);
     setError("");
     try {
-      await summonService.inviteUser(workspaceSlug, { email, role });
+      await summonService.inviteUser(workspaceSlug, { email, role, project_ids: projectIds });
       setToast({ type: TOAST_TYPE.SUCCESS, title: `${email.trim()} can now sign in` });
       onInvited();
       close();
@@ -121,6 +129,8 @@ export function InviteDialog(props: {
               ))}
             </fieldset>
 
+            <ProjectPicker value={projectIds} onChange={setProjectIds} />
+
             {error ? (
               <p id="invite-error" role="alert" className="text-13 text-danger-primary">
                 {error}
@@ -150,4 +160,50 @@ export function InviteDialog(props: {
       </Dialog.Panel>
     </Dialog>
   );
-}
+});
+
+/** Checkbox list of the workspace's active projects; guests see only the projects picked here. */
+const ProjectPicker = observer(function ProjectPicker(props: {
+  value: string[];
+  onChange: (projectIds: string[]) => void;
+}) {
+  const { value, onChange } = props;
+  const { workspaceProjectIds = [], getProjectById } = useProject();
+  const projects = sortBy(
+    workspaceProjectIds.flatMap((id) => getProjectById(id) ?? []),
+    "name"
+  );
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((item) => item !== id) : [...value, id]);
+
+  return (
+    <fieldset className="grid gap-1.5">
+      <legend className="mb-1.5 flex w-full items-baseline justify-between text-12 font-medium text-secondary">
+        Projects
+        <span className="font-normal text-tertiary tabular-nums">
+          {value.length ? `${value.length} selected` : "Optional"}
+        </span>
+      </legend>
+      {projects.length ? (
+        <div className="vertical-scrollbar grid scrollbar-sm max-h-44 overflow-y-auto rounded-lg border border-subtle p-1">
+          {projects.map((project) => (
+            <label
+              key={project.id}
+              className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-13 text-primary hover:bg-layer-1"
+            >
+              <input
+                type="checkbox"
+                checked={value.includes(project.id)}
+                onChange={() => toggle(project.id)}
+                className="accent-[var(--color-accent-primary)]"
+              />
+              <span className="w-12 flex-none truncate font-mono text-11 text-tertiary">{project.identifier}</span>
+              <span className="min-w-0 truncate">{project.name}</span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <p className="text-12 text-tertiary">No projects yet.</p>
+      )}
+    </fieldset>
+  );
+});

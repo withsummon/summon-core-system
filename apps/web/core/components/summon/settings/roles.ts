@@ -13,7 +13,7 @@ export const ROLE_OPTIONS: { value: TSummonRole; label: string; description: str
   { value: 5, label: "Guest", description: "Sees only the projects they're added to." },
 ];
 
-export function roleLabel(role: TSummonRole | null) {
+export function roleLabel(role: number | null) {
   return ROLE_OPTIONS.find((option) => option.value === role)?.label ?? "No role";
 }
 
@@ -26,13 +26,25 @@ const ACCESS_ERRORS: Record<string, string> = {
   already_member: "This person is already in the workspace.",
   deactivated_member: "This person was deactivated. Restore them from the list instead.",
   already_invited: "This email already has a pending invite.",
+  cannot_invite: "Only workspace admins can invite someone new.",
+  not_project_admin: "Only this project's admins can add people.",
+  not_workspace_member: "They're not an active member of this workspace.",
 };
 
 export function accessErrorMessage(error: unknown) {
   if (error && typeof error === "object") {
-    const { error_code: code, email } = error as { error_code?: string; email?: string[] };
+    const {
+      error_code: code,
+      email,
+      project_ids,
+    } = error as {
+      error_code?: string;
+      email?: string[];
+      project_ids?: string[];
+    };
     if (code && ACCESS_ERRORS[code]) return ACCESS_ERRORS[code];
     if (email?.[0]) return email[0];
+    if (project_ids?.[0]) return project_ids[0];
   }
   return "Something went wrong. Try again in a moment.";
 }

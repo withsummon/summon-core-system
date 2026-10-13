@@ -15,7 +15,6 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
-import projectMemberService from "@/services/project/project-member.service";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { summonService } from "@/services/summon.service";
 import { PROJECT_TABS, ProjectDetailTab } from "./project-detail-tabs";
@@ -42,9 +41,6 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
   const { getProjectById } = useProject();
   const { getUserDetails } = useMember();
   const { toggleCreateIssueModal, toggleCreateModuleModal, toggleCreatePageModal } = useCommandPalette();
-  const { data: memberships = [] } = useSWR(["summon-project-members", workspaceSlug, projectId], () =>
-    projectMemberService.fetchProjectMembers(workspaceSlug, projectId)
-  );
   const { data: client } = useSWR(
     overview.profile?.client ? ["summon-project-client", workspaceSlug, overview.profile.client] : null,
     () => summonService.getClient(workspaceSlug, overview.profile?.client || "")
@@ -57,10 +53,6 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
   const project = getProjectById(projectId);
   const lead = project?.project_lead;
   const leadDetails = typeof lead === "object" ? (lead as IUserLite) : lead ? getUserDetails(lead) : undefined;
-  const members = memberships.flatMap((membership) => {
-    const name = getUserDetails(membership.member)?.display_name;
-    return name ? [{ id: membership.member, name }] : [];
-  });
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
   return (
@@ -171,12 +163,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
           {PROJECT_TABS.map((tab) => (
             <Tabs.Content key={tab.id} value={tab.id} className="pt-5">
               {tab.id === "overview" ? (
-                <ProjectOverviewTab
-                  overview={overview}
-                  workspaceSlug={workspaceSlug}
-                  projectId={projectId}
-                  members={members}
-                />
+                <ProjectOverviewTab overview={overview} workspaceSlug={workspaceSlug} projectId={projectId} />
               ) : (
                 <ProjectDetailTab
                   tab={tab.id}

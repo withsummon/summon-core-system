@@ -8,6 +8,7 @@ import { API_BASE_URL } from "@plane/constants";
 import type {
   ISummonAccess,
   ISummonAccessEvent,
+  ISummonProjectPeople,
   ISummonWorkspaceInvite,
   ISummonWorkspaceUser,
   ISummonWorkspaceUsers,
@@ -441,7 +442,7 @@ export class SummonService extends APIService {
     return this.data<ISummonWorkspaceUsers>(this.get(`${this.root(workspaceSlug)}/settings/users/`));
   }
 
-  inviteUser(workspaceSlug: string, payload: { email: string; role: TSummonRole }) {
+  inviteUser(workspaceSlug: string, payload: { email: string; role: TSummonRole; project_ids?: string[] }) {
     return this.data<ISummonWorkspaceUser | ISummonWorkspaceInvite>(
       this.post(`${this.root(workspaceSlug)}/settings/users/`, payload)
     );
@@ -450,6 +451,23 @@ export class SummonService extends APIService {
   updateUser(workspaceSlug: string, memberId: string, payload: { role?: TSummonRole; is_active?: boolean }) {
     return this.data<ISummonWorkspaceUser>(
       this.patch(`${this.root(workspaceSlug)}/settings/users/${memberId}/`, payload)
+    );
+  }
+
+  listProjectPeople(workspaceSlug: string, projectId: string) {
+    return this.data<ISummonProjectPeople>(this.get(`${this.root(workspaceSlug)}/projects/${projectId}/people/`));
+  }
+
+  /** Adds a workspace member (`member_id`) or invites a new person as a guest (`email`). */
+  addProjectPerson(workspaceSlug: string, projectId: string, payload: { member_id: string } | { email: string }) {
+    return this.data<ISummonProjectPeople>(
+      this.post(`${this.root(workspaceSlug)}/projects/${projectId}/people/`, payload)
+    );
+  }
+
+  revokeProjectInvite(workspaceSlug: string, projectId: string, inviteId: string) {
+    return this.data<void>(
+      this.delete(`${this.root(workspaceSlug)}/projects/${projectId}/people/invites/${inviteId}/`)
     );
   }
 
