@@ -146,13 +146,14 @@ export const ChatRoute = HttpRouter.add(
       providerOptions: { openrouter: { user: caller.userId } },
       onChunk: ({ chunk }) => {
         if (firstTextMs === undefined && (chunk.type === "text-delta" || chunk.type === "reasoning-delta")) {
-          firstTextMs = performance.now() - startedAt;
+          firstTextMs = Math.round(performance.now() - startedAt);
         }
       },
       onEnd: (event) => {
         const steps = event.steps as ReadonlyArray<StepResult<ToolSet>>;
         const usage = event.totalUsage;
         const costUsd = openRouterCost(steps);
+        const totalMs = Math.round(performance.now() - startedAt);
         void run(
           Effect.all(
             [
@@ -170,7 +171,7 @@ export const ChatRoute = HttpRouter.add(
                   cost_usd: costUsd,
                   steps: steps.length,
                   ttft_ms: firstTextMs ?? null,
-                  total_ms: Math.round(performance.now() - startedAt),
+                  total_ms: totalMs,
                 },
               }),
               Effect.logInfo("assistant.turn").pipe(
@@ -184,8 +185,8 @@ export const ChatRoute = HttpRouter.add(
                   tool_calls: steps.reduce((sum, step) => sum + step.toolCalls.length, 0),
                   auth_ms: Math.round(authMs),
                   turn_start_ms: Math.round(turnMs),
-                  ttft_ms: firstTextMs === undefined ? null : Math.round(firstTextMs),
-                  total_ms: Math.round(performance.now() - startedAt),
+                  ttft_ms: firstTextMs ?? null,
+                  total_ms: totalMs,
                   input_tokens: usage.inputTokens ?? null,
                   cached_input_tokens: usage.inputTokenDetails.cacheReadTokens ?? null,
                   output_tokens: usage.outputTokens ?? null,
