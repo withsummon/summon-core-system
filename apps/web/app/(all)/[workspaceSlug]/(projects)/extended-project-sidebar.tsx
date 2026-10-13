@@ -6,15 +6,13 @@
 
 import { useCallback, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { PlusIcon, SearchIcon } from "@plane/propel/icons";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import { copyUrlToClipboard, orderJoinedProjects } from "@plane/utils";
 // components
 import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { SidebarProjectsListItem } from "@/components/workspace/sidebar/projects-list-item";
@@ -22,7 +20,7 @@ import { SidebarProjectsListItem } from "@/components/workspace/sidebar/projects
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
-import type { TProject } from "@plane/types";
+import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 import { ExtendedSidebarWrapper } from "./extended-sidebar-wrapper";
 
 export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar() {
@@ -32,42 +30,14 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   // states
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   // routers
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug, projectId: URLProjectId } = useParams();
+  const router = useRouter();
+  const { preferences: projectPreferences } = useProjectNavigationPreferences();
   // store hooks
   const { t } = useTranslation();
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
-  const { getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
+  const { getPartialProjectById, joinedProjectIds: joinedProjects } = useProject();
   const { allowPermissions } = useUserPermissions();
-
-  const handleOnProjectDrop = (
-    sourceId: string | undefined,
-    destinationId: string | undefined,
-    shouldDropAtEnd: boolean
-  ) => {
-    if (!sourceId || !destinationId || !workspaceSlug) return;
-    if (sourceId === destinationId) return;
-
-    const joinedProjectsList: TProject[] = [];
-    joinedProjects.map((projectId) => {
-      const projectDetails = getPartialProjectById(projectId);
-      if (projectDetails) joinedProjectsList.push(projectDetails);
-    });
-
-    const sourceIndex = joinedProjects.indexOf(sourceId);
-    const destinationIndex = shouldDropAtEnd ? joinedProjects.length : joinedProjects.indexOf(destinationId);
-
-    if (joinedProjectsList.length <= 0) return;
-
-    const updatedSortOrder = orderJoinedProjects(sourceIndex, destinationIndex, sourceId, joinedProjectsList);
-    if (updatedSortOrder != undefined)
-      updateProjectView(workspaceSlug.toString(), sourceId, { sort_order: updatedSortOrder }).catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("error"),
-          message: t("something_went_wrong"),
-        });
-      });
-  };
 
   // filter projects based on search query
   const filteredProjects = joinedProjects.filter((projectId) => {
@@ -84,15 +54,6 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
 
   const handleClose = useCallback(() => toggleExtendedProjectSidebar(false), [toggleExtendedProjectSidebar]);
 
-  const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("link_copied"),
-        message: t("project_link_copied_to_clipboard"),
-      });
-    });
-  };
   return (
     <>
       {workspaceSlug && (
@@ -135,6 +96,7 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
               className="w-full max-w-[234px] border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
               placeholder={t("search")}
               value={searchQuery}
+              // oxlint-disable-next-line jsx_a11y/no-autofocus -- search is the first thing to use when the panel opens
               autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -156,12 +118,14 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
               <SidebarProjectsListItem
                 key={projectId}
                 projectId={projectId}
-                handleCopyText={() => handleCopyText(projectId)}
+                workspaceSlug={workspaceSlug.toString()}
+                isActive={projectId === URLProjectId}
+                navigationMode={projectPreferences.navigationMode}
+                router={router}
                 projectListType={"JOINED"}
                 disableDrag={false}
                 disableDrop={false}
                 isLastChild={index === filteredProjects.length - 1}
-                handleOnProjectDrop={handleOnProjectDrop}
                 renderInExtendedSidebar
               />
             ))}

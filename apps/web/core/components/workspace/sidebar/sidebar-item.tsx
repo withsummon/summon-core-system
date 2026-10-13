@@ -69,7 +69,7 @@ export const SidebarItemBase = observer(function SidebarItemBase({
     <Link
       href={href}
       onClick={handleLinkClick}
-      prefetch={additionalStaticItems?.includes(item.key) ? "render" : undefined}
+      prefetch={additionalStaticItems?.includes(item.key) ? "intent" : undefined}
     >
       <SidebarNavItem isActive={isActive}>
         <div className="flex items-center gap-1.5 py-[1px]">
