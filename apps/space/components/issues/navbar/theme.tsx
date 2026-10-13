@@ -28,6 +28,7 @@ export const NavbarTheme = observer(function NavbarTheme() {
     <button
       type="button"
       onClick={handleTheme}
+      aria-label={appTheme === "light" ? "Switch to dark theme" : "Switch to light theme"}
       className="relative grid size-7 place-items-center rounded-sm bg-layer-transparent text-primary hover:bg-layer-transparent-hover"
     >
       {appTheme === "light" ? <Moon className="size-3.5 shrink-0" /> : <Sun className="size-3.5 shrink-0" />}

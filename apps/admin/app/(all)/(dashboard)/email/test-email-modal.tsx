@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog } from "@plane/propel/dialog";
 // plane imports
 import { Button } from "@plane/propel/button";
@@ -28,25 +28,27 @@ const instanceService = new InstanceService();
 export function SendTestEmailModal(props: Props) {
   const { isOpen, handleClose } = props;
 
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 md:max-w-xl">
+        {/* The panel unmounts while closed, so the form starts fresh on every open. */}
+        <SendTestEmailForm handleClose={handleClose} />
+      </Dialog.Panel>
+    </Dialog>
+  );
+}
+
+function SendTestEmailForm({ handleClose }: Pick<Props, "handleClose">) {
   // state
   const [receiverEmail, setReceiverEmail] = useState("");
   const [sendEmailStep, setSendEmailStep] = useState<ESendEmailSteps>(ESendEmailSteps.SEND_EMAIL);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // reset state
-  const resetState = () => {
-    setReceiverEmail("");
-    setSendEmailStep(ESendEmailSteps.SEND_EMAIL);
-    setIsLoading(false);
-    setError("");
-  };
-
-  useEffect(() => {
-    if (!isOpen) {
-      resetState();
-    }
-  }, [isOpen]);
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
@@ -67,53 +69,44 @@ export function SendTestEmailModal(props: Props) {
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) handleClose();
-      }}
-    >
-      <Dialog.Panel className="w-full rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 md:max-w-xl">
-        <Dialog.Title className="text-16 leading-6 font-medium text-primary">
-          {sendEmailStep === ESendEmailSteps.SEND_EMAIL
-            ? "Send test email"
-            : sendEmailStep === ESendEmailSteps.SUCCESS
-              ? "Email send"
-              : "Failed"}{" "}
-        </Dialog.Title>
-        <div className="pt-6 pb-2">
-          {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
-            <Input
-              id="receiver_email"
-              type="email"
-              value={receiverEmail}
-              onChange={(e) => setReceiverEmail(e.target.value)}
-              placeholder="Receiver email"
-              className="w-full resize-none text-16"
-              tabIndex={0}
-            />
-          )}
-          {sendEmailStep === ESendEmailSteps.SUCCESS && (
-            <div className="flex flex-col gap-y-4 text-13">
-              <p>
-                We have sent the test email to {receiverEmail}. Please check your spam folder if you cannot find it.
-              </p>
-              <p>If you still cannot find it, recheck your SMTP configuration and trigger a new test email.</p>
-            </div>
-          )}
-          {sendEmailStep === ESendEmailSteps.FAILED && <div className="text-13">{error}</div>}
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={0}>
-              {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancel" : "Close"}
-            </Button>
-            {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
-              <Button variant="primary" size="lg" loading={isLoading} onClick={handleSubmit} tabIndex={0}>
-                {isLoading ? "Sending email" : "Send email"}
-              </Button>
-            )}
+    <>
+      <Dialog.Title className="text-16 leading-6 font-medium text-primary">
+        {sendEmailStep === ESendEmailSteps.SEND_EMAIL
+          ? "Send test email"
+          : sendEmailStep === ESendEmailSteps.SUCCESS
+            ? "Email send"
+            : "Failed"}{" "}
+      </Dialog.Title>
+      <div className="pt-6 pb-2">
+        {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
+          <Input
+            id="receiver_email"
+            type="email"
+            value={receiverEmail}
+            onChange={(e) => setReceiverEmail(e.target.value)}
+            placeholder="Receiver email"
+            className="w-full resize-none text-16"
+            tabIndex={0}
+          />
+        )}
+        {sendEmailStep === ESendEmailSteps.SUCCESS && (
+          <div className="flex flex-col gap-y-4 text-13">
+            <p>We have sent the test email to {receiverEmail}. Please check your spam folder if you cannot find it.</p>
+            <p>If you still cannot find it, recheck your SMTP configuration and trigger a new test email.</p>
           </div>
+        )}
+        {sendEmailStep === ESendEmailSteps.FAILED && <div className="text-13">{error}</div>}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={0}>
+            {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancel" : "Close"}
+          </Button>
+          {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
+            <Button variant="primary" size="lg" loading={isLoading} onClick={handleSubmit} tabIndex={0}>
+              {isLoading ? "Sending email" : "Send email"}
+            </Button>
+          )}
         </div>
-      </Dialog.Panel>
-    </Dialog>
+      </div>
+    </>
   );
 }

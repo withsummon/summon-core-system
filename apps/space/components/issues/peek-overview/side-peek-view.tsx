@@ -5,13 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-// plane imports
-import { Loader } from "@plane/ui";
 // store hooks
 import { usePublish } from "@/hooks/store/publish";
 // types
 import type { IIssue } from "@/types/issue";
 // local imports
+import { PeekOverviewDetailsLoader } from "./details-loader";
 import { PeekOverviewHeader } from "./header";
 import { PeekOverviewIssueActivity } from "./issue-activity";
 import { PeekOverviewIssueDetails } from "./issue-details";
@@ -53,14 +52,7 @@ export const SidePeekView = observer(function SidePeekView(props: Props) {
           )}
         </div>
       ) : (
-        <Loader className="px-6">
-          <Loader.Item height="30px" />
-          <div className="mt-3 space-y-2">
-            <Loader.Item height="20px" width="70%" />
-            <Loader.Item height="20px" width="60%" />
-            <Loader.Item height="20px" width="60%" />
-          </div>
-        </Loader>
+        <PeekOverviewDetailsLoader />
       )}
     </div>
   );

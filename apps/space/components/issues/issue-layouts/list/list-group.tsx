@@ -64,9 +64,12 @@ const ListLoaderItemRow = forwardRef(function ListLoaderItemRow(
 });
 ListLoaderItemRow.displayName = "ListLoaderItemRow";
 
+// shared fallback so memoized children keep a stable reference
+const EMPTY_ISSUE_IDS: string[] = [];
+
 export const ListGroup = observer(function ListGroup(props: Props) {
   const {
-    groupIssueIds = [],
+    groupIssueIds = EMPTY_ISSUE_IDS,
     group,
     groupBy,
     displayProperties,

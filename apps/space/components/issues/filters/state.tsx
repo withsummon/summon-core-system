@@ -31,6 +31,7 @@ export const FilterState = observer(function FilterState(props: Props) {
   const [previewEnabled, setPreviewEnabled] = useState(true);
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
+  const appliedFilterIds = new Set(appliedFilters);
 
   const filteredOptions = states?.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -56,7 +57,7 @@ export const FilterState = observer(function FilterState(props: Props) {
                 {filteredOptions.slice(0, itemsToRender).map((state) => (
                   <FilterOption
                     key={state.id}
-                    isChecked={appliedFilters?.includes(state.id) ? true : false}
+                    isChecked={appliedFilterIds.has(state.id)}
                     onClick={() => handleUpdate(state.id)}
                     icon={<StateGroupIcon stateGroup={state.group} color={state.color} size={EIconSize.MD} />}
                     title={state.name}

@@ -35,12 +35,19 @@ export const FilterSelection = observer(function FilterSelection(props: Props) {
             type="text"
             className="w-full bg-surface-2 outline-none placeholder:text-placeholder"
             placeholder="Search"
+            aria-label="Search filters"
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}
+            // react-doctor-disable-next-line no-autofocus -- the input opens inside a click-triggered filters popover, so focus moves into the new popup as expected
             autoFocus
           />
           {filtersSearchQuery !== "" && (
-            <button type="button" className="grid place-items-center" onClick={() => setFiltersSearchQuery("")}>
+            <button
+              type="button"
+              aria-label="Clear search"
+              className="grid place-items-center"
+              onClick={() => setFiltersSearchQuery("")}
+            >
               <CloseIcon className="text-tertiary" height={12} width={12} strokeWidth={2} />
             </button>
           )}

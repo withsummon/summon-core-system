@@ -10,6 +10,7 @@ import { Loader } from "@plane/ui";
 // types
 import type { IIssue } from "@/types/issue";
 // local imports
+import { PeekOverviewDetailsLoader } from "./details-loader";
 import { PeekOverviewHeader } from "./header";
 import { PeekOverviewIssueActivity } from "./issue-activity";
 import { PeekOverviewIssueDetails } from "./issue-details";
@@ -44,14 +45,7 @@ export const FullScreenPeekView = observer(function FullScreenPeekView(props: Pr
             </div>
           </div>
         ) : (
-          <Loader className="px-6">
-            <Loader.Item height="30px" />
-            <div className="mt-3 space-y-2">
-              <Loader.Item height="20px" width="70%" />
-              <Loader.Item height="20px" width="60%" />
-              <Loader.Item height="20px" width="60%" />
-            </div>
-          </Loader>
+          <PeekOverviewDetailsLoader />
         )}
       </div>
       <div className="col-span-3 h-full w-full overflow-y-auto">
