@@ -63,7 +63,7 @@ export const assistantTools = (deps: ToolDeps): ToolSet => {
   tools.plane = tool({
     description:
       "Use Plane through this conversation's Plane connection: projects, work items and their comments, cycles, " +
-      "modules, states, labels and members. Reads (list, retrieve, search, count) return data now. Creates and " +
+      "modules, states, labels and members. Reads (list, retrieve, search) return data now. Creates and " +
       "updates are queued as an action the user must confirm in the app; say so instead of claiming they are done.",
     inputSchema: jsonSchema<{ tool: string; arguments: Schema.JsonObject }>({
       type: "object",
