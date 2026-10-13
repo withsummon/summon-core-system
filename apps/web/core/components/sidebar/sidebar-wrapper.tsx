@@ -24,10 +24,12 @@ type TSidebarWrapperProps = {
   children: React.ReactNode;
   quickActions?: React.ReactNode;
   showEditionBadge?: boolean;
+  /** Shown in place of the title text; the title still names the sidebar for screen readers. */
+  logo?: React.ReactNode;
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions, showEditionBadge = true } = props;
+  const { title, children, quickActions, showEditionBadge = true, logo } = props;
   // state
   const [isCustomizeNavDialogOpen, setIsCustomizeNavDialogOpen] = useState(false);
   // store hooks
@@ -49,7 +51,13 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           {/* Workspace switcher and settings */}
 
           <div className="flex items-center justify-between gap-2 px-2">
-            <span className="pt-1 text-16 font-medium text-primary">{title}</span>
+            {logo ? (
+              <span className="flex h-7 items-center pt-1" title={title}>
+                {logo}
+              </span>
+            ) : (
+              <span className="pt-1 text-16 font-medium text-primary">{title}</span>
+            )}
             <div className="flex items-center gap-2">
               {title === "Projects" && (
                 <IconButton

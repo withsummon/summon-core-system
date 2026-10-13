@@ -7,11 +7,12 @@
 import { observer } from "mobx-react";
 // components
 import { SidebarWrapper } from "@/components/sidebar/sidebar-wrapper";
+import { SummonCoreLogo } from "@/components/summon/brand";
 import { SidebarMenuItems } from "@/components/workspace/sidebar/sidebar-menu-items";
 
 export const AppSidebar = observer(function AppSidebar() {
   return (
-    <SidebarWrapper title="Summon Core" showEditionBadge={false}>
+    <SidebarWrapper title="Summon Core" logo={<SummonCoreLogo />} showEditionBadge={false}>
       <SidebarMenuItems />
     </SidebarWrapper>
   );
