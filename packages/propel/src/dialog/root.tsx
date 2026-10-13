@@ -44,14 +44,21 @@ export interface DialogTitleProps extends React.ComponentProps<typeof BaseDialog
 const OVERLAY_CLASSNAME = cn(
   "fixed inset-0 z-90 bg-backdrop data-[ending-style]:animate-dialog-backdrop-out data-[open]:animate-dialog-backdrop-in motion-reduce:animate-none"
 );
-const BASE_CLASSNAME =
-  "relative text-left bg-surface-1 rounded-xl shadow-overlay-200 w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto z-100 border border-subtle data-[open]:animate-dialog-in data-[ending-style]:animate-dialog-out motion-reduce:animate-none";
+/*
+ * A phone gets a bottom sheet: full width, anchored to the bottom edge, clear of the home indicator, rising on
+ * the sheet spring. From `sm` up it is the centered card.
+ */
+const BASE_CLASSNAME = cn(
+  "relative z-100 overflow-y-auto border border-subtle bg-surface-1 text-left shadow-overlay-200 motion-reduce:animate-none",
+  "max-h-[90dvh] w-full rounded-t-2xl border-b-0 pb-safe data-[ending-style]:animate-sheet-out data-[open]:animate-sheet-in",
+  "sm:max-h-[calc(100dvh-4rem)] sm:w-[calc(100%-2rem)] sm:rounded-xl sm:border-b sm:pb-0 sm:data-[ending-style]:animate-dialog-out sm:data-[open]:animate-dialog-in"
+);
 
 // Utility functions
 const getPositionClassNames = (position: DialogPosition) =>
-  cn("fixed isolate z-100", {
-    "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2": position === "center",
-    "top-8 left-1/2 -translate-x-1/2": position === "top",
+  cn("fixed inset-x-0 bottom-0 isolate z-100 sm:inset-x-auto sm:bottom-auto", {
+    "sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2": position === "center",
+    "sm:top-8 sm:left-1/2 sm:-translate-x-1/2": position === "top",
   });
 
 const DialogPortal = memo(function DialogPortal({

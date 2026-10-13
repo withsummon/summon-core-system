@@ -197,11 +197,7 @@ const AddPeopleDialog = observer(function AddPeopleDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <Dialog.Panel
-        width={EDialogWidth.MD}
-        initialFocus={searchRef}
-        className="w-[calc(100vw-2rem)] overflow-hidden rounded-xl"
-      >
+      <Dialog.Panel width={EDialogWidth.MD} initialFocus={searchRef} className="overflow-hidden">
         <header className="flex items-start justify-between gap-3 px-5 pt-5">
           <div>
             <Dialog.Title className="text-16 font-semibold text-primary">Add people</Dialog.Title>

@@ -256,7 +256,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               />
             ) : viewMode === "list" ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-13">
+                <table className="table-stack w-full text-left text-13">
                   <thead>
                     <tr className="border-b border-subtle text-12 whitespace-nowrap text-tertiary">
                       <th className="px-3.5 py-2 font-medium">Name</th>
@@ -277,8 +277,8 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                           item.updated_by_detail?.display_name || item.created_by_detail?.display_name || "Summon User";
 
                         return (
-                          <tr key={item.id} className="transition-colors hover:bg-layer-1">
-                            <td className="w-full max-w-0 min-w-48 px-3.5 py-2.5">
+                          <tr key={item.id} className="transition-colors hover:bg-layer-1 max-md:relative">
+                            <td className="w-full px-3.5 py-2.5 max-md:pr-10 md:max-w-0 md:min-w-48">
                               <a
                                 href={item.url}
                                 target="_blank"
@@ -296,14 +296,16 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                 </span>
                               </a>
                             </td>
-                            <td className="max-w-36 truncate px-3.5 py-2.5 text-secondary">{projectName}</td>
-                            <td className="px-3.5 py-2.5">
+                            <td data-label="Project" className="truncate px-3.5 py-2.5 text-secondary md:max-w-36">
+                              {projectName}
+                            </td>
+                            <td data-label="Type" className="px-3.5 py-2.5">
                               <ResourceBadge category={item.category} />
                             </td>
-                            <td className="px-3.5 py-2.5 whitespace-nowrap text-secondary">
+                            <td data-label="Last updated" className="px-3.5 py-2.5 whitespace-nowrap text-secondary">
                               {formatRelativeTime(item.updated_at)}
                             </td>
-                            <td className="px-3.5 py-2.5">
+                            <td data-label="Updated by" className="px-3.5 py-2.5">
                               <span className="flex items-center gap-2 whitespace-nowrap text-primary">
                                 <span
                                   aria-hidden="true"
@@ -314,7 +316,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                                 <span className="max-w-[120px] truncate">{updatedBy}</span>
                               </span>
                             </td>
-                            <td className="px-3.5 py-2.5 text-right">
+                            <td className="px-3.5 py-2.5 text-right max-md:absolute max-md:top-2 max-md:right-2 max-md:p-0!">
                               <Menu ellipsis placement="bottom-end" ariaLabel={`Actions for ${item.title}`}>
                                 <Menu.MenuItem onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}>
                                   <ExternalLink aria-hidden="true" className="size-3.5 text-secondary" />

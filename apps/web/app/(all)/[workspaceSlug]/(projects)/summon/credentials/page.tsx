@@ -244,7 +244,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-xs">
+              <table className="table-stack w-full text-left text-xs md:min-w-[680px]">
                 <thead className="border-y border-subtle bg-layer-1/60 text-12 text-tertiary">
                   <tr>
                     <th className="px-4 py-3">Credential Name</th>
@@ -283,17 +283,19 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                           </span>
                         </button>
                       </td>
-                      <td className="px-3 py-3">
+                      <td data-label="Type" className="px-3 py-3">
                         <Badge>{credential.provider.replaceAll("_", " ")}</Badge>
                       </td>
-                      <td className="px-3 py-3 text-secondary">
+                      <td data-label="Project" className="px-3 py-3 text-secondary">
                         {credential.project ? projectNames.get(credential.project) || "Linked project" : "—"}
                       </td>
-                      <td className="px-3 py-3">
+                      <td data-label="Environment" className="px-3 py-3">
                         <Badge tone="green">{textMetadata(credential, "environment")}</Badge>
                       </td>
-                      <td className="px-3 py-3 text-secondary">{formatRelative(credential.updated_at)}</td>
-                      <td className="px-3 py-3">
+                      <td data-label="Last used" className="px-3 py-3 text-secondary">
+                        {formatRelative(credential.updated_at)}
+                      </td>
+                      <td data-label="Status" className="px-3 py-3">
                         <Status value={credential.status} />
                       </td>
                     </tr>
@@ -596,10 +598,7 @@ function CredentialForm(props: {
   const metadata = props.credential?.metadata ?? {};
   return (
     <Dialog open onOpenChange={(open) => !open && props.onClose()}>
-      <Dialog.Panel
-        width={EDialogWidth.XXL}
-        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-5"
-      >
+      <Dialog.Panel width={EDialogWidth.XXL} className="p-5">
         <div className="flex items-center justify-between">
           <Dialog.Title className="text-18 font-semibold text-primary">
             {props.credential ? "Update Credential" : "Add Credential"}

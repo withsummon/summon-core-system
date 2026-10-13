@@ -172,7 +172,7 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
         </div>
       ) : (
         <SummonTableShell>
-          <table className="w-full text-left text-xs">
+          <table className="table-stack w-full text-left text-xs">
             <thead>
               <tr className="border-b border-subtle bg-layer-1 text-12 font-medium text-tertiary">
                 <th className="px-5 py-3.5">Document Title</th>
@@ -191,8 +191,10 @@ export function DocumentsRoot({ workspaceSlug }: IDocumentsRootProps) {
                       {page.name || "Untitled Document"}
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 text-secondary">{project.name}</td>
-                  <td className="px-5 py-3.5 text-right">
+                  <td data-label="Project" className="px-5 py-3.5 text-secondary">
+                    {project.name}
+                  </td>
+                  <td className="px-5 py-3.5 text-right max-md:justify-end">
                     <Link
                       href={`/${workspaceSlug}/projects/${project.id}/pages/${page.id}/`}
                       className="inline-flex items-center gap-1 font-semibold text-accent-primary hover:underline"

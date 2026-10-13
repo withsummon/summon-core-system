@@ -244,7 +244,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             {deals && showTab("opportunities") ? (
               <SummonPanel flush title="Opportunities" link={viewAll("opportunities", "View all opportunities")}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left text-12">
+                  <table className="table-stack w-full text-left text-12 md:min-w-[720px]">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                       <tr>
                         {["Opportunity", "Stage", "Owner", "Value (IDR)", "Close Date", "Progress"].map((label) => (
@@ -268,15 +268,19 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                               </Link>
                               <p className="mt-1 text-tertiary">{opportunity.product || "Product not set"}</p>
                             </td>
-                            <td className="px-4 py-3">
+                            <td data-label="Stage" className="px-4 py-3">
                               <Badge>{capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(opportunity.stage))}</Badge>
                             </td>
-                            <td className="px-4 py-3 text-primary">
+                            <td data-label="Owner" className="px-4 py-3 text-primary">
                               {opportunityOwner?.display_name || "Not assigned"}
                             </td>
-                            <td className="px-4 py-3 text-primary tabular-nums">{money(opportunity.value) || "—"}</td>
-                            <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
-                            <td className="px-4 py-3">
+                            <td data-label="Value (IDR)" className="px-4 py-3 text-primary tabular-nums">
+                              {money(opportunity.value) || "—"}
+                            </td>
+                            <td data-label="Close date" className="px-4 py-3 text-primary">
+                              {formatDate(opportunity.expected_close_date)}
+                            </td>
+                            <td data-label="Progress" className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-accent-primary">{opportunity.probability}%</span>
                                 <div className="h-1.5 w-20 overflow-hidden rounded-full bg-layer-2">
@@ -306,7 +310,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
             {showTab("projects") ? (
               <SummonPanel flush title="Recent Projects" link={viewAll("projects", "View all projects")}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[680px] text-left text-12">
+                  <table className="table-stack w-full text-left text-12 md:min-w-[680px]">
                     <thead className="border-y border-subtle bg-layer-1/40 text-secondary">
                       <tr>
                         {["Project", "Type", "Status", "Owner", "Start Date", "End Date"].map((label) => (
@@ -328,17 +332,23 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                             </Link>
                             <p className="mt-1 text-tertiary">{project.identifier}</p>
                           </td>
-                          <td className="px-4 py-3">
+                          <td data-label="Type" className="px-4 py-3">
                             <Badge>Project</Badge>
                           </td>
-                          <td className="px-4 py-3">
+                          <td data-label="Status" className="px-4 py-3">
                             <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-1 text-success-primary">
                               <CheckCircle2 className="size-3" /> Linked
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-tertiary">Not available</td>
-                          <td className="px-4 py-3 text-tertiary">Not available</td>
-                          <td className="px-4 py-3 text-tertiary">Not available</td>
+                          <td data-label="Owner" className="px-4 py-3 text-tertiary">
+                            Not available
+                          </td>
+                          <td data-label="Start date" className="px-4 py-3 text-tertiary">
+                            Not available
+                          </td>
+                          <td data-label="End date" className="px-4 py-3 text-tertiary">
+                            Not available
+                          </td>
                         </tr>
                       ))}
                       {!data.projects.length ? (
@@ -538,10 +548,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
       </ViewPanel>
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <Dialog.Panel
-          width={EDialogWidth.XL}
-          className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-5"
-        >
+        <Dialog.Panel width={EDialogWidth.XL} className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <Dialog.Title className="text-18 font-semibold text-primary">Edit Client</Dialog.Title>

@@ -17,6 +17,19 @@
   );
   --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-dialog-out: dialog-out 120ms ease-in both;
+  /* A dialog on a phone rises as a bottom sheet: the spring answers the tap, the exit eases back down. */
+  --animate-sheet-in: sheet-in 300ms var(--ease-spring-sheet) both;
+  --animate-sheet-out: sheet-out 300ms cubic-bezier(0.45, 0, 0.55, 1) both;
+  @keyframes sheet-in {
+    from {
+      translate: 0 100%;
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      translate: 0 100%;
+    }
+  }
   --animate-dialog-backdrop-in: dialog-backdrop-in 180ms ease-out both;
   --animate-dialog-backdrop-out: dialog-backdrop-out 120ms ease-in both;
   @keyframes dialog-in {

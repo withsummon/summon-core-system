@@ -75,7 +75,14 @@
     "automation": "Automation Studio",
     "assistant": "Assistant",
     "credentials": "Credentials",
-    "settings": "Settings"
+    "settings": "Settings",
+    "more": "More",
+    "nav_groups": {
+      "work": "Work",
+      "operations": "Operations",
+      "workspace": "Workspace"
+    },
+    "appearance": "Appearance"
   },
   "workspaces": "Workspaces",
   "create_workspace": "Create workspace",

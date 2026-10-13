@@ -435,10 +435,7 @@ function CreateOpportunityDialog(props: {
 
   return (
     <Dialog open={props.isOpen} onOpenChange={(open) => !open && close()}>
-      <Dialog.Panel
-        width={EDialogWidth.XXL}
-        className="vertical-scrollbar max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto"
-      >
+      <Dialog.Panel width={EDialogWidth.XXL}>
         <form onSubmit={submit} noValidate className="grid gap-4 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
