@@ -4,7 +4,7 @@ version = "0.24.0"
 description = "Open-source project management that unlocks customer value"
 requires-python = "==3.12.*"
 dependencies = [
-    "django==5.2.15",
+    "django==5.2.17",
     "djangorestframework==3.17.1",
     "drf-spectacular==0.29.0",
     "django-cors-headers==4.9.0",
@@ -39,12 +39,12 @@ dependencies = [
     "lxml==6.1.0",
     "nh3==0.2.18",
     "cryptography==50.0.0",
-    "pyjwt==2.13.0",
+    "pyjwt==2.15.1",
     "zxcvbn==4.4.28",
     "pytz==2024.1",
     "boto3==1.34.96",
     # Floor for CVE-2026-44431 and CVE-2026-44432.
-    "urllib3>=2.7.0",
+    "urllib3>=2.8.0",
     # Webhook delivery and link unfurling pin connections to the checked IP (SSRF)
     # through get_connection_with_tls_context, which needs 2.32+.
     "requests==2.33.0",
