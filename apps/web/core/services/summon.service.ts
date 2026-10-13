@@ -6,6 +6,12 @@
 
 import { API_BASE_URL } from "@plane/constants";
 import type {
+  ISummonAccess,
+  ISummonAccessEvent,
+  ISummonWorkspaceInvite,
+  ISummonWorkspaceUser,
+  ISummonWorkspaceUsers,
+  TSummonRole,
   ISummonAIStatus,
   ISummonAssistantAction,
   ISummonAssistantAttachment,
@@ -425,6 +431,34 @@ export class SummonService extends APIService {
 
   updateWorkspaceSettings(workspaceSlug: string, payload: Partial<ISummonWorkspaceSettings>) {
     return this.data<ISummonWorkspaceSettings>(this.patch(`${this.root(workspaceSlug)}/settings/workspace/`, payload));
+  }
+
+  getAccess(workspaceSlug: string) {
+    return this.data<ISummonAccess>(this.get(`${this.root(workspaceSlug)}/access/me/`));
+  }
+
+  listUsers(workspaceSlug: string) {
+    return this.data<ISummonWorkspaceUsers>(this.get(`${this.root(workspaceSlug)}/settings/users/`));
+  }
+
+  inviteUser(workspaceSlug: string, payload: { email: string; role: TSummonRole }) {
+    return this.data<ISummonWorkspaceUser | ISummonWorkspaceInvite>(
+      this.post(`${this.root(workspaceSlug)}/settings/users/`, payload)
+    );
+  }
+
+  updateUser(workspaceSlug: string, memberId: string, payload: { role?: TSummonRole; is_active?: boolean }) {
+    return this.data<ISummonWorkspaceUser>(
+      this.patch(`${this.root(workspaceSlug)}/settings/users/${memberId}/`, payload)
+    );
+  }
+
+  revokeInvite(workspaceSlug: string, inviteId: string) {
+    return this.data<void>(this.delete(`${this.root(workspaceSlug)}/settings/users/invites/${inviteId}/`));
+  }
+
+  listAccessHistory(workspaceSlug: string) {
+    return this.data<ISummonAccessEvent[]>(this.get(`${this.root(workspaceSlug)}/settings/users/history/`));
   }
 
   listCredentials(workspaceSlug: string) {

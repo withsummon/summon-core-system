@@ -421,6 +421,61 @@ export interface ISummonWorkspaceSettings {
   workweek: Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">;
 }
 
+/** Plane's stored workspace roles: Admin 20, Member 15, Guest 5. */
+export type TSummonRole = 20 | 15 | 5;
+
+/** Capability names from the API's capability map (`plane/summon/access.py`). */
+export type TSummonCapability =
+  | "workspace.view"
+  | "workspace.edit"
+  | "credentials.view"
+  | "settings.view"
+  | "settings.edit"
+  | "users.view"
+  | "users.manage";
+
+export interface ISummonAccess {
+  role: TSummonRole;
+  role_label: string;
+  capabilities: TSummonCapability[];
+}
+
+export interface ISummonWorkspaceUser {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  role: TSummonRole;
+  is_active: boolean;
+  is_owner: boolean;
+  is_you: boolean;
+  joined_at: string;
+  last_signed_in: string | null;
+}
+
+export interface ISummonWorkspaceInvite {
+  id: string;
+  email: string;
+  role: TSummonRole;
+  invited_at: string;
+}
+
+export interface ISummonWorkspaceUsers {
+  members: ISummonWorkspaceUser[];
+  invites: ISummonWorkspaceInvite[];
+}
+
+export interface ISummonAccessEvent {
+  id: string;
+  kind: "invited" | "invite_revoked" | "added" | "role_changed" | "deactivated" | "restored";
+  actor: { name: string; email: string } | null;
+  target_email: string;
+  from_role: TSummonRole | null;
+  to_role: TSummonRole | null;
+  created_at: string;
+}
+
 export interface ISummonMCPStatus {
   reachable: boolean;
   endpoint: string;
