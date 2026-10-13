@@ -161,7 +161,7 @@ class GeneratedArtifactDownloadView(WorkspaceContextMixin, BaseAPIView):
 
 
 class ReportSummaryView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [require_capability("reports.view")]
 
     def get(self, request, slug):
         serializer = ReportFilterSerializer(data=request.query_params)
@@ -170,7 +170,7 @@ class ReportSummaryView(WorkspaceContextMixin, BaseAPIView):
 
 
 class ReportExportView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [require_capability("reports.view")]
 
     def get(self, request, slug):
         serializer = ReportFilterSerializer(data=request.query_params)

@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from plane.db.models import Project, ProjectMember, User, WorkspaceMember, WorkspaceMemberInvite
 from plane.summon.access import ADMIN, GUEST, MEMBER
-from plane.summon.models import SummonAccessEvent
+from plane.summon.models import Client, Opportunity, SummonAccessEvent, SummonProjectProfile
 
 
 def users_url(workspace, suffix=""):
@@ -174,3 +174,30 @@ def test_access_events_are_immutable(session_client, workspace):
         event.save()
     with pytest.raises(ValidationError):
         event.delete()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", [MEMBER, GUEST])
+def test_only_admins_see_deals_reports_and_money(session_client, workspace, create_user, role):
+    user = add_member(workspace, f"role{role}@summon.test", role).member
+    project = Project.objects.create(workspace=workspace, name="Delivery", identifier="DLV")
+    ProjectMember.objects.create(workspace=workspace, project=project, member=user, role=role)
+    ProjectMember.objects.create(workspace=workspace, project=project, member=create_user, role=ADMIN)
+    account = Client.objects.create(workspace=workspace, name="Acme")
+    deal = Opportunity.objects.create(workspace=workspace, title="Retainer", client=account, value=5000)
+    SummonProjectProfile.objects.create(workspace=workspace, project=project, client=account, budget=5000)
+    base = f"/api/summon/workspaces/{workspace.slug}"
+    client = client_for(user)
+
+    for url in (f"{base}/opportunities/", f"{base}/opportunities/{deal.id}/", f"{base}/reports/summary/"):
+        assert client.get(url).status_code == status.HTTP_403_FORBIDDEN
+        assert session_client.get(url).status_code == status.HTTP_200_OK
+    assert "opportunities" not in client.get(f"{base}/clients/{account.id}/").data
+    assert "opportunities" not in client.get(f"{base}/home/summary/").data["counts"]
+    profile = client.get(f"{base}/projects/{project.id}/overview/").data["profile"]
+    assert "budget" not in profile and "source_opportunity" not in profile
+    pipeline = client.post(f"{base}/assistant/query/", {"intent": "client_opportunity_pipeline"}, format="json")
+    assert pipeline.data.get("data", []) == []  # guests cannot post at all
+
+    admin_profile = session_client.get(f"{base}/projects/{project.id}/overview/").data["profile"]
+    assert admin_profile["budget"] == "5000.00"

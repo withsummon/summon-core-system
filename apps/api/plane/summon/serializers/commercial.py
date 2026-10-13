@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from plane.api.serializers.base import BaseSerializer
 from plane.db.models import WorkspaceMember
+from plane.summon.access import has_capability
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
 from plane.summon.serializers.collaboration import (
     MeetingSerializer,
@@ -23,9 +24,21 @@ from plane.summon.services.commercial import (
 
 
 class WorkspaceScopedSerializer(BaseSerializer):
+    # Fields that only roles with `commercial.view` may read or write.
+    commercial_fields = ()
+
     @property
     def workspace(self):
         return self.context["workspace"]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.commercial_fields and not has_capability(
+            self.context["request"].user, self.workspace.slug, "commercial.view"
+        ):
+            for name in self.commercial_fields:
+                fields.pop(name)
+        return fields
 
     def is_workspace_member(self, member):
         return (
@@ -94,6 +107,7 @@ class ClientDetailSerializer(ClientSerializer):
     meetings = serializers.SerializerMethodField()
     page_contexts = serializers.SerializerMethodField()
     recent_activity = serializers.SerializerMethodField()
+    commercial_fields = ("opportunities",)
 
     class Meta(ClientSerializer.Meta):
         fields = "__all__"
@@ -190,6 +204,8 @@ class OpportunityTransitionSerializer(serializers.Serializer):
 
 
 class SummonProjectProfileSerializer(WorkspaceScopedSerializer):
+    commercial_fields = ("budget", "source_opportunity")
+
     class Meta:
         model = SummonProjectProfile
         fields = "__all__"

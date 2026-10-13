@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from plane.app.permissions import ProjectAdminPermission, ProjectEntityPermission
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Project, Workspace
+from plane.summon.access import require_capability
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
 from plane.summon.permissions import SummonWorkspacePermission
 from plane.summon.serializers import (
@@ -23,6 +24,8 @@ from plane.summon.serializers import (
     SummonProjectProfileSerializer,
 )
 from plane.summon.services.commercial import start_delivery, transition_opportunity
+
+CommercialPermission = require_capability("commercial.view")
 
 
 class WorkspaceContextMixin:
@@ -86,7 +89,7 @@ class ClientContactViewSet(WorkspaceContextMixin, BaseViewSet):
 class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [CommercialPermission]
 
     def get_queryset(self):
         queryset = Opportunity.objects.filter(
@@ -106,7 +109,7 @@ class OpportunityViewSet(WorkspaceContextMixin, BaseViewSet):
 
 
 class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [CommercialPermission]
 
     def post(self, request, slug, pk):
         opportunity = get_object_or_404(
@@ -125,7 +128,7 @@ class OpportunityTransitionView(WorkspaceContextMixin, BaseAPIView):
 
 
 class OpportunityDeliveryView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [CommercialPermission]
 
     def post(self, request, slug, pk):
         opportunity = get_object_or_404(Opportunity, id=pk, workspace__slug=slug, workspace__deleted_at__isnull=True)

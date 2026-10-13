@@ -21,6 +21,9 @@ CAPABILITIES = {
     "workspace.view": {ADMIN, MEMBER, GUEST},
     "workspace.edit": {ADMIN, MEMBER},
     "credentials.view": {ADMIN, MEMBER},
+    # Opportunities and every money figure (deal values, project budgets, pipeline totals).
+    "commercial.view": {ADMIN},
+    "reports.view": {ADMIN},
     "settings.view": {ADMIN},
     "settings.edit": {ADMIN},
     "users.view": {ADMIN},
