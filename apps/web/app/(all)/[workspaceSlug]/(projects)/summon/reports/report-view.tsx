@@ -34,6 +34,7 @@ import type { TSectionTab } from "@/components/summon/section-tabs";
 import { PipelineChart, REPORT_CHART_COLORS, ReportDonut, ReportProgressRings } from "./report-charts";
 import { ReportFilters, ReportKpi, ReportPanel } from "./report-visuals";
 import { useHashTab } from "@/components/summon/use-hash-tab";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { percentage, type TReportFilterParam } from "./report-view-model";
 
 type TReportViewProps = {
@@ -71,6 +72,7 @@ export function ReportView(props: TReportViewProps) {
   const { workspaceSlug, data, error, isLoading, filters, projects, clients, exportUrl, onFilterChange, onRetry } =
     props;
   const [activeTab, setActiveTab] = useHashTab(REPORT_TABS.map((tab) => tab.value));
+  const money = useWorkspaceMoney(workspaceSlug);
   const completion = data ? percentage(data.issues.completed, data.issues.total) : 0;
 
   if (!data) {
@@ -157,7 +159,7 @@ export function ReportView(props: TReportViewProps) {
               icon={<Target className="size-4.5" />}
               label="Open Opportunities"
               value={openOpportunities}
-              detail={<span>{data.commercial.pipeline_value} potential value</span>}
+              detail={<span>{money(data.commercial.pipeline_value)} potential value</span>}
             />
             <ReportKpi
               icon={<HeartPulse className="size-4.5" />}
@@ -249,7 +251,7 @@ export function ReportView(props: TReportViewProps) {
                     items={data.opportunity_stages.map((stage) => ({
                       ...stage,
                       label: capitalizeFirstLetter(replaceUnderscoreIfSnakeCase(stage.stage)),
-                      value: stage.value,
+                      value: money(stage.value),
                     }))}
                     total={data.commercial.opportunities}
                   />
@@ -257,7 +259,9 @@ export function ReportView(props: TReportViewProps) {
                 <div className="mt-4 grid grid-cols-2 divide-x divide-subtle rounded-lg bg-layer-1 p-3">
                   <div className="pr-3">
                     <p className="text-12 text-secondary">Total Pipeline Value</p>
-                    <p className="mt-1 text-lg font-semibold text-primary">{data.commercial.pipeline_value}</p>
+                    <p className="mt-1 text-lg font-semibold text-primary tabular-nums">
+                      {money(data.commercial.pipeline_value)}
+                    </p>
                   </div>
                   <div className="pl-3">
                     <p className="text-12 text-secondary">Win Rate</p>

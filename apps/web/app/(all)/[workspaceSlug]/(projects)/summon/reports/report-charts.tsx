@@ -108,6 +108,10 @@ const PIPELINE_COLORS = {
   lost: REPORT_CHART_COLORS.danger,
 } as const;
 
+/** Fixed px per stage so bar thickness stays the same on narrow overview cards and the full-width tab. */
+const PIPELINE_ROW_HEIGHT = 36;
+const PIPELINE_MARGIN = { top: 4, right: 12, bottom: 4, left: 84 };
+
 /** Horizontal stage bars. Won and lost keep their status color; every other stage is open work. */
 export function PipelineChart(props: {
   items: Array<{ stage: string; label: string; count: number; value: string }>;
@@ -128,30 +132,32 @@ export function PipelineChart(props: {
   });
   const rowByStage = new Map(rows.map((row) => [row.stage, row]));
   return (
-    <BarChart
-      data={rows}
-      xDataKey="stage"
-      orientation="horizontal"
-      stacked
-      barGap={0.5}
-      aspectRatio={`3 / ${Math.max(1.4, rows.length * 0.42)}`}
-      margin={{ top: 4, right: 12, bottom: 4, left: 84 }}
-      className="w-full"
-    >
-      {Object.entries(PIPELINE_COLORS).map(([series, color]) => (
-        <Bar key={series} dataKey={series} fill={color} lineCap={4} />
-      ))}
-      <BarYAxis />
-      <ChartTooltip
-        showCrosshair={false}
-        rows={(point) => {
-          const row = rowByStage.get(String(point.stage));
-          return row
-            ? [{ color: row.color, label: `${row.count} opportunities`, value: `${row.value} · ${row.share}%` }]
-            : [];
-        }}
-      />
-    </BarChart>
+    <div style={{ height: rows.length * PIPELINE_ROW_HEIGHT + PIPELINE_MARGIN.top + PIPELINE_MARGIN.bottom }}>
+      <BarChart
+        data={rows}
+        xDataKey="stage"
+        orientation="horizontal"
+        stacked
+        barGap={0.5}
+        aspectRatio="auto"
+        margin={PIPELINE_MARGIN}
+        className="h-full"
+      >
+        {Object.entries(PIPELINE_COLORS).map(([series, color]) => (
+          <Bar key={series} dataKey={series} fill={color} lineCap={4} />
+        ))}
+        <BarYAxis />
+        <ChartTooltip
+          showCrosshair={false}
+          rows={(point) => {
+            const row = rowByStage.get(String(point.stage));
+            return row
+              ? [{ color: row.color, label: `${row.count} opportunities`, value: `${row.value} · ${row.share}%` }]
+              : [];
+          }}
+        />
+      </BarChart>
+    </div>
   );
 }
 

@@ -45,6 +45,7 @@ import type { TSectionTab } from "@/components/summon/section-tabs";
 import { summonErrorMessage, ViewPanel } from "@/components/summon/screen";
 import { useHashTab } from "@/components/summon/use-hash-tab";
 import { useMember } from "@/hooks/store/use-member";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 import { Select } from "@plane/propel/select";
@@ -88,6 +89,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
   const { data, error, isLoading, mutate } = useSWR(["summon-client", workspaceSlug, clientId], () =>
     summonService.getClientDetail(workspaceSlug, clientId)
   );
+  const money = useWorkspaceMoney(workspaceSlug);
 
   if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
 
@@ -266,7 +268,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                             <td className="px-4 py-3 text-primary">
                               {opportunityOwner?.display_name || "Not assigned"}
                             </td>
-                            <td className="px-4 py-3 text-primary">{opportunity.value || "—"}</td>
+                            <td className="px-4 py-3 text-primary tabular-nums">{money(opportunity.value) || "—"}</td>
                             <td className="px-4 py-3 text-primary">{formatDate(opportunity.expected_close_date)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">

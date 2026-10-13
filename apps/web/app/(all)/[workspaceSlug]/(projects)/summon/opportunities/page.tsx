@@ -17,11 +17,9 @@ import type { ISummonOpportunity, TSummonOpportunityStage } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { SummonField } from "@/components/summon/forms";
 import { opportunityCreateIntent } from "@/components/summon/opportunities/delivery-handoff";
-import {
-  OpportunityInspector,
-  initials,
-  useOpportunityMoney,
-} from "@/components/summon/opportunities/opportunity-inspector";
+import { OpportunityInspector, initials } from "@/components/summon/opportunities/opportunity-inspector";
+import { MoneyInput } from "@/components/summon/money-input";
+import { useWorkspaceCurrency, useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import {
   OPPORTUNITY_STAGES,
   OPPORTUNITY_STAGE_LABEL,
@@ -323,7 +321,7 @@ function OpportunityRow(props: {
 }) {
   const { opportunity } = props;
   const { getUserDetails } = useMember();
-  const money = useOpportunityMoney(props.workspaceSlug);
+  const money = useWorkspaceMoney(props.workspaceSlug);
   const owner = opportunity.owner ? getUserDetails(opportunity.owner)?.display_name : undefined;
   const closeDate = formatShortDate(opportunity.expected_close_date);
   return (
@@ -386,6 +384,7 @@ function CreateOpportunityDialog(props: {
   onClose: () => void;
   onCreated: (created: ISummonOpportunity) => Promise<void>;
 }) {
+  const currency = useWorkspaceCurrency(props.workspaceSlug);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -466,7 +465,7 @@ function CreateOpportunityDialog(props: {
               />
             </SummonField>
             <SummonField label="Value">
-              <Input name="value" type="number" min="0" step="0.01" inputMode="decimal" className="h-10" />
+              <MoneyInput name="value" currency={currency} placeholder="0" className="h-10" />
             </SummonField>
             <SummonField label="Probability (%)">
               <Input name="probability" type="number" min="0" max="100" step="1" defaultValue="0" className="h-10" />

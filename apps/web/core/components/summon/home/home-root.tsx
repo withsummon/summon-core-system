@@ -37,6 +37,7 @@ import { ViewPanel } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
 import { useUser } from "@/hooks/store/user";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
 
 interface IHomeRootProps {
@@ -73,6 +74,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
   const { data: opportunities = [] } = useSWR(["summon-home-opportunities", workspaceSlug], () =>
     summonService.listOpportunities(workspaceSlug)
   );
+  const money = useWorkspaceMoney(workspaceSlug);
 
   const activeProjectId = selectedProjectId || data?.projects[0]?.id || "";
   const { data: selectedProject, isLoading: projectLoading } = useSWR(
@@ -360,7 +362,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
                   <InfoRow label="Client" value={selectedClient?.company_name || "Not linked"} />
                   <InfoRow label="Start date" value={formatDate(selectedProject.profile?.start_date)} />
                   <InfoRow label="Target date" value={formatDate(selectedProject.profile?.target_date)} />
-                  <InfoRow label="Budget" value={selectedProject.profile?.budget || "Not set"} />
+                  <InfoRow label="Budget" value={money(selectedProject.profile?.budget) || "Not set"} />
                 </dl>
               </PreviewCard>
 

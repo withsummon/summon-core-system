@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   ArrowLeft,
   Building2,
@@ -21,6 +20,7 @@ import type { ISummonOpportunityDetail, TSummonOpportunityStage } from "@plane/t
 import { SummonField } from "@/components/summon/forms";
 import { summonErrorMessage } from "@/components/summon/screen";
 import { useMember } from "@/hooks/store/use-member";
+import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
 import { DeliveryHandoffCard } from "./delivery-handoff-card";
 import { OPPORTUNITY_STAGES, OPPORTUNITY_STAGE_LABEL, OPPORTUNITY_STAGE_TONE } from "./opportunity-pipeline";
@@ -38,26 +38,6 @@ export const initials = (value: string) =>
     .map((part) => part[0])
     .join("")
     .toUpperCase();
-
-export function useOpportunityMoney(workspaceSlug: string) {
-  const { data: settings } = useSWR(["summon-opportunity-settings", workspaceSlug], () =>
-    summonService.getWorkspaceSettings(workspaceSlug)
-  );
-  return (value: string | null) => {
-    if (!value) return "Not set";
-    const amount = Number(value);
-    if (!Number.isFinite(amount)) return value;
-    try {
-      return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: settings?.currency || "IDR",
-        maximumFractionDigits: 0,
-      }).format(amount);
-    } catch {
-      return value;
-    }
-  };
-}
 
 export function StageChip({ stage }: { stage: TSummonOpportunityStage }) {
   const tone = OPPORTUNITY_STAGE_TONE[stage];
@@ -80,7 +60,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
 }) {
   const { workspaceSlug, detail, onChanged } = props;
   const { getUserDetails } = useMember();
-  const money = useOpportunityMoney(workspaceSlug);
+  const money = useWorkspaceMoney(workspaceSlug);
   const owner = detail.owner ? getUserDetails(detail.owner)?.display_name : undefined;
   const automationQuery = new URLSearchParams({
     opportunity: detail.id,
@@ -136,7 +116,7 @@ export const OpportunityInspector = observer(function OpportunityInspector(props
         <StageTrack stage={detail.stage} />
 
         <dl className="grid grid-cols-2 overflow-hidden rounded-xl bg-layer-1/60 ring-1 ring-subtle @xl:grid-cols-4">
-          <Fact label="Value" value={money(detail.value)} />
+          <Fact label="Value" value={money(detail.value) || "Not set"} />
           <Fact label="Probability" value={`${detail.probability}%`}>
             <span className="mt-2 block h-1 overflow-hidden rounded-full bg-layer-3">
               <span
