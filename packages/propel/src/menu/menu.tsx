@@ -9,14 +9,13 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { MoreHorizontal } from "lucide-react";
 import { ChevronDownIcon, ChevronRightIcon } from "../icons";
 import { cn } from "../utils/classname";
+import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "../popover/surface";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
 import type { TMenuProps, TSubMenuProps, TMenuItemProps } from "./types";
 
 /** Surface and item styles, exported for menus composed from `MenuPrimitive` parts (filter inputs, checkbox items). */
-export const MENU_POPUP_CLASSNAME =
-  "min-w-48 overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-overlay-100 outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 motion-reduce:transition-none";
-export const MENU_ITEM_CLASSNAME =
-  "flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none select-none data-[highlighted]:bg-layer-1 data-[disabled]:text-placeholder data-[disabled]:opacity-50";
+export const MENU_POPUP_CLASSNAME = cn("min-w-48 overflow-y-auto", POPUP_CLASSNAME);
+export const MENU_ITEM_CLASSNAME = cn(POPUP_OPTION_CLASSNAME, "text-primary");
 const SelectionContext = React.createContext<boolean | undefined>(undefined);
 
 function MenuItem({ children, disabled, onClick, className }: TMenuItemProps) {

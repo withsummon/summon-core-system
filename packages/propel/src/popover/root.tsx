@@ -6,6 +6,7 @@
 
 import { createContext, memo, useContext, useMemo, useState } from "react";
 import { cn } from "../utils/classname";
+import { POPUP_MOTION_CLASSNAME } from "./surface";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import type { TPlacement, TSide, TAlign } from "../utils/placement";
 import { convertPlacementToSideAndAlign } from "../utils/placement";
@@ -52,14 +53,7 @@ const PopoverContent = memo(function PopoverContent({
       align={finalAlign}
       className={positionerClassName}
     >
-      <BasePopover.Popup
-        data-slot="popover-content"
-        className={cn(
-          "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
-          className
-        )}
-        {...props}
-      >
+      <BasePopover.Popup data-slot="popover-content" className={cn(POPUP_MOTION_CLASSNAME, className)} {...props}>
         {children}
       </BasePopover.Popup>
     </PopoverPositioner>

@@ -5,6 +5,7 @@
  */
 
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
+import { POPUP_CLASSNAME } from "@plane/propel/popover";
 import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { sortBy } from "lodash-es";
 import React, { useMemo, useState } from "react";
@@ -106,12 +107,7 @@ export function MultiSelectDropdown(props: IMultiSelectDropdown) {
       </div>
       <Combobox.Portal>
         <Combobox.Positioner side={side} align={align} sideOffset={4} collisionPadding={12} className="z-[120]">
-          <Combobox.Popup
-            className={cn(
-              "w-48 rounded-md border border-strong bg-surface-1 p-2 text-11 shadow-raised-200 outline-none",
-              optionsContainerClassName
-            )}
-          >
+          <Combobox.Popup className={cn("w-56 max-w-[calc(100vw-2rem)]", POPUP_CLASSNAME, optionsContainerClassName)}>
             <DropdownOptions
               isOpen={isOpen}
               query={query}

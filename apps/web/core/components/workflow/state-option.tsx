@@ -7,6 +7,7 @@
 import { observer } from "mobx-react";
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 import { CheckIcon } from "@plane/propel/icons";
+import { POPUP_OPTION_CLASSNAME } from "@plane/propel/popover";
 import { cn } from "@plane/utils";
 
 export type TStateOptionProps = {
@@ -24,15 +25,13 @@ export type TStateOptionProps = {
 };
 
 export const StateOption = observer(function StateOption(props: TStateOptionProps) {
-  const { option, className = "" } = props;
+  const { option, className } = props;
 
   return (
     <Combobox.Item
       key={option.value}
       value={option.value}
-      className={({ highlighted: active, selected }) =>
-        cn(`${className} ${active ? "bg-layer-transparent-hover" : ""} ${selected ? "text-primary" : "text-secondary"}`)
-      }
+      className={cn(POPUP_OPTION_CLASSNAME, className)}
       render={(itemProps, { selected }) => (
         <div {...itemProps}>
           {

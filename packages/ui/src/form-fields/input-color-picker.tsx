@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 import * as React from "react";
 import * as ColorPicker from "react-color";
 import type { ColorResult } from "react-color";
@@ -79,10 +79,7 @@ export function InputColorPicker(props: InputColorPickerProps) {
             </svg>
           </Popover.Button>
         </div>
-        <Popover.Panel
-          positionerClassName="z-100"
-          className="overflow-hidden rounded-sm border border-subtle bg-surface-1 shadow-raised-200"
-        >
+        <Popover.Panel positionerClassName="z-100" className={cn(POPUP_CLASSNAME, "overflow-hidden p-0")}>
           <ColorPicker.SketchPicker color={value} onChange={handleColorChange} />
         </Popover.Panel>
       </Popover>

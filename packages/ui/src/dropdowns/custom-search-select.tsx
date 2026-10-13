@@ -5,6 +5,13 @@
  */
 
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
+import {
+  POPUP_CLASSNAME,
+  POPUP_OPTION_CLASSNAME,
+  POPUP_SEARCH_CLASSNAME,
+  POPUP_SEARCH_INPUT_CLASSNAME,
+} from "@plane/propel/popover";
 import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { Info } from "lucide-react";
 import { useState } from "react";
@@ -64,10 +71,10 @@ export function CustomSearchSelect({
           render={render}
           tabIndex={tabIndex}
           className={cn(
-            "flex w-full items-center justify-between gap-1 rounded text-11 outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex w-full items-center justify-between gap-2 outline-none disabled:cursor-not-allowed disabled:opacity-50",
             render || customButton
               ? customButtonClassName
-              : ["border border-strong", input ? "px-3 py-2 text-13" : "px-2 py-1", buttonClassName]
+              : [FIELD_CLASSNAME, input ? "h-9 px-3" : "h-8 px-2.5", buttonClassName]
           )}
         >
           {render ? undefined : (customButton ?? label)}
@@ -76,22 +83,17 @@ export function CustomSearchSelect({
       </div>
       <Combobox.Portal>
         <Combobox.Positioner side={side} align={align} sideOffset={4} className="z-[120]">
-          <Combobox.Popup
-            className={cn(
-              "min-w-48 rounded-md border border-subtle-1 bg-surface-1 p-2 text-11 shadow-raised-200 outline-none",
-              optionsClassName
-            )}
-          >
-            <div className="flex items-center gap-1.5 rounded border border-subtle px-2">
-              <SearchIcon className="size-3.5 text-placeholder" />
+          <Combobox.Popup className={cn("min-w-[max(12rem,var(--anchor-width))]", POPUP_CLASSNAME, optionsClassName)}>
+            <div className={POPUP_SEARCH_CLASSNAME}>
+              <SearchIcon className="size-3.5 flex-none" />
               <Combobox.Input
                 aria-label="Search options"
                 placeholder="Search"
-                className="w-full bg-transparent py-1 text-11 outline-none"
+                className={POPUP_SEARCH_INPUT_CLASSNAME}
               />
             </div>
             <Combobox.List
-              className={cn("mt-2 space-y-1 overflow-y-auto", {
+              className={cn("overflow-y-auto", {
                 "max-h-96": maxHeight === "2xl",
                 "max-h-80": maxHeight === "xl",
                 "max-h-60": maxHeight === "lg",
@@ -107,7 +109,7 @@ export function CustomSearchSelect({
                       key={option.value}
                       value={option.value}
                       disabled={option.disabled}
-                      className="flex w-full cursor-default items-center justify-between gap-2 rounded px-1 py-1.5 outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-layer-transparent-hover"
+                      className={POPUP_OPTION_CLASSNAME}
                     >
                       <span className="min-w-0 flex-1 truncate">{option.content}</span>
                       <Combobox.ItemIndicator>
@@ -124,10 +126,10 @@ export function CustomSearchSelect({
                     </Combobox.Item>
                   ))
                 ) : (
-                  <p className="px-1.5 py-1 text-placeholder">{noResultsMessage}</p>
+                  <p className="px-2 py-1.5 text-placeholder">{noResultsMessage}</p>
                 )
               ) : (
-                <p className="px-1.5 py-1 text-placeholder">Loading…</p>
+                <p className="px-2 py-1.5 text-placeholder">Loading…</p>
               )}
             </Combobox.List>
             {footerOption}

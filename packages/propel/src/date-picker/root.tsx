@@ -9,6 +9,7 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Calendar } from "../calendar/root";
 import { CloseIcon } from "../icons/actions/close-icon";
 import { FIELD_CLASSNAME } from "../input/field";
+import { POPUP_CLASSNAME } from "../popover/surface";
 import { cn } from "../utils/classname";
 
 /** Dates travel as local calendar days in `YYYY-MM-DD`, the same format a native date input submits. */
@@ -105,10 +106,7 @@ export const DatePicker = memo(function DatePicker({
       </div>
       <BasePopover.Portal>
         <BasePopover.Positioner side="bottom" align="start" sideOffset={4} className="z-[120]">
-          <BasePopover.Popup
-            data-slot="date-picker-popup"
-            className="origin-[var(--transform-origin)] rounded-lg border border-subtle bg-surface-1 shadow-raised-200 transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none"
-          >
+          <BasePopover.Popup data-slot="date-picker-popup" className={cn(POPUP_CLASSNAME, "p-0")}>
             <Calendar
               mode="single"
               selected={selected}

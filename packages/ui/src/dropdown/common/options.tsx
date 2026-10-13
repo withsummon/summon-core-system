@@ -8,6 +8,7 @@ import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
 
 import React from "react";
 import { CheckIcon } from "@plane/propel/icons";
+import { POPUP_OPTION_CLASSNAME } from "@plane/propel/popover";
 // helpers
 import { cn } from "../../utils";
 // types
@@ -45,7 +46,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
           isMobile={isMobile}
         />
       )}
-      <Combobox.List className={cn("max-h-48 space-y-1 overflow-y-scroll", !disableSearch && "mt-2")}>
+      <Combobox.List className={cn("max-h-48 overflow-y-auto", !disableSearch && "mt-1")}>
         <>
           {options ? (
             options.length > 0 ? (
@@ -55,15 +56,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
                   value={keyExtractor(option)}
                   disabled={option.disabled}
                   className={({ highlighted: active, selected }) =>
-                    cn(
-                      "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
-                      {
-                        "bg-layer-1": active,
-                        "text-primary": selected,
-                        "text-secondary": !selected,
-                      },
-                      option.className && option.className({ active, selected })
-                    )
+                    cn(POPUP_OPTION_CLASSNAME, option.className && option.className({ active, selected }))
                   }
                 >
                   <>
@@ -85,7 +78,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
                 </Combobox.Item>
               ))
             ) : (
-              <p className="px-1.5 py-1 text-placeholder italic">No matching results</p>
+              <p className="px-2 py-1.5 text-placeholder">No matching results</p>
             )
           ) : loader ? (
             <> {loader} </>

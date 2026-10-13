@@ -163,6 +163,8 @@ export const CreateWorkspace = observer(function CreateWorkspace(props: Props) {
                   ref={ref}
                   hasError={Boolean(errors.name)}
                   className="w-full border-strong placeholder:text-placeholder"
+                  // The workspace name is the only field on this onboarding step.
+                  // oxlint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                 />
               </div>
@@ -248,7 +250,6 @@ export const CreateWorkspace = observer(function CreateWorkspace(props: Props) {
                       </span>
                     )
                   }
-                  buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-md"
                   input
                 >
                   {ORGANIZATION_SIZE.map((item) => (
