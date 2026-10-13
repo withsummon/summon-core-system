@@ -7,7 +7,8 @@
  *   HTTP route and a self-contained JSON Schema for the tool input. The AI service builds assistant tools and
  *   MCP tools from it, so a Django serializer change reaches both without hand-written schemas.
  *
- * Run `bun run generate:client`; CI runs `check:generated` and fails on a diff.
+ * `bun run generate` regenerates the schema (Docker) and this; `generate:client` only this. CI runs
+ * `check:generated` and fails on a diff.
  */
 import { $ } from "bun";
 import path from "node:path";

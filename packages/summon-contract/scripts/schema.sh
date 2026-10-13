@@ -9,3 +9,5 @@ docker compose -f docker-compose-test.yml run --rm --no-deps -e ENABLE_DRF_SPECT
   --custom-settings plane.summon.openapi.settings.SUMMON_SPECTACULAR_SETTINGS \
   --format openapi-json --validate --fail-on-warn --file /code/.summon-openapi.json
 mv apps/api/.summon-openapi.json packages/summon-contract/openapi.json
+# The repo's formatter, so the committed file and a fresh one only differ when the schema does.
+bunx oxfmt packages/summon-contract/openapi.json

@@ -23,6 +23,7 @@ SUMMON_SPECTACULAR_SETTINGS = {
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
         "plane.summon.openapi.hooks.postprocess_closed_objects",
+        "plane.summon.openapi.hooks.postprocess_method_order",
     ],
     "GET_LIB_DOC_EXCLUDES": "plane.summon.openapi.hooks.summon_lib_doc_excludes",
     # Clients send JSON; form encodings would only add duplicate request types to the generated client.

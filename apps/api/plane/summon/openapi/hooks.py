@@ -34,3 +34,19 @@ def postprocess_closed_objects(result, generator, request, public):
         if schema.get("type") == "object" and "properties" in schema:
             schema.setdefault("additionalProperties", False)
     return result
+
+
+METHOD_ORDER = ("get", "post", "put", "patch", "delete")
+
+
+def postprocess_method_order(result, generator, request, public):
+    """Order each path's operations by method, so the schema is the same on every run.
+
+    drf-spectacular collects viewset actions in a set, so their order follows Python's hash seed,
+    and the committed schema (and generated client) would differ between identical runs.
+    """
+    for path, item in result.get("paths", {}).items():
+        result["paths"][path] = dict(
+            sorted(item.items(), key=lambda entry: METHOD_ORDER.index(entry[0]) if entry[0] in METHOD_ORDER else 99)
+        )
+    return result

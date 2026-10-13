@@ -16,6 +16,45 @@
   },
   "paths": {
     "/api/summon/workspaces/{slug}/assistant/conversations/": {
+      "get": {
+        "operationId": "assistant_conversation_list",
+        "description": "List the assistant conversations in this workspace that you can see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantConversationList"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "read"
+      },
       "post": {
         "operationId": "assistant_conversation_create",
         "description": "Create an assistant conversation.",
@@ -61,11 +100,22 @@
           }
         },
         "x-summon-tool": "none"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/assistant/conversations/{pk}/": {
       "get": {
-        "operationId": "assistant_conversation_list",
-        "description": "List the assistant conversations in this workspace that you can see.",
+        "operationId": "assistant_conversation_get",
+        "description": "Get one assistant conversation by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -89,10 +139,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AssistantConversationList"
-                  }
+                  "$ref": "#/components/schemas/AssistantConversation"
                 }
               }
             },
@@ -100,9 +147,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/assistant/conversations/{pk}/": {
+      },
       "patch": {
         "operationId": "assistant_conversation_update",
         "description": "Update fields on an assistant conversation; omitted fields are unchanged.",
@@ -194,51 +239,6 @@
           }
         },
         "x-summon-tool": "none"
-      },
-      "get": {
-        "operationId": "assistant_conversation_get",
-        "description": "Get one assistant conversation by id.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "slug",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": ["workspaces"],
-        "security": [
-          {
-            "SessionCookie": []
-          },
-          {
-            "ApiKey": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssistantConversation"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "x-summon-tool": "read"
       }
     },
     "/api/summon/workspaces/{slug}/assistant/conversations/{conversation_id}/messages/": {
@@ -1788,6 +1788,45 @@
       }
     },
     "/api/summon/workspaces/{slug}/clients/": {
+      "get": {
+        "operationId": "client_list",
+        "description": "List the clients in this workspace that you can see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Client"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "read"
+      },
       "post": {
         "operationId": "client_create",
         "description": "Create a client.",
@@ -1833,11 +1872,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/clients/{pk}/": {
       "get": {
-        "operationId": "client_list",
-        "description": "List the clients in this workspace that you can see.",
+        "operationId": "client_get",
+        "description": "Get one client by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -1861,10 +1911,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Client"
-                  }
+                  "$ref": "#/components/schemas/ClientDetail"
                 }
               }
             },
@@ -1872,9 +1919,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/clients/{pk}/": {
+      },
       "patch": {
         "operationId": "client_update",
         "description": "Update fields on a client; omitted fields are unchanged.",
@@ -1966,14 +2011,16 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/": {
       "get": {
-        "operationId": "client_get",
-        "description": "Get one client by id.",
+        "operationId": "client_contact_list",
+        "description": "List the client contacts in this workspace that you can see.",
         "parameters": [
           {
             "in": "path",
-            "name": "pk",
+            "name": "client_id",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -2003,7 +2050,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClientDetail"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientContact"
+                  }
                 }
               }
             },
@@ -2011,9 +2061,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/": {
+      },
       "post": {
         "operationId": "client_contact_create",
         "description": "Create a client contact.",
@@ -2068,14 +2116,25 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/{pk}/": {
       "get": {
-        "operationId": "client_contact_list",
-        "description": "List the client contacts in this workspace that you can see.",
+        "operationId": "client_contact_get",
+        "description": "Get one client contact by id.",
         "parameters": [
           {
             "in": "path",
             "name": "client_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "pk",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -2105,10 +2164,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ClientContact"
-                  }
+                  "$ref": "#/components/schemas/ClientContact"
                 }
               }
             },
@@ -2116,9 +2172,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/{pk}/": {
+      },
       "patch": {
         "operationId": "client_contact_update",
         "description": "Update fields on a client contact; omitted fields are unchanged.",
@@ -2228,29 +2282,13 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/opportunities/": {
       "get": {
-        "operationId": "client_contact_get",
-        "description": "Get one client contact by id.",
+        "operationId": "opportunity_list",
+        "description": "List the opportunities in this workspace that you can see.",
         "parameters": [
-          {
-            "in": "path",
-            "name": "client_id",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
           {
             "in": "path",
             "name": "slug",
@@ -2274,7 +2312,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClientContact"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Opportunity"
+                  }
                 }
               }
             },
@@ -2282,9 +2323,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/opportunities/": {
+      },
       "post": {
         "operationId": "opportunity_create",
         "description": "Create an opportunity.",
@@ -2330,11 +2369,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/opportunities/{pk}/": {
       "get": {
-        "operationId": "opportunity_list",
-        "description": "List the opportunities in this workspace that you can see.",
+        "operationId": "opportunity_get",
+        "description": "Get one opportunity by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -2358,10 +2408,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Opportunity"
-                  }
+                  "$ref": "#/components/schemas/OpportunityDetail"
                 }
               }
             },
@@ -2369,9 +2416,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/opportunities/{pk}/": {
+      },
       "patch": {
         "operationId": "opportunity_update",
         "description": "Update fields on an opportunity; omitted fields are unchanged.",
@@ -2463,51 +2508,6 @@
           }
         },
         "x-summon-tool": "write"
-      },
-      "get": {
-        "operationId": "opportunity_get",
-        "description": "Get one opportunity by id.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "slug",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": ["workspaces"],
-        "security": [
-          {
-            "SessionCookie": []
-          },
-          {
-            "ApiKey": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OpportunityDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "x-summon-tool": "read"
       }
     },
     "/api/summon/workspaces/{slug}/opportunities/{pk}/transitions/": {
@@ -2841,6 +2841,45 @@
       }
     },
     "/api/summon/workspaces/{slug}/meetings/": {
+      "get": {
+        "operationId": "meeting_list",
+        "description": "List the meetings in this workspace that you can see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Meeting"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "read"
+      },
       "post": {
         "operationId": "meeting_create",
         "description": "Create a meeting.",
@@ -2886,11 +2925,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/meetings/{pk}/": {
       "get": {
-        "operationId": "meeting_list",
-        "description": "List the meetings in this workspace that you can see.",
+        "operationId": "meeting_get",
+        "description": "Get one meeting by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -2914,10 +2964,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Meeting"
-                  }
+                  "$ref": "#/components/schemas/Meeting"
                 }
               }
             },
@@ -2925,9 +2972,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/meetings/{pk}/": {
+      },
       "patch": {
         "operationId": "meeting_update",
         "description": "Update fields on a meeting; omitted fields are unchanged.",
@@ -3019,51 +3064,6 @@
           }
         },
         "x-summon-tool": "write"
-      },
-      "get": {
-        "operationId": "meeting_get",
-        "description": "Get one meeting by id.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "slug",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": ["workspaces"],
-        "security": [
-          {
-            "SessionCookie": []
-          },
-          {
-            "ApiKey": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Meeting"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "x-summon-tool": "read"
       }
     },
     "/api/summon/workspaces/{slug}/meetings/{meeting_id}/summary/": {
@@ -3297,6 +3297,45 @@
       }
     },
     "/api/summon/workspaces/{slug}/page-contexts/": {
+      "get": {
+        "operationId": "page_context_list",
+        "description": "List the page contexts in this workspace that you can see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SummonPageContext"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "read"
+      },
       "post": {
         "operationId": "page_context_create",
         "description": "Create a page context.",
@@ -3342,11 +3381,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/page-contexts/{pk}/": {
       "get": {
-        "operationId": "page_context_list",
-        "description": "List the page contexts in this workspace that you can see.",
+        "operationId": "page_context_get",
+        "description": "Get one page context by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -3370,10 +3420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SummonPageContext"
-                  }
+                  "$ref": "#/components/schemas/SummonPageContext"
                 }
               }
             },
@@ -3381,9 +3428,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/page-contexts/{pk}/": {
+      },
       "patch": {
         "operationId": "page_context_update",
         "description": "Update fields on a page context; omitted fields are unchanged.",
@@ -3475,20 +3520,13 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/resources/": {
       "get": {
-        "operationId": "page_context_get",
-        "description": "Get one page context by id.",
+        "operationId": "resource_list",
+        "description": "List the resource links in this workspace that you can see.",
         "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
           {
             "in": "path",
             "name": "slug",
@@ -3512,7 +3550,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SummonPageContext"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourceLink"
+                  }
                 }
               }
             },
@@ -3520,9 +3561,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/resources/": {
+      },
       "post": {
         "operationId": "resource_create",
         "description": "Create a resource link.",
@@ -3568,11 +3607,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/resources/{pk}/": {
       "get": {
-        "operationId": "resource_list",
-        "description": "List the resource links in this workspace that you can see.",
+        "operationId": "resource_get",
+        "description": "Get one resource link by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -3596,10 +3646,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ResourceLink"
-                  }
+                  "$ref": "#/components/schemas/ResourceLink"
                 }
               }
             },
@@ -3607,9 +3654,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/resources/{pk}/": {
+      },
       "patch": {
         "operationId": "resource_update",
         "description": "Update fields on a resource link; omitted fields are unchanged.",
@@ -3701,20 +3746,13 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/automation/templates/": {
       "get": {
-        "operationId": "resource_get",
-        "description": "Get one resource link by id.",
+        "operationId": "automation_template_list",
+        "description": "List the automation templates in this workspace that you can see.",
         "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
           {
             "in": "path",
             "name": "slug",
@@ -3738,7 +3776,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResourceLink"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutomationTemplate"
+                  }
                 }
               }
             },
@@ -3746,9 +3787,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/automation/templates/": {
+      },
       "post": {
         "operationId": "automation_template_create",
         "description": "Create an automation template.",
@@ -3794,11 +3833,22 @@
           }
         },
         "x-summon-tool": "write"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/automation/templates/{pk}/": {
       "get": {
-        "operationId": "automation_template_list",
-        "description": "List the automation templates in this workspace that you can see.",
+        "operationId": "automation_template_get",
+        "description": "Get one automation template by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -3822,10 +3872,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AutomationTemplate"
-                  }
+                  "$ref": "#/components/schemas/AutomationTemplate"
                 }
               }
             },
@@ -3833,9 +3880,7 @@
           }
         },
         "x-summon-tool": "read"
-      }
-    },
-    "/api/summon/workspaces/{slug}/automation/templates/{pk}/": {
+      },
       "patch": {
         "operationId": "automation_template_update",
         "description": "Update fields on an automation template; omitted fields are unchanged.",
@@ -3927,51 +3972,6 @@
           }
         },
         "x-summon-tool": "write"
-      },
-      "get": {
-        "operationId": "automation_template_get",
-        "description": "Get one automation template by id.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "slug",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": ["workspaces"],
-        "security": [
-          {
-            "SessionCookie": []
-          },
-          {
-            "ApiKey": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AutomationTemplate"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "x-summon-tool": "read"
       }
     },
     "/api/summon/workspaces/{slug}/automation/context/extract/": {
@@ -4413,6 +4413,42 @@
       }
     },
     "/api/summon/workspaces/{slug}/credentials/": {
+      "get": {
+        "operationId": "credential_list",
+        "description": "List the credentials in this workspace that you can see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["workspaces"],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Credential"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "x-summon-tool": "none"
+      },
       "post": {
         "operationId": "credential_create",
         "description": "Create a credential.",
@@ -4455,11 +4491,22 @@
           }
         },
         "x-summon-tool": "none"
-      },
+      }
+    },
+    "/api/summon/workspaces/{slug}/credentials/{pk}/": {
       "get": {
-        "operationId": "credential_list",
-        "description": "List the credentials in this workspace that you can see.",
+        "operationId": "credential_get",
+        "description": "Get one credential by id.",
         "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
           {
             "in": "path",
             "name": "slug",
@@ -4480,10 +4527,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Credential"
-                  }
+                  "$ref": "#/components/schemas/Credential"
                 }
               }
             },
@@ -4491,9 +4535,7 @@
           }
         },
         "x-summon-tool": "none"
-      }
-    },
-    "/api/summon/workspaces/{slug}/credentials/{pk}/": {
+      },
       "patch": {
         "operationId": "credential_update",
         "description": "Update fields on a credential; omitted fields are unchanged.",
@@ -4576,48 +4618,6 @@
         "responses": {
           "204": {
             "description": "No response body"
-          }
-        },
-        "x-summon-tool": "none"
-      },
-      "get": {
-        "operationId": "credential_get",
-        "description": "Get one credential by id.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "slug",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": ["workspaces"],
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Credential"
-                }
-              }
-            },
-            "description": ""
           }
         },
         "x-summon-tool": "none"

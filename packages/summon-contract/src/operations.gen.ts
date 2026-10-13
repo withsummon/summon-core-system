@@ -194,6 +194,20 @@ export const operations = {
       additionalProperties: false,
     },
   },
+  client_list: {
+    method: "GET",
+    path: "/api/summon/workspaces/{slug}/clients/",
+    tool: "read",
+    description: "List the clients in this workspace that you can see.",
+    pathParams: ["slug"],
+    queryParams: [],
+    body: null,
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
   client_create: {
     method: "POST",
     path: "/api/summon/workspaces/{slug}/clients/",
@@ -269,18 +283,24 @@ export const operations = {
       },
     },
   },
-  client_list: {
+  client_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/clients/",
+    path: "/api/summon/workspaces/{slug}/clients/{pk}/",
     tool: "read",
-    description: "List the clients in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one client by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   client_update: {
@@ -382,24 +402,24 @@ export const operations = {
       required: ["pk"],
     },
   },
-  client_get: {
+  client_contact_list: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/clients/{pk}/",
+    path: "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/",
     tool: "read",
-    description: "Get one client by id.",
-    pathParams: ["pk", "slug"],
+    description: "List the client contacts in this workspace that you can see.",
+    pathParams: ["client_id", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
       properties: {
-        pk: {
+        client_id: {
           type: "string",
           format: "uuid",
         },
       },
       additionalProperties: false,
-      required: ["pk"],
+      required: ["client_id"],
     },
   },
   client_contact_create: {
@@ -443,12 +463,12 @@ export const operations = {
       required: ["client_id", "email", "name"],
     },
   },
-  client_contact_list: {
+  client_contact_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/",
+    path: "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/{pk}/",
     tool: "read",
-    description: "List the client contacts in this workspace that you can see.",
-    pathParams: ["client_id", "slug"],
+    description: "Get one client contact by id.",
+    pathParams: ["client_id", "pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
@@ -458,9 +478,13 @@ export const operations = {
           type: "string",
           format: "uuid",
         },
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
       },
       additionalProperties: false,
-      required: ["client_id"],
+      required: ["client_id", "pk"],
     },
   },
   client_contact_update: {
@@ -532,28 +556,18 @@ export const operations = {
       required: ["client_id", "pk"],
     },
   },
-  client_contact_get: {
+  opportunity_list: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/clients/{client_id}/contacts/{pk}/",
+    path: "/api/summon/workspaces/{slug}/opportunities/",
     tool: "read",
-    description: "Get one client contact by id.",
-    pathParams: ["client_id", "pk", "slug"],
+    description: "List the opportunities in this workspace that you can see.",
+    pathParams: ["slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {
-        client_id: {
-          type: "string",
-          format: "uuid",
-        },
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
+      properties: {},
       additionalProperties: false,
-      required: ["client_id", "pk"],
     },
   },
   opportunity_create: {
@@ -619,18 +633,24 @@ export const operations = {
       },
     },
   },
-  opportunity_list: {
+  opportunity_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/opportunities/",
+    path: "/api/summon/workspaces/{slug}/opportunities/{pk}/",
     tool: "read",
-    description: "List the opportunities in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one opportunity by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   opportunity_update: {
@@ -705,26 +725,6 @@ export const operations = {
     path: "/api/summon/workspaces/{slug}/opportunities/{pk}/",
     tool: "write",
     description: "Delete an opportunity.",
-    pathParams: ["pk", "slug"],
-    queryParams: [],
-    body: null,
-    inputSchema: {
-      type: "object",
-      properties: {
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
-      additionalProperties: false,
-      required: ["pk"],
-    },
-  },
-  opportunity_get: {
-    method: "GET",
-    path: "/api/summon/workspaces/{slug}/opportunities/{pk}/",
-    tool: "read",
-    description: "Get one opportunity by id.",
     pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
@@ -952,6 +952,20 @@ export const operations = {
       required: ["project_id"],
     },
   },
+  meeting_list: {
+    method: "GET",
+    path: "/api/summon/workspaces/{slug}/meetings/",
+    tool: "read",
+    description: "List the meetings in this workspace that you can see.",
+    pathParams: ["slug"],
+    queryParams: [],
+    body: null,
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
   meeting_create: {
     method: "POST",
     path: "/api/summon/workspaces/{slug}/meetings/",
@@ -1055,18 +1069,24 @@ export const operations = {
       },
     },
   },
-  meeting_list: {
+  meeting_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/meetings/",
+    path: "/api/summon/workspaces/{slug}/meetings/{pk}/",
     tool: "read",
-    description: "List the meetings in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one meeting by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   meeting_update: {
@@ -1181,26 +1201,6 @@ export const operations = {
     path: "/api/summon/workspaces/{slug}/meetings/{pk}/",
     tool: "write",
     description: "Delete a meeting.",
-    pathParams: ["pk", "slug"],
-    queryParams: [],
-    body: null,
-    inputSchema: {
-      type: "object",
-      properties: {
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
-      additionalProperties: false,
-      required: ["pk"],
-    },
-  },
-  meeting_get: {
-    method: "GET",
-    path: "/api/summon/workspaces/{slug}/meetings/{pk}/",
-    tool: "read",
-    description: "Get one meeting by id.",
     pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
@@ -1346,6 +1346,20 @@ export const operations = {
       required: ["meeting_id", "pk"],
     },
   },
+  page_context_list: {
+    method: "GET",
+    path: "/api/summon/workspaces/{slug}/page-contexts/",
+    tool: "read",
+    description: "List the page contexts in this workspace that you can see.",
+    pathParams: ["slug"],
+    queryParams: [],
+    body: null,
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
   page_context_create: {
     method: "POST",
     path: "/api/summon/workspaces/{slug}/page-contexts/",
@@ -1383,18 +1397,24 @@ export const operations = {
       required: ["page"],
     },
   },
-  page_context_list: {
+  page_context_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/page-contexts/",
+    path: "/api/summon/workspaces/{slug}/page-contexts/{pk}/",
     tool: "read",
-    description: "List the page contexts in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one page context by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   page_context_update: {
@@ -1458,24 +1478,18 @@ export const operations = {
       required: ["pk"],
     },
   },
-  page_context_get: {
+  resource_list: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/page-contexts/{pk}/",
+    path: "/api/summon/workspaces/{slug}/resources/",
     tool: "read",
-    description: "Get one page context by id.",
-    pathParams: ["pk", "slug"],
+    description: "List the resource links in this workspace that you can see.",
+    pathParams: ["slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
+      properties: {},
       additionalProperties: false,
-      required: ["pk"],
     },
   },
   resource_create: {
@@ -1528,18 +1542,24 @@ export const operations = {
       required: ["title", "url"],
     },
   },
-  resource_list: {
+  resource_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/resources/",
+    path: "/api/summon/workspaces/{slug}/resources/{pk}/",
     tool: "read",
-    description: "List the resource links in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one resource link by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   resource_update: {
@@ -1616,24 +1636,18 @@ export const operations = {
       required: ["pk"],
     },
   },
-  resource_get: {
+  automation_template_list: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/resources/{pk}/",
+    path: "/api/summon/workspaces/{slug}/automation/templates/",
     tool: "read",
-    description: "Get one resource link by id.",
-    pathParams: ["pk", "slug"],
+    description: "List the automation templates in this workspace that you can see.",
+    pathParams: ["slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
+      properties: {},
       additionalProperties: false,
-      required: ["pk"],
     },
   },
   automation_template_create: {
@@ -1673,18 +1687,24 @@ export const operations = {
       required: ["content_template", "name", "type"],
     },
   },
-  automation_template_list: {
+  automation_template_get: {
     method: "GET",
-    path: "/api/summon/workspaces/{slug}/automation/templates/",
+    path: "/api/summon/workspaces/{slug}/automation/templates/{pk}/",
     tool: "read",
-    description: "List the automation templates in this workspace that you can see.",
-    pathParams: ["slug"],
+    description: "Get one automation template by id.",
+    pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        pk: {
+          type: "string",
+          format: "uuid",
+        },
+      },
       additionalProperties: false,
+      required: ["pk"],
     },
   },
   automation_template_update: {
@@ -1733,26 +1753,6 @@ export const operations = {
     path: "/api/summon/workspaces/{slug}/automation/templates/{pk}/",
     tool: "write",
     description: "Delete an automation template.",
-    pathParams: ["pk", "slug"],
-    queryParams: [],
-    body: null,
-    inputSchema: {
-      type: "object",
-      properties: {
-        pk: {
-          type: "string",
-          format: "uuid",
-        },
-      },
-      additionalProperties: false,
-      required: ["pk"],
-    },
-  },
-  automation_template_get: {
-    method: "GET",
-    path: "/api/summon/workspaces/{slug}/automation/templates/{pk}/",
-    tool: "read",
-    description: "Get one automation template by id.",
     pathParams: ["pk", "slug"],
     queryParams: [],
     body: null,

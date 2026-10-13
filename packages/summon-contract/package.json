@@ -14,7 +14,7 @@
   "scripts": {
     "generate": "./scripts/schema.sh && bun run generate:client",
     "generate:client": "bun scripts/generate.ts",
-    "check:generated": "bun run generate:client && git diff --exit-code -- src openapi.json",
+    "check:generated": "bun run generate && git diff --exit-code -- src openapi.json",
     "test": "vitest run",
     "check:lint": "oxlint --max-warnings=0 .",
     "check:types": "tsc --noEmit",
