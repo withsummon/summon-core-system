@@ -12,6 +12,7 @@
  */
 import { $ } from "bun";
 import path from "node:path";
+import type { SummonOperation } from "../src/operation";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
@@ -87,18 +88,7 @@ function resolve(schema: JsonObject): JsonObject {
   return typeof ref === "string" ? spec.components.schemas[ref.slice(REF_PREFIX.length)]! : schema;
 }
 
-interface GeneratedOperation {
-  method: string;
-  path: string;
-  tool: "read" | "write";
-  description: string;
-  pathParams: string[];
-  queryParams: string[];
-  body: "flat" | "nested" | null;
-  inputSchema: JsonObject;
-}
-
-function operation(method: string, route: string, op: OpenApiOperation): GeneratedOperation {
+function operation(method: string, route: string, op: OpenApiOperation): SummonOperation {
   const refs = new Set<string>();
   const properties: JsonObject = {};
   const required: string[] = [];
@@ -109,40 +99,46 @@ function operation(method: string, route: string, op: OpenApiOperation): Generat
     properties[param.name] = param.description ? { ...schema, description: param.description } : schema;
     if (param.required) required.push(param.name);
   }
-
-  let body: GeneratedOperation["body"] = null;
-  const bodySchema = op.requestBody?.content["application/json"]?.schema;
-  if (bodySchema) {
-    const resolved = resolve(bodySchema);
-    const fields = resolved.properties as JsonObject | undefined;
-    const collides = fields && Object.keys(fields).some((name) => name in properties);
-    if (resolved.type === "object" && fields && !collides) {
-      // Flat: body fields sit next to the path and query params, which is what models handle best.
-      body = "flat";
-      Object.assign(properties, mapValues(fields, refs));
-      required.push(...((resolved.required as string[] | undefined) ?? []));
-    } else {
-      body = "nested";
-      properties.body = toJsonSchema(bodySchema, refs);
-      if (op.requestBody?.required) required.push("body");
-    }
-  }
-
+  const body = placeBody(op, properties, required, refs);
   const input: JsonObject = { type: "object", properties, additionalProperties: false };
   if (required.length > 0) input.required = required;
   return {
-    method: method.toUpperCase(),
+    method: method.toUpperCase() as SummonOperation["method"],
     path: route,
-    tool: op["x-summon-tool"] as "read" | "write",
+    tool: op["x-summon-tool"] as SummonOperation["tool"],
     description: op.description ?? "",
     pathParams: params.filter((param) => param.in === "path").map((param) => param.name),
     queryParams: params.filter((param) => param.in === "query").map((param) => param.name),
     body,
-    inputSchema: withDefs(input, refs),
+    inputSchema: { ...withDefs(input, refs), type: "object" },
   };
 }
 
-const operations: Record<string, GeneratedOperation> = {};
+/**
+ * Adds the request body to the tool input. Flat: its fields sit next to the path and query params, which is
+ * what models handle best. Nested under `body` when it isn't an object or a field name would collide.
+ */
+function placeBody(
+  op: OpenApiOperation,
+  properties: JsonObject,
+  required: string[],
+  refs: Set<string>
+): SummonOperation["body"] {
+  const bodySchema = op.requestBody?.content["application/json"]?.schema;
+  if (!bodySchema) return null;
+  const resolved = resolve(bodySchema);
+  const fields = resolved.type === "object" ? (resolved.properties as JsonObject | undefined) : undefined;
+  if (fields && !Object.keys(fields).some((name) => name in properties)) {
+    Object.assign(properties, mapValues(fields, refs));
+    required.push(...((resolved.required as string[] | undefined) ?? []));
+    return "flat";
+  }
+  properties.body = toJsonSchema(bodySchema, refs);
+  if (op.requestBody?.required) required.push("body");
+  return "nested";
+}
+
+const operations: Record<string, SummonOperation> = {};
 for (const [route, methods] of Object.entries(spec.paths)) {
   for (const [method, op] of Object.entries(methods)) {
     if (op["x-summon-tool"] === "none") continue;
