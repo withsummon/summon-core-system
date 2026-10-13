@@ -26,7 +26,6 @@ type Props = {
   handleClose: () => void;
   status: boolean;
   projectId: string;
-  setActiveProject: (projectId: string) => void;
   data?: ICycle | null;
   isMobile?: boolean;
 };
@@ -39,7 +38,7 @@ const defaultValues: Partial<ICycle> = {
 };
 
 export function CycleForm(props: Props) {
-  const { handleFormSubmit, handleClose, status, projectId, setActiveProject, data, isMobile = false } = props;
+  const { handleFormSubmit, handleClose, status, projectId, data, isMobile = false } = props;
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -65,9 +64,10 @@ export function CycleForm(props: Props) {
   useEffect(() => {
     reset({
       ...defaultValues,
+      project_id: projectId,
       ...data,
     });
-  }, [data, reset]);
+  }, [data, projectId, reset]);
 
   return (
     <form onSubmit={handleSubmit((formData) => handleFormSubmit(formData))}>
@@ -82,14 +82,11 @@ export function CycleForm(props: Props) {
                   <ProjectDropdown
                     value={value}
                     onChange={(val) => {
-                      if (!Array.isArray(val)) {
-                        onChange(val);
-                        setActiveProject(val);
-                      }
+                      if (!Array.isArray(val)) onChange(val);
                     }}
                     multiple={false}
                     buttonVariant="border-with-text"
-                    renderCondition={(projectId) => !!projectsWithCreatePermissions?.[projectId]}
+                    renderCondition={(id) => !!projectsWithCreatePermissions?.[id]}
                     tabIndex={getIndex("cover_image")}
                   />
                 </div>
@@ -123,6 +120,7 @@ export function CycleForm(props: Props) {
                   onChange={onChange}
                   hasError={Boolean(errors?.name)}
                   tabIndex={getIndex("description")}
+                  // oxlint-disable-next-line jsx_a11y/no-autofocus -- the name field is the first thing to fill when the modal opens
                   autoFocus
                 />
               )}

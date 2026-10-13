@@ -27,7 +27,6 @@ type Props = {
   handleClose: () => void;
   status: boolean;
   projectId: string;
-  setActiveProject: React.Dispatch<React.SetStateAction<string | null>>;
   data?: IModule;
   isMobile?: boolean;
 };
@@ -41,7 +40,7 @@ const defaultValues: Partial<IModule> = {
 };
 
 export function ModuleForm(props: Props) {
-  const { handleFormSubmit, handleClose, status, projectId, setActiveProject, data, isMobile = false } = props;
+  const { handleFormSubmit, handleClose, status, projectId, data, isMobile = false } = props;
   // store hooks
   const { projectsWithCreatePermissions } = useUser();
   // form info
@@ -50,6 +49,7 @@ export function ModuleForm(props: Props) {
     handleSubmit,
     control,
     reset,
+    watch,
   } = useForm<IModule>({
     defaultValues: {
       project_id: projectId,
@@ -65,23 +65,18 @@ export function ModuleForm(props: Props) {
 
   const { t } = useTranslation();
 
-  const handleCreateUpdateModule = async (formData: Partial<IModule>) => {
-    await handleFormSubmit(formData, dirtyFields);
-
-    reset({
-      ...defaultValues,
-    });
-  };
+  const selectedProjectId = watch("project_id");
 
   useEffect(() => {
     reset({
       ...defaultValues,
+      project_id: projectId,
       ...data,
     });
-  }, [data, reset]);
+  }, [data, projectId, reset]);
 
   return (
-    <form onSubmit={handleSubmit(handleCreateUpdateModule)}>
+    <form onSubmit={handleSubmit((formData) => handleFormSubmit(formData, dirtyFields))}>
       <div className="space-y-5 p-5">
         <div className="flex items-center gap-x-3">
           {!status && (
@@ -93,14 +88,11 @@ export function ModuleForm(props: Props) {
                   <ProjectDropdown
                     value={value}
                     onChange={(val) => {
-                      if (!Array.isArray(val)) {
-                        onChange(val);
-                        setActiveProject(val);
-                      }
+                      if (!Array.isArray(val)) onChange(val);
                     }}
                     multiple={false}
                     buttonVariant="border-with-text"
-                    renderCondition={(projectId) => !!projectsWithCreatePermissions?.[projectId]}
+                    renderCondition={(id) => !!projectsWithCreatePermissions?.[id]}
                     tabIndex={getIndex("cover_image")}
                   />
                 </div>
@@ -134,6 +126,7 @@ export function ModuleForm(props: Props) {
                   placeholder={t("title")}
                   className="w-full text-14"
                   tabIndex={getIndex("name")}
+                  // oxlint-disable-next-line jsx_a11y/no-autofocus -- the name field is the first thing to fill when the modal opens
                   autoFocus
                 />
               )}
@@ -202,7 +195,7 @@ export function ModuleForm(props: Props) {
                   <MemberDropdown
                     value={value}
                     onChange={onChange}
-                    projectId={projectId}
+                    projectId={selectedProjectId}
                     multiple={false}
                     buttonVariant="border-with-text"
                     placeholder={t("lead")}
@@ -219,7 +212,7 @@ export function ModuleForm(props: Props) {
                   <MemberDropdown
                     value={value}
                     onChange={onChange}
-                    projectId={projectId}
+                    projectId={selectedProjectId}
                     multiple
                     buttonVariant={value && value.length > 0 ? "transparent-without-text" : "border-with-text"}
                     buttonClassName={value && value.length > 0 ? "hover:bg-transparent px-0" : ""}
