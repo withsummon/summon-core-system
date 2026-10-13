@@ -5,9 +5,10 @@
 import re
 from dataclasses import dataclass
 
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.utils import timezone
 
-from plane.db.models import Project
+from plane.db.models import Issue, Project
 from plane.summon.models import Client, Meeting
 from plane.summon.services.commercial import accessible_pages
 from plane.summon.services.page_document import summon_document_metadata
@@ -59,6 +60,32 @@ def _page_source(page):
 def _relevance(text, terms):
     normalized = text.casefold()
     return sum(term in normalized for term in terms)
+
+
+def _project_work_entries(workspace, project, limit=15):
+    """Live work-item state for a selected project: counts by state group, then open items, overdue first."""
+    issues = Issue.issue_objects.filter(workspace=workspace, project=project)
+    groups = {row["state__group"]: row["total"] for row in issues.values("state__group").annotate(total=Count("id"))}
+    today = timezone.now().date()
+    open_issues = issues.exclude(state__group__in=["completed", "cancelled"]).select_related("state")
+    overdue = open_issues.filter(target_date__lt=today).count()
+    summary = ", ".join(f"{group}: {total}" for group, total in sorted(groups.items()) if group) or "none"
+    entries = [(f"[Project work items]\nProject: {project.name}\nBy state: {summary}\nOverdue open items: {overdue}", None)]
+    ordered = sorted(
+        open_issues.order_by("-updated_at")[:100],
+        key=lambda issue: (not (issue.target_date and issue.target_date < today), issue.target_date or today),
+    )
+    for issue in ordered[:limit]:
+        key = f"{project.identifier}-{issue.sequence_id}"
+        due = f"\nDue: {issue.target_date.isoformat()}" if issue.target_date else ""
+        entries.append(
+            (
+                f"[Work item {key}]\nName: {issue.name}\nState: {issue.state.name if issue.state else 'None'}"
+                f"\nPriority: {issue.priority}{due}",
+                _citation(issue, f"{key} {issue.name}", f"/{workspace.slug}/browse/{key}/", "issue"),
+            )
+        )
+    return entries
 
 
 def _automatic_context_entries(workspace, user, project_ids, query, excluded_project_id, excluded_page_ids):
@@ -141,6 +168,7 @@ def build_context(workspace, user, selection, query="", source_entries=()):
                 ),
             )
         )
+        entries.extend(_project_work_entries(workspace, project))
 
     client = Client.objects.filter(workspace=workspace, id=selection.get("client_id")).first()
     if client:
@@ -152,6 +180,25 @@ def build_context(workspace, user, selection, query="", source_entries=()):
                 _citation(client, client.name, f"/{workspace.slug}/summon/clients/{client.id}/", "client"),
             )
         )
+        client_projects = (
+            Project.objects.filter(workspace=workspace, id__in=project_ids, summon_profiles__client=client)
+            .exclude(id=project.id if project else None)
+            .distinct()
+            .order_by("name")[:5]
+        )
+        for client_project in client_projects:
+            entries.append(
+                (
+                    f"[Client project]\nName: {client_project.name}\nIdentifier: {client_project.identifier}",
+                    _citation(
+                        client_project,
+                        client_project.name,
+                        f"/{workspace.slug}/summon/projects/{client_project.id}/",
+                        "project",
+                    ),
+                )
+            )
+            entries.extend(_project_work_entries(workspace, client_project, limit=8))
 
     meeting = (
         Meeting.objects.filter(workspace=workspace, id=selection.get("meeting_id"))
@@ -160,12 +207,14 @@ def build_context(workspace, user, selection, query="", source_entries=()):
         .first()
     )
     if meeting:
-        transcript = summon_document_metadata(meeting.summary_page).get("source_transcript", "")
+        metadata = summon_document_metadata(meeting.summary_page)
+        transcript = metadata.get("source_transcript", "")
+        summary = metadata.get("markdown", "")
         entries.append(
             (
                 "[Meeting]\n"
                 f"Title: {meeting.title}\nStarts at: {meeting.starts_at.isoformat()}\n"
-                f"Agenda: {meeting.agenda}\nNotes: {meeting.notes}\nTranscript: {transcript}",
+                f"Agenda: {meeting.agenda}\nNotes: {meeting.notes}\nSummary: {summary}\nTranscript: {transcript}",
                 _citation(meeting, meeting.title, f"/{workspace.slug}/summon/meetings/{meeting.id}/", "meeting"),
             )
         )

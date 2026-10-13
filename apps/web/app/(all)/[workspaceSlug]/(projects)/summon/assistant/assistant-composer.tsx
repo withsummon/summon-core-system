@@ -1,7 +1,30 @@
-import type { FormEventHandler } from "react";
-import { ChevronDown, FileAudio, FileText, LoaderCircle, Paperclip, Send, SlidersHorizontal, X } from "lucide-react";
-import { Button } from "@plane/propel/button";
-import { Input, TextArea } from "@plane/ui";
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import type { FormEventHandler, ReactNode, Ref } from "react";
+import {
+  Building2,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  FileAudio,
+  FileText,
+  FolderKanban,
+  LoaderCircle,
+  Paperclip,
+  Plug,
+  Users,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Button, getButtonStyling } from "@plane/propel/button";
+import { IconButton } from "@plane/propel/icon-button";
+import { Input } from "@plane/propel/input";
+import { MENU_ITEM_CLASSNAME, MenuPrimitive as Menu } from "@plane/propel/menu";
+import { Tooltip } from "@plane/propel/tooltip";
 import type {
   ISummonAssistantAttachment,
   ISummonClient,
@@ -9,271 +32,412 @@ import type {
   ISummonMeeting,
   ISummonPageContext,
 } from "@plane/types";
-import { SummonField } from "@/components/summon/forms";
+import { cn } from "@plane/utils";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputHeader,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
+import { OPTION_POPUP_CLASSNAME, OptionSubmenu } from "@/components/summon/option-menu";
+import type { TOption } from "@/components/summon/option-menu";
 import { shouldSubmitAssistantComposer } from "./composer-keyboard.js";
-import { MultiSelect, Select } from "@plane/propel/select";
+import { TOOL_LABELS, WORKSPACE_SCOPE, toolNeedsWorkItem } from "./assistant-model";
+import type {
+  AssistantComposerState,
+  TAssistantScope,
+  TAssistantScopeKind,
+  TAssistantToolMode,
+} from "./assistant-model";
 
-export interface AssistantComposerState {
-  content: string;
-  workspaceContext: boolean;
-  projectId: string;
-  clientId: string;
-  meetingId: string;
-  pageIds: string[];
-  mcpCredentialId: string;
-  toolMode: string;
-  workItemId: string;
-}
+export const MAX_ATTACHMENTS = 5;
+const ACCEPTED_FILES =
+  ".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.mp3,.m4a,audio/mpeg,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a";
+
+export const SCOPE_ICONS: Record<TAssistantScopeKind, LucideIcon> = {
+  workspace: Building2,
+  project: FolderKanban,
+  client: Users,
+  meeting: CalendarDays,
+};
+
+const CHIP_CLASSNAME = cn(getButtonStyling("ghost", "sm"), "max-w-full min-w-0 text-secondary");
+
+export type TScopeOptions = Record<Exclude<TAssistantScopeKind, "workspace">, TOption[]>;
+
+/** The chip text for a scope; a record whose options haven't arrived yet reads as loading. */
+export const scopeLabelFor = (scope: TAssistantScope, options: TScopeOptions) =>
+  scope.kind === "workspace"
+    ? "Whole workspace"
+    : (options[scope.kind].find((option) => option.id === scope.id)?.label ?? "Loading…");
 
 interface AssistantComposerProps {
   value: AssistantComposerState;
-  projects: Array<{ id: string; name: string }>;
-  clients?: ISummonClient[];
-  meetings?: ISummonMeeting[];
-  pages?: ISummonPageContext[];
-  credentials?: ISummonCredential[];
-  sending: boolean;
-  contextError: boolean;
-  contextTruncated: boolean;
-  sendError: string;
-  canRetry: boolean;
+  scopeOptions: TScopeOptions;
+  scopeLabel: string;
+  pages: ISummonPageContext[];
+  credentials: ISummonCredential[];
   attachments: ISummonAssistantAttachment[];
   uploadingFiles: File[];
   removingAttachment: string;
+  sending: boolean;
+  placeholder: string;
+  textareaRef?: Ref<HTMLTextAreaElement>;
   onChange: (patch: Partial<AssistantComposerState>) => void;
+  onScopeChange: (scope: TAssistantScope) => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
-  onRetry: () => void;
   onFiles: (files: File[]) => void;
   onRemoveAttachment: (attachmentId: string) => void;
+  footer?: ReactNode;
 }
 
-const MAX_ATTACHMENTS = 5;
+export function scopeOptionsFrom(
+  projects: TOption[],
+  clients: ISummonClient[] = [],
+  meetings: ISummonMeeting[] = []
+): TScopeOptions {
+  return {
+    project: projects,
+    client: clients.map((client) => ({ id: client.id, label: client.name })),
+    meeting: meetings.map((meeting) => ({ id: meeting.id, label: meeting.title })),
+  };
+}
 
 export function AssistantComposer(props: AssistantComposerProps) {
   const { value } = props;
-  const focusCount =
-    Number(value.workspaceContext) +
-    Number(Boolean(value.projectId)) +
-    Number(Boolean(value.clientId)) +
-    Number(Boolean(value.meetingId)) +
-    value.pageIds.length +
-    Number(value.toolMode !== "chat");
+  const attachmentCount = props.attachments.length + props.uploadingFiles.length;
+  const toolMode = value.toolMode;
 
   return (
-    <form onSubmit={props.onSubmit} className="border-t border-subtle bg-surface-1 px-3 py-3 sm:px-5">
-      <div className="mx-auto max-w-3xl space-y-2.5">
-        <details className="group rounded-xl border border-subtle bg-layer-1/50">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium text-secondary focus-visible:outline focus-visible:outline-2">
-            <SlidersHorizontal className="size-3.5" />
-            <span>Context & tools</span>
-            {focusCount ? (
-              <span className="rounded-full bg-accent-subtle px-1.5 py-0.5 text-12 text-accent-primary">
-                {focusCount} active
-              </span>
-            ) : (
-              <span className="text-12 text-tertiary">Automatic</span>
-            )}
-            <ChevronDown className="ml-auto size-3.5 transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="grid gap-3 border-t border-subtle p-3 sm:grid-cols-2 xl:grid-cols-3">
-            <SummonField label="Assistant mode">
-              <Select
-                value={value.toolMode}
-                onValueChange={(next) => props.onChange({ toolMode: next })}
-                options={[
-                  { value: "chat", label: "AI chat" },
-                  { value: "list_projects", label: "MCP \u00b7 List projects" },
-                  { value: "create_project", label: "MCP \u00b7 Create project preview" },
-                  { value: "list_work_items", label: "MCP \u00b7 List work items" },
-                  { value: "create_work_item", label: "MCP \u00b7 Create work item preview" },
-                  { value: "update_work_item", label: "MCP \u00b7 Update work item preview" },
-                  { value: "add_comment", label: "MCP \u00b7 Add comment preview" },
-                ]}
+    <div className="w-full space-y-2">
+      <PromptInput onSubmit={props.onSubmit} onFiles={props.onFiles}>
+        {attachmentCount || toolMode !== "chat" ? (
+          <PromptInputHeader aria-label="Message context">
+            {toolMode !== "chat" ? (
+              <ToolChip
+                mode={toolMode}
+                workItemId={value.workItemId}
+                onWorkItemId={(workItemId) => props.onChange({ workItemId })}
+                onClear={() => props.onChange({ toolMode: "chat", workItemId: "" })}
               />
-            </SummonField>
-            <SummonField label="Plane MCP credential">
-              <Select
-                value={value.mcpCredentialId}
-                onValueChange={(next) => props.onChange({ mcpCredentialId: next })}
-                options={[
-                  { value: "", label: "No credential" },
-                  ...(props.credentials ?? []).map((credential) => ({ value: credential.id, label: credential.name })),
-                ]}
-              />
-            </SummonField>
-            <SummonField label="Project context">
-              <Select
-                value={value.projectId}
-                onValueChange={(next) => props.onChange({ projectId: next })}
-                options={[
-                  { value: "", label: "Automatic" },
-                  ...props.projects.map((project) => ({ value: project.id, label: project.name })),
-                ]}
-              />
-            </SummonField>
-            {["update_work_item", "add_comment"].includes(value.toolMode) ? (
-              <SummonField label="Task ID">
-                <Input
-                  value={value.workItemId}
-                  onChange={(event) => props.onChange({ workItemId: event.target.value })}
-                  required
-                />
-              </SummonField>
             ) : null}
-            <SummonField label="Client context">
-              <Select
-                value={value.clientId}
-                onValueChange={(next) => props.onChange({ clientId: next })}
-                options={[
-                  { value: "", label: "Automatic" },
-                  ...(props.clients ?? []).map((client) => ({ value: client.id, label: client.name })),
-                ]}
+            {props.attachments.map((attachment) => (
+              <AttachmentChip
+                key={attachment.id}
+                attachment={attachment}
+                removing={props.removingAttachment === attachment.id}
+                onRemove={() => props.onRemoveAttachment(attachment.id)}
               />
-            </SummonField>
-            <SummonField label="Meeting context">
-              <Select
-                value={value.meetingId}
-                onValueChange={(next) => props.onChange({ meetingId: next })}
-                options={[
-                  { value: "", label: "Automatic" },
-                  ...(props.meetings ?? []).map((meeting) => ({ value: meeting.id, label: meeting.title })),
-                ]}
-              />
-            </SummonField>
-            <SummonField label="Documents">
-              <MultiSelect
-                value={value.pageIds}
-                onValueChange={(values) => props.onChange({ pageIds: values })}
-                aria-describedby="assistant-page-context-help"
-                options={(props.pages ?? []).map((page) => ({ value: page.page, label: page.page_detail.name }))}
-              />
-            </SummonField>
-            <label className="inline-flex items-center gap-2 self-end pb-2 text-xs font-medium text-secondary">
-              <input
-                type="checkbox"
-                checked={value.workspaceContext}
-                onChange={(event) => props.onChange({ workspaceContext: event.target.checked })}
-                className="accent-accent-primary size-4"
-              />
-              Include workspace summary
-            </label>
-            <p id="assistant-page-context-help" className="self-end pb-2 text-12 text-tertiary">
-              Authorized project and document context is retrieved automatically. These selections add focus.
-            </p>
-          </div>
-        </details>
-
-        {props.contextError ? (
-          <p className="text-xs text-danger-primary">Could not load every context option.</p>
-        ) : null}
-        {props.contextTruncated ? (
-          <p className="rounded-lg bg-warning-subtle/20 px-3 py-2 text-xs text-warning-primary" role="status">
-            Selected source context was truncated to the 30,000-character limit.
-          </p>
-        ) : null}
-        {props.sendError ? (
-          <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
-            <p className="text-xs text-danger-primary">{props.sendError}</p>
-            {props.canRetry ? (
-              <Button type="button" size="lg" variant="secondary" onClick={props.onRetry}>
-                Retry message
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {props.attachments.length || props.uploadingFiles.length ? (
-          <div className="flex flex-wrap gap-2" aria-label="File context">
-            {props.attachments.map((attachment) => {
-              const AudioIcon = attachment.media_type.startsWith("audio/") ? FileAudio : FileText;
-              return (
-                <span
-                  key={attachment.id}
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 text-secondary"
-                >
-                  <AudioIcon className="size-3.5 flex-none" />
-                  <span className="max-w-44 truncate">{attachment.original_name}</span>
-                  <span className={attachment.status === "failed" ? "text-danger-primary" : "text-tertiary"}>
-                    {attachment.status === "processing" ? "transcribing" : attachment.status}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${attachment.original_name}`}
-                    disabled={props.removingAttachment === attachment.id}
-                    onClick={() => props.onRemoveAttachment(attachment.id)}
-                    className="rounded p-0.5 hover:bg-layer-2 disabled:opacity-50"
-                  >
-                    {props.removingAttachment === attachment.id ? (
-                      <LoaderCircle className="size-3 animate-spin" />
-                    ) : (
-                      <X className="size-3" />
-                    )}
-                  </button>
-                </span>
-              );
-            })}
+            ))}
             {props.uploadingFiles.map((file) => (
               <span
                 key={`${file.name}-${file.size}-${file.lastModified}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 text-secondary"
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-layer-1 px-2 text-12 text-secondary"
               >
-                <LoaderCircle className="size-3.5 animate-spin" /> {file.name} · uploading
+                <LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" />
+                <span className="max-w-40 truncate">{file.name}</span>
+                <span className="text-tertiary">uploading</span>
               </span>
             ))}
-          </div>
+          </PromptInputHeader>
         ) : null}
-
-        <div
-          className="flex items-end gap-2 rounded-2xl border border-strong bg-surface-1 p-2 shadow-sm focus-within:border-accent-strong"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
+        <PromptInputTextarea
+          ref={props.textareaRef}
+          aria-label="Message Summon Assistant"
+          value={value.content}
+          placeholder={props.placeholder}
+          onChange={(event) => props.onChange({ content: event.target.value })}
+          onKeyDown={(event) => {
+            const submit = shouldSubmitAssistantComposer({
+              key: event.key,
+              shiftKey: event.shiftKey,
+              isComposing: event.nativeEvent.isComposing,
+            });
+            if (!submit) return;
             event.preventDefault();
-            props.onFiles(Array.from(event.dataTransfer.files));
+            event.currentTarget.form?.requestSubmit();
           }}
-        >
-          <label className="grid size-8 flex-none cursor-pointer place-items-center rounded-lg text-secondary hover:bg-layer-1 hover:text-primary">
-            <Paperclip className="size-4" />
-            <span className="sr-only">Attach files</span>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.mp3,.m4a,audio/mpeg,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a"
-              disabled={props.attachments.length + props.uploadingFiles.length >= MAX_ATTACHMENTS}
-              onChange={(event) => {
-                props.onFiles(Array.from(event.target.files ?? []));
-                event.target.value = "";
-              }}
-              className="sr-only"
+        />
+        <PromptInputFooter>
+          <PromptInputTools>
+            <Tooltip tooltipContent={`Attach up to ${MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB`}>
+              <label
+                className={cn(
+                  "grid size-7 flex-none cursor-pointer place-items-center rounded-md text-secondary focus-within:outline-2 focus-within:outline-accent-strong hover:bg-layer-transparent-hover hover:text-primary",
+                  attachmentCount >= MAX_ATTACHMENTS && "pointer-events-none opacity-50"
+                )}
+              >
+                <Paperclip aria-hidden className="size-4" />
+                <span className="sr-only">Attach files</span>
+                <input
+                  type="file"
+                  multiple
+                  accept={ACCEPTED_FILES}
+                  disabled={attachmentCount >= MAX_ATTACHMENTS}
+                  onChange={(event) => {
+                    props.onFiles(Array.from(event.target.files ?? []));
+                    event.target.value = "";
+                  }}
+                  className="sr-only"
+                />
+              </label>
+            </Tooltip>
+            <ScopeMenu
+              value={value}
+              label={props.scopeLabel}
+              options={props.scopeOptions}
+              pages={props.pages}
+              onScopeChange={props.onScopeChange}
+              onChange={props.onChange}
             />
-          </label>
-          <TextArea
-            required
-            aria-label="Message Summon Assistant"
-            value={value.content}
-            onChange={(event) => props.onChange({ content: event.target.value })}
-            onKeyDown={(event) => {
-              if (
-                !shouldSubmitAssistantComposer({
-                  key: event.key,
-                  shiftKey: event.shiftKey,
-                  isComposing: event.nativeEvent.isComposing,
+            {props.credentials.length ? (
+              <ToolsMenu
+                mode={toolMode}
+                credentialId={value.mcpCredentialId}
+                credentials={props.credentials}
+                onChange={props.onChange}
+              />
+            ) : null}
+          </PromptInputTools>
+          <PromptInputSubmit loading={props.sending} disabled={!value.content.trim()} />
+        </PromptInputFooter>
+      </PromptInput>
+      {props.footer}
+    </div>
+  );
+}
+
+function ScopeMenu(props: {
+  value: AssistantComposerState;
+  label: string;
+  options: TScopeOptions;
+  pages: ISummonPageContext[];
+  onScopeChange: (scope: TAssistantScope) => void;
+  onChange: (patch: Partial<AssistantComposerState>) => void;
+}) {
+  const { scope, pageIds } = props.value;
+  const ScopeIcon = SCOPE_ICONS[scope.kind];
+  const selectedPages = new Set(pageIds);
+  const groups: Array<{ kind: Exclude<TAssistantScopeKind, "workspace">; label: string }> = [
+    { kind: "project", label: "Project" },
+    { kind: "client", label: "Client" },
+    { kind: "meeting", label: "Meeting" },
+  ];
+
+  return (
+    <Menu.Root>
+      <Menu.Trigger className={CHIP_CLASSNAME} aria-label={`Scope: ${props.label}. Change scope`}>
+        <ScopeIcon aria-hidden className="size-3.5" />
+        <span className="max-w-48 truncate">{props.label}</span>
+        {pageIds.length ? (
+          <span className="rounded-sm bg-layer-2 px-1 text-11 text-tertiary tabular-nums">+{pageIds.length}</span>
+        ) : null}
+        <ChevronDown aria-hidden className="size-3" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="top" align="start" sideOffset={6} className="z-[120]">
+          <Menu.Popup className={OPTION_POPUP_CLASSNAME}>
+            <Menu.Item
+              className={MENU_ITEM_CLASSNAME}
+              onClick={() => {
+                props.onScopeChange(WORKSPACE_SCOPE);
+              }}
+            >
+              <Building2 aria-hidden className="size-4 text-secondary" />
+              <span className="flex-1">Whole workspace</span>
+              {scope.kind === "workspace" ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
+            </Menu.Item>
+            {groups.map(({ kind, label }) => (
+              <ScopeSubmenu
+                key={kind}
+                kind={kind}
+                label={label}
+                options={props.options[kind]}
+                selectedId={scope.kind === kind ? scope.id : ""}
+                onSelect={(id) => props.onScopeChange({ kind, id })}
+              />
+            ))}
+            <Menu.Separator className="bg-subtle my-1 h-px" />
+            <CheckSubmenu
+              icon={FileText}
+              label="Pin pages"
+              count={pageIds.length}
+              options={props.pages.map((page) => ({ id: page.page, label: page.page_detail.name || "Untitled page" }))}
+              isChecked={(id) => selectedPages.has(id)}
+              onToggle={(id) =>
+                props.onChange({
+                  pageIds: selectedPages.has(id) ? pageIds.filter((item) => item !== id) : [...pageIds, id],
                 })
-              )
-                return;
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }}
-            placeholder="Message Summon Assistant…"
-            className="max-h-40 min-h-12 flex-1 resize-y border-0 bg-transparent shadow-none"
-          />
-          <Button type="submit" size="lg" loading={props.sending} aria-label="Send message">
-            <Send className="size-4" />
-          </Button>
-        </div>
-        <p className="text-center text-12 text-tertiary">
-          Attach up to {MAX_ATTACHMENTS} files · documents 10 MB · MP3/M4A 250 MB
-        </p>
-      </div>
-    </form>
+              }
+            />
+            <Menu.CheckboxItem
+              className={MENU_ITEM_CLASSNAME}
+              checked={props.value.workspaceSummary}
+              onCheckedChange={(checked) => props.onChange({ workspaceSummary: checked })}
+            >
+              <Building2 aria-hidden className="size-4 text-secondary" />
+              <span className="flex-1">Add workspace summary</span>
+              <Menu.CheckboxItemIndicator className="text-accent-primary">
+                <Check aria-hidden className="size-4" />
+              </Menu.CheckboxItemIndicator>
+            </Menu.CheckboxItem>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
+
+function ScopeSubmenu(props: {
+  kind: Exclude<TAssistantScopeKind, "workspace">;
+  label: string;
+  options: TOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <OptionSubmenu
+      icon={SCOPE_ICONS[props.kind]}
+      label={props.label}
+      options={props.options}
+      trailing={props.selectedId ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
+      isChecked={(id) => id === props.selectedId}
+      onPick={props.onSelect}
+    />
+  );
+}
+
+function CheckSubmenu(props: {
+  icon: LucideIcon;
+  label: string;
+  count: number;
+  options: TOption[];
+  isChecked: (id: string) => boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <OptionSubmenu
+      icon={props.icon}
+      label={props.label}
+      options={props.options}
+      trailing={props.count ? <span className="text-12 text-tertiary tabular-nums">{props.count}</span> : null}
+      isChecked={props.isChecked}
+      onPick={props.onToggle}
+      multiple
+    />
+  );
+}
+
+function ToolsMenu(props: {
+  mode: TAssistantToolMode;
+  credentialId: string;
+  credentials: ISummonCredential[];
+  onChange: (patch: Partial<AssistantComposerState>) => void;
+}) {
+  const modes = Object.entries(TOOL_LABELS) as Array<[Exclude<TAssistantToolMode, "chat">, string]>;
+  const credentialId = props.credentialId || props.credentials[0]?.id || "";
+  return (
+    <Menu.Root>
+      <Menu.Trigger className={CHIP_CLASSNAME} aria-label="Plane MCP tools">
+        <Plug aria-hidden className="size-3.5" />
+        <span className="hidden sm:inline">Tools</span>
+        <ChevronDown aria-hidden className="size-3" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="top" align="start" sideOffset={6} className="z-[120]">
+          <Menu.Popup className={OPTION_POPUP_CLASSNAME}>
+            <Menu.Group>
+              <Menu.GroupLabel className="px-2 pt-1 pb-1.5 text-11 font-medium text-tertiary">
+                Plane MCP · writes ask before running
+              </Menu.GroupLabel>
+              {modes.map(([mode, label]) => (
+                <Menu.Item
+                  key={mode}
+                  className={MENU_ITEM_CLASSNAME}
+                  onClick={() => props.onChange({ toolMode: mode, mcpCredentialId: credentialId })}
+                >
+                  <span className="flex-1">{label}</span>
+                  {props.mode === mode ? <Check aria-hidden className="size-4 text-accent-primary" /> : null}
+                </Menu.Item>
+              ))}
+            </Menu.Group>
+            {props.credentials.length > 1 ? (
+              <>
+                <Menu.Separator className="bg-subtle my-1 h-px" />
+                <Menu.Group>
+                  <Menu.GroupLabel className="px-2 pt-1 pb-1.5 text-11 font-medium text-tertiary">
+                    Credential
+                  </Menu.GroupLabel>
+                  {props.credentials.map((credential) => (
+                    <Menu.Item
+                      key={credential.id}
+                      className={MENU_ITEM_CLASSNAME}
+                      onClick={() => props.onChange({ mcpCredentialId: credential.id })}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{credential.name}</span>
+                      {credential.id === credentialId ? (
+                        <Check aria-hidden className="size-4 text-accent-primary" />
+                      ) : null}
+                    </Menu.Item>
+                  ))}
+                </Menu.Group>
+              </>
+            ) : null}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
+
+function ToolChip(props: {
+  mode: Exclude<TAssistantToolMode, "chat">;
+  workItemId: string;
+  onWorkItemId: (value: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg bg-accent-subtle py-0.5 pr-0.5 pl-2 text-12 font-medium text-accent-primary">
+      <Plug aria-hidden className="size-3.5" />
+      <span>{TOOL_LABELS[props.mode]}</span>
+      {toolNeedsWorkItem(props.mode) ? (
+        <Input
+          aria-label="Work item ID"
+          placeholder="Work item ID"
+          value={props.workItemId}
+          onChange={(event) => props.onWorkItemId(event.target.value)}
+          className="h-6 w-36 px-2 text-12"
+        />
+      ) : null}
+      <IconButton variant="ghost" size="sm" icon={X} aria-label="Stop using this tool" onClick={props.onClear} />
+    </div>
+  );
+}
+
+function AttachmentChip(props: { attachment: ISummonAssistantAttachment; removing: boolean; onRemove: () => void }) {
+  const { attachment } = props;
+  const Icon = attachment.media_type.startsWith("audio/") ? FileAudio : FileText;
+  const status = attachment.status === "processing" ? "transcribing" : attachment.status;
+  return (
+    <span className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg bg-layer-1 pr-0.5 pl-2 text-12 text-secondary">
+      <Icon aria-hidden className="size-3.5 flex-none" />
+      <span className="max-w-40 truncate text-primary">{attachment.original_name}</span>
+      {status !== "ready" ? (
+        <span className={attachment.status === "failed" ? "text-danger-primary" : "text-tertiary"}>{status}</span>
+      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-label={`Remove ${attachment.original_name}`}
+        loading={props.removing}
+        onClick={props.onRemove}
+        className="h-6 w-6 px-0"
+      >
+        <X aria-hidden className="size-3" />
+      </Button>
+    </span>
   );
 }

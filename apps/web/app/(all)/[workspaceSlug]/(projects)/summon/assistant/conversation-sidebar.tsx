@@ -1,55 +1,81 @@
-import { MessageSquareText, Plus } from "lucide-react";
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { MessageSquareText, SquarePen } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import type { ISummonAssistantConversation } from "@plane/types";
+import { cn } from "@plane/utils";
 import { SummonRequestState } from "@/components/summon/request-state";
+import { SummonPanel } from "@/components/summon/screen";
+import { groupConversations, scopeFromConversation } from "./assistant-model";
+import { SCOPE_ICONS } from "./assistant-composer";
 
 interface AssistantConversationSidebarProps {
   conversations: ISummonAssistantConversation[];
   activeConversationId: string;
   loading: boolean;
-  creating: boolean;
   error: unknown;
-  onCreate: () => void;
+  onNew: () => void;
   onRetry: () => void;
   onSelect: (conversation: ISummonAssistantConversation) => void;
 }
 
+/** Private chat history, newest first, grouped by when it was last active. */
 export function AssistantConversationSidebar(props: AssistantConversationSidebarProps) {
+  const groups = groupConversations(props.conversations, new Date());
   return (
-    <aside className="flex max-h-64 min-h-0 flex-col rounded-xl border border-subtle bg-surface-1 p-3 shadow-xs lg:h-[calc(100dvh-10.5rem)] lg:max-h-none">
-      <div className="flex items-center justify-between gap-2 border-b border-subtle pb-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-primary">Chats</h2>
-          <p className="truncate text-12 text-secondary">Private to you</p>
-        </div>
-        <Button size="lg" variant="secondary" loading={props.creating} onClick={props.onCreate} aria-label="New chat">
-          <Plus className="size-3.5" /> New
+    <SummonPanel
+      title="Chats"
+      flush
+      className="max-h-72 lg:h-full lg:max-h-none"
+      action={
+        <Button size="sm" variant="secondary" onClick={props.onNew} aria-label="New chat">
+          <SquarePen aria-hidden className="size-3.5" /> New
         </Button>
-      </div>
-      <div className="mt-3 min-h-0 space-y-1 overflow-y-auto">
+      }
+    >
+      <nav aria-label="Chats" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         <SummonRequestState
           loading={props.loading}
           error={props.error}
           empty={!props.loading && props.conversations.length === 0}
-          emptyMessage="No conversations yet."
+          emptyMessage="Your chats appear here. Only you can see them."
           onRetry={props.onRetry}
         />
-        {props.conversations.map((conversation) => (
-          <button
-            key={conversation.id}
-            type="button"
-            onClick={() => props.onSelect(conversation)}
-            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus-visible:outline focus-visible:outline-2 ${
-              conversation.id === props.activeConversationId
-                ? "bg-layer-1-selected text-primary"
-                : "text-secondary hover:bg-layer-1-hover"
-            }`}
-          >
-            <MessageSquareText className="size-4 flex-none" />
-            <span className="truncate text-sm font-medium">{conversation.title}</span>
-          </button>
+        {groups.map((group) => (
+          <section key={group.label} className="mt-2 first:mt-0">
+            <h3 className="px-2 pt-1 pb-1 text-11 font-medium text-tertiary">{group.label}</h3>
+            <ul className="space-y-0.5">
+              {group.conversations.map((conversation) => {
+                const active = conversation.id === props.activeConversationId;
+                const { kind } = scopeFromConversation(conversation);
+                const Icon = kind === "workspace" ? MessageSquareText : SCOPE_ICONS[kind];
+                return (
+                  <li key={conversation.id}>
+                    <button
+                      type="button"
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => props.onSelect(conversation)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-13 focus-visible:outline-2 focus-visible:outline-accent-strong",
+                        active
+                          ? "bg-layer-1-selected font-medium text-primary"
+                          : "text-secondary hover:bg-layer-1-hover hover:text-primary"
+                      )}
+                    >
+                      <Icon aria-hidden className="size-3.5 flex-none text-tertiary" />
+                      <span className="truncate">{conversation.title}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         ))}
-      </div>
-    </aside>
+      </nav>
+    </SummonPanel>
   );
 }

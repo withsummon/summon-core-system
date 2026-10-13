@@ -29,15 +29,18 @@ test("Assistant reads persisted messages back after send and reload", () => {
   assert.match(page, /getAssistantConversation/);
   assert.match(page, /reloadConversation/);
   assert.match(page, /mutateConversationCache/);
-  assert.match(page, /\.messages/);
+  assert.match(page, /openChat\(activeConversationId, conversation\)/);
+  assert.match(readFileSync(new URL("./assistant-model.ts", import.meta.url), "utf8"), /open\?\.messages/);
   assert.match(page, /contextTruncated/);
 });
 
 test("Assistant retrieves authorized knowledge automatically and accepts optional focus", () => {
+  const model = readFileSync(new URL("./assistant-model.ts", import.meta.url), "utf8");
+  assert.match(page, /scopeContext\(composer/);
   for (const contextKey of ["workspace", "project_id", "client_id", "meeting_id", "page_ids"]) {
-    assert.match(page, new RegExp(contextKey));
+    assert.match(model, new RegExp(contextKey));
   }
-  assert.match(implementation, /retrieved automatically/);
+  assert.match(implementation, /Summon only reads what you can access/);
   assert.doesNotMatch(implementation, /apiKey|LLM_API_KEY|credential.*secret|authorization/i);
 });
 
@@ -56,10 +59,22 @@ test("Assistant exposes citations, provider state, normalized errors, retry, pen
     "llm_context_too_large",
     "Retry",
     "pending",
-    "window.confirm",
   ]) {
     assert.match(implementation, new RegExp(marker));
   }
+  // Sources are plain links into the app.
+  assert.match(messageList, /href=\{citation\.href\}/);
+  assert.doesNotMatch(implementation, /window\.confirm/);
+});
+
+test("Assistant keeps the open chat in the URL and gates writes behind confirmable cards", () => {
+  assert.match(page, /searchParams\.get\("chat"\)/);
+  assert.match(page, /searchParams\.get\("q"\)/);
+  assert.match(page, /updateAssistantConversation/);
+  const writeback = readFileSync(new URL("./assistant-writeback-card.tsx", import.meta.url), "utf8");
+  assert.match(writeback, /createIssue/);
+  assert.match(writeback, /pageService\.create/);
+  assert.match(writeback, /confirm: "Create work item"/);
 });
 
 test("Assistant contracts support persistent file context and document generation", () => {
