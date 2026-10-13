@@ -4,84 +4,58 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-import { FolderKanban, ShieldCheck, Sparkles } from "lucide-react";
+import { SITE_TITLE } from "@plane/constants";
 import { AuthRoot } from "@/components/account/auth-forms/auth-root";
+import { SummonCoreLogo, SummonLogo } from "@/components/summon/brand";
 import { SummonThemeToggle } from "@/components/summon/theme-toggle";
 import type { EAuthModes } from "@/helpers/authentication.helper";
-import { AuthFooter } from "./footer";
-import { AuthHeader } from "./header";
+import { SummonArtwork } from "./summon-artwork";
 
 type AuthBaseProps = {
   authType: EAuthModes;
 };
 
+/*
+ * The art panel keeps Summon's brand blue in both themes, the way a logo does.
+ * Hue 265.8 is the brand ramp in tailwind-config/variables.css.
+ */
+const ART_BACKGROUND =
+  "radial-gradient(120% 90% at 70% 75%, oklch(0.47 0.2 265.8) 0%, oklch(0.32 0.14 265.8) 45%, oklch(0.16 0.05 265.8) 100%)";
+
+/** Sign-in: the form column on the page, generated brand art beside it (above it on phones). */
 export function AuthBase({ authType }: AuthBaseProps) {
   return (
-    <div className="relative z-10 min-h-screen w-full overflow-y-auto bg-[#f3f6ff] p-3 sm:p-6 lg:p-8 dark:bg-[#0d111b]">
-      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-6xl overflow-hidden rounded-3xl border border-[#dfe6f5] bg-white shadow-[0_24px_80px_rgba(40,72,145,0.14)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.9fr_1.1fr] dark:border-[#293247] dark:bg-[#121824] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <aside
-          className="relative hidden overflow-hidden bg-gradient-to-br from-[#edf3ff] via-[#f7f9ff] to-white p-10 lg:flex lg:flex-col dark:from-[#121c32] dark:via-[#151b29] dark:to-[#121824]"
-          aria-label="Summon Core product overview"
+    <div className="relative z-10 grid min-h-dvh w-full bg-surface-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="flex min-w-0 flex-col px-5 sm:px-10">
+        <header className="flex h-16 flex-none items-center justify-between lg:h-20">
+          <SummonCoreLogo />
+          <SummonThemeToggle />
+        </header>
+        <div
+          className="relative -mx-1 h-40 overflow-hidden rounded-2xl lg:hidden"
+          style={{ background: ART_BACKGROUND }}
+          aria-hidden="true"
         >
-          <div className="relative z-10 flex items-center gap-2 text-base font-semibold text-[#111827] dark:text-white">
-            <span className="grid size-8 place-items-center rounded-xl bg-[#2f5bea] text-white">
-              <Sparkles className="size-4" />
-            </span>
-            summon
-          </div>
-          <div className="relative z-10 mt-16 max-w-sm">
-            <h1 className="text-4xl leading-tight font-semibold tracking-tight text-[#17213a] dark:text-white">
-              Welcome to
-              <br />
-              Summon <span className="text-[#2f5bea]">Core</span>
-            </h1>
-            <p className="mt-4 text-sm leading-6 text-[#64708a] dark:text-[#aeb9ce]">
-              Your central workspace for projects, knowledge, automation, and everything that drives Summon forward.
-            </p>
-            <div className="mt-8 space-y-5">
-              {[
-                {
-                  Icon: FolderKanban,
-                  title: "All in one place",
-                  copy: "Projects, clients, documents, and tools unified in a single workspace.",
-                },
-                {
-                  Icon: Sparkles,
-                  title: "AI-powered productivity",
-                  copy: "Automate proposals, meetings, and project insights with Summon AI.",
-                },
-                {
-                  Icon: ShieldCheck,
-                  title: "Secure & private",
-                  copy: "Enterprise-grade security keeps your data and work protected.",
-                },
-              ].map(({ Icon, title, copy }) => (
-                <div key={title} className="flex items-start gap-3">
-                  <span className="grid size-9 flex-shrink-0 place-items-center rounded-xl bg-white text-[#2f5bea] shadow-sm dark:bg-[#202a3e] dark:text-[#7da0ff]">
-                    <Icon className="size-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-[#17213a] dark:text-white">{title}</p>
-                    <p className="mt-1 text-xs leading-5 text-[#7a849b] dark:text-[#9daac0]">{copy}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="absolute -bottom-28 -left-20 size-80 rounded-full border border-[#9fb8ff]/50 bg-white/60 shadow-[0_0_80px_rgba(47,91,234,0.22)] dark:border-[#4268c9]/30 dark:bg-[#1d2c4a]/50" />
-          <div className="absolute right-12 bottom-20 size-28 rotate-12 rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/90 to-[#b8ccff]/50 shadow-[0_18px_50px_rgba(47,91,234,0.2)] dark:border-[#4268c9]/30 dark:from-[#24324c] dark:to-[#17284f]" />
-          <div className="absolute bottom-10 left-48 size-20 rounded-full bg-gradient-to-br from-white to-[#84a6ff]/50 shadow-[0_16px_42px_rgba(47,91,234,0.22)]" />
-        </aside>
-        <main className="relative flex min-w-0 flex-col bg-surface-1 p-5 sm:p-8 lg:p-10">
-          <div className="absolute top-5 right-5">
-            <SummonThemeToggle />
-          </div>
-          <AuthHeader type={authType} />
+          <SummonArtwork className="absolute inset-0 size-full" />
+        </div>
+        <main className="mx-auto flex w-full max-w-[24rem] flex-1 flex-col gap-6 py-10 lg:justify-center lg:pb-24">
           <AuthRoot authMode={authType} />
-          <AuthFooter />
         </main>
       </div>
+
+      <aside
+        className="relative m-3 hidden overflow-hidden rounded-3xl lg:block"
+        style={{ background: ART_BACKGROUND }}
+        aria-label={`${SITE_TITLE} artwork`}
+      >
+        <SummonArtwork className="absolute inset-0 size-full" />
+        <div className="relative max-w-md p-12 pt-16 text-white">
+          <SummonLogo variant="mark" className="size-10 text-white" />
+          <p className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">
+            Every client, project, and handoff in one place.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }
