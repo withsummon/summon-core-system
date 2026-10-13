@@ -9,6 +9,7 @@ from django.utils import timezone
 from plane.db.models import (
     ProjectMember,
     ProjectMemberInvite,
+    ProjectUserProperty,
     WorkspaceMember,
     WorkspaceMemberInvite,
 )
@@ -72,14 +73,38 @@ def process_workspace_project_invitations(user):
         ignore_conflicts=True,
     )
 
-    # Now add the users to project
+    # Now add the users to project. A workspace admin is an admin in every project and a
+    # workspace guest a guest in every project; anyone else keeps the invited role, capped at member.
+    workspace_roles = dict(
+        WorkspaceMember.objects.filter(
+            member=user, workspace_id__in=[invite.workspace_id for invite in project_member_invites]
+        ).values_list("workspace_id", "role")
+    )
+
+    def project_role(invite):
+        workspace_role = workspace_roles.get(invite.workspace_id, 15)
+        return 20 if workspace_role == 20 else min(invite.role, workspace_role, 15)
+
     ProjectMember.objects.bulk_create(
         [
             ProjectMember(
                 workspace_id=project_member_invite.workspace_id,
-                role=(project_member_invite.role if project_member_invite.role in [5, 15] else 15),
+                project_id=project_member_invite.project_id,
+                role=project_role(project_member_invite),
                 member=user,
                 created_by_id=project_member_invite.created_by_id,
+            )
+            for project_member_invite in project_member_invites
+        ],
+        ignore_conflicts=True,
+    )
+    # bulk_create skips ProjectMember.save, which creates each member's project properties.
+    ProjectUserProperty.objects.bulk_create(
+        [
+            ProjectUserProperty(
+                workspace_id=project_member_invite.workspace_id,
+                project_id=project_member_invite.project_id,
+                user=user,
             )
             for project_member_invite in project_member_invites
         ],

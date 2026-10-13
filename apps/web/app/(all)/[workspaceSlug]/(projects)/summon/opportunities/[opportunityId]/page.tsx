@@ -10,9 +10,18 @@ import { OpportunityInspector } from "@/components/summon/opportunities/opportun
 import { opportunitiesHref } from "@/components/summon/opportunities/opportunity-pipeline";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { summonService } from "@/services/summon.service";
+import { SummonAccessGate } from "@/components/summon/access-gate";
 import type { Route } from "./+types/page";
 
-export default function SummonOpportunityDetailPage({ params }: Route.ComponentProps) {
+export default function SummonOpportunityDetailPage(props: Route.ComponentProps) {
+  return (
+    <SummonAccessGate workspaceSlug={props.params.workspaceSlug} capability="commercial.view" title="Opportunities">
+      <SummonOpportunityDetailPageContent {...props} />
+    </SummonAccessGate>
+  );
+}
+
+function SummonOpportunityDetailPageContent({ params }: Route.ComponentProps) {
   const { workspaceSlug, opportunityId } = params;
   const { data, error, isLoading, mutate } = useSWR(["summon-opportunity", workspaceSlug, opportunityId], () =>
     summonService.getOpportunityDetail(workspaceSlug, opportunityId)

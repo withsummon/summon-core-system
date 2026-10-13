@@ -102,7 +102,9 @@ const DialogPanel = forwardRef(function DialogPanel(
   const positionClassNames = useMemo(() => getPositionClassNames(position), [position]);
   return (
     <DialogPortal>
-      <DialogOverlay />
+      {/* Base UI skips the backdrop for nested dialogs, which leaves a dialog opened inside a drawer with nothing
+          outside it to click; forcing it keeps click-outside dismissal and the dimmed context. */}
+      <DialogOverlay forceRender />
       <BaseDialog.Popup
         ref={ref}
         data-slot="dialog-content"

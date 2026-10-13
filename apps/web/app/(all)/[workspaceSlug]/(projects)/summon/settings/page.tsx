@@ -13,7 +13,8 @@ import { TextArea } from "@plane/propel/input";
 import { Input } from "@plane/ui";
 import { SummonField } from "@/components/summon/forms";
 import { SummonRequestState } from "@/components/summon/request-state";
-import { SummonPanel, SummonScreen, summonErrorMessage } from "@/components/summon/screen";
+import { SummonPanel, summonErrorMessage } from "@/components/summon/screen";
+import { SummonSettingsFrame } from "@/components/summon/settings/settings-frame";
 import { summonService } from "@/services/summon.service";
 import type { Route } from "./+types/page";
 
@@ -60,7 +61,11 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
   };
 
   return (
-    <SummonScreen title="Workspace Settings" description="Workspace identity and business settings.">
+    <SummonSettingsFrame
+      workspaceSlug={workspaceSlug}
+      tab="general"
+      description="Workspace identity and business settings."
+    >
       {!data ? (
         <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />
       ) : (
@@ -180,6 +185,6 @@ export default function SummonSettingsPage({ params }: Route.ComponentProps) {
           </div>
         </div>
       )}
-    </SummonScreen>
+    </SummonSettingsFrame>
   );
 }

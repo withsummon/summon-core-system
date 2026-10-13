@@ -54,7 +54,8 @@ class GoogleOAuthProvider(OauthAdapter):
             "redirect_uri": redirect_uri,
             "response_type": "code",
             "access_type": "offline",
-            "prompt": "consent",
+            # Always show the account chooser so someone signed in with the wrong Google account can switch.
+            "prompt": "select_account",
             "state": state,
         }
         auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(url_params)}"

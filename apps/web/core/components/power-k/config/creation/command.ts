@@ -69,6 +69,8 @@ export const usePowerKCreationCommandsRecord = (): Record<TPowerKCreationCommand
       EUserPermissionsLevel.WORKSPACE,
       ctx.params.workspaceSlug?.toString()
     );
+  const hasWorkspaceAdminPermissions = (ctx: TPowerKContext) =>
+    allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, ctx.params.workspaceSlug?.toString());
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
 
   const getProjectDetails = (ctx: TPowerKContext) =>
@@ -182,8 +184,8 @@ export const usePowerKCreationCommandsRecord = (): Record<TPowerKCreationCommand
       i18n_title: "power_k.creation_actions.create_summon_opportunity",
       icon: Layers,
       action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "opportunities"]),
-      isEnabled: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
-      isVisible: (ctx) => hasWorkspaceMemberLevelPermissions(ctx),
+      isEnabled: (ctx) => hasWorkspaceAdminPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceAdminPermissions(ctx),
       closeOnSelect: true,
     },
     create_summon_meeting: {

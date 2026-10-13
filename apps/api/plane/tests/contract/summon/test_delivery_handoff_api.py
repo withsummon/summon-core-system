@@ -32,7 +32,7 @@ def won_opportunity(workspace, title="Won deal", client=None):
 
 @pytest.mark.django_db
 def test_start_delivery_links_existing_project_and_is_visible_from_every_record(workspace):
-    actor, api = authenticated_user(workspace, 15)
+    actor, api = authenticated_user(workspace, 20)
     project = admin_project(workspace, actor, "DEL")
     opportunity = won_opportunity(workspace)
     project_count = Project.objects.count()
@@ -55,7 +55,7 @@ def test_start_delivery_links_existing_project_and_is_visible_from_every_record(
 
 @pytest.mark.django_db
 def test_retry_and_double_submit_never_create_a_second_delivery_link(workspace):
-    actor, api = authenticated_user(workspace, 15)
+    actor, api = authenticated_user(workspace, 20)
     project = admin_project(workspace, actor, "RTY")
     other_project = admin_project(workspace, actor, "OTR")
     opportunity = won_opportunity(workspace)
@@ -75,7 +75,7 @@ def test_retry_and_double_submit_never_create_a_second_delivery_link(workspace):
 
 @pytest.mark.django_db
 def test_start_delivery_requires_a_won_client_linked_opportunity(workspace):
-    actor, api = authenticated_user(workspace, 15)
+    actor, api = authenticated_user(workspace, 20)
     project = admin_project(workspace, actor, "PRE")
     open_deal = Opportunity.objects.create(
         workspace=workspace,

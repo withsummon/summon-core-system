@@ -167,8 +167,8 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       i18n_title: "power_k.navigation_actions.nav_summon_opportunities",
       icon: BarChart2,
       action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "opportunities"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      isEnabled: (ctx) => hasWorkspaceAdminPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceAdminPermissions(ctx),
       closeOnSelect: true,
     },
     nav_summon_tasks: {
@@ -211,8 +211,8 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       i18n_title: "power_k.navigation_actions.nav_summon_reports",
       icon: BarChart2,
       action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "summon", "reports"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
+      isEnabled: (ctx) => hasWorkspaceAdminPermissions(ctx),
+      isVisible: (ctx) => hasWorkspaceAdminPermissions(ctx),
       closeOnSelect: true,
     },
     nav_summon_resources: {

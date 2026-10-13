@@ -6,12 +6,12 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 import { ChevronLeftIcon, ChevronRightIcon } from "@plane/propel/icons";
 //hooks
 // icons
 // constants
-import { getDate } from "@plane/utils";
+import { cn, getDate } from "@plane/utils";
 import { MONTHS_LIST } from "@plane/constants";
 import { useCalendarView } from "@/hooks/store/use-calendar-view";
 import type { ICycleIssuesFilter } from "@/store/issue/cycle";
@@ -75,8 +75,8 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
             </button>
           }
         />
-        <Popover.Panel className="z-50" positionerClassName="z-50" placement="bottom-start">
-          <div className="w-56 divide-y divide-subtle-1 rounded-sm border border-subtle bg-surface-1 p-3 shadow-raised-200">
+        <Popover.Panel className={cn(POPUP_CLASSNAME, "w-56 p-3")} positionerClassName="z-50" placement="bottom-start">
+          <div className="divide-y divide-subtle">
             <div className="flex items-center justify-between gap-2 pb-3">
               <button
                 type="button"

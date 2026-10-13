@@ -9,6 +9,7 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import { CheckIcon } from "../icons/actions/check-icon";
 import { ChevronDownIcon } from "../icons/arrows/chevron-down";
 import { FIELD_CLASSNAME } from "../input/field";
+import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "../popover/surface";
 import { cn } from "../utils/classname";
 
 export type SelectOption = { value: string; label: React.ReactNode; disabled?: boolean };
@@ -43,8 +44,8 @@ function SelectPopup({ options, popupClassName }: { options: SelectOption[]; pop
         <BaseSelect.Popup
           data-slot="select-popup"
           className={cn(
-            "max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1 text-13 text-primary shadow-overlay-100 outline-none",
-            "origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none",
+            "max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto",
+            POPUP_CLASSNAME,
             popupClassName
           )}
         >
@@ -53,7 +54,7 @@ function SelectPopup({ options, popupClassName }: { options: SelectOption[]; pop
               key={option.value}
               value={option.value}
               disabled={option.disabled}
-              className="flex min-h-9 cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-[disabled]:opacity-50 data-[highlighted]:bg-layer-1"
+              className={cn(POPUP_OPTION_CLASSNAME, "min-h-9 text-primary")}
             >
               <span className="flex size-4 flex-none items-center text-accent-primary">
                 <BaseSelect.ItemIndicator>

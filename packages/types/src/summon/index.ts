@@ -71,7 +71,8 @@ export interface ISummonOpportunity {
 
 export interface ISummonClientDetail extends ISummonClient {
   contacts: ISummonClientContact[];
-  opportunities: ISummonOpportunity[];
+  /** Admins only (`commercial.view`); absent for everyone else. */
+  opportunities?: ISummonOpportunity[];
   projects: Array<{ id: string; identifier: string; name: string }>;
   meetings: ISummonMeeting[];
   page_contexts: ISummonPageContext[];
@@ -93,13 +94,14 @@ export interface ISummonProjectProfile {
   id: string;
   project: string;
   client: string | null;
-  source_opportunity: string | null;
+  /** Admins only (`commercial.view`), like `budget`. */
+  source_opportunity?: string | null;
   delivery_status: string;
   phase: string;
   health: string;
   start_date: string | null;
   target_date: string | null;
-  budget: string | null;
+  budget?: string | null;
 }
 
 export interface ISummonIssueSnapshot {
@@ -124,7 +126,7 @@ export interface ISummonProjectFile {
 export interface ISummonHomeSummary {
   priority: ISummonIssueSnapshot[];
   projects: Array<{ id: string; identifier: string; name: string; health: string; completion: number }>;
-  counts: { projects: number; issues: number; clients: number; opportunities: number };
+  counts: { projects: number; issues: number; clients: number; opportunities?: number };
   recent_activity: Array<{ id: string; label: string; created_at: string; href: string }>;
   upcoming_meetings: ISummonMeeting[];
   resources: ISummonResourceLink[];
@@ -419,6 +421,78 @@ export interface ISummonWorkspaceSettings {
   description: string;
   currency: string;
   workweek: Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">;
+}
+
+/** Plane's stored workspace roles: Admin 20, Member 15, Guest 5. */
+export type TSummonRole = 20 | 15 | 5;
+
+/** Capability names from the API's capability map (`plane/summon/access.py`). */
+export type TSummonCapability =
+  | "workspace.view"
+  | "workspace.edit"
+  | "credentials.view"
+  | "commercial.view"
+  | "reports.view"
+  | "settings.view"
+  | "settings.edit"
+  | "users.view"
+  | "users.manage";
+
+export interface ISummonAccess {
+  role: TSummonRole;
+  role_label: string;
+  capabilities: TSummonCapability[];
+}
+
+export interface ISummonWorkspaceUser {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  role: TSummonRole;
+  is_active: boolean;
+  is_owner: boolean;
+  is_you: boolean;
+  joined_at: string;
+  last_signed_in: string | null;
+  projects: ISummonProjectRef[];
+}
+
+export interface ISummonProjectRef {
+  id: string;
+  identifier: string;
+  name: string;
+}
+
+export interface ISummonWorkspaceInvite {
+  id: string;
+  email: string;
+  role: TSummonRole;
+  invited_at: string;
+  /** Projects they join on first sign-in. */
+  projects: ISummonProjectRef[];
+}
+
+export interface ISummonWorkspaceUsers {
+  members: ISummonWorkspaceUser[];
+  invites: ISummonWorkspaceInvite[];
+}
+
+export interface ISummonProjectPeople {
+  members: Array<{ user_id: string; name: string; email: string; avatar_url: string | null; role: TSummonRole }>;
+  /** Emails that join this project on their first sign-in. */
+  invites: Array<{ id: string; email: string; role: TSummonRole; invited_at: string }>;
+}
+
+export interface ISummonAccessEvent {
+  id: string;
+  kind: "invited" | "invite_revoked" | "added" | "role_changed" | "deactivated" | "restored";
+  actor: { name: string; email: string } | null;
+  target_email: string;
+  from_role: TSummonRole | null;
+  to_role: TSummonRole | null;
+  created_at: string;
 }
 
 export interface ISummonMCPStatus {

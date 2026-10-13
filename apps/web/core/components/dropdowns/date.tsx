@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { CalendarDays } from "lucide-react";
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 // ui
 import type { Matcher } from "@plane/propel/calendar";
 import { Calendar } from "@plane/propel/calendar";
@@ -140,10 +140,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
           sideOffset={4}
           positionerClassName="z-[120]"
           data-prevent-outside-click
-          className={cn(
-            "overflow-hidden rounded-md border border-strong bg-surface-1 shadow-raised-200",
-            optionsClassName
-          )}
+          className={cn(POPUP_CLASSNAME, "overflow-hidden p-0", optionsClassName)}
         >
           <Calendar
             className="p-3"

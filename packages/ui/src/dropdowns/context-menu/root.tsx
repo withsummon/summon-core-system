@@ -6,7 +6,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MenuPrimitive as Menu } from "@plane/propel/menu";
-import { ContextMenuItem } from "./item";
+import { CONTEXT_MENU_POPUP_CLASSNAME, ContextMenuItem } from "./item";
 
 export type TContextMenuItem = {
   key: string;
@@ -33,7 +33,9 @@ type ContextMenuProps = {
 // Only opening at that target lives here; Base UI owns focus, dismissal and navigation.
 export function ContextMenu({ parentRef, items, portalContainer }: ContextMenuProps) {
   const originFocus = useRef<HTMLElement | null>(null);
-  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  // The point outlives `open` so the menu stays anchored while its exit animation plays.
+  const [open, setOpen] = useState(false);
+  const [point, setPoint] = useState({ x: 0, y: 0 });
   useEffect(() => {
     const target = parentRef.current;
     if (!target) return;
@@ -42,6 +44,7 @@ export function ContextMenu({ parentRef, items, portalContainer }: ContextMenuPr
       event.stopPropagation();
       originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : target;
       setPoint({ x: event.clientX, y: event.clientY });
+      setOpen(true);
     };
     const openFromKeyboard = (event: KeyboardEvent) => {
       if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
@@ -50,6 +53,7 @@ export function ContextMenu({ parentRef, items, portalContainer }: ContextMenuPr
       originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : target;
       const rect = target.getBoundingClientRect();
       setPoint({ x: rect.left, y: rect.bottom });
+      setOpen(true);
     };
     target.addEventListener("contextmenu", openAtPointer);
     target.addEventListener("keydown", openFromKeyboard);
@@ -58,23 +62,12 @@ export function ContextMenu({ parentRef, items, portalContainer }: ContextMenuPr
       target.removeEventListener("keydown", openFromKeyboard);
     };
   }, [parentRef]);
-  const anchor = useMemo(
-    () => ({ getBoundingClientRect: () => new DOMRect(point?.x ?? 0, point?.y ?? 0, 0, 0) }),
-    [point]
-  );
+  const anchor = useMemo(() => ({ getBoundingClientRect: () => new DOMRect(point.x, point.y, 0, 0) }), [point]);
   return (
-    <Menu.Root
-      open={point !== null}
-      onOpenChange={(open) => {
-        if (!open) setPoint(null);
-      }}
-    >
+    <Menu.Root open={open} onOpenChange={setOpen}>
       <Menu.Portal container={portalContainer}>
         <Menu.Positioner anchor={anchor} side="bottom" align="start" collisionPadding={8} className="z-[120]">
-          <Menu.Popup
-            finalFocus={originFocus}
-            className="max-h-[min(24rem,var(--available-height))] min-w-48 overflow-y-auto rounded-md border border-subtle bg-surface-1 p-1 text-13 shadow-raised-200 outline-none"
-          >
+          <Menu.Popup finalFocus={originFocus} className={CONTEXT_MENU_POPUP_CLASSNAME}>
             {items.map((item) => (
               <ContextMenuItem key={item.key} item={item} />
             ))}

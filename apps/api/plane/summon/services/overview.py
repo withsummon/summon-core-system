@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from plane.db.models import Cycle, FileAsset, Issue, IssueActivity, Module, Page, Project
+from plane.summon.access import has_capability
 from plane.summon.models import Client, Meeting, Opportunity, ResourceLink, SummonProjectProfile
 from plane.summon.services.reports import visible_project_ids
 
@@ -39,10 +40,10 @@ def _issue_snapshot(issue):
     }
 
 
-def _profile_snapshot(profile):
+def _profile_snapshot(profile, commercial):
     if not profile:
         return None
-    return {
+    snapshot = {
         "id": str(profile.id),
         "project": str(profile.project_id),
         "client": str(profile.client_id) if profile.client_id else None,
@@ -54,6 +55,9 @@ def _profile_snapshot(profile):
         "target_date": profile.target_date.isoformat() if profile.target_date else None,
         "budget": str(profile.budget) if profile.budget is not None else None,
     }
+    if not commercial:
+        del snapshot["source_opportunity"], snapshot["budget"]
+    return snapshot
 
 
 def _file_snapshot(asset):
@@ -225,6 +229,13 @@ def home_summary(workspace, user):
         .exclude(state__group__in=["completed", "cancelled"])
         .order_by("target_date", "created_at")[:20]
     )
+    counts = {
+        "projects": len(projects),
+        "issues": issues.count(),
+        "clients": Client.objects.filter(workspace=workspace).count(),
+    }
+    if has_capability(user, workspace.slug, "commercial.view"):
+        counts["opportunities"] = Opportunity.objects.filter(workspace=workspace).count()
     return {
         "priority": [_issue_snapshot(issue) for issue in priority],
         "projects": [
@@ -241,12 +252,7 @@ def home_summary(workspace, user):
             }
             for project in projects
         ],
-        "counts": {
-            "projects": len(projects),
-            "issues": issues.count(),
-            "clients": Client.objects.filter(workspace=workspace).count(),
-            "opportunities": Opportunity.objects.filter(workspace=workspace).count(),
-        },
+        "counts": counts,
         "recent_activity": _activity(workspace, visible_ids, workspace.slug),
         "upcoming_meetings": [
             meeting
@@ -282,7 +288,7 @@ def project_overview(workspace, user, project_id):
             "name": project.name,
             "description": project.description,
         },
-        "profile": _profile_snapshot(profile),
+        "profile": _profile_snapshot(profile, has_capability(user, workspace.slug, "commercial.view")),
         "progress": _progress(issues),
         "milestones": _milestones(project, workspace.slug),
         "issues": [_issue_snapshot(issue) for issue in issues.order_by("-created_at")[:20]],

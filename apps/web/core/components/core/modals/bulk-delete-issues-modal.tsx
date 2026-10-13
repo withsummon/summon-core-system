@@ -158,7 +158,9 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form>
         <Combobox.Root<string>
-          open
+          inline
+          open={isOpen}
+          onOpenChange={(open) => !open && handleClose()}
           filter={null}
           // Each pick toggles membership, so the combobox itself never keeps a selection.
           value={null}

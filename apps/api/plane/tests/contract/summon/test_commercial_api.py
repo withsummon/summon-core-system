@@ -149,7 +149,7 @@ def test_client_contacts_are_nested_crud_and_workspace_scoped(workspace):
 
 @pytest.mark.django_db
 def test_opportunity_rejects_cross_workspace_client_and_owner(workspace):
-    _, client = authenticated_user(workspace, 15)
+    _, client = authenticated_user(workspace, 20)
     other_owner, _ = authenticated_user()
     other_workspace = create_workspace(other_owner, "other-opportunity")
     WorkspaceMember.objects.create(workspace=other_workspace, member=other_owner, role=20)
@@ -173,7 +173,7 @@ def test_opportunity_rejects_cross_workspace_client_and_owner(workspace):
 
 @pytest.mark.django_db
 def test_transition_changes_probability_only_when_explicitly_provided(workspace):
-    actor, client = authenticated_user(workspace, 15)
+    actor, client = authenticated_user(workspace, 20)
     opportunity = Opportunity.objects.create(
         workspace=workspace,
         title="Qualified deal",
@@ -211,7 +211,7 @@ def test_client_detail_contains_only_linked_visible_projects(workspace):
 
 @pytest.mark.django_db
 def test_opportunity_transition_survives_detail_read_back(workspace):
-    _, api = authenticated_user(workspace, 15)
+    _, api = authenticated_user(workspace, 20)
     opportunity = Opportunity.objects.create(workspace=workspace, title="Renewal")
     url = f"/api/summon/workspaces/{workspace.slug}/opportunities/{opportunity.id}/transitions/"
 
@@ -338,7 +338,7 @@ def test_deleted_workspace_cannot_use_commercial_api(workspace):
 
 @pytest.mark.django_db
 def test_partial_update_revalidates_existing_references(workspace):
-    _, client = authenticated_user(workspace, 15)
+    _, client = authenticated_user(workspace, 20)
     owner, _ = authenticated_user(workspace, 15)
     account = Client.objects.create(workspace=workspace, name="Acme", owner=owner)
     opportunity = Opportunity.objects.create(workspace=workspace, title="Acme deal", client=account)

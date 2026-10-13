@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { EXTENDED_SIDEBAR_WIDTH, SIDEBAR_WIDTH } from "@plane/constants";
@@ -31,7 +31,11 @@ export const ExtendedSidebarWrapper = observer(function ExtendedSidebarWrapper(p
   // local storage
   const { storedValue } = useLocalStorage("sidebarWidth", SIDEBAR_WIDTH);
 
-  useExtendedSidebarOutsideClickDetector(extendedSidebarRef, handleClose, excludedElementId);
+  // The panel stays mounted so it can animate out; outside clicks only matter while it is open.
+  const closeIfOpen = useCallback(() => {
+    if (isExtendedSidebarOpened) handleClose();
+  }, [isExtendedSidebarOpened, handleClose]);
+  useExtendedSidebarOutsideClickDetector(extendedSidebarRef, closeIfOpen, excludedElementId);
 
   useEffect(() => {
     if (sidebarCollapsed) {
@@ -44,11 +48,11 @@ export const ExtendedSidebarWrapper = observer(function ExtendedSidebarWrapper(p
       id={excludedElementId}
       ref={extendedSidebarRef}
       className={cn(
-        "absolute z-[21] flex h-full transform flex-col border-r border-subtle bg-surface-1 p-4 py-2 shadow-sm transition-all duration-300 ease-in-out",
-        {
-          "opacity-100": isExtendedSidebarOpened,
-          "hidden opacity-0": !isExtendedSidebarOpened,
-        },
+        // Slides out from under the main sidebar; exits faster and softer than it enters.
+        "absolute z-[21] flex h-full flex-col border-r border-subtle bg-surface-1 p-4 py-2 shadow-raised-200 transition-[translate,opacity,visibility] motion-reduce:transition-none",
+        isExtendedSidebarOpened
+          ? "visible translate-x-0 opacity-100 duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          : "pointer-events-none invisible -translate-x-3 opacity-0 duration-200 ease-[cubic-bezier(0.4,0,1,1)]",
         className
       )}
       style={{

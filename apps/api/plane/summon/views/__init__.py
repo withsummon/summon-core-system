@@ -2,6 +2,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from .access import (
+    AccessMeView,
+    ProjectInviteDetailView,
+    ProjectPeopleView,
+    WorkspaceAccessHistoryView,
+    WorkspaceInviteDetailView,
+    WorkspaceUserDetailView,
+    WorkspaceUsersView,
+)
 from .commercial import (
     ClientContactViewSet,
     ClientViewSet,
@@ -48,6 +57,13 @@ from .credential import (
 )
 
 __all__ = [
+    "AccessMeView",
+    "WorkspaceAccessHistoryView",
+    "WorkspaceInviteDetailView",
+    "WorkspaceUserDetailView",
+    "WorkspaceUsersView",
+    "ProjectInviteDetailView",
+    "ProjectPeopleView",
     "AssistantActionView",
     "AssistantAttachmentDetailView",
     "AssistantAttachmentView",

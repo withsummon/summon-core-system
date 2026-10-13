@@ -195,7 +195,6 @@ export const ExportForm = observer(function ExportForm(props: Props) {
                   label={t(value.i18n_title)}
                   optionsClassName="max-w-48 sm:max-w-[532px]"
                   placement="bottom-end"
-                  buttonClassName="py-2 text-13"
                 >
                   {EXPORTERS_LIST.map((service) => (
                     <CustomSelect.Option key={service.provider} className="flex items-center gap-2" value={service}>

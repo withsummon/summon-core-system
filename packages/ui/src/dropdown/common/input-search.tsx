@@ -5,6 +5,7 @@
  */
 
 import { ComboboxPrimitive as Combobox } from "@plane/propel/combobox";
+import { POPUP_SEARCH_CLASSNAME, POPUP_SEARCH_INPUT_CLASSNAME } from "@plane/propel/popover";
 import React, { useEffect, useRef } from "react";
 import { SearchIcon } from "@plane/propel/icons";
 // helpers
@@ -42,19 +43,11 @@ export function InputSearch(props: IInputSearch) {
   }, [isOpen, isMobile]);
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2",
-        inputContainerClassName
-      )}
-    >
-      {inputIcon ? <>{inputIcon}</> : <SearchIcon className="h-4 w-4 text-tertiary" aria-hidden="true" />}
+    <div className={cn(POPUP_SEARCH_CLASSNAME, inputContainerClassName)}>
+      {inputIcon ? <>{inputIcon}</> : <SearchIcon className="size-3.5 flex-none" aria-hidden="true" />}
       <Combobox.Input
         ref={inputRef}
-        className={cn(
-          "w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none",
-          inputClassName
-        )}
+        className={cn(POPUP_SEARCH_INPUT_CLASSNAME, inputClassName)}
         value={query}
         onChange={(e) => updateQuery(e.target.value)}
         placeholder={inputPlaceholder ?? "Search"}

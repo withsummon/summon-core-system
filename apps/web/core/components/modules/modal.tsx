@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useForm } from "react-hook-form";
 // Plane imports
@@ -15,7 +14,6 @@ import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { ModuleForm } from "@/components/modules";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
-import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
 type Props = {
@@ -36,10 +34,7 @@ const defaultValues: Partial<IModule> = {
 
 export const CreateUpdateModuleModal = observer(function CreateUpdateModuleModal(props: Props) {
   const { isOpen, onClose, data, workspaceSlug, projectId } = props;
-  // states
-  const [activeProject, setActiveProject] = useState<string | null>(null);
   // store hooks
-  const { workspaceProjectIds } = useProject();
   const { createModule, updateModuleDetails } = useModule();
   const { isMobile } = usePlatformOS();
 
@@ -56,45 +51,42 @@ export const CreateUpdateModuleModal = observer(function CreateUpdateModuleModal
     if (!workspaceSlug || !projectId) return;
 
     const selectedProjectId = payload.project_id ?? projectId.toString();
-    await createModule(workspaceSlug.toString(), selectedProjectId, payload)
-      .then((_res) => {
-        handleClose();
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module created successfully.",
-        });
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.detail ?? err?.error ?? "Module could not be created. Please try again.",
-        });
+    try {
+      await createModule(workspaceSlug.toString(), selectedProjectId, payload);
+      handleClose();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Module created successfully.",
       });
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.detail ?? err?.error ?? "Module could not be created. Please try again.",
+      });
+    }
   };
 
   const handleUpdateModule = async (payload: Partial<IModule>) => {
     if (!workspaceSlug || !projectId || !data) return;
 
     const selectedProjectId = payload.project_id ?? projectId.toString();
-    await updateModuleDetails(workspaceSlug.toString(), selectedProjectId, data.id, payload)
-      .then((_res) => {
-        handleClose();
-
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module updated successfully.",
-        });
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.detail ?? err?.error ?? "Module could not be updated. Please try again.",
-        });
+    try {
+      await updateModuleDetails(workspaceSlug.toString(), selectedProjectId, data.id, payload);
+      handleClose();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Module updated successfully.",
       });
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.detail ?? err?.error ?? "Module could not be updated. Please try again.",
+      });
+    }
   };
 
   const handleFormSubmit = async (formData: Partial<IModule>) => {
@@ -107,35 +99,13 @@ export const CreateUpdateModuleModal = observer(function CreateUpdateModuleModal
     else await handleUpdateModule(payload);
   };
 
-  useEffect(() => {
-    // if modal is closed, reset active project to null
-    // and return to avoid activeProject being set to some other project
-    if (!isOpen) {
-      setActiveProject(null);
-      return;
-    }
-
-    // if data is present, set active project to the project of the
-    // issue. This has more priority than the project in the url.
-    if (data && data.project_id) {
-      setActiveProject(data.project_id);
-      return;
-    }
-
-    // if data is not present, set active project to the project
-    // in the url. This has the least priority.
-    if (workspaceProjectIds && workspaceProjectIds.length > 0 && !activeProject)
-      setActiveProject(projectId ?? workspaceProjectIds?.[0] ?? null);
-  }, [activeProject, data, projectId, workspaceProjectIds, isOpen]);
-
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <ModuleForm
         handleFormSubmit={handleFormSubmit}
         handleClose={handleClose}
-        status={data ? true : false}
-        projectId={activeProject ?? ""}
-        setActiveProject={setActiveProject}
+        status={Boolean(data)}
+        projectId={data?.project_id ?? projectId}
         data={data}
         isMobile={isMobile}
       />

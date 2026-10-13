@@ -13,10 +13,16 @@ import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CheckIcon, SearchIcon, PlusIcon } from "@plane/propel/icons";
+import {
+  POPUP_CLASSNAME,
+  POPUP_OPTION_CLASSNAME,
+  POPUP_SEARCH_CLASSNAME,
+  POPUP_SEARCH_INPUT_CLASSNAME,
+} from "@plane/propel/popover";
 import type { IIssueLabel } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // helpers
-import { getTabIndex } from "@plane/utils";
+import { cn, getTabIndex } from "@plane/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -94,8 +100,8 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
 
   const handleAddLabel = async (labelName: string) => {
     setSubmitting(true);
-    const label = await onAddLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
-    onSelect([...values, label.id]);
+    const created = await onAddLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
+    onSelect([...values, created.id]);
     setQuery("");
     setSubmitting(false);
   };
@@ -122,26 +128,20 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
 
           <Combobox.Portal>
             <Combobox.Positioner sideOffset={4} align="start" className="z-50">
-              <Combobox.Popup>
-                <div
-                  className={`z-10 my-1 w-48 rounded-sm border border-strong bg-surface-1 py-2.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none`}
-                >
-                  <div className="px-2">
-                    <div className="flex w-full items-center justify-start rounded-sm border border-subtle bg-surface-2 px-2">
-                      <SearchIcon className="h-3.5 w-3.5 text-tertiary" />
-                      <Combobox.Input
-                        className="w-full bg-transparent px-2 py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder={t("common.search.label")}
-                        onKeyDown={searchInputKeyDown}
-                        tabIndex={baseTabIndex}
-                      />
-                    </div>
+              <Combobox.Popup className={POPUP_CLASSNAME}>
+                <div className="w-56 max-w-[calc(100vw-2rem)]">
+                  <div className={POPUP_SEARCH_CLASSNAME}>
+                    <SearchIcon className="size-3.5 flex-none" />
+                    <Combobox.Input
+                      className={POPUP_SEARCH_INPUT_CLASSNAME}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t("common.search.label")}
+                      onKeyDown={searchInputKeyDown}
+                      tabIndex={baseTabIndex}
+                    />
                   </div>
-                  <Combobox.List
-                    className={`vertical-scrollbar mt-2 scrollbar-sm max-h-48 space-y-1 overflow-y-scroll px-2 pr-0`}
-                  >
+                  <Combobox.List className="vertical-scrollbar scrollbar-sm max-h-60 overflow-y-auto">
                     {isLoading ? (
                       <p className="text-center text-secondary">{t("common.loading")}</p>
                     ) : filteredOptions.length > 0 ? (
@@ -149,11 +149,7 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
                         <Combobox.Item
                           key={option.value}
                           value={option.value}
-                          className={({ selected }) =>
-                            `flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none hover:bg-layer-1 ${
-                              selected ? "text-primary" : "text-secondary"
-                            }`
-                          }
+                          className={cn(POPUP_OPTION_CLASSNAME, "justify-between")}
                           render={(itemProps, { selected }) => (
                             <div {...itemProps}>
                               {
@@ -181,7 +177,7 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
                           if (!query.length) return;
                           handleAddLabel(query);
                         }}
-                        className={`text-left text-secondary ${query.length ? "cursor-pointer" : "cursor-default"}`}
+                        className={POPUP_OPTION_CLASSNAME}
                       >
                         {query.length ? (
                           <>

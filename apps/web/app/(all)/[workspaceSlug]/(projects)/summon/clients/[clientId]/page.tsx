@@ -92,7 +92,9 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
 
   if (!data) return <SummonRequestState loading={isLoading} error={error} onRetry={() => void mutate()} />;
 
-  const activeOpportunities = data.opportunities.filter(({ stage }) => stage !== "won" && stage !== "lost");
+  // The API leaves deals out for roles without `commercial.view`.
+  const deals = data.opportunities;
+  const tabs = deals ? CLIENT_TABS : CLIENT_TABS.filter((tab) => tab.value !== "opportunities");
   const owner = data.owner ? getUserDetails(data.owner) : undefined;
   const lastInteraction = data.recent_activity[0];
   const showTab = (tab: TClientTab) => activeTab === "overview" || activeTab === tab;
@@ -168,12 +170,14 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
           >
             <CircleEllipsis className="size-4" />
           </button>
-          <Link
-            href={opportunityCreateHref(workspaceSlug, data.id)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 text-xs font-medium text-primary hover:bg-layer-1"
-          >
-            <Plus className="size-3.5" /> New opportunity
-          </Link>
+          {deals ? (
+            <Link
+              href={opportunityCreateHref(workspaceSlug, data.id)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-subtle bg-surface-1 px-4 text-xs font-medium text-primary hover:bg-layer-1"
+            >
+              <Plus className="size-3.5" /> New opportunity
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -192,7 +196,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
       </header>
 
       <SectionTabs
-        items={CLIENT_TABS}
+        items={tabs}
         value={activeTab}
         onValueChange={setActiveTab}
         label="Client sections"
@@ -205,13 +209,17 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
         >
           <main className="min-w-0 space-y-4">
             {activeTab === "overview" ? (
-              <section className="grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 lg:grid-cols-4">
-                <ClientMetric
-                  icon={<Target className="size-4.5" />}
-                  label="Active Opportunities"
-                  value={activeOpportunities.length}
-                  detail="View opportunities"
-                />
+              <section
+                className={`grid overflow-hidden rounded-xl border border-subtle bg-surface-1 sm:grid-cols-2 ${deals ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+              >
+                {deals ? (
+                  <ClientMetric
+                    icon={<Target className="size-4.5" />}
+                    label="Active Opportunities"
+                    value={deals.filter(({ stage }) => stage !== "won" && stage !== "lost").length}
+                    detail="View opportunities"
+                  />
+                ) : null}
                 <ClientMetric
                   icon={<FolderKanban className="size-4.5" />}
                   label="Active Projects"
@@ -233,7 +241,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
               </section>
             ) : null}
 
-            {showTab("opportunities") ? (
+            {deals && showTab("opportunities") ? (
               <SummonPanel flush title="Opportunities" link={viewAll("opportunities", "View all opportunities")}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[720px] text-left text-12">
@@ -247,7 +255,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-subtle">
-                      {data.opportunities.map((opportunity) => {
+                      {deals.map((opportunity) => {
                         const opportunityOwner = opportunity.owner ? getUserDetails(opportunity.owner) : undefined;
                         return (
                           <tr key={opportunity.id}>
@@ -282,7 +290,7 @@ export default function SummonClientDetailPage({ params }: Route.ComponentProps)
                           </tr>
                         );
                       })}
-                      {!data.opportunities.length ? (
+                      {!deals.length ? (
                         <tr>
                           <td colSpan={6} className="px-4 py-8 text-center text-tertiary">
                             No opportunities linked to this client.

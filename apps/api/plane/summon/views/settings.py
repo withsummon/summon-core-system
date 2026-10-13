@@ -6,20 +6,18 @@ import requests
 from django.conf import settings
 from rest_framework.response import Response
 
-from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView
-from plane.summon.permissions import SummonWorkspacePermission
+from plane.summon.access import require_capability
 from plane.summon.serializers.settings import SummonWorkspaceSettingsSerializer
 from plane.summon.views.commercial import WorkspaceContextMixin
 
 
 class SummonWorkspaceSettingsView(WorkspaceContextMixin, BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [require_capability("workspace.view", "settings.edit")]
 
     def get(self, request, slug):
         return Response(SummonWorkspaceSettingsSerializer(self.get_workspace()).data)
 
-    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def patch(self, request, slug):
         serializer = SummonWorkspaceSettingsSerializer(
             self.get_workspace(),
@@ -32,9 +30,8 @@ class SummonWorkspaceSettingsView(WorkspaceContextMixin, BaseAPIView):
 
 
 class MCPStatusView(BaseAPIView):
-    permission_classes = [SummonWorkspacePermission]
+    permission_classes = [require_capability("settings.view")]
 
-    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def get(self, request, slug):
         try:
             requests.get(settings.SUMMON_MCP_URL, timeout=3)

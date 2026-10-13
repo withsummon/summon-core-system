@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from plane.app.services.llm import LLMError, LLMRequest, generate
 from plane.db.models import Issue, Page, Project
+from plane.summon.access import has_capability
 from plane.summon.models import AssistantAttachment, AssistantMessage, AutomationJob, Opportunity
 from plane.summon.services.assistant_attachment import attachment_context_entries
 from plane.summon.services.context import build_context
@@ -33,7 +34,17 @@ SUPPORTED_DETERMINISTIC_INTENTS = {
 }
 
 
+# Intents that expose report totals or deal values, and the capability each needs.
+GATED_INTENTS = {
+    "portfolio_status": "reports.view",
+    "client_opportunity_pipeline": "commercial.view",
+}
+
+
 def answer_query(workspace, user, intent, query="", project_id=None):
+    capability = GATED_INTENTS.get(intent)
+    if capability and not has_capability(user, workspace.slug, capability):
+        return {"intent": intent, "answer": "You don't have access to this information.", "data": []}
     project_ids = visible_project_ids(workspace, user)
     if intent == "portfolio_status":
         return {"intent": intent, "answer": "Current portfolio summary.", "data": report_summary(workspace, user)}

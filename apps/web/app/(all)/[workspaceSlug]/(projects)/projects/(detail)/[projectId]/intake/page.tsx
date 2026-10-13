@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissionsLevel, PROJECT_SETTINGS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EUserProjectRoles, EInboxIssueCurrentTab } from "@plane/types";
 // assets
@@ -53,7 +53,7 @@ function ProjectInboxPage({ params }: Route.ComponentProps) {
           primaryButton={{
             text: t("disabled_project.empty_state.inbox.primary_button.text"),
             onClick: () => {
-              router.push(`/${workspaceSlug}/settings/projects/${projectId}/features`);
+              router.push(`/${workspaceSlug}/settings/projects/${projectId}${PROJECT_SETTINGS.features_intake.href}`);
             },
             disabled: !canPerformEmptyStateActions,
           }}

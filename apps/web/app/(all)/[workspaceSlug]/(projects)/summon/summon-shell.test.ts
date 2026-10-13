@@ -18,7 +18,7 @@ test("primary sidebar only renders Summon navigation", () => {
   assert.match(sidebar, /SUMMON_WORKSPACE_NAVIGATION_ITEMS\.map/);
   assert.doesNotMatch(sidebar, /WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS/);
   assert.doesNotMatch(sidebar, /WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS/);
-  assert.match(sidebar, /Advanced Plane/);
+  assert.match(sidebar, /<span>Advanced<\/span>/);
   assert.doesNotMatch(appSidebar, /SidebarProjectsList/);
   assert.doesNotMatch(appSidebar, /SidebarFavoritesMenu/);
   assert.doesNotMatch(translations, /"summon":\s*\{[\s\S]*?"(?:overview|projects|tasks)":\s*"Summon /);

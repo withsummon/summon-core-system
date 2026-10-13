@@ -35,6 +35,7 @@ import { SummonRequestState } from "@/components/summon/request-state";
 import { ViewPanel } from "@/components/summon/screen";
 import { SectionTabs } from "@/components/summon/section-tabs";
 import { StatusBadge } from "@/components/summon/status-badge";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 import { useUser } from "@/hooks/store/user";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 import { summonService } from "@/services/summon.service";
@@ -71,7 +72,8 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
   const { data, error, isLoading, mutate } = useSWR(["summon-home", workspaceSlug], () =>
     summonService.getHomeSummary(workspaceSlug)
   );
-  const { data: opportunities = [] } = useSWR(["summon-home-opportunities", workspaceSlug], () =>
+  const showDeals = useSummonAccess(workspaceSlug).can("commercial.view");
+  const { data: opportunities = [] } = useSWR(showDeals ? ["summon-home-opportunities", workspaceSlug] : null, () =>
     summonService.listOpportunities(workspaceSlug)
   );
   const money = useWorkspaceMoney(workspaceSlug);
@@ -118,7 +120,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
         </header>
 
         <SummonSearchField
-          label="Search projects, tasks, opportunities"
+          label={showDeals ? "Search projects, tasks, opportunities" : "Search projects and tasks"}
           value={query}
           onValueChange={setQuery}
           className="mt-5"
@@ -130,11 +132,13 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
         />
 
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter home">
-          {filters.map((item) => (
-            <Chip key={item.id} icon={item.icon} selected={filter === item.id} onClick={() => setFilter(item.id)}>
-              {item.label}
-            </Chip>
-          ))}
+          {filters
+            .filter((item) => showDeals || item.id !== "opportunities")
+            .map((item) => (
+              <Chip key={item.id} icon={item.icon} selected={filter === item.id} onClick={() => setFilter(item.id)}>
+                {item.label}
+              </Chip>
+            ))}
         </div>
 
         <ViewPanel value={filter}>
@@ -197,7 +201,7 @@ export function HomeRoot({ workspaceSlug }: IHomeRootProps) {
             </HomeListSection>
           )}
 
-          {(filter === "all" || filter === "opportunities") && (
+          {showDeals && (filter === "all" || filter === "opportunities") && (
             <HomeListSection
               title="Opportunities"
               href={`/${workspaceSlug}/summon/opportunities/`}

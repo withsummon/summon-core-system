@@ -7,13 +7,12 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-// icons
-import { CirclePlus, LogOut, Mails } from "lucide-react";
-// ui
-import { MenuPrimitive as Menu } from "@plane/propel/menu";
+import { EnvelopeSimpleIcon, GearSixIcon, PlusCircleIcon, SignOutIcon, UserPlusIcon } from "@phosphor-icons/react";
 // plane imports
+import { EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
+import { MENU_ITEM_CLASSNAME, MENU_POPUP_CLASSNAME, MenuPrimitive as Menu } from "@plane/propel/menu";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { Loader } from "@plane/ui";
@@ -46,6 +45,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const { currentWorkspace: activeWorkspace, workspaces } = useWorkspace();
   // derived values
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
+  const isAdmin = activeWorkspace?.role === EUserPermissions.ADMIN;
   // translation
   const { t } = useTranslation();
   const handleWorkspaceNavigation = (workspace: IWorkspace) => updateUserProfile({ last_workspace_id: workspace?.id });
@@ -66,7 +66,10 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
     }
   };
   const workspacesList = orderWorkspacesList(Object.values(workspaces ?? {}));
-  // TODO: fix workspaces list scroll
+  // The current workspace leads the list.
+  const orderedWorkspaces = activeWorkspace
+    ? [activeWorkspace, ...workspacesList.filter((workspace) => workspace.id !== activeWorkspace.id)]
+    : workspacesList;
 
   return (
     <Menu.Root open={open} onOpenChange={setOpen}>
@@ -119,69 +122,81 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
           </Menu.Trigger>
         )}
         <Menu.Portal>
-          <Menu.Positioner align="start" sideOffset={4} className="z-[120]">
-            <Menu.Popup className="flex w-[19rem] max-w-[calc(100vw-2rem)] flex-col divide-y divide-subtle rounded-md border border-strong bg-surface-1 shadow-raised-200 outline-none">
-              <div className="vertical-scrollbar flex scrollbar-sm max-h-96 flex-col items-start justify-start overflow-x-hidden overflow-y-scroll">
-                <span className="sticky top-0 z-21 h-full w-full flex-shrink-0 truncate rounded-md bg-surface-1 px-4 pt-3 pb-1 text-left text-13 font-medium text-placeholder">
-                  {currentUser?.email}
-                </span>
-                {workspacesList ? (
-                  <div className="flex size-full flex-col items-start justify-start">
-                    {(activeWorkspace
-                      ? [activeWorkspace, ...workspacesList.filter((workspace) => workspace.id !== activeWorkspace?.id)]
-                      : workspacesList
-                    ).map((workspace) => (
-                      <SidebarDropdownItem
-                        key={workspace.id}
-                        workspace={workspace}
-                        activeWorkspace={activeWorkspace}
-                        handleItemClick={handleItemClick}
-                        handleWorkspaceNavigation={handleWorkspaceNavigation}
-                        handleClose={close}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="w-full">
-                    <Loader className="space-y-2">
-                      <Loader.Item height="30px" />
-                      <Loader.Item height="30px" />
-                    </Loader>
-                  </div>
-                )}
-              </div>
-              <div className="flex w-full flex-col items-start justify-start gap-2 px-4 py-2 text-13">
-                {!isWorkspaceCreationDisabled && (
-                  <Menu.Item
-                    render={<Link href="/create-workspace" />}
-                    className="flex items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover data-[highlighted]:bg-layer-transparent-hover"
-                  >
-                    <CirclePlus className="size-4 flex-shrink-0" />
-                    {t("create_workspace")}
-                  </Menu.Item>
-                )}
-
-                <Menu.Item
-                  render={<Link href="/invitations" />}
-                  onClick={handleItemClick}
-                  className="flex items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover data-[highlighted]:bg-layer-transparent-hover"
-                >
-                  <Mails className="h-4 w-4 flex-shrink-0" />
-                  {t("workspace_invites")}
-                </Menu.Item>
-
-                <div className="w-full">
-                  <Menu.Item
-                    nativeButton
-                    render={<button type="button" />}
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-danger-primary hover:bg-layer-transparent-hover data-[highlighted]:bg-layer-transparent-hover"
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="size-4 flex-shrink-0" />
-                    {t("sign_out")}
-                  </Menu.Item>
+          <Menu.Positioner align="start" sideOffset={6} className="z-[120]">
+            <Menu.Popup className={cn(MENU_POPUP_CLASSNAME, "w-72 max-w-[calc(100vw-2rem)]")}>
+              <p className="truncate px-2 pt-1.5 pb-1 text-12 text-tertiary">{currentUser?.email}</p>
+              {workspacesList ? (
+                <div className="vertical-scrollbar grid scrollbar-sm max-h-80 gap-0.5 overflow-y-auto">
+                  {orderedWorkspaces.map((workspace) => (
+                    <SidebarDropdownItem
+                      key={workspace.id}
+                      workspace={workspace}
+                      isActive={workspace.id === activeWorkspace?.id}
+                      onSelect={() => {
+                        handleItemClick();
+                        handleWorkspaceNavigation(workspace);
+                        close();
+                      }}
+                    />
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <Loader className="space-y-1 p-1">
+                  <Loader.Item height="40px" />
+                  <Loader.Item height="40px" />
+                </Loader>
+              )}
+
+              {isAdmin && activeWorkspace ? (
+                <>
+                  <Menu.Separator className="bg-subtle -mx-1 my-1 h-px" />
+                  <Menu.Item
+                    render={<Link href={`/${activeWorkspace.slug}/summon/settings`} />}
+                    onClick={handleItemClick}
+                    className={MENU_ITEM_CLASSNAME}
+                  >
+                    <GearSixIcon className="size-4 flex-none text-tertiary" />
+                    Workspace settings
+                  </Menu.Item>
+                  <Menu.Item
+                    render={<Link href={`/${activeWorkspace.slug}/summon/settings/users`} />}
+                    onClick={handleItemClick}
+                    className={MENU_ITEM_CLASSNAME}
+                  >
+                    <UserPlusIcon className="size-4 flex-none text-tertiary" />
+                    Invite people
+                  </Menu.Item>
+                </>
+              ) : null}
+
+              <Menu.Separator className="bg-subtle -mx-1 my-1 h-px" />
+              {!isWorkspaceCreationDisabled && (
+                <Menu.Item
+                  render={<Link href="/create-workspace" />}
+                  onClick={handleItemClick}
+                  className={MENU_ITEM_CLASSNAME}
+                >
+                  <PlusCircleIcon className="size-4 flex-none text-tertiary" />
+                  {t("create_workspace")}
+                </Menu.Item>
+              )}
+              <Menu.Item
+                render={<Link href="/invitations" />}
+                onClick={handleItemClick}
+                className={MENU_ITEM_CLASSNAME}
+              >
+                <EnvelopeSimpleIcon className="size-4 flex-none text-tertiary" />
+                {t("workspace_invites")}
+              </Menu.Item>
+              <Menu.Item
+                nativeButton
+                render={<button type="button" />}
+                onClick={handleSignOut}
+                className={cn(MENU_ITEM_CLASSNAME, "text-danger-primary data-[highlighted]:bg-danger-subtle")}
+              >
+                <SignOutIcon className="size-4 flex-none" />
+                {t("sign_out")}
+              </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>

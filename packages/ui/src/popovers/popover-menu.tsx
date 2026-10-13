@@ -6,6 +6,7 @@
 
 import React, { Fragment } from "react";
 // components
+import { POPUP_CLASSNAME } from "@plane/propel/popover";
 import { cn } from "../utils";
 import { Popover } from "./popover";
 // helpers
@@ -34,15 +35,13 @@ export function PopoverMenu<T>(props: TPopoverMenu<T>) {
       buttonClassName={buttonClassName}
       button={button}
       disabled={disabled}
-      panelClassName={cn(
-        "my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2 text-11 shadow-raised-200 focus:outline-none",
-        panelClassName
-      )}
+      panelClassName={cn(POPUP_CLASSNAME, "w-48", panelClassName)}
       popoverClassName={popoverClassName}
       popoverButtonRef={popoverButtonRef}
     >
       <Fragment>
         {data.map((item, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- callers own the key through keyExtractor
           <Fragment key={keyExtractor(item, index)}>{render(item, index)}</Fragment>
         ))}
       </Fragment>

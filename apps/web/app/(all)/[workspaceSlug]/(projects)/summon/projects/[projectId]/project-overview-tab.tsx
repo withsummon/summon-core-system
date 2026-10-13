@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Activity, ArrowUpRight, Circle, CheckCircle2, AlertCircle, Flag } from "lucide-react";
 import type { ISummonProjectOverview } from "@plane/types";
 import { capitalizeFirstLetter, renderFormattedDate, replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { ProjectPeopleSection } from "@/components/summon/projects/project-people";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 import { useWorkspaceMoney } from "@/components/summon/use-workspace-money";
 
 const formatDate = (value?: string | null) => renderFormattedDate(value) ?? "No date";
@@ -10,14 +12,13 @@ export function ProjectOverviewTab({
   overview,
   workspaceSlug,
   projectId,
-  members,
 }: {
   overview: ISummonProjectOverview;
   workspaceSlug: string;
   projectId: string;
-  members: { id: string; name: string }[];
 }) {
   const money = useWorkspaceMoney(workspaceSlug);
+  const showBudget = useSummonAccess(workspaceSlug).can("commercial.view");
   const health = overview.profile?.health || "not_assessed";
   const healthy = health === "on_track" || health === "good";
   const atRisk = ["at_risk", "off_track", "delayed"].includes(health);
@@ -129,31 +130,10 @@ export function ProjectOverviewTab({
             </Property>
             <Property label="Phase">{overview.profile?.phase || "Not set"}</Property>
             <Property label="Start date">{formatDate(overview.profile?.start_date)}</Property>
-            <Property label="Budget">{money(overview.profile?.budget) || "Not set"}</Property>
+            {showBudget ? <Property label="Budget">{money(overview.profile?.budget) || "Not set"}</Property> : null}
           </dl>
         </section>
-        <section className="border-t border-subtle pt-5" aria-labelledby="project-members">
-          <h2 id="project-members" className="mb-3 text-sm font-semibold text-primary">
-            Members <span className="font-normal ml-1 text-xs text-secondary tabular-nums">{members.length}</span>
-          </h2>
-          {members.length ? (
-            <ul className="space-y-2.5">
-              {members.slice(0, 6).map((member) => (
-                <li key={member.id} className="flex items-center gap-2.5 text-xs text-primary">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-6 shrink-0 place-items-center rounded-full bg-layer-2 text-secondary"
-                  >
-                    {member.name.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="break-words">{member.name}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-secondary">No accessible member profiles.</p>
-          )}
-        </section>
+        <ProjectPeopleSection workspaceSlug={workspaceSlug} projectId={projectId} />
         <section className="border-t border-subtle pt-5" aria-labelledby="project-links">
           <h2 id="project-links" className="mb-3 text-sm font-semibold text-primary">
             Resources

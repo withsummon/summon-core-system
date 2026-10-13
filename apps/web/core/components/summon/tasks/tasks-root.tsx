@@ -289,7 +289,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
               </Tabs.Trigger>
             ))}
           </Tabs.List>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 py-1.5 sm:flex-none">
+          <div className="flex min-w-0 grow basis-full items-center justify-end gap-2 py-1.5 sm:ml-auto sm:grow-0 sm:basis-auto">
             <SummonSearchField
               id="task-search"
               label="Search tasks"

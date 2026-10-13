@@ -27,6 +27,7 @@ EXPECTED_MODELS = {
     "MeetingWorkItem",
     "Opportunity",
     "ResourceLink",
+    "SummonAccessEvent",
     "SummonPageContext",
     "SummonProjectProfile",
     "SummonWorkspaceSettings",

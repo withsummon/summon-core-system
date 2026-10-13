@@ -8,7 +8,7 @@ import React, { useEffect, useState } from "react";
 import type { TPlacement as Placement } from "@plane/propel/utils";
 import { observer } from "mobx-react";
 import { ArrowRight, CalendarDays } from "lucide-react";
-import { Popover } from "@plane/propel/popover";
+import { Popover, POPUP_CLASSNAME } from "@plane/propel/popover";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 // ui
@@ -239,7 +239,7 @@ export const DateRangeDropdown = observer(function DateRangeDropdown(props: Prop
           positionerClassName="z-[120]"
           renderInPortal={renderInPortal}
           data-prevent-outside-click
-          className="overflow-hidden rounded-md border border-subtle-1 bg-surface-1 shadow-raised-200"
+          className={cn(POPUP_CLASSNAME, "overflow-hidden p-0")}
         >
           <Calendar
             className="p-3 text-12"

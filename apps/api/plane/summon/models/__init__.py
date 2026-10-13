@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from .access import SummonAccessEvent
 from .automation import AutomationJob, AutomationTemplate, GeneratedArtifact
 from .assistant import AssistantAction, AssistantAttachment, AssistantConversation, AssistantMessage
 from .collaboration import Meeting, MeetingParticipant, MeetingWorkItem, ResourceLink, SummonPageContext
@@ -28,6 +29,7 @@ __all__ = [
     "Opportunity",
     "ResourceLink",
     "SummonPageContext",
+    "SummonAccessEvent",
     "SummonProjectProfile",
     "SummonWorkspaceSettings",
 ]

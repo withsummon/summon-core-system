@@ -8,6 +8,7 @@ import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { projectProfileDateError, projectProfileForm } from "@/components/summon/projects/project-workspace";
 import { MoneyInput } from "@/components/summon/money-input";
 import { summonErrorMessage } from "@/components/summon/screen";
+import { useSummonAccess } from "@/components/summon/use-summon-access";
 import { useWorkspaceCurrency } from "@/components/summon/use-workspace-money";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -48,6 +49,7 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
   const project = getProjectById(projectId);
   const projectLead = project?.project_lead;
   const projectLeadId = typeof projectLead === "object" ? (projectLead?.id ?? null) : projectLead || null;
+  const showBudget = useSummonAccess(workspaceSlug).can("commercial.view");
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
   useEffect(() => setForm(projectProfileForm(profile)), [profile]);
@@ -65,14 +67,14 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
     }
     setSaving(true);
     setError("");
-    const { client, ...rest } = form;
+    const { client, budget, ...rest } = form;
     const payload = {
       ...rest,
       // The server keeps a linked profile's client in step with its source opportunity.
       ...(profile?.source_opportunity ? {} : { client: client || null }),
       start_date: form.start_date || null,
       target_date: form.target_date || null,
-      budget: form.budget || null,
+      ...(showBudget ? { budget: budget || null } : {}),
     };
     try {
       if (profile) await summonService.updateProjectProfile(workspaceSlug, projectId, payload);
@@ -171,15 +173,17 @@ export const ProjectProfileEditor = observer(function ProjectProfileEditor(props
             onValueChange={(value) => updateField("target_date", value)}
           />
         </Field>
-        <Field label="Budget">
-          <MoneyInput
-            value={form.budget}
-            onValueChange={(value) => updateField("budget", value)}
-            currency={currency}
-            className="text-base sm:text-sm"
-            placeholder="0"
-          />
-        </Field>
+        {showBudget ? (
+          <Field label="Budget">
+            <MoneyInput
+              value={form.budget}
+              onValueChange={(value) => updateField("budget", value)}
+              currency={currency}
+              className="text-base sm:text-sm"
+              placeholder="0"
+            />
+          </Field>
+        ) : null}
         <Field label="Project manager">
           <div className="h-9">
             <MemberDropdown

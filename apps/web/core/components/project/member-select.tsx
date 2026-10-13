@@ -77,9 +77,7 @@ export const MemberSelect = observer(function MemberSelect(props: Props) {
           )}
         </div>
       }
-      buttonClassName="!px-3 !py-2 bg-surface-1"
       options={
-        options &&
         options && [
           ...options,
           {

@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { forwardRef } from "react";
 import type { ReactNode } from "react";
 // The one place a Summon page draws a search field; lint keeps the icon import here.
 // oxlint-disable-next-line no-restricted-imports
@@ -27,16 +28,10 @@ type Props = {
 };
 
 /** Search field for Summon pages: icon, input and accessible name in one shape, so every page searches alike. */
-export function SummonSearchField({
-  label,
-  value,
-  onValueChange,
-  placeholder,
-  size = "lg",
-  className,
-  id,
-  trailing,
-}: Props) {
+export const SummonSearchField = forwardRef<HTMLInputElement, Props>(function SummonSearchField(
+  { label, value, onValueChange, placeholder, size = "lg", className, id, trailing },
+  ref
+) {
   return (
     <div role="search" className={cn("relative min-w-0", className)}>
       <Search
@@ -44,8 +39,10 @@ export function SummonSearchField({
         className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary"
       />
       <Input
+        ref={ref}
         id={id}
         type="search"
+        autoComplete="off"
         aria-label={label}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
@@ -55,4 +52,4 @@ export function SummonSearchField({
       {trailing ? <span className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</span> : null}
     </div>
   );
-}
+});
