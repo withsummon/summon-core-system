@@ -43,7 +43,7 @@ test("Meetings is available from the Summon sidebar with its own icon", () => {
 
   assert.match(constants, /key: "summon_meetings"/);
   assert.match(constants, /path: "meetings"/);
-  assert.match(icons, /case "summon_meetings"/);
+  assert.match(icons, /summon_meetings: CalendarDotsIcon/);
 });
 
 test("meeting detail follows the supplied workspace layout with real controls", () => {

@@ -35,7 +35,7 @@ test("project creation opens in place from the Summon projects directory", () =>
   );
 
   assert.match(projects, /toggleCreateProjectModal\(true\)/);
-  assert.match(projects, />Create Project</);
+  assert.match(projects, /New project/);
   assert.doesNotMatch(projects, /Create Plane Project/);
   assert.doesNotMatch(projects, /href={`\/\$\{workspaceSlug\}\/projects\/`}/);
 });
