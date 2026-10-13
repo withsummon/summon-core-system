@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { InfoIcon } from "lucide-react";
 import { SearchIcon } from "../../icons";
 import { cn } from "../../utils/classname";
@@ -19,22 +19,25 @@ type IconRootProps = {
   iconType: "material" | "lucide";
 };
 
+const isCustomColor = (color: string) => !DEFAULT_COLORS.includes(color.toLowerCase());
+const toHex = (color: string) => color.slice(1, 7);
+
 export function IconRoot(props: IconRootProps) {
   const { defaultColor, onChange, searchDisabled = false, iconType } = props;
   // states
   const [activeColor, setActiveColor] = useState(defaultColor);
-  const [showHexInput, setShowHexInput] = useState(false);
-  const [hexValue, setHexValue] = useState("");
+  const [showHexInput, setShowHexInput] = useState(() => isCustomColor(defaultColor));
+  const [hexValue, setHexValue] = useState(() => (isCustomColor(defaultColor) ? toHex(defaultColor) : ""));
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    if (DEFAULT_COLORS.includes(defaultColor.toLowerCase() ?? "")) setShowHexInput(false);
-    else {
-      setHexValue(defaultColor?.slice(1, 7) ?? "");
-      setShowHexInput(true);
-    }
-  }, [defaultColor]);
+  // sync the hex input with a new default color during render, not after paint
+  const [syncedDefaultColor, setSyncedDefaultColor] = useState(defaultColor);
+  if (syncedDefaultColor !== defaultColor) {
+    setSyncedDefaultColor(defaultColor);
+    const isCustom = isCustomColor(defaultColor);
+    setShowHexInput(isCustom);
+    if (isCustom) setHexValue(toHex(defaultColor));
+  }
 
   return (
     <>
@@ -52,6 +55,7 @@ export function IconRoot(props: IconRootProps) {
               <SearchIcon className="absolute bottom-3 left-2.5 h-3.5 w-3.5 text-placeholder" />
 
               <input
+                aria-label="Search icons"
                 placeholder="Search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -73,6 +77,7 @@ export function IconRoot(props: IconRootProps) {
               <span className="-mr-1 flex-shrink-0 text-11 text-secondary">#</span>
               <input
                 type="text"
+                aria-label="Hex color"
                 value={hexValue}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -88,6 +93,7 @@ export function IconRoot(props: IconRootProps) {
               <button
                 key={curCol}
                 type="button"
+                aria-label={`Use color ${curCol}`}
                 className="grid size-5 place-items-center"
                 onClick={() => {
                   setActiveColor(curCol);
@@ -100,6 +106,7 @@ export function IconRoot(props: IconRootProps) {
           )}
           <button
             type="button"
+            aria-label={showHexInput ? "Show preset colors" : "Enter a hex color"}
             className={cn("grid h-4 w-4 place-items-center rounded-full border border-transparent", {
               "border-strong-1": !showHexInput,
             })}

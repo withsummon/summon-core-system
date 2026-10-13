@@ -8,7 +8,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { ChevronDownIcon } from "../icons/arrows/chevron-down";
-import { Collapsible } from "./collapsible";
+import { Collapsible } from ".";
 
 const meta = {
   title: "Components/Collapsible",

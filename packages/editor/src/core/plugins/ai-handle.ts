@@ -104,13 +104,16 @@ export const AIHandlePlugin = (options: SideMenuPluginProps): SideMenuHandleOpti
     iconElement.innerHTML = sparklesIcon;
     aiHandleElement.appendChild(iconElement);
     // bind events
-    aiHandleElement.addEventListener("click", (e) => handleClick(e, view));
+    const listenerController = new AbortController();
+    // react-doctor-disable-next-line effect-needs-cleanup -- ProseMirror plugin view; released by abort() in destroy()
+    aiHandleElement.addEventListener("click", (e) => handleClick(e, view), { signal: listenerController.signal });
 
     sideMenu?.appendChild(aiHandleElement);
 
     return {
       // destroy the handle element on un-initialize
       destroy: () => {
+        listenerController.abort();
         aiHandleElement?.remove();
         aiHandleElement = null;
       },

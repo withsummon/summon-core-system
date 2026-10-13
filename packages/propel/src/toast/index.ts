@@ -4,4 +4,5 @@
  * See the LICENSE file for details.
  */
 
+export { TOAST_TYPE, setToast, updateToast, setPromiseToast, dismissToast } from "./manager";
 export * from "./toast";

@@ -64,9 +64,4 @@ function Content({ children, className }: ContentProps) {
   );
 }
 
-// Compound Component
-export const Collapsible = {
-  CollapsibleRoot: Root,
-  CollapsibleTrigger: Trigger,
-  CollapsibleContent: Content,
-};
+export { Root as CollapsibleRoot, Trigger as CollapsibleTrigger, Content as CollapsibleContent };

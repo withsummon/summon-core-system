@@ -37,7 +37,14 @@ export interface AccordionContentProps {
   children: React.ReactNode;
 }
 
-function AccordionRoot({ defaultValue = [], allowMultiple = false, className = "", children }: AccordionRootProps) {
+const EMPTY_DEFAULT_VALUE: string[] = [];
+
+export function AccordionRoot({
+  defaultValue = EMPTY_DEFAULT_VALUE,
+  allowMultiple = false,
+  className = "",
+  children,
+}: AccordionRootProps) {
   return (
     <BaseAccordion.Root defaultValue={defaultValue} multiple={allowMultiple} className={`text-14 ${className}`}>
       {children}
@@ -45,7 +52,7 @@ function AccordionRoot({ defaultValue = [], allowMultiple = false, className = "
   );
 }
 
-function AccordionItem({ value, disabled, className = "", children }: AccordionItemProps) {
+export function AccordionItem({ value, disabled, className = "", children }: AccordionItemProps) {
   return (
     <BaseAccordion.Item value={value} disabled={disabled} className={`relative ${className}`}>
       {children}
@@ -53,7 +60,7 @@ function AccordionItem({ value, disabled, className = "", children }: AccordionI
   );
 }
 
-function AccordionTrigger({
+export function AccordionTrigger({
   className = "",
   icon = <PlusIcon aria-hidden="true" className="transition-[rotate] ease-out group-data-[panel-open]:rotate-45" />,
   iconClassName = "",
@@ -76,7 +83,7 @@ function AccordionTrigger({
   );
 }
 
-function AccordionContent({ className = "", contentWrapperClassName = "", children }: AccordionContentProps) {
+export function AccordionContent({ className = "", contentWrapperClassName = "", children }: AccordionContentProps) {
   return (
     <BaseAccordion.Panel
       className={`h-[var(--accordion-panel-height)] overflow-hidden transition-[height] ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 ${className}`}
@@ -85,10 +92,3 @@ function AccordionContent({ className = "", contentWrapperClassName = "", childr
     </BaseAccordion.Panel>
   );
 }
-
-export const Accordion = {
-  Root: AccordionRoot,
-  Item: AccordionItem,
-  Trigger: AccordionTrigger,
-  Content: AccordionContent,
-};

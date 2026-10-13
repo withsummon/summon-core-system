@@ -21,7 +21,6 @@ const sizeClasses = {
 
 export function AnimatedCounter({ count, className, size = "md" }: AnimatedCounterProps) {
   // states
-  const [displayCount, setDisplayCount] = useState(count);
   const [prevCount, setPrevCount] = useState(count);
   const [isAnimating, setIsAnimating] = useState(false);
   const [direction, setDirection] = useState<"up" | "down" | null>(null);
@@ -32,9 +31,6 @@ export function AnimatedCounter({ count, className, size = "md" }: AnimatedCount
       setDirection(count > prevCount ? "up" : "down");
       setIsAnimating(true);
       setAnimationKey((prev) => prev + 1);
-
-      // Update the display count immediately, animation will show the transition
-      setDisplayCount(count);
 
       // End animation after CSS transition
       const timer = setTimeout(() => {
@@ -87,7 +83,7 @@ export function AnimatedCounter({ count, className, size = "md" }: AnimatedCount
           className
         )}
       >
-        {displayCount}
+        {count}
       </span>
     </div>
   );

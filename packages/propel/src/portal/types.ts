@@ -31,6 +31,8 @@ export interface ModalPortalProps extends BasePortalProps {
   showOverlay?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
+  /** Accessible name for the dialog */
+  ariaLabel?: string;
 }
 
 export type PortalEventHandler = () => void;

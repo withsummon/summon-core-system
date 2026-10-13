@@ -164,7 +164,8 @@ export const MultiSelect = memo(function MultiSelect({
       >
         <BaseSelect.Value className="min-w-0 flex-1 truncate">
           {(selected: string[]) => {
-            const labels = options.filter((option) => selected.includes(option.value)).map((option) => option.label);
+            const selectedValues = new Set(selected);
+            const labels = options.filter((option) => selectedValues.has(option.value)).map((option) => option.label);
             if (!labels.length) return <span className="text-placeholder">{placeholder}</span>;
             return labels.length === 1 ? labels[0] : `${labels.length} selected`;
           }}

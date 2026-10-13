@@ -165,6 +165,8 @@ export function EditorContainer(props: Props) {
       <div
         ref={containerRef}
         id={`editor-container-${id}`}
+        // Pointer-only convenience: clicking empty space focuses the editor, which stays keyboard-focusable itself.
+        role="presentation"
         onClick={handleContainerClick}
         onMouseLeave={handleContainerMouseLeave}
         className={cn(

@@ -11,6 +11,8 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffec
 import { useOutsideClickDetector } from "@plane/hooks";
 // helpers
 import { DROPDOWN_NAVIGATION_KEYS, getNextValidIndex } from "@/helpers/tippy";
+// hooks
+import { useStateResetOnChange } from "@/hooks/use-state-reset-on-change";
 // types
 import type { ISlashCommandItem } from "@/types";
 // components
@@ -21,13 +23,13 @@ export type SlashCommandsMenuProps = SuggestionProps<TSlashCommandSection, ISlas
   onClose: () => void;
 };
 
+const INITIAL_SELECTED_INDEX = { section: 0, item: 0 };
+
 export const SlashCommandsMenu = forwardRef(function SlashCommandsMenu(props: SlashCommandsMenuProps, ref) {
   const { items: sections, command, query, onClose } = props;
   // states
-  const [selectedIndex, setSelectedIndex] = useState({
-    section: 0,
-    item: 0,
-  });
+  // selection resets to the first item whenever the sections change
+  const [selectedIndex, setSelectedIndex] = useStateResetOnChange(sections, INITIAL_SELECTED_INDEX);
   // refs
   const commandListContainer = useRef<HTMLDivElement>(null);
 
@@ -78,13 +80,6 @@ export const SlashCommandsMenu = forwardRef(function SlashCommandsMenu(props: Sl
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [sections, selectedIndex, setSelectedIndex, selectItem]);
-  // initialize the select index to 0 by default
-  useEffect(() => {
-    setSelectedIndex({
-      section: 0,
-      item: 0,
-    });
-  }, [sections]);
   // scroll to the dropdown item when navigating via keyboard
   useLayoutEffect(() => {
     const container = commandListContainer?.current;

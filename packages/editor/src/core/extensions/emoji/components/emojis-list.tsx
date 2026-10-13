@@ -10,6 +10,8 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { cn } from "@plane/utils";
+// hooks
+import { useStateResetOnChange } from "@/hooks/use-state-reset-on-change";
 
 export type EmojiItem = {
   name: string;
@@ -33,7 +35,8 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
 ) {
   const { items, command, query, onClose, forceOpen = false } = props;
   // states
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  // selection resets to the first item whenever the items change
+  const [selectedIndex, setSelectedIndex] = useStateResetOnChange(items, 0);
   const [isVisible, setIsVisible] = useState(false);
   // refs
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
@@ -77,7 +80,7 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
 
       return false;
     },
-    [items.length, query.length, forceOpen, selectItem, selectedIndex]
+    [items.length, query.length, forceOpen, selectItem, selectedIndex, setSelectedIndex]
   );
 
   // Show animation
@@ -86,9 +89,6 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
     const timeout = setTimeout(() => setIsVisible(true), 50);
     return () => clearTimeout(timeout);
   }, []);
-
-  // Reset selection when items change
-  useEffect(() => setSelectedIndex(0), [items]);
 
   // Scroll selected item into view
   useEffect(() => {

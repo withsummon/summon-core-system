@@ -99,7 +99,9 @@ export const checkIfArraysHaveSameElements = (arr1: any[] | null, arr2: any[] | 
   if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
   if (arr1.length === 0 && arr2.length === 0) return true;
 
-  return arr1.length === arr2.length && arr1.every((e) => arr2.includes(e));
+  if (arr1.length !== arr2.length) return false;
+  const arr2Set = new Set(arr2);
+  return arr1.every((e) => arr2Set.has(e));
 };
 
 type GroupedItems<T> = { [key: string]: T[] };

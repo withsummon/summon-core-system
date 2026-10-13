@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Pill, EPillVariant, EPillSize } from "./pill";
+import { Pill, EPillVariant, EPillSize } from ".";
 
 const meta = {
   title: "Components/Pill",

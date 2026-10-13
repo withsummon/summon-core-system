@@ -41,6 +41,8 @@ export function AuthPasswordInput({
     const newPassword = e.target.value;
     onChange?.(e);
     onPasswordChange?.(newPassword);
+    const newStrength = getPasswordStrength(newPassword);
+    if (newStrength !== getPasswordStrength(value as string)) onPasswordStrengthChange?.(newStrength);
   };
 
   const handleFocus = () => {
@@ -50,13 +52,6 @@ export function AuthPasswordInput({
   const handleBlur = () => {
     setIsFocused(false);
   };
-
-  const passwordStrength = getPasswordStrength(value as string);
-
-  // Notify parent of strength change
-  React.useEffect(() => {
-    onPasswordStrengthChange?.(passwordStrength);
-  }, [passwordStrength, onPasswordStrengthChange]);
 
   return (
     <div className={cn("space-y-2", containerClassName)}>

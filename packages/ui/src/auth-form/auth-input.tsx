@@ -57,6 +57,7 @@ export function AuthInput({
         {showPasswordToggle && isPasswordType && (
           <button
             type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
           >

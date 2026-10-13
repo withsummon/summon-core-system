@@ -36,10 +36,11 @@ export const findParentNodeOfType = (
   pos: number;
   depth: number;
 } | null => {
+  const typeNames = new Set(typeName);
   let depth = selection.$anchor.depth;
   while (depth > 0) {
     const node = selection.$anchor.node(depth);
-    if (typeName.includes(node.type.name)) {
+    if (typeNames.has(node.type.name)) {
       return {
         node,
         pos: selection.$anchor.start(depth) - 1,

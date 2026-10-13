@@ -7,16 +7,10 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-export function TeamspaceVerticalStackIllustration({ className }: TIllustrationAssetProps) {
+/** Stacked platform layers the illustration sits on */
+function TeamspacePlatform() {
   return (
-    <svg
-      width="162"
-      height="188"
-      viewBox="0 0 162 188"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
+    <>
       <g opacity="0.2">
         <path
           d="M12.5344 152.778C12.5344 154.741 14.0035 156.698 16.9366 158.198L54.703 177.442C60.5744 180.432 70.09 180.432 75.9613 177.442L155.32 137.007C158.253 135.512 159.722 133.555 159.722 131.593V137.859C159.722 139.821 158.253 141.778 155.32 143.273L75.9613 183.708C70.09 186.698 60.5744 186.698 54.703 183.708L16.9366 164.464C13.9983 162.969 12.5344 161.006 12.5344 159.044V152.778Z"
@@ -53,6 +47,14 @@ export function TeamspaceVerticalStackIllustration({ className }: TIllustrationA
           strokeLinejoin="round"
         />
       </g>
+    </>
+  );
+}
+
+/** Main artwork, painted above the platform */
+function TeamspaceBody() {
+  return (
+    <>
       <path
         d="M12.5344 113.185C12.5344 115.147 14.0036 117.104 16.9366 118.604L54.7031 137.848C60.5744 140.838 70.09 140.838 75.9613 137.848L155.32 97.4135C158.253 95.9184 159.722 93.9613 159.722 91.999V98.2649C159.722 100.227 158.253 102.184 155.32 103.679L75.9613 144.114C70.09 147.104 60.5744 147.104 54.7031 144.114L16.9366 124.87C13.9984 123.375 12.5344 121.413 12.5344 119.45V113.185Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -209,6 +211,14 @@ export function TeamspaceVerticalStackIllustration({ className }: TIllustrationA
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </>
+  );
+}
+
+/** Foreground details, painted last */
+function TeamspaceForeground() {
+  return (
+    <>
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -355,6 +365,23 @@ export function TeamspaceVerticalStackIllustration({ className }: TIllustrationA
         d="M139.871 31.4999C140.489 31.8166 141.081 31.8166 141.522 31.5103C141.963 31.204 142.207 30.607 142.207 29.8543C142.207 29.1016 141.963 28.2554 141.522 27.5026C141.086 26.7499 140.494 26.1477 139.871 25.8311V31.5051V31.4999Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
       />
+    </>
+  );
+}
+
+export function TeamspaceVerticalStackIllustration({ className }: TIllustrationAssetProps) {
+  return (
+    <svg
+      width="162"
+      height="188"
+      viewBox="0 0 162 188"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <TeamspacePlatform />
+      <TeamspaceBody />
+      <TeamspaceForeground />
     </svg>
   );
 }

@@ -7,16 +7,10 @@
 import { ILLUSTRATION_COLOR_TOKEN_MAP } from "../helper";
 import type { TIllustrationAssetProps } from "../helper";
 
-export function ServerErrorVerticalStackIllustration({ className }: TIllustrationAssetProps) {
+/** Stacked platform layers the illustration sits on */
+function ServerErrorPlatform() {
   return (
-    <svg
-      width="162"
-      height="184"
-      viewBox="0 0 162 184"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
+    <>
       <g opacity="0.2">
         <path
           d="M0.25 147.382C0.25 149.515 1.847 151.642 5.03537 153.273L46.0892 174.192C52.4716 177.443 62.8156 177.443 69.1979 174.192L155.465 130.238C158.653 128.613 160.25 126.485 160.25 124.352V131.163C160.25 133.296 158.653 135.424 155.465 137.049L69.1979 181.004C62.8156 184.254 52.4716 184.254 46.0892 181.004L5.03537 160.084C1.84135 158.459 0.25 156.326 0.25 154.193V147.382Z"
@@ -53,6 +47,14 @@ export function ServerErrorVerticalStackIllustration({ className }: TIllustratio
           strokeLinejoin="round"
         />
       </g>
+    </>
+  );
+}
+
+/** Main artwork, painted above the platform */
+function ServerErrorBody() {
+  return (
+    <>
       <path
         d="M0.25 104.341C0.25 106.475 1.847 108.602 5.03537 110.233L46.0892 131.152C52.4716 134.402 62.8156 134.402 69.1979 131.152L155.465 87.1976C158.653 85.5723 160.25 83.4449 160.25 81.3118V88.123C160.25 90.2561 158.653 92.3836 155.465 94.0088L69.1979 137.963C62.8156 141.214 52.4716 141.214 46.0892 137.963L5.03537 117.044C1.84135 115.419 0.25 113.286 0.25 111.153V104.341Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.secondary}
@@ -197,6 +199,14 @@ export function ServerErrorVerticalStackIllustration({ className }: TIllustratio
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </>
+  );
+}
+
+/** Foreground details, painted last */
+function ServerErrorForeground() {
+  return (
+    <>
       <path
         d="M105.196 58.965L104.106 59.5181C103.886 59.631 103.706 59.5068 103.706 59.2359V54.507C103.706 54.2361 103.886 53.9314 104.106 53.8185L105.196 53.2655C105.416 53.1526 105.596 53.2768 105.596 53.5477V58.2766C105.596 58.5475 105.416 58.8522 105.196 58.965Z"
         fill={ILLUSTRATION_COLOR_TOKEN_MAP.fill.quaternary}
@@ -333,6 +343,23 @@ export function ServerErrorVerticalStackIllustration({ className }: TIllustratio
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </>
+  );
+}
+
+export function ServerErrorVerticalStackIllustration({ className }: TIllustrationAssetProps) {
+  return (
+    <svg
+      width="162"
+      height="184"
+      viewBox="0 0 162 184"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <ServerErrorPlatform />
+      <ServerErrorBody />
+      <ServerErrorForeground />
     </svg>
   );
 }

@@ -223,10 +223,13 @@ export const DragHandlePlugin = (options: SideMenuPluginProps): SideMenuHandleOp
 
   const view = (view: EditorView, sideMenu: HTMLDivElement | null) => {
     dragHandleElement = createDragHandleElement();
-    dragHandleElement.addEventListener("dragstart", (e) => handleDragStart(e, view));
-    dragHandleElement.addEventListener("dragend", (e) => handleDragEnd(e, view));
-    dragHandleElement.addEventListener("click", (e) => handleClick(e, view));
-    dragHandleElement.addEventListener("contextmenu", (e) => handleClick(e, view));
+    const listenerController = new AbortController();
+    const { signal } = listenerController;
+    // react-doctor-disable-next-line effect-needs-cleanup -- ProseMirror plugin view; released by abort() in destroy()
+    dragHandleElement.addEventListener("dragstart", (e) => handleDragStart(e, view), { signal });
+    dragHandleElement.addEventListener("dragend", (e) => handleDragEnd(e, view), { signal });
+    dragHandleElement.addEventListener("click", (e) => handleClick(e, view), { signal });
+    dragHandleElement.addEventListener("contextmenu", (e) => handleClick(e, view), { signal });
 
     const dragOverHandler = (e: DragEvent) => {
       e.preventDefault();
@@ -259,11 +262,11 @@ export const DragHandlePlugin = (options: SideMenuPluginProps): SideMenuHandleOp
       isDraggedOutsideWindow = false;
     };
 
-    window.addEventListener("dragleave", dragLeaveHandler);
-    window.addEventListener("dragenter", dragEnterHandler);
+    window.addEventListener("dragleave", dragLeaveHandler, { signal });
+    window.addEventListener("dragenter", dragEnterHandler, { signal });
 
-    document.addEventListener("dragover", dragOverHandler);
-    document.addEventListener("mousemove", mouseMoveHandler);
+    document.addEventListener("dragover", dragOverHandler, { signal });
+    document.addEventListener("mousemove", mouseMoveHandler, { signal });
 
     hideDragHandle();
 
@@ -271,6 +274,7 @@ export const DragHandlePlugin = (options: SideMenuPluginProps): SideMenuHandleOp
 
     return {
       destroy: () => {
+        listenerController.abort();
         dragHandleElement?.remove?.();
         dragHandleElement = null;
         isDragging = false;
@@ -278,10 +282,6 @@ export const DragHandlePlugin = (options: SideMenuPluginProps): SideMenuHandleOp
           cancelAnimationFrame(scrollAnimationFrame);
           scrollAnimationFrame = null;
         }
-        window.removeEventListener("dragleave", dragLeaveHandler);
-        window.removeEventListener("dragenter", dragEnterHandler);
-        document.removeEventListener("dragover", dragOverHandler);
-        document.removeEventListener("mousemove", mouseMoveHandler);
       },
     };
   };

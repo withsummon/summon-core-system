@@ -24,9 +24,19 @@ export function LinkItemBlock(props: TLinkItemBlockProps) {
   const { title, url, createdAt, menuItems, onClick } = props;
   // icons
   const Icon = getIconForLink(url);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    onClick?.();
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className="group flex h-[56px] w-[230px] cursor-pointer items-center gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4"
     >
       <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-surface-2 p-2">

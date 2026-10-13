@@ -4,5 +4,6 @@
  * See the LICENSE file for details.
  */
 
-export { Pill, EPillVariant, EPillSize } from "./pill";
+export { Pill } from "./pill";
+export { EPillVariant, EPillSize } from "./constants";
 export type { PillProps } from "./pill";

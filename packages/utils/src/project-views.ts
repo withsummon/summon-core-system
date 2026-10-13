@@ -50,10 +50,13 @@ export const orderViews = (
  */
 export const shouldFilterView = (view: IProjectView, filters: TViewFilterProps | undefined): boolean => {
   let fallsInFilters = true;
+  // each lookup runs once; the key loop below only decides how the results combine
+  const isOwnedByMatch = !!filters?.owned_by?.includes(`${view.created_by}`);
+  const isViewTypeMatch = !!filters?.view_type?.includes(view.access);
   Object.keys(filters ?? {}).forEach((key) => {
     const filterKey = key as keyof TViewFilterProps;
     if (filterKey === "owned_by" && filters?.owned_by && filters.owned_by.length > 0) {
-      fallsInFilters = fallsInFilters && filters.owned_by.includes(`${view.created_by}`);
+      fallsInFilters = fallsInFilters && isOwnedByMatch;
     }
 
     if (filterKey === "created_at" && filters?.created_at && filters.created_at.length > 0) {
@@ -64,7 +67,7 @@ export const shouldFilterView = (view: IProjectView, filters: TViewFilterProps |
     }
 
     if (filterKey === "view_type" && filters?.view_type && filters?.view_type?.length > 0) {
-      fallsInFilters = filters.view_type.includes(view.access);
+      fallsInFilters = isViewTypeMatch;
     }
   });
 

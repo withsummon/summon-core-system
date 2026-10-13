@@ -49,23 +49,20 @@ export const orderCycles = (cycles: ICycle[], sortByManual: boolean): ICycle[] =
  */
 export const shouldFilterCycle = (cycle: ICycle, filter: TCycleFilters): boolean => {
   let fallsInFilters = true;
-  Object.keys(filter).forEach((key) => {
-    const filterKey = key as keyof TCycleFilters;
-    if (filterKey === "status" && filter.status && filter.status.length > 0)
-      fallsInFilters = fallsInFilters && filter.status.includes(cycle.status?.toLowerCase() ?? "");
-    if (filterKey === "start_date" && filter.start_date && filter.start_date.length > 0) {
-      const startDate = getDate(cycle.start_date);
-      filter.start_date.forEach((dateFilter) => {
-        fallsInFilters = fallsInFilters && !!startDate && satisfiesDateFilter(startDate, dateFilter);
-      });
-    }
-    if (filterKey === "end_date" && filter.end_date && filter.end_date.length > 0) {
-      const endDate = getDate(cycle.end_date);
-      filter.end_date.forEach((dateFilter) => {
-        fallsInFilters = fallsInFilters && !!endDate && satisfiesDateFilter(endDate, dateFilter);
-      });
-    }
-  });
+  if (filter.status && filter.status.length > 0)
+    fallsInFilters = fallsInFilters && filter.status.includes(cycle.status?.toLowerCase() ?? "");
+  if (filter.start_date && filter.start_date.length > 0) {
+    const startDate = getDate(cycle.start_date);
+    filter.start_date.forEach((dateFilter) => {
+      fallsInFilters = fallsInFilters && !!startDate && satisfiesDateFilter(startDate, dateFilter);
+    });
+  }
+  if (filter.end_date && filter.end_date.length > 0) {
+    const endDate = getDate(cycle.end_date);
+    filter.end_date.forEach((dateFilter) => {
+      fallsInFilters = fallsInFilters && !!endDate && satisfiesDateFilter(endDate, dateFilter);
+    });
+  }
 
   return fallsInFilters;
 };

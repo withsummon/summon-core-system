@@ -34,6 +34,7 @@ export const ControlLink = React.forwardRef(function ControlLink(
   // if disabled but still has a ref or a className then it has to be rendered without a href
   if (disabled && (ref || className))
     return (
+      // react-doctor-disable-next-line anchor-is-valid -- disabled state: a placeholder <a> (no href) is intentionally not focusable, and callers' refs expect an anchor
       <a ref={ref} className={className}>
         {children}
       </a>
