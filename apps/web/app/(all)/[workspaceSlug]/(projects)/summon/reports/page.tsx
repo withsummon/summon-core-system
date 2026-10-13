@@ -29,8 +29,11 @@ function SummonReportsPageContent({ params }: Route.ComponentProps) {
   const searchParams = useSearchParams();
   const { joinedProjectIds, getProjectById } = useProject();
   const filters = readReportFilters(searchParams);
-  const { data, error, isLoading, mutate } = useSWR(reportRequestKey(workspaceSlug, filters), () =>
-    summonService.getReport(workspaceSlug, filters)
+  // Keep the current report on screen while a filter change loads the next one.
+  const { data, error, isLoading, mutate } = useSWR(
+    reportRequestKey(workspaceSlug, filters),
+    () => summonService.getReport(workspaceSlug, filters),
+    { keepPreviousData: true }
   );
   const { data: clients = [] } = useSWR(["summon-clients", workspaceSlug], () =>
     summonService.listClients(workspaceSlug)

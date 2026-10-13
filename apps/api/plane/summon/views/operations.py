@@ -75,7 +75,9 @@ class AutomationJobView(WorkspaceContextMixin, BaseAPIView):
             serializer.validated_data["input"],
             serializer.validated_data["context"],
         )
-        job = AutomationJob.objects.prefetch_related("artifacts__page", "artifacts__file_asset").get(pk=job.pk)
+        job = AutomationJob.objects.prefetch_related(
+            "artifacts__workspace", "artifacts__page", "artifacts__file_asset"
+        ).get(pk=job.pk)
         data = dict(AutomationJobSerializer(job).data)
         if job.status == AutomationJob.Status.FAILED:
             data["error_code"] = job.error_summary
@@ -89,7 +91,7 @@ def visible_automation_jobs(workspace, user):
         AutomationJob.objects.filter(workspace=workspace)
         .filter(Q(project__isnull=True) | Q(project_id__in=project_ids))
         .select_related("template", "project")
-        .prefetch_related("artifacts__page", "artifacts__file_asset")
+        .prefetch_related("artifacts__workspace", "artifacts__page", "artifacts__file_asset")
     )
 
 
@@ -122,7 +124,9 @@ class AutomationPublishView(WorkspaceContextMixin, BaseAPIView):
             requested_by=request.user,
         )
         publish_job(job, request.user)
-        job = AutomationJob.objects.prefetch_related("artifacts__page", "artifacts__file_asset").get(pk=job.pk)
+        job = AutomationJob.objects.prefetch_related(
+            "artifacts__workspace", "artifacts__page", "artifacts__file_asset"
+        ).get(pk=job.pk)
         return Response(AutomationJobSerializer(job).data)
 
 
@@ -137,7 +141,9 @@ class AutomationRenderView(WorkspaceContextMixin, BaseAPIView):
             requested_by=request.user,
         )
         render_job_files(job, request.user)
-        job = AutomationJob.objects.prefetch_related("artifacts__page", "artifacts__file_asset").get(pk=job.pk)
+        job = AutomationJob.objects.prefetch_related(
+            "artifacts__workspace", "artifacts__page", "artifacts__file_asset"
+        ).get(pk=job.pk)
         return Response(AutomationJobSerializer(job).data)
 
 

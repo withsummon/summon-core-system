@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from functools import cached_property
 from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -124,6 +125,11 @@ class MeetingWorkItemSerializer(BaseSerializer):
             },
             "created_at": instance.created_at,
         }
+
+
+# Relations MeetingSerializer reads; apply both to any queryset it serializes with many=True.
+MEETING_READ_RELATED = ("project", "recording_asset__workspace", "transcript_asset__workspace", "summary_page")
+MEETING_READ_PREFETCH = ("participants__member", "work_items__issue__state", "work_items__issue__project")
 
 
 class MeetingSerializer(CollaborationSerializer):
@@ -272,18 +278,26 @@ class MeetingSerializer(CollaborationSerializer):
                 },
                 "response": participant.response,
             }
-            for participant in instance.participants.select_related("member").all()
+            for participant in instance.participants.all()
         ]
 
+    @cached_property
+    def member_project_ids(self):
+        return set(
+            ProjectMember.objects.filter(
+                workspace=self.workspace,
+                member=self.user,
+                is_active=True,
+            ).values_list("project_id", flat=True)
+        )
+
     def get_work_items(self, instance):
-        project_ids = ProjectMember.objects.filter(
-            workspace=self.workspace,
-            member=self.user,
-            is_active=True,
-        ).values_list("project_id", flat=True)
-        items = instance.work_items.filter(
-            issue__deleted_at__isnull=True, issue__project_id__in=project_ids
-        ).select_related("issue__state", "issue__project")
+        # Reads MEETING_READ_PREFETCH when the queryset applied it, so a list costs no query per meeting.
+        items = [
+            item
+            for item in instance.work_items.all()
+            if item.issue.deleted_at is None and item.issue.project_id in self.member_project_ids
+        ]
         return MeetingWorkItemSerializer(items, many=True).data
 
     def get_project_detail(self, instance):

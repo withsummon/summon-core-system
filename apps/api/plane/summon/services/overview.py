@@ -145,12 +145,14 @@ def _accessible_pages(workspace, user, project_ids):
     )
 
 
-def _meetings(workspace, visible_ids, project=None):
+def _meetings(workspace, visible_ids, project=None, upcoming=False):
     meetings = (
         Meeting.objects.filter(workspace=workspace, project=project)
         if project
         else Meeting.objects.filter(workspace=workspace).filter(Q(project__isnull=True) | Q(project_id__in=visible_ids))
     )
+    if upcoming:
+        meetings = meetings.filter(starts_at__gte=timezone.now(), status=Meeting.Status.SCHEDULED)
     return [
         _meeting_snapshot(meeting, visible_ids)
         for meeting in meetings.select_related(
@@ -254,11 +256,7 @@ def home_summary(workspace, user):
         ],
         "counts": counts,
         "recent_activity": _activity(workspace, visible_ids, workspace.slug),
-        "upcoming_meetings": [
-            meeting
-            for meeting in _meetings(workspace, visible_ids)
-            if meeting["starts_at"] >= timezone.now() and meeting["status"] == Meeting.Status.SCHEDULED
-        ],
+        "upcoming_meetings": _meetings(workspace, visible_ids, upcoming=True),
         "resources": [_resource_snapshot(resource) for resource in resources],
     }
 
@@ -274,13 +272,17 @@ def project_overview(workspace, user, project_id):
         Q(page__isnull=True) | Q(page__in=pages)
     )
     profile = SummonProjectProfile.objects.filter(workspace=workspace, project=project).first()
-    files = FileAsset.objects.filter(
-        workspace=workspace,
-        project=project,
-        is_uploaded=True,
-        is_deleted=False,
-        is_archived=False,
-    ).exclude(entity_type=FileAsset.EntityTypeContext.PROJECT_COVER)
+    files = (
+        FileAsset.objects.filter(
+            workspace=workspace,
+            project=project,
+            is_uploaded=True,
+            is_deleted=False,
+            is_archived=False,
+        )
+        .exclude(entity_type=FileAsset.EntityTypeContext.PROJECT_COVER)
+        .select_related("workspace")
+    )
     return {
         "project": {
             "id": str(project.id),

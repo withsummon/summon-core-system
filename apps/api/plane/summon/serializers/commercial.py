@@ -9,6 +9,8 @@ from plane.db.models import WorkspaceMember
 from plane.summon.access import has_capability
 from plane.summon.models import Client, ClientContact, Opportunity, SummonProjectProfile
 from plane.summon.serializers.collaboration import (
+    MEETING_READ_PREFETCH,
+    MEETING_READ_RELATED,
     MeetingSerializer,
     MeetingWorkItemSerializer,
     SummonPageContextSerializer,
@@ -130,7 +132,11 @@ class ClientDetailSerializer(ClientSerializer):
 
     def get_meetings(self, instance):
         return MeetingSerializer(
-            detail_meetings(instance, self.context["request"].user, "client"), many=True, context=self.context
+            detail_meetings(instance, self.context["request"].user, "client")
+            .select_related(*MEETING_READ_RELATED)
+            .prefetch_related(*MEETING_READ_PREFETCH),
+            many=True,
+            context=self.context,
         ).data
 
     def get_page_contexts(self, instance):
@@ -177,7 +183,9 @@ class OpportunityDetailSerializer(OpportunitySerializer):
 
     def get_meetings(self, instance):
         return MeetingSerializer(
-            detail_meetings(instance, self.context["request"].user, "source_opportunity"),
+            detail_meetings(instance, self.context["request"].user, "source_opportunity")
+            .select_related(*MEETING_READ_RELATED)
+            .prefetch_related(*MEETING_READ_PREFETCH),
             many=True,
             context=self.context,
         ).data
