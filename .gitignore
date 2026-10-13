@@ -114,6 +114,7 @@ temp/
 scripts/
 !packages/i18n/scripts/
 !packages/summon-contract/scripts/
+!apps/ai/scripts/
 
 # i18n auto-generated types (regenerated on every build)
 packages/i18n/src/types/keys.generated.ts

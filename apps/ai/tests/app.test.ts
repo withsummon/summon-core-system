@@ -250,6 +250,46 @@ describe("MCP", () => {
     expect(call?.headers.cookie).toBeUndefined();
   });
 
+  it("proxies Plane MCP tools with the caller's key", async () => {
+    const planeResult = { content: [{ type: "text", text: "[]" }], isError: false };
+    app = makeApp({
+      django: (request) => {
+        if (request.path !== "/mcp") return defaultDjango(request);
+        const method = (request.body as { method?: string } | undefined)?.method;
+        if (method === "tools/call") return { status: 200, body: { jsonrpc: "2.0", id: 2, result: planeResult } };
+        if (method === "notifications/initialized") return { status: 202 };
+        return { status: 200, body: { jsonrpc: "2.0", id: 1, result: {} } };
+      },
+    });
+    const headers = await session(app);
+    const listed = await rpcResult(await rpc(app, { jsonrpc: "2.0", id: 2, method: "tools/list" }, headers));
+    expect((listed.tools as Array<{ name: string }>).map((tool) => tool.name)).toContain("plane_workitem");
+
+    const called = await rpcResult(
+      await rpc(
+        app,
+        {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "tools/call",
+          params: { name: "plane_project", arguments: { action: "list" } },
+        },
+        headers
+      )
+    );
+
+    expect(called).toEqual(planeResult);
+    const forwarded = app.seen.filter((request) => request.path === "/mcp");
+    expect(forwarded.map((request) => (request.body as { method: string }).method)).toEqual([
+      "initialize",
+      "notifications/initialized",
+      "tools/call",
+    ]);
+    expect(forwarded.at(-1)?.headers.authorization).toBe("Bearer plane_api_good");
+    expect(forwarded.at(-1)?.headers["x-workspace-slug"]).toBe(SLUG);
+    expect(forwarded.at(-1)?.body).toMatchObject({ params: { name: "project", arguments: { action: "list" } } });
+  });
+
   it("accepts a Bearer key, as MCP clients send it", async () => {
     app = makeApp();
     const response = await rpc(app, initialize, { "x-api-key": "", authorization: "Bearer plane_api_good" });
