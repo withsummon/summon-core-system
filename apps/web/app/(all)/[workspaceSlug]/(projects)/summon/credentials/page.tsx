@@ -201,7 +201,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
         description="Accounts, API keys and access credentials for your projects"
         actions={
           <>
-            <div role="search" className="relative w-full min-w-0 sm:w-80">
+            <search className="relative w-full min-w-0 sm:w-80">
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-tertiary" />
               <Input
                 value={query}
@@ -210,7 +210,7 @@ export default function SummonCredentialsPage({ params }: Route.ComponentProps) 
                 aria-label="Search credentials"
                 className="w-full pl-9"
               />
-            </div>
+            </search>
             <Button size="lg" onClick={openCreate}>
               <Plus />
               Add credential

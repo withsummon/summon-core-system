@@ -14,7 +14,7 @@ import { useLocation, useNavigate } from "react-router";
 export function useHashTab<T extends string>(tabs: readonly T[]) {
   const location = useLocation();
   const navigate = useNavigate();
-  const requested = decodeURIComponent(location.hash.slice(1));
+  const requested = location.hash.slice(1);
   const tab = tabs.find((item) => item === requested) ?? tabs[0];
 
   const selectTab = (next: T) => {

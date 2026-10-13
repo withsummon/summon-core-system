@@ -176,11 +176,12 @@ function FieldSubmenu(props: {
   const { label, Icon } = FIELD_META[props.field];
   // Short fixed lists (priority, due windows) read faster without a search field.
   const searchable = props.options.length > 6;
+  const selected = new Set(props.selected);
   const items = props.options.map((option) => (
     <Menu.CheckboxItem
       key={option.value}
       label={option.label}
-      checked={props.selected.includes(option.value)}
+      checked={selected.has(option.value)}
       onCheckedChange={() => props.onToggle(props.field, option.value)}
       className={MENU_ITEM_CLASSNAME}
     >

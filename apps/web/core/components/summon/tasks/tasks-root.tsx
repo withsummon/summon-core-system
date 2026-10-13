@@ -23,7 +23,7 @@ import type { TSelectableIcon } from "@plane/propel/icons";
 import { Tabs } from "@plane/propel/tabs";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Collapsible } from "@plane/propel/collapsible";
-import { getFileURL } from "@plane/utils";
+import { getFileURL, renderFormattedDateWithoutYear } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { SummonRequestState } from "@/components/summon/request-state";
 import { SummonPageHeader } from "@/components/summon/screen";
@@ -76,10 +76,6 @@ type TTaskView = { filters: TTaskFilters; display: TTaskDisplay };
 const DEFAULT_VIEW: TTaskView = { filters: {}, display: DEFAULT_TASK_DISPLAY };
 
 const issueService = new IssueService();
-const dateLabel = (date: string) =>
-  new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-    new Date(date.length === 10 ? `${date}T00:00:00` : date)
-  );
 const metaIcon = ({ Icon, tone }: { Icon: LucideIcon; tone: string }) => (
   <Icon aria-hidden="true" className={`size-4 flex-none ${tone}`} />
 );
@@ -424,7 +420,9 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 className={`w-16 shrink-0 text-right tabular-nums ${overdue ? "text-danger-primary" : "text-secondary"}`}
                                 title={task.target_date ? `Due ${task.target_date}` : "No due date"}
                               >
-                                {task.target_date ? `${overdue ? "! " : ""}${dateLabel(task.target_date)}` : "—"}
+                                {task.target_date
+                                  ? `${overdue ? "! " : ""}${renderFormattedDateWithoutYear(task.target_date)}`
+                                  : "—"}
                               </span>
                             )}
                             {shows("created") && (
@@ -432,7 +430,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 className="shrink-0 text-tertiary tabular-nums sm:w-16 sm:text-right"
                                 title={`Created ${task.created_at}`}
                               >
-                                {dateLabel(task.created_at)}
+                                {renderFormattedDateWithoutYear(task.created_at)}
                               </span>
                             )}
                             {shows("updated") && (
@@ -440,7 +438,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 className="shrink-0 text-tertiary tabular-nums sm:w-16 sm:text-right"
                                 title={`Updated ${task.updated_at}`}
                               >
-                                {dateLabel(task.updated_at)}
+                                {renderFormattedDateWithoutYear(task.updated_at)}
                               </span>
                             )}
                           </span>

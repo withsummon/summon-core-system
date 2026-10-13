@@ -28,7 +28,8 @@ import { ResourceIcon } from "./resource-icon";
 import { ResourceBadge } from "./resource-badge";
 import { SummonPageHeader, summonPageClassName, ViewPanel } from "@/components/summon/screen";
 import { AddResourceModal } from "./add-resource-modal";
-import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload } from "./types";
+import type { ISummonResourceLink } from "@plane/types";
+import type { TResourceViewMode, TResourceSortOption, ICreateResourcePayload, IResourceFilterState } from "./types";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Select } from "@plane/propel/select";
 import { FIELD_CLASSNAME } from "@plane/propel/input";
@@ -52,6 +53,44 @@ function formatRelativeTime(dateString: string): string {
   } catch {
     return "Recently";
   }
+}
+
+/** Category tiles also catch links whose category was left generic, by file extension or host. */
+const CATEGORY_MATCHES: Record<string, (category: string, title: string, url: string) => boolean> = {
+  document: (category, title) => category === "document" || category === "page" || /\.(pdf|docx|xlsx)$/.test(title),
+  repository: (category, _title, url) =>
+    category === "repository" || url.includes("github.com") || url.includes("gitlab.com"),
+  figma: (category, _title, url) => category === "figma" || url.includes("figma.com"),
+  deployment: (category, _title, url) =>
+    category === "deployment" || url.includes("withsummon.com") || url.includes(".app"),
+  drive: (category, _title, url) => category === "drive" || url.includes("drive.google.com"),
+  recording: (category, title) => category === "recording" || /\.(mp4|mov)$/.test(title),
+  account: (category) => category === "account" || category === "credential",
+};
+
+const RESOURCE_SORTS: Partial<Record<TResourceSortOption, (a: ISummonResourceLink, b: ISummonResourceLink) => number>> =
+  {
+    recently_updated: (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    name_asc: (a, b) => a.title.localeCompare(b.title),
+    name_desc: (a, b) => b.title.localeCompare(a.title),
+  };
+
+function filterResources(resources: ISummonResourceLink[], filters: IResourceFilterState) {
+  const query = filters.searchQuery.toLowerCase().trim();
+  const category = filters.selectedCategory;
+  const matchesCategory = CATEGORY_MATCHES[category] ?? ((resourceCategory: string) => resourceCategory === category);
+  const list = resources.filter(
+    (r) =>
+      (!query ||
+        [r.title, r.url, r.project_detail?.name ?? "", r.category].some((text) =>
+          text.toLowerCase().includes(query)
+        )) &&
+      (category === "all" || matchesCategory(r.category.toLowerCase(), r.title.toLowerCase(), r.url.toLowerCase())) &&
+      (filters.selectedProject === "all" || r.project === filters.selectedProject)
+  );
+  const compare = RESOURCE_SORTS[filters.sortBy];
+  if (compare) list.sort(compare);
+  return list;
 }
 
 export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
@@ -85,75 +124,16 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
   );
 
   // 3. Filter and Sort logic on live DB records
-  const filteredResources = useMemo(() => {
-    let list = [...resources];
-
-    // Search query filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          r.title.toLowerCase().includes(q) ||
-          r.url.toLowerCase().includes(q) ||
-          (r.project_detail?.name && r.project_detail.name.toLowerCase().includes(q)) ||
-          r.category.toLowerCase().includes(q)
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== "all") {
-      list = list.filter((r) => {
-        const cat = r.category.toLowerCase();
-        const title = r.title.toLowerCase();
-        const url = r.url.toLowerCase();
-
-        if (selectedCategory === "document") {
-          return (
-            cat === "document" ||
-            cat === "page" ||
-            title.endsWith(".pdf") ||
-            title.endsWith(".docx") ||
-            title.endsWith(".xlsx")
-          );
-        }
-        if (selectedCategory === "repository") {
-          return cat === "repository" || url.includes("github.com") || url.includes("gitlab.com");
-        }
-        if (selectedCategory === "figma") {
-          return cat === "figma" || url.includes("figma.com");
-        }
-        if (selectedCategory === "deployment") {
-          return cat === "deployment" || url.includes("withsummon.com") || url.includes(".app");
-        }
-        if (selectedCategory === "drive") {
-          return cat === "drive" || url.includes("drive.google.com");
-        }
-        if (selectedCategory === "recording") {
-          return cat === "recording" || title.endsWith(".mp4") || title.endsWith(".mov");
-        }
-        if (selectedCategory === "account") {
-          return cat === "account" || cat === "credential";
-        }
-        return cat === selectedCategory;
-      });
-    }
-
-    // Project filter
-    if (selectedProjectId !== "all") {
-      list = list.filter((r) => r.project === selectedProjectId);
-    }
-
-    // Sorting
-    if (sortBy === "recently_updated") {
-      list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-    } else if (sortBy === "name_asc") {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortBy === "name_desc") {
-      list.sort((a, b) => b.title.localeCompare(a.title));
-    }
-
-    return list;
-  }, [resources, searchQuery, selectedCategory, selectedProjectId, sortBy]);
+  const filteredResources = useMemo(
+    () =>
+      filterResources(resources, {
+        searchQuery,
+        selectedCategory,
+        selectedProject: selectedProjectId,
+        sortBy,
+      }),
+    [resources, searchQuery, selectedCategory, selectedProjectId, sortBy]
+  );
 
   // 4. Pagination
   const pageSize = 10;
@@ -164,7 +144,6 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
     setSelectedCategory("all");
     setSelectedProjectId("all");
   };
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedResources = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredResources.slice(start, start + pageSize);
@@ -327,22 +306,10 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
 
             <ViewPanel value={selectedCategory}>
               {!isResourcesLoading && totalItems === 0 ? (
-                <EmptyStateDetailed
-                  align="center"
-                  rootClassName="px-6 py-12"
-                  assetClassName="h-auto w-32"
-                  assetKey={hasFilters ? "search" : "page"}
-                  title={hasFilters ? "No matching resources" : "No resources yet"}
-                  description={
-                    hasFilters
-                      ? "Try another search, category or project."
-                      : "Add links to documents, repositories, designs and drives so the team finds them in one place."
-                  }
-                  actions={[
-                    hasFilters
-                      ? { label: "Clear filters", variant: "secondary", onClick: clearFilters }
-                      : { label: "Add resource", onClick: () => setIsAddModalOpen(true) },
-                  ]}
+                <ResourcesEmptyState
+                  hasFilters={hasFilters}
+                  onClearFilters={clearFilters}
+                  onAdd={() => setIsAddModalOpen(true)}
                 />
               ) : viewMode === "list" ? (
                 <div className="mt-4 overflow-x-auto">
@@ -360,10 +327,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                     <tbody className="divide-y divide-subtle">
                       {paginatedResources.length > 0 ? (
                         paginatedResources.map((item) => {
-                          const projectName =
-                            item.project_detail?.name ||
-                            projectsList.find((p) => p.id === item.project)?.name ||
-                            "Global Resource";
+                          const projectName = projectNameOf(item, projectsList);
                           const updatedBy =
                             item.updated_by_detail?.display_name ||
                             item.created_by_detail?.display_name ||
@@ -472,10 +436,7 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
                 /* Grid View */
                 <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
                   {paginatedResources.map((item) => {
-                    const projectName =
-                      item.project_detail?.name ||
-                      projectsList.find((p) => p.id === item.project)?.name ||
-                      "Global Resource";
+                    const projectName = projectNameOf(item, projectsList);
 
                     return (
                       <a
@@ -513,70 +474,12 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
               )}
             </ViewPanel>
 
-            {/* Pagination Footer */}
-            <div
-              hidden={totalItems === 0}
-              className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-xs text-secondary sm:flex-row"
-            >
-              <div>
-                Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
-                {Math.min(currentPage * pageSize, totalItems)} of {totalItems} resources
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="flex size-7 items-center justify-center rounded-lg border border-subtle text-secondary hover:bg-layer-1 disabled:opacity-40"
-                  >
-                    ‹
-                  </button>
-
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1;
-                    const isActive = currentPage === pageNum;
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`flex size-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${
-                          isActive
-                            ? "bg-accent-primary text-white shadow-xs"
-                            : "border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-
-                  {totalPages > 5 && (
-                    <>
-                      <span className="px-1 text-tertiary">...</span>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(totalPages)}
-                        className={`flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-xs font-bold text-secondary hover:bg-layer-1 hover:text-primary`}
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
-
-                  <button
-                    type="button"
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="flex size-7 items-center justify-center rounded-lg border border-subtle text-secondary hover:bg-layer-1 disabled:opacity-40"
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </div>
+            <ResourcesPagination
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
 
@@ -604,5 +507,110 @@ export function ResourcesRoot({ workspaceSlug }: IResourcesRootProps) {
         projects={projectsList}
       />
     </div>
+  );
+}
+
+function projectNameOf(item: ISummonResourceLink, projects: { id: string; name: string }[]) {
+  return item.project_detail?.name || projects.find((p) => p.id === item.project)?.name || "Global Resource";
+}
+
+function ResourcesPagination(props: {
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(props.totalItems / props.pageSize));
+  return (
+    <div
+      hidden={props.totalItems === 0}
+      className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-subtle pt-4 text-xs text-secondary sm:flex-row"
+    >
+      <div>
+        Showing {(props.currentPage - 1) * props.pageSize + 1} to{" "}
+        {Math.min(props.currentPage * props.pageSize, props.totalItems)} of {props.totalItems} resources
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={props.currentPage === 1}
+            onClick={() => props.onPageChange(props.currentPage - 1)}
+            className="flex size-7 items-center justify-center rounded-lg border border-subtle text-secondary hover:bg-layer-1 disabled:opacity-40"
+          >
+            ‹
+          </button>
+
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            const pageNum = i + 1;
+            const isActive = props.currentPage === pageNum;
+            return (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => props.onPageChange(pageNum)}
+                className={`flex size-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                  isActive
+                    ? "bg-accent-primary text-white shadow-xs"
+                    : "border border-subtle bg-surface-1 text-secondary hover:bg-layer-1 hover:text-primary"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          {totalPages > 5 && (
+            <>
+              <span className="px-1 text-tertiary">...</span>
+              <button
+                type="button"
+                onClick={() => props.onPageChange(totalPages)}
+                className={`flex size-7 items-center justify-center rounded-lg border border-subtle bg-surface-1 text-xs font-bold text-secondary hover:bg-layer-1 hover:text-primary`}
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            disabled={props.currentPage === totalPages}
+            onClick={() => props.onPageChange(props.currentPage + 1)}
+            className="flex size-7 items-center justify-center rounded-lg border border-subtle text-secondary hover:bg-layer-1 disabled:opacity-40"
+          >
+            ›
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResourcesEmptyState(props: { hasFilters: boolean; onClearFilters: () => void; onAdd: () => void }) {
+  const copy = props.hasFilters
+    ? ({
+        assetKey: "search",
+        title: "No matching resources",
+        description: "Try another search, category or project.",
+        action: { label: "Clear filters", variant: "secondary", onClick: props.onClearFilters },
+      } as const)
+    : ({
+        assetKey: "page",
+        title: "No resources yet",
+        description: "Add links to documents, repositories, designs and drives so the team finds them in one place.",
+        action: { label: "Add resource", onClick: props.onAdd },
+      } as const);
+  return (
+    <EmptyStateDetailed
+      align="center"
+      rootClassName="px-6 py-12"
+      assetClassName="h-auto w-32"
+      assetKey={copy.assetKey}
+      title={copy.title}
+      description={copy.description}
+      actions={[copy.action]}
+    />
   );
 }
