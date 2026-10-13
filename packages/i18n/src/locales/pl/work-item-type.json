@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Ustaw jako domyślny",
           "toast": {
-            "loading": "Ustawianie jako domyślny...",
+            "loading": "Ustawianie jako domyślny…",
             "success": {
               "title": "Sukces!",
               "message": "Poziom hierarchii {level} został ustawiony jako domyślny."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Przenoszenie {workItemTypeName} na poziom {level}...",
+        "loading": "Przenoszenie {workItemTypeName} na poziom {level}…",
         "success": {
           "title": "Sukces!",
           "message": "{workItemTypeName} został pomyślnie przeniesiony na poziom {level}."

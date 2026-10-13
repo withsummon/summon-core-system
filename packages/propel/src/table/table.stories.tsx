@@ -144,7 +144,7 @@ export const WithActions: Story = {
             <TableCell>john@example.com</TableCell>
             <TableCell>Admin</TableCell>
             <TableCell className="text-right">
-              <button className="text-blue-500 mr-2 hover:underline">Edit</button>
+              <button className="mr-2 text-link-primary hover:underline">Edit</button>
               <button className="text-danger-primary hover:underline">Delete</button>
             </TableCell>
           </TableRow>
@@ -153,7 +153,7 @@ export const WithActions: Story = {
             <TableCell>jane@example.com</TableCell>
             <TableCell>User</TableCell>
             <TableCell className="text-right">
-              <button className="text-blue-500 mr-2 hover:underline">Edit</button>
+              <button className="mr-2 text-link-primary hover:underline">Edit</button>
               <button className="text-danger-primary hover:underline">Delete</button>
             </TableCell>
           </TableRow>
@@ -179,30 +179,30 @@ export const WithBadges: Story = {
           <TableRow>
             <TableCell>Website Redesign</TableCell>
             <TableCell>
-              <span className="bg-green-100 rounded-full px-2 py-1 text-11 text-success-primary">In Progress</span>
+              <span className="rounded-full bg-success-subtle px-2 py-1 text-11 text-success-primary">In Progress</span>
             </TableCell>
             <TableCell>
-              <span className="bg-red-100 rounded-full px-2 py-1 text-11 text-danger-primary">High</span>
+              <span className="rounded-full bg-danger-subtle px-2 py-1 text-11 text-danger-primary">High</span>
             </TableCell>
             <TableCell>John Doe</TableCell>
           </TableRow>
           <TableRow>
             <TableCell>Mobile App</TableCell>
             <TableCell>
-              <span className="bg-blue-100 text-blue-800 rounded-full px-2 py-1 text-11">Planned</span>
+              <span className="rounded-full bg-accent-subtle px-2 py-1 text-11 text-accent-primary">Planned</span>
             </TableCell>
             <TableCell>
-              <span className="bg-yellow-100 text-yellow-800 rounded-full px-2 py-1 text-11">Medium</span>
+              <span className="rounded-full bg-warning-subtle px-2 py-1 text-11 text-warning-primary">Medium</span>
             </TableCell>
             <TableCell>Jane Smith</TableCell>
           </TableRow>
           <TableRow>
             <TableCell>API Integration</TableCell>
             <TableCell>
-              <span className="bg-gray-100 text-gray-800 rounded-full px-2 py-1 text-11">Completed</span>
+              <span className="rounded-full bg-layer-1 px-2 py-1 text-11 text-primary">Completed</span>
             </TableCell>
             <TableCell>
-              <span className="bg-green-100 rounded-full px-2 py-1 text-11 text-success-primary">Low</span>
+              <span className="rounded-full bg-success-subtle px-2 py-1 text-11 text-success-primary">Low</span>
             </TableCell>
             <TableCell>Bob Wilson</TableCell>
           </TableRow>
@@ -303,7 +303,7 @@ export const LargeDataset: Story = {
               <TableCell>
                 <span
                   className={`rounded-full px-2 py-1 text-11 ${
-                    i % 2 === 0 ? "bg-green-100 text-success-primary" : "bg-gray-100 text-gray-800"
+                    i % 2 === 0 ? "bg-success-subtle text-success-primary" : "bg-layer-1 text-primary"
                   }`}
                 >
                   {i % 2 === 0 ? "Active" : "Inactive"}
@@ -320,21 +320,21 @@ export const LargeDataset: Story = {
 export const CustomStyling: Story = {
   render() {
     return (
-      <Table className="border-blue-200 border-2">
+      <Table className="border-2 border-accent-subtle">
         <TableHeader>
-          <TableRow className="bg-blue-100">
-            <TableHead className="text-blue-900">Name</TableHead>
-            <TableHead className="text-blue-900">Email</TableHead>
-            <TableHead className="text-blue-900">Role</TableHead>
+          <TableRow className="bg-accent-subtle">
+            <TableHead className="text-accent-primary">Name</TableHead>
+            <TableHead className="text-accent-primary">Email</TableHead>
+            <TableHead className="text-accent-primary">Role</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow className="hover:bg-blue-50">
+          <TableRow className="hover:bg-accent-subtle">
             <TableCell className="font-semibold">John Doe</TableCell>
             <TableCell>john@example.com</TableCell>
             <TableCell>Admin</TableCell>
           </TableRow>
-          <TableRow className="hover:bg-blue-50">
+          <TableRow className="hover:bg-accent-subtle">
             <TableCell className="font-semibold">Jane Smith</TableCell>
             <TableCell>jane@example.com</TableCell>
             <TableCell>User</TableCell>

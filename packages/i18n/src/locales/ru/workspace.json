@@ -344,8 +344,8 @@
         "done": "Готово"
       },
       "progress": {
-        "uploading": "Загрузка...",
-        "importing": "Импорт..."
+        "uploading": "Загрузка…",
+        "importing": "Импорт…"
       },
       "summary": {
         "title": {

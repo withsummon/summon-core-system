@@ -95,15 +95,15 @@ svg.lucide {
 
 /* Pressable controls give feedback on pointer-down */
 @utility press {
-  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
-  transition-duration: 120ms;
+  transition-property: scale, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 200ms, 120ms, 120ms, 120ms, 120ms, 120ms;
   transition-timing-function: ease-out;
   &:active:not(:disabled) {
-    transform: scale(0.97);
+    scale: 0.97;
   }
   @media (prefers-reduced-motion: reduce) {
     &:active:not(:disabled) {
-      transform: none;
+      scale: none;
     }
   }
 }
@@ -285,6 +285,12 @@ svg.lucide {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+
+  /* Default keyboard focus ring; utilities (outline-*, ring-*) override it per component */
+  :focus-visible {
+    outline: 2px solid var(--border-color-accent-strong);
+    outline-offset: 2px;
   }
 
   input::placeholder,

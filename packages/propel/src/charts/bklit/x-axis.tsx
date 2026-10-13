@@ -77,7 +77,7 @@ function XAxisLabel({
       }}
     >
       <span
-        className={cn("text-xs whitespace-nowrap text-chart-label")}
+        className={cn("text-xs whitespace-nowrap text-chart-label tabular-nums")}
         style={{
           opacity,
           transition: "opacity 0.4s ease-in-out",

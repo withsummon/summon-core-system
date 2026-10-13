@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Nastavit jako výchozí",
           "toast": {
-            "loading": "Nastavení jako výchozí...",
+            "loading": "Nastavení jako výchozí…",
             "success": {
               "title": "Úspěch!",
               "message": "Úroveň hierarchie {level} byla úspěšně nastavena jako výchozí."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Přesouvání {workItemTypeName} do úrovně {level}...",
+        "loading": "Přesouvání {workItemTypeName} do úrovně {level}…",
         "success": {
           "title": "Úspěch!",
           "message": "{workItemTypeName} byl úspěšně přesunut do úrovně {level}."

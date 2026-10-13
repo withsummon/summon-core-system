@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Establecer como predeterminado",
           "toast": {
-            "loading": "Estableciendo como predeterminado...",
+            "loading": "Estableciendo como predeterminado…",
             "success": {
               "title": "¡Éxito!",
               "message": "El nivel de jerarquía {level} se ha establecido como predeterminado correctamente."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Moviendo {workItemTypeName} al nivel {level}...",
+        "loading": "Moviendo {workItemTypeName} al nivel {level}…",
         "success": {
           "title": "¡Éxito!",
           "message": "{workItemTypeName} se movió al nivel {level} correctamente."

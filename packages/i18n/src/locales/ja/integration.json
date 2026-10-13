@@ -14,7 +14,7 @@
     "back_to_integrations": "インテグレーションに戻る",
     "select_state": "状態を選択",
     "set_state": "状態を設定",
-    "choose_project": "プロジェクトを選択...",
+    "choose_project": "プロジェクトを選択…",
     "skip_backward_state_movement": "PRの更新により課題が以前の状態に戻ることを防ぐ"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issueクローズ",
     "save": "保存",
     "start_sync": "同期を開始",
-    "choose_repository": "リポジトリを選択..."
+    "choose_repository": "リポジトリを選択…"
   },
   "gitlab_integration": {
     "name": "GitLab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "課題クローズ",
     "save": "保存",
     "start_sync": "同期開始",
-    "choose_repository": "リポジトリを選択..."
+    "choose_repository": "リポジトリを選択…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "新しい状態マッピングを追加",
       "empty_state": "状態マッピングが設定されていません。Sentryインシデントの状態をプロジェクトの状態と同期するための最初のマッピングを作成してください。",
       "failed_loading_state_mappings": "状態マッピングを読み込めませんでした。ネットワークの問題または統合の問題が原因である可能性があります。",
-      "loading_project_states": "プロジェクトの状態を読み込み中...",
+      "loading_project_states": "プロジェクトの状態を読み込み中…",
       "error_loading_states": "状態の読み込みエラー",
       "no_states_available": "利用可能な状態がありません",
       "no_permission_states": "このプロジェクトの状態にアクセスする権限がありません",
@@ -205,7 +205,7 @@
     "connected": "接続済み",
     "connect": "接続",
     "uninstall": "アンインストール",
-    "uninstalling": "アンインストール中...",
+    "uninstalling": "アンインストール中…",
     "install_success": "OAuth Bridgeが正常にインストールされました。",
     "install_error": "OAuth Bridgeのインストールに失敗しました。",
     "uninstall_success": "OAuth Bridgeがアンインストールされました。",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "リクエスト制限（例: 120/minute）。デフォルトのレート制限を使用する場合は空欄にしてください。",
       "enable_provider": "このプロバイダーを有効にする",
-      "saving": "保存中...",
+      "saving": "保存中…",
       "update": "更新"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Webhook Secretは必須です",
     "private_key_title": "Private Key (Base64 encoded)",
     "private_key_description": "GitHub Enterpriseの組織に作成したAppのPrivate Keyです。",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private Keyは必須です",
     "connect_app": "Appを接続"
   },

@@ -32,7 +32,7 @@ export const getStrengthInfo = (strength: E_PASSWORD_STRENGTH): StrengthInfo => 
     case E_PASSWORD_STRENGTH.STRENGTH_NOT_VALID:
       return {
         message: "Password is weak",
-        textColor: "text-orange-500",
+        textColor: "text-warning-primary",
         activeFragments: 2,
       };
     case E_PASSWORD_STRENGTH.STRENGTH_VALID:
@@ -62,7 +62,7 @@ export const getFragmentColor = (fragmentIndex: number, activeFragments: number)
     case 1:
       return "bg-danger-primary";
     case 2:
-      return "bg-orange-500";
+      return "bg-warning-primary";
     case 3:
       return "bg-success-primary";
     default:

@@ -130,12 +130,12 @@ const ToolbarSeparator = React.forwardRef(function ToolbarSeparator(
 });
 
 const buttonVariants = {
-  primary: "bg-accent-primary text-on-color hover:bg-accent-primary/80 focus:bg-accent-primary/80",
-  secondary: "bg-surface-1 text-secondary border border-subtle hover:bg-surface-2 focus:bg-surface-2",
+  primary: "bg-accent-primary text-on-color hover:bg-accent-primary/80 focus-visible:bg-accent-primary/80",
+  secondary: "bg-surface-1 text-secondary border border-subtle hover:bg-surface-2 focus-visible:bg-surface-2",
   outline:
-    "border border-accent-strong text-accent-primary bg-transparent hover:bg-accent-primary/10 focus:bg-accent-primary/20",
-  ghost: "text-secondary hover:bg-surface-2 focus:bg-surface-2",
-  destructive: "bg-danger-primary text-on-color hover:bg-danger-primary-hover focus:bg-danger-primary-selected",
+    "border border-accent-strong text-accent-primary bg-transparent hover:bg-accent-primary/10 focus-visible:bg-accent-primary/20",
+  ghost: "text-secondary hover:bg-surface-2 focus-visible:bg-surface-2",
+  destructive: "bg-danger-primary text-on-color hover:bg-danger-primary-hover focus-visible:bg-danger-primary-selected",
 };
 
 const ToolbarSubmitButton = React.forwardRef(function ToolbarSubmitButton(
@@ -148,7 +148,7 @@ const ToolbarSubmitButton = React.forwardRef(function ToolbarSubmitButton(
         ref={ref}
         className={cn(
           "inline-flex items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-11 font-medium transition-colors duration-200",
-          "focus:ring-2 focus:ring-accent-strong/20 focus:ring-offset-2 focus:outline-none",
+          "focus-visible:ring-2 focus-visible:ring-accent-strong/20 focus-visible:ring-offset-2 focus-visible:outline-none",
           "disabled:pointer-events-none disabled:opacity-50",
           buttonVariants[variant],
           className

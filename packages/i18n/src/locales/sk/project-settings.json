@@ -398,7 +398,7 @@
         },
         "toasts": {
           "set": {
-            "loading": "Nastavovanie priradených...",
+            "loading": "Nastavovanie priradených…",
             "success": {
               "title": "Úspech!",
               "message": "Priradení úspešne nastavení."
@@ -425,7 +425,7 @@
         "toggle_description": "Organizujte pracovné položky podľa termínov míľnikov."
       },
       "toasts": {
-        "loading": "Aktualizácia funkcie projektu...",
+        "loading": "Aktualizácia funkcie projektu…",
         "success": "Funkcia projektu bola úspešne aktualizovaná.",
         "error": "Pri aktualizácii funkcie projektu sa niečo pokazilo. Skúste to prosím znova."
       }

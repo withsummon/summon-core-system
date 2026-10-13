@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Setați ca implicit",
           "toast": {
-            "loading": "Setare ca implicit...",
+            "loading": "Setare ca implicit…",
             "success": {
               "title": "Succes!",
               "message": "Nivelul de ierarhie {level} a fost setat ca implicit cu succes."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Se mută {workItemTypeName} la nivelul {level}...",
+        "loading": "Se mută {workItemTypeName} la nivelul {level}…",
         "success": {
           "title": "Succes!",
           "message": "{workItemTypeName} a fost mutat la nivelul {level} cu succes."

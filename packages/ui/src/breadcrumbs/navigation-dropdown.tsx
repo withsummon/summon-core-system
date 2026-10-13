@@ -51,7 +51,7 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
             }
           )}
         >
-          <div className="flex text-tertiary @4xl:hidden">...</div>
+          <div className="flex text-tertiary @4xl:hidden">…</div>
           <div className="hidden items-center gap-2 @4xl:flex">
             {selectedItemIcon && <Breadcrumbs.Icon>{selectedItemIcon}</Breadcrumbs.Icon>}
             <Breadcrumbs.Label>{selectedItem?.title}</Breadcrumbs.Label>
@@ -87,7 +87,7 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
       placement="bottom-start"
       className="h-full rounded-sm"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2",
+        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "bg-surface-2": isOpen,
         }

@@ -34,13 +34,7 @@ export function OAuthOptions(props: OAuthOptionsProps) {
 
   return (
     <div className={cn("w-full", containerClassName)}>
-      <div
-        className={cn(
-          "flex gap-4 overflow-hidden transition-all duration-500 ease-in-out",
-          compact ? "flex-row" : "flex-col",
-          className
-        )}
-      >
+      <div className={cn("flex gap-4 overflow-hidden", compact ? "flex-row" : "flex-col", className)}>
         {enabledOptions.map((option) => (
           <OAuthButton
             key={option.id}
@@ -48,13 +42,13 @@ export function OAuthOptions(props: OAuthOptionsProps) {
             icon={option.icon}
             onClick={option.onClick}
             compact={compact}
-            className="transition-all duration-300 ease-in-out"
+            className="transition-colors duration-300 ease-in-out"
           />
         ))}
       </div>
 
       {showDivider && (
-        <div className="mt-4 flex items-center transition-all duration-300">
+        <div className="mt-4 flex items-center">
           <hr className="w-full border-strong transition-colors duration-300" />
           <p className="mx-3 flex-shrink-0 text-center text-13 text-placeholder transition-colors duration-300">or</p>
           <hr className="w-full border-strong transition-colors duration-300" />

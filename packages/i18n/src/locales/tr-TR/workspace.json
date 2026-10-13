@@ -344,8 +344,8 @@
         "done": "Tamamlandı"
       },
       "progress": {
-        "uploading": "Yükleniyor...",
-        "importing": "İçe aktarılıyor..."
+        "uploading": "Yükleniyor…",
+        "importing": "İçe aktarılıyor…"
       },
       "summary": {
         "title": {

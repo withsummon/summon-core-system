@@ -14,7 +14,7 @@
     "back_to_integrations": "Späť na integrácie",
     "select_state": "Vyberte stav",
     "set_state": "Nastaviť stav",
-    "choose_project": "Vyberte projekt...",
+    "choose_project": "Vyberte projekt…",
     "skip_backward_state_movement": "Zabrániť presunu problémov do skoršieho stavu kvôli aktualizáciám PR"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Zatvorené",
     "save": "Uložiť",
     "start_sync": "Spustiť synchronizáciu",
-    "choose_repository": "Vyberte repozitár..."
+    "choose_repository": "Vyberte repozitár…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Problém uzavretý",
     "save": "Uložiť",
     "start_sync": "Spustiť synchronizáciu",
-    "choose_repository": "Vyberte repozitár..."
+    "choose_repository": "Vyberte repozitár…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Pridať nové mapovanie stavu",
       "empty_state": "Nie sú nakonfigurované žiadne mapovania stavov. Vytvorte svoje prvé mapovanie na synchronizáciu stavov incidentov Sentry so stavmi vášho projektu.",
       "failed_loading_state_mappings": "Nepodarilo sa nám načítať vaše mapovania stavov. Môže to byť spôsobené problémom so sieťou alebo problémom s integráciou.",
-      "loading_project_states": "Načítavanie stavov projektu...",
+      "loading_project_states": "Načítavanie stavov projektu…",
       "error_loading_states": "Chyba pri načítavaní stavov",
       "no_states_available": "Nie sú dostupné žiadne stavy",
       "no_permission_states": "Nemáte povolenie na prístup k stavom pre tento projekt",
@@ -205,7 +205,7 @@
     "connected": "Pripojené",
     "connect": "Pripojiť",
     "uninstall": "Odinštalovať",
-    "uninstalling": "Odinštalovanie...",
+    "uninstalling": "Odinštalovanie…",
     "install_success": "OAuth Bridge úspešne nainštalovaný.",
     "install_error": "Nepodarilo sa nainštalovať OAuth Bridge.",
     "uninstall_success": "OAuth Bridge odinštalovaný.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Obmedzenie požiadaviek ako počet/obdobie (napr. 120/minute). Ponechajte prázdne pre predvolený limit.",
       "enable_provider": "Povoliť tohto poskytovateľa",
-      "saving": "Ukladanie...",
+      "saving": "Ukladanie…",
       "update": "Aktualizovať"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Secret webhooku je povinný",
     "private_key_title": "Privátny kľúč (Base64 encoded)",
     "private_key_description": "Base64 encoded privátny kľúč aplikácie, ktorú ste vytvorili v vašej GitHub Enterprise organizácii.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Privátny kľúč je povinný",
     "connect_app": "Pripojiť aplikáciu"
   },

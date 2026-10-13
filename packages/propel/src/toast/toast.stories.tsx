@@ -28,10 +28,10 @@ export const Provider: Story = {
       <div>
         <Toast theme="light" />
         <div className="space-y-2">
-          <p className="text-gray-600 text-13">
+          <p className="text-13 text-secondary">
             Toast provider is required to display toasts. It should be added to your app root.
           </p>
-          <code className="bg-gray-100 block rounded-sm p-2 text-11">{`<Toast theme="light" />`}</code>
+          <code className="block rounded-sm bg-layer-1 p-2 text-11">{`<Toast theme="light" />`}</code>
         </div>
       </div>
     );
@@ -135,7 +135,7 @@ export const Loading: Story = {
           onClick={() =>
             setToast({
               type: TOAST_TYPE.LOADING,
-              title: "Loading...",
+              title: "Loading…",
             })
           }
           className="rounded-sm border border-subtle bg-layer-2 px-4 py-2 text-13 text-primary hover:bg-layer-1"
@@ -180,7 +180,7 @@ export const UpdateToast: Story = {
     const handleUpdate = () => {
       const id = setToast({
         type: TOAST_TYPE.LOADING,
-        title: "Processing...",
+        title: "Processing…",
       });
 
       setTimeout(() => {
@@ -216,7 +216,7 @@ export const PromiseToast: Story = {
       });
 
       setPromiseToast(promise, {
-        loading: "Processing request...",
+        loading: "Processing request…",
         success: {
           title: "Request completed!",
           message: (data) => `Successfully processed: ${data.name}`,
@@ -407,7 +407,7 @@ export const StaticVariants: Story = {
           <ToastStatic type={TOAST_TYPE.ERROR} title="Error" message="Something went wrong. Please try again." />
           <ToastStatic type={TOAST_TYPE.WARNING} title="Warning" message="This action cannot be undone." />
           <ToastStatic type={TOAST_TYPE.INFO} title="Information" message="Here's some helpful information for you." />
-          <ToastStatic type={TOAST_TYPE.LOADING} title="Loading..." />
+          <ToastStatic type={TOAST_TYPE.LOADING} title="Loading…" />
         </div>
       </div>
     );
@@ -458,7 +458,7 @@ export const StaticInfo: Story = {
 
 export const StaticLoading: Story = {
   render() {
-    return <ToastStatic type={TOAST_TYPE.LOADING} title="Processing your request..." />;
+    return <ToastStatic type={TOAST_TYPE.LOADING} title="Processing your request…" />;
   },
 };
 
@@ -494,7 +494,7 @@ export const StaticDarkMode: Story = {
         <ToastStatic type={TOAST_TYPE.ERROR} title="Error" message="An error occurred." theme="dark" />
         <ToastStatic type={TOAST_TYPE.WARNING} title="Warning" message="Please proceed with caution." theme="dark" />
         <ToastStatic type={TOAST_TYPE.INFO} title="Information" message="Here's some useful info." theme="dark" />
-        <ToastStatic type={TOAST_TYPE.LOADING} title="Loading..." theme="dark" />
+        <ToastStatic type={TOAST_TYPE.LOADING} title="Loading…" theme="dark" />
       </div>
     );
   },
@@ -700,7 +700,7 @@ export const DesignTokens: Story = {
             <ToastStatic type={TOAST_TYPE.ERROR} title="Error" message="Something went wrong. Please try again." />
             <ToastStatic type={TOAST_TYPE.WARNING} title="Warning" message="This action cannot be undone." />
             <ToastStatic type={TOAST_TYPE.INFO} title="Information" message="Here's some helpful information." />
-            <ToastStatic type={TOAST_TYPE.LOADING} title="Loading..." />
+            <ToastStatic type={TOAST_TYPE.LOADING} title="Loading…" />
           </div>
         </div>
       </div>

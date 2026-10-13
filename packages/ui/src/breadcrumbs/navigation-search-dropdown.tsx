@@ -42,7 +42,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
 
   const label = (
     <>
-      {shouldTruncate && <div className="flex text-tertiary @4xl:hidden">...</div>}
+      {shouldTruncate && <div className="flex text-tertiary @4xl:hidden">…</div>}
       <div
         className={cn("flex gap-2", {
           "hidden items-center gap-2 @4xl:flex": shouldTruncate,
@@ -88,7 +88,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
       disabled={navigationDisabled}
       className="h-full rounded-sm"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2",
+        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
         {
           "bg-surface-2": isDropdownOpen,
         }

@@ -68,9 +68,9 @@ function Breadcrumbs({ className, children, onBack, isLoading = false }: Breadcr
         <>
           <div className="flex items-center gap-2.5 p-1">
             {onBack && (
-              <span onClick={onBack} className="text-secondary">
+              <button type="button" aria-label="Back" onClick={onBack} className="text-secondary">
                 ...
-              </span>
+              </button>
             )}
             <ChevronRightIcon className="h-3.5 w-3.5 flex-shrink-0 text-placeholder" aria-hidden="true" />
           </div>
@@ -150,7 +150,7 @@ function BreadcrumbSeparator(props: BreadcrumbSeparatorProps) {
       {showDivider && <span className="absolute top-0 -left-0.5 h-full w-[1.8px] bg-surface-1" />}
       <div
         className={cn(
-          "flex flex-shrink-0 items-center justify-center rounded-sm text-placeholder transition-all",
+          "flex flex-shrink-0 items-center justify-center rounded-sm text-placeholder transition-colors",
           containerClassName
         )}
       >

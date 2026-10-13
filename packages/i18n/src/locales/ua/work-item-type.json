@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Встановити за замовчуванням",
           "toast": {
-            "loading": "Встановлення за замовчуванням...",
+            "loading": "Встановлення за замовчуванням…",
             "success": {
               "title": "Успіх!",
               "message": "Рівень ієрархії {level} успішно встановлено за замовчуванням."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Переміщення {workItemTypeName} на рівень {level}...",
+        "loading": "Переміщення {workItemTypeName} на рівень {level}…",
         "success": {
           "title": "Успішно!",
           "message": "{workItemTypeName} успішно переміщено на рівень {level}."

@@ -95,7 +95,8 @@ export function BubbleMenuLinkSelector(props: Props) {
           {editor.getAttributes("link").href ? (
             <button
               type="button"
-              className="grid place-items-center rounded-xs p-1 text-danger-primary transition-all hover:bg-danger-subtle-hover"
+              className="grid place-items-center rounded-xs p-1 text-danger-primary transition-colors hover:bg-danger-subtle-hover"
+              aria-label="Remove link"
               onClick={(e) => {
                 unsetLinkEditor(editor);
                 e.stopPropagation();
@@ -107,7 +108,8 @@ export function BubbleMenuLinkSelector(props: Props) {
           ) : (
             <button
               type="button"
-              className="grid aspect-square h-full place-items-center rounded-xs p-1 text-tertiary transition-all hover:bg-layer-1"
+              className="grid aspect-square h-full place-items-center rounded-xs p-1 text-tertiary transition-colors hover:bg-layer-1"
+              aria-label="Apply link"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLinkSubmit();

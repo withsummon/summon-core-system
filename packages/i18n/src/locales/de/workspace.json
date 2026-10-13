@@ -344,8 +344,8 @@
         "done": "Fertig"
       },
       "progress": {
-        "uploading": "Hochladen...",
-        "importing": "Importieren..."
+        "uploading": "Hochladen…",
+        "importing": "Importieren…"
       },
       "summary": {
         "title": {

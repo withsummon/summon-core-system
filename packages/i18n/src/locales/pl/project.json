@@ -384,8 +384,8 @@
         "done": "Gotowe"
       },
       "progress": {
-        "uploading": "Przesyłanie...",
-        "importing": "Importowanie..."
+        "uploading": "Przesyłanie…",
+        "importing": "Importowanie…"
       },
       "summary": {
         "title": {

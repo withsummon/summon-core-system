@@ -39,7 +39,7 @@ export function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "w-full rounded-md border bg-surface-1 px-3 py-2 pr-10 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
+          "w-full rounded-md border bg-surface-1 px-3 py-2 pr-10 text-secondary transition-[border-color,box-shadow] duration-200 placeholder:text-placeholder focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-accent-strong focus-visible:outline-none",
           {
             "border-strong": !error,
             "border-danger-strong": error,
@@ -59,13 +59,13 @@ export function PasswordInput({
             <div className="relative h-4 w-4">
               <Eye
                 className={cn(
-                  "absolute inset-0 h-4 w-4 transition-all duration-300 ease-in-out",
+                  "absolute inset-0 h-4 w-4 transition-[scale,rotate,opacity] duration-300 ease-in-out",
                   showPassword ? "scale-75 rotate-12 opacity-0" : "scale-100 rotate-0 opacity-100"
                 )}
               />
               <EyeClosed
                 className={cn(
-                  "absolute inset-0 h-4 w-4 transition-all duration-300 ease-in-out",
+                  "absolute inset-0 h-4 w-4 transition-[scale,rotate,opacity] duration-300 ease-in-out",
                   showPassword ? "scale-100 rotate-0 opacity-100" : "scale-75 -rotate-12 opacity-0"
                 )}
               />

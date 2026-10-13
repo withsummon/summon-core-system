@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Définir par défaut",
           "toast": {
-            "loading": "Définition par défaut en cours...",
+            "loading": "Définition par défaut en cours…",
             "success": {
               "title": "Succès !",
               "message": "Niveau de hiérarchie {level} défini par défaut avec succès."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Déplacement de {workItemTypeName} vers le niveau {level}...",
+        "loading": "Déplacement de {workItemTypeName} vers le niveau {level}…",
         "success": {
           "title": "Succès !",
           "message": "{workItemTypeName} a été déplacé vers le niveau {level} avec succès."

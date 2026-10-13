@@ -414,7 +414,7 @@
         "set_as_default": {
           "label": "Nastaviť ako predvolené",
           "toast": {
-            "loading": "Nastavenie ako predvolené...",
+            "loading": "Nastavenie ako predvolené…",
             "success": {
               "title": "Úspech!",
               "message": "Úroveň hierarchie {level} bola úspešne nastavená ako predvolená."
@@ -427,7 +427,7 @@
         }
       },
       "update_level_toast": {
-        "loading": "Presúvanie {workItemTypeName} na úroveň {level}...",
+        "loading": "Presúvanie {workItemTypeName} na úroveň {level}…",
         "success": {
           "title": "Úspech!",
           "message": "{workItemTypeName} bol úspešne presunutý na úroveň {level}."

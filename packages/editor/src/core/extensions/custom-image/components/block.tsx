@@ -230,7 +230,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           ? getImageBlockId(node.attrs[ECustomImageAttributeNames.ID])
           : undefined
       }
-      className={cn("w-fit max-w-full transition-all", {
+      className={cn("w-fit max-w-full transition-[margin-left,translate]", {
         "ml-[50%] -translate-x-1/2": nodeAlignment === "center",
         "ml-[100%] -translate-x-full": nodeAlignment === "right",
       })}

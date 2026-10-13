@@ -344,8 +344,8 @@
         "done": "Terminé"
       },
       "progress": {
-        "uploading": "Téléchargement...",
-        "importing": "Importation..."
+        "uploading": "Téléchargement…",
+        "importing": "Importation…"
       },
       "summary": {
         "title": {

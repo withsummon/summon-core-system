@@ -14,7 +14,7 @@
     "back_to_integrations": "Quay lại tích hợp",
     "select_state": "Chọn trạng thái",
     "set_state": "Cập nhật trạng thái",
-    "choose_project": "Chọn dự án...",
+    "choose_project": "Chọn dự án…",
     "skip_backward_state_movement": "Ngăn các vấn đề chuyển về trạng thái trước đó do cập nhật PR"
   },
   "github_integration": {
@@ -62,7 +62,7 @@
     "ISSUE_CLOSED": "Issue Đóng",
     "save": "Lưu",
     "start_sync": "Bắt đầu đồng bộ",
-    "choose_repository": "Chọn kho lưu trữ..."
+    "choose_repository": "Chọn kho lưu trữ…"
   },
   "gitlab_integration": {
     "name": "Gitlab",
@@ -103,7 +103,7 @@
     "ISSUE_CLOSED": "Vấn đề đóng",
     "save": "Lưu",
     "start_sync": "Bắt đầu đồng bộ",
-    "choose_repository": "Chọn kho lưu trữ..."
+    "choose_repository": "Chọn kho lưu trữ…"
   },
   "gitlab_enterprise_integration": {
     "name": "Gitlab Enterprise",
@@ -186,7 +186,7 @@
       "add_new_state_mapping": "Thêm ánh xạ trạng thái mới",
       "empty_state": "Chưa cấu hình ánh xạ trạng thái. Tạo ánh xạ đầu tiên để đồng bộ trạng thái sự cố Sentry với trạng thái dự án của bạn.",
       "failed_loading_state_mappings": "Chúng tôi không thể tải ánh xạ trạng thái của bạn. Điều này có thể do vấn đề mạng hoặc vấn đề với tích hợp.",
-      "loading_project_states": "Đang tải trạng thái dự án...",
+      "loading_project_states": "Đang tải trạng thái dự án…",
       "error_loading_states": "Lỗi khi tải trạng thái",
       "no_states_available": "Không có trạng thái khả dụng",
       "no_permission_states": "Bạn không có quyền truy cập trạng thái cho dự án này",
@@ -205,7 +205,7 @@
     "connected": "Đã kết nối",
     "connect": "Kết nối",
     "uninstall": "Gỡ cài đặt",
-    "uninstalling": "Đang gỡ cài đặt...",
+    "uninstalling": "Đang gỡ cài đặt…",
     "install_success": "OAuth Bridge đã được cài đặt thành công.",
     "install_error": "Không thể cài đặt OAuth Bridge.",
     "uninstall_success": "OAuth Bridge đã được gỡ cài đặt.",
@@ -260,7 +260,7 @@
       "rate_limit_placeholder": "120/minute",
       "rate_limit_description": "Giới hạn yêu cầu dạng số lượng/khoảng thời gian (vd. 120/minute). Để trống để sử dụng giới hạn mặc định.",
       "enable_provider": "Bật nhà cung cấp này",
-      "saving": "Đang lưu...",
+      "saving": "Đang lưu…",
       "update": "Cập nhật"
     }
   },
@@ -296,7 +296,7 @@
     "webhook_secret_error": "Secret webhook là bắt buộc",
     "private_key_title": "Private Key (Base64 encoded)",
     "private_key_description": "Private key của ứng dụng bạn đã tạo trong tổ chức GitHub Enterprise của bạn.",
-    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA...",
+    "private_key_placeholder": "e.g., \"MIIEpAIBAAKCAQEA…",
     "private_key_error": "Private key là bắt buộc",
     "connect_app": "Kết nối Ứng dụng"
   },

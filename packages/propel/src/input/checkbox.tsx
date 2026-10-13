@@ -23,7 +23,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(funct
         ref={ref}
         indeterminate={indeterminate}
         className={cn(
-          "grid size-4 shrink-0 place-items-center rounded border border-strong bg-transparent text-on-color outline-offset-2 focus-visible:outline-2 focus-visible:outline-accent-strong data-[checked]:border-accent-strong data-[checked]:bg-accent-primary data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[indeterminate]:border-accent-strong data-[indeterminate]:bg-accent-primary",
+          "grid size-4 shrink-0 place-items-center rounded border border-strong bg-transparent text-on-color outline-offset-2 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid data-[checked]:border-accent-strong data-[checked]:bg-accent-primary data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[indeterminate]:border-accent-strong data-[indeterminate]:bg-accent-primary",
           className
         )}
         {...props}
