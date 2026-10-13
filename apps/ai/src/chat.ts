@@ -91,6 +91,8 @@ const openRouterCost = (steps: ReadonlyArray<StepResult<ToolSet>>) =>
   }, 0);
 
 const json = (status: number, body: Record<string, unknown>) => HttpServerResponse.jsonUnsafe(body, { status });
+const SUMMON_UNAVAILABLE = json(502, { error_code: "summon_unavailable" });
+const DJANGO_REFUSALS: Partial<Record<number, string>> = { 403: "forbidden", 404: "not_found" };
 
 export const ChatRoute = HttpRouter.add(
   "POST",
@@ -269,20 +271,17 @@ export const ChatRoute = HttpRouter.add(
       Unauthenticated: () => Effect.succeed(json(401, { error_code: "unauthenticated" })),
       ForbiddenOrigin: () => Effect.succeed(json(403, { error_code: "forbidden_origin" })),
       ModelUnavailable: (error) => Effect.succeed(json(503, { error_code: error.errorCode })),
-      DjangoUnavailable: () => Effect.succeed(json(502, { error_code: "summon_unavailable" })),
       InvalidRequest: () => Effect.succeed(json(400, { error_code: "invalid_request" })),
-      SchemaError: () => Effect.succeed(json(502, { error_code: "summon_unavailable" })),
       HttpClientError: (error) => {
-        const status = error.response?.status;
+        const status = error.response?.status ?? 502;
         // Django's own refusal of the turn (missing conversation, no access, invalid input) passes through.
         return Effect.succeed(
-          status !== undefined && status >= 400 && status < 500
-            ? json(status, {
-                error_code: status === 404 ? "not_found" : status === 403 ? "forbidden" : "invalid_request",
-              })
-            : json(502, { error_code: "summon_unavailable" })
+          status >= 400 && status < 500
+            ? json(status, { error_code: DJANGO_REFUSALS[status] ?? "invalid_request" })
+            : SUMMON_UNAVAILABLE
         );
       },
-    })
+    }),
+    Effect.catchTag(["DjangoUnavailable", "SchemaError"], () => Effect.succeed(SUMMON_UNAVAILABLE))
   )
 );

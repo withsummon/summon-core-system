@@ -49,10 +49,7 @@ export class Models extends Context.Service<Models, { readonly chat: Effect.Effe
         Effect.catchTag("InternalAiConfig503", () =>
           Effect.fail(new ModelUnavailable({ errorCode: "llm_not_configured" }))
         ),
-        Effect.catchTag("HttpClientError", (error) =>
-          Effect.fail(new ModelUnavailable({ errorCode: "summon_unavailable", cause: error }))
-        ),
-        Effect.catchTag("SchemaError", (error) =>
+        Effect.catchTag(["HttpClientError", "SchemaError"], (error) =>
           Effect.fail(new ModelUnavailable({ errorCode: "summon_unavailable", cause: error }))
         )
       );
