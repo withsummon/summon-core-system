@@ -87,6 +87,7 @@ const decodeBody = (body: unknown): unknown => {
   return undefined;
 };
 
+/** Django answers after a network delay; a request is `seen` once Django has handled it. */
 export const fakeHttpClient = (route: DjangoRoute, seen: Array<SeenRequest>) =>
   HttpClient.make((request, url) =>
     Effect.gen(function* () {
@@ -96,6 +97,7 @@ export const fakeHttpClient = (route: DjangoRoute, seen: Array<SeenRequest>) =>
         headers: request.headers as Record<string, string>,
         body: decodeBody(request.body),
       };
+      yield* Effect.sleep("5 millis");
       seen.push(entry);
       const answer = route(entry);
       if (answer === "down") {

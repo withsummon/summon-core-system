@@ -125,6 +125,8 @@ export const ChatRoute = HttpRouter.add(
         Effect.ignore
       );
 
+    // The browser reloads the saved turn once the stream below closes, so it stays open until Django has the reply.
+    const saved = Promise.withResolvers<void>();
     let firstTextMs: number | undefined;
     // Proposed Plane writes go to the browser as `data-action` parts; tools only run once the
     // stream below is being read, so the writer is set by then.
@@ -196,7 +198,7 @@ export const ChatRoute = HttpRouter.add(
             ],
             { discard: true }
           )
-        );
+        ).finally(saved.resolve);
       },
       onError: ({ error }) => {
         const code = errorCode(error);
@@ -222,14 +224,14 @@ export const ChatRoute = HttpRouter.add(
             ],
             { discard: true }
           )
-        );
+        ).finally(saved.resolve);
       },
     });
     // Read the model stream to the end even if the browser disconnects, so `onEnd` persists the reply.
     void result.consumeStream();
 
     const stream = createUIMessageStream<SummonUIMessage>({
-      execute: ({ writer }) => {
+      execute: async ({ writer }) => {
         writer.write({
           type: "start",
           messageId,
@@ -256,6 +258,7 @@ export const ChatRoute = HttpRouter.add(
                 : undefined,
           })
         );
+        await saved.promise;
       },
       onError: errorCode,
     });

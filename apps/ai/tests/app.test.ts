@@ -1,6 +1,6 @@
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { operations } from "@plane/summon-contract";
 import { INSTRUCTIONS } from "../src/chat";
 import {
@@ -36,13 +36,8 @@ const chat = (
     body: JSON.stringify(body),
   });
 
-/** Waits for the background `complete/` call the route makes once the model finishes. */
-const completeCall = (current: TestApp) =>
-  vi.waitFor(() => {
-    const call = current.seen.find((request) => request.path.endsWith("/complete/"));
-    if (!call) throw new Error("complete/ was never called");
-    return call;
-  });
+/** The `complete/` call, which the route makes before it closes the stream. */
+const completeCall = (current: TestApp) => current.seen.find((request) => request.path.endsWith("/complete/"));
 
 /** The JSON-RPC result of an MCP response (plain JSON or one SSE event). */
 const rpcResult = async (response: Response) => {
@@ -96,8 +91,8 @@ describe("chat", () => {
     const chunks = await readUIStream(await chat(app));
 
     expect(chunks.find((chunk) => chunk.type === "error")).toEqual({ type: "error", errorText: "llm_rate_limited" });
-    const complete = await completeCall(app);
-    expect(complete.body).toMatchObject({
+    const complete = completeCall(app);
+    expect(complete?.body).toMatchObject({
       status: "failed",
       content: "llm_rate_limited",
       error_code: "llm_rate_limited",
@@ -179,9 +174,9 @@ describe("chat", () => {
     expect(start?.headers.cookie).toBe("sessionid=valid");
     expect(start?.body).toEqual({ content: "What is at risk?", context: {}, attachment_ids: [] });
 
-    const complete = await completeCall(app);
-    expect(complete.headers["x-summon-ai-token"]).toBe(AI_TOKEN);
-    expect(complete.body).toMatchObject({
+    const complete = completeCall(app);
+    expect(complete?.headers["x-summon-ai-token"]).toBe(AI_TOKEN);
+    expect(complete?.body).toMatchObject({
       status: "completed",
       content: "Two items are overdue.",
       provider: "openrouter",
