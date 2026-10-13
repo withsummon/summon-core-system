@@ -9,6 +9,7 @@ import { forwardRef } from "react";
 import type { TPlacement } from "@plane/propel/utils";
 import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { ComboboxPrimitive } from "@plane/propel/combobox";
+import { POPUP_CLASSNAME } from "@plane/propel/popover";
 
 type Props = {
   ref?: Ref<HTMLDivElement>;
@@ -37,10 +38,7 @@ const ComboDropDown = forwardRef<HTMLDivElement, Props>(function ComboDropDown(
   const { side, align } = convertPlacementToSideAndAlign(placement);
   const popup = (
     <ComboboxPrimitive.Positioner side={side} align={align} sideOffset={4} className="z-[120]">
-      <ComboboxPrimitive.Popup
-        data-prevent-outside-click
-        className="origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none"
-      >
+      <ComboboxPrimitive.Popup data-prevent-outside-click className={POPUP_CLASSNAME}>
         {children}
       </ComboboxPrimitive.Popup>
     </ComboboxPrimitive.Positioner>

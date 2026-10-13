@@ -6,6 +6,8 @@
 
 import { SelectPrimitive as Select } from "@plane/propel/select";
 import { CheckIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { FIELD_CLASSNAME } from "@plane/propel/input";
+import { POPUP_CLASSNAME, POPUP_OPTION_CLASSNAME } from "@plane/propel/popover";
 import { convertPlacementToSideAndAlign } from "@plane/propel/utils";
 import { cn } from "../utils";
 import type { ICustomSelectItemProps, ICustomSelectProps } from "./helper";
@@ -36,10 +38,10 @@ function CustomSelect({
           render={render}
           tabIndex={tabIndex}
           className={cn(
-            "flex w-full items-center justify-between gap-1 rounded text-11 outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex w-full items-center justify-between gap-2 outline-none disabled:cursor-not-allowed disabled:opacity-50",
             render || customButton
               ? customButtonClassName
-              : ["border border-strong", input ? "px-3 py-2 text-13" : "px-2 py-1", buttonClassName]
+              : [FIELD_CLASSNAME, input ? "h-9 px-3" : "h-8 px-2.5", buttonClassName]
           )}
         >
           {render ? undefined : (customButton ?? label)}
@@ -50,7 +52,8 @@ function CustomSelect({
         <Select.Positioner side={side} align={align} sideOffset={4} alignItemWithTrigger={false} className="z-[120]">
           <Select.Popup
             className={cn(
-              "min-w-48 overflow-y-auto rounded-md border border-subtle-1 bg-surface-1 p-2 text-11 shadow-raised-200 outline-none",
+              "min-w-[max(12rem,var(--anchor-width))] overflow-y-auto",
+              POPUP_CLASSNAME,
               {
                 "max-h-60": maxHeight === "lg",
                 "max-h-48": maxHeight === "md",
@@ -70,13 +73,7 @@ function CustomSelect({
 
 function Option({ children, value, className }: ICustomSelectItemProps) {
   return (
-    <Select.Item
-      value={value}
-      className={cn(
-        "flex cursor-pointer items-center justify-between gap-2 rounded-sm px-1 py-1.5 text-secondary outline-none select-none data-[highlighted]:bg-layer-transparent-hover",
-        className
-      )}
-    >
+    <Select.Item value={value} className={cn(POPUP_OPTION_CLASSNAME, className)}>
       <Select.ItemText className="min-w-0 flex-1">{children}</Select.ItemText>
       <Select.ItemIndicator>
         <CheckIcon className="size-3.5 flex-shrink-0" />
