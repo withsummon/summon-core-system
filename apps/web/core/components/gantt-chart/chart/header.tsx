@@ -42,14 +42,15 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
       style={{ height: `${GANTT_BREADCRUMBS_HEIGHT}px` }}
     >
       <div className="ml-auto">
-        <div className="ml-auto text-11 font-medium text-tertiary">
+        <div className="ml-auto text-11 font-medium text-tertiary tabular-nums">
           {blockIds ? `${blockIds.length} ${loaderTitle}` : t("common.loading")}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {VIEWS_LIST.map((chartView: any) => (
-          <div
+          <button
+            type="button"
             key={chartView?.key}
             className={cn(
               "cursor-pointer rounded-md bg-layer-transparent p-1 px-2 text-11 hover:bg-layer-transparent-hover",
@@ -60,7 +61,7 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
             onClick={() => handleChartView(chartView?.key)}
           >
             {t(chartView?.i18n_title)}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -76,8 +77,9 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
 
       <button
         type="button"
-        className="flex items-center justify-center rounded-md border border-subtle bg-layer-transparent p-1 transition-all hover:bg-layer-transparent-hover"
+        className="flex items-center justify-center rounded-md border border-subtle bg-layer-transparent p-1 transition-colors hover:bg-layer-transparent-hover"
         onClick={toggleFullScreenMode}
+        aria-label={fullScreenMode ? "Exit full screen" : "Enter full screen"}
       >
         {fullScreenMode ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
       </button>

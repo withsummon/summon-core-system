@@ -93,7 +93,7 @@ export const ProjectFeaturesList = observer(function ProjectFeaturesList(props: 
     const updateProjectPromise = updateProject(workspaceSlug, projectId, settingsPayload);
 
     setPromiseToast(updateProjectPromise, {
-      loading: "Updating project feature...",
+      loading: "Updating project feature…",
       success: {
         title: "Success!",
         message: () => "Project feature updated successfully.",

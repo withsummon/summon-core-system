@@ -103,7 +103,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
           <Tabs.Trigger
             value="Priority-Issues"
             className={cn(
-              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition-colors duration-500 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
               {
                 "bg-surface-1 text-tertiary": tab === "Priority-Issues",
                 "hover:text-tertiary": tab !== "Priority-Issues",
@@ -115,7 +115,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
           <Tabs.Trigger
             value="Assignees"
             className={cn(
-              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition-colors duration-500 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
               {
                 "bg-surface-1 text-tertiary": tab === "Assignees",
                 "hover:text-tertiary": tab !== "Assignees",
@@ -127,7 +127,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
           <Tabs.Trigger
             value="Labels"
             className={cn(
-              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition duration-500 focus:outline-none",
+              "relative z-[1] rounded-[3px] py-1.5 text-11 font-semibold text-placeholder transition-colors duration-500 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
               {
                 "bg-surface-1 text-tertiary": tab === "Labels",
                 "hover:text-tertiary": tab !== "Labels",

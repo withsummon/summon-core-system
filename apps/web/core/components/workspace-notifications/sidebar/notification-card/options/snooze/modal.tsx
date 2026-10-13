@@ -117,7 +117,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
           <h3 className="text-h5-medium leading-6 text-primary">Customize Snooze Time</h3>
 
           <div>
-            <button type="button" onClick={handleClose}>
+            <button type="button" aria-label="Close" onClick={handleClose}>
               <CloseIcon className="h-5 w-5 text-primary" />
             </button>
           </div>
@@ -218,7 +218,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
               Cancel
             </Button>
             <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit"}
+              {isSubmitting ? "Submitting…" : "Submit"}
             </Button>
           </div>
         </div>

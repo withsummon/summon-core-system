@@ -95,12 +95,12 @@ const templateTabIcon = (type: string): TSelectableIcon => {
 };
 
 const templateVisual = (type: string) => {
-  if (type === "quotation") return { Icon: FileSpreadsheet, tone: "bg-emerald-50 text-emerald-600" };
-  if (type.startsWith("mom_")) return { Icon: BookOpen, tone: "bg-violet-50 text-violet-600" };
-  if (type === "presentation") return { Icon: Presentation, tone: "bg-orange-50 text-orange-600" };
-  if (type === "cost_projection") return { Icon: FileSpreadsheet, tone: "bg-cyan-50 text-cyan-600" };
-  if (type.includes("proposal")) return { Icon: FileText, tone: "bg-blue-50 text-blue-600" };
-  return { Icon: FileCheck2, tone: "bg-indigo-50 text-indigo-600" };
+  if (type === "quotation") return { Icon: FileSpreadsheet, tone: "bg-label-emerald-bg text-label-emerald-icon" };
+  if (type.startsWith("mom_")) return { Icon: BookOpen, tone: "bg-label-purple-bg text-label-purple-icon" };
+  if (type === "presentation") return { Icon: Presentation, tone: "bg-label-orange-bg text-label-orange-icon" };
+  if (type === "cost_projection") return { Icon: FileSpreadsheet, tone: "bg-label-yellow-bg text-label-yellow-icon" };
+  if (type.includes("proposal")) return { Icon: FileText, tone: "bg-label-indigo-bg text-label-indigo-icon" };
+  return { Icon: FileCheck2, tone: "bg-label-grey-bg text-label-grey-icon" };
 };
 
 const outputFormats = (type?: string) => {
@@ -116,12 +116,12 @@ const jobStatus = (job: ISummonAutomationJob) => {
   if (job.status === "completed")
     return {
       label: job.artifacts.length ? "Completed" : "Preview",
-      className: "bg-emerald-50 text-emerald-700",
+      className: "bg-success-subtle text-success-primary",
     };
-  if (job.status === "failed") return { label: "Failed", className: "bg-red-50 text-red-600" };
+  if (job.status === "failed") return { label: "Failed", className: "bg-danger-subtle text-danger-primary" };
   return {
     label: job.status === "running" ? "Running" : "Queued",
-    className: "bg-amber-50 text-amber-700",
+    className: "bg-warning-subtle text-warning-primary",
   };
 };
 
@@ -431,7 +431,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
                               </div>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="bg-blue-50 text-blue-600 rounded-md px-2 py-1 text-12 font-medium">
+                              <span className="rounded-md bg-accent-subtle px-2 py-1 text-12 font-medium text-accent-primary">
                                 {templateLabel(job.type)}
                               </span>
                             </td>
@@ -546,7 +546,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               <TextArea
                 value={brief}
                 onChange={(event) => setBrief(event.target.value)}
-                placeholder="Add project, scope, or client-specific requirements..."
+                placeholder="Add project, scope, or client-specific requirements…"
                 className="min-h-20"
               />
             </SummonField>
@@ -560,7 +560,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               />
               <span className="mt-1 block text-12 text-tertiary">
                 {extractingDocument
-                  ? "Reading document..."
+                  ? "Reading document…"
                   : documentName || "PDF, DOCX, XLSX, PPTX, TXT, MD, CSV · max 10 MB"}
               </span>
             </SummonField>
@@ -582,7 +582,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
               />
               <span className="mt-1 block text-12 text-tertiary">
                 {uploadingAudio
-                  ? "Uploading audio..."
+                  ? "Uploading audio…"
                   : selectedMeeting?.summary_error === "transcribing"
                     ? "Transcribing audio…"
                     : selectedMeeting?.summary_error === "transcription_failed"
@@ -694,7 +694,7 @@ export default function SummonAutomationPage({ params }: Route.ComponentProps) {
             <Sparkles className="mr-2 size-4" /> Generate Preview
           </Button>
           {formError ? (
-            <div className="bg-red-50 text-red-600 grid gap-2 rounded-lg p-2.5 text-12" role="alert">
+            <div className="grid gap-2 rounded-lg bg-danger-subtle p-2.5 text-12 text-danger-primary" role="alert">
               <span>{formError}</span>
               <Button type="button" size="lg" variant="secondary" onClick={() => void generatePreview()}>
                 Retry preview

@@ -18,16 +18,16 @@ interface IRecentActivityCardProps {
 const getDotColorClass = (color: string) => {
   switch (color) {
     case "green":
-      return "bg-emerald-500 ring-emerald-100 dark:ring-emerald-950";
+      return "bg-label-emerald-bg-strong ring-label-emerald-bg";
     case "purple":
-      return "bg-purple-500 ring-purple-100 dark:ring-purple-950";
+      return "bg-label-purple-bg-strong ring-label-purple-bg";
     case "cyan":
-      return "bg-cyan-500 ring-cyan-100 dark:ring-cyan-950";
+      return "bg-label-yellow-bg-strong ring-label-yellow-bg";
     case "orange":
-      return "bg-orange-500 ring-orange-100 dark:ring-orange-950";
+      return "bg-label-orange-bg-strong ring-label-orange-bg";
     case "blue":
     default:
-      return "bg-blue-500 ring-blue-100 dark:ring-blue-950";
+      return "bg-label-indigo-bg-strong ring-label-indigo-bg";
   }
 };
 
@@ -43,7 +43,7 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
         <button
           type="button"
           onClick={onViewAllActivity}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-xs font-medium transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all activity</span>
           <ArrowRight size={13} />
@@ -62,15 +62,15 @@ export const RecentActivityCard: React.FC<IRecentActivityCardProps> = ({
 
               {/* Dot */}
               <div
-                className={cn(
-                  "relative z-10 mt-1 size-2.5 shrink-0 rounded-full ring-4 transition-transform",
-                  getDotColorClass(act.color)
-                )}
+                className={cn("relative z-10 mt-1 size-2.5 shrink-0 rounded-full ring-4", getDotColorClass(act.color))}
               />
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer truncate text-xs leading-tight font-medium text-primary transition-colors">
+                <p
+                  className="cursor-pointer truncate text-xs leading-tight font-medium text-primary transition-colors hover:text-accent-primary"
+                  title={act.title}
+                >
                   {act.title}
                 </p>
                 <p className="mt-0.5 text-[11px] text-secondary">{act.author}</p>

@@ -51,7 +51,9 @@ export const WorkspaceSettingsSidebarHeader = observer(function WorkspaceSetting
             classNames="shrink-0 size-8 border border-subtle"
           />
           <div className="truncate">
-            <p className="truncate text-body-sm-medium">{currentWorkspace?.name}</p>
+            <p className="truncate text-body-sm-medium" title={currentWorkspace?.name}>
+              {currentWorkspace?.name}
+            </p>
             <p className="truncate text-caption-md-regular">{t(ROLE_DETAILS[currentWorkspaceRole].i18n_title)}</p>
           </div>
         </div>

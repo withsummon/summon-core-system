@@ -42,7 +42,7 @@ export const KnowledgeStatsCard: React.FC<IKnowledgeStatsCardProps> = ({ stats =
           <span className="text-[11px] font-medium text-secondary">This Month</span>
           <div className="mt-1 flex items-center gap-1.5">
             <span className="text-lg font-bold tracking-tight text-primary">+{stats.thisMonthCount}</span>
-            <span className="border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400 inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-0.5 rounded-md border border-success-subtle bg-success-subtle px-1.5 py-0.5 text-[10px] font-semibold text-success-primary">
               <TrendingUp size={10} />
               <span>{stats.thisMonthGrowthPercentage}%</span>
             </span>

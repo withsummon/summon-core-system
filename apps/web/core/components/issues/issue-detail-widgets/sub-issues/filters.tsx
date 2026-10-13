@@ -48,7 +48,7 @@ export const SubIssueFilters = observer(function SubIssueFilters(props: TSubIssu
         menuButton={
           <div
             className={cn(
-              "relative rounded-sm p-1 transition-all duration-200",
+              "relative rounded-sm p-1 transition-colors duration-200",
               isFilterApplied && "bg-accent-primary/20"
             )}
           >
@@ -69,7 +69,12 @@ export const SubIssueFilters = observer(function SubIssueFilters(props: TSubIssu
                 onChange={(e) => setFiltersSearchQuery(e.target.value)}
               />
               {filtersSearchQuery !== "" && (
-                <button type="button" className="grid place-items-center" onClick={() => setFiltersSearchQuery("")}>
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="grid place-items-center"
+                  onClick={() => setFiltersSearchQuery("")}
+                >
                   <CloseIcon className="text-tertiary" height={12} width={12} strokeWidth={2} />
                 </button>
               )}

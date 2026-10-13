@@ -76,9 +76,12 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
           </CustomMenu.MenuItem>
         )}
       </CustomMenu>
-      <CollapsiblePrimitive.Trigger className="group/workspace-button sticky top-0 z-10 flex items-center justify-between gap-1 rounded-sm px-0.5 py-1.5 text-11 font-semibold text-placeholder hover:bg-surface-2">
+      <CollapsiblePrimitive.Trigger
+        aria-label="Toggle workspace menu"
+        className="group/workspace-button sticky top-0 z-10 flex items-center justify-between gap-1 rounded-sm px-0.5 py-1.5 text-11 font-semibold text-placeholder hover:bg-surface-2"
+      >
         {" "}
-        <span className="pointer-events-none flex-shrink-0 rounded-sm opacity-0 group-hover/workspace-button:pointer-events-auto group-hover/workspace-button:opacity-100 hover:bg-layer-1">
+        <span className="pointer-events-none flex-shrink-0 rounded-sm opacity-0 group-hover/workspace-button:pointer-events-auto group-hover/workspace-button:opacity-100 group-focus-visible/workspace-button:opacity-100 hover:bg-layer-1">
           <ChevronRightIcon
             className={cn("size-4 flex-shrink-0 text-placeholder transition-transform", {
               "rotate-90": isWorkspaceMenuOpen,

@@ -69,17 +69,20 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
 
   const expandedContentClasses = useMemo(
     () =>
-      `flex flex-col gap-4 transition-all duration-300 ease-in-out overflow-hidden px-3 ${
+      `flex flex-col gap-4 transition-[max-height,opacity] duration-300 ease-in-out overflow-hidden px-3 ${
         isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
     [isExpanded]
   );
 
   return (
-    <div className={`flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-all duration-300 ease-in-out`}>
-      <div
+    <div className={`flex flex-col overflow-hidden rounded-lg bg-surface-2`}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-expanded={isExpanded}
         className={cn(
-          "flex items-center justify-between px-3 py-2 text-13 transition-colors duration-200",
+          "flex w-full items-center justify-between px-3 py-2 text-left text-13 transition-colors duration-200",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
           isExpanded && "pb-1"
         )}
@@ -93,35 +96,33 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
         <div className="flex items-center gap-2 text-placeholder">
           <ChevronDownIcon className={chevronIconClasses} />
         </div>
-      </div>
+      </button>
 
       <div className={expandedContentClasses}>
         {/* Password input */}
-        <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">
+        <div className="flex flex-col gap-2 pt-1">
           <PasswordInput
             id="password"
             value={passwordState.password}
             onChange={(value) => handlePasswordChange("password", value)}
             placeholder="Set a password"
-            className="transition-all duration-200"
+            className="transition-colors duration-200"
           />
           {passwordState.password.length > 0 && <PasswordStrengthIndicator password={passwordState.password} />}
         </div>
 
         <div className="flex flex-col gap-2 pb-2">
           {/* Confirm password label */}
-          <div className="transform text-13 font-medium text-tertiary transition-all delay-75 duration-300 ease-in-out">
-            Confirm password
-          </div>
+          <div className="text-13 font-medium text-tertiary">Confirm password</div>
 
           {/* Confirm password input */}
-          <div className="transform transition-all delay-100 duration-300 ease-in-out">
+          <div>
             <PasswordInput
               id="confirm-password"
               value={passwordState.confirmPassword}
               onChange={(value) => handlePasswordChange("confirmPassword", value)}
               placeholder="Confirm password"
-              className="transition-all duration-200"
+              className="transition-colors duration-200"
             />
             {hasPasswordMismatch && <p className="mt-1 text-11 text-danger-primary">Passwords do not match</p>}
             {isPasswordValid && <p className="mt-1 text-11 text-success-primary">✓ Passwords match</p>}

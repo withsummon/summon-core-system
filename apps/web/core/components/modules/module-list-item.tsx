@@ -86,12 +86,14 @@ export const ModuleListItem = observer(function ModuleListItem(props: Props) {
           ) : progress === 100 ? (
             <CheckIcon className="h-3 w-3 stroke-[2] text-accent-primary" />
           ) : (
-            <span className="text-9 text-tertiary">{`${progress}%`}</span>
+            <span className="text-9 text-tertiary tabular-nums">{`${progress}%`}</span>
           )}
         </CircularProgressIndicator>
       }
       appendTitleElement={
         <button
+          type="button"
+          aria-label="Module details"
           onClick={openModuleOverview}
           className={`z-[5] flex-shrink-0 ${isMobile ? "flex" : "hidden group-hover:flex"}`}
         >

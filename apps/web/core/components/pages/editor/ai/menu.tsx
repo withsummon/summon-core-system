@@ -144,7 +144,7 @@ export function EditorAIMenu(props: Props) {
   return (
     <div
       className={cn(
-        "flex w-[210px] flex-col rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-all",
+        "flex w-[210px] flex-col rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-[width]",
         {
           "w-[700px]": activeTask,
         }
@@ -155,7 +155,7 @@ export function EditorAIMenu(props: Props) {
           "divide-x divide-subtle-1": activeTask,
         })}
       >
-        <div className="w-[210px] flex-shrink-0 overflow-y-auto px-2 py-2.5 transition-all">
+        <div className="w-[210px] flex-shrink-0 overflow-y-auto px-2 py-2.5">
           {MENU_ITEMS.map((item) => {
             const isActiveTask = activeTask === item.key;
 
@@ -190,7 +190,7 @@ export function EditorAIMenu(props: Props) {
         </div>
         <div
           ref={responseContainerRef}
-          className={cn("w-0 flex-shrink-0 overflow-hidden transition-all", {
+          className={cn("w-0 flex-shrink-0 overflow-hidden transition-[width]", {
             "vertical-scrollbar scrollbar-sm w-[490px] overflow-auto": activeTask,
           })}
         >
@@ -229,7 +229,7 @@ export function EditorAIMenu(props: Props) {
                     <div className="mt-3 flex items-center gap-4">
                       <button
                         type="button"
-                        className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
+                        className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                         onClick={() => handleInsertText(false)}
                       >
                         Replace selection
@@ -237,7 +237,8 @@ export function EditorAIMenu(props: Props) {
                       <Tooltip tooltipContent="Add to next line">
                         <button
                           type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                          aria-label="Add to next line"
                           onClick={() => handleInsertText(true)}
                         >
                           <CornerDownRight className="size-4 text-tertiary" />
@@ -246,7 +247,8 @@ export function EditorAIMenu(props: Props) {
                       <Tooltip tooltipContent="Re-generate response">
                         <button
                           type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1 focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+                          aria-label="Re-generate response"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -264,9 +266,7 @@ export function EditorAIMenu(props: Props) {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-13 text-secondary">
-                    {activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}...
-                  </p>
+                  <p className="text-13 text-secondary">{activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}…</p>
                 )}
               </div>
               <div className="sticky bottom-0 flex w-full items-center gap-2 bg-surface-1 py-2 pl-[54.8px]">
@@ -275,7 +275,7 @@ export function EditorAIMenu(props: Props) {
                     key={tone.key}
                     type="button"
                     className={cn(
-                      "rounded-sm bg-layer-1 p-1 text-11 font-medium text-secondary transition-colors outline-none",
+                      "rounded-sm bg-layer-1 p-1 text-11 font-medium text-secondary transition-colors outline-none focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
                       {
                         "bg-accent-primary/20 text-accent-primary": tone.key === "default",
                       }

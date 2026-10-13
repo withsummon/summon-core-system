@@ -32,13 +32,15 @@ export const NotificationFilterOptionItem = observer(function NotificationFilter
   const isSelected = filters?.type?.[value] || false;
 
   return (
-    <div
+    <button
+      type="button"
       key={value}
-      className="flex cursor-pointer items-center gap-2 rounded-xs p-1 px-2 transition-all hover:bg-layer-1"
+      className="flex w-full cursor-pointer items-center gap-2 rounded-xs p-1 px-2 text-left transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
+      aria-pressed={isSelected}
       onClick={() => handleFilterTypeChange(value, !isSelected)}
     >
       <div
-        className={cn("flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-xs transition-all", {
+        className={cn("flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-xs transition-colors", {
           "bg-accent-primary text-on-color": isSelected,
           "bg-surface-2": !isSelected,
         })}
@@ -53,6 +55,6 @@ export const NotificationFilterOptionItem = observer(function NotificationFilter
       >
         {label}
       </div>
-    </div>
+    </button>
   );
 });

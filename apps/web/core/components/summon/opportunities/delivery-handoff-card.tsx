@@ -103,7 +103,9 @@ export const DeliveryHandoffCard = observer(function DeliveryHandoffCard(props: 
             {state.project.identifier.slice(0, 3)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-12 font-semibold text-primary">{state.project.name}</p>
+            <p className="truncate text-12 font-semibold text-primary" title={state.project.name}>
+              {state.project.name}
+            </p>
             <p className="mt-0.5 text-12 text-secondary">Delivery project · {state.project.identifier}</p>
           </div>
           <Link

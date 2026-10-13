@@ -90,7 +90,9 @@ export const ExportForm = observer(function ExportForm(props: Props) {
       content: (
         <div className="flex items-center gap-2">
           <span className="flex-shrink-0 text-10 text-secondary">{projectDetails?.identifier}</span>
-          <span className="truncate">{projectDetails?.name}</span>
+          <span className="truncate" title={projectDetails?.name}>
+            {projectDetails?.name}
+          </span>
         </div>
       ),
     };
@@ -208,7 +210,7 @@ export const ExportForm = observer(function ExportForm(props: Props) {
         />
         <div className="px-4 py-3">
           <Button variant="primary" size="lg" type="submit" loading={exportLoading}>
-            {exportLoading ? `${t("workspace_settings.settings.exports.exporting")}...` : t("export")}
+            {exportLoading ? `${t("workspace_settings.settings.exports.exporting")}…` : t("export")}
           </Button>
         </div>
       </div>

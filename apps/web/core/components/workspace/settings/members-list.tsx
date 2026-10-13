@@ -91,7 +91,7 @@ export const WorkspaceMembersList = observer(function WorkspaceMembersList(props
                   <CountChip count={searchedInvitationsIds.length} className="m-auto ml-2 h-5" />
                 )}
               </div>{" "}
-              <ChevronDownIcon className={`h-5 w-5 transition-all ${showPendingInvites ? "rotate-180" : ""}`} />
+              <ChevronDownIcon className={`h-5 w-5 transition-[rotate] ${showPendingInvites ? "rotate-180" : ""}`} />
             </div>
           }
         >

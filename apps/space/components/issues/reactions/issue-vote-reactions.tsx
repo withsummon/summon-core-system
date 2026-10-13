@@ -106,17 +106,17 @@ export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
             else router.push(`/?next_path=${pathName}?${queryParam}`);
           }}
           className={cn(
-            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus:outline-none",
+            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
             votingDimensions,
             {
-              "border-accent-strong-200 text-accent-secondary": isUpVotedByUser,
+              "border-accent-strong text-accent-secondary": isUpVotedByUser,
               "border-strong": !isUpVotedByUser,
               "cursor-default": isInIframe,
             }
           )}
         >
           <ArrowUp className="size-3.5 shrink-0" />
-          <span className="text-13 font-regular transition-opacity ease-in-out">{allUpVotes.length}</span>
+          <span className="text-13 font-regular tabular-nums transition-opacity ease-in-out">{allUpVotes.length}</span>
         </button>
       </Tooltip>
 
@@ -147,7 +147,7 @@ export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
             else router.push(`/?next_path=${pathName}?${queryParam}`);
           }}
           className={cn(
-            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus:outline-none",
+            "flex items-center justify-center gap-x-1 overflow-hidden rounded-sm border hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid",
             votingDimensions,
             {
               "border-danger-strong text-danger-primary": isDownVotedByUser,
@@ -157,7 +157,9 @@ export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
           )}
         >
           <ArrowDown className="size-3.5 shrink-0" />
-          <span className="text-13 font-regular transition-opacity ease-in-out">{allDownVotes.length}</span>
+          <span className="text-13 font-regular tabular-nums transition-opacity ease-in-out">
+            {allDownVotes.length}
+          </span>
         </button>
       </Tooltip>
     </div>

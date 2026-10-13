@@ -70,7 +70,7 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
     );
 
     setPromiseToast(addToFavoritePromise, {
-      loading: "Adding module to favorites...",
+      loading: "Adding module to favorites…",
       success: {
         title: "Success!",
         message: () => "Module added to favorites.",
@@ -94,7 +94,7 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
     );
 
     setPromiseToast(removeFromFavoritePromise, {
-      loading: "Removing module from favorites...",
+      loading: "Removing module from favorites…",
       success: {
         title: "Success!",
         message: () => "Module removed from favorites.",

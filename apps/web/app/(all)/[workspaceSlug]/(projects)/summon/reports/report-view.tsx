@@ -207,7 +207,9 @@ export function ReportView(props: TReportViewProps) {
                         href={`/${workspaceSlug}/summon/projects/${project.project_id}/`}
                         className="flex items-center justify-between gap-3 py-2 text-12"
                       >
-                        <span className="truncate font-medium text-primary">{project.name}</span>
+                        <span className="truncate font-medium text-primary" title={project.name}>
+                          {project.name}
+                        </span>
                         <span className="rounded-md bg-warning-subtle px-2 py-1 font-semibold text-warning-primary">
                           {project.completion}
                         </span>
@@ -338,7 +340,9 @@ export function ReportView(props: TReportViewProps) {
                       <FileSpreadsheet className="size-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-12 font-semibold text-primary">{name}</span>
+                      <span className="block truncate text-12 font-semibold text-primary" title={name}>
+                        {name}
+                      </span>
                       <span className="mt-1 block text-12 text-tertiary">Not generated</span>
                     </span>
                   </div>

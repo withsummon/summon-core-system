@@ -29,6 +29,7 @@ export const AppliedPriorityFilters = observer(function AppliedPriorityFilters(p
           {editable && (
             <button
               type="button"
+              aria-label="Remove filter"
               className="grid place-items-center text-tertiary hover:text-secondary"
               onClick={() => handleRemove(priority)}
             >

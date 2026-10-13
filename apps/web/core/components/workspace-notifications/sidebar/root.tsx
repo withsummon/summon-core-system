@@ -57,7 +57,7 @@ export const NotificationsSidebarRoot = observer(function NotificationsSidebarRo
   return (
     <div
       className={cn(
-        "relative z-[10] h-full flex-shrink-0 border-0 border-subtle bg-surface-1 transition-all max-md:overflow-hidden md:border-r",
+        "relative z-[10] h-full flex-shrink-0 border-0 border-subtle bg-surface-1 transition-[width] max-md:overflow-hidden md:border-r",
         currentSelectedNotificationId ? "w-0 md:w-3/12" : "w-full md:w-3/12"
       )}
     >
@@ -68,15 +68,16 @@ export const NotificationsSidebarRoot = observer(function NotificationsSidebarRo
 
         <Header variant={EHeaderVariant.SECONDARY} className="justify-start">
           {NOTIFICATION_TABS.map((tab) => (
-            // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
-            <div
+            <button
+              type="button"
               key={tab.value}
               className="relative h-full cursor-pointer px-3"
+              aria-pressed={currentNotificationTab === tab.value}
               onClick={() => handleTabClick(tab.value)}
             >
               <div
                 className={cn(
-                  "relative flex h-full items-center justify-center gap-1 text-body-xs-medium transition-all",
+                  "relative flex h-full items-center justify-center gap-1 text-body-xs-medium transition-colors",
                   {
                     "text-accent-primary": currentNotificationTab === tab.value,
                     "text-primary hover:text-secondary": currentNotificationTab !== tab.value,
@@ -91,7 +92,7 @@ export const NotificationsSidebarRoot = observer(function NotificationsSidebarRo
               {currentNotificationTab === tab.value && (
                 <div className="absolute right-0 bottom-0 left-0 rounded-t-md border border-accent-strong" />
               )}
-            </div>
+            </button>
           ))}
         </Header>
 

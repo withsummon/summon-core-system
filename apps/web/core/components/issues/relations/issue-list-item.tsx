@@ -128,7 +128,7 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
         className="w-full cursor-pointer"
       >
         {issue && (
-          <div className="group relative flex h-full min-h-11 w-full items-center px-1.5 py-1 transition-all hover:bg-surface-2">
+          <div className="group relative flex h-full min-h-11 w-full items-center px-1.5 py-1 transition-colors hover:bg-surface-2">
             <span className="size-5 flex-shrink-0" />
             <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
               <div className="flex-shrink-0">

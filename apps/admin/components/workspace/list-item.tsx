@@ -46,7 +46,7 @@ export const WorkspaceListItem = observer(function WorkspaceListItem({ workspace
               alt="Workspace Logo"
             />
           ) : (
-            (workspace?.name?.[0] ?? "...")
+            (workspace?.name?.[0] ?? "…")
           )}
         </span>
         <div className="flex flex-col items-start gap-1">

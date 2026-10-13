@@ -106,6 +106,7 @@ export const BlockRow = observer(function BlockRow(props: Props) {
                   left: `${SIDEBAR_WIDTH + 4}px`,
                 }}
                 onClick={() => handleScrollToBlock(block)}
+                aria-label="Scroll to block"
               >
                 <ArrowRight
                   className={cn("h-3.5 w-3.5", {

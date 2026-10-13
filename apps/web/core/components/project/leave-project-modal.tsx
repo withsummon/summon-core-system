@@ -167,7 +167,7 @@ export const LeaveProjectModal = observer(function LeaveProjectModal(props: ILea
             Cancel
           </Button>
           <Button variant="error-fill" size="lg" type="submit" loading={isSubmitting}>
-            {isSubmitting ? "Leaving..." : "Leave Project"}
+            {isSubmitting ? "Leaving…" : "Leave Project"}
           </Button>
         </div>
       </form>

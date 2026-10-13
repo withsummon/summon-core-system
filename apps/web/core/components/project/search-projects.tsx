@@ -56,14 +56,14 @@ export const ProjectSearch = observer(function ProjectSearch() {
         className={cn(
           "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
           {
-            "w-30 border-subtle px-2.5 py-1.5 opacity-100 md:w-64": isSearchOpen,
+            "w-30 border-subtle px-2.5 py-1.5 opacity-100 focus-within:border-accent-strong md:w-64": isSearchOpen,
           }
         )}
       >
         <SearchIcon className="h-3.5 w-3.5" />
         <input
           ref={inputRef}
-          className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
+          className="w-full max-w-[234px] border-none bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
           placeholder={t("common.search.label")}
           value={searchQuery}
           onChange={(e) => updateSearchQuery(e.target.value)}
@@ -73,6 +73,7 @@ export const ProjectSearch = observer(function ProjectSearch() {
           <button
             type="button"
             className="grid place-items-center"
+            aria-label="Clear search"
             onClick={() => {
               updateSearchQuery("");
               setIsSearchOpen(false);

@@ -40,7 +40,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
   const handleDownload = () => {
     setToast({
       type: TOAST_TYPE.SUCCESS,
-      title: "Downloading...",
+      title: "Downloading…",
       message: `Preparing ${document.format || "DOCX"} file for download.`,
     });
   };
@@ -62,7 +62,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
 
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleCopy}>
-              {isCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              {isCopied ? <Check size={14} className="text-success-primary" /> : <Copy size={14} />}
               <span>{isCopied ? "Copied" : "Copy"}</span>
             </Button>
             <Button onClick={handleDownload}>
@@ -145,7 +145,7 @@ export const DocumentPreviewModal: React.FC<IDocumentPreviewModalProps> = ({ doc
             </span>
             <span>•</span>
             <span>
-              Status: <strong className="text-emerald-600">{document.status}</strong>
+              Status: <strong className="text-success-primary">{document.status}</strong>
             </span>
           </div>
           <div>

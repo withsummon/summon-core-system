@@ -106,7 +106,7 @@ export default function SummonAutomationDetailPage({ params }: Route.ComponentPr
             </span>
           </div>
           {data.context_truncated ? (
-            <p className="bg-amber-50 text-amber-700 mt-3 rounded-lg px-3 py-2 text-12">
+            <p className="mt-3 rounded-lg bg-warning-subtle px-3 py-2 text-12 text-warning-primary">
               Selected context was truncated to 30,000 characters.
             </p>
           ) : null}

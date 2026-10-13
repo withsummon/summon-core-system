@@ -27,7 +27,7 @@ export const PageEditorHeaderLogoPicker = observer(function PageEditorHeaderLogo
 
   return (
     <div
-      className={cn(className, "pointer-events-none max-h-0 transition-all duration-300 ease-linear", {
+      className={cn(className, "pointer-events-none max-h-0 transition-[max-height] duration-300 ease-linear", {
         "pointer-events-auto max-h-[56px]": isLogoSelected,
       })}
     >

@@ -60,7 +60,7 @@ export const ProjectDetailWorkspace = observer(function ProjectDetailWorkspace(p
       <header className="border-b border-subtle px-4 py-4 sm:px-6">
         <Link
           href={`/${workspaceSlug}/summon/projects/`}
-          className="inline-flex items-center gap-1.5 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+          className="inline-flex items-center gap-1.5 rounded text-xs text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
         >
           <ArrowLeft aria-hidden="true" className="size-3.5" /> Projects
         </Link>

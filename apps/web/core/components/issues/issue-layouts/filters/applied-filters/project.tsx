@@ -37,6 +37,7 @@ export const AppliedProjectFilters = observer(function AppliedProjectFilters(pro
             {editable && (
               <button
                 type="button"
+                aria-label="Remove filter"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(projectId)}
               >

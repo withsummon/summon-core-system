@@ -162,7 +162,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   <div className="grid size-4 flex-shrink-0 place-items-center">
                     {project && <Logo logo={project?.logo_props} />}
                   </div>
-                  <p className="truncate text-secondary">{project?.name}</p>
+                  <p className="truncate text-secondary" title={project?.name}>
+                    {project?.name}
+                  </p>
                 </div>
               );
               return () => root.unmount();
@@ -340,7 +342,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   <div className="grid size-4 flex-shrink-0 place-items-center">
                     <Logo logo={project.logo_props} size={16} />
                   </div>
-                  <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                  <p className="truncate text-13 font-medium text-secondary" title={project.name}>
+                    {project.name}
+                  </p>
                 </CollapsiblePrimitive.Trigger>
               ) : (
                 <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
@@ -348,7 +352,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     <div className="grid size-4 flex-shrink-0 place-items-center">
                       <Logo logo={project.logo_props} size={16} />
                     </div>
-                    <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                    <p className="truncate text-13 font-medium text-secondary" title={project.name}>
+                      {project.name}
+                    </p>
                   </div>
                 </ControlLink>
               )}
@@ -377,7 +383,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                       <span className="flex items-center justify-start gap-2">
                         <Star
                           className={cn("h-3.5 w-3.5 ", {
-                            "fill-yellow-500 stroke-yellow-500": project.is_favorite,
+                            "fill-label-yellow-icon stroke-label-yellow-icon": project.is_favorite,
                           })}
                         />
                         <span>{project.is_favorite ? t("remove_from_favorites") : t("add_to_favorites")}</span>
@@ -389,7 +395,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   {isAdmin && (
                     <CustomMenu.MenuItem onClick={() => setPublishModal(true)}>
                       <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
-                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-colors duration-300 hover:bg-layer-1">
                           <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
                         </div>
                         <div>{t("publish_project")}</div>

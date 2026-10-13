@@ -19,16 +19,16 @@ interface IRecentNotesCardProps {
 const getNoteIconColor = (color: string) => {
   switch (color) {
     case "yellow":
-      return "text-amber-500";
+      return "text-label-yellow-icon";
     case "green":
-      return "text-emerald-500";
+      return "text-label-emerald-icon";
     case "blue":
-      return "text-blue-500";
+      return "text-label-indigo-icon";
     case "gray":
-      return "text-slate-400";
+      return "text-label-grey-icon";
     case "orange":
     default:
-      return "text-orange-500";
+      return "text-label-orange-icon";
   }
 };
 
@@ -45,7 +45,7 @@ export const RecentNotesCard: React.FC<IRecentNotesCardProps> = ({
         <button
           type="button"
           onClick={onViewAllNotes}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-[11px] font-medium transition-colors"
+          className="flex items-center gap-1 text-[11px] font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all</span>
           <ArrowRight size={12} />
@@ -55,19 +55,20 @@ export const RecentNotesCard: React.FC<IRecentNotesCardProps> = ({
       {/* List */}
       <div className="space-y-2.5">
         {notes.map((note) => (
-          <div
+          <button
+            type="button"
             key={note.id}
             onClick={() => onSelectNote?.(note)}
-            className="group flex cursor-pointer items-start gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-2"
+            className="group flex w-full cursor-pointer items-start gap-2.5 rounded-lg p-1.5 text-left transition-colors hover:bg-surface-2"
           >
             <FileText size={15} className={cn("mt-0.5 shrink-0", getNoteIconColor(note.iconColor))} />
             <div className="min-w-0 flex-1">
-              <p className="group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate text-xs font-medium text-primary transition-colors">
+              <p className="truncate text-xs font-medium text-primary transition-colors group-hover:text-accent-primary">
                 {note.title}
               </p>
               <p className="mt-0.5 text-[10px] text-secondary">{note.timeAgo}</p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

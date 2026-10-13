@@ -80,7 +80,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
           />
         ) : (
           <div
-            className={`bg-gray-500 grid size-7 place-items-center rounded-full border-2 border-strong-1 text-on-color`}
+            className={`grid size-7 place-items-center rounded-full border-2 border-strong-1 bg-label-grey-bg-strong text-on-color`}
           >
             {comment.actor_detail.is_bot
               ? comment?.actor_detail?.first_name?.charAt(0)
@@ -137,6 +137,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
             <div className="flex gap-1 self-end">
               <button
                 type="submit"
+                aria-label="Save comment"
                 disabled={isSubmitting}
                 className="group rounded-sm border border-success-strong bg-success-primary p-2 shadow-md duration-300 hover:bg-success-primary"
               >
@@ -144,6 +145,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
               </button>
               <button
                 type="button"
+                aria-label="Cancel editing"
                 className="group rounded-sm border border-danger-strong bg-danger-primary p-2 shadow-md duration-300 hover:bg-danger-primary-hover"
                 onClick={() => setIsEditing(false)}
               >

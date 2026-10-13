@@ -155,19 +155,21 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
         <div className="relative flex items-center justify-between gap-2 px-5">
           <div className="relative flex items-center gap-1">
             {estimatePoints && (
-              <div
+              <button
+                type="button"
                 onClick={() => {
                   setEstimateSystem(EEstimateSystem.POINTS);
                   handleUpdatePoints(undefined);
                 }}
                 className="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center"
+                aria-label="Back"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
-              </div>
+              </button>
             )}
             <div className="text-18 font-medium text-primary">{t("project_settings.estimates.new")}</div>
           </div>
-          <div className="text-gray-400 text-11">
+          <div className="text-11 text-placeholder">
             {t("project_settings.estimates.create.step", {
               step: renderEstimateStepsCount,
               total: 2,

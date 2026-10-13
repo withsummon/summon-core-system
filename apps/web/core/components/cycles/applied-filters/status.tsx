@@ -40,6 +40,7 @@ export const AppliedStatusFilters = observer(function AppliedStatusFilters(props
                 type="button"
                 className="grid place-items-center text-tertiary hover:text-secondary"
                 onClick={() => handleRemove(status)}
+                aria-label={statusDetails ? `Remove ${t(statusDetails.i18n_title)}` : "Remove"}
               >
                 <CloseIcon height={10} width={10} strokeWidth={2} />
               </button>

@@ -7,6 +7,7 @@
 import React from "react";
 import { FileText, GitBranch, Globe, HardDrive, Video, Key } from "lucide-react";
 import type { ISummonResourceLink } from "@plane/types";
+import { RESOURCE_KIND_TONE } from "./types";
 
 interface ICategoryCardsRowProps {
   resources: ISummonResourceLink[];
@@ -52,17 +53,15 @@ export function CategoryCardsRow({
       id: "document",
       label: "Documents",
       count: docCount,
-      icon: <FileText className="text-blue-500 size-5" />,
-      bg: "bg-blue-500/10",
-      activeBorder: "border-blue-500",
+      icon: <FileText className="size-5" />,
+      tone: RESOURCE_KIND_TONE.document.tile,
     },
     {
       id: "repository",
       label: "Repositories",
       count: repoCount,
-      icon: <GitBranch className="text-indigo-500 size-5" />,
-      bg: "bg-indigo-500/10",
-      activeBorder: "border-indigo-500",
+      icon: <GitBranch className="size-5" />,
+      tone: RESOURCE_KIND_TONE.repository.tile,
     },
     {
       id: "figma",
@@ -77,40 +76,35 @@ export function CategoryCardsRow({
           <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z" fill="#A259FF" />
         </svg>
       ),
-      bg: "bg-pink-500/10",
-      activeBorder: "border-pink-500",
+      tone: RESOURCE_KIND_TONE.figma.tile,
     },
     {
       id: "deployment",
       label: "Deployments",
       count: deploymentCount,
-      icon: <Globe className="text-emerald-500 size-5" />,
-      bg: "bg-emerald-500/10",
-      activeBorder: "border-emerald-500",
+      icon: <Globe className="size-5" />,
+      tone: RESOURCE_KIND_TONE.deployment.tile,
     },
     {
       id: "drive",
       label: "Google Drive",
       count: driveCount,
-      icon: <HardDrive className="text-teal-500 size-5" />,
-      bg: "bg-teal-500/10",
-      activeBorder: "border-teal-500",
+      icon: <HardDrive className="size-5" />,
+      tone: RESOURCE_KIND_TONE.drive.tile,
     },
     {
       id: "recording",
       label: "Recordings",
       count: recordingCount,
-      icon: <Video className="text-purple-500 size-5" />,
-      bg: "bg-purple-500/10",
-      activeBorder: "border-purple-500",
+      icon: <Video className="size-5" />,
+      tone: RESOURCE_KIND_TONE.recording.tile,
     },
     {
       id: "account",
       label: "Accounts",
       count: credentialCount,
-      icon: <Key className="text-amber-500 size-5" />,
-      bg: "bg-amber-500/10",
-      activeBorder: "border-amber-500",
+      icon: <Key className="size-5" />,
+      tone: RESOURCE_KIND_TONE.account.tile,
     },
   ];
 
@@ -132,7 +126,7 @@ export function CategoryCardsRow({
                 isSelected ? "border-accent-strong bg-accent-subtle" : "border-subtle bg-surface-1 hover:border-strong"
               }`}
             >
-              <div className={`flex size-10 items-center justify-center rounded-lg ${cat.bg}`}>{cat.icon}</div>
+              <div className={`flex size-10 items-center justify-center rounded-lg ${cat.tone}`}>{cat.icon}</div>
 
               <div className="mt-3.5">
                 <div className="text-13 font-medium text-primary group-hover:text-accent-primary">{cat.label}</div>

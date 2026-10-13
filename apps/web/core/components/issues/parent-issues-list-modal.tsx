@@ -108,7 +108,7 @@ export function ParentIssuesListModal({
             aria-hidden="true"
           />
           <Combobox.Input
-            className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none placeholder:text-placeholder focus:ring-0 sm:text-13"
+            className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none placeholder:text-placeholder sm:text-13"
             placeholder={t("common.search.placeholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -173,7 +173,9 @@ export function ParentIssuesListModal({
                             variant="secondary"
                           />
                         </span>{" "}
-                        <span className="truncate">{issue.name}</span>
+                        <span className="truncate" title={issue.name}>
+                          {issue.name}
+                        </span>
                       </div>
                       <a
                         href={generateWorkItemLink({

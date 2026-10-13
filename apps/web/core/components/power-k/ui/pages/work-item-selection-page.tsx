@@ -99,7 +99,7 @@ export function WorkItemSelectionPage(props: Props) {
                     textContainerClassName="text-13 text-secondary"
                   />
                 )}
-                <span className="truncate">{issue.name}</span>
+                <span className="truncate" title={issue.name}>{issue.name}</span>
               </div>
             )}
             onSelect={(issue) => {
@@ -137,7 +137,7 @@ export function WorkItemSelectionPage(props: Props) {
                   textContainerClassName="text-13 text-secondary"
                 />
               )}
-              <span className="truncate">{issue.name}</span>
+              <span className="truncate" title={issue.name}>{issue.name}</span>
             </div>
           )}
           onSelect={(issue) => {

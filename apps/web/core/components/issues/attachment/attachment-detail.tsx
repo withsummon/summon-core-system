@@ -101,7 +101,11 @@ export const IssueAttachmentsDetail = observer(function IssueAttachmentsDetail(p
         </Link>
 
         {!disabled && (
-          <button type="button" onClick={() => setIsDeleteIssueAttachmentModalOpen(true)}>
+          <button
+            type="button"
+            aria-label="Delete attachment"
+            onClick={() => setIsDeleteIssueAttachmentModalOpen(true)}
+          >
             <CloseIcon className="h-4 w-4 text-secondary hover:text-primary" />
           </button>
         )}

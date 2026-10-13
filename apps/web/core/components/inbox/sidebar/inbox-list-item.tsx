@@ -63,7 +63,7 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
       >
         <Row
           className={cn(
-            `relative flex cursor-pointer flex-col gap-2 border border-t-transparent border-r-transparent border-b-subtle-1 border-l-transparent py-4 transition-all hover:bg-accent-primary/5`,
+            `relative flex cursor-pointer flex-col gap-2 border border-t-transparent border-r-transparent border-b-subtle-1 border-l-transparent py-4 transition-colors hover:bg-accent-primary/5`,
             { "border border-accent-strong": selectedInboxIssueId === issue.id }
           )}
         >
@@ -76,7 +76,9 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
                 {inboxIssue.status !== -2 && <InboxIssueStatus inboxIssue={inboxIssue} iconSize={12} />}
               </div>
             </div>
-            <h3 className="w-full truncate text-13">{issue.name}</h3>
+            <h3 className="w-full truncate text-13" title={issue.name}>
+              {issue.name}
+            </h3>
           </div>
 
           <div className="flex items-center justify-between">
@@ -99,7 +101,7 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
 
               {issue.label_ids && issue.label_ids.length > 3 ? (
                 <div className="relative flex !h-[17.5px] items-center gap-1 rounded-sm border border-strong px-1 text-11">
-                  <span className="bg-orange-400 h-2 w-2 rounded-full" />
+                  <span className="h-2 w-2 rounded-full bg-label-orange-bg-strong" />
                   <span className="max-w-28 truncate normal-case">{`${issue.label_ids.length} labels`}</span>
                 </div>
               ) : (
@@ -118,7 +120,9 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
                             backgroundColor: labelDetails.color,
                           }}
                         />
-                        <span className="max-w-28 truncate normal-case">{labelDetails.name}</span>
+                        <span className="max-w-28 truncate normal-case" title={labelDetails.name}>
+                          {labelDetails.name}
+                        </span>
                       </div>
                     );
                   })}

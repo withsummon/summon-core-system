@@ -364,14 +364,16 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                       className="size-2 flex-none rounded-full"
                                       style={{ backgroundColor: label.color }}
                                     />
-                                    <span className="truncate">{label.name}</span>
+                                    <span className="truncate" title={label.name}>
+                                      {label.name}
+                                    </span>
                                   </span>
                                 ) : null;
                               })}
                             {shows("project") && (
                               <Link
                                 href={`/${workspaceSlug}/summon/projects/${task.project.id}/`}
-                                className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                className="max-w-48 truncate rounded border border-subtle px-2 py-0.5 text-12 hover:border-strong hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
                                 title={task.project.name}
                               >
                                 {task.project.name}
@@ -386,7 +388,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                                 buttonVariant="transparent-without-text"
                                 placeholder="Assignees"
                                 placement="bottom-end"
-                                buttonContainerClassName="rounded-full focus-visible:outline-2 focus-visible:outline-accent-strong"
+                                buttonContainerClassName="rounded-full focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-accent-strong"
                                 button={
                                   <span className="flex -space-x-1 rounded-full">
                                     {task.assignees
@@ -446,7 +448,7 @@ export const TasksRoot = observer(function TasksRoot({ workspaceSlug }: { worksp
                 return (
                   <Collapsible.CollapsibleRoot key={key} defaultOpen className="mb-2">
                     <h2>
-                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 border-b border-subtle px-4 text-left text-13 font-medium text-primary transition-colors hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong sm:px-6">
+                      <Collapsible.CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 border-b border-subtle px-4 text-left text-13 font-medium text-primary transition-colors hover:bg-layer-transparent-hover focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid sm:px-6">
                         <ChevronDown
                           aria-hidden="true"
                           className="size-3.5 -rotate-90 group-data-[panel-open]:rotate-0"

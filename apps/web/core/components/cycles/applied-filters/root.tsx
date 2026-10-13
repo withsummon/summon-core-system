@@ -72,6 +72,7 @@ export const CycleAppliedFiltersList = observer(function CycleAppliedFiltersList
                   type="button"
                   className="grid place-items-center text-tertiary hover:text-secondary"
                   onClick={() => handleRemoveFilter(filterKey, null)}
+                  aria-label="Remove filter"
                 >
                   <CloseIcon height={12} width={12} strokeWidth={2} />
                 </button>

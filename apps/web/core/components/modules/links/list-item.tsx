@@ -67,6 +67,7 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
             <button
               type="button"
               className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
+              aria-label="Edit link"
               data-ph-element={MODULE_TRACKER_ELEMENTS.LIST_ITEM}
               onClick={(e) => {
                 e.preventDefault();
@@ -79,6 +80,7 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
           )}
           <button
             type="button"
+            aria-label="Copy link"
             onClick={() => copyToClipboard(link.url)}
             className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
           >
@@ -88,6 +90,7 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
             <button
               type="button"
               className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
+              aria-label="Delete link"
               data-ph-element={MODULE_TRACKER_ELEMENTS.LIST_ITEM}
               onClick={(e) => {
                 e.preventDefault();

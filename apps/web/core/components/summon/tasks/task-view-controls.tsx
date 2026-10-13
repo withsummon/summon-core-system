@@ -268,7 +268,7 @@ export function AppliedTaskFilters(props: {
               type="button"
               aria-label={`Remove ${label.toLowerCase()} filter`}
               onClick={() => props.onClearField(field)}
-              className="flex h-full items-center rounded-r-md border-l border-subtle px-1.5 hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+              className="flex h-full items-center rounded-r-md border-l border-subtle px-1.5 hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
             >
               <X aria-hidden="true" className="size-3.5" />
             </button>
@@ -278,7 +278,7 @@ export function AppliedTaskFilters(props: {
       <button
         type="button"
         onClick={props.onClearAll}
-        className="h-7 rounded-md px-2 text-12 text-secondary hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+        className="h-7 rounded-md px-2 text-12 text-secondary hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
       >
         Clear
       </button>
@@ -398,7 +398,7 @@ export function TaskDisplayPopover(props: { display: TTaskDisplay; onChange: (di
             <button
               type="button"
               onClick={() => props.onChange(DEFAULT_TASK_DISPLAY)}
-              className="rounded-md px-2 py-1 text-12 text-secondary hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong"
+              className="rounded-md px-2 py-1 text-12 text-secondary hover:bg-layer-transparent-hover hover:text-primary focus-visible:outline-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
             >
               Reset to default
             </button>

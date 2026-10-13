@@ -40,6 +40,7 @@ const ToolbarButton = React.memo(function ToolbarButton(props: ToolbarButtonProp
       }
     >
       <button
+        aria-label={item.name}
         type="button"
         onClick={() =>
           // TODO: update this while toolbar homogenization

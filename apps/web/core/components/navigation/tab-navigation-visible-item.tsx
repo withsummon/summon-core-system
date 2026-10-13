@@ -40,9 +40,9 @@ export function TabNavigationVisibleItem({
   const isDefault = item.key === tabPreferences.defaultTab;
 
   return (
-    <div className="relative flex h-full items-center transition-all duration-300">
+    <div className="relative flex h-full items-center">
       {isActive && (
-        <span className="absolute bottom-0 left-1/2 h-0.5 w-[80%] -translate-x-1/2 rounded-t-md bg-(--text-color-icon-primary) transition-all duration-300" />
+        <span className="absolute bottom-0 left-1/2 h-0.5 w-[80%] -translate-x-1/2 rounded-t-md bg-(--text-color-icon-primary)" />
       )}
       <div key={`${item.key}-measure`} ref={itemRef}>
         <ContextMenu>

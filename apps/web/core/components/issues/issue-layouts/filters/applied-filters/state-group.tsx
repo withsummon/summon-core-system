@@ -27,6 +27,7 @@ export const AppliedStateGroupFilters = observer(function AppliedStateGroupFilte
           {stateGroup}
           <button
             type="button"
+            aria-label="Remove filter"
             className="grid place-items-center text-tertiary hover:text-secondary"
             onClick={() => handleRemove(stateGroup)}
           >

@@ -114,6 +114,7 @@ export function IssueCommentToolbar(props: Props) {
                 <button
                   type="button"
                   onClick={() => handleAccessChange?.(access.key)}
+                  aria-label={access.label}
                   className={cn("grid aspect-square place-items-center rounded-xs p-1 hover:bg-layer-1", {
                     "bg-layer-1": isAccessActive,
                   })}
@@ -155,6 +156,7 @@ export function IssueCommentToolbar(props: Props) {
                     <button
                       type="button"
                       onClick={() => executeCommand(item)}
+                      aria-label={item.name}
                       className={cn(
                         "grid aspect-square place-items-center rounded-xs p-0.5 text-placeholder hover:bg-layer-1",
                         {

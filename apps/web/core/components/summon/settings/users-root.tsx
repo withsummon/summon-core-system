@@ -336,7 +336,9 @@ function Person(props: {
       {props.avatar}
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate text-13 font-medium text-primary">{props.name}</span>
+          <span className="truncate text-13 font-medium text-primary" title={props.name}>
+            {props.name}
+          </span>
           {props.tags}
         </div>
         <p className="truncate text-12 text-tertiary">{props.email}</p>

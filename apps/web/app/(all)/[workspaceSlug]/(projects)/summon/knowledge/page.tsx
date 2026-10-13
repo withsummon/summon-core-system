@@ -169,7 +169,7 @@ export default function SummonKnowledgePage({ params }: Route.ComponentProps) {
               href={`/${workspaceSlug}/summon/assistant/`}
               className="mt-5 flex h-12 items-center gap-3 rounded-xl border border-subtle bg-surface-1 px-4 text-xs text-secondary shadow-xs"
             >
-              <span className="flex-1">Ask a question about projects, clients, processes, or anything...</span>
+              <span className="flex-1">Ask a question about projects, clients, processes, or anything…</span>
               <Send className="size-4" />
             </Link>
             <div className="mt-3 flex flex-wrap gap-2">

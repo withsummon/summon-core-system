@@ -96,6 +96,7 @@ export const ChartAddBlock = observer(function ChartAddBlock(props: Props) {
               marginLeft: `${buttonXPosition}px`,
             }}
             onClick={handleButtonClick}
+            aria-label="Add dates"
           >
             <PlusIcon className="h-3.5 w-3.5" />
           </button>

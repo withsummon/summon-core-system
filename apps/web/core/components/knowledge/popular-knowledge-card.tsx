@@ -19,14 +19,14 @@ interface IPopularKnowledgeCardProps {
 const getFireColor = (color: string) => {
   switch (color) {
     case "red":
-      return "text-red-500";
+      return "text-label-crimson-icon";
     case "orange":
-      return "text-orange-500";
+      return "text-label-orange-icon";
     case "green":
-      return "text-emerald-500";
+      return "text-label-emerald-icon";
     case "blue":
     default:
-      return "text-blue-500";
+      return "text-label-indigo-icon";
   }
 };
 
@@ -43,7 +43,7 @@ export const PopularKnowledgeCard: React.FC<IPopularKnowledgeCardProps> = ({
         <button
           type="button"
           onClick={onViewAllPopular}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 text-[11px] font-medium transition-colors"
+          className="flex items-center gap-1 text-[11px] font-medium text-link-primary transition-colors hover:text-link-primary-hover"
         >
           <span>View all</span>
           <ArrowRight size={12} />
@@ -53,14 +53,15 @@ export const PopularKnowledgeCard: React.FC<IPopularKnowledgeCardProps> = ({
       {/* List */}
       <div className="space-y-2.5">
         {items.map((item) => (
-          <div
+          <button
+            type="button"
             key={item.id}
             onClick={() => onSelectItem?.(item)}
-            className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg p-1.5 transition-colors hover:bg-surface-2"
+            className="group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-surface-2"
           >
             <div className="flex min-w-0 items-center gap-2">
               <Flame size={15} className={cn("shrink-0", getFireColor(item.fireColor))} />
-              <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate text-xs font-medium text-primary transition-colors">
+              <span className="truncate text-xs font-medium text-primary transition-colors group-hover:text-accent-primary">
                 {item.title}
               </span>
             </div>
@@ -69,7 +70,7 @@ export const PopularKnowledgeCard: React.FC<IPopularKnowledgeCardProps> = ({
               <Eye size={12} className="text-placeholder" />
               <span className="text-[11px] font-medium">{item.views}</span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

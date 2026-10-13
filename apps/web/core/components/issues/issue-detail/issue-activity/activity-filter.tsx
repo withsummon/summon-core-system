@@ -42,14 +42,15 @@ export const ActivityFilter = observer(function ActivityFilter(props: TActivityF
       data={filterOptions}
       keyExtractor={(item) => item.key}
       render={(item) => (
-        <div
+        <button
+          type="button"
           key={item.key}
-          className="flex cursor-pointer items-center gap-2 rounded-xs p-1 px-2 text-13 transition-all hover:bg-layer-1"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-xs p-1 px-2 text-left text-13 transition-colors hover:bg-layer-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-strong focus-visible:outline-solid"
           onClick={item.onClick}
         >
           <div
             className={cn(
-              "flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-xs bg-surface-2 transition-all",
+              "flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-xs bg-surface-2 transition-colors",
               {
                 "bg-accent-primary text-on-color": item.isSelected,
                 "bg-layer-1 text-placeholder": item.isSelected && selectedFilters.length === 1,
@@ -62,7 +63,7 @@ export const ActivityFilter = observer(function ActivityFilter(props: TActivityF
           <div className={cn("whitespace-nowrap", item.isSelected ? "text-primary" : "text-secondary")}>
             {t(item.labelTranslationKey)}
           </div>
-        </div>
+        </button>
       )}
     />
   );

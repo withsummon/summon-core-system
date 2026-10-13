@@ -125,7 +125,7 @@ export const CycleSidebarDetails = observer(function CycleSidebarDetails(props: 
             <span className="text-14">{t("work_items")}</span>
           </div>
           <div className="flex w-3/5 items-center">
-            <span className="px-1.5 text-13 text-tertiary">{issueCount}</span>
+            <span className="px-1.5 text-13 text-tertiary tabular-nums">{issueCount}</span>
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export const CycleSidebarDetails = observer(function CycleSidebarDetails(props: 
               <span className="text-14">{t("points")}</span>
             </div>
             <div className="flex w-3/5 items-center">
-              <span className="px-1.5 text-13 text-tertiary">{issueEstimatePointCount}</span>
+              <span className="px-1.5 text-13 text-tertiary tabular-nums">{issueEstimatePointCount}</span>
             </div>
           </div>
         )}

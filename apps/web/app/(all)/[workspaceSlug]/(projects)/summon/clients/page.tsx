@@ -105,7 +105,9 @@ export default function SummonClientsPage({ params }: Route.ComponentProps) {
                     <Building2 className="size-4.5" />
                   </span>
                   <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold text-primary">{client.name}</h2>
+                    <h2 className="truncate text-sm font-semibold text-primary" title={client.name}>
+                      {client.name}
+                    </h2>
                     <p className="mt-0.5 truncate text-12 text-secondary">
                       {client.company_name || client.industry || "Company details not set"}
                     </p>

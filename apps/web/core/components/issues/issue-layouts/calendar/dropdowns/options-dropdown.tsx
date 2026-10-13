@@ -96,7 +96,7 @@ export const CalendarOptionsDropdown = observer(function CalendarOptionsDropdown
               >
                 <div className="font-medium">{t("common.options")}</div>
                 <div
-                  className={`flex h-3.5 w-3.5 items-center justify-center transition-all ${popoverOpen ? "" : "rotate-180"}`}
+                  className={`flex h-3.5 w-3.5 items-center justify-center transition-[rotate] ${popoverOpen ? "" : "rotate-180"}`}
                 >
                   <ChevronUpIcon width={12} strokeWidth={2} />
                 </div>

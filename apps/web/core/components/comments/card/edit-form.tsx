@@ -116,6 +116,7 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
             type="button"
             onClick={handleSubmit(onEnter)}
             disabled={isDisabled}
+            aria-label="Save comment"
             className={cn(
               "group grid size-7 place-items-center rounded-lg border border-success-subtle bg-success-subtle shadow-raised-100 duration-300",
               isDisabled ? "" : "hover:bg-success-subtle-1"
@@ -127,6 +128,7 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
         <button
           type="button"
           disabled={isSubmitting}
+          aria-label="Cancel editing"
           className={cn(
             "group grid size-7 place-items-center rounded-lg border border-danger-subtle bg-danger-subtle shadow-raised-100 duration-300",
             isSubmitting ? "" : "hover:bg-danger-subtle-hover"

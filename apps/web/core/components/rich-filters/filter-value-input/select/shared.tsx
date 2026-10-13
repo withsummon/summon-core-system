@@ -37,7 +37,7 @@ export const getFormattedOptions = <V extends TFilterValue>(options: IFilterOpti
   options.map((option) => ({
     value: option.value,
     content: (
-      <div className="flex items-center gap-2 transition-all duration-200 ease-in-out">
+      <div className="flex items-center gap-2">
         {option.icon && (
           <span className={cn("transition-transform duration-200", option.iconClassName)}>{option.icon}</span>
         )}
@@ -51,7 +51,7 @@ export const getFormattedOptions = <V extends TFilterValue>(options: IFilterOpti
 
 export const getCommonCustomSearchSelectProps = (isDisabled?: boolean) => ({
   customButtonClassName: cn(
-    "h-full w-full px-2 text-13 font-regular transition-all duration-300 ease-in-out",
+    "h-full w-full px-2 text-13 font-regular transition-colors duration-300 ease-in-out",
     !isDisabled && COMMON_FILTER_ITEM_BORDER_CLASSNAME,
     isDisabled && "hover:bg-surface-1"
   ),
