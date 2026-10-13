@@ -1,0 +1,34 @@
+{
+  "name": "ai",
+  "version": "1.4.2",
+  "private": true,
+  "description": "Summon AI service: streams assistant turns for the web app and serves the Summon MCP server",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "build": "bun build src/main.ts --target=bun --outdir=dist --sourcemap=linked",
+    "start": "bun dist/main.js",
+    "test": "vitest run",
+    "check:lint": "oxlint --max-warnings=0 .",
+    "check:types": "tsc --noEmit",
+    "check:format": "oxfmt --check .",
+    "fix:lint": "oxlint --fix .",
+    "fix:format": "oxfmt .",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:effect4",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "@plane/summon-contract": "workspace:*",
+    "ai": "catalog:",
+    "effect": "catalog:effect4"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:effect4",
+    "@plane/typescript-config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

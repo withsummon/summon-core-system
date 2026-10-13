@@ -1,0 +1,9 @@
+{
+  "extends": "@plane/typescript-config/base.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "lib": ["es2023", "dom", "dom.iterable"]
+  },
+  "include": ["src", "tests"],
+  "exclude": ["node_modules", "dist"]
+}

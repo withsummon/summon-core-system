@@ -1,0 +1,4 @@
+{
+  "server": "makeplane/plane-mcp-server:v0.3.1",
+  "tools": []
+}
